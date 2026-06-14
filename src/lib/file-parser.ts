@@ -212,9 +212,9 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
 
   // Colonne du mois : celle où on trouve le plus de noms de mois
   const startRow = headerIdx >= 0 ? headerIdx + 1 : 0;
+  const colCount = Math.max(...rows.map((r) => r.length));
   let monthCol = 0;
   if (headerIdx >= 0) {
-    const colCount = Math.max(...rows.map((r) => r.length));
     let best = -1;
     for (let c = 0; c < colCount; c++) {
       if (c === travauxCol) continue;
@@ -228,31 +228,60 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
       }
     }
   }
-
-  const result: PlanningRow[] = [];
-  let lastRow: PlanningRow | null = null;
-  for (let r = startRow; r < rows.length; r++) {
-    const row = rows[r];
-    const travauxText = travauxCol >= 0 ? row[travauxCol] || "" : row.join(" ");
-    const monthText = travauxCol >= 0 ? row[monthCol] || "" : row.join(" ");
-    const m = monthFromString(monthText) || monthFromString(travauxText);
-    const tasks = splitCellTasks(travauxText);
-    if (m) {
-      const existing = result.find((x) => x.month === m.num);
-      if (existing) {
-        existing.tasks.push(...tasks.filter((t) => !existing.tasks.includes(t)));
-        lastRow = existing;
-      } else {
-        lastRow = { month: m.num, monthLabel: m.label, tasks: [...tasks] };
-        result.push(lastRow);
-      }
-    } else if (lastRow && tasks.length) {
-      // ligne de continuation (cellule mois fusionnée / vide)
-      lastRow.tasks.push(...tasks.filter((t) => !lastRow!.tasks.includes(t)));
+  // Colonne « Type d'intervention » : la colonne restante
+  let typeCol = -1;
+  for (let c = 0; c < colCount; c++) {
+    if (c !== monthCol && c !== travauxCol) {
+      typeCol = c;
+      break;
     }
   }
 
-  result.sort((a, b) => a.month - b.month);
+  const cleanLabel = (s: string) => s.replace(/\s+/g, " ").trim();
+  const mergeType = (existing: string, add: string) => {
+    const tokens = new Set(
+      [...existing.split("·"), ...add.split(/\r?\n|·/)]
+        .map((t) => t.trim())
+        .filter(Boolean),
+    );
+    return Array.from(tokens).join(" · ");
+  };
+
+  const result: PlanningRow[] = [];
+  let lastRow: PlanningRow | null = null;
+  let order = 0;
+  for (let r = startRow; r < rows.length; r++) {
+    const row = rows[r];
+    const get = (c: number) => (c >= 0 && c < row.length ? row[c] || "" : "");
+    const monthText = travauxCol >= 0 ? get(monthCol) : row.join(" ");
+    const typeText = get(typeCol);
+    const travauxText = travauxCol >= 0 ? get(travauxCol) : row.join(" ");
+    if (isNoiseRow([monthText, typeText, travauxText].join(" "))) continue;
+
+    const tasks = splitCellTasks(travauxText);
+    // Nouvelle intervention : un mois dans la colonne mois (ou, à défaut,
+    // dans la colonne type — cas des cellules fusionnées).
+    const monthInMonth = monthFromString(monthText);
+    const monthInType = monthText.trim() === "" ? monthFromString(typeText) : null;
+    const m = monthInMonth || monthInType;
+    if (m && (monthText.trim() !== "" || typeText.trim() !== "")) {
+      lastRow = {
+        index: order++,
+        month: m.num,
+        monthLabel: m.label,
+        label: cleanLabel(monthInMonth ? monthText : typeText) || m.label,
+        type: cleanLabel(monthInMonth ? typeText.replace(/\r?\n/g, " · ") : ""),
+        tasks: [...tasks],
+      };
+      result.push(lastRow);
+    } else if (lastRow && monthText.trim() === "" && tasks.length) {
+      // ligne de continuation (cellule fusionnée sur plusieurs lignes PDF)
+      lastRow.tasks.push(...tasks.filter((t) => !lastRow!.tasks.includes(t)));
+      if (typeText.trim()) lastRow.type = mergeType(lastRow.type, typeText);
+    }
+  }
+
+  // On conserve l'ordre du document (séquence des interventions).
   return result;
 }
 
