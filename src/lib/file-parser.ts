@@ -63,9 +63,7 @@ function splitCellTasks(cell: string): string[] {
 // ───────────────────────── Extraction du tableau ─────────────────────────
 
 async function tableFromDocx(file: File): Promise<string[][]> {
-  const mammoth = (await import("mammoth/mammoth.browser")) as {
-    convertToHtml: (input: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>;
-  };
+  const mammoth = await import("mammoth/mammoth.browser");
   const arrayBuffer = await file.arrayBuffer();
   const { value: html } = await mammoth.convertToHtml({ arrayBuffer });
   const doc = new DOMParser().parseFromString(html, "text/html");
