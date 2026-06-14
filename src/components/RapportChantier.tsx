@@ -21,6 +21,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { parsePlanning, type PlanningRow } from "@/lib/file-parser";
@@ -68,6 +75,7 @@ export default function RapportChantier() {
     new Date(),
   );
   const [planning, setPlanning] = useState<PlanningRow[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
@@ -84,18 +92,32 @@ export default function RapportChantier() {
 
   const currentMonth = dateIntervention ? dateIntervention.getMonth() + 1 : null;
 
-  // Ligne du planning correspondant au mois de l'intervention
-  const currentRow = useMemo(
-    () => planning.find((r) => r.month === currentMonth) ?? null,
+  // Interventions planifiées pour le mois de l'intervention
+  const candidates = useMemo(
+    () => planning.filter((r) => r.month === currentMonth),
     [planning, currentMonth],
   );
 
-  // Ligne suivante (prochaine intervention planifiée)
+  // Intervention sélectionnée (par défaut, la 1re du mois)
+  const currentRow = useMemo(
+    () => planning.find((r) => r.index === selectedIndex) ?? null,
+    [planning, selectedIndex],
+  );
+
+  // Sélectionne automatiquement la 1re intervention du mois à l'import / au
+  // changement de date.
+  useEffect(() => {
+    setSelectedIndex((prev) => {
+      if (prev != null && candidates.some((r) => r.index === prev)) return prev;
+      return candidates[0]?.index ?? null;
+    });
+  }, [candidates]);
+
+  // Ligne suivante = intervention juste après dans le planning (ordre du document)
   const nextRow = useMemo(() => {
-    if (currentMonth == null) return null;
-    const after = planning.filter((r) => r.month > currentMonth);
-    return after[0] ?? null;
-  }, [planning, currentMonth]);
+    if (currentRow == null) return null;
+    return planning[currentRow.index + 1] ?? null;
+  }, [planning, currentRow]);
 
   async function handlePlanning(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -361,14 +383,35 @@ export default function RapportChantier() {
             <span className="text-xs text-muted-foreground">PDF ou Word (.docx)</span>
           </button>
           {planning.length > 0 && (
-            <p className="mt-3 text-sm text-muted-foreground">
-              {planning.length} mois détecté(s).{" "}
-              {currentRow
-                ? `Mois affiché : ${currentRow.monthLabel}.`
-                : currentMonth != null
-                  ? "Aucune intervention planifiée pour ce mois — changez la date."
-                  : ""}
-            </p>
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {planning.length} intervention(s) détectée(s) dans le planning.
+              </p>
+              <Label>Intervention concernée</Label>
+              <Select
+                value={selectedIndex != null ? String(selectedIndex) : undefined}
+                onValueChange={(v) => setSelectedIndex(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir l'intervention du planning" />
+                </SelectTrigger>
+                <SelectContent>
+                  {planning.map((r) => (
+                    <SelectItem key={r.index} value={String(r.index)}>
+                      {r.label}
+                      {r.type ? ` — ${r.type}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {candidates.length === 0 && currentMonth != null && (
+                <p className="text-xs text-muted-foreground">
+                  Aucune intervention planifiée en{" "}
+                  {format(dateIntervention!, "MMMM", { locale: fr })} : choisissez
+                  l'intervention manuellement ci-dessus.
+                </p>
+              )}
+            </div>
           )}
         </Section>
 
