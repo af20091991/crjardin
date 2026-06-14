@@ -71,7 +71,13 @@ function isNoiseRow(joined: string): boolean {
   if (/^\d{1,3}$/.test(d.trim())) return true; // numéro de page
   return [
     "planning d'entretien",
-    "planning d entretien",
+    "planning d",
+    "jardin de mme",
+    "travaux a effectuer",
+    "type d'intervention",
+    "type d intervention",
+    "mois d'intervention",
+    "mois d intervention",
     "lie aux devis",
     "devis sap",
     "total entretien",
@@ -85,6 +91,14 @@ function isNoiseRow(joined: string): boolean {
     "ajouts de travaux",
     "interventions :",
   ].some((p) => d.includes(p));
+}
+
+// Sections après lesquelles il n'y a plus d'interventions (on arrête le parsing)
+function isStopRow(joined: string): boolean {
+  const d = deburr(joined);
+  return ["total entretien", "ce planning", "respect de la saisonnalite", "note :"].some(
+    (p) => d.includes(p),
+  );
 }
 
 // ───────────────────────── Extraction du tableau ─────────────────────────
