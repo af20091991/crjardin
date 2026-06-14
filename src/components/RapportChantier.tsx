@@ -34,6 +34,7 @@ interface Task {
   label: string;
   status: TaskStatus;
   note: string; // remarque (réalisé) ou motif (reporté)
+  manual?: boolean; // ajoutée manuellement (hors planning)
 }
 
 function uid() {
