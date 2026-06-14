@@ -94,10 +94,11 @@ async function tableFromDocx(file: File): Promise<string[][]> {
   const arrayBuffer = await file.arrayBuffer();
   const { value: html } = await mammoth.convertToHtml({ arrayBuffer });
   const doc = new DOMParser().parseFromString(html, "text/html");
-  const table = doc.querySelector("table");
-  if (!table) return [];
+  const tables = doc.querySelectorAll("table");
+  if (!tables.length) return [];
   const rows: string[][] = [];
-  table.querySelectorAll("tr").forEach((tr) => {
+  tables.forEach((table) => {
+    table.querySelectorAll("tr").forEach((tr) => {
     const cells: string[] = [];
     tr.querySelectorAll("th,td").forEach((td) => {
       // remplace les blocs par des sauts de ligne pour conserver les tâches
@@ -115,6 +116,7 @@ async function tableFromDocx(file: File): Promise<string[][]> {
       cells.push(text);
     });
     if (cells.length) rows.push(cells);
+    });
   });
   return rows;
 }
