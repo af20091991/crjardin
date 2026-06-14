@@ -3,8 +3,11 @@
 // « Travaux à effectuer ».
 
 export interface PlanningRow {
+  index: number; // ordre dans le document
   month: number; // 1-12
-  monthLabel: string;
+  monthLabel: string; // "Juin"
+  label: string; // libellé de l'intervention, ex "Juin 2"
+  type: string; // type d'intervention, ex "Rotofil · Taille"
   tasks: string[];
 }
 
