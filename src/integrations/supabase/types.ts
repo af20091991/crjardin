@@ -14,54 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      rapports: {
-        Row: {
-          autres_remarques: string | null
-          created_at: string
-          date_intervention: string | null
-          email_client: string
-          envoye: boolean
-          id: string
-          nom_client: string
-          photos: Json
-          remarques: string | null
-          travaux_prevus: Json
-          travaux_prochaine: string | null
-          travaux_realises: Json
-          travaux_reportes: Json
-        }
-        Insert: {
-          autres_remarques?: string | null
-          created_at?: string
-          date_intervention?: string | null
-          email_client: string
-          envoye?: boolean
-          id?: string
-          nom_client: string
-          photos?: Json
-          remarques?: string | null
-          travaux_prevus?: Json
-          travaux_prochaine?: string | null
-          travaux_realises?: Json
-          travaux_reportes?: Json
-        }
-        Update: {
-          autres_remarques?: string | null
-          created_at?: string
-          date_intervention?: string | null
-          email_client?: string
-          envoye?: boolean
-          id?: string
-          nom_client?: string
-          photos?: Json
-          remarques?: string | null
-          travaux_prevus?: Json
-          travaux_prochaine?: string | null
-          travaux_realises?: Json
-          travaux_reportes?: Json
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
