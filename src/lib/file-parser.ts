@@ -58,9 +58,33 @@ function splitCellTasks(cell: string): string[] {
       .trim();
     if (cleaned.length < 2) continue;
     if (cleaned.length > 200) continue;
+    const d = deburr(cleaned);
+    if (d.includes("pas d'intervention") || d.includes("pas d intervention")) continue;
     out.push(cleaned);
   }
   return Array.from(new Set(out));
+}
+
+// Lignes parasites (en-têtes de page, notes, totaux, signature…)
+function isNoiseRow(joined: string): boolean {
+  const d = deburr(joined);
+  if (/^\d{1,3}$/.test(d.trim())) return true; // numéro de page
+  return [
+    "planning d'entretien",
+    "planning d entretien",
+    "lie aux devis",
+    "devis sap",
+    "total entretien",
+    "respect de la saisonnalite",
+    "signature",
+    "ce planning",
+    "prix ttc",
+    "facturation",
+    "remise fidelite",
+    "sous-total",
+    "ajouts de travaux",
+    "interventions :",
+  ].some((p) => d.includes(p));
 }
 
 // ───────────────────────── Extraction du tableau ─────────────────────────
