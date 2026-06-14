@@ -385,17 +385,16 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
 
 export async function parsePlanning(file: File): Promise<PlanningRow[]> {
   const name = file.name.toLowerCase();
-  let rows: string[][];
   if (name.endsWith(".pdf") || file.type === "application/pdf") {
-    rows = await tableFromPdf(file);
-  } else if (
+    return planningFromPdf(file);
+  }
+  if (
     name.endsWith(".docx") ||
     file.type.includes("word") ||
     file.type.includes("officedocument")
   ) {
-    rows = await tableFromDocx(file);
-  } else {
-    rows = (await file.text()).split(/\r?\n/).map((l) => [l]);
+    return planningFromTable(await tableFromDocx(file));
   }
+  const rows = (await file.text()).split(/\r?\n/).map((l) => [l]);
   return planningFromTable(rows);
 }
