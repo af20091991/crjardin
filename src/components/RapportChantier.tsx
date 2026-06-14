@@ -383,14 +383,35 @@ export default function RapportChantier() {
             <span className="text-xs text-muted-foreground">PDF ou Word (.docx)</span>
           </button>
           {planning.length > 0 && (
-            <p className="mt-3 text-sm text-muted-foreground">
-              {planning.length} mois détecté(s).{" "}
-              {currentRow
-                ? `Mois affiché : ${currentRow.monthLabel}.`
-                : currentMonth != null
-                  ? "Aucune intervention planifiée pour ce mois — changez la date."
-                  : ""}
-            </p>
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                {planning.length} intervention(s) détectée(s) dans le planning.
+              </p>
+              <Label>Intervention concernée</Label>
+              <Select
+                value={selectedIndex != null ? String(selectedIndex) : undefined}
+                onValueChange={(v) => setSelectedIndex(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir l'intervention du planning" />
+                </SelectTrigger>
+                <SelectContent>
+                  {planning.map((r) => (
+                    <SelectItem key={r.index} value={String(r.index)}>
+                      {r.label}
+                      {r.type ? ` — ${r.type}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {candidates.length === 0 && currentMonth != null && (
+                <p className="text-xs text-muted-foreground">
+                  Aucune intervention planifiée en{" "}
+                  {format(dateIntervention!, "MMMM", { locale: fr })} : choisissez
+                  l'intervention manuellement ci-dessus.
+                </p>
+              )}
+            </div>
           )}
         </Section>
 
