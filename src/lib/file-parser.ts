@@ -135,7 +135,7 @@ async function tableFromDocx(file: File): Promise<string[][]> {
   return rows;
 }
 
-async function tableFromPdf(file: File): Promise<string[][]> {
+async function planningFromPdf(file: File): Promise<PlanningRow[]> {
   const pdfjs = await import("pdfjs-dist");
   const workerMod = (await import(
     /* @vite-ignore */ "pdfjs-dist/build/pdf.worker.min.mjs?url"
@@ -158,52 +158,136 @@ async function tableFromPdf(file: File): Promise<string[][]> {
     }
   }
 
-  // Regroupement en lignes par coordonnée Y (tolérance)
+  // Détection des 3 colonnes (Mois | Type | Travaux) par pics de densité des
+  // positions horizontales : l'en-tête est centré, mais le contenu est calé à
+  // gauche de chaque colonne, formant 3 pics nets.
+  const BIN = 10;
+  const hist = new Map<number, number>();
+  for (const it of all) {
+    const b = Math.round(it.x / BIN) * BIN;
+    hist.set(b, (hist.get(b) ?? 0) + 1);
+  }
+  const bins = [...hist.entries()].sort((a, b) => a[0] - b[0]);
+  const peaks = bins
+    .filter(([, n]) => n >= 5)
+    .filter(([x, n]) => !bins.some(([x2, n2]) => Math.abs(x2 - x) <= 20 && n2 > n))
+    .sort((a, b) => b[1] - a[1]);
+  const chosen: number[] = [];
+  for (const [x] of peaks) {
+    if (chosen.every((c) => Math.abs(c - x) >= 80)) chosen.push(x);
+    if (chosen.length === 3) break;
+  }
+  chosen.sort((a, b) => a - b);
+
+  // Regroupement en lignes par coordonnée Y
   all.sort((a, b) => a.y - b.y || a.x - b.x);
-  const lines: Item[][] = [];
+  type Line = { y: number; month: string; type: string; travaux: string };
+  const rawLines: Item[][] = [];
   let current: Item[] = [];
   let lastY = Number.NEGATIVE_INFINITY;
   for (const it of all) {
     if (current.length && Math.abs(it.y - lastY) > 4) {
-      lines.push(current);
+      rawLines.push(current);
       current = [];
     }
     current.push(it);
     lastY = it.y;
   }
-  if (current.length) lines.push(current);
+  if (current.length) rawLines.push(current);
 
-  // Frontières des colonnes (Mois | Type | Travaux à effectuer) depuis l'en-tête
-  let typeStart = -1;
-  let travauxStart = -1;
-  for (const line of lines) {
-    const joined = deburr(line.map((i) => i.str).join(" "));
-    if (joined.includes("travaux") && joined.includes("effectuer")) {
-      const sorted = [...line].sort((a, b) => a.x - b.x);
-      const tIdx = sorted.findIndex((i) => deburr(i.str).includes("travaux"));
-      if (tIdx >= 0) travauxStart = sorted[tIdx].x - 2;
-      const typeIdx = sorted.findIndex((i) => deburr(i.str).includes("type"));
-      if (typeIdx >= 0) typeStart = sorted[typeIdx].x - 2;
+  // Sans 3 colonnes fiables : repli sur une seule colonne « travaux »
+  const typeStart = chosen.length === 3 ? (chosen[0] + chosen[1]) / 2 : -1;
+  const travauxStart = chosen.length === 3 ? (chosen[1] + chosen[2]) / 2 : -1;
+
+  const lines: Line[] = rawLines.map((line) => {
+    const sorted = [...line].sort((a, b) => a.x - b.x);
+    const join = (pred: (x: number) => boolean) =>
+      sorted.filter((i) => pred(i.x)).map((i) => i.str).join(" ").trim();
+    if (travauxStart < 0) {
+      return { y: sorted[0].y, month: "", type: "", travaux: join(() => true) };
+    }
+    return {
+      y: sorted[0].y,
+      month: join((x) => x < typeStart),
+      type: join((x) => x >= typeStart && x < travauxStart),
+      travaux: join((x) => x >= travauxStart),
+    };
+  });
+
+  // Coupe au début des sections « totaux / conditions »
+  let cutoff = Number.POSITIVE_INFINITY;
+  for (const l of lines) {
+    if (isStopRow([l.month, l.type, l.travaux].join(" "))) {
+      cutoff = l.y;
       break;
     }
   }
-  if (typeStart < 0) typeStart = travauxStart;
 
-  const rows: string[][] = [];
-  for (const line of lines) {
-    const sorted = [...line].sort((a, b) => a.x - b.x);
-    if (travauxStart >= 0) {
-      const join = (pred: (x: number) => boolean) =>
-        sorted.filter((i) => pred(i.x)).map((i) => i.str).join(" ").trim();
-      const monthCell = join((x) => x < typeStart);
-      const typeCell = join((x) => x >= typeStart && x < travauxStart);
-      const travauxCell = join((x) => x >= travauxStart);
-      rows.push([monthCell, typeCell, travauxCell]);
-    } else {
-      rows.push([sorted.map((i) => i.str).join(" ").trim()]);
+  // Repérage des « ancres » : lignes contenant un mois (= début d'intervention)
+  type Anchor = {
+    y: number;
+    month: number;
+    monthLabel: string;
+    label: string;
+    typeTokens: Set<string>;
+    tasks: string[];
+  };
+  const anchors: Anchor[] = [];
+  for (const l of lines) {
+    if (l.y >= cutoff) continue;
+    const joined = [l.month, l.type, l.travaux].join(" ");
+    if (isNoiseRow(joined)) continue;
+    const mInMonth = monthFromString(l.month);
+    const mInType = l.month.trim() === "" ? monthFromString(l.type) : null;
+    const m = mInMonth || mInType;
+    if (m) {
+      anchors.push({
+        y: l.y,
+        month: m.num,
+        monthLabel: m.label,
+        label: (mInMonth ? l.month : l.type).replace(/\s+/g, " ").trim() || m.label,
+        typeTokens: new Set(),
+        tasks: [],
+      });
     }
   }
-  return rows;
+  if (anchors.length === 0) return [];
+
+  // Frontières entre interventions = milieu entre deux ancres consécutives
+  const lowB: number[] = [];
+  const highB: number[] = [];
+  for (let i = 0; i < anchors.length; i++) {
+    lowB[i] = i === 0 ? Number.NEGATIVE_INFINITY : (anchors[i - 1].y + anchors[i].y) / 2;
+    highB[i] =
+      i === anchors.length - 1
+        ? Number.POSITIVE_INFINITY
+        : (anchors[i].y + anchors[i + 1].y) / 2;
+  }
+
+  for (const l of lines) {
+    if (l.y >= cutoff) continue;
+    const joined = [l.month, l.type, l.travaux].join(" ");
+    if (isNoiseRow(joined)) continue;
+    const idx = anchors.findIndex((_, i) => l.y >= lowB[i] && l.y < highB[i]);
+    if (idx < 0) continue;
+    if (l.travaux.trim()) anchors[idx].tasks.push(...splitCellTasks(l.travaux));
+    if (l.type.trim()) {
+      l.type
+        .split(/\s+/)
+        .map((t) => t.trim())
+        .filter((t) => t.length > 2)
+        .forEach((t) => anchors[idx].typeTokens.add(t));
+    }
+  }
+
+  return anchors.map<PlanningRow>((a, i) => ({
+    index: i,
+    month: a.month,
+    monthLabel: a.monthLabel,
+    label: a.label,
+    type: [...a.typeTokens].slice(0, 6).join(" · "),
+    tasks: Array.from(new Set(a.tasks)),
+  }));
 }
 
 // ───────────────────────── Construction du planning ─────────────────────────
