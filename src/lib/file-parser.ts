@@ -159,43 +159,32 @@ async function tableFromPdf(file: File): Promise<string[][]> {
   }
   if (current.length) lines.push(current);
 
-  // Détermine les frontières de colonnes à partir de la ligne d'en-tête
+  // Frontières des colonnes (Mois | Type | Travaux à effectuer) depuis l'en-tête
+  let typeStart = -1;
   let travauxStart = -1;
-  let travauxEnd = Number.POSITIVE_INFINITY;
   for (const line of lines) {
     const joined = deburr(line.map((i) => i.str).join(" "));
     if (joined.includes("travaux") && joined.includes("effectuer")) {
       const sorted = [...line].sort((a, b) => a.x - b.x);
-      const idx = sorted.findIndex((i) => deburr(i.str).includes("travaux"));
-      if (idx >= 0) {
-        travauxStart = sorted[idx].x - 2;
-        // borne droite = début de la colonne d'en-tête suivante
-        for (let k = idx + 1; k < sorted.length; k++) {
-          if (sorted[k].x > travauxStart + 30) {
-            travauxEnd = sorted[k].x - 2;
-            break;
-          }
-        }
-      }
+      const tIdx = sorted.findIndex((i) => deburr(i.str).includes("travaux"));
+      if (tIdx >= 0) travauxStart = sorted[tIdx].x - 2;
+      const typeIdx = sorted.findIndex((i) => deburr(i.str).includes("type"));
+      if (typeIdx >= 0) typeStart = sorted[typeIdx].x - 2;
       break;
     }
   }
+  if (typeStart < 0) typeStart = travauxStart;
 
   const rows: string[][] = [];
   for (const line of lines) {
     const sorted = [...line].sort((a, b) => a.x - b.x);
     if (travauxStart >= 0) {
-      const monthCell = sorted
-        .filter((i) => i.x < travauxStart)
-        .map((i) => i.str)
-        .join(" ")
-        .trim();
-      const travauxCell = sorted
-        .filter((i) => i.x >= travauxStart && i.x < travauxEnd)
-        .map((i) => i.str)
-        .join(" ")
-        .trim();
-      rows.push([monthCell, travauxCell]);
+      const join = (pred: (x: number) => boolean) =>
+        sorted.filter((i) => pred(i.x)).map((i) => i.str).join(" ").trim();
+      const monthCell = join((x) => x < typeStart);
+      const typeCell = join((x) => x >= typeStart && x < travauxStart);
+      const travauxCell = join((x) => x >= travauxStart);
+      rows.push([monthCell, typeCell, travauxCell]);
     } else {
       rows.push([sorted.map((i) => i.str).join(" ").trim()]);
     }
