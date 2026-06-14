@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -6,7 +6,7 @@ import {
   FileUp,
   ImagePlus,
   Loader2,
-  Mail,
+  FileDown,
   Plus,
   Sprout,
   Trash2,
@@ -23,10 +23,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { extractTextFromFile, parseTasksFromText } from "@/lib/file-parser";
+import { parsePlanning, type PlanningRow } from "@/lib/file-parser";
 import { uploadPhoto, type UploadedPhoto } from "@/lib/storage";
-
-const DOUBLON_EMAIL = "client@delagraineaujardin.com";
+import { exportReportPdf } from "@/lib/pdf-export";
 
 type TaskStatus = "pending" | "realise" | "reporte";
 
@@ -35,6 +34,7 @@ interface Task {
   label: string;
   status: TaskStatus;
   note: string; // remarque (réalisé) ou motif (reporté)
+  manual?: boolean; // ajoutée manuellement (hors planning)
 }
 
 function uid() {
@@ -67,6 +67,7 @@ export default function RapportChantier() {
   const [dateIntervention, setDateIntervention] = useState<Date | undefined>(
     new Date(),
   );
+  const [planning, setPlanning] = useState<PlanningRow[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
@@ -79,6 +80,22 @@ export default function RapportChantier() {
 
   const planningInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
+  const autoProchaineRef = useRef("");
+
+  const currentMonth = dateIntervention ? dateIntervention.getMonth() + 1 : null;
+
+  // Ligne du planning correspondant au mois de l'intervention
+  const currentRow = useMemo(
+    () => planning.find((r) => r.month === currentMonth) ?? null,
+    [planning, currentMonth],
+  );
+
+  // Ligne suivante (prochaine intervention planifiée)
+  const nextRow = useMemo(() => {
+    if (currentMonth == null) return null;
+    const after = planning.filter((r) => r.month > currentMonth);
+    return after[0] ?? null;
+  }, [planning, currentMonth]);
 
   async function handlePlanning(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -86,20 +103,18 @@ export default function RapportChantier() {
     if (!file) return;
     setParsing(true);
     try {
-      const text = await extractTextFromFile(file);
-      const found = parseTasksFromText(text);
-      if (found.length === 0) {
-        toast.error("Aucune tâche détectée dans ce fichier.");
+      const rows = await parsePlanning(file);
+      const total = rows.reduce((n, r) => n + r.tasks.length, 0);
+      if (total === 0) {
+        toast.error(
+          "Aucune tâche détectée. Vérifiez la présence d'une colonne « Travaux à effectuer ».",
+        );
         return;
       }
-      setTasks((prev) => {
-        const existing = new Set(prev.map((t) => t.label.toLowerCase()));
-        const added = found
-          .filter((l) => !existing.has(l.toLowerCase()))
-          .map<Task>((label) => ({ id: uid(), label, status: "pending", note: "" }));
-        return [...prev, ...added];
-      });
-      toast.success(`${found.length} tâche(s) importée(s) du planning.`);
+      setPlanning(rows);
+      toast.success(
+        `Planning importé : ${rows.length} mois, ${total} tâche(s) au total.`,
+      );
     } catch (err) {
       console.error(err);
       toast.error("Impossible de lire ce fichier. Formats acceptés : PDF, Word (.docx).");
@@ -108,10 +123,59 @@ export default function RapportChantier() {
     }
   }
 
+  // Reconstitue la liste des tâches du mois courant en conservant les
+  // statuts/notes déjà saisis (par libellé).
+  useEffect(() => {
+    const labels = currentRow?.tasks ?? [];
+    setTasks((prev) => {
+      const byLabel = new Map(prev.map((t) => [t.label.toLowerCase(), t]));
+      const planned = labels.map<Task>((label) => {
+        const ex = byLabel.get(label.toLowerCase());
+        return ex
+          ? { ...ex, label }
+          : { id: uid(), label, status: "pending", note: "" };
+      });
+      // conserve les tâches ajoutées manuellement (absentes du planning)
+      const plannedSet = new Set(labels.map((l) => l.toLowerCase()));
+      const manual = prev.filter((t) => !plannedSet.has(t.label.toLowerCase()) && t.manual);
+      return [...planned, ...manual];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentRow]);
+
+  // Calcul automatique des travaux de la prochaine intervention
+  const autoProchaine = useMemo(() => {
+    const parts: string[] = [];
+    const reportes = tasks.filter((t) => t.status === "reporte");
+    if (reportes.length && currentRow) {
+      parts.push(`Travaux reportés de ${currentRow.monthLabel} :`);
+      reportes.forEach((t) =>
+        parts.push(`- ${t.label}${t.note ? ` (${t.note})` : ""}`),
+      );
+    }
+    if (nextRow && nextRow.tasks.length) {
+      if (parts.length) parts.push("");
+      parts.push(`Travaux prévus en ${nextRow.monthLabel} :`);
+      nextRow.tasks.forEach((t) => parts.push(`- ${t}`));
+    }
+    return parts.join("\n");
+  }, [tasks, currentRow, nextRow]);
+
+  // Met à jour le champ tant que l'utilisateur ne l'a pas édité manuellement
+  useEffect(() => {
+    setTravauxProchaine((prev) =>
+      prev === autoProchaineRef.current ? autoProchaine : prev,
+    );
+    autoProchaineRef.current = autoProchaine;
+  }, [autoProchaine]);
+
   function addManualTask() {
     const label = newTask.trim();
     if (!label) return;
-    setTasks((prev) => [...prev, { id: uid(), label, status: "pending", note: "" }]);
+    setTasks((prev) => [
+      ...prev,
+      { id: uid(), label, status: "pending", note: "", manual: true },
+    ]);
     setNewTask("");
   }
 
@@ -152,80 +216,36 @@ export default function RapportChantier() {
     setPhotos((prev) => prev.filter((p) => p.path !== path));
   }
 
-  function buildReport(): string {
-    const realises = tasks.filter((t) => t.status === "realise");
-    const reportes = tasks.filter((t) => t.status === "reporte");
-    const dateStr = dateIntervention
-      ? format(dateIntervention, "EEEE d MMMM yyyy", { locale: fr })
-      : "—";
-
-    const lines: string[] = [];
-    lines.push("RAPPORT DE FIN DE CHANTIER");
-    lines.push("De la graine au jardin");
-    lines.push("");
-    lines.push(`Client : ${nomClient || "—"}`);
-    lines.push(`Date d'intervention : ${dateStr}`);
-    lines.push("");
-    lines.push("— TRAVAUX RÉALISÉS —");
-    if (realises.length) {
-      realises.forEach((t) =>
-        lines.push(`• ${t.label}${t.note ? ` (${t.note})` : ""}`),
-      );
-    } else {
-      lines.push("Aucun");
-    }
-    lines.push("");
-    lines.push("— TRAVAUX REPORTÉS —");
-    if (reportes.length) {
-      reportes.forEach((t) =>
-        lines.push(`• ${t.label}${t.note ? ` — motif : ${t.note}` : ""}`),
-      );
-    } else {
-      lines.push("Aucun");
-    }
-    lines.push("");
-    if (travauxProchaine.trim()) {
-      lines.push("— TRAVAUX PRÉVUS PROCHAINE INTERVENTION —");
-      lines.push(travauxProchaine.trim());
-      lines.push("");
-    }
-    if (autresRemarques.trim()) {
-      lines.push("— AUTRES REMARQUES —");
-      lines.push(autresRemarques.trim());
-      lines.push("");
-    }
-    if (photos.length) {
-      lines.push("— PHOTOS DU CHANTIER —");
-      photos.forEach((p, i) => lines.push(`Photo ${i + 1} : ${p.url}`));
-      lines.push("");
-    }
-    lines.push("Cordialement,");
-    lines.push("De la graine au jardin");
-    return lines.join("\n");
-  }
-
-  function handleSend() {
+  async function handleExport() {
     if (!nomClient.trim()) {
       toast.error("Veuillez renseigner le nom du client.");
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClient.trim())) {
-      toast.error("Veuillez renseigner une adresse email client valide.");
-      return;
-    }
     setSending(true);
     try {
-      const subject = `Rapport d'intervention — ${nomClient.trim()}`;
-      const body = buildReport();
-      const mailto = `mailto:${encodeURIComponent(
-        emailClient.trim(),
-      )}?bcc=${encodeURIComponent(DOUBLON_EMAIL)}&subject=${encodeURIComponent(
-        subject,
-      )}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailto;
-      toast.success("Email préparé : une copie est envoyée à " + DOUBLON_EMAIL);
+      await exportReportPdf({
+        nomClient: nomClient.trim(),
+        emailClient: emailClient.trim(),
+        dateLabel: dateIntervention
+          ? format(dateIntervention, "EEEE d MMMM yyyy", { locale: fr })
+          : "—",
+        travauxPrevus: currentRow?.tasks ?? [],
+        realises: tasks
+          .filter((t) => t.status === "realise")
+          .map((t) => ({ label: t.label, note: t.note })),
+        reportes: tasks
+          .filter((t) => t.status === "reporte")
+          .map((t) => ({ label: t.label, note: t.note })),
+        travauxProchaine,
+        autresRemarques,
+        photos,
+      });
+      toast.success("PDF généré : vous pouvez l'envoyer à votre client.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Échec de la génération du PDF.");
     } finally {
-      setTimeout(() => setSending(false), 800);
+      setSending(false);
     }
   }
 
@@ -251,7 +271,7 @@ export default function RapportChantier() {
               Rapport de fin de chantier
             </h1>
             <p className="text-sm text-muted-foreground">
-              De la graine au jardin · Envoi automatique au client
+              De la graine au jardin · Export PDF du rapport
             </p>
           </div>
         </div>
@@ -315,7 +335,7 @@ export default function RapportChantier() {
         {/* Planning */}
         <Section
           title="Planning d'entretien"
-          description="Importez le planning (PDF ou Word) : les tâches prévues sont ajoutées automatiquement."
+          description="Importez le planning (PDF ou Word). Les tâches de la colonne « Travaux à effectuer » du mois correspondant à la date d'intervention sont chargées automatiquement."
         >
           <input
             ref={planningInput}
@@ -340,12 +360,22 @@ export default function RapportChantier() {
             </span>
             <span className="text-xs text-muted-foreground">PDF ou Word (.docx)</span>
           </button>
+          {planning.length > 0 && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {planning.length} mois détecté(s).{" "}
+              {currentRow
+                ? `Mois affiché : ${currentRow.monthLabel}.`
+                : currentMonth != null
+                  ? "Aucune intervention planifiée pour ce mois — changez la date."
+                  : ""}
+            </p>
+          )}
         </Section>
 
         {/* Travaux */}
         <Section
           title="Travaux"
-          description="Cochez « Réalisé » ou « Reporté » pour chaque tâche, puis ajoutez une remarque ou un motif."
+          description="Tâches prévues à la date d'intervention. Cochez « Fait » ou « Reporté » et ajoutez un commentaire."
         >
           {tasks.length > 0 && (
             <div className="mb-4 flex gap-3 text-xs">
@@ -382,7 +412,7 @@ export default function RapportChantier() {
                     variant={t.status === "realise" ? "default" : "outline"}
                     onClick={() => setStatus(t.id, "realise")}
                   >
-                    Réalisé
+                    Fait
                   </Button>
                   <Button
                     type="button"
@@ -399,7 +429,7 @@ export default function RapportChantier() {
                     onChange={(e) => updateTask(t.id, { note: e.target.value })}
                     placeholder={
                       t.status === "realise"
-                        ? "Remarque complémentaire (optionnel)"
+                        ? "Commentaire (optionnel)"
                         : "Motif du report"
                     }
                     className="mt-3"
@@ -483,12 +513,15 @@ export default function RapportChantier() {
         </Section>
 
         {/* Prochaine intervention */}
-        <Section title="Travaux prévus — prochaine intervention">
+        <Section
+          title="Travaux prévus — prochaine intervention"
+          description="Détecté automatiquement : travaux du mois suivant dans le planning + travaux reportés de cette intervention. Modifiable."
+        >
           <Textarea
             value={travauxProchaine}
             onChange={(e) => setTravauxProchaine(e.target.value)}
             placeholder="Décrivez les travaux à prévoir lors de la prochaine intervention…"
-            rows={4}
+            rows={6}
             maxLength={1500}
           />
         </Section>
@@ -510,19 +543,19 @@ export default function RapportChantier() {
             type="button"
             size="lg"
             className="w-full shadow-lg"
-            onClick={handleSend}
+            onClick={handleExport}
             disabled={sending}
           >
             {sending ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
-              <Mail className="mr-2 h-5 w-5" />
+              <FileDown className="mr-2 h-5 w-5" />
             )}
-            Envoyer le rapport au client
+            Exporter le rapport en PDF
           </Button>
           <p className="mt-2 flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
             <Sprout className="h-3.5 w-3.5" />
-            Une copie est automatiquement envoyée à {DOUBLON_EMAIL}
+            Le PDF sera téléchargé ; vous pourrez l'envoyer à votre client.
           </p>
         </div>
       </main>
