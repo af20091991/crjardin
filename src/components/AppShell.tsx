@@ -43,7 +43,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                   : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
               }`}
             >
-              <item.icon className="h-4.5 w-4.5" />
+              <item.icon className="h-5 w-5" />
               {item.label}
             </Link>
           ))}
