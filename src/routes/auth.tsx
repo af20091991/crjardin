@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +61,7 @@ function AuthPage() {
 
   async function handleGoogle() {
     setBusy(true);
+    const { lovable } = await import("@/integrations/lovable/index");
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
