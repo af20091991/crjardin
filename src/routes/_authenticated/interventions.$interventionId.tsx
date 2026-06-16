@@ -6,7 +6,7 @@ import {
   getIntervention, updateIntervention, deleteIntervention,
   listTasks, addTask, updateTask, deleteTask,
   listPhotos, addPhoto, updatePhoto, deletePhoto, signedPhotoUrl,
-  TASK_STATUS_META, type TaskStatus, type InterventionPhoto,
+  TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
 } from "@/lib/interventions";
 import { getClient } from "@/lib/clients";
 import { uploadInterventionPhoto } from "@/lib/storage";
