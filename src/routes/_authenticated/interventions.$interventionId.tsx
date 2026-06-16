@@ -276,10 +276,10 @@ function SyntheseField({
 }: {
   label: string;
   field: "summary" | "garden_state" | "upcoming_works" | "recommendations_text";
-  iv: { [k: string]: unknown };
+  iv: Intervention;
   onSave: (v: string) => void;
 }) {
-  const initial = (iv[field] as string) ?? "";
+  const initial = (iv[field] as string | null) ?? "";
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
