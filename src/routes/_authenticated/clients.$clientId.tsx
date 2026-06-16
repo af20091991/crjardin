@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
 import { getClient, deleteClient } from "@/lib/clients";
+import { listInterventionsByClient } from "@/lib/interventions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,10 @@ function ClientDetail() {
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", clientId],
     queryFn: () => getClient(clientId),
+  });
+  const { data: interventions } = useQuery({
+    queryKey: ["interventions", clientId],
+    queryFn: () => listInterventionsByClient(clientId),
   });
 
   const del = useMutation({
@@ -128,7 +133,39 @@ function ClientDetail() {
             <TabsTrigger value="photos" className="flex-1"><ImageIcon className="mr-1.5 h-4 w-4" />Photos</TabsTrigger>
             <TabsTrigger value="reco" className="flex-1"><Sparkles className="mr-1.5 h-4 w-4" />Préconisations</TabsTrigger>
           </TabsList>
-          <TabsContent value="interventions"><HistoryPlaceholder label="Aucune intervention pour le moment." icon={ClipboardList} action /></TabsContent>
+          <TabsContent value="interventions">
+            {(interventions?.length ?? 0) === 0 ? (
+              <HistoryPlaceholder label="Aucune intervention pour le moment." icon={ClipboardList} action clientId={clientId} />
+            ) : (
+              <div className="mt-3 space-y-2.5">
+                <Link
+                  to="/interventions/new"
+                  search={{ client: clientId }}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 py-2.5 text-sm font-medium text-primary hover:bg-primary/5"
+                >
+                  <Calendar className="h-4 w-4" /> Nouveau compte-rendu
+                </Link>
+                {interventions!.map((iv) => (
+                  <Link key={iv.id} to="/interventions/$interventionId" params={{ interventionId: iv.id }}>
+                    <Card className="flex items-center gap-3 p-3.5 transition-colors hover:border-primary/40">
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                        <ClipboardList className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{iv.intervention_type ?? "Intervention"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(iv.intervention_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                        </p>
+                      </div>
+                      <Badge variant={iv.status === "termine" ? "default" : "secondary"} className="shrink-0">
+                        {iv.status === "termine" ? "Terminé" : "Brouillon"}
+                      </Badge>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </TabsContent>
           <TabsContent value="reports"><HistoryPlaceholder label="Aucun rapport PDF généré." icon={FileText} /></TabsContent>
           <TabsContent value="photos"><HistoryPlaceholder label="Aucune photo enregistrée." icon={ImageIcon} /></TabsContent>
           <TabsContent value="reco"><HistoryPlaceholder label="Aucune préconisation enregistrée." icon={Sparkles} /></TabsContent>
@@ -147,14 +184,14 @@ function Info({ icon: Icon, text }: { icon: typeof MapPin; text: string }) {
   );
 }
 
-function HistoryPlaceholder({ label, icon: Icon, action }: { label: string; icon: typeof FileText; action?: boolean }) {
+function HistoryPlaceholder({ label, icon: Icon, action, clientId }: { label: string; icon: typeof FileText; action?: boolean; clientId?: string }) {
   return (
     <Card className="mt-3 border-dashed">
       <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
         <Icon className="h-7 w-7 text-muted-foreground/60" />
         <p className="text-sm text-muted-foreground">{label}</p>
         {action && (
-          <Link to="/interventions/new" className="mt-1 text-sm font-medium text-primary hover:underline">
+          <Link to="/interventions/new" search={clientId ? { client: clientId } : undefined} className="mt-1 text-sm font-medium text-primary hover:underline">
             Créer un compte-rendu
           </Link>
         )}
