@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { listClients } from "@/lib/clients";
+import { listAllInterventions } from "@/lib/interventions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,12 +15,13 @@ export const Route = createFileRoute("/_authenticated/")({
 
 function Dashboard() {
   const { data: clients, isLoading } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const { data: interventions } = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });
 
   const stats = [
     { label: "Clients actifs", value: clients?.length ?? 0, icon: Users, to: "/clients" as const },
-    { label: "Interventions", value: 0, icon: ClipboardList, to: "/clients" as const },
-    { label: "Rapports générés", value: 0, icon: FileText, to: "/clients" as const },
-    { label: "Préconisations", value: 0, icon: Sparkles, to: "/clients" as const },
+    { label: "Interventions", value: interventions?.length ?? 0, icon: ClipboardList, to: "/clients" as const },
+    { label: "Terminées", value: interventions?.filter((i) => i.status === "termine").length ?? 0, icon: FileText, to: "/clients" as const },
+    { label: "Brouillons", value: interventions?.filter((i) => i.status !== "termine").length ?? 0, icon: Sparkles, to: "/clients" as const },
   ];
 
   return (
