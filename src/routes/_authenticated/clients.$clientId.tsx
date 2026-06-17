@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
-  Image as ImageIcon, Sparkles, ClipboardList, Leaf,
+  Sparkles, ClipboardList, Leaf,
 } from "lucide-react";
 import { toast } from "sonner";
 
