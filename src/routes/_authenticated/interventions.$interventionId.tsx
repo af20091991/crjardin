@@ -17,6 +17,7 @@ import {
 import { generateInterventionInsights } from "@/lib/ai.functions";
 import { getClient } from "@/lib/clients";
 import { uploadInterventionPhoto } from "@/lib/storage";
+import { exportInterventionPdf } from "@/lib/intervention-pdf";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
+  FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -148,6 +150,28 @@ function InterventionDetail() {
     onSuccess: () => { invIv(); qc.invalidateQueries({ queryKey: ["interventions"] }); },
   });
 
+  const exportPdf = useMutation({
+    mutationFn: async () => {
+      if (!iv || !client) throw new Error("Données indisponibles");
+      const [t, p, h, r] = await Promise.all([
+        listTasks(interventionId),
+        listPhotos(interventionId),
+        listHealthByClient(iv.client_id),
+        listRecommendationsByClient(iv.client_id),
+      ]);
+      await exportInterventionPdf({
+        intervention: iv,
+        client,
+        tasks: t,
+        photos: p,
+        health: h.filter((x) => x.intervention_id === interventionId),
+        recommendations: r.filter((x) => x.intervention_id === interventionId),
+      });
+    },
+    onSuccess: () => toast.success("PDF généré"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur PDF"),
+  });
+
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     setUploading(true);
@@ -203,6 +227,10 @@ function InterventionDetail() {
               <Button size="sm" variant={done ? "outline" : "default"} onClick={() => toggleComplete.mutate()}>
                 <CheckCircle2 className="mr-1.5 h-4 w-4" />
                 {done ? "Repasser en brouillon" : "Marquer comme terminé"}
+              </Button>
+              <Button size="sm" variant="outline" disabled={exportPdf.isPending || !client} onClick={() => exportPdf.mutate()}>
+                {exportPdf.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileDown className="mr-1.5 h-4 w-4" />}
+                Exporter le PDF
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
