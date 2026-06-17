@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import {
   getIntervention, updateIntervention, deleteIntervention,
@@ -8,6 +9,12 @@ import {
   listPhotos, addPhoto, updatePhoto, deletePhoto, signedPhotoUrl,
   TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
 } from "@/lib/interventions";
+import {
+  listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
+  listRecommendationsByClient, addRecommendation, updateRecommendation, deleteRecommendation,
+  RECO_STATUSES, RECO_STATUS_META, type RecommendationStatus,
+} from "@/lib/garden";
+import { generateInterventionInsights } from "@/lib/ai.functions";
 import { getClient } from "@/lib/clients";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
@@ -19,11 +26,14 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X,
+  ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -91,6 +101,46 @@ function InterventionDetail() {
   const saveSynthese = useMutation({
     mutationFn: (patch: Parameters<typeof updateIntervention>[1]) => updateIntervention(interventionId, patch),
     onSuccess: () => { invIv(); toast.success("Enregistré"); },
+  });
+
+  const generateAi = useServerFn(generateInterventionInsights);
+  const { data: recos } = useQuery({
+    queryKey: ["recommendations-iv", interventionId],
+    queryFn: () => listRecommendationsByClient(iv!.client_id),
+    enabled: !!iv?.client_id,
+    select: (rows) => rows.filter((r) => r.intervention_id === interventionId),
+  });
+  const invRecos = () => qc.invalidateQueries({ queryKey: ["recommendations-iv", interventionId] });
+  const { data: healthList } = useQuery({
+    queryKey: ["health-iv", interventionId],
+    queryFn: () => listHealthByClient(iv!.client_id),
+    enabled: !!iv?.client_id,
+    select: (rows) => rows.filter((r) => r.intervention_id === interventionId),
+  });
+  const invHealth = () => qc.invalidateQueries({ queryKey: ["health-iv", interventionId] });
+
+  const runAi = useMutation({
+    mutationFn: () => generateAi({ data: { interventionId } }),
+    onSuccess: async (res) => {
+      await updateIntervention(interventionId, {
+        summary: res.summary,
+        garden_state: res.garden_state,
+        recommendations_text: res.recommendations_text,
+      });
+      for (const r of res.recommendations) {
+        await addRecommendation({
+          client_id: iv!.client_id,
+          intervention_id: interventionId,
+          title: r.title,
+          description: r.description,
+          category: r.category,
+        });
+      }
+      invIv();
+      invRecos();
+      toast.success("Synthèse générée par l'IA");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur IA"),
   });
 
   const toggleComplete = useMutation({
@@ -259,11 +309,98 @@ function InterventionDetail() {
         {/* Synthèse */}
         <Card>
           <CardContent className="space-y-4 pt-6">
-            <h3 className="font-serif text-lg font-semibold">Synthèse & recommandations</h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-serif text-lg font-semibold">Synthèse & recommandations</h3>
+              <Button size="sm" variant="outline" disabled={runAi.isPending} onClick={() => runAi.mutate()}>
+                {runAi.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1.5 h-4 w-4" />}
+                Assistant IA
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">L'assistant rédige automatiquement la synthèse à partir des travaux saisis.</p>
             <SyntheseField label="Synthèse de l'intervention" field="summary" iv={iv} onSave={(v) => saveSynthese.mutate({ summary: v })} />
             <SyntheseField label="État du jardin" field="garden_state" iv={iv} onSave={(v) => saveSynthese.mutate({ garden_state: v })} />
             <SyntheseField label="Travaux prévus prochaine intervention" field="upcoming_works" iv={iv} onSave={(v) => saveSynthese.mutate({ upcoming_works: v })} />
             <SyntheseField label="Préconisations / conseils" field="recommendations_text" iv={iv} onSave={(v) => saveSynthese.mutate({ recommendations_text: v })} />
+          </CardContent>
+        </Card>
+
+        {/* Préconisations commerciales */}
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-primary" />
+              <h3 className="font-serif text-lg font-semibold">Préconisations commerciales</h3>
+            </div>
+            {(recos?.length ?? 0) === 0 && (
+              <p className="text-sm text-muted-foreground">Aucune préconisation. Utilisez l'assistant IA ou ajoutez-en une.</p>
+            )}
+            <div className="space-y-2">
+              {recos?.map((r) => {
+                const status = (r.status as RecommendationStatus) in RECO_STATUS_META ? (r.status as RecommendationStatus) : "en_attente";
+                return (
+                  <div key={r.id} className="rounded-lg border border-border p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium">{r.title}</p>
+                        {r.category && <Badge variant="secondary" className="mt-1">{r.category}</Badge>}
+                      </div>
+                      <button onClick={async () => { await deleteRecommendation(r.id); invRecos(); }} className="shrink-0 text-muted-foreground hover:text-destructive">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {r.description && <p className="mt-1.5 text-sm text-muted-foreground">{r.description}</p>}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {RECO_STATUSES.map((s) => (
+                        <button
+                          key={s}
+                          onClick={async () => { await updateRecommendation(r.id, { status: s }); invRecos(); }}
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
+                            status === s ? RECO_STATUS_META[s].tone + " ring-1 ring-current" : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {RECO_STATUS_META[s].label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <AddRecoForm clientId={iv.client_id} interventionId={interventionId} onAdded={invRecos} />
+          </CardContent>
+        </Card>
+
+        {/* Carnet de santé */}
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <div className="flex items-center gap-2">
+              <Leaf className="h-5 w-5 text-primary" />
+              <h3 className="font-serif text-lg font-semibold">Carnet de santé du jardin</h3>
+            </div>
+            {(healthList?.length ?? 0) === 0 && (
+              <p className="text-sm text-muted-foreground">Aucune évaluation pour cette intervention.</p>
+            )}
+            <div className="space-y-2">
+              {healthList?.map((h) => {
+                const rating = (h.rating as HealthRating) in HEALTH_RATING_META ? (h.rating as HealthRating) : "bon";
+                return (
+                  <div key={h.id} className="flex items-start justify-between gap-2 rounded-lg border border-border p-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2.5 w-2.5 rounded-full ${HEALTH_RATING_META[rating].dot}`} />
+                        <p className="font-medium">{h.zone}</p>
+                        <Badge className={HEALTH_RATING_META[rating].tone}>{HEALTH_RATING_META[rating].label}</Badge>
+                      </div>
+                      {h.note && <p className="mt-1 text-sm text-muted-foreground">{h.note}</p>}
+                    </div>
+                    <button onClick={async () => { await deleteHealth(h.id); invHealth(); }} className="shrink-0 text-muted-foreground hover:text-destructive">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <AddHealthForm clientId={iv.client_id} interventionId={interventionId} onAdded={invHealth} />
           </CardContent>
         </Card>
       </div>
@@ -284,10 +421,76 @@ function SyntheseField({
     <div className="space-y-1.5">
       <Label>{label}</Label>
       <Textarea
+        key={initial}
         defaultValue={initial}
         className="min-h-[4rem]"
         onBlur={(e) => { if (e.target.value !== initial) onSave(e.target.value); }}
       />
+    </div>
+  );
+}
+
+function AddRecoForm({ clientId, interventionId, onAdded }: { clientId: string; interventionId: string; onAdded: () => void }) {
+  const [title, setTitle] = useState("");
+  const [open, setOpen] = useState(false);
+  const add = useMutation({
+    mutationFn: () => addRecommendation({ client_id: clientId, intervention_id: interventionId, title: title.trim() }),
+    onSuccess: () => { setTitle(""); setOpen(false); onAdded(); },
+  });
+  if (!open) {
+    return (
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <Plus className="mr-1.5 h-4 w-4" /> Ajouter une préconisation
+      </Button>
+    );
+  }
+  return (
+    <div className="flex gap-2">
+      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre de la préconisation…" autoFocus
+        onKeyDown={(e) => { if (e.key === "Enter" && title.trim()) add.mutate(); }} />
+      <Button variant="outline" disabled={!title.trim() || add.isPending} onClick={() => add.mutate()}>
+        {add.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+      </Button>
+    </div>
+  );
+}
+
+function AddHealthForm({ clientId, interventionId, onAdded }: { clientId: string; interventionId: string; onAdded: () => void }) {
+  const [zone, setZone] = useState("");
+  const [rating, setRating] = useState<HealthRating>("bon");
+  const [note, setNote] = useState("");
+  const [open, setOpen] = useState(false);
+  const add = useMutation({
+    mutationFn: () => addHealth({ client_id: clientId, intervention_id: interventionId, zone: zone.trim(), rating, note: note.trim() || null }),
+    onSuccess: () => { setZone(""); setNote(""); setRating("bon"); setOpen(false); onAdded(); },
+  });
+  if (!open) {
+    return (
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <Plus className="mr-1.5 h-4 w-4" /> Ajouter une évaluation
+      </Button>
+    );
+  }
+  return (
+    <div className="space-y-2 rounded-lg border border-border p-3">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Input value={zone} onChange={(e) => setZone(e.target.value)} placeholder="Zone (ex: Pelouse, Haies…)" autoFocus />
+        <Select value={rating} onValueChange={(v) => setRating(v as HealthRating)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {HEALTH_RATINGS.map((r) => (
+              <SelectItem key={r} value={r}>{HEALTH_RATING_META[r].label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Observation (optionnel)…" className="min-h-[2.5rem]" />
+      <div className="flex gap-2">
+        <Button size="sm" disabled={!zone.trim() || add.isPending} onClick={() => add.mutate()}>
+          {add.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />} Enregistrer
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+      </div>
     </div>
   );
 }
