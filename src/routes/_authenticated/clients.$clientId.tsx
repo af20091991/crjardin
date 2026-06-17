@@ -4,6 +4,11 @@ import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
 import { getClient, deleteClient } from "@/lib/clients";
 import { listInterventionsByClient } from "@/lib/interventions";
+import {
+  listRecommendationsByClient, listHealthByClient,
+  RECO_STATUS_META, type RecommendationStatus,
+  HEALTH_RATING_META, type HealthRating,
+} from "@/lib/garden";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
-  Image as ImageIcon, Sparkles, ClipboardList,
+  Image as ImageIcon, Sparkles, ClipboardList, Leaf,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,6 +39,14 @@ function ClientDetail() {
   const { data: interventions } = useQuery({
     queryKey: ["interventions", clientId],
     queryFn: () => listInterventionsByClient(clientId),
+  });
+  const { data: recos } = useQuery({
+    queryKey: ["recommendations", clientId],
+    queryFn: () => listRecommendationsByClient(clientId),
+  });
+  const { data: health } = useQuery({
+    queryKey: ["health", clientId],
+    queryFn: () => listHealthByClient(clientId),
   });
 
   const del = useMutation({
@@ -129,8 +142,7 @@ function ClientDetail() {
         <Tabs defaultValue="interventions">
           <TabsList className="w-full">
             <TabsTrigger value="interventions" className="flex-1"><Calendar className="mr-1.5 h-4 w-4" />Interventions</TabsTrigger>
-            <TabsTrigger value="reports" className="flex-1"><FileText className="mr-1.5 h-4 w-4" />Rapports</TabsTrigger>
-            <TabsTrigger value="photos" className="flex-1"><ImageIcon className="mr-1.5 h-4 w-4" />Photos</TabsTrigger>
+            <TabsTrigger value="health" className="flex-1"><Leaf className="mr-1.5 h-4 w-4" />Santé</TabsTrigger>
             <TabsTrigger value="reco" className="flex-1"><Sparkles className="mr-1.5 h-4 w-4" />Préconisations</TabsTrigger>
           </TabsList>
           <TabsContent value="interventions">
@@ -166,9 +178,53 @@ function ClientDetail() {
               </div>
             )}
           </TabsContent>
-          <TabsContent value="reports"><HistoryPlaceholder label="Aucun rapport PDF généré." icon={FileText} /></TabsContent>
-          <TabsContent value="photos"><HistoryPlaceholder label="Aucune photo enregistrée." icon={ImageIcon} /></TabsContent>
-          <TabsContent value="reco"><HistoryPlaceholder label="Aucune préconisation enregistrée." icon={Sparkles} /></TabsContent>
+          <TabsContent value="health">
+            {(health?.length ?? 0) === 0 ? (
+              <HistoryPlaceholder label="Aucune évaluation enregistrée." icon={Leaf} />
+            ) : (
+              <div className="mt-3 space-y-2.5">
+                {health!.map((h) => {
+                  const rating = (h.rating as HealthRating) in HEALTH_RATING_META ? (h.rating as HealthRating) : "bon";
+                  return (
+                    <Card key={h.id} className="p-3.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2.5 w-2.5 rounded-full ${HEALTH_RATING_META[rating].dot}`} />
+                        <p className="font-medium">{h.zone}</p>
+                        <Badge className={HEALTH_RATING_META[rating].tone}>{HEALTH_RATING_META[rating].label}</Badge>
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {new Date(h.assessed_on).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                      {h.note && <p className="mt-1.5 text-sm text-muted-foreground">{h.note}</p>}
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="reco">
+            {(recos?.length ?? 0) === 0 ? (
+              <HistoryPlaceholder label="Aucune préconisation enregistrée." icon={Sparkles} />
+            ) : (
+              <div className="mt-3 space-y-2.5">
+                {recos!.map((r) => {
+                  const status = (r.status as RecommendationStatus) in RECO_STATUS_META ? (r.status as RecommendationStatus) : "en_attente";
+                  return (
+                    <Card key={r.id} className="p-3.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium">{r.title}</p>
+                          {r.category && <Badge variant="secondary" className="mt-1">{r.category}</Badge>}
+                        </div>
+                        <Badge className={RECO_STATUS_META[status].tone}>{RECO_STATUS_META[status].label}</Badge>
+                      </div>
+                      {r.description && <p className="mt-1.5 text-sm text-muted-foreground">{r.description}</p>}
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
     </AppShell>
