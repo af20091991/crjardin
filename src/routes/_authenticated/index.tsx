@@ -54,9 +54,9 @@ function Dashboard() {
               <Card className="h-full transition-colors hover:border-primary/40">
                 <CardContent className="py-5">
                   <s.icon className="h-5 w-5 text-primary" />
-                  <p className="mt-3 font-serif text-3xl font-semibold">
+                  <div className="mt-3 font-serif text-3xl font-semibold">
                     {isLoading ? <Skeleton className="h-8 w-10" /> : s.value}
-                  </p>
+                  </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">{s.label}</p>
                 </CardContent>
               </Card>
