@@ -129,6 +129,15 @@ export async function listPendingRecommendations(): Promise<Recommendation[]> {
   return data as Recommendation[];
 }
 
+export async function listAllRecommendations(): Promise<Recommendation[]> {
+  const { data, error } = await supabase
+    .from("recommendations")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as Recommendation[];
+}
+
 export async function addRecommendation(input: {
   client_id: string;
   intervention_id?: string | null;
