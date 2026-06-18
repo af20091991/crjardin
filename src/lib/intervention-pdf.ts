@@ -5,6 +5,7 @@ import { TASK_STATUS_META, type TaskStatus, signedPhotoUrl } from "@/lib/interve
 import type { Client } from "@/lib/clients";
 import type { GardenHealth, Recommendation } from "@/lib/garden";
 import { HEALTH_RATING_META, type HealthRating, RECO_STATUS_META, type RecommendationStatus } from "@/lib/garden";
+import { recommendationPrice, formatEuro } from "@/lib/garden";
 
 const GREEN: [number, number, number] = [76, 138, 47];
 const DARK: [number, number, number] = [45, 55, 40];
@@ -29,6 +30,8 @@ export interface InterventionReportData {
   health: GardenHealth[];
   recommendations: Recommendation[];
   companyName?: string;
+  authorName?: string;
+  signatureData?: string;
 }
 
 export async function exportInterventionPdf(data: InterventionReportData): Promise<void> {
@@ -101,12 +104,14 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   doc.setTextColor(...DARK);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(15);
-  doc.text(client.name, margin, y);
+  doc.text(iv.title ?? client.name, margin, y);
   y += 8;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10.5);
   doc.setTextColor(...MUTED);
   const infoLines = [
+    iv.reference ? `Référence : ${iv.reference}` : null,
+    `Client : ${client.name}`,
     client.address ? `Adresse : ${client.address}` : null,
     `Date : ${dateStr}`,
     `Type d'intervention : ${iv.intervention_type ?? "Entretien"}`,
@@ -169,7 +174,8 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
     if (iv.recommendations_text?.trim()) paragraph(iv.recommendations_text);
     for (const r of recommendations) {
       const st = (r.status as RecommendationStatus) in RECO_STATUS_META ? (r.status as RecommendationStatus) : "en_attente";
-      const title = `${r.title}${r.category ? ` [${r.category}]` : ""} — ${RECO_STATUS_META[st].label}`;
+      const price = recommendationPrice(r);
+      const title = `${r.title}${r.category ? ` [${r.category}]` : ""} — ${RECO_STATUS_META[st].label}${price != null ? ` · ${formatEuro(price)}` : ""}`;
       const lines = doc.splitTextToSize(title, contentW - 6);
       ensureSpace(lines.length * 5 + 1);
       doc.setFont("helvetica", "bold");
@@ -232,18 +238,23 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   }
 
   // ---- Signature ----
-  ensureSpace(34);
+  ensureSpace(40);
   y += 6;
   doc.setDrawColor(...MUTED);
   doc.setLineWidth(0.3);
-  const colW = (contentW - 10) / 2;
   doc.setFontSize(9.5);
   doc.setTextColor(...DARK);
-  doc.text("Le prestataire", margin, y);
-  doc.text("Le client", margin + colW + 10, y);
-  y += 18;
-  doc.line(margin, y, margin + colW, y);
-  doc.line(margin + colW + 10, y, margin + colW * 2 + 10, y);
+  const author = data.authorName?.trim() || company;
+  doc.text(`Le prestataire — ${author}`, margin, y);
+  const sigW = 60;
+  const sigH = 22;
+  if (data.signatureData) {
+    try {
+      doc.addImage(data.signatureData, "PNG", margin, y + 2, sigW, sigH);
+    } catch { /* signature optionnelle */ }
+  }
+  y += sigH + 4;
+  doc.line(margin, y, margin + sigW, y);
 
   footer();
 
