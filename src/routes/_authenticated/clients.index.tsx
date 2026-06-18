@@ -4,12 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
 import { listClients } from "@/lib/clients";
+import { listAllRecommendations, staleClientIds } from "@/lib/garden";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, MapPin, Phone, Users, ChevronRight } from "lucide-react";
+import { Plus, Search, MapPin, Phone, Users, ChevronRight, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/clients/")({
   head: () => ({ meta: [{ title: "Clients — Jardin Pro" }] }),
@@ -19,6 +20,8 @@ export const Route = createFileRoute("/_authenticated/clients/")({
 function ClientsPage() {
   const [search, setSearch] = useState("");
   const { data: clients, isLoading } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const { data: recos } = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
+  const stale = useMemo(() => staleClientIds(recos ?? []), [recos]);
 
   const filtered = useMemo(() => {
     if (!clients) return [];
@@ -73,6 +76,11 @@ function ClientsPage() {
                       <p className="truncate font-medium">{c.name}</p>
                       {c.contract_type && (
                         <Badge variant="secondary" className="shrink-0 text-[10px]">{c.contract_type}</Badge>
+                      )}
+                      {stale.has(c.id) && (
+                        <Badge className="shrink-0 gap-1 bg-amber-100 text-[10px] text-amber-800">
+                          <AlertTriangle className="h-2.5 w-2.5" /> Préco. +30j
+                        </Badge>
                       )}
                     </div>
                     <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
