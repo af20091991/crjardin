@@ -56,6 +56,27 @@ export type Database = {
         }
         Relationships: []
       }
+      favorite_tasks: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       garden_health: {
         Row: {
           assessed_on: string
@@ -106,6 +127,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      intervention_counters: {
+        Row: {
+          last_seq: number
+          user_id: string
+          year: number
+        }
+        Insert: {
+          last_seq?: number
+          user_id: string
+          year: number
+        }
+        Update: {
+          last_seq?: number
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
       }
       intervention_photos: {
         Row: {
@@ -198,8 +237,10 @@ export type Database = {
           intervention_date: string
           intervention_type: string | null
           recommendations_text: string | null
+          reference: string | null
           status: string
           summary: string | null
+          title: string | null
           upcoming_works: string | null
           updated_at: string
           user_id: string
@@ -212,8 +253,10 @@ export type Database = {
           intervention_date?: string
           intervention_type?: string | null
           recommendations_text?: string | null
+          reference?: string | null
           status?: string
           summary?: string | null
+          title?: string | null
           upcoming_works?: string | null
           updated_at?: string
           user_id: string
@@ -226,8 +269,10 @@ export type Database = {
           intervention_date?: string
           intervention_type?: string | null
           recommendations_text?: string | null
+          reference?: string | null
           status?: string
           summary?: string | null
+          title?: string | null
           upcoming_works?: string | null
           updated_at?: string
           user_id?: string
@@ -247,21 +292,27 @@ export type Database = {
           company_name: string | null
           created_at: string
           display_name: string | null
+          hourly_rate: number
           id: string
+          signature_data: string | null
           updated_at: string
         }
         Insert: {
           company_name?: string | null
           created_at?: string
           display_name?: string | null
+          hourly_rate?: number
           id: string
+          signature_data?: string | null
           updated_at?: string
         }
         Update: {
           company_name?: string | null
           created_at?: string
           display_name?: string | null
+          hourly_rate?: number
           id?: string
+          signature_data?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -272,10 +323,13 @@ export type Database = {
           client_id: string
           created_at: string
           description: string | null
+          estimated_hours: number | null
           id: string
           intervention_id: string | null
+          source: string
           status: string
           title: string
+          unit_price: number
           updated_at: string
           user_id: string
         }
@@ -284,10 +338,13 @@ export type Database = {
           client_id: string
           created_at?: string
           description?: string | null
+          estimated_hours?: number | null
           id?: string
           intervention_id?: string | null
+          source?: string
           status?: string
           title: string
+          unit_price?: number
           updated_at?: string
           user_id: string
         }
@@ -296,10 +353,13 @@ export type Database = {
           client_id?: string
           created_at?: string
           description?: string | null
+          estimated_hours?: number | null
           id?: string
           intervention_id?: string | null
+          source?: string
           status?: string
           title?: string
+          unit_price?: number
           updated_at?: string
           user_id?: string
         }
@@ -353,6 +413,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      next_intervention_reference: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
