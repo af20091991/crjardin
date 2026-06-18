@@ -55,6 +55,16 @@ export function formatEuro(n: number): string {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 }
 
+const STALE_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function isStalePending(r: Pick<Recommendation, "status" | "created_at">): boolean {
+  return r.status === "en_attente" && Date.now() - new Date(r.created_at).getTime() > STALE_MS;
+}
+
+export function staleClientIds(recos: Recommendation[]): Set<string> {
+  return new Set(recos.filter(isStalePending).map((r) => r.client_id));
+}
+
 export type RecommendationStatus = "en_attente" | "acceptee" | "refusee" | "realisee";
 
 export const RECO_STATUS_META: Record<RecommendationStatus, { label: string; tone: string }> = {
