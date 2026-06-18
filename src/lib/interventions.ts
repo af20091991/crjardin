@@ -48,6 +48,8 @@ export interface Intervention {
   intervention_date: string;
   intervention_type: string | null;
   status: string;
+  title: string | null;
+  reference: string | null;
   summary: string | null;
   garden_state: string | null;
   upcoming_works: string | null;
@@ -116,6 +118,29 @@ export async function createIntervention(input: {
   tasks?: string[];
 }): Promise<Intervention> {
   const user_id = await uid();
+
+  // Auto reference (CR-YYYY-NNNNN) via secure DB function
+  let reference: string | null = null;
+  try {
+    const { data: ref } = await supabase.rpc("next_intervention_reference");
+    reference = (ref as string | null) ?? null;
+  } catch {
+    reference = null;
+  }
+
+  // Auto title: "<Client> — <Type> · <Mois Année>"
+  let title: string | null = null;
+  try {
+    const { data: cli } = await supabase
+      .from("clients")
+      .select("name")
+      .eq("id", input.client_id)
+      .single();
+    title = buildInterventionTitle(cli?.name ?? "Client", input.intervention_type ?? null, input.intervention_date);
+  } catch {
+    title = null;
+  }
+
   const { data, error } = await supabase
     .from("interventions")
     .insert({
@@ -124,6 +149,8 @@ export async function createIntervention(input: {
       intervention_date: input.intervention_date,
       intervention_type: input.intervention_type ?? null,
       status: "brouillon",
+      title,
+      reference,
     })
     .select()
     .single();
@@ -142,6 +169,17 @@ export async function createIntervention(input: {
     if (tErr) throw tErr;
   }
   return intervention;
+}
+
+export function buildInterventionTitle(
+  clientName: string,
+  type: string | null,
+  dateStr: string,
+): string {
+  const month = new Date(dateStr).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  const cap = month.charAt(0).toUpperCase() + month.slice(1);
+  const t = type?.trim() ? type.trim() : "Entretien";
+  return `${clientName} — ${t} · ${cap}`;
 }
 
 export async function updateIntervention(
