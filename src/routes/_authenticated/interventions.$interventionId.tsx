@@ -441,11 +441,32 @@ function InterventionDetail() {
                         <p className="font-medium">{r.title}</p>
                         {r.category && <Badge variant="secondary" className="mt-1">{r.category}</Badge>}
                       </div>
-                      <button onClick={async () => { await deleteRecommendation(r.id); invRecos(); }} className="shrink-0 text-muted-foreground hover:text-destructive">
-                        <X className="h-4 w-4" />
-                      </button>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        {recommendationPrice(r) != null && (
+                          <span className="text-sm font-semibold text-primary">{formatEuro(recommendationPrice(r)!)}</span>
+                        )}
+                        <button onClick={async () => { await deleteRecommendation(r.id); invRecos(); }} className="text-muted-foreground hover:text-destructive">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                     {r.description && <p className="mt-1.5 text-sm text-muted-foreground">{r.description}</p>}
+                    <div className="mt-2 flex items-center gap-2">
+                      <Label className="text-xs text-muted-foreground">Heures de M.O. estimées</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        defaultValue={r.estimated_hours ?? ""}
+                        className="h-8 w-24 text-sm"
+                        placeholder="—"
+                        onBlur={async (e) => {
+                          const v = e.target.value === "" ? null : Number(e.target.value);
+                          if (v !== (r.estimated_hours ?? null)) { await updateRecommendation(r.id, { estimated_hours: v }); invRecos(); }
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground">× {formatEuro(r.unit_price ?? 70)}/h</span>
+                    </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {RECO_STATUSES.map((s) => (
                         <button
