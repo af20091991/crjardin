@@ -39,8 +39,30 @@ export interface Recommendation {
   description: string | null;
   category: string | null;
   status: string;
+  estimated_hours: number | null;
+  unit_price: number;
+  source: string;
   created_at: string;
   updated_at: string;
+}
+
+export function recommendationPrice(r: Pick<Recommendation, "estimated_hours" | "unit_price">): number | null {
+  if (r.estimated_hours == null) return null;
+  return Math.round(r.estimated_hours * (r.unit_price ?? 70));
+}
+
+export function formatEuro(n: number): string {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+}
+
+const STALE_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function isStalePending(r: Pick<Recommendation, "status" | "created_at">): boolean {
+  return r.status === "en_attente" && Date.now() - new Date(r.created_at).getTime() > STALE_MS;
+}
+
+export function staleClientIds(recos: Recommendation[]): Set<string> {
+  return new Set(recos.filter(isStalePending).map((r) => r.client_id));
 }
 
 export type RecommendationStatus = "en_attente" | "acceptee" | "refusee" | "realisee";
@@ -117,12 +139,24 @@ export async function listPendingRecommendations(): Promise<Recommendation[]> {
   return data as Recommendation[];
 }
 
+export async function listAllRecommendations(): Promise<Recommendation[]> {
+  const { data, error } = await supabase
+    .from("recommendations")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as Recommendation[];
+}
+
 export async function addRecommendation(input: {
   client_id: string;
   intervention_id?: string | null;
   title: string;
   description?: string | null;
   category?: string | null;
+  estimated_hours?: number | null;
+  unit_price?: number;
+  source?: string;
 }): Promise<Recommendation> {
   const user_id = await uid();
   const { data, error } = await supabase
@@ -135,6 +169,9 @@ export async function addRecommendation(input: {
       description: input.description ?? null,
       category: input.category ?? null,
       status: "en_attente",
+      estimated_hours: input.estimated_hours ?? null,
+      unit_price: input.unit_price ?? 70,
+      source: input.source ?? "manuel",
     })
     .select()
     .single();
@@ -144,7 +181,7 @@ export async function addRecommendation(input: {
 
 export async function updateRecommendation(
   id: string,
-  patch: Partial<Pick<Recommendation, "title" | "description" | "category" | "status">>,
+  patch: Partial<Pick<Recommendation, "title" | "description" | "category" | "status" | "estimated_hours" | "unit_price">>,
 ): Promise<void> {
   const { error } = await supabase.from("recommendations").update(patch).eq("id", id);
   if (error) throw error;

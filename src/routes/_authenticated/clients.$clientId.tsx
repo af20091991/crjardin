@@ -8,6 +8,7 @@ import {
   listRecommendationsByClient, listHealthByClient,
   RECO_STATUS_META, type RecommendationStatus,
   HEALTH_RATING_META, type HealthRating,
+  recommendationPrice, formatEuro, isStalePending,
 } from "@/lib/garden";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
-  Sparkles, ClipboardList, Leaf,
+  Sparkles, ClipboardList, Leaf, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +45,7 @@ function ClientDetail() {
     queryKey: ["recommendations", clientId],
     queryFn: () => listRecommendationsByClient(clientId),
   });
+  const hasStale = (recos ?? []).some(isStalePending);
   const { data: health } = useQuery({
     queryKey: ["health", clientId],
     queryFn: () => listHealthByClient(clientId),
@@ -99,6 +101,11 @@ function ClientDetail() {
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {client.contract_type && <Badge variant="secondary">{client.contract_type}</Badge>}
                     {client.frequency && <Badge variant="outline">{client.frequency}</Badge>}
+                    {hasStale && (
+                      <Badge className="gap-1 bg-amber-100 text-amber-800">
+                        <AlertTriangle className="h-3 w-3" /> Préco. en attente +30j
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
@@ -164,8 +171,9 @@ function ClientDetail() {
                         <ClipboardList className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{iv.intervention_type ?? "Intervention"}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="truncate font-medium">{iv.title ?? iv.intervention_type ?? "Intervention"}</p>
+                        <p className="flex gap-1 truncate text-xs text-muted-foreground">
+                          {iv.reference && <span className="font-mono">{iv.reference} ·</span>}
                           {new Date(iv.intervention_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
                         </p>
                       </div>
@@ -216,7 +224,12 @@ function ClientDetail() {
                           <p className="font-medium">{r.title}</p>
                           {r.category && <Badge variant="secondary" className="mt-1">{r.category}</Badge>}
                         </div>
-                        <Badge className={RECO_STATUS_META[status].tone}>{RECO_STATUS_META[status].label}</Badge>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge className={RECO_STATUS_META[status].tone}>{RECO_STATUS_META[status].label}</Badge>
+                          {recommendationPrice(r) != null && (
+                            <span className="text-xs font-semibold text-primary">{formatEuro(recommendationPrice(r)!)}</span>
+                          )}
+                        </div>
                       </div>
                       {r.description && <p className="mt-1.5 text-sm text-muted-foreground">{r.description}</p>}
                     </Card>
