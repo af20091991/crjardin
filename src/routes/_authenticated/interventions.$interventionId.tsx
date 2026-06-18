@@ -13,9 +13,11 @@ import {
   listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
   listRecommendationsByClient, addRecommendation, updateRecommendation, deleteRecommendation,
   RECO_STATUSES, RECO_STATUS_META, type RecommendationStatus,
+  recommendationPrice, formatEuro,
 } from "@/lib/garden";
-import { generateInterventionInsights } from "@/lib/ai.functions";
+import { generateInterventionInsights, analyzeInterventionPhotos } from "@/lib/ai.functions";
 import { getClient } from "@/lib/clients";
+import { getMyProfile } from "@/lib/profile";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
 import { Button } from "@/components/ui/button";
@@ -35,7 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
-  FileDown,
+  FileDown, ScanSearch, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -106,6 +108,9 @@ function InterventionDetail() {
   });
 
   const generateAi = useServerFn(generateInterventionInsights);
+  const analyzePhotos = useServerFn(analyzeInterventionPhotos);
+  type PhotoSuggestion = { title: string; description: string; category: string; estimated_hours: number | null };
+  const [suggestions, setSuggestions] = useState<PhotoSuggestion[]>([]);
   const { data: recos } = useQuery({
     queryKey: ["recommendations-iv", interventionId],
     queryFn: () => listRecommendationsByClient(iv!.client_id),
@@ -153,11 +158,12 @@ function InterventionDetail() {
   const exportPdf = useMutation({
     mutationFn: async () => {
       if (!iv || !client) throw new Error("Données indisponibles");
-      const [t, p, h, r] = await Promise.all([
+      const [t, p, h, r, profile] = await Promise.all([
         listTasks(interventionId),
         listPhotos(interventionId),
         listHealthByClient(iv.client_id),
         listRecommendationsByClient(iv.client_id),
+        getMyProfile(),
       ]);
       await exportInterventionPdf({
         intervention: iv,
@@ -166,11 +172,40 @@ function InterventionDetail() {
         photos: p,
         health: h.filter((x) => x.intervention_id === interventionId),
         recommendations: r.filter((x) => x.intervention_id === interventionId),
+        companyName: profile?.company_name ?? undefined,
+        authorName: profile?.display_name ?? undefined,
+        signatureData: profile?.signature_data ?? undefined,
       });
     },
     onSuccess: () => toast.success("PDF généré"),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur PDF"),
   });
+
+  const runPhotoAi = useMutation({
+    mutationFn: () => analyzePhotos({ data: { interventionId } }),
+    onSuccess: (res) => {
+      setSuggestions(res.suggestions);
+      if (res.suggestions.length === 0) toast.info("L'IA n'a détecté aucune préconisation sur les photos.");
+      else toast.success(`${res.suggestions.length} suggestion(s) à vérifier`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur IA"),
+  });
+
+  const acceptSuggestion = async (s: PhotoSuggestion, idx: number) => {
+    await addRecommendation({
+      client_id: iv!.client_id,
+      intervention_id: interventionId,
+      title: s.title,
+      description: s.description,
+      category: s.category,
+      estimated_hours: s.estimated_hours,
+      source: "ia_photo",
+    });
+    setSuggestions((prev) => prev.filter((_, i) => i !== idx));
+    invRecos();
+    toast.success("Préconisation ajoutée");
+  };
+  const ignoreSuggestion = (idx: number) => setSuggestions((prev) => prev.filter((_, i) => i !== idx));
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -216,8 +251,9 @@ function InterventionDetail() {
           <CardContent className="pt-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="font-serif text-xl font-semibold">{iv.intervention_type ?? "Intervention"}</h2>
+                <h2 className="font-serif text-xl font-semibold">{iv.title ?? iv.intervention_type ?? "Intervention"}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
+                  {iv.reference && <span className="font-mono">{iv.reference} · </span>}
                   {new Date(iv.intervention_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                 </p>
               </div>
