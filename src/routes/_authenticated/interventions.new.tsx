@@ -9,6 +9,7 @@ import {
   INTERVENTION_TYPES,
   COMMON_TASKS,
 } from "@/lib/interventions";
+import { listFavoriteTasks, addFavoriteTask, removeFavoriteTask } from "@/lib/favorites";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, X, ArrowLeft, Check } from "lucide-react";
+import { Loader2, Plus, X, ArrowLeft, Check, Star } from "lucide-react";
 import { toast } from "sonner";
 
 const searchSchema = z.object({ client: z.string().optional() });
@@ -31,6 +32,8 @@ function NewIntervention() {
   const navigate = useNavigate();
   const { client: presetClient } = Route.useSearch();
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const qc = useQueryClient();
+  const { data: favorites } = useQuery({ queryKey: ["favorite-tasks"], queryFn: listFavoriteTasks });
 
   const [clientId, setClientId] = useState(presetClient ?? "");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -51,6 +54,17 @@ function NewIntervention() {
     if (v && !tasks.includes(v)) setTasks((p) => [...p, v]);
     setCustom("");
   };
+
+  const invFav = () => qc.invalidateQueries({ queryKey: ["favorite-tasks"] });
+  const favLabels = (favorites ?? []).map((f) => f.label);
+  const saveFav = useMutation({
+    mutationFn: (label: string) => addFavoriteTask(label),
+    onSuccess: () => { invFav(); toast.success("Ajouté aux favoris"); },
+  });
+  const delFav = useMutation({
+    mutationFn: (id: string) => removeFavoriteTask(id),
+    onSuccess: invFav,
+  });
 
   const create = useMutation({
     mutationFn: () =>
@@ -110,23 +124,54 @@ function NewIntervention() {
 
             <div className="space-y-2">
               <Label>Travaux réalisés</Label>
+              {(favorites?.length ?? 0) > 0 && (
+                <div className="space-y-1.5">
+                  <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Vos favoris
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {favorites!.map((f) => {
+                      const active = tasks.includes(f.label);
+                      return (
+                        <span key={f.id} className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                          active ? "border-primary bg-primary/10 text-primary" : "border-amber-300 bg-amber-50 text-amber-800"
+                        }`}>
+                          <button type="button" onClick={() => toggleTask(f.label)} className="flex items-center gap-1">
+                            {active && <Check className="h-3 w-3" />}
+                            {f.label}
+                          </button>
+                          <button type="button" onClick={() => delFav.mutate(f.id)} className="opacity-50 hover:opacity-100">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 {COMMON_TASKS.map((t) => {
                   const active = tasks.includes(t);
+                  const isFav = favLabels.includes(t);
                   return (
-                    <button
+                    <span
                       key={t}
-                      type="button"
-                      onClick={() => toggleTask(t)}
                       className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                         active
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border text-muted-foreground hover:border-primary/40"
                       }`}
                     >
-                      {active && <Check className="h-3 w-3" />}
-                      {t}
-                    </button>
+                      <button type="button" onClick={() => toggleTask(t)} className="flex items-center gap-1">
+                        {active && <Check className="h-3 w-3" />}
+                        {t}
+                      </button>
+                      {!isFav && (
+                        <button type="button" onClick={() => saveFav.mutate(t)} title="Ajouter aux favoris" className="opacity-40 hover:opacity-100">
+                          <Star className="h-3 w-3" />
+                        </button>
+                      )}
+                    </span>
                   );
                 })}
               </div>
@@ -136,6 +181,11 @@ function NewIntervention() {
                   {customTasks.map((t) => (
                     <span key={t} className="flex items-center gap-1 rounded-full bg-accent/30 px-3 py-1.5 text-xs font-medium">
                       {t}
+                      {!favLabels.includes(t) && (
+                        <button type="button" onClick={() => saveFav.mutate(t)} title="Ajouter aux favoris" className="opacity-50 hover:opacity-100">
+                          <Star className="h-3 w-3" />
+                        </button>
+                      )}
                       <button type="button" onClick={() => toggleTask(t)}><X className="h-3 w-3" /></button>
                     </span>
                   ))}
