@@ -39,8 +39,20 @@ export interface Recommendation {
   description: string | null;
   category: string | null;
   status: string;
+  estimated_hours: number | null;
+  unit_price: number;
+  source: string;
   created_at: string;
   updated_at: string;
+}
+
+export function recommendationPrice(r: Pick<Recommendation, "estimated_hours" | "unit_price">): number | null {
+  if (r.estimated_hours == null) return null;
+  return Math.round(r.estimated_hours * (r.unit_price ?? 70));
+}
+
+export function formatEuro(n: number): string {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 }
 
 export type RecommendationStatus = "en_attente" | "acceptee" | "refusee" | "realisee";
@@ -123,6 +135,9 @@ export async function addRecommendation(input: {
   title: string;
   description?: string | null;
   category?: string | null;
+  estimated_hours?: number | null;
+  unit_price?: number;
+  source?: string;
 }): Promise<Recommendation> {
   const user_id = await uid();
   const { data, error } = await supabase
@@ -135,6 +150,9 @@ export async function addRecommendation(input: {
       description: input.description ?? null,
       category: input.category ?? null,
       status: "en_attente",
+      estimated_hours: input.estimated_hours ?? null,
+      unit_price: input.unit_price ?? 70,
+      source: input.source ?? "manuel",
     })
     .select()
     .single();
@@ -144,7 +162,7 @@ export async function addRecommendation(input: {
 
 export async function updateRecommendation(
   id: string,
-  patch: Partial<Pick<Recommendation, "title" | "description" | "category" | "status">>,
+  patch: Partial<Pick<Recommendation, "title" | "description" | "category" | "status" | "estimated_hours" | "unit_price">>,
 ): Promise<void> {
   const { error } = await supabase.from("recommendations").update(patch).eq("id", id);
   if (error) throw error;
