@@ -361,11 +361,44 @@ function InterventionDetail() {
             {(photos?.length ?? 0) === 0 ? (
               <p className="text-sm text-muted-foreground">Aucune photo. Ajoutez des clichés du chantier.</p>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {photos?.map((p) => (
-                  <PhotoCard key={p.id} photo={p} onChange={invPhotos} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {photos?.map((p) => (
+                    <PhotoCard key={p.id} photo={p} onChange={invPhotos} />
+                  ))}
+                </div>
+                <Button size="sm" variant="outline" className="w-full" disabled={runPhotoAi.isPending} onClick={() => runPhotoAi.mutate()}>
+                  {runPhotoAi.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ScanSearch className="mr-1.5 h-4 w-4" />}
+                  Analyser les photos (IA)
+                </Button>
+                {suggestions.length > 0 && (
+                  <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-primary">
+                      <Sparkles className="h-4 w-4" /> Suggestions IA — à vérifier individuellement
+                    </p>
+                    {suggestions.map((s, idx) => (
+                      <div key={idx} className="rounded-lg border border-border bg-card p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium">{s.title}</p>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              <Badge variant="secondary">{s.category}</Badge>
+                              {s.estimated_hours != null && (
+                                <span className="text-xs text-muted-foreground">~{s.estimated_hours} h</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {s.description && <p className="mt-1.5 text-sm text-muted-foreground">{s.description}</p>}
+                        <div className="mt-2 flex gap-2">
+                          <Button size="sm" onClick={() => acceptSuggestion(s, idx)}><Check className="mr-1.5 h-4 w-4" />Accepter</Button>
+                          <Button size="sm" variant="ghost" onClick={() => ignoreSuggestion(idx)}><X className="mr-1.5 h-4 w-4" />Ignorer</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
