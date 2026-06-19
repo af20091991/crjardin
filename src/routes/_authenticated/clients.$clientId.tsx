@@ -258,6 +258,38 @@ function Info({ icon: Icon, text }: { icon: typeof MapPin; text: string }) {
   );
 }
 
+function ShareLinkCard({ token, copied, setCopied }: { token: string; copied: boolean; setCopied: (v: boolean) => void }) {
+  const url = typeof window !== "undefined" ? `${window.location.origin}/partage/${token}` : `/partage/${token}`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Lien copié");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Impossible de copier le lien");
+    }
+  };
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Share2 className="h-4 w-4 text-primary" /> Lien de visualisation client
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Partagez ce lien secret avec le client : il pourra consulter sa fiche et ses comptes-rendus terminés, sans compte.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <Input readOnly value={url} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+          <Button type="button" variant="outline" size="icon" onClick={copy} aria-label="Copier le lien">
+            {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function HistoryPlaceholder({ label, icon: Icon, action, clientId }: { label: string; icon: typeof FileText; action?: boolean; clientId?: string }) {
   return (
     <Card className="mt-3 border-dashed">
