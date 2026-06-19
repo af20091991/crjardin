@@ -20,6 +20,7 @@ import { getClient } from "@/lib/clients";
 import { getMyProfile } from "@/lib/profile";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -623,7 +624,13 @@ function PhotoCard({ photo, onChange }: { photo: InterventionPhoto; onChange: ()
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <div className="relative aspect-square bg-muted">
-        {url ? <img src={url} alt={photo.caption ?? "Photo"} className="h-full w-full object-cover" /> : <Skeleton className="h-full w-full" />}
+        {url ? (
+          <ImageLightbox src={url} alt={photo.caption ?? "Photo"} caption={photo.caption}>
+            <img src={url} alt={photo.caption ?? "Photo"} className="h-full w-full object-cover" />
+          </ImageLightbox>
+        ) : (
+          <Skeleton className="h-full w-full" />
+        )}
         <button
           onClick={async () => { await deletePhoto(photo.id, photo.storage_path); onChange(); }}
           className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-black/50 text-white hover:bg-black/70"

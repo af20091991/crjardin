@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -25,6 +25,24 @@ import { Loader2 } from "lucide-react";
 
 const CONTRACTS = ["Entretien annuel", "Ponctuel", "Création", "Saisonnier"];
 const FREQUENCIES = ["Hebdomadaire", "Bimensuelle", "Mensuelle", "Trimestrielle", "Saisonnière"];
+const CIVILITIES = ["Madame", "Monsieur", "Madame et Monsieur"];
+const EMAIL_DOMAINS = ["gmail.com", "yahoo.fr", "hotmail.fr", "hotmail.com", "outlook.fr", "outlook.com", "orange.fr", "free.fr", "sfr.fr", "wanadoo.fr", "laposte.net", "icloud.com"];
+const CUSTOM_DOMAIN = "__custom__";
+
+function splitEmail(email: string): { local: string; domain: string; custom: boolean } {
+  const at = email.indexOf("@");
+  if (at < 0) return { local: email, domain: "", custom: false };
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  if (!domain) return { local, domain: "", custom: false };
+  return EMAIL_DOMAINS.includes(domain)
+    ? { local, domain, custom: false }
+    : { local, domain, custom: true };
+}
+
+interface AddressSuggestion {
+  label: string;
+}
 
 export function ClientForm({
   client,
@@ -39,6 +57,7 @@ export function ClientForm({
   const qc = useQueryClient();
   const [form, setForm] = useState<ClientInput>({
     name: client?.name ?? "",
+    civility: client?.civility ?? "",
     address: client?.address ?? "",
     phone: client?.phone ?? "",
     email: client?.email ?? "",
@@ -46,6 +65,49 @@ export function ClientForm({
     frequency: client?.frequency ?? "",
     notes: client?.notes ?? "",
   });
+
+  const initialEmail = splitEmail(client?.email ?? "");
+  const [emailLocal, setEmailLocal] = useState(initialEmail.local);
+  const [emailDomain, setEmailDomain] = useState(initialEmail.custom ? CUSTOM_DOMAIN : initialEmail.domain);
+  const [customDomain, setCustomDomain] = useState(initialEmail.custom ? initialEmail.domain : "");
+
+  // Compose the full email whenever its parts change
+  useEffect(() => {
+    const domain = emailDomain === CUSTOM_DOMAIN ? customDomain : emailDomain;
+    const email = emailLocal && domain ? `${emailLocal}@${domain}` : emailLocal ? `${emailLocal}@` : "";
+    setForm((f) => ({ ...f, email }));
+  }, [emailLocal, emailDomain, customDomain]);
+
+  // Address autocomplete via the French Base Adresse Nationale (no key required)
+  const [addrSuggestions, setAddrSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const addrAbort = useRef<AbortController | null>(null);
+  const addrTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchAddresses = (q: string) => {
+    if (addrTimer.current) clearTimeout(addrTimer.current);
+    if (q.trim().length < 3) {
+      setAddrSuggestions([]);
+      return;
+    }
+    addrTimer.current = setTimeout(async () => {
+      addrAbort.current?.abort();
+      const ctrl = new AbortController();
+      addrAbort.current = ctrl;
+      try {
+        const res = await fetch(
+          `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5`,
+          { signal: ctrl.signal },
+        );
+        const data = await res.json();
+        const feats = Array.isArray(data?.features) ? data.features : [];
+        setAddrSuggestions(feats.map((f: { properties?: { label?: string } }) => ({ label: f.properties?.label ?? "" })).filter((s: AddressSuggestion) => s.label));
+        setShowSuggestions(true);
+      } catch {
+        /* aborted or network error — ignore */
+      }
+    }, 250);
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -73,12 +135,44 @@ export function ClientForm({
         </DialogHeader>
         <div className="space-y-3.5">
           <div className="space-y-1.5">
+            <Label>Civilité</Label>
+            <Select value={form.civility ?? ""} onValueChange={(v) => set("civility", v)}>
+              <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
+              <SelectContent>
+                {CIVILITIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
             <Label>Nom *</Label>
             <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Nom du client" />
           </div>
-          <div className="space-y-1.5">
+          <div className="relative space-y-1.5">
             <Label>Adresse</Label>
-            <Input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} placeholder="Adresse du jardin" />
+            <Input
+              value={form.address ?? ""}
+              onChange={(e) => { set("address", e.target.value); fetchAddresses(e.target.value); }}
+              onFocus={() => { if (addrSuggestions.length) setShowSuggestions(true); }}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+              placeholder="Commencez à saisir l'adresse…"
+              autoComplete="off"
+            />
+            {showSuggestions && addrSuggestions.length > 0 && (
+              <ul className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-popover shadow-md">
+                {addrSuggestions.map((s, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { set("address", s.label); setShowSuggestions(false); }}
+                    >
+                      {s.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -87,7 +181,20 @@ export function ClientForm({
             </div>
             <div className="space-y-1.5">
               <Label>Email</Label>
-              <Input type="email" value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} />
+              <div className="flex items-center gap-1">
+                <Input value={emailLocal} onChange={(e) => setEmailLocal(e.target.value)} placeholder="nom" className="min-w-0 flex-1" />
+                <span className="text-muted-foreground">@</span>
+                <Select value={emailDomain} onValueChange={setEmailDomain}>
+                  <SelectTrigger className="w-[7.5rem] shrink-0"><SelectValue placeholder="domaine" /></SelectTrigger>
+                  <SelectContent>
+                    {EMAIL_DOMAINS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    <SelectItem value={CUSTOM_DOMAIN}>Personnalisé…</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {emailDomain === CUSTOM_DOMAIN && (
+                <Input value={customDomain} onChange={(e) => setCustomDomain(e.target.value)} placeholder="domaine.fr" />
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
