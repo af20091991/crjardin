@@ -149,6 +149,8 @@ function ClientDetail() {
           </CardContent>
         </Card>
 
+        <ShareLinkCard token={client.share_token} copied={copied} setCopied={setCopied} />
+
         <Tabs defaultValue="interventions">
           <TabsList className="w-full">
             <TabsTrigger value="interventions" className="flex-1"><Calendar className="mr-1.5 h-4 w-4" />Interventions</TabsTrigger>
