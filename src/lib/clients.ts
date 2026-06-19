@@ -11,6 +11,7 @@ export interface Client {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  share_token: string;
 }
 
 export type ClientInput = {

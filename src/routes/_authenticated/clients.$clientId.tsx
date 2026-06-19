@@ -15,15 +15,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
-  Sparkles, ClipboardList, Leaf, AlertTriangle,
+  Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({
   component: ClientDetail,
@@ -33,6 +35,7 @@ function ClientDetail() {
   const { clientId } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const [copied, setCopied] = useState(false);
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", clientId],
     queryFn: () => getClient(clientId),
@@ -146,6 +149,8 @@ function ClientDetail() {
           </CardContent>
         </Card>
 
+        <ShareLinkCard token={client.share_token} copied={copied} setCopied={setCopied} />
+
         <Tabs defaultValue="interventions">
           <TabsList className="w-full">
             <TabsTrigger value="interventions" className="flex-1"><Calendar className="mr-1.5 h-4 w-4" />Interventions</TabsTrigger>
@@ -250,6 +255,38 @@ function Info({ icon: Icon, text }: { icon: typeof MapPin; text: string }) {
       <Icon className="h-4 w-4 shrink-0" />
       <span className="truncate">{text}</span>
     </div>
+  );
+}
+
+function ShareLinkCard({ token, copied, setCopied }: { token: string; copied: boolean; setCopied: (v: boolean) => void }) {
+  const url = typeof window !== "undefined" ? `${window.location.origin}/partage/${token}` : `/partage/${token}`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Lien copié");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Impossible de copier le lien");
+    }
+  };
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Share2 className="h-4 w-4 text-primary" /> Lien de visualisation client
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Partagez ce lien secret avec le client : il pourra consulter sa fiche et ses comptes-rendus terminés, sans compte.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <Input readOnly value={url} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+          <Button type="button" variant="outline" size="icon" onClick={copy} aria-label="Copier le lien">
+            {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
