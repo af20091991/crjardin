@@ -25,6 +25,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          share_token: string
           updated_at: string
           user_id: string
         }
@@ -38,6 +39,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          share_token?: string
           updated_at?: string
           user_id: string
         }
@@ -51,6 +53,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          share_token?: string
           updated_at?: string
           user_id?: string
         }
@@ -406,6 +409,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_shared_client: { Args: { p_token: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
