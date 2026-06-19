@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface Client {
   id: string;
   name: string;
+  civility: string | null;
   address: string | null;
   phone: string | null;
   email: string | null;
@@ -16,6 +17,7 @@ export interface Client {
 
 export type ClientInput = {
   name: string;
+  civility?: string | null;
   address?: string | null;
   phone?: string | null;
   email?: string | null;
