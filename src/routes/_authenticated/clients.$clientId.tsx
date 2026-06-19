@@ -100,6 +100,7 @@ function ClientDetail() {
                   {client.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
+                  {client.civility && <p className="text-xs font-medium text-muted-foreground">{client.civility}</p>}
                   <h2 className="truncate font-serif text-xl font-semibold">{client.name}</h2>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {client.contract_type && <Badge variant="secondary">{client.contract_type}</Badge>}
