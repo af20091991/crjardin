@@ -4,6 +4,7 @@ import { getSharedClient, type SharedIntervention } from "@/lib/share.functions"
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, Mail, Leaf, ClipboardList, CheckCircle2 } from "lucide-react";
+import { ImageLightbox } from "@/components/ImageLightbox";
 
 const sharedQuery = (token: string) =>
   queryOptions({
@@ -144,7 +145,9 @@ function InterventionCard({ iv }: { iv: SharedIntervention }) {
               {iv.photos.map((p) => (
                 p.url ? (
                   <figure key={p.id} className="overflow-hidden rounded-lg border">
-                    <img src={p.url} alt={p.caption ?? "Photo d'intervention"} loading="lazy" className="h-32 w-full object-cover" />
+                    <ImageLightbox src={p.url} alt={p.caption ?? "Photo d'intervention"} caption={p.caption}>
+                      <img src={p.url} alt={p.caption ?? "Photo d'intervention"} loading="lazy" className="h-32 w-full object-cover" />
+                    </ImageLightbox>
                     {p.caption && <figcaption className="px-2 py-1 text-xs text-muted-foreground">{p.caption}</figcaption>}
                   </figure>
                 ) : null
