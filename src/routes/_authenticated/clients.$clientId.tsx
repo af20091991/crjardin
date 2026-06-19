@@ -15,15 +15,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
-  Sparkles, ClipboardList, Leaf, AlertTriangle,
+  Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({
   component: ClientDetail,
@@ -33,6 +35,7 @@ function ClientDetail() {
   const { clientId } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const [copied, setCopied] = useState(false);
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", clientId],
     queryFn: () => getClient(clientId),
