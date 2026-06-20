@@ -7,8 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { listUsersByStatus, setUserApproval, listLoginEvents } from "@/lib/admin";
-import { Loader2, Shield, Eye, MessageSquare, Users, FileText, UserCheck, Check, X, LogIn } from "lucide-react";
+import { listUsersByStatus, setUserApproval, listLoginEvents, listAllUsers, listClientAccesses } from "@/lib/admin";
+import { Loader2, Shield, Eye, MessageSquare, Users, FileText, UserCheck, Check, X, LogIn, UserCog, Globe } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Administration — De la graine au jardin" }] }),
@@ -60,15 +60,13 @@ function AdminPage() {
   const { data: accesses } = useQuery({
     queryKey: ["admin-accesses"],
     enabled: isAdmin,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("share_access_log")
-        .select("id, accessed_at, client_id")
-        .order("accessed_at", { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listClientAccesses(50),
+  });
+
+  const { data: allUsers } = useQuery({
+    queryKey: ["admin-all-users"],
+    enabled: isAdmin,
+    queryFn: () => listAllUsers(),
   });
 
   const { data: pending } = useQuery({
@@ -167,6 +165,49 @@ function AdminPage() {
         </Card>
 
         <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <UserCog className="h-4 w-4 text-primary" /> Comptes utilisateurs
+              {(allUsers ?? []).length > 0 && (
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-muted px-1.5 text-[11px] font-semibold text-muted-foreground">
+                  {(allUsers ?? []).length}
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(allUsers ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun compte.</p>
+            ) : (
+              (allUsers ?? []).map((u) => (
+                <div key={u.id} className="flex items-center justify-between gap-2 border-b pb-2 text-sm last:border-0">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">
+                      {u.display_name ?? "Sans nom"}
+                      {u.is_admin && (
+                        <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">Admin</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {u.company_name ? `${u.company_name} · ` : ""}Inscrit le {new Date(u.created_at).toLocaleDateString("fr-FR")}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 rounded px-2 py-0.5 text-[11px] font-medium ${
+                    u.approval_status === "approved"
+                      ? "bg-primary/10 text-primary"
+                      : u.approval_status === "rejected"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {u.approval_status === "approved" ? "Validé" : u.approval_status === "rejected" ? "Refusé" : "En attente"}
+                  </span>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader><CardTitle className="text-base">Derniers messages clients</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {(messages ?? []).length === 0 ? (
@@ -192,17 +233,26 @@ function AdminPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Dernières consultations clients</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Globe className="h-4 w-4 text-primary" /> Consultations clients (adresses IP)
+            </CardTitle>
+          </CardHeader>
           <CardContent className="space-y-2">
             {(accesses ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground">Aucune consultation enregistrée.</p>
             ) : (
               (accesses ?? []).map((a) => (
-                <div key={a.id} className="flex items-center justify-between border-b pb-2 text-sm last:border-0">
-                  <Link to="/clients/$clientId" params={{ clientId: a.client_id }} className="flex items-center gap-2 text-primary hover:underline">
-                    <Eye className="h-4 w-4" /> Fiche consultée
-                  </Link>
-                  <span className="text-xs text-muted-foreground">
+                <div key={a.id} className="flex items-center justify-between gap-2 border-b pb-2 text-sm last:border-0">
+                  <div className="min-w-0">
+                    <Link to="/clients/$clientId" params={{ clientId: a.client_id }} className="flex items-center gap-2 font-medium text-primary hover:underline">
+                      <Eye className="h-4 w-4 shrink-0" /> {a.client_name ?? "Fiche consultée"}
+                    </Link>
+                    <p className="truncate text-xs text-muted-foreground">
+                      IP : {a.ip_address ?? "inconnue"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
                     {new Date(a.accessed_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
