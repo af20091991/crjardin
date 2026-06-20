@@ -26,8 +26,20 @@ export interface SharedIntervention {
   garden_state: string | null;
   upcoming_works: string | null;
   recommendations_text: string | null;
+  client_read_at: string | null;
   tasks: SharedTask[];
   photos: SharedPhoto[];
+}
+
+export interface SharedRecommendation {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  status: string;
+  estimated_hours: number | null;
+  unit_price: number;
+  client_interest: string | null;
 }
 
 export interface SharedClientData {
@@ -40,6 +52,7 @@ export interface SharedClientData {
     contract_type: string | null;
     frequency: string | null;
   };
+  recommendations: SharedRecommendation[];
   interventions: SharedIntervention[];
 }
 
@@ -59,6 +72,7 @@ export interface ClientMessage {
   kind: string;
   content: string;
   author_name: string | null;
+  sender: string;
   created_at: string;
 }
 
@@ -105,6 +119,23 @@ export const addClientMessage = createServerFn({ method: "POST" })
       p_kind: data.kind,
       p_content: data.content,
       p_author_name: data.authorName ?? undefined,
+    });
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const setRecommendationInterest = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; recoId: string; interest: "interested" | "not_interested" }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data?.recoId) throw new Error("Préconisation invalide");
+    if (data.interest !== "interested" && data.interest !== "not_interested") throw new Error("Choix invalide");
+    return { token: data.token, recoId: data.recoId, interest: data.interest };
+  })
+  .handler(async ({ data }) => {
+    const { error } = await publicClient().rpc("set_recommendation_interest", {
+      p_token: data.token,
+      p_reco_id: data.recoId,
+      p_interest: data.interest,
     });
     if (error) throw error;
     return { ok: true };
