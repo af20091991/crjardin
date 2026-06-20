@@ -424,6 +424,7 @@ export type Database = {
           hourly_rate: number
           id: string
           signature_data: string | null
+          stamp_data: string | null
           updated_at: string
         }
         Insert: {
@@ -436,6 +437,7 @@ export type Database = {
           hourly_rate?: number
           id: string
           signature_data?: string | null
+          stamp_data?: string | null
           updated_at?: string
         }
         Update: {
@@ -448,6 +450,7 @@ export type Database = {
           hourly_rate?: number
           id?: string
           signature_data?: string | null
+          stamp_data?: string | null
           updated_at?: string
         }
         Relationships: []
