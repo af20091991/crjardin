@@ -152,24 +152,21 @@ export function ClientForm({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Téléphone</Label>
-              <Input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} />
+              <Input
+                type="tel"
+                value={form.phone ?? ""}
+                onChange={(e) => set("phone", e.target.value)}
+                placeholder="+33 6 60 22 13 21"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Email</Label>
-              <div className="flex items-center gap-1">
-                <Input value={emailLocal} onChange={(e) => setEmailLocal(e.target.value)} placeholder="nom" className="min-w-0 flex-1" />
-                <span className="text-muted-foreground">@</span>
-                <Select value={emailDomain} onValueChange={setEmailDomain}>
-                  <SelectTrigger className="w-[7.5rem] shrink-0"><SelectValue placeholder="domaine" /></SelectTrigger>
-                  <SelectContent>
-                    {EMAIL_DOMAINS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                    <SelectItem value={CUSTOM_DOMAIN}>Personnalisé…</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {emailDomain === CUSTOM_DOMAIN && (
-                <Input value={customDomain} onChange={(e) => setCustomDomain(e.target.value)} placeholder="domaine.fr" />
-              )}
+              <Input
+                type="email"
+                value={form.email ?? ""}
+                onChange={(e) => set("email", e.target.value)}
+                placeholder="nom@exemple.fr"
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
