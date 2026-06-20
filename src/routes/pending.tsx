@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, Leaf, Loader2 } from "lucide-react";
+import { Clock, Loader2 } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/pending")({
   head: () => ({ meta: [{ title: "Compte en attente — De la graine au jardin" }] }),
@@ -47,10 +48,9 @@ function PendingPage() {
     <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 py-10">
       <div className="w-full max-w-md text-center">
         <div className="mb-6 flex flex-col items-center">
-          <div className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-            <Leaf className="h-7 w-7" />
-          </div>
-          <h1 className="font-serif text-2xl font-semibold">Jardin Pro</h1>
+          <img src={logo} alt="De la graine au jardin" className="mb-2 h-24 w-24 object-contain" />
+          <h1 className="font-serif text-2xl font-semibold text-primary">De la graine au jardin</h1>
+          <p className="mt-1 text-xs font-medium text-accent">au rythme de la nature</p>
         </div>
         <Card className="border-border/60 shadow-sm">
           <CardContent className="flex flex-col items-center gap-3 py-8">
