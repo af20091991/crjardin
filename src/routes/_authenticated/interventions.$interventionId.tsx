@@ -18,6 +18,7 @@ import {
 import { generateInterventionInsights, analyzeInterventionPhotos } from "@/lib/ai.functions";
 import { getClient } from "@/lib/clients";
 import { getMyProfile } from "@/lib/profile";
+import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
 import { ImageLightbox } from "@/components/ImageLightbox";
