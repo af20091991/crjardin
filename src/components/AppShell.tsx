@@ -2,7 +2,9 @@ import { type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { LayoutDashboard, Users, Plus, LogOut, Leaf, Settings } from "lucide-react";
+import { useIsAdmin } from "@/hooks/use-admin";
+import { NotificationBell } from "@/components/NotificationBell";
+import { LayoutDashboard, Users, Plus, LogOut, Leaf, Settings, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 
@@ -15,6 +17,7 @@ const NAV = [
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   async function signOut() {
@@ -25,16 +28,23 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const isActive = (to: string, exact: boolean) =>
     exact ? pathname === to : pathname.startsWith(to);
 
+  const navItems = isAdmin
+    ? [...NAV, { to: "/admin", label: "Administration", icon: Shield, exact: false }]
+    : NAV;
+
   return (
     <div className="min-h-screen bg-secondary/30">
       {/* Sidebar desktop */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card md:flex">
-        <div className="flex items-center gap-2.5 px-5 py-5">
-          <img src={logo} alt="Logo" className="h-9 w-9 rounded-lg object-contain" />
-          <span className="font-serif text-lg font-semibold">Jardin Pro</span>
+        <div className="flex items-center justify-between px-5 py-5">
+          <div className="flex items-center gap-2.5">
+            <img src={logo} alt="Logo" className="h-9 w-9 rounded-lg object-contain" />
+            <span className="font-serif text-lg font-semibold">Jardin Pro</span>
+          </div>
+          <NotificationBell />
         </div>
         <nav className="flex-1 space-y-1 px-3">
-          {NAV.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -73,9 +83,12 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             <Leaf className="h-5 w-5 text-primary" />
             <span className="font-serif text-base font-semibold">{title ?? "Jardin Pro"}</span>
           </div>
-          <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
-            <LogOut className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+            <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
+              <LogOut className="h-5 w-5" />
+            </button>
+          </div>
         </header>
 
         {title && (
@@ -89,7 +102,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-border bg-card/95 px-2 py-2 backdrop-blur md:hidden">
-        {NAV.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.to}
             to={item.to}
