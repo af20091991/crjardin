@@ -97,9 +97,12 @@ function NewIntervention() {
   return (
     <AppShell title="Nouveau compte-rendu">
       <div className="mx-auto max-w-2xl space-y-4">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Retour
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> Retour
+          </Link>
+          <Link to="/modeles" className="text-sm text-primary hover:underline">Gérer les modèles</Link>
+        </div>
 
         <Card>
           <CardContent className="space-y-5 pt-6">

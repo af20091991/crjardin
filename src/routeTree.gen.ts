@@ -19,6 +19,7 @@ import { Route as PartageTokenRouteImport } from './routes/partage.$token'
 import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
+import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
@@ -75,6 +76,11 @@ const AuthenticatedPlanningRoute = AuthenticatedPlanningRouteImport.update({
   path: '/planning',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedModelesRoute = AuthenticatedModelesRouteImport.update({
+  id: '/modeles',
+  path: '/modeles',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/modeles': typeof AuthenticatedModelesRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/modeles': typeof AuthenticatedModelesRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/modeles': typeof AuthenticatedModelesRoute
   '/_authenticated/planning': typeof AuthenticatedPlanningRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/statistiques': typeof AuthenticatedStatistiquesRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/sitemap.xml'
     | '/admin'
+    | '/modeles'
     | '/planning'
     | '/settings'
     | '/statistiques'
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/sitemap.xml'
     | '/admin'
+    | '/modeles'
     | '/planning'
     | '/settings'
     | '/statistiques'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/sitemap.xml'
     | '/_authenticated/admin'
+    | '/_authenticated/modeles'
     | '/_authenticated/planning'
     | '/_authenticated/settings'
     | '/_authenticated/statistiques'
@@ -288,6 +300,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlanningRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/modeles': {
+      id: '/_authenticated/modeles'
+      path: '/modeles'
+      fullPath: '/modeles'
+      preLoaderRoute: typeof AuthenticatedModelesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -328,6 +347,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedModelesRoute: typeof AuthenticatedModelesRoute
   AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStatistiquesRoute: typeof AuthenticatedStatistiquesRoute
@@ -340,6 +360,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedModelesRoute: AuthenticatedModelesRoute,
   AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStatistiquesRoute: AuthenticatedStatistiquesRoute,
