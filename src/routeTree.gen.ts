@@ -17,6 +17,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as PartageTokenRouteImport } from './routes/partage.$token'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
@@ -62,6 +63,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPlanningRoute = AuthenticatedPlanningRouteImport.update({
+  id: '/planning',
+  path: '/planning',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/partage/$token': typeof PartageTokenRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/partage/$token': typeof PartageTokenRoute
   '/': typeof AuthenticatedIndexRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/planning': typeof AuthenticatedPlanningRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/partage/$token': typeof PartageTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/sitemap.xml'
     | '/admin'
+    | '/planning'
     | '/settings'
     | '/partage/$token'
     | '/clients/$clientId'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/sitemap.xml'
     | '/admin'
+    | '/planning'
     | '/settings'
     | '/partage/$token'
     | '/'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/sitemap.xml'
     | '/_authenticated/admin'
+    | '/_authenticated/planning'
     | '/_authenticated/settings'
     | '/partage/$token'
     | '/_authenticated/'
@@ -249,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/planning': {
+      id: '/_authenticated/planning'
+      path: '/planning'
+      fullPath: '/planning'
+      preLoaderRoute: typeof AuthenticatedPlanningRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -289,6 +308,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedClientsClientIdRoute: typeof AuthenticatedClientsClientIdRoute
@@ -299,6 +319,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedClientsClientIdRoute: AuthenticatedClientsClientIdRoute,
