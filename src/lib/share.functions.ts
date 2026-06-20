@@ -45,6 +45,71 @@ export interface SharedClientData {
 
 const BUCKET = "chantier-photos";
 
+function publicClient() {
+  return createClient<Database>(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_PUBLISHABLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+}
+
+export interface ClientMessage {
+  id: string;
+  intervention_id: string | null;
+  kind: string;
+  content: string;
+  author_name: string | null;
+  created_at: string;
+}
+
+export const markSharedRead = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    return { token: data.token };
+  })
+  .handler(async ({ data }) => {
+    const { error } = await publicClient().rpc("mark_shared_read", { p_token: data.token });
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const getSharedMessages = createServerFn({ method: "GET" })
+  .inputValidator((data: { token: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    return { token: data.token };
+  })
+  .handler(async ({ data }): Promise<ClientMessage[]> => {
+    const { data: rows, error } = await publicClient().rpc("get_shared_messages", { p_token: data.token });
+    if (error) throw error;
+    return (rows as unknown as ClientMessage[]) ?? [];
+  });
+
+export const addClientMessage = createServerFn({ method: "POST" })
+  .inputValidator((data: {
+    token: string; interventionId: string | null; kind: string; content: string; authorName?: string | null;
+  }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.content || data.content.trim().length === 0) throw new Error("Message vide");
+    return {
+      token: data.token,
+      interventionId: data.interventionId ?? null,
+      kind: data.kind === "question" ? "question" : "annotation",
+      content: data.content.trim().slice(0, 2000),
+      authorName: data.authorName ?? null,
+    };
+  })
+  .handler(async ({ data }) => {
+    const { error } = await publicClient().rpc("add_client_message", {
+      p_token: data.token,
+      p_intervention_id: data.interventionId,
+      p_kind: data.kind,
+      p_content: data.content,
+      p_author_name: data.authorName,
+    });
+    if (error) throw error;
+    return { ok: true };
+  });
+
 export const getSharedClient = createServerFn({ method: "GET" })
   .inputValidator((data: { token: string }) => {
     if (!data?.token || typeof data.token !== "string") throw new Error("Lien invalide");
