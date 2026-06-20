@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_messages: {
+        Row: {
+          author_name: string | null
+          client_id: string
+          content: string
+          created_at: string
+          id: string
+          intervention_id: string | null
+          kind: string
+          resolved: boolean
+        }
+        Insert: {
+          author_name?: string | null
+          client_id: string
+          content: string
+          created_at?: string
+          id?: string
+          intervention_id?: string | null
+          kind?: string
+          resolved?: boolean
+        }
+        Update: {
+          author_name?: string | null
+          client_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          intervention_id?: string | null
+          kind?: string
+          resolved?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_messages_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "interventions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -237,6 +285,8 @@ export type Database = {
       interventions: {
         Row: {
           client_id: string
+          client_read_at: string | null
+          client_read_count: number
           created_at: string
           garden_state: string | null
           id: string
@@ -253,6 +303,8 @@ export type Database = {
         }
         Insert: {
           client_id: string
+          client_read_at?: string | null
+          client_read_count?: number
           created_at?: string
           garden_state?: string | null
           id?: string
@@ -269,6 +321,8 @@ export type Database = {
         }
         Update: {
           client_id?: string
+          client_read_at?: string | null
+          client_read_count?: number
           created_at?: string
           garden_state?: string | null
           id?: string
@@ -292,6 +346,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          client_id: string | null
+          created_at: string
+          id: string
+          intervention_id: string | null
+          is_read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          intervention_id?: string | null
+          is_read?: boolean
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          intervention_id?: string | null
+          is_read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -386,6 +476,35 @@ export type Database = {
           },
         ]
       }
+      share_access_log: {
+        Row: {
+          accessed_at: string
+          client_id: string
+          id: string
+          user_agent: string | null
+        }
+        Insert: {
+          accessed_at?: string
+          client_id: string
+          id?: string
+          user_agent?: string | null
+        }
+        Update: {
+          accessed_at?: string
+          client_id?: string
+          id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_access_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -412,13 +531,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_client_message: {
+        Args: {
+          p_author_name?: string
+          p_content: string
+          p_intervention_id: string
+          p_kind: string
+          p_token: string
+        }
+        Returns: string
+      }
       get_shared_client: { Args: { p_token: string }; Returns: Json }
+      get_shared_messages: { Args: { p_token: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      mark_shared_read: {
+        Args: { p_token: string; p_user_agent?: string }
+        Returns: undefined
       }
       next_intervention_reference: { Args: never; Returns: string }
     }

@@ -258,7 +258,14 @@ function InterventionDetail() {
                   {new Date(iv.intervention_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                 </p>
               </div>
-              <Badge variant={done ? "default" : "secondary"}>{done ? "Terminé" : "Brouillon"}</Badge>
+              <div className="flex flex-col items-end gap-1.5">
+                <Badge variant={done ? "default" : "secondary"}>{done ? "Terminé" : "Brouillon"}</Badge>
+                {iv.client_read_at && (
+                  <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
+                    Lu par le client · {new Date(iv.client_read_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                  </Badge>
+                )}
+              </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button size="sm" variant={done ? "outline" : "default"} onClick={() => toggleComplete.mutate()}>

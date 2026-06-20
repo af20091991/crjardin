@@ -1,9 +1,17 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { getSharedClient, type SharedIntervention } from "@/lib/share.functions";
+import { queryOptions, useSuspenseQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import {
+  getSharedClient, markSharedRead, addClientMessage, getSharedMessages,
+  type SharedIntervention, type ClientMessage,
+} from "@/lib/share.functions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Mail, Leaf, ClipboardList, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { MapPin, Phone, Mail, Leaf, ClipboardList, CheckCircle2, MessageSquarePlus, HelpCircle, Send, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 
 const sharedQuery = (token: string) =>
@@ -11,6 +19,13 @@ const sharedQuery = (token: string) =>
     queryKey: ["shared-client", token],
     queryFn: () => getSharedClient({ data: { token } }),
     staleTime: 60_000,
+  });
+
+const messagesQuery = (token: string) =>
+  queryOptions({
+    queryKey: ["shared-messages", token],
+    queryFn: () => getSharedMessages({ data: { token } }),
+    staleTime: 10_000,
   });
 
 export const Route = createFileRoute("/partage/$token")({
@@ -52,6 +67,12 @@ const TASK_LABELS: Record<string, string> = {
 function SharePage() {
   const { token } = Route.useParams();
   const { data } = useSuspenseQuery(sharedQuery(token));
+  const { data: messages } = useQuery(messagesQuery(token));
+
+  useEffect(() => {
+    markSharedRead({ data: { token } }).catch(() => {});
+  }, [token]);
+
   if (!data) return null;
   const { client, interventions } = data;
 
@@ -83,14 +104,18 @@ function SharePage() {
             </CardContent>
           </Card>
         ) : (
-          interventions.map((iv) => <InterventionCard key={iv.id} iv={iv} />)
+          interventions.map((iv) => (
+            <InterventionCard key={iv.id} iv={iv} token={token} messages={(messages ?? []).filter((m) => m.intervention_id === iv.id)} />
+          ))
         )}
+
+        <GeneralMessages token={token} messages={(messages ?? []).filter((m) => !m.intervention_id)} />
       </main>
     </div>
   );
 }
 
-function InterventionCard({ iv }: { iv: SharedIntervention }) {
+function InterventionCard({ iv, token, messages }: { iv: SharedIntervention; token: string; messages: ClientMessage[] }) {
   const date = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
     day: "numeric", month: "long", year: "numeric",
   });
@@ -155,8 +180,93 @@ function InterventionCard({ iv }: { iv: SharedIntervention }) {
             </div>
           </div>
         )}
+
+        <MessageThread token={token} interventionId={iv.id} messages={messages} />
       </CardContent>
     </Card>
+  );
+}
+
+function GeneralMessages({ token, messages }: { token: string; messages: ClientMessage[] }) {
+  return (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardContent className="space-y-3 pt-6">
+        <h3 className="font-medium">Une question d'ordre général ?</h3>
+        <p className="text-sm text-muted-foreground">
+          Laissez un message à votre jardinier, il sera notifié immédiatement.
+        </p>
+        <MessageThread token={token} interventionId={null} messages={messages} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function MessageThread({ token, interventionId, messages }: { token: string; interventionId: string | null; messages: ClientMessage[] }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<"annotation" | "question">("annotation");
+  const [content, setContent] = useState("");
+  const [name, setName] = useState("");
+
+  const send = useMutation({
+    mutationFn: () =>
+      addClientMessage({ data: { token, interventionId, kind, content, authorName: name || null } }),
+    onSuccess: () => {
+      toast.success("Message envoyé. Votre jardinier a été notifié.");
+      setContent(""); setOpen(false);
+      qc.invalidateQueries({ queryKey: ["shared-messages", token] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  return (
+    <div className="space-y-2 border-t pt-3">
+      {messages.length > 0 && (
+        <div className="space-y-1.5">
+          {messages.map((m) => (
+            <div key={m.id} className="rounded-lg bg-muted/60 px-3 py-2 text-sm">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                {m.kind === "question" ? <HelpCircle className="h-3 w-3" /> : <MessageSquarePlus className="h-3 w-3" />}
+                {m.kind === "question" ? "Votre question" : "Votre annotation"}
+                {m.author_name ? ` · ${m.author_name}` : ""}
+              </p>
+              <p className="mt-0.5 whitespace-pre-wrap">{m.content}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!open ? (
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+          <MessageSquarePlus className="mr-1.5 h-4 w-4" /> Ajouter une annotation ou une question
+        </Button>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Button type="button" size="sm" variant={kind === "annotation" ? "default" : "outline"} onClick={() => setKind("annotation")}>
+              <MessageSquarePlus className="mr-1.5 h-4 w-4" /> Annotation
+            </Button>
+            <Button type="button" size="sm" variant={kind === "question" ? "default" : "outline"} onClick={() => setKind("question")}>
+              <HelpCircle className="mr-1.5 h-4 w-4" /> Question
+            </Button>
+          </div>
+          <Input placeholder="Votre nom (facultatif)" value={name} onChange={(e) => setName(e.target.value)} />
+          <Textarea
+            placeholder={kind === "question" ? "Posez votre question…" : "Votre remarque sur ce compte-rendu…"}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={3}
+          />
+          <div className="flex gap-2">
+            <Button size="sm" disabled={!content.trim() || send.isPending} onClick={() => send.mutate()}>
+              {send.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Send className="mr-1.5 h-4 w-4" />}
+              Envoyer
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
