@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { getMyProfile, updateMyProfile } from "@/lib/profile";
@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, PenLine, Upload, Stamp, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useRef } from "react";
 
 /** Lit un fichier image et renvoie un dataURL redimensionné (max 600px). */
 function fileToDataUrl(file: File, maxSize = 600): Promise<string> {
