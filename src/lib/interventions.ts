@@ -80,6 +80,8 @@ export interface InterventionPhoto {
   include_in_report: boolean;
   position: number;
   created_at: string;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 async function uid(): Promise<string> {
