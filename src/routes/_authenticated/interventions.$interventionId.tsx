@@ -362,6 +362,8 @@ function InterventionDetail() {
           </CardContent>
         </Card>
 
+        <InterventionMessages clientId={iv.client_id} interventionId={interventionId} authorName={profile?.display_name ?? profile?.company_name ?? null} />
+
         {/* Photos */}
         <Card>
           <CardContent className="space-y-3 pt-6">
