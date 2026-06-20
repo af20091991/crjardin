@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Leaf, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Connexion — Jardin Pro" },
+      { title: "Connexion — De la graine au jardin" },
       { name: "description", content: "Connectez-vous à votre espace de suivi d'entretien paysager." },
     ],
   }),
@@ -82,11 +83,9 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-            <Leaf className="h-7 w-7" />
-          </div>
-          <h1 className="font-serif text-3xl font-semibold text-foreground">Jardin Pro</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Suivi d'entretien paysager professionnel</p>
+          <img src={logo} alt="De la graine au jardin" className="mb-3 h-28 w-28 object-contain" />
+          <h1 className="font-serif text-3xl font-semibold text-primary">De la graine au jardin</h1>
+          <p className="mt-1 text-sm font-medium text-accent">paysagiste · au rythme de la nature</p>
         </div>
         <Card className="border-border/60 shadow-sm">
           <CardContent className="pt-6">
