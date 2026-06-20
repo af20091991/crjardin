@@ -33,24 +33,32 @@ interface AddressSuggestion {
 
 export function ClientForm({
   client,
+  initial,
   trigger,
+  open: openProp,
+  onOpenChange,
   onSaved,
 }: {
   client?: Client;
+  initial?: ClientInput;
   trigger: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onSaved?: (c: Client) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = openProp ?? openInternal;
+  const setOpen = (v: boolean) => { setOpenInternal(v); onOpenChange?.(v); };
   const qc = useQueryClient();
   const [form, setForm] = useState<ClientInput>({
-    name: client?.name ?? "",
-    civility: client?.civility ?? "",
-    address: client?.address ?? "",
-    phone: client?.phone ?? "+33 ",
-    email: client?.email ?? "",
-    contract_type: client?.contract_type ?? "",
-    frequency: client?.frequency ?? "",
-    notes: client?.notes ?? "",
+    name: client?.name ?? initial?.name ?? "",
+    civility: client?.civility ?? initial?.civility ?? "",
+    address: client?.address ?? initial?.address ?? "",
+    phone: client?.phone ?? initial?.phone ?? "+33 ",
+    email: client?.email ?? initial?.email ?? "",
+    contract_type: client?.contract_type ?? initial?.contract_type ?? "",
+    frequency: client?.frequency ?? initial?.frequency ?? "",
+    notes: client?.notes ?? initial?.notes ?? "",
   });
 
   // Address autocomplete via the French Base Adresse Nationale (no key required)
