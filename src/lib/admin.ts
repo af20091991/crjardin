@@ -50,7 +50,7 @@ export async function listLoginEvents(limit = 30): Promise<LoginEvent[]> {
 export async function recordLogin(): Promise<void> {
   try {
     await supabase.rpc("record_login", {
-      p_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      p_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
     });
   } catch {
     /* non-blocking */
