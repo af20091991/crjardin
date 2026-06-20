@@ -46,6 +46,7 @@ export interface SharedClientData {
   client: {
     id: string;
     name: string;
+    civility?: string | null;
     address: string | null;
     phone: string | null;
     email: string | null;

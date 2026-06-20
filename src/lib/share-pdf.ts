@@ -130,6 +130,16 @@ export async function exportSharedInterventionPdf(
     doc.text(`${p} / ${pages}`, pageW - margin, pageH - 8, { align: "right" });
   }
 
-  const fname = `CR_${(iv.reference ?? iv.intervention_date).replace(/[^\w-]/g, "_")}.pdf`;
-  doc.save(fname);
+  const dateSafe = (iv.intervention_date ?? "").slice(0, 10);
+  const parts = [
+    client.civility?.trim(),
+    client.name?.trim(),
+    iv.title?.trim() || iv.intervention_type?.trim() || "Compte-rendu d'intervention",
+    dateSafe,
+    "De la graine au jardin",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const fname = parts.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+  doc.save(`${fname}.pdf`);
 }
