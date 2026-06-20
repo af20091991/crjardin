@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
-  head: () => ({ meta: [{ title: "Tableau de bord — Jardin Pro" }] }),
+  head: () => ({ meta: [{ title: "Tableau de bord — De la graine au jardin" }] }),
   component: Dashboard,
 });
 

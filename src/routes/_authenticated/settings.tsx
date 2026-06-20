@@ -37,7 +37,7 @@ function fileToDataUrl(file: File, maxSize = 600): Promise<string> {
 }
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Profil & signature — Jardin Pro" }] }),
+  head: () => ({ meta: [{ title: "Profil & signature — De la graine au jardin" }] }),
   component: SettingsPage,
 });
 
@@ -111,7 +111,7 @@ function SettingsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Nom de l'entreprise</Label>
-                  <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Jardin Pro" />
+                  <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="De la graine au jardin" />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Tarif horaire de main-d'œuvre (€ TTC/h)</Label>

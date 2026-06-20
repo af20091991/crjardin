@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Clock, Leaf, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/pending")({
-  head: () => ({ meta: [{ title: "Compte en attente — Jardin Pro" }] }),
+  head: () => ({ meta: [{ title: "Compte en attente — De la graine au jardin" }] }),
   component: PendingPage,
 });
 

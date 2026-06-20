@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, MapPin, Phone, Users, ChevronRight, AlertTriangle, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/clients/")({
-  head: () => ({ meta: [{ title: "Clients — Jardin Pro" }] }),
+  head: () => ({ meta: [{ title: "Clients — De la graine au jardin" }] }),
   component: ClientsPage,
 });
 

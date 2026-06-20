@@ -16,7 +16,7 @@ import { FileDown, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/statistiques")({
-  head: () => ({ meta: [{ title: "Statistiques — Jardin Pro" }] }),
+  head: () => ({ meta: [{ title: "Statistiques — De la graine au jardin" }] }),
   component: StatsPage,
 });
 

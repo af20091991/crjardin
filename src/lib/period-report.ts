@@ -18,7 +18,7 @@ export function exportPeriodReport(opts: {
   companyName?: string;
 }): void {
   const { label, from, to, interventions, clients, recommendations } = opts;
-  const company = opts.companyName?.trim() || "Jardin Pro";
+  const company = opts.companyName?.trim() || "De la graine au jardin";
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 16;

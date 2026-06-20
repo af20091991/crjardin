@@ -11,7 +11,7 @@ import { listUsersByStatus, setUserApproval, listLoginEvents } from "@/lib/admin
 import { Loader2, Shield, Eye, MessageSquare, Users, FileText, UserCheck, Check, X, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
-  head: () => ({ meta: [{ title: "Administration — Jardin Pro" }] }),
+  head: () => ({ meta: [{ title: "Administration — De la graine au jardin" }] }),
   component: AdminPage,
 });
 

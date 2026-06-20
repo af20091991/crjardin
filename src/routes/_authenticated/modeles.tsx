@@ -15,7 +15,7 @@ import { LayoutTemplate, Plus, Trash2, Check, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/modeles")({
-  head: () => ({ meta: [{ title: "Modèles de compte-rendu — Jardin Pro" }] }),
+  head: () => ({ meta: [{ title: "Modèles de compte-rendu — De la graine au jardin" }] }),
   component: TemplatesPage,
 });
 
