@@ -204,6 +204,8 @@ function Dashboard() {
           )}
         </div>
 
+        <RemindersWidget />
+
         <div>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="font-serif text-lg font-semibold">{q ? "Clients trouvés" : "Clients récents"}</h3>
