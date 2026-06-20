@@ -38,7 +38,7 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -47,7 +47,14 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Compte créé. Vous pouvez vous connecter.");
+        // Supabase renvoie un utilisateur "identities: []" quand l'adresse est déjà utilisée
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          toast.error("Cette adresse e-mail est déjà utilisée. Connectez-vous ou utilisez « Mot de passe oublié ».");
+          setMode("signin");
+          return;
+        }
+        toast.success("Compte créé. Il doit être validé par un administrateur avant l'accès.");
+        setMode("signin");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -56,7 +63,17 @@ function AuthPage() {
         navigate({ to: "/" });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur de connexion");
+      const msg = err instanceof Error ? err.message : "Erreur de connexion";
+      if (/already registered|already been registered/i.test(msg)) {
+        toast.error("Cette adresse e-mail est déjà utilisée. Connectez-vous plutôt.");
+        setMode("signin");
+      } else if (/email not confirmed/i.test(msg)) {
+        toast.error("Votre compte n'est pas encore validé par l'administrateur.");
+      } else if (/invalid login credentials/i.test(msg)) {
+        toast.error("E-mail ou mot de passe incorrect.");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }
