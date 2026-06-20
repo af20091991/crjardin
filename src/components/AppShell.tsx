@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { NotificationBell } from "@/components/NotificationBell";
-import { LayoutDashboard, Users, Plus, LogOut, Leaf, Settings, Shield, CalendarDays, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 
