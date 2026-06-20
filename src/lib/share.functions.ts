@@ -101,10 +101,10 @@ export const addClientMessage = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { error } = await publicClient().rpc("add_client_message", {
       p_token: data.token,
-      p_intervention_id: data.interventionId,
+      p_intervention_id: data.interventionId ?? undefined,
       p_kind: data.kind,
       p_content: data.content,
-      p_author_name: data.authorName,
+      p_author_name: data.authorName ?? undefined,
     });
     if (error) throw error;
     return { ok: true };
