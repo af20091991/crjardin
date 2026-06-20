@@ -255,11 +255,15 @@ export async function addPhoto(
   interventionId: string,
   storagePath: string,
   position: number,
+  coords?: { lat: number; lng: number } | null,
 ): Promise<InterventionPhoto> {
   const user_id = await uid();
   const { data, error } = await supabase
     .from("intervention_photos")
-    .insert({ intervention_id: interventionId, user_id, storage_path: storagePath, position, include_in_report: true })
+    .insert({
+      intervention_id: interventionId, user_id, storage_path: storagePath, position,
+      include_in_report: true, lat: coords?.lat ?? null, lng: coords?.lng ?? null,
+    })
     .select()
     .single();
   if (error) throw error;
