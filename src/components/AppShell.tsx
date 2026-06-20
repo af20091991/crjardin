@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { NotificationBell } from "@/components/NotificationBell";
-import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 
@@ -31,7 +31,11 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     exact ? pathname === to : pathname.startsWith(to);
 
   const navItems = isAdmin
-    ? [...NAV, { to: "/admin", label: "Administration", icon: Shield, exact: false }]
+    ? [
+        ...NAV,
+        { to: "/admin", label: "Administration", icon: Shield, exact: false },
+        { to: "/versions", label: "Versions", icon: History, exact: false },
+      ]
     : NAV;
 
   return (
@@ -42,7 +46,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           <div className="flex min-w-0 items-center gap-2.5">
             <img src={logo} alt="De la graine au jardin" className="h-11 w-11 shrink-0 object-contain" />
             <div className="min-w-0 leading-tight">
-              <p className="truncate font-serif text-sm font-semibold text-primary">De la graine au jardin</p>
+              <p className="font-serif text-sm font-semibold leading-tight text-primary">De la graine<br />au jardin</p>
               <p className="truncate text-[11px] text-muted-foreground">au rythme de la nature</p>
             </div>
           </div>
