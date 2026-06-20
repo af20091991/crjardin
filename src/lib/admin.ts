@@ -7,6 +7,25 @@ export interface PendingUser {
   created_at: string;
 }
 
+export interface AppUser {
+  id: string;
+  display_name: string | null;
+  company_name: string | null;
+  approval_status: string;
+  created_at: string;
+  approved_at: string | null;
+  is_admin: boolean;
+}
+
+export interface ClientAccess {
+  id: string;
+  client_id: string;
+  client_name: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  accessed_at: string;
+}
+
 export interface LoginEvent {
   id: string;
   user_id: string;
@@ -23,6 +42,35 @@ export async function listUsersByStatus(status: string): Promise<PendingUser[]> 
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data as PendingUser[];
+}
+
+export async function listAllUsers(): Promise<AppUser[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name, company_name, approval_status, created_at, approved_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const profiles = (data ?? []) as Omit<AppUser, "is_admin">[];
+  const { data: roles } = await supabase.from("user_roles").select("user_id, role").eq("role", "admin");
+  const adminIds = new Set((roles ?? []).map((r) => r.user_id));
+  return profiles.map((p) => ({ ...p, is_admin: adminIds.has(p.id) }));
+}
+
+export async function listClientAccesses(limit = 50): Promise<ClientAccess[]> {
+  const { data, error } = await supabase
+    .from("share_access_log")
+    .select("id, client_id, ip_address, user_agent, accessed_at")
+    .order("accessed_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  const rows = (data ?? []) as Omit<ClientAccess, "client_name">[];
+  const ids = [...new Set(rows.map((r) => r.client_id))];
+  let names: Record<string, string | null> = {};
+  if (ids.length) {
+    const { data: clients } = await supabase.from("clients").select("id, name").in("id", ids);
+    names = Object.fromEntries((clients ?? []).map((c) => [c.id, c.name]));
+  }
+  return rows.map((r) => ({ ...r, client_name: names[r.client_id] ?? null }));
 }
 
 export async function setUserApproval(userId: string, status: "approved" | "rejected" | "pending"): Promise<void> {

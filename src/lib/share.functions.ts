@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -83,7 +84,14 @@ export const markSharedRead = createServerFn({ method: "POST" })
     return { token: data.token };
   })
   .handler(async ({ data }) => {
-    const { error } = await publicClient().rpc("mark_shared_read", { p_token: data.token });
+    const fwd = getRequestHeader("x-forwarded-for") ?? "";
+    const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
+    const ua = getRequestHeader("user-agent") ?? null;
+    const { error } = await publicClient().rpc("mark_shared_read", {
+      p_token: data.token,
+      p_user_agent: ua ?? undefined,
+      p_ip: ip ?? undefined,
+    });
     if (error) throw error;
     return { ok: true };
   });
