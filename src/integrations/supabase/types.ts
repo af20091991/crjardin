@@ -24,6 +24,7 @@ export type Database = {
           intervention_id: string | null
           kind: string
           resolved: boolean
+          sender: string
         }
         Insert: {
           author_name?: string | null
@@ -34,6 +35,7 @@ export type Database = {
           intervention_id?: string | null
           kind?: string
           resolved?: boolean
+          sender?: string
         }
         Update: {
           author_name?: string | null
@@ -44,6 +46,7 @@ export type Database = {
           intervention_id?: string | null
           kind?: string
           resolved?: boolean
+          sender?: string
         }
         Relationships: [
           {
@@ -207,6 +210,8 @@ export type Database = {
           id: string
           include_in_report: boolean
           intervention_id: string
+          lat: number | null
+          lng: number | null
           position: number
           storage_path: string
           user_id: string
@@ -217,6 +222,8 @@ export type Database = {
           id?: string
           include_in_report?: boolean
           intervention_id: string
+          lat?: number | null
+          lng?: number | null
           position?: number
           storage_path: string
           user_id: string
@@ -227,6 +234,8 @@ export type Database = {
           id?: string
           include_in_report?: boolean
           intervention_id?: string
+          lat?: number | null
+          lng?: number | null
           position?: number
           storage_path?: string
           user_id?: string
@@ -447,6 +456,8 @@ export type Database = {
         Row: {
           category: string | null
           client_id: string
+          client_interest: string | null
+          client_interest_at: string | null
           created_at: string
           description: string | null
           estimated_hours: number | null
@@ -462,6 +473,8 @@ export type Database = {
         Insert: {
           category?: string | null
           client_id: string
+          client_interest?: string | null
+          client_interest_at?: string | null
           created_at?: string
           description?: string | null
           estimated_hours?: number | null
@@ -477,6 +490,8 @@ export type Database = {
         Update: {
           category?: string | null
           client_id?: string
+          client_interest?: string | null
+          client_interest_at?: string | null
           created_at?: string
           description?: string | null
           estimated_hours?: number | null
@@ -505,6 +520,80 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      reminders: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          done: boolean
+          due_date: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          done?: boolean
+          due_date?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          done?: boolean
+          due_date?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_templates: {
+        Row: {
+          created_at: string
+          id: string
+          intervention_type: string | null
+          name: string
+          summary: string | null
+          tasks: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          intervention_type?: string | null
+          name: string
+          summary?: string | null
+          tasks?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          intervention_type?: string | null
+          name?: string
+          summary?: string | null
+          tasks?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       share_access_log: {
         Row: {
@@ -587,6 +676,10 @@ export type Database = {
       }
       next_intervention_reference: { Args: never; Returns: string }
       record_login: { Args: { p_user_agent?: string }; Returns: undefined }
+      set_recommendation_interest: {
+        Args: { p_interest: string; p_reco_id: string; p_token: string }
+        Returns: undefined
+      }
       set_user_approval: {
         Args: { p_status: string; p_user_id: string }
         Returns: undefined
