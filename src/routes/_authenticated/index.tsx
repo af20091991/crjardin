@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RemindersWidget } from "@/components/RemindersWidget";
 import {
   Users, ClipboardList, FileText, Plus, ArrowRight, Lightbulb, Clock,
   Search, TrendingUp, AlertTriangle, Euro,
