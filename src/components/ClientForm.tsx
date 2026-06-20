@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -26,19 +26,6 @@ import { Loader2 } from "lucide-react";
 const CONTRACTS = ["Entretien annuel", "Ponctuel", "Création", "Saisonnier"];
 const FREQUENCIES = ["Hebdomadaire", "Bimensuelle", "Mensuelle", "Trimestrielle", "Saisonnière"];
 const CIVILITIES = ["Madame", "Monsieur", "Madame et Monsieur"];
-const EMAIL_DOMAINS = ["gmail.com", "yahoo.fr", "hotmail.fr", "hotmail.com", "outlook.fr", "outlook.com", "orange.fr", "free.fr", "sfr.fr", "wanadoo.fr", "laposte.net", "icloud.com"];
-const CUSTOM_DOMAIN = "__custom__";
-
-function splitEmail(email: string): { local: string; domain: string; custom: boolean } {
-  const at = email.indexOf("@");
-  if (at < 0) return { local: email, domain: "", custom: false };
-  const local = email.slice(0, at);
-  const domain = email.slice(at + 1);
-  if (!domain) return { local, domain: "", custom: false };
-  return EMAIL_DOMAINS.includes(domain)
-    ? { local, domain, custom: false }
-    : { local, domain, custom: true };
-}
 
 interface AddressSuggestion {
   label: string;
@@ -46,37 +33,33 @@ interface AddressSuggestion {
 
 export function ClientForm({
   client,
+  initial,
   trigger,
+  open: openProp,
+  onOpenChange,
   onSaved,
 }: {
   client?: Client;
+  initial?: ClientInput;
   trigger: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onSaved?: (c: Client) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = openProp ?? openInternal;
+  const setOpen = (v: boolean) => { setOpenInternal(v); onOpenChange?.(v); };
   const qc = useQueryClient();
   const [form, setForm] = useState<ClientInput>({
-    name: client?.name ?? "",
-    civility: client?.civility ?? "",
-    address: client?.address ?? "",
-    phone: client?.phone ?? "",
-    email: client?.email ?? "",
-    contract_type: client?.contract_type ?? "",
-    frequency: client?.frequency ?? "",
-    notes: client?.notes ?? "",
+    name: client?.name ?? initial?.name ?? "",
+    civility: client?.civility ?? initial?.civility ?? "",
+    address: client?.address ?? initial?.address ?? "",
+    phone: client?.phone ?? initial?.phone ?? "+33 ",
+    email: client?.email ?? initial?.email ?? "",
+    contract_type: client?.contract_type ?? initial?.contract_type ?? "",
+    frequency: client?.frequency ?? initial?.frequency ?? "",
+    notes: client?.notes ?? initial?.notes ?? "",
   });
-
-  const initialEmail = splitEmail(client?.email ?? "");
-  const [emailLocal, setEmailLocal] = useState(initialEmail.local);
-  const [emailDomain, setEmailDomain] = useState(initialEmail.custom ? CUSTOM_DOMAIN : initialEmail.domain);
-  const [customDomain, setCustomDomain] = useState(initialEmail.custom ? initialEmail.domain : "");
-
-  // Compose the full email whenever its parts change
-  useEffect(() => {
-    const domain = emailDomain === CUSTOM_DOMAIN ? customDomain : emailDomain;
-    const email = emailLocal && domain ? `${emailLocal}@${domain}` : emailLocal ? `${emailLocal}@` : "";
-    setForm((f) => ({ ...f, email }));
-  }, [emailLocal, emailDomain, customDomain]);
 
   // Address autocomplete via the French Base Adresse Nationale (no key required)
   const [addrSuggestions, setAddrSuggestions] = useState<AddressSuggestion[]>([]);
@@ -177,24 +160,21 @@ export function ClientForm({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Téléphone</Label>
-              <Input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} />
+              <Input
+                type="tel"
+                value={form.phone ?? ""}
+                onChange={(e) => set("phone", e.target.value)}
+                placeholder="+33 6 60 22 13 21"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Email</Label>
-              <div className="flex items-center gap-1">
-                <Input value={emailLocal} onChange={(e) => setEmailLocal(e.target.value)} placeholder="nom" className="min-w-0 flex-1" />
-                <span className="text-muted-foreground">@</span>
-                <Select value={emailDomain} onValueChange={setEmailDomain}>
-                  <SelectTrigger className="w-[7.5rem] shrink-0"><SelectValue placeholder="domaine" /></SelectTrigger>
-                  <SelectContent>
-                    {EMAIL_DOMAINS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                    <SelectItem value={CUSTOM_DOMAIN}>Personnalisé…</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {emailDomain === CUSTOM_DOMAIN && (
-                <Input value={customDomain} onChange={(e) => setCustomDomain(e.target.value)} placeholder="domaine.fr" />
-              )}
+              <Input
+                type="email"
+                value={form.email ?? ""}
+                onChange={(e) => set("email", e.target.value)}
+                placeholder="nom@exemple.fr"
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
