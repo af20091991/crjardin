@@ -54,6 +54,8 @@ export interface Intervention {
   garden_state: string | null;
   upcoming_works: string | null;
   recommendations_text: string | null;
+  client_read_at: string | null;
+  client_read_count: number;
   created_at: string;
   updated_at: string;
 }
