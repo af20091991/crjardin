@@ -8,7 +8,7 @@ import {
   listRecommendationsByClient, listHealthByClient,
   RECO_STATUS_META, type RecommendationStatus,
   HEALTH_RATING_META, type HealthRating,
-  recommendationPrice, formatEuro, isStalePending,
+  recommendationPrice, formatEuro, isStalePending, clearRecommendationInterest,
 } from "@/lib/garden";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
-  Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check,
+  Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check, ExternalLink,
+  ThumbsUp, ThumbsDown, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -238,6 +239,7 @@ function ClientDetail() {
                         </div>
                       </div>
                       {r.description && <p className="mt-1.5 text-sm text-muted-foreground">{r.description}</p>}
+                      <RecoInterest reco={r} onCleared={() => qc.invalidateQueries({ queryKey: ["recommendations", clientId] })} />
                     </Card>
                   );
                 })}
@@ -285,9 +287,38 @@ function ShareLinkCard({ token, copied, setCopied }: { token: string; copied: bo
           <Button type="button" variant="outline" size="icon" onClick={copy} aria-label="Copier le lien">
             {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
           </Button>
+          <Button type="button" variant="outline" size="icon" asChild aria-label="Ouvrir la vue client">
+            <a href={url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
+          </Button>
         </div>
+        <Button type="button" variant="secondary" size="sm" className="mt-3 w-full" asChild>
+          <a href={url} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="mr-1.5 h-4 w-4" /> Ouvrir la vue client
+          </a>
+        </Button>
       </CardContent>
     </Card>
+  );
+}
+
+function RecoInterest({ reco, onCleared }: { reco: { id: string; client_interest: string | null }; onCleared: () => void }) {
+  const m = useMutation({
+    mutationFn: () => clearRecommendationInterest(reco.id),
+    onSuccess: () => { toast.success("Réaction du client réinitialisée"); onCleared(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+  if (!reco.client_interest) return null;
+  const interested = reco.client_interest === "interested";
+  return (
+    <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-muted/50 p-2">
+      <span className="flex items-center gap-1.5 text-sm">
+        {interested ? <ThumbsUp className="h-4 w-4 text-primary" /> : <ThumbsDown className="h-4 w-4 text-muted-foreground" />}
+        {interested ? "Client intéressé" : "Client non intéressé"}
+      </span>
+      <Button type="button" size="sm" variant="ghost" disabled={m.isPending} onClick={() => m.mutate()}>
+        <RotateCcw className="mr-1.5 h-4 w-4" /> Réinitialiser
+      </Button>
+    </div>
   );
 }
 

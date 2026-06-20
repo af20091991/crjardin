@@ -189,6 +189,7 @@ function InterventionDetail() {
         companyName: profile?.company_name ?? undefined,
         authorName: profile?.display_name ?? undefined,
         signatureData: profile?.signature_data ?? undefined,
+        stampData: profile?.stamp_data ?? undefined,
       });
     },
     onSuccess: () => toast.success("PDF généré"),

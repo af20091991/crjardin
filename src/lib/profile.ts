@@ -5,6 +5,7 @@ export interface Profile {
   display_name: string | null;
   company_name: string | null;
   signature_data: string | null;
+  stamp_data: string | null;
   hourly_rate: number;
   created_at: string;
   updated_at: string;
@@ -23,7 +24,7 @@ export async function getMyProfile(): Promise<Profile | null> {
 }
 
 export async function updateMyProfile(
-  patch: Partial<Pick<Profile, "display_name" | "company_name" | "signature_data" | "hourly_rate">>,
+  patch: Partial<Pick<Profile, "display_name" | "company_name" | "signature_data" | "stamp_data" | "hourly_rate">>,
 ): Promise<void> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error("Non authentifié");

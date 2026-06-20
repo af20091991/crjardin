@@ -3,6 +3,7 @@ import logo from "@/assets/logo.png";
 import type { Intervention, InterventionTask, InterventionPhoto } from "@/lib/interventions";
 import { TASK_STATUS_META, type TaskStatus, signedPhotoUrl } from "@/lib/interventions";
 import type { Client } from "@/lib/clients";
+import { gardenLabel } from "@/lib/clients";
 import type { GardenHealth, Recommendation } from "@/lib/garden";
 import { HEALTH_RATING_META, type HealthRating, RECO_STATUS_META, type RecommendationStatus } from "@/lib/garden";
 import { recommendationPrice, formatEuro } from "@/lib/garden";
@@ -32,11 +33,13 @@ export interface InterventionReportData {
   companyName?: string;
   authorName?: string;
   signatureData?: string;
+  stampData?: string;
 }
 
 export async function exportInterventionPdf(data: InterventionReportData): Promise<void> {
   const { intervention: iv, client, tasks, photos, health, recommendations } = data;
   const company = data.companyName?.trim() || "Jardin Pro";
+  const garden = gardenLabel(client);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -55,7 +58,7 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
       doc.setFontSize(8);
       doc.setTextColor(...MUTED);
       doc.setFont("helvetica", "normal");
-      doc.text(`${company} · Compte-rendu d'intervention`, margin, pageH - 8);
+      doc.text(garden, margin, pageH - 8);
       doc.text(`${p} / ${pages}`, pageW - margin, pageH - 8, { align: "right" });
     }
   };
@@ -104,14 +107,14 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   doc.setTextColor(...DARK);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(15);
-  doc.text(iv.title ?? client.name, margin, y);
+  doc.text(iv.title ?? garden, margin, y);
   y += 8;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10.5);
   doc.setTextColor(...MUTED);
   const infoLines = [
     iv.reference ? `Référence : ${iv.reference}` : null,
-    `Client : ${client.name}`,
+    `Client : ${garden}`,
     client.address ? `Adresse : ${client.address}` : null,
     `Date : ${dateStr}`,
     `Type d'intervention : ${iv.intervention_type ?? "Entretien"}`,
@@ -252,6 +255,14 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
     try {
       doc.addImage(data.signatureData, "PNG", margin, y + 2, sigW, sigH);
     } catch { /* signature optionnelle */ }
+  }
+  // Cachet d'entreprise, à droite de la signature
+  if (data.stampData) {
+    try {
+      const stampW = 34;
+      const stampH = 34;
+      doc.addImage(data.stampData, "PNG", pageW - margin - stampW, y - 4, stampW, stampH);
+    } catch { /* cachet optionnel */ }
   }
   y += sigH + 4;
   doc.line(margin, y, margin + sigW, y);

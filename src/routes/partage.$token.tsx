@@ -16,7 +16,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MapPin, Phone, Mail, Leaf, ClipboardList, CheckCircle2, MessageSquarePlus, HelpCircle, Send, Loader2,
-  Download, Sparkles, ThumbsUp, ThumbsDown, Search, CalendarDays, List, Images, Moon, Sun, Type, Reply,
+  Download, Sparkles, ThumbsUp, ThumbsDown, Search, CalendarDays, List, Images, Moon, Sun, Type, Reply, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -450,7 +450,7 @@ function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }
   const qc = useQueryClient();
   const price = recommendationPrice(reco);
   const m = useMutation({
-    mutationFn: (interest: "interested" | "not_interested") =>
+    mutationFn: (interest: "interested" | "not_interested" | "none") =>
       setRecommendationInterest({ data: { token, recoId: reco.id, interest } }),
     onSuccess: () => {
       toast.success("Merci ! Votre jardinier a été notifié.");
@@ -471,9 +471,14 @@ function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }
         </div>
         {reco.description && <p className="text-sm text-muted-foreground">{reco.description}</p>}
         {reco.client_interest ? (
-          <Badge variant={reco.client_interest === "interested" ? "default" : "secondary"}>
-            {reco.client_interest === "interested" ? "Vous êtes intéressé(e)" : "Non souhaité pour le moment"}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={reco.client_interest === "interested" ? "default" : "secondary"}>
+              {reco.client_interest === "interested" ? "Vous êtes intéressé(e)" : "Non souhaité pour le moment"}
+            </Badge>
+            <Button size="sm" variant="ghost" disabled={m.isPending} onClick={() => m.mutate("none")}>
+              <RotateCcw className="mr-1.5 h-4 w-4" /> Modifier mon choix
+            </Button>
+          </div>
         ) : (
           <div className="flex gap-2">
             <Button size="sm" disabled={m.isPending} onClick={() => m.mutate("interested")}>

@@ -42,6 +42,8 @@ export interface Recommendation {
   estimated_hours: number | null;
   unit_price: number;
   source: string;
+  client_interest: string | null;
+  client_interest_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -189,5 +191,14 @@ export async function updateRecommendation(
 
 export async function deleteRecommendation(id: string): Promise<void> {
   const { error } = await supabase.from("recommendations").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/** Annule la réaction client (« intéressé » / « pas intéressé ») côté jardinier/admin. */
+export async function clearRecommendationInterest(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("recommendations")
+    .update({ client_interest: null, client_interest_at: null })
+    .eq("id", id);
   if (error) throw error;
 }
