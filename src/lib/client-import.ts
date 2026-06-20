@@ -12,17 +12,50 @@ function norm(s: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
-// Map of normalised header aliases → ClientInput field
-const FIELD_ALIASES: Record<keyof ClientInput, string[]> = {
-  name: ["nom", "nomclient", "client", "name", "nomdefamille", "raisonsociale"],
-  civility: ["civilite", "civility", "titre", "genre"],
-  address: ["adresse", "address", "adressepostale", "rue"],
+type ImportField = keyof ClientInput | "first_name" | "last_name";
+
+// Map of normalised header aliases → import field. First/last name are kept
+// separate so Excel files with "Prénom" + "Nom" are combined reliably.
+const FIELD_ALIASES: Record<ImportField, string[]> = {
+  name: ["nomcomplet", "nomprenom", "nometprenom", "nomduclient", "nomclient", "client", "contact", "proprietaire", "raisonsociale", "name"],
+  first_name: ["prenom", "firstname", "givenname", "forename"],
+  last_name: ["nom", "nomdefamille", "nomfamille", "nomusage", "lastname", "surname", "familyname"],
+  civility: ["civilite", "civility", "titre", "genre", "qualite"],
+  address: ["adresse", "address", "adressepostale", "adressecomplete", "rue", "voie"],
   phone: ["telephone", "tel", "phone", "mobile", "portable", "numero", "numerodetelephone"],
   email: ["email", "mail", "courriel", "adresseemail", "adressemail", "emailaddress"],
   contract_type: ["typedecontrat", "contrat", "typecontrat", "contracttype"],
   frequency: ["frequence", "frequency", "rythme"],
   notes: ["notes", "observations", "remarques", "commentaires", "note"],
 };
+
+const FIELD_PRIORITY: ImportField[] = [
+  "email",
+  "phone",
+  "civility",
+  "last_name",
+  "first_name",
+  "name",
+  "contract_type",
+  "frequency",
+  "notes",
+  "address",
+];
+
+function headerScore(field: ImportField, headerNorm: string): number {
+  if (field === "address" && /(mail|email|courriel|nom|prenom|telephone|tel|phone|mobile|civilite)/.test(headerNorm)) return 0;
+  if ((field === "name" || field === "last_name" || field === "first_name") && /(adresse|address|mail|email|telephone|tel|phone|mobile)/.test(headerNorm)) return 0;
+  if (field === "email" && /(telephone|tel|phone|mobile)/.test(headerNorm)) return 0;
+  if (field === "phone" && /(mail|email|courriel|adresseemail|adressemail)/.test(headerNorm)) return 0;
+
+  let best = 0;
+  for (const alias of FIELD_ALIASES[field]) {
+    if (headerNorm === alias) best = Math.max(best, 100);
+    else if (alias.length >= 4 && headerNorm.startsWith(alias)) best = Math.max(best, 82);
+    else if (alias.length >= 5 && headerNorm.includes(alias)) best = Math.max(best, 62);
+  }
+  return best;
+}
 
 function detectCivility(value: string): string {
   const v = norm(value);
