@@ -26,19 +26,6 @@ import { Loader2 } from "lucide-react";
 const CONTRACTS = ["Entretien annuel", "Ponctuel", "Création", "Saisonnier"];
 const FREQUENCIES = ["Hebdomadaire", "Bimensuelle", "Mensuelle", "Trimestrielle", "Saisonnière"];
 const CIVILITIES = ["Madame", "Monsieur", "Madame et Monsieur"];
-const EMAIL_DOMAINS = ["gmail.com", "yahoo.fr", "hotmail.fr", "hotmail.com", "outlook.fr", "outlook.com", "orange.fr", "free.fr", "sfr.fr", "wanadoo.fr", "laposte.net", "icloud.com"];
-const CUSTOM_DOMAIN = "__custom__";
-
-function splitEmail(email: string): { local: string; domain: string; custom: boolean } {
-  const at = email.indexOf("@");
-  if (at < 0) return { local: email, domain: "", custom: false };
-  const local = email.slice(0, at);
-  const domain = email.slice(at + 1);
-  if (!domain) return { local, domain: "", custom: false };
-  return EMAIL_DOMAINS.includes(domain)
-    ? { local, domain, custom: false }
-    : { local, domain, custom: true };
-}
 
 interface AddressSuggestion {
   label: string;
@@ -59,24 +46,12 @@ export function ClientForm({
     name: client?.name ?? "",
     civility: client?.civility ?? "",
     address: client?.address ?? "",
-    phone: client?.phone ?? "",
+    phone: client?.phone ?? "+33 ",
     email: client?.email ?? "",
     contract_type: client?.contract_type ?? "",
     frequency: client?.frequency ?? "",
     notes: client?.notes ?? "",
   });
-
-  const initialEmail = splitEmail(client?.email ?? "");
-  const [emailLocal, setEmailLocal] = useState(initialEmail.local);
-  const [emailDomain, setEmailDomain] = useState(initialEmail.custom ? CUSTOM_DOMAIN : initialEmail.domain);
-  const [customDomain, setCustomDomain] = useState(initialEmail.custom ? initialEmail.domain : "");
-
-  // Compose the full email whenever its parts change
-  useEffect(() => {
-    const domain = emailDomain === CUSTOM_DOMAIN ? customDomain : emailDomain;
-    const email = emailLocal && domain ? `${emailLocal}@${domain}` : emailLocal ? `${emailLocal}@` : "";
-    setForm((f) => ({ ...f, email }));
-  }, [emailLocal, emailDomain, customDomain]);
 
   // Address autocomplete via the French Base Adresse Nationale (no key required)
   const [addrSuggestions, setAddrSuggestions] = useState<AddressSuggestion[]>([]);
