@@ -12,17 +12,50 @@ function norm(s: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
-// Map of normalised header aliases → ClientInput field
-const FIELD_ALIASES: Record<keyof ClientInput, string[]> = {
-  name: ["nom", "nomclient", "client", "name", "nomdefamille", "raisonsociale"],
-  civility: ["civilite", "civility", "titre", "genre"],
-  address: ["adresse", "address", "adressepostale", "rue"],
+type ImportField = keyof ClientInput | "first_name" | "last_name";
+
+// Map of normalised header aliases → import field. First/last name are kept
+// separate so Excel files with "Prénom" + "Nom" are combined reliably.
+const FIELD_ALIASES: Record<ImportField, string[]> = {
+  name: ["nomcomplet", "nomprenom", "nometprenom", "nomduclient", "nomclient", "client", "contact", "proprietaire", "raisonsociale", "name"],
+  first_name: ["prenom", "firstname", "givenname", "forename"],
+  last_name: ["nom", "nomdefamille", "nomfamille", "nomusage", "lastname", "surname", "familyname"],
+  civility: ["civilite", "civility", "titre", "genre", "qualite"],
+  address: ["adresse", "address", "adressepostale", "adressecomplete", "rue", "voie"],
   phone: ["telephone", "tel", "phone", "mobile", "portable", "numero", "numerodetelephone"],
   email: ["email", "mail", "courriel", "adresseemail", "adressemail", "emailaddress"],
   contract_type: ["typedecontrat", "contrat", "typecontrat", "contracttype"],
   frequency: ["frequence", "frequency", "rythme"],
   notes: ["notes", "observations", "remarques", "commentaires", "note"],
 };
+
+const FIELD_PRIORITY: ImportField[] = [
+  "email",
+  "phone",
+  "civility",
+  "last_name",
+  "first_name",
+  "name",
+  "contract_type",
+  "frequency",
+  "notes",
+  "address",
+];
+
+function headerScore(field: ImportField, headerNorm: string): number {
+  if (field === "address" && /(mail|email|courriel|nom|prenom|telephone|tel|phone|mobile|civilite)/.test(headerNorm)) return 0;
+  if ((field === "name" || field === "last_name" || field === "first_name") && /(adresse|address|mail|email|telephone|tel|phone|mobile)/.test(headerNorm)) return 0;
+  if (field === "email" && /(telephone|tel|phone|mobile)/.test(headerNorm)) return 0;
+  if (field === "phone" && /(mail|email|courriel|adresseemail|adressemail)/.test(headerNorm)) return 0;
+
+  let best = 0;
+  for (const alias of FIELD_ALIASES[field]) {
+    if (headerNorm === alias) best = Math.max(best, 100);
+    else if (alias.length >= 4 && headerNorm.startsWith(alias)) best = Math.max(best, 82);
+    else if (alias.length >= 5 && headerNorm.includes(alias)) best = Math.max(best, 62);
+  }
+  return best;
+}
 
 function detectCivility(value: string): string {
   const v = norm(value);
@@ -62,34 +95,15 @@ export async function parseClientsFile(file: File): Promise<ParsedClient[]> {
 
   // Build header → field mapping from the first row's keys
   const headers = Object.keys(rows[0]);
-  const colMap: Partial<Record<keyof ClientInput, string>> = {};
+  const colMap: Partial<Record<ImportField, string>> = {};
   const normHeaders = headers.map((h) => ({ header: h, n: norm(h) }));
   const usedHeaders = new Set<string>();
-  const fields = Object.keys(FIELD_ALIASES) as (keyof ClientInput)[];
-
-  // Pass 1 — exact alias matches only. These are unambiguous, so resolving
-  // them first prevents a generic substring (e.g. "adresse" inside
-  // "adresse e-mail") from stealing a column from a more specific field.
-  for (const field of fields) {
-    const match = normHeaders.find(
-      (h) => !usedHeaders.has(h.header) && FIELD_ALIASES[field].includes(h.n),
-    );
-    if (match) {
-      colMap[field] = match.header;
-      usedHeaders.add(match.header);
-    }
-  }
-
-  // Pass 2 — fallback to a substring match for any field still unmapped.
-  // Only allow the header to CONTAIN an alias (never the reverse) and require
-  // a reasonably long alias to avoid false positives like "m" or "tel".
-  for (const field of fields) {
-    if (colMap[field]) continue;
-    const match = normHeaders.find(
-      (h) =>
-        !usedHeaders.has(h.header) &&
-        FIELD_ALIASES[field].some((a) => a.length >= 4 && h.n.includes(a)),
-    );
+  for (const field of FIELD_PRIORITY) {
+    const match = normHeaders
+      .filter((h) => !usedHeaders.has(h.header))
+      .map((h) => ({ ...h, score: headerScore(field, h.n) }))
+      .filter((h) => h.score > 0)
+      .sort((a, b) => b.score - a.score || a.header.length - b.header.length)[0];
     if (match) {
       colMap[field] = match.header;
       usedHeaders.add(match.header);
@@ -98,10 +112,11 @@ export async function parseClientsFile(file: File): Promise<ParsedClient[]> {
 
   const out: ParsedClient[] = [];
   rows.forEach((row, i) => {
-    const get = (field: keyof ClientInput) =>
+    const get = (field: ImportField) =>
       colMap[field] ? String(row[colMap[field]!] ?? "").trim() : "";
 
-    const name = get("name");
+    const fullName = get("name");
+    const name = fullName || [get("last_name"), get("first_name")].filter(Boolean).join(" ").trim();
     const phoneRaw = get("phone");
     const civRaw = get("civility");
     // Only keep rows that carry at least a name or some contact info
