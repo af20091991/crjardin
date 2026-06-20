@@ -269,7 +269,16 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
 
   footer();
 
-  const safe = (client.name || "client").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   const dateSafe = iv.intervention_date.slice(0, 10);
-  doc.save(`compte-rendu-${safe}-${dateSafe}.pdf`);
+  const parts = [
+    client.civility?.trim(),
+    client.name?.trim(),
+    iv.title?.trim() || "Compte-rendu d'intervention",
+    dateSafe,
+    "De la graine au jardin",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const fileName = parts.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+  doc.save(`${fileName}.pdf`);
 }
