@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as PartageTokenRouteImport } from './routes/partage.$token'
+import { Route as AuthenticatedVersionsRouteImport } from './routes/_authenticated/versions'
 import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
@@ -59,6 +60,11 @@ const PartageTokenRoute = PartageTokenRouteImport.update({
   id: '/partage/$token',
   path: '/partage/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedVersionsRoute = AuthenticatedVersionsRouteImport.update({
+  id: '/versions',
+  path: '/versions',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedStatistiquesRoute =
   AuthenticatedStatistiquesRouteImport.update({
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
+  '/versions': typeof AuthenticatedVersionsRoute
   '/partage/$token': typeof PartageTokenRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
+  '/versions': typeof AuthenticatedVersionsRoute
   '/partage/$token': typeof PartageTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/_authenticated/planning': typeof AuthenticatedPlanningRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/statistiques': typeof AuthenticatedStatistiquesRoute
+  '/_authenticated/versions': typeof AuthenticatedVersionsRoute
   '/partage/$token': typeof PartageTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/planning'
     | '/settings'
     | '/statistiques'
+    | '/versions'
     | '/partage/$token'
     | '/clients/$clientId'
     | '/interventions/$interventionId'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/planning'
     | '/settings'
     | '/statistiques'
+    | '/versions'
     | '/partage/$token'
     | '/'
     | '/clients/$clientId'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/_authenticated/planning'
     | '/_authenticated/settings'
     | '/_authenticated/statistiques'
+    | '/_authenticated/versions'
     | '/partage/$token'
     | '/_authenticated/'
     | '/_authenticated/clients/$clientId'
@@ -278,6 +290,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/partage/$token'
       preLoaderRoute: typeof PartageTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/versions': {
+      id: '/_authenticated/versions'
+      path: '/versions'
+      fullPath: '/versions'
+      preLoaderRoute: typeof AuthenticatedVersionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/statistiques': {
       id: '/_authenticated/statistiques'
@@ -351,6 +370,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStatistiquesRoute: typeof AuthenticatedStatistiquesRoute
+  AuthenticatedVersionsRoute: typeof AuthenticatedVersionsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedClientsClientIdRoute: typeof AuthenticatedClientsClientIdRoute
   AuthenticatedInterventionsInterventionIdRoute: typeof AuthenticatedInterventionsInterventionIdRoute
@@ -364,6 +384,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStatistiquesRoute: AuthenticatedStatistiquesRoute,
+  AuthenticatedVersionsRoute: AuthenticatedVersionsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedClientsClientIdRoute: AuthenticatedClientsClientIdRoute,
   AuthenticatedInterventionsInterventionIdRoute:
