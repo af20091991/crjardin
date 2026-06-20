@@ -603,18 +603,21 @@ export type Database = {
           accessed_at: string
           client_id: string
           id: string
+          ip_address: string | null
           user_agent: string | null
         }
         Insert: {
           accessed_at?: string
           client_id: string
           id?: string
+          ip_address?: string | null
           user_agent?: string | null
         }
         Update: {
           accessed_at?: string
           client_id?: string
           id?: string
+          ip_address?: string | null
           user_agent?: string | null
         }
         Relationships: [
@@ -673,10 +676,15 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
-      mark_shared_read: {
-        Args: { p_token: string; p_user_agent?: string }
-        Returns: undefined
-      }
+      mark_shared_read:
+        | {
+            Args: { p_token: string; p_user_agent?: string }
+            Returns: undefined
+          }
+        | {
+            Args: { p_ip?: string; p_token: string; p_user_agent?: string }
+            Returns: undefined
+          }
       next_intervention_reference: { Args: never; Returns: string }
       record_login: { Args: { p_user_agent?: string }; Returns: undefined }
       set_recommendation_interest: {
