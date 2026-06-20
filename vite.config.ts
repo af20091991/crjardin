@@ -41,7 +41,7 @@ export default defineConfig({
               options: { cacheName: "html-cache", networkTimeoutSeconds: 4 },
             },
             {
-              urlPattern: ({ url }: { url: URL }) => url.origin === self.location.origin && /\.(?:js|css|woff2?|png|jpg|jpeg|svg|webp|ico)$/.test(url.pathname),
+              urlPattern: /\.(?:js|css|woff2?|png|jpg|jpeg|svg|webp|ico)$/,
               handler: "CacheFirst",
               options: { cacheName: "asset-cache", expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 } },
             },
