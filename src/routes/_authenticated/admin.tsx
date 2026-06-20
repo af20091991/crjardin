@@ -1,0 +1,152 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { AppShell } from "@/components/AppShell";
+import { useIsAdmin } from "@/hooks/use-admin";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Shield, Eye, MessageSquare, Users, FileText } from "lucide-react";
+
+export const Route = createFileRoute("/_authenticated/admin")({
+  head: () => ({ meta: [{ title: "Administration — Jardin Pro" }] }),
+  component: AdminPage,
+});
+
+function AdminPage() {
+  const { isAdmin, isLoading } = useIsAdmin();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && !isAdmin) navigate({ to: "/", replace: true });
+  }, [isAdmin, isLoading, navigate]);
+
+  const { data: stats } = useQuery({
+    queryKey: ["admin-stats"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const [clients, interventions, messages, reads] = await Promise.all([
+        supabase.from("clients").select("id", { count: "exact", head: true }),
+        supabase.from("interventions").select("id", { count: "exact", head: true }),
+        supabase.from("client_messages").select("id", { count: "exact", head: true }),
+        supabase.from("share_access_log").select("id", { count: "exact", head: true }),
+      ]);
+      return {
+        clients: clients.count ?? 0,
+        interventions: interventions.count ?? 0,
+        messages: messages.count ?? 0,
+        reads: reads.count ?? 0,
+      };
+    },
+  });
+
+  const { data: messages } = useQuery({
+    queryKey: ["admin-messages"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_messages")
+        .select("id, kind, content, author_name, created_at, resolved, client_id")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: accesses } = useQuery({
+    queryKey: ["admin-accesses"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("share_access_log")
+        .select("id, accessed_at, client_id")
+        .order("accessed_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  if (isLoading || !isAdmin) {
+    return (
+      <AppShell title="Administration">
+        <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      </AppShell>
+    );
+  }
+
+  const cards = [
+    { label: "Clients", value: stats?.clients, icon: Users },
+    { label: "Comptes-rendus", value: stats?.interventions, icon: FileText },
+    { label: "Messages clients", value: stats?.messages, icon: MessageSquare },
+    { label: "Consultations", value: stats?.reads, icon: Eye },
+  ];
+
+  return (
+    <AppShell title="Administration">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Shield className="h-4 w-4 text-primary" />
+          Supervision de l'ensemble de l'application
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {cards.map((c) => (
+            <Card key={c.label}>
+              <CardContent className="flex flex-col gap-1 pt-5">
+                <c.icon className="h-5 w-5 text-primary" />
+                <span className="text-2xl font-semibold">{c.value ?? "—"}</span>
+                <span className="text-xs text-muted-foreground">{c.label}</span>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Derniers messages clients</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {(messages ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun message.</p>
+            ) : (
+              (messages ?? []).map((m) => (
+                <div key={m.id} className="flex items-start gap-2 border-b pb-2 text-sm last:border-0">
+                  <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{m.kind === "question" ? "Question" : "Annotation"}{m.author_name ? ` · ${m.author_name}` : ""}</p>
+                    <p className="text-muted-foreground">{m.content}</p>
+                    <Link to="/clients/$clientId" params={{ clientId: m.client_id }} className="text-xs text-primary hover:underline">
+                      Voir la fiche client
+                    </Link>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    {new Date(m.created_at).toLocaleDateString("fr-FR")}
+                  </span>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Dernières consultations clients</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {(accesses ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune consultation enregistrée.</p>
+            ) : (
+              (accesses ?? []).map((a) => (
+                <div key={a.id} className="flex items-center justify-between border-b pb-2 text-sm last:border-0">
+                  <Link to="/clients/$clientId" params={{ clientId: a.client_id }} className="flex items-center gap-2 text-primary hover:underline">
+                    <Eye className="h-4 w-4" /> Fiche consultée
+                  </Link>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(a.accessed_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </AppShell>
+  );
+}
