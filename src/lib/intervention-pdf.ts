@@ -256,6 +256,14 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
       doc.addImage(data.signatureData, "PNG", margin, y + 2, sigW, sigH);
     } catch { /* signature optionnelle */ }
   }
+  // Cachet d'entreprise, à droite de la signature
+  if (data.stampData) {
+    try {
+      const stampW = 34;
+      const stampH = 34;
+      doc.addImage(data.stampData, "PNG", pageW - margin - stampW, y - 4, stampW, stampH);
+    } catch { /* cachet optionnel */ }
+  }
   y += sigH + 4;
   doc.line(margin, y, margin + sigW, y);
 
