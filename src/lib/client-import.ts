@@ -63,14 +63,36 @@ export async function parseClientsFile(file: File): Promise<ParsedClient[]> {
   // Build header → field mapping from the first row's keys
   const headers = Object.keys(rows[0]);
   const colMap: Partial<Record<keyof ClientInput, string>> = {};
-  for (const header of headers) {
-    const n = norm(header);
-    for (const field of Object.keys(FIELD_ALIASES) as (keyof ClientInput)[]) {
-      if (colMap[field]) continue;
-      if (FIELD_ALIASES[field].some((a) => n === a || n.includes(a) || a.includes(n))) {
-        colMap[field] = header;
-        break;
-      }
+  const normHeaders = headers.map((h) => ({ header: h, n: norm(h) }));
+  const usedHeaders = new Set<string>();
+  const fields = Object.keys(FIELD_ALIASES) as (keyof ClientInput)[];
+
+  // Pass 1 — exact alias matches only. These are unambiguous, so resolving
+  // them first prevents a generic substring (e.g. "adresse" inside
+  // "adresse e-mail") from stealing a column from a more specific field.
+  for (const field of fields) {
+    const match = normHeaders.find(
+      (h) => !usedHeaders.has(h.header) && FIELD_ALIASES[field].includes(h.n),
+    );
+    if (match) {
+      colMap[field] = match.header;
+      usedHeaders.add(match.header);
+    }
+  }
+
+  // Pass 2 — fallback to a substring match for any field still unmapped.
+  // Only allow the header to CONTAIN an alias (never the reverse) and require
+  // a reasonably long alias to avoid false positives like "m" or "tel".
+  for (const field of fields) {
+    if (colMap[field]) continue;
+    const match = normHeaders.find(
+      (h) =>
+        !usedHeaders.has(h.header) &&
+        FIELD_ALIASES[field].some((a) => a.length >= 4 && h.n.includes(a)),
+    );
+    if (match) {
+      colMap[field] = match.header;
+      usedHeaders.add(match.header);
     }
   }
 
