@@ -125,10 +125,10 @@ export const addClientMessage = createServerFn({ method: "POST" })
   });
 
 export const setRecommendationInterest = createServerFn({ method: "POST" })
-  .inputValidator((data: { token: string; recoId: string; interest: "interested" | "not_interested" }) => {
+  .inputValidator((data: { token: string; recoId: string; interest: "interested" | "not_interested" | "none" }) => {
     if (!data?.token) throw new Error("Lien invalide");
     if (!data?.recoId) throw new Error("Préconisation invalide");
-    if (data.interest !== "interested" && data.interest !== "not_interested") throw new Error("Choix invalide");
+    if (!["interested", "not_interested", "none"].includes(data.interest)) throw new Error("Choix invalide");
     return { token: data.token, recoId: data.recoId, interest: data.interest };
   })
   .handler(async ({ data }) => {
