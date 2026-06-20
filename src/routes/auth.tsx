@@ -50,6 +50,8 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        const { recordLogin } = await import("@/lib/admin");
+        await recordLogin();
         navigate({ to: "/" });
       }
     } catch (err) {
@@ -71,6 +73,8 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
+    const { recordLogin } = await import("@/lib/admin");
+    await recordLogin();
     navigate({ to: "/" });
   }
 

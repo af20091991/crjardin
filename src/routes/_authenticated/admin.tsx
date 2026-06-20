@@ -1,11 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Shield, Eye, MessageSquare, Users, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { listUsersByStatus, setUserApproval, listLoginEvents } from "@/lib/admin";
+import { Loader2, Shield, Eye, MessageSquare, Users, FileText, UserCheck, Check, X, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Administration — Jardin Pro" }] }),
@@ -15,6 +18,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 function AdminPage() {
   const { isAdmin, isLoading } = useIsAdmin();
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (!isLoading && !isAdmin) navigate({ to: "/", replace: true });
@@ -67,6 +71,27 @@ function AdminPage() {
     },
   });
 
+  const { data: pending } = useQuery({
+    queryKey: ["admin-pending"],
+    enabled: isAdmin,
+    queryFn: () => listUsersByStatus("pending"),
+  });
+
+  const { data: logins } = useQuery({
+    queryKey: ["admin-logins"],
+    enabled: isAdmin,
+    queryFn: () => listLoginEvents(30),
+  });
+
+  const approval = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: "approved" | "rejected" }) => setUserApproval(id, status),
+    onSuccess: (_d, v) => {
+      toast.success(v.status === "approved" ? "Compte validé" : "Inscription refusée");
+      qc.invalidateQueries({ queryKey: ["admin-pending"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
   if (isLoading || !isAdmin) {
     return (
       <AppShell title="Administration">
@@ -101,6 +126,45 @@ function AdminPage() {
             </Card>
           ))}
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <UserCheck className="h-4 w-4 text-primary" /> Inscriptions à valider
+              {(pending ?? []).length > 0 && (
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-destructive px-1.5 text-[11px] font-semibold text-destructive-foreground">
+                  {(pending ?? []).length}
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(pending ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune inscription en attente.</p>
+            ) : (
+              (pending ?? []).map((u) => (
+                <div key={u.id} className="flex items-center justify-between gap-2 border-b pb-2 text-sm last:border-0">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{u.display_name ?? "Sans nom"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Inscrit le {new Date(u.created_at).toLocaleDateString("fr-FR")}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button size="sm" className="h-8" disabled={approval.isPending}
+                      onClick={() => approval.mutate({ id: u.id, status: "approved" })}>
+                      <Check className="mr-1 h-3.5 w-3.5" /> Valider
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8" disabled={approval.isPending}
+                      onClick={() => approval.mutate({ id: u.id, status: "rejected" })}>
+                      <X className="mr-1 h-3.5 w-3.5" /> Refuser
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader><CardTitle className="text-base">Derniers messages clients</CardTitle></CardHeader>
@@ -140,6 +204,31 @@ function AdminPage() {
                   </Link>
                   <span className="text-xs text-muted-foreground">
                     {new Date(a.accessed_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <LogIn className="h-4 w-4 text-primary" /> Dernières connexions utilisateurs
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(logins ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune connexion enregistrée.</p>
+            ) : (
+              (logins ?? []).map((l) => (
+                <div key={l.id} className="flex items-center justify-between gap-2 border-b pb-2 text-sm last:border-0">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{l.display_name ?? "Utilisateur"}</p>
+                    {l.user_agent && <p className="truncate text-xs text-muted-foreground">{l.user_agent}</p>}
+                  </div>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    {new Date(l.created_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
               ))

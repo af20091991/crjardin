@@ -347,6 +347,27 @@ export type Database = {
           },
         ]
       }
+      login_events: {
+        Row: {
+          created_at: string
+          id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -385,6 +406,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           company_name: string | null
           created_at: string
           display_name: string | null
@@ -394,6 +418,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           company_name?: string | null
           created_at?: string
           display_name?: string | null
@@ -403,6 +430,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           company_name?: string | null
           created_at?: string
           display_name?: string | null
@@ -550,11 +580,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_approved: { Args: { _user_id: string }; Returns: boolean }
       mark_shared_read: {
         Args: { p_token: string; p_user_agent?: string }
         Returns: undefined
       }
       next_intervention_reference: { Args: never; Returns: string }
+      record_login: { Args: { p_user_agent?: string }; Returns: undefined }
+      set_user_approval: {
+        Args: { p_status: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user"
