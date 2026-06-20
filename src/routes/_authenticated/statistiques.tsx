@@ -6,7 +6,7 @@ import { listAllInterventions } from "@/lib/interventions";
 import { listClients } from "@/lib/clients";
 import { listAllRecommendations, recommendationPrice, formatEuro } from "@/lib/garden";
 import { exportPeriodReport } from "@/lib/period-report";
-import { getProfile } from "@/lib/profile";
+import { getMyProfile } from "@/lib/profile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,7 +27,7 @@ function StatsPage() {
   const { data: interventions } = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: recos } = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
-  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: getProfile });
+  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: getMyProfile });
 
   const list = interventions ?? [];
   const years = useMemo(
@@ -100,7 +100,7 @@ function StatsPage() {
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-3 font-medium">Interventions par mois</h3>
-            <ChartContainer config={{ count: { label: "Interventions", color: "hsl(var(--primary))" } }} className="h-[260px] w-full">
+            <ChartContainer config={{ count: { label: "Interventions", color: "var(--primary)" } }} className="h-[260px] w-full">
               <BarChart data={monthly}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
