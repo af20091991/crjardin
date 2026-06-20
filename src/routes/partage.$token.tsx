@@ -16,7 +16,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MapPin, Phone, Mail, Leaf, ClipboardList, CheckCircle2, MessageSquarePlus, HelpCircle, Send, Loader2,
-  Download, Sparkles, ThumbsUp, ThumbsDown, Search, CalendarDays, List, Images, Moon, Sun, Type, Reply,
+  Download, Sparkles, ThumbsUp, ThumbsDown, Search, CalendarDays, List, Images, Moon, Sun, Type, Reply, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
