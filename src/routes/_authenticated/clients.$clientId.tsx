@@ -8,7 +8,7 @@ import {
   listRecommendationsByClient, listHealthByClient,
   RECO_STATUS_META, type RecommendationStatus,
   HEALTH_RATING_META, type HealthRating,
-  recommendationPrice, formatEuro, isStalePending,
+  recommendationPrice, formatEuro, isStalePending, clearRecommendationInterest,
 } from "@/lib/garden";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
-  Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check,
+  Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check, ExternalLink,
+  ThumbsUp, ThumbsDown, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -238,6 +239,7 @@ function ClientDetail() {
                         </div>
                       </div>
                       {r.description && <p className="mt-1.5 text-sm text-muted-foreground">{r.description}</p>}
+                      <RecoInterest reco={r} onCleared={() => qc.invalidateQueries({ queryKey: ["recommendations", clientId] })} />
                     </Card>
                   );
                 })}
