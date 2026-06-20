@@ -38,10 +38,13 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     <div className="min-h-screen bg-secondary/30">
       {/* Sidebar desktop */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card md:flex">
-        <div className="flex items-center justify-between px-5 py-5">
-          <div className="flex items-center gap-2.5">
-            <img src={logo} alt="Logo" className="h-9 w-9 rounded-lg object-contain" />
-            <span className="font-serif text-lg font-semibold">Jardin Pro</span>
+        <div className="flex items-center justify-between gap-2 px-4 py-5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <img src={logo} alt="De la graine au jardin" className="h-11 w-11 shrink-0 object-contain" />
+            <div className="min-w-0 leading-tight">
+              <p className="truncate font-serif text-sm font-semibold text-primary">De la graine au jardin</p>
+              <p className="truncate text-[11px] text-muted-foreground">au rythme de la nature</p>
+            </div>
           </div>
           <NotificationBell />
         </div>
@@ -81,9 +84,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       <div className="md:pl-60">
         {/* Mobile header */}
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
-          <div className="flex items-center gap-2">
-            <Leaf className="h-5 w-5 text-primary" />
-            <span className="font-serif text-base font-semibold">{title ?? "Jardin Pro"}</span>
+          <div className="flex min-w-0 items-center gap-2">
+            <img src={logo} alt="De la graine au jardin" className="h-8 w-8 shrink-0 object-contain" />
+            <span className="truncate font-serif text-base font-semibold text-primary">{title ?? "De la graine au jardin"}</span>
           </div>
           <div className="flex items-center gap-4">
             <NotificationBell />
