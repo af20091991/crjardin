@@ -68,3 +68,10 @@ export async function deleteClient(id: string): Promise<void> {
   const { error } = await supabase.from("clients").delete().eq("id", id);
   if (error) throw error;
 }
+
+/** Libellé "Jardin de [civilité] [nom]" utilisé dans les rapports. */
+export function gardenLabel(client: { name: string; civility?: string | null }): string {
+  const civ = client.civility?.trim();
+  const name = client.name?.trim() || "";
+  return civ ? `Jardin de ${civ} ${name}`.trim() : `Jardin de ${name}`.trim();
+}
