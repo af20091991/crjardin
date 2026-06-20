@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
+import { ClientImportDialog } from "@/components/ClientImportDialog";
 import { listClients } from "@/lib/clients";
 import { listAllRecommendations, staleClientIds } from "@/lib/garden";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, MapPin, Phone, Users, ChevronRight, AlertTriangle } from "lucide-react";
+import { Plus, Search, MapPin, Phone, Users, ChevronRight, AlertTriangle, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/clients/")({
   head: () => ({ meta: [{ title: "Clients — Jardin Pro" }] }),
@@ -52,6 +53,14 @@ function ClientsPage() {
               <Button className="shrink-0">
                 <Plus className="h-4 w-4 sm:mr-1.5" />
                 <span className="hidden sm:inline">Nouveau</span>
+              </Button>
+            }
+          />
+          <ClientImportDialog
+            trigger={
+              <Button variant="outline" className="shrink-0">
+                <Upload className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">Importer</span>
               </Button>
             }
           />
