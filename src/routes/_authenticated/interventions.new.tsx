@@ -25,7 +25,7 @@ const searchSchema = z.object({ client: z.string().optional() });
 
 export const Route = createFileRoute("/_authenticated/interventions/new")({
   validateSearch: (s) => searchSchema.parse(s),
-  head: () => ({ meta: [{ title: "Nouveau compte-rendu — Jardin Pro" }] }),
+  head: () => ({ meta: [{ title: "Nouveau compte-rendu — De la graine au jardin" }] }),
   component: NewIntervention,
 });
 

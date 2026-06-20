@@ -11,7 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { ClipboardList, Navigation, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/planning")({
-  head: () => ({ meta: [{ title: "Planning — Jardin Pro" }] }),
+  head: () => ({ meta: [{ title: "Planning — De la graine au jardin" }] }),
   component: PlanningPage,
 });
 

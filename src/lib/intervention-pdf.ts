@@ -38,7 +38,7 @@ export interface InterventionReportData {
 
 export async function exportInterventionPdf(data: InterventionReportData): Promise<void> {
   const { intervention: iv, client, tasks, photos, health, recommendations } = data;
-  const company = data.companyName?.trim() || "Jardin Pro";
+  const company = data.companyName?.trim() || "De la graine au jardin";
   const garden = gardenLabel(client);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
