@@ -1,18 +1,26 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  getSharedClient, markSharedRead, addClientMessage, getSharedMessages,
-  type SharedIntervention, type ClientMessage,
+  getSharedClient, markSharedRead, addClientMessage, getSharedMessages, setRecommendationInterest,
+  type SharedIntervention, type ClientMessage, type SharedRecommendation, type SharedClientData,
 } from "@/lib/share.functions";
+import { exportSharedInterventionPdf } from "@/lib/share-pdf";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, Phone, Mail, Leaf, ClipboardList, CheckCircle2, MessageSquarePlus, HelpCircle, Send, Loader2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  MapPin, Phone, Mail, Leaf, ClipboardList, CheckCircle2, MessageSquarePlus, HelpCircle, Send, Loader2,
+  Download, Sparkles, ThumbsUp, ThumbsDown, Search, CalendarDays, List, Images, Moon, Sun, Type, Reply,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { formatEuro, recommendationPrice } from "@/lib/garden";
 
 const sharedQuery = (token: string) =>
   queryOptions({
@@ -58,30 +66,78 @@ function Centered({ title, text }: { title: string; text: string }) {
 }
 
 const TASK_LABELS: Record<string, string> = {
-  realise: "Réalisé",
-  partiel: "Partiel",
-  reporte: "Reporté",
-  impossible: "Non réalisable",
+  realise: "Réalisé", partiel: "Partiel", reporte: "Reporté", impossible: "Non réalisable",
 };
+
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/* ---------- Accessibility / theme controls (client #10) ---------- */
+function useShareTheme() {
+  const [dark, setDark] = useState(false);
+  const [large, setLarge] = useState(false);
+  useEffect(() => {
+    const t = localStorage.getItem("share-theme");
+    const s = localStorage.getItem("share-text");
+    const d = t === "dark";
+    const l = s === "large";
+    setDark(d); setLarge(l);
+    document.documentElement.classList.toggle("dark", d);
+  }, []);
+  const toggleDark = () => setDark((v) => {
+    const n = !v;
+    document.documentElement.classList.toggle("dark", n);
+    localStorage.setItem("share-theme", n ? "dark" : "light");
+    return n;
+  });
+  const toggleLarge = () => setLarge((v) => {
+    const n = !v;
+    localStorage.setItem("share-text", n ? "large" : "normal");
+    return n;
+  });
+  return { dark, large, toggleDark, toggleLarge };
+}
 
 function SharePage() {
   const { token } = Route.useParams();
   const { data } = useSuspenseQuery(sharedQuery(token));
   const { data: messages } = useQuery(messagesQuery(token));
+  const { dark, large, toggleDark, toggleLarge } = useShareTheme();
 
   useEffect(() => {
     markSharedRead({ data: { token } }).catch(() => {});
   }, [token]);
 
   if (!data) return null;
-  const { client, interventions } = data;
+  const { client, interventions, recommendations } = data;
+
+  const lastVisit = interventions
+    .map((i) => i.client_read_at)
+    .filter(Boolean)
+    .sort()
+    .at(-1) as string | undefined;
+  const lastIntervention = interventions[0];
+  const unread = interventions.filter((i) => !i.client_read_at).length;
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-16">
+    <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
       <header className="border-b bg-background">
         <div className="mx-auto max-w-3xl px-4 py-6">
-          <p className="text-xs font-medium uppercase tracking-wide text-primary">Suivi d'entretien</p>
-          <h1 className="mt-1 font-serif text-2xl font-semibold">{client.name}</h1>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-primary">Suivi d'entretien</p>
+              <h1 className="mt-1 font-serif text-2xl font-semibold">{client.name}</h1>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" size="icon" aria-label={dark ? "Mode clair" : "Mode sombre"} onClick={toggleDark}>
+                {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+              <Button variant="outline" size="icon" aria-label="Agrandir le texte" onClick={toggleLarge} className={large ? "bg-primary/10 text-primary" : ""}>
+                <Type className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
           <div className="mt-3 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">
             {client.address && <Info icon={MapPin} text={client.address} />}
             {client.phone && <Info icon={Phone} text={client.phone} />}
@@ -95,19 +151,34 @@ function SharePage() {
       </header>
 
       <main className="mx-auto max-w-3xl space-y-4 px-4 py-6">
-        <h2 className="font-serif text-lg font-semibold">Vos comptes-rendus</h2>
-        {interventions.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
-              <Leaf className="h-7 w-7 opacity-60" />
-              <p>Aucun compte-rendu disponible pour le moment.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          interventions.map((iv) => (
-            <InterventionCard key={iv.id} iv={iv} token={token} messages={(messages ?? []).filter((m) => m.intervention_id === iv.id)} />
-          ))
+        {/* Synthèse (client #8) */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard label="Comptes-rendus" value={String(interventions.length)} />
+          <StatCard label="Dernière visite jardin" value={lastIntervention ? fmtDate(lastIntervention.intervention_date) : "—"} />
+          <StatCard label="Préconisations" value={String(recommendations.length)} />
+          <StatCard label="Non lus" value={String(unread)} highlight={unread > 0} />
+        </div>
+        {lastVisit && (
+          <p className="text-xs text-muted-foreground">Vous avez consulté votre fiche pour la dernière fois le {fmtDate(lastVisit)}.</p>
         )}
+
+        <Tabs defaultValue="reports">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="reports"><ClipboardList className="mr-1.5 h-4 w-4" />Comptes-rendus</TabsTrigger>
+            <TabsTrigger value="photos"><Images className="mr-1.5 h-4 w-4" />Photos</TabsTrigger>
+            <TabsTrigger value="recos"><Sparkles className="mr-1.5 h-4 w-4" />Préconisations</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="reports" className="space-y-4">
+            <ReportsTab interventions={interventions} token={token} messages={messages ?? []} client={client} />
+          </TabsContent>
+          <TabsContent value="photos">
+            <PhotoGallery interventions={interventions} />
+          </TabsContent>
+          <TabsContent value="recos">
+            <RecommendationsTab recommendations={recommendations} token={token} />
+          </TabsContent>
+        </Tabs>
 
         <GeneralMessages token={token} messages={(messages ?? []).filter((m) => !m.intervention_id)} />
       </main>
@@ -115,22 +186,166 @@ function SharePage() {
   );
 }
 
-function InterventionCard({ iv, token, messages }: { iv: SharedIntervention; token: string; messages: ClientMessage[] }) {
-  const date = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
-    day: "numeric", month: "long", year: "numeric",
-  });
+function StatCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <Card>
+    <div className={`rounded-lg border bg-background p-3 ${highlight ? "border-primary/50 bg-primary/5" : ""}`}>
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={`mt-0.5 text-sm font-semibold ${highlight ? "text-primary" : ""}`}>{value}</p>
+    </div>
+  );
+}
+
+/* ---------- Reports tab: filters (#7) + list/calendar (#1) ---------- */
+function ReportsTab({
+  interventions, token, messages, client,
+}: {
+  interventions: SharedIntervention[]; token: string; messages: ClientMessage[]; client: SharedClientData["client"];
+}) {
+  const [view, setView] = useState<"list" | "calendar">("list");
+  const [q, setQ] = useState("");
+  const [year, setYear] = useState("all");
+  const [type, setType] = useState("all");
+  const [day, setDay] = useState<Date | undefined>();
+
+  const years = useMemo(
+    () => Array.from(new Set(interventions.map((i) => new Date(i.intervention_date).getFullYear()))).sort((a, b) => b - a),
+    [interventions],
+  );
+  const types = useMemo(
+    () => Array.from(new Set(interventions.map((i) => i.intervention_type).filter(Boolean))) as string[],
+    [interventions],
+  );
+
+  const filtered = useMemo(() => {
+    return interventions.filter((iv) => {
+      if (year !== "all" && new Date(iv.intervention_date).getFullYear() !== Number(year)) return false;
+      if (type !== "all" && iv.intervention_type !== type) return false;
+      if (q.trim()) {
+        const hay = [iv.title, iv.summary, iv.intervention_type, iv.reference, iv.garden_state, iv.recommendations_text]
+          .filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(q.toLowerCase())) return false;
+      }
+      if (view === "calendar" && day) {
+        const d = new Date(iv.intervention_date);
+        if (d.toDateString() !== day.toDateString()) return false;
+      }
+      return true;
+    });
+  }, [interventions, q, year, type, view, day]);
+
+  if (interventions.length === 0) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
+          <Leaf className="h-7 w-7 opacity-60" />
+          <p>Aucun compte-rendu disponible pour le moment.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const interventionDates = interventions.map((i) => new Date(i.intervention_date));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" className="pl-8" aria-label="Rechercher" />
+        </div>
+        <Select value={year} onValueChange={setYear}>
+          <SelectTrigger className="sm:w-32" aria-label="Année"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes années</SelectItem>
+            {years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {types.length > 0 && (
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger className="sm:w-40" aria-label="Type"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous types</SelectItem>
+              {types.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        <div className="flex gap-1">
+          <Button variant={view === "list" ? "default" : "outline"} size="icon" aria-label="Vue liste" onClick={() => setView("list")}>
+            <List className="h-4 w-4" />
+          </Button>
+          <Button variant={view === "calendar" ? "default" : "outline"} size="icon" aria-label="Vue calendrier" onClick={() => setView("calendar")}>
+            <CalendarDays className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {view === "calendar" && (
+        <Card>
+          <CardContent className="flex flex-col items-center pt-6">
+            <Calendar
+              mode="single"
+              selected={day}
+              onSelect={setDay}
+              modifiers={{ has: interventionDates }}
+              modifiersClassNames={{ has: "bg-primary/15 font-semibold text-primary rounded-md" }}
+              className="pointer-events-auto"
+            />
+            {day && (
+              <Button variant="ghost" size="sm" className="mt-2" onClick={() => setDay(undefined)}>
+                Afficher tout
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {filtered.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">Aucun compte-rendu ne correspond.</p>
+      ) : (
+        filtered.map((iv) => (
+          <InterventionCard key={iv.id} iv={iv} token={token} client={client}
+            messages={messages.filter((m) => m.intervention_id === iv.id)} />
+        ))
+      )}
+    </div>
+  );
+}
+
+function InterventionCard({
+  iv, token, messages, client,
+}: { iv: SharedIntervention; token: string; messages: ClientMessage[]; client: SharedClientData["client"] }) {
+  const [downloading, setDownloading] = useState(false);
+  const isNew = !iv.client_read_at;
+
+  async function download() {
+    setDownloading(true);
+    try {
+      await exportSharedInterventionPdf(iv, client);
+    } catch {
+      toast.error("Impossible de générer le PDF.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <Card className={isNew ? "border-primary/40" : ""}>
       <CardContent className="space-y-4 pt-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="font-medium">{iv.title ?? iv.intervention_type ?? "Intervention"}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium">{iv.title ?? iv.intervention_type ?? "Intervention"}</h3>
+              {isNew && <Badge className="bg-primary text-primary-foreground">Nouveau</Badge>}
+            </div>
             <p className="flex flex-wrap gap-1 text-xs text-muted-foreground">
               {iv.reference && <span className="font-mono">{iv.reference} ·</span>}
-              <span>{date}</span>
+              <span>{fmtDate(iv.intervention_date)}</span>
             </p>
           </div>
-          <ClipboardList className="h-5 w-5 shrink-0 text-primary" />
+          <Button variant="outline" size="sm" onClick={download} disabled={downloading}>
+            {downloading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+            PDF
+          </Button>
         </div>
 
         {iv.summary && <p className="text-sm text-muted-foreground">{iv.summary}</p>}
@@ -153,15 +368,9 @@ function InterventionCard({ iv, token, messages }: { iv: SharedIntervention; tok
           </div>
         )}
 
-        {iv.garden_state && (
-          <Section title="État du jardin" text={iv.garden_state} />
-        )}
-        {iv.recommendations_text && (
-          <Section title="Préconisations" text={iv.recommendations_text} />
-        )}
-        {iv.upcoming_works && (
-          <Section title="Travaux à prévoir" text={iv.upcoming_works} />
-        )}
+        {iv.garden_state && <Section title="État du jardin" text={iv.garden_state} />}
+        {iv.recommendations_text && <Section title="Préconisations" text={iv.recommendations_text} />}
+        {iv.upcoming_works && <Section title="Travaux à prévoir" text={iv.upcoming_works} />}
 
         {iv.photos.length > 0 && (
           <div className="space-y-2">
@@ -187,6 +396,99 @@ function InterventionCard({ iv, token, messages }: { iv: SharedIntervention; tok
   );
 }
 
+/* ---------- Photo gallery (client #3) ---------- */
+function PhotoGallery({ interventions }: { interventions: SharedIntervention[] }) {
+  const photos = interventions.flatMap((iv) =>
+    iv.photos.filter((p) => p.url).map((p) => ({ ...p, date: iv.intervention_date, ivTitle: iv.title })),
+  );
+  if (photos.length === 0) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
+          <Images className="h-7 w-7 opacity-60" />
+          <p>Aucune photo pour le moment.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {photos.map((p) => (
+        <figure key={p.id} className="overflow-hidden rounded-lg border bg-background">
+          <ImageLightbox src={p.url!} alt={p.caption ?? "Photo"} caption={p.caption}>
+            <img src={p.url!} alt={p.caption ?? "Photo du jardin"} loading="lazy" className="h-36 w-full object-cover" />
+          </ImageLightbox>
+          <figcaption className="px-2 py-1 text-[11px] text-muted-foreground">
+            {fmtDate(p.date)}{p.caption ? ` · ${p.caption}` : ""}
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- Recommendations + interest (client #9) ---------- */
+function RecommendationsTab({ recommendations, token }: { recommendations: SharedRecommendation[]; token: string }) {
+  if (recommendations.length === 0) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
+          <Sparkles className="h-7 w-7 opacity-60" />
+          <p>Aucune préconisation en cours.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {recommendations.map((r) => <RecoCard key={r.id} reco={r} token={token} />)}
+    </div>
+  );
+}
+
+function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }) {
+  const qc = useQueryClient();
+  const price = recommendationPrice(reco);
+  const m = useMutation({
+    mutationFn: (interest: "interested" | "not_interested") =>
+      setRecommendationInterest({ data: { token, recoId: reco.id, interest } }),
+    onSuccess: () => {
+      toast.success("Merci ! Votre jardinier a été notifié.");
+      qc.invalidateQueries({ queryKey: ["shared-client", token] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  return (
+    <Card>
+      <CardContent className="space-y-3 pt-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-medium">{reco.title}</h3>
+            {reco.category && <Badge variant="outline" className="mt-1">{reco.category}</Badge>}
+          </div>
+          {price != null && <span className="shrink-0 font-semibold text-primary">{formatEuro(price)}</span>}
+        </div>
+        {reco.description && <p className="text-sm text-muted-foreground">{reco.description}</p>}
+        {reco.client_interest ? (
+          <Badge variant={reco.client_interest === "interested" ? "default" : "secondary"}>
+            {reco.client_interest === "interested" ? "Vous êtes intéressé(e)" : "Non souhaité pour le moment"}
+          </Badge>
+        ) : (
+          <div className="flex gap-2">
+            <Button size="sm" disabled={m.isPending} onClick={() => m.mutate("interested")}>
+              <ThumbsUp className="mr-1.5 h-4 w-4" /> Je suis intéressé(e)
+            </Button>
+            <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate("not_interested")}>
+              <ThumbsDown className="mr-1.5 h-4 w-4" /> Pas pour l'instant
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function GeneralMessages({ token, messages }: { token: string; messages: ClientMessage[] }) {
   return (
     <Card className="border-primary/30 bg-primary/5">
@@ -201,6 +503,7 @@ function GeneralMessages({ token, messages }: { token: string; messages: ClientM
   );
 }
 
+/* ---------- Message thread with gardener replies (client #4) ---------- */
 function MessageThread({ token, interventionId, messages }: { token: string; interventionId: string | null; messages: ClientMessage[] }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -223,16 +526,19 @@ function MessageThread({ token, interventionId, messages }: { token: string; int
     <div className="space-y-2 border-t pt-3">
       {messages.length > 0 && (
         <div className="space-y-1.5">
-          {messages.map((m) => (
-            <div key={m.id} className="rounded-lg bg-muted/60 px-3 py-2 text-sm">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
-                {m.kind === "question" ? <HelpCircle className="h-3 w-3" /> : <MessageSquarePlus className="h-3 w-3" />}
-                {m.kind === "question" ? "Votre question" : "Votre annotation"}
-                {m.author_name ? ` · ${m.author_name}` : ""}
-              </p>
-              <p className="mt-0.5 whitespace-pre-wrap">{m.content}</p>
-            </div>
-          ))}
+          {messages.map((m) => {
+            const isGardener = m.sender === "gardener";
+            return (
+              <div key={m.id} className={`rounded-lg px-3 py-2 text-sm ${isGardener ? "ml-6 bg-primary/10" : "bg-muted/60"}`}>
+                <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                  {isGardener ? <Reply className="h-3 w-3" /> : m.kind === "question" ? <HelpCircle className="h-3 w-3" /> : <MessageSquarePlus className="h-3 w-3" />}
+                  {isGardener ? "Réponse de votre jardinier" : m.kind === "question" ? "Votre question" : "Votre annotation"}
+                  {m.author_name ? ` · ${m.author_name}` : ""}
+                </p>
+                <p className="mt-0.5 whitespace-pre-wrap">{m.content}</p>
+              </div>
+            );
+          })}
         </div>
       )}
 
