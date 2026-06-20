@@ -10,6 +10,7 @@ import {
   COMMON_TASKS,
 } from "@/lib/interventions";
 import { listFavoriteTasks, addFavoriteTask, removeFavoriteTask } from "@/lib/favorites";
+import { listTemplates, addTemplate } from "@/lib/templates";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, X, ArrowLeft, Check, Star } from "lucide-react";
+import { Loader2, Plus, X, ArrowLeft, Check, Star, LayoutTemplate, Save } from "lucide-react";
 import { toast } from "sonner";
 
 const searchSchema = z.object({ client: z.string().optional() });
@@ -34,6 +35,7 @@ function NewIntervention() {
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const qc = useQueryClient();
   const { data: favorites } = useQuery({ queryKey: ["favorite-tasks"], queryFn: listFavoriteTasks });
+  const { data: templates } = useQuery({ queryKey: ["report-templates"], queryFn: listTemplates });
 
   const [clientId, setClientId] = useState(presetClient ?? "");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -78,15 +80,43 @@ function NewIntervention() {
 
   const customTasks = tasks.filter((t) => !COMMON_TASKS.includes(t as (typeof COMMON_TASKS)[number]));
 
+  function applyTemplate(id: string) {
+    const tpl = (templates ?? []).find((t) => t.id === id);
+    if (!tpl) return;
+    if (tpl.intervention_type) setType(tpl.intervention_type);
+    if (tpl.tasks.length) setTasks(tpl.tasks);
+    toast.success(`Modèle « ${tpl.name} » appliqué`);
+  }
+
+  const saveTpl = useMutation({
+    mutationFn: (name: string) => addTemplate({ name, intervention_type: type, tasks }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["report-templates"] }); toast.success("Modèle enregistré"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
   return (
     <AppShell title="Nouveau compte-rendu">
       <div className="mx-auto max-w-2xl space-y-4">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Retour
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> Retour
+          </Link>
+          <Link to="/modeles" className="text-sm text-primary hover:underline">Gérer les modèles</Link>
+        </div>
 
         <Card>
           <CardContent className="space-y-5 pt-6">
+            {(templates?.length ?? 0) > 0 && (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5"><LayoutTemplate className="h-4 w-4" /> Partir d'un modèle</Label>
+                <Select onValueChange={applyTemplate}>
+                  <SelectTrigger><SelectValue placeholder="Choisir un modèle…" /></SelectTrigger>
+                  <SelectContent>
+                    {templates!.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Client</Label>
               <Select value={clientId} onValueChange={setClientId}>
@@ -211,6 +241,19 @@ function NewIntervention() {
               {create.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Créer le compte-rendu
             </Button>
+            {tasks.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  const name = window.prompt("Nom du modèle ?", type);
+                  if (name?.trim()) saveTpl.mutate(name.trim());
+                }}
+              >
+                <Save className="mr-2 h-4 w-4" /> Enregistrer comme modèle
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

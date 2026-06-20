@@ -16,7 +16,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as PartageTokenRouteImport } from './routes/partage.$token'
+import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
+import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
@@ -57,9 +60,25 @@ const PartageTokenRoute = PartageTokenRouteImport.update({
   path: '/partage/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedStatistiquesRoute =
+  AuthenticatedStatistiquesRouteImport.update({
+    id: '/statistiques',
+    path: '/statistiques',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPlanningRoute = AuthenticatedPlanningRouteImport.update({
+  id: '/planning',
+  path: '/planning',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedModelesRoute = AuthenticatedModelesRouteImport.update({
+  id: '/modeles',
+  path: '/modeles',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -99,7 +118,10 @@ export interface FileRoutesByFullPath {
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/modeles': typeof AuthenticatedModelesRoute
+  '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/partage/$token': typeof PartageTokenRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
@@ -112,7 +134,10 @@ export interface FileRoutesByTo {
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/modeles': typeof AuthenticatedModelesRoute
+  '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/partage/$token': typeof PartageTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
@@ -128,7 +153,10 @@ export interface FileRoutesById {
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/modeles': typeof AuthenticatedModelesRoute
+  '/_authenticated/planning': typeof AuthenticatedPlanningRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/statistiques': typeof AuthenticatedStatistiquesRoute
   '/partage/$token': typeof PartageTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
@@ -145,7 +173,10 @@ export interface FileRouteTypes {
     | '/pending'
     | '/sitemap.xml'
     | '/admin'
+    | '/modeles'
+    | '/planning'
     | '/settings'
+    | '/statistiques'
     | '/partage/$token'
     | '/clients/$clientId'
     | '/interventions/$interventionId'
@@ -158,7 +189,10 @@ export interface FileRouteTypes {
     | '/pending'
     | '/sitemap.xml'
     | '/admin'
+    | '/modeles'
+    | '/planning'
     | '/settings'
+    | '/statistiques'
     | '/partage/$token'
     | '/'
     | '/clients/$clientId'
@@ -173,7 +207,10 @@ export interface FileRouteTypes {
     | '/pending'
     | '/sitemap.xml'
     | '/_authenticated/admin'
+    | '/_authenticated/modeles'
+    | '/_authenticated/planning'
     | '/_authenticated/settings'
+    | '/_authenticated/statistiques'
     | '/partage/$token'
     | '/_authenticated/'
     | '/_authenticated/clients/$clientId'
@@ -242,11 +279,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartageTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/statistiques': {
+      id: '/_authenticated/statistiques'
+      path: '/statistiques'
+      fullPath: '/statistiques'
+      preLoaderRoute: typeof AuthenticatedStatistiquesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/planning': {
+      id: '/_authenticated/planning'
+      path: '/planning'
+      fullPath: '/planning'
+      preLoaderRoute: typeof AuthenticatedPlanningRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/modeles': {
+      id: '/_authenticated/modeles'
+      path: '/modeles'
+      fullPath: '/modeles'
+      preLoaderRoute: typeof AuthenticatedModelesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin': {
@@ -289,7 +347,10 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedModelesRoute: typeof AuthenticatedModelesRoute
+  AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedStatistiquesRoute: typeof AuthenticatedStatistiquesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedClientsClientIdRoute: typeof AuthenticatedClientsClientIdRoute
   AuthenticatedInterventionsInterventionIdRoute: typeof AuthenticatedInterventionsInterventionIdRoute
@@ -299,7 +360,10 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedModelesRoute: AuthenticatedModelesRoute,
+  AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedStatistiquesRoute: AuthenticatedStatistiquesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedClientsClientIdRoute: AuthenticatedClientsClientIdRoute,
   AuthenticatedInterventionsInterventionIdRoute:
@@ -322,13 +386,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

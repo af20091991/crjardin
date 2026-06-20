@@ -18,6 +18,7 @@ import {
 import { generateInterventionInsights, analyzeInterventionPhotos } from "@/lib/ai.functions";
 import { getClient } from "@/lib/clients";
 import { getMyProfile } from "@/lib/profile";
+import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -42,6 +43,17 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+function getGeolocation(): Promise<{ lat: number; lng: number } | null> {
+  return new Promise((resolve) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 },
+    );
+  });
+}
+
 export const Route = createFileRoute("/_authenticated/interventions/$interventionId")({
   component: InterventionDetail,
 });
@@ -62,6 +74,7 @@ function InterventionDetail() {
     queryFn: () => getClient(iv!.client_id),
     enabled: !!iv?.client_id,
   });
+  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: getMyProfile });
   const { data: tasks } = useQuery({
     queryKey: ["tasks", interventionId],
     queryFn: () => listTasks(interventionId),
@@ -212,13 +225,14 @@ function InterventionDetail() {
     if (!files || files.length === 0) return;
     setUploading(true);
     try {
+      const coords = await getGeolocation();
       let pos = photos?.length ?? 0;
       for (const file of Array.from(files)) {
         const path = await uploadInterventionPhoto(file);
-        await addPhoto(interventionId, path, pos++);
+        await addPhoto(interventionId, path, pos++, coords);
       }
       invPhotos();
-      toast.success("Photo(s) ajoutée(s)");
+      toast.success(coords ? "Photo(s) ajoutée(s) et géolocalisée(s)" : "Photo(s) ajoutée(s)");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur d'upload");
     } finally {
@@ -349,6 +363,8 @@ function InterventionDetail() {
             </div>
           </CardContent>
         </Card>
+
+        <InterventionMessages clientId={iv.client_id} interventionId={interventionId} authorName={profile?.display_name ?? profile?.company_name ?? null} />
 
         {/* Photos */}
         <Card>

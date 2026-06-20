@@ -4,13 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { NotificationBell } from "@/components/NotificationBell";
-import { LayoutDashboard, Users, Plus, LogOut, Leaf, Settings, Shield } from "lucide-react";
+import { LayoutDashboard, Users, Plus, LogOut, Leaf, Settings, Shield, CalendarDays, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 
 const NAV = [
   { to: "/", label: "Tableau de bord", icon: LayoutDashboard, exact: true },
+  { to: "/planning", label: "Planning", icon: CalendarDays, exact: false },
   { to: "/clients", label: "Clients", icon: Users, exact: false },
+  { to: "/statistiques", label: "Statistiques", icon: BarChart3, exact: false },
   { to: "/settings", label: "Profil & signature", icon: Settings, exact: false },
 ] as const;
 

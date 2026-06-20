@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
+import { registerPwa } from "@/lib/pwa";
 
 function NotFoundComponent() {
   return (
@@ -91,12 +92,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Application CR jardin automates client reporting for completed landscaping projects." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0ae2d8fa-5fd4-4797-ab10-a001529d7362/id-preview-66a2adc9--3545adef-a337-4e33-aef9-684d626fa27c.lovable.app-1781453660626.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0ae2d8fa-5fd4-4797-ab10-a001529d7362/id-preview-66a2adc9--3545adef-a337-4e33-aef9-684d626fa27c.lovable.app-1781453660626.png" },
+      { name: "theme-color", content: "#4c8a2f" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -127,6 +130,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    registerPwa();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
