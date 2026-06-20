@@ -212,13 +212,14 @@ function InterventionDetail() {
     if (!files || files.length === 0) return;
     setUploading(true);
     try {
+      const coords = await getGeolocation();
       let pos = photos?.length ?? 0;
       for (const file of Array.from(files)) {
         const path = await uploadInterventionPhoto(file);
-        await addPhoto(interventionId, path, pos++);
+        await addPhoto(interventionId, path, pos++, coords);
       }
       invPhotos();
-      toast.success("Photo(s) ajoutée(s)");
+      toast.success(coords ? "Photo(s) ajoutée(s) et géolocalisée(s)" : "Photo(s) ajoutée(s)");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur d'upload");
     } finally {
