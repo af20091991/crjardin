@@ -27,6 +27,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-06-21",
+    version: "1.7.1",
+    theme: "Général",
+    title: "Fiabilité & corrections",
+    details: [
+      "Correction de l'enregistrement des rôles : l'administrateur voit désormais le bon rôle de chaque compte.",
+      "Les préconisations et l'état du jardin se mettent à jour partout (fiche client, statistiques, tableau de bord) après modification.",
+      "Les informations de profil (entreprise, signature, cachet) se propagent immédiatement aux exports PDF.",
+      "Rafraîchissement des droits en direct après un changement de rôle.",
+    ],
+  },
+  {
+    date: "2026-06-21",
     version: "1.7.0",
     theme: "Général",
     title: "Rôles utilisateurs & espace administrateur enrichi",
