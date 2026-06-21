@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { listUsersByStatus, setUserApproval, listLoginEvents, listAllUsers, listClientAccesses, setUserRole, setUserApprovalStatus, listAuditLog } from "@/lib/admin";
+import { clearShareAccessLog } from "@/lib/admin";
 import type { AppUser } from "@/lib/admin";
 import { listClients } from "@/lib/clients";
 import { listEmailLog } from "@/lib/email-log.functions";
