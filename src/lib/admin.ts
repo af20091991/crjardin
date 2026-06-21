@@ -102,6 +102,12 @@ export async function setUserRole(userId: string, role: "admin" | "prestataire" 
   if (error) throw error;
 }
 
+/** Admin-only: clear the entire client consultation (IP) history. */
+export async function clearShareAccessLog(): Promise<void> {
+  const { error } = await supabase.rpc("clear_share_access_log");
+  if (error) throw error;
+}
+
 // ===== Audit log =====
 export interface AuditEntry {
   id: string;
