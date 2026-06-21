@@ -6,16 +6,17 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History, Mail } from "lucide-react";
+import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History, Mail, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
 
 const NAV = [
-  { to: "/", label: "Tableau de bord", icon: LayoutDashboard, exact: true },
-  { to: "/planning", label: "Planning", icon: CalendarDays, exact: false },
-  { to: "/clients", label: "Clients", icon: Users, exact: false },
-  { to: "/statistiques", label: "Statistiques", icon: BarChart3, exact: false },
-  { to: "/settings", label: "Profil & signature", icon: Settings, exact: false },
+  { to: "/", label: "Tableau de bord", short: "Accueil", icon: LayoutDashboard, exact: true, primary: true },
+  { to: "/planning", label: "Planning", short: "Planning", icon: CalendarDays, exact: false, primary: true },
+  { to: "/clients", label: "Clients", short: "Clients", icon: Users, exact: false, primary: true },
+  { to: "/statistiques", label: "Statistiques", short: "Stats", icon: BarChart3, exact: false, primary: true },
+  { to: "/settings", label: "Profil & signature", short: "Profil", icon: Settings, exact: false, primary: false },
 ] as const;
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
@@ -36,11 +37,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const navItems = isAdmin
     ? [
         ...NAV,
-        { to: "/admin", label: "Administration", icon: Shield, exact: false },
-        { to: "/emails", label: "Suivi e-mails", icon: Mail, exact: false },
-        { to: "/versions", label: "Versions", icon: History, exact: false },
+        { to: "/admin", label: "Administration", short: "Admin", icon: Shield, exact: false, primary: false },
+        { to: "/emails", label: "Suivi e-mails", short: "E-mails", icon: Mail, exact: false, primary: false },
+        { to: "/versions", label: "Versions", short: "Versions", icon: History, exact: false, primary: false },
       ]
     : NAV;
+
+  const primaryItems = navItems.filter((i) => i.primary);
+  const moreItems = navItems.filter((i) => !i.primary);
 
   return (
     <div className="min-h-screen bg-secondary/30">
@@ -116,28 +120,63 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-border bg-card/95 px-2 py-2 backdrop-blur md:hidden">
-        {navItems.map((item) => (
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around gap-0.5 border-t border-border bg-card/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1.5 backdrop-blur md:hidden">
+        {primaryItems.map((item) => (
           <Link
             key={item.to}
             to={item.to}
-            className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg py-1 text-[11px] font-medium ${
+            className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 text-[10px] font-medium ${
               isActive(item.to, item.exact) ? "text-primary" : "text-muted-foreground"
             }`}
           >
-            <item.icon className="h-5 w-5" />
-            {item.label}
+            <item.icon className="h-5 w-5 shrink-0" />
+            <span className="max-w-full truncate">{item.short}</span>
           </Link>
         ))}
         {canEdit && (
           <Link
             to="/interventions/new"
-            className="flex flex-1 flex-col items-center gap-0.5 rounded-lg py-1 text-[11px] font-medium text-primary"
+            aria-label="Nouveau compte-rendu"
+            className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-0.5 py-1 text-[10px] font-medium text-primary"
           >
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground shadow">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow">
               <Plus className="h-5 w-5" />
             </div>
           </Link>
+        )}
+        {moreItems.length > 0 && (
+          <Sheet>
+            <SheetTrigger asChild>
+              <button
+                className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 text-[10px] font-medium ${
+                  moreItems.some((i) => isActive(i.to, i.exact)) ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                <MoreHorizontal className="h-5 w-5 shrink-0" />
+                <span>Plus</span>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl">
+              <SheetHeader className="text-left">
+                <SheetTitle className="font-serif">Menu</SheetTitle>
+              </SheetHeader>
+              <div className="mt-2 grid grid-cols-2 gap-2 pb-[env(safe-area-inset-bottom)]">
+                {moreItems.map((item) => (
+                  <SheetClose asChild key={item.to}>
+                    <Link
+                      to={item.to}
+                      className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
+                        isActive(item.to, item.exact) ? "bg-primary/10 text-primary" : "text-foreground"
+                      }`}
+                    >
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  </SheetClose>
+                ))}
+              </div>
+            </SheetContent>
+          </Sheet>
         )}
       </nav>
       <InstallPrompt />
