@@ -37,9 +37,12 @@ export const exportFullData = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const tables: Record<string, unknown[]> = {};
+    const db = supabaseAdmin as unknown as {
+      from: (t: string) => { select: (c: string) => Promise<{ data: unknown[] | null; error: { message: string } | null }> };
+    };
+    const tables: Record<string, unknown> = {};
     for (const table of EXPORT_TABLES) {
-      const { data, error } = await supabaseAdmin.from(table as string).select("*");
+      const { data, error } = await db.from(table).select("*");
       if (error) throw new Error(`${table}: ${error.message}`);
       tables[table] = data ?? [];
     }
@@ -47,6 +50,6 @@ export const exportFullData = createServerFn({ method: "POST" })
     return {
       exported_at: new Date().toISOString(),
       version: 1,
-      tables,
+      tables: tables as Record<string, unknown[]>,
     };
   });
