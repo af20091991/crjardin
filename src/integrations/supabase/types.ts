@@ -557,6 +557,47 @@ export type Database = {
         }
         Relationships: []
       }
+      planning_notes: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          details: string | null
+          id: string
+          scheduled_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          details?: string | null
+          id?: string
+          scheduled_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          details?: string | null
+          id?: string
+          scheduled_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planning_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           approval_status: string
