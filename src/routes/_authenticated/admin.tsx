@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { listUsersByStatus, setUserApproval, listLoginEvents, listAllUsers, listClientAccesses } from "@/lib/admin";
+import { EmailTemplateEditor } from "@/components/EmailTemplateEditor";
 import { Loader2, Shield, Eye, MessageSquare, Users, FileText, UserCheck, Check, X, LogIn, UserCog, Globe } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -124,6 +125,8 @@ function AdminPage() {
             </Card>
           ))}
         </div>
+
+        <EmailTemplateEditor />
 
         <Card>
           <CardHeader>
