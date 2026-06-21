@@ -265,6 +265,9 @@ function AdminPage() {
             <Button variant="outline" size="sm" onClick={exportEmails}>
               <Download className="mr-1.5 h-3.5 w-3.5" /> E-mails
             </Button>
+            <Button variant="default" size="sm" onClick={exportFull}>
+              <Download className="mr-1.5 h-3.5 w-3.5" /> Export complet (JSON)
+            </Button>
           </CardContent>
         </Card>
 
