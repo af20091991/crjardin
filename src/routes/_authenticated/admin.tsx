@@ -225,6 +225,27 @@ function AdminPage() {
           ))}
         </div>
 
+        <AdminStatsDashboard />
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Download className="h-4 w-4 text-primary" /> Exports CSV
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={exportAccounts}>
+              <Download className="mr-1.5 h-3.5 w-3.5" /> Comptes
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportClients}>
+              <Download className="mr-1.5 h-3.5 w-3.5" /> Clients
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportEmails}>
+              <Download className="mr-1.5 h-3.5 w-3.5" /> E-mails
+            </Button>
+          </CardContent>
+        </Card>
+
         <EmailTemplateEditor />
 
         <Card>
