@@ -21,6 +21,7 @@ import { getMyProfile } from "@/lib/profile";
 import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
+import { sendTransactionalEmail } from "@/lib/email/send";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,7 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
-  FileDown, ScanSearch, Check,
+  FileDown, ScanSearch, Check, Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -196,6 +197,31 @@ function InterventionDetail() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur PDF"),
   });
 
+  const notifyClient = useMutation({
+    mutationFn: async () => {
+      if (!iv || !client) throw new Error("Données indisponibles");
+      if (!client.email) throw new Error("Ce client n'a pas d'adresse e-mail renseignée.");
+      const profile = await getMyProfile();
+      const shareUrl = `${window.location.origin}/partage/${client.share_token}`;
+      await sendTransactionalEmail({
+        templateName: "new-report",
+        recipientEmail: client.email,
+        idempotencyKey: `new-report-${interventionId}`,
+        templateData: {
+          clientName: client.name,
+          reportTitle: iv.title ?? iv.intervention_type ?? undefined,
+          reportDate: new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
+            day: "numeric", month: "long", year: "numeric",
+          }),
+          shareUrl,
+          senderName: profile?.company_name ?? profile?.display_name ?? undefined,
+        },
+      });
+    },
+    onSuccess: () => toast.success("E-mail envoyé au client"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'envoi"),
+  });
+
   const runPhotoAi = useMutation({
     mutationFn: () => analyzePhotos({ data: { interventionId } }),
     onSuccess: (res) => {
@@ -290,6 +316,16 @@ function InterventionDetail() {
               <Button size="sm" variant="outline" disabled={exportPdf.isPending || !client} onClick={() => exportPdf.mutate()}>
                 {exportPdf.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileDown className="mr-1.5 h-4 w-4" />}
                 Exporter le PDF
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={notifyClient.isPending || !done || !client?.email}
+                title={!done ? "Marquez le compte-rendu comme terminé d'abord" : !client?.email ? "Aucune adresse e-mail pour ce client" : "Prévenir le client par e-mail"}
+                onClick={() => notifyClient.mutate()}
+              >
+                {notifyClient.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Mail className="mr-1.5 h-4 w-4" />}
+                Prévenir le client
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
