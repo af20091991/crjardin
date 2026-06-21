@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
+import { ShareInstallGuide } from "@/components/ShareInstallGuide";
 
 const sharedQuery = (token: string) =>
   queryOptions({
@@ -181,6 +182,8 @@ function SharePage() {
         </Tabs>
 
         <GeneralMessages token={token} messages={(messages ?? []).filter((m) => !m.intervention_id)} />
+
+        <ShareInstallGuide />
       </main>
     </div>
   );
