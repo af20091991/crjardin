@@ -51,7 +51,7 @@ export async function listAllUsers(): Promise<AppUser[]> {
     .select("id, display_name, company_name, approval_status, created_at, approved_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  const profiles = (data ?? []) as Omit<AppUser, "is_admin">[];
+  const profiles = (data ?? []) as Omit<AppUser, "is_admin" | "role">[];
   const { data: roles } = await supabase.from("user_roles").select("user_id, role");
   const byUser: Record<string, Set<string>> = {};
   for (const r of roles ?? []) {
