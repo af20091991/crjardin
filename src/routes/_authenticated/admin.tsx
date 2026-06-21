@@ -113,6 +113,7 @@ function AdminPage() {
 
   const deleteUser = useServerFn(deleteUserAccount);
   const fetchEmailLog = useServerFn(listEmailLog);
+  const runFullExport = useServerFn(exportFullData);
   const removeUser = useMutation({
     mutationFn: (userId: string) => deleteUser({ data: { userId } }),
     onSuccess: () => {
@@ -189,6 +190,25 @@ function AdminPage() {
       downloadCsv("emails.csv", toCsv(rows));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur");
+    }
+  };
+
+  const exportFull = async () => {
+    try {
+      toast.info("Préparation de l'export complet…");
+      const res = await runFullExport();
+      const blob = new Blob([res.json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `export-application-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Export complet téléchargé");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur d'export");
     }
   };
 
