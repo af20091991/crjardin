@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { deleteUserAccount } from "@/lib/admin.functions";
+import { exportFullData } from "@/lib/export.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/use-auth";
 import { Trash2 } from "lucide-react";
