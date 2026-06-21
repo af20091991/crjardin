@@ -47,9 +47,11 @@ export const exportFullData = createServerFn({ method: "POST" })
       tables[table] = data ?? [];
     }
 
-    return {
+    const payload = {
       exported_at: new Date().toISOString(),
       version: 1,
-      tables: tables as Record<string, unknown[]>,
+      tables,
     };
+    // Return as a JSON string to keep the RPC return type serializable.
+    return { json: JSON.stringify(payload) };
   });
