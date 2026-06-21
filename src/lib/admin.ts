@@ -90,9 +90,93 @@ export async function setUserApproval(userId: string, status: "approved" | "reje
   if (error) throw error;
 }
 
+export type ApprovalStatus = "approved" | "rejected" | "pending" | "suspended";
+
+export async function setUserApprovalStatus(userId: string, status: ApprovalStatus): Promise<void> {
+  const { error } = await supabase.rpc("set_user_approval", { p_user_id: userId, p_status: status });
+  if (error) throw error;
+}
+
 export async function setUserRole(userId: string, role: "admin" | "prestataire" | "observateur"): Promise<void> {
   const { error } = await supabase.rpc("set_user_role", { p_user_id: userId, p_role: role });
   if (error) throw error;
+}
+
+// ===== Audit log =====
+export interface AuditEntry {
+  id: string;
+  actor_name: string | null;
+  action: string;
+  target_name: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export async function listAuditLog(limit = 100): Promise<AuditEntry[]> {
+  const { data, error } = await supabase
+    .from("admin_audit_log")
+    .select("id, actor_name, action, target_name, details, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as AuditEntry[];
+}
+
+// ===== Per-user statistics =====
+export interface UserStats {
+  clients: number;
+  interventions: number;
+  recommendations: number;
+  lastLogin: string | null;
+}
+
+export async function getUserStats(userId: string): Promise<UserStats> {
+  const [clients, interventions, recos, login] = await Promise.all([
+    supabase.from("clients").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    supabase.from("interventions").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    supabase.from("recommendations").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    supabase.from("login_events").select("created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  return {
+    clients: clients.count ?? 0,
+    interventions: interventions.count ?? 0,
+    recommendations: recos.count ?? 0,
+    lastLogin: login.data?.created_at ?? null,
+  };
+}
+
+// ===== Time-series for dashboard =====
+export interface DailyPoint {
+  date: string;
+  interventions: number;
+  clients: number;
+}
+
+export async function getActivitySeries(days: number): Promise<DailyPoint[]> {
+  const since = new Date();
+  since.setDate(since.getDate() - (days - 1));
+  since.setHours(0, 0, 0, 0);
+  const sinceIso = since.toISOString();
+  const [iv, cl] = await Promise.all([
+    supabase.from("interventions").select("created_at").gte("created_at", sinceIso),
+    supabase.from("clients").select("created_at").gte("created_at", sinceIso),
+  ]);
+  const buckets: Record<string, DailyPoint> = {};
+  for (let i = 0; i < days; i++) {
+    const d = new Date(since);
+    d.setDate(since.getDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    buckets[key] = { date: key, interventions: 0, clients: 0 };
+  }
+  for (const r of iv.data ?? []) {
+    const key = (r.created_at as string).slice(0, 10);
+    if (buckets[key]) buckets[key].interventions++;
+  }
+  for (const r of cl.data ?? []) {
+    const key = (r.created_at as string).slice(0, 10);
+    if (buckets[key]) buckets[key].clients++;
+  }
+  return Object.values(buckets);
 }
 
 export async function listLoginEvents(limit = 30): Promise<LoginEvent[]> {
