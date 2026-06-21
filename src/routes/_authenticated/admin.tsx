@@ -7,8 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { listUsersByStatus, setUserApproval, listLoginEvents, listAllUsers, listClientAccesses } from "@/lib/admin";
+import { listUsersByStatus, setUserApproval, listLoginEvents, listAllUsers, listClientAccesses, setUserRole } from "@/lib/admin";
 import { EmailTemplateEditor } from "@/components/EmailTemplateEditor";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { deleteUserAccount } from "@/lib/admin.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/use-auth";
@@ -110,6 +113,16 @@ function AdminPage() {
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur de suppression"),
+  });
+
+  const changeRole = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: "admin" | "prestataire" | "observateur" }) =>
+      setUserRole(id, role),
+    onSuccess: () => {
+      toast.success("Rôle mis à jour");
+      qc.invalidateQueries({ queryKey: ["admin-all-users"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
   if (isLoading || !isAdmin) {
