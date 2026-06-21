@@ -202,20 +202,24 @@ function InterventionDetail() {
     mutationFn: async () => {
       if (!iv || !client) throw new Error("Données indisponibles");
       if (!client.email) throw new Error("Ce client n'a pas d'adresse e-mail renseignée.");
-      const profile = await getMyProfile();
+      const settings = await getEmailSettings();
       const shareUrl = `${window.location.origin}/partage/${client.share_token}`;
+      const reportDate = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
+        day: "numeric", month: "long", year: "numeric",
+      });
+      const bodyText = fillTemplate(settings.body, {
+        titre: client.civility ?? "",
+        nom: client.name,
+        date: reportDate,
+      });
       await sendTransactionalEmail({
         templateName: "new-report",
         recipientEmail: client.email,
         idempotencyKey: `new-report-${interventionId}`,
         templateData: {
-          clientName: client.name,
-          reportTitle: iv.title ?? iv.intervention_type ?? undefined,
-          reportDate: new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
-            day: "numeric", month: "long", year: "numeric",
-          }),
+          subject: settings.subject,
+          bodyText,
           shareUrl,
-          senderName: profile?.company_name ?? profile?.display_name ?? undefined,
         },
       });
     },
