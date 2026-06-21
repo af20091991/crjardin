@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { listUsersByStatus, setUserApproval, listLoginEvents, listAllUsers, listClientAccesses, setUserRole, setUserApprovalStatus, listAuditLog } from "@/lib/admin";
+import { clearShareAccessLog } from "@/lib/admin";
 import type { AppUser } from "@/lib/admin";
 import { listClients } from "@/lib/clients";
 import { listEmailLog } from "@/lib/email-log.functions";
@@ -150,6 +151,15 @@ function AdminPage() {
     queryKey: ["admin-audit"],
     enabled: isAdmin,
     queryFn: () => listAuditLog(100),
+  });
+
+  const clearAccesses = useMutation({
+    mutationFn: () => clearShareAccessLog(),
+    onSuccess: () => {
+      toast.success("Historique des consultations vidé");
+      qc.invalidateQueries({ queryKey: ["admin-accesses"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
   const exportAccounts = async () => {
@@ -477,8 +487,37 @@ function AdminPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Globe className="h-4 w-4 text-primary" /> Consultations clients (adresses IP)
+            <CardTitle className="flex items-center justify-between gap-2 text-base">
+              <span className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-primary" /> Consultations clients (adresses IP)
+              </span>
+              {(accesses ?? []).length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 text-muted-foreground hover:text-destructive" disabled={clearAccesses.isPending}>
+                      <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Vider
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Vider l'historique des consultations ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Toutes les consultations clients enregistrées (adresses IP) seront supprimées
+                        définitivement. Cette action est irréversible.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => clearAccesses.mutate()}
+                      >
+                        Vider
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
