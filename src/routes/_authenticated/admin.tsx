@@ -9,6 +9,14 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { listUsersByStatus, setUserApproval, listLoginEvents, listAllUsers, listClientAccesses } from "@/lib/admin";
 import { EmailTemplateEditor } from "@/components/EmailTemplateEditor";
+import { deleteUserAccount } from "@/lib/admin.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { useAuth } from "@/hooks/use-auth";
+import { Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Loader2, Shield, Eye, MessageSquare, Users, FileText, UserCheck, Check, X, LogIn, UserCog, Globe } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
