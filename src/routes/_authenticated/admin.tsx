@@ -26,6 +26,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 function AdminPage() {
   const { isAdmin, isLoading } = useIsAdmin();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
