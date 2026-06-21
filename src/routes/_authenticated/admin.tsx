@@ -153,6 +153,15 @@ function AdminPage() {
     queryFn: () => listAuditLog(100),
   });
 
+  const clearAccesses = useMutation({
+    mutationFn: () => clearShareAccessLog(),
+    onSuccess: () => {
+      toast.success("Historique des consultations vidé");
+      qc.invalidateQueries({ queryKey: ["admin-accesses"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
   const exportAccounts = async () => {
     const rows = (allUsers ?? []).map((u) => ({
       nom: u.display_name ?? "",
