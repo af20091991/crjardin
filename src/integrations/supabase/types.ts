@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          target_name: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_name?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_name?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       client_messages: {
         Row: {
           author_name: string | null
@@ -821,6 +854,10 @@ export type Database = {
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
       is_editor: { Args: { _user_id: string }; Returns: boolean }
+      log_admin_action: {
+        Args: { p_action: string; p_details?: Json; p_target_user_id: string }
+        Returns: undefined
+      }
       mark_shared_read:
         | {
             Args: { p_token: string; p_user_agent?: string }
