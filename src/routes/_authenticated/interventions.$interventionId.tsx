@@ -197,6 +197,31 @@ function InterventionDetail() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur PDF"),
   });
 
+  const notifyClient = useMutation({
+    mutationFn: async () => {
+      if (!iv || !client) throw new Error("Données indisponibles");
+      if (!client.email) throw new Error("Ce client n'a pas d'adresse e-mail renseignée.");
+      const profile = await getMyProfile();
+      const shareUrl = `${window.location.origin}/partage/${client.share_token}`;
+      await sendTransactionalEmail({
+        templateName: "new-report",
+        recipientEmail: client.email,
+        idempotencyKey: `new-report-${interventionId}`,
+        templateData: {
+          clientName: client.name,
+          reportTitle: iv.title ?? iv.intervention_type ?? undefined,
+          reportDate: new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
+            day: "numeric", month: "long", year: "numeric",
+          }),
+          shareUrl,
+          senderName: profile?.company_name ?? profile?.display_name ?? undefined,
+        },
+      });
+    },
+    onSuccess: () => toast.success("E-mail envoyé au client"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'envoi"),
+  });
+
   const runPhotoAi = useMutation({
     mutationFn: () => analyzePhotos({ data: { interventionId } }),
     onSuccess: (res) => {
