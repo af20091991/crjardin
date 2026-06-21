@@ -9,6 +9,14 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { listUsersByStatus, setUserApproval, listLoginEvents, listAllUsers, listClientAccesses } from "@/lib/admin";
 import { EmailTemplateEditor } from "@/components/EmailTemplateEditor";
+import { deleteUserAccount } from "@/lib/admin.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { useAuth } from "@/hooks/use-auth";
+import { Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Loader2, Shield, Eye, MessageSquare, Users, FileText, UserCheck, Check, X, LogIn, UserCog, Globe } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -18,6 +26,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 function AdminPage() {
   const { isAdmin, isLoading } = useIsAdmin();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -89,6 +98,18 @@ function AdminPage() {
       qc.invalidateQueries({ queryKey: ["admin-pending"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const deleteUser = useServerFn(deleteUserAccount);
+  const removeUser = useMutation({
+    mutationFn: (userId: string) => deleteUser({ data: { userId } }),
+    onSuccess: () => {
+      toast.success("Compte supprimé définitivement");
+      qc.invalidateQueries({ queryKey: ["admin-all-users"] });
+      qc.invalidateQueries({ queryKey: ["admin-pending"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur de suppression"),
   });
 
   if (isLoading || !isAdmin) {
@@ -195,15 +216,45 @@ function AdminPage() {
                       {u.company_name ? `${u.company_name} · ` : ""}Inscrit le {new Date(u.created_at).toLocaleDateString("fr-FR")}
                     </p>
                   </div>
-                  <span className={`shrink-0 rounded px-2 py-0.5 text-[11px] font-medium ${
-                    u.approval_status === "approved"
-                      ? "bg-primary/10 text-primary"
-                      : u.approval_status === "rejected"
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-muted text-muted-foreground"
-                  }`}>
-                    {u.approval_status === "approved" ? "Validé" : u.approval_status === "rejected" ? "Refusé" : "En attente"}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${
+                      u.approval_status === "approved"
+                        ? "bg-primary/10 text-primary"
+                        : u.approval_status === "rejected"
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      {u.approval_status === "approved" ? "Validé" : u.approval_status === "rejected" ? "Refusé" : "En attente"}
+                    </span>
+                    {u.id !== user?.id && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" title="Supprimer ce compte">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Supprimer ce compte ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Le compte de <strong>{u.display_name ?? "cet utilisateur"}</strong> et l'ensemble
+                              de ses données (clients, comptes-rendus, photos, préconisations…) seront supprimés
+                              définitivement. Cette action est irréversible.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => removeUser.mutate(u.id)}
+                            >
+                              Supprimer définitivement
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 </div>
               ))
             )}
