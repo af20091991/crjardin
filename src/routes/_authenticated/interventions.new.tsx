@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Plus, X, ArrowLeft, Check, Star, LayoutTemplate, Save } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect } from "react";
+import { useRole } from "@/hooks/use-role";
 
 const searchSchema = z.object({ client: z.string().optional() });
 
@@ -31,6 +33,10 @@ export const Route = createFileRoute("/_authenticated/interventions/new")({
 
 function NewIntervention() {
   const navigate = useNavigate();
+  const { canEdit, isLoading: roleLoading } = useRole();
+  useEffect(() => {
+    if (!roleLoading && !canEdit) navigate({ to: "/", replace: true });
+  }, [canEdit, roleLoading, navigate]);
   const { client: presetClient } = Route.useSearch();
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const qc = useQueryClient();
