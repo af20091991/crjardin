@@ -76,7 +76,7 @@ function InterventionDetail() {
     queryFn: () => getClient(iv!.client_id),
     enabled: !!iv?.client_id,
   });
-  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: getMyProfile });
+  const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
   const { data: tasks } = useQuery({
     queryKey: ["tasks", interventionId],
     queryFn: () => listTasks(interventionId),
