@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
 import { ClientImportDialog } from "@/components/ClientImportDialog";
 import { listClients } from "@/lib/clients";
+import { useRole } from "@/hooks/use-role";
 import { listAllRecommendations, staleClientIds } from "@/lib/garden";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/_authenticated/clients/")({
 
 function ClientsPage() {
   const [search, setSearch] = useState("");
+  const { canEdit } = useRole();
   const { data: clients, isLoading } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: recos } = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
   const stale = useMemo(() => staleClientIds(recos ?? []), [recos]);
@@ -48,22 +50,26 @@ function ClientsPage() {
               className="pl-9"
             />
           </div>
-          <ClientForm
-            trigger={
-              <Button className="shrink-0">
-                <Plus className="h-4 w-4 sm:mr-1.5" />
-                <span className="hidden sm:inline">Nouveau</span>
-              </Button>
-            }
-          />
-          <ClientImportDialog
-            trigger={
-              <Button variant="outline" className="shrink-0">
-                <Upload className="h-4 w-4 sm:mr-1.5" />
-                <span className="hidden sm:inline">Importer</span>
-              </Button>
-            }
-          />
+          {canEdit && (
+            <>
+              <ClientForm
+                trigger={
+                  <Button className="shrink-0">
+                    <Plus className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Nouveau</span>
+                  </Button>
+                }
+              />
+              <ClientImportDialog
+                trigger={
+                  <Button variant="outline" className="shrink-0">
+                    <Upload className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Importer</span>
+                  </Button>
+                }
+              />
+            </>
+          )}
         </div>
 
         {isLoading ? (
