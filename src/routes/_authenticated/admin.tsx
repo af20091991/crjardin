@@ -110,6 +110,7 @@ function AdminPage() {
   });
 
   const deleteUser = useServerFn(deleteUserAccount);
+  const fetchEmailLog = useServerFn(listEmailLog);
   const removeUser = useMutation({
     mutationFn: (userId: string) => deleteUser({ data: { userId } }),
     onSuccess: () => {
