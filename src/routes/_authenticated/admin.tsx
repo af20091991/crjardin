@@ -508,3 +508,15 @@ function AdminPage() {
     </AppShell>
   );
 }
+
+function auditLabel(action: string): string {
+  switch (action) {
+    case "role_change": return "Changement de rôle";
+    case "user_deleted": return "Compte supprimé";
+    case "approval_approved": return "Compte validé";
+    case "approval_rejected": return "Inscription refusée";
+    case "approval_suspended": return "Compte suspendu";
+    case "approval_pending": return "Compte remis en attente";
+    default: return action;
+  }
+}
