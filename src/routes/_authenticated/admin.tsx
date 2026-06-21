@@ -7,7 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { listUsersByStatus, setUserApproval, listLoginEvents, listAllUsers, listClientAccesses, setUserRole } from "@/lib/admin";
+import { listUsersByStatus, setUserApproval, listLoginEvents, listAllUsers, listClientAccesses, setUserRole, setUserApprovalStatus, listAuditLog } from "@/lib/admin";
+import type { AppUser } from "@/lib/admin";
+import { listClients } from "@/lib/clients";
+import { listEmailLog } from "@/lib/email-log.functions";
+import { toCsv, downloadCsv } from "@/lib/csv";
+import { AdminStatsDashboard } from "@/components/admin/AdminStatsDashboard";
+import { UserDetailDialog } from "@/components/admin/UserDetailDialog";
 import { EmailTemplateEditor } from "@/components/EmailTemplateEditor";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -20,7 +26,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Shield, Eye, MessageSquare, Users, FileText, UserCheck, Check, X, LogIn, UserCog, Globe } from "lucide-react";
+import { Loader2, Shield, Eye, MessageSquare, Users, FileText, UserCheck, Check, X, LogIn, UserCog, Globe, Download, ScrollText, Ban, RotateCcw, Info } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Administration — De la graine au jardin" }] }),
@@ -29,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 function AdminPage() {
   const { isAdmin, isLoading } = useIsAdmin();
+
   const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -104,6 +111,7 @@ function AdminPage() {
   });
 
   const deleteUser = useServerFn(deleteUserAccount);
+  const fetchEmailLog = useServerFn(listEmailLog);
   const removeUser = useMutation({
     mutationFn: (userId: string) => deleteUser({ data: { userId } }),
     onSuccess: () => {
@@ -124,6 +132,64 @@ function AdminPage() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
+
+  const changeStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: "approved" | "suspended" }) =>
+      setUserApprovalStatus(id, status),
+    onSuccess: (_d, v) => {
+      toast.success(v.status === "suspended" ? "Compte suspendu" : "Compte réactivé");
+      qc.invalidateQueries({ queryKey: ["admin-all-users"] });
+      qc.invalidateQueries({ queryKey: ["admin-audit"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const { data: audit } = useQuery({
+    queryKey: ["admin-audit"],
+    enabled: isAdmin,
+    queryFn: () => listAuditLog(100),
+  });
+
+  const exportAccounts = async () => {
+    const rows = (allUsers ?? []).map((u) => ({
+      nom: u.display_name ?? "",
+      entreprise: u.company_name ?? "",
+      role: u.role,
+      statut: u.approval_status,
+      inscrit_le: u.created_at,
+    }));
+    if (!rows.length) return toast.error("Aucune donnée");
+    downloadCsv("comptes.csv", toCsv(rows));
+  };
+
+  const exportClients = async () => {
+    try {
+      const clients = await listClients();
+      const rows = (clients ?? []).map((c) => ({
+        nom: c.name, civilite: c.civility ?? "", adresse: c.address ?? "",
+        telephone: c.phone ?? "", email: c.email ?? "",
+        contrat: c.contract_type ?? "", frequence: c.frequency ?? "",
+      }));
+      if (!rows.length) return toast.error("Aucun client");
+      downloadCsv("clients.csv", toCsv(rows));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    }
+  };
+
+  const exportEmails = async () => {
+    try {
+      const logs = await fetchEmailLog();
+      const rows = (logs ?? []).map((l) => ({
+        destinataire: l.recipient_email, statut: l.status,
+        date: l.created_at, erreur: l.error_message ?? "",
+      }));
+      if (!rows.length) return toast.error("Aucun e-mail");
+      downloadCsv("emails.csv", toCsv(rows));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    }
+  };
 
   if (isLoading || !isAdmin) {
     return (
@@ -159,6 +225,27 @@ function AdminPage() {
             </Card>
           ))}
         </div>
+
+        <AdminStatsDashboard />
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Download className="h-4 w-4 text-primary" /> Exports CSV
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={exportAccounts}>
+              <Download className="mr-1.5 h-3.5 w-3.5" /> Comptes
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportClients}>
+              <Download className="mr-1.5 h-3.5 w-3.5" /> Clients
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportEmails}>
+              <Download className="mr-1.5 h-3.5 w-3.5" /> E-mails
+            </Button>
+          </CardContent>
+        </Card>
 
         <EmailTemplateEditor />
 
@@ -251,8 +338,34 @@ function AdminPage() {
                         ? "bg-destructive/10 text-destructive"
                         : "bg-muted text-muted-foreground"
                     }`}>
-                      {u.approval_status === "approved" ? "Validé" : u.approval_status === "rejected" ? "Refusé" : "En attente"}
+                      {u.approval_status === "approved" ? "Validé"
+                        : u.approval_status === "rejected" ? "Refusé"
+                        : u.approval_status === "suspended" ? "Suspendu"
+                        : "En attente"}
                     </span>
+                    <UserDetailDialog
+                      user={u as AppUser}
+                      trigger={
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Voir le détail">
+                          <Info className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
+                    {u.id !== user?.id && (
+                      u.approval_status === "suspended" ? (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Réactiver"
+                          disabled={changeStatus.isPending}
+                          onClick={() => changeStatus.mutate({ id: u.id, status: "approved" })}>
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-amber-600" title="Suspendre"
+                          disabled={changeStatus.isPending}
+                          onClick={() => changeStatus.mutate({ id: u.id, status: "suspended" })}>
+                          <Ban className="h-4 w-4" />
+                        </Button>
+                      )
+                    )}
                     {u.id !== user?.id && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -282,6 +395,31 @@ function AdminPage() {
                       </AlertDialog>
                     )}
                   </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ScrollText className="h-4 w-4 text-primary" /> Journal d'audit
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(audit ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune action enregistrée.</p>
+            ) : (
+              (audit ?? []).map((a) => (
+                <div key={a.id} className="flex items-center justify-between gap-2 border-b pb-2 text-sm last:border-0">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{auditLabel(a.action)}{a.target_name ? ` · ${a.target_name}` : ""}</p>
+                    <p className="text-xs text-muted-foreground">par {a.actor_name ?? "Admin"}</p>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    {new Date(a.created_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </span>
                 </div>
               ))
             )}
@@ -369,4 +507,16 @@ function AdminPage() {
       </div>
     </AppShell>
   );
+}
+
+function auditLabel(action: string): string {
+  switch (action) {
+    case "role_change": return "Changement de rôle";
+    case "user_deleted": return "Compte supprimé";
+    case "approval_approved": return "Compte validé";
+    case "approval_rejected": return "Inscription refusée";
+    case "approval_suspended": return "Compte suspendu";
+    case "approval_pending": return "Compte remis en attente";
+    default: return action;
+  }
 }
