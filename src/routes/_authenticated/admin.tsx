@@ -131,6 +131,64 @@ function AdminPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
+  const changeStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: "approved" | "suspended" }) =>
+      setUserApprovalStatus(id, status),
+    onSuccess: (_d, v) => {
+      toast.success(v.status === "suspended" ? "Compte suspendu" : "Compte réactivé");
+      qc.invalidateQueries({ queryKey: ["admin-all-users"] });
+      qc.invalidateQueries({ queryKey: ["admin-audit"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const { data: audit } = useQuery({
+    queryKey: ["admin-audit"],
+    enabled: isAdmin,
+    queryFn: () => listAuditLog(100),
+  });
+
+  const exportAccounts = async () => {
+    const rows = (allUsers ?? []).map((u) => ({
+      nom: u.display_name ?? "",
+      entreprise: u.company_name ?? "",
+      role: u.role,
+      statut: u.approval_status,
+      inscrit_le: u.created_at,
+    }));
+    if (!rows.length) return toast.error("Aucune donnée");
+    downloadCsv("comptes.csv", toCsv(rows));
+  };
+
+  const exportClients = async () => {
+    try {
+      const clients = await listClients();
+      const rows = (clients ?? []).map((c) => ({
+        nom: c.name, civilite: c.civility ?? "", adresse: c.address ?? "",
+        telephone: c.phone ?? "", email: c.email ?? "",
+        contrat: c.contract_type ?? "", frequence: c.frequency ?? "",
+      }));
+      if (!rows.length) return toast.error("Aucun client");
+      downloadCsv("clients.csv", toCsv(rows));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    }
+  };
+
+  const exportEmails = async () => {
+    try {
+      const logs = await listEmailLog();
+      const rows = (logs ?? []).map((l) => ({
+        destinataire: l.recipient_email, statut: l.status,
+        date: l.created_at, erreur: l.error_message ?? "",
+      }));
+      if (!rows.length) return toast.error("Aucun e-mail");
+      downloadCsv("emails.csv", toCsv(rows));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    }
+  };
+
   if (isLoading || !isAdmin) {
     return (
       <AppShell title="Administration">
