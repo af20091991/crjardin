@@ -22,6 +22,7 @@ import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
 import { sendTransactionalEmail } from "@/lib/email/send";
+import { getEmailSettings, fillTemplate } from "@/lib/email-settings";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
