@@ -99,6 +99,18 @@ function AdminPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
+  const deleteUser = useServerFn(deleteUserAccount);
+  const removeUser = useMutation({
+    mutationFn: (userId: string) => deleteUser({ data: { userId } }),
+    onSuccess: () => {
+      toast.success("Compte supprimé définitivement");
+      qc.invalidateQueries({ queryKey: ["admin-all-users"] });
+      qc.invalidateQueries({ queryKey: ["admin-pending"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur de suppression"),
+  });
+
   if (isLoading || !isAdmin) {
     return (
       <AppShell title="Administration">
