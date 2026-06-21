@@ -316,8 +316,34 @@ function AdminPage() {
                         ? "bg-destructive/10 text-destructive"
                         : "bg-muted text-muted-foreground"
                     }`}>
-                      {u.approval_status === "approved" ? "Validé" : u.approval_status === "rejected" ? "Refusé" : "En attente"}
+                      {u.approval_status === "approved" ? "Validé"
+                        : u.approval_status === "rejected" ? "Refusé"
+                        : u.approval_status === "suspended" ? "Suspendu"
+                        : "En attente"}
                     </span>
+                    <UserDetailDialog
+                      user={u as AppUser}
+                      trigger={
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Voir le détail">
+                          <Info className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
+                    {u.id !== user?.id && (
+                      u.approval_status === "suspended" ? (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Réactiver"
+                          disabled={changeStatus.isPending}
+                          onClick={() => changeStatus.mutate({ id: u.id, status: "approved" })}>
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-amber-600" title="Suspendre"
+                          disabled={changeStatus.isPending}
+                          onClick={() => changeStatus.mutate({ id: u.id, status: "suspended" })}>
+                          <Ban className="h-4 w-4" />
+                        </Button>
+                      )
+                    )}
                     {u.id !== user?.id && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
