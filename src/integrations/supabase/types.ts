@@ -801,6 +801,7 @@ export type Database = {
         }
         Returns: string
       }
+      admin_delete_user: { Args: { p_user_id: string }; Returns: undefined }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
