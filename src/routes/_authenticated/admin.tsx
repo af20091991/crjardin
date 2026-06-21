@@ -301,7 +301,7 @@ function AdminPage() {
               <p className="text-sm text-muted-foreground">Aucune inscription en attente.</p>
             ) : (
               (pending ?? []).map((u) => (
-                <div key={u.id} className="flex items-center justify-between gap-2 border-b pb-2 text-sm last:border-0">
+                <div key={u.id} className="flex flex-col gap-2 border-b pb-3 text-sm last:border-0 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{u.display_name ?? "Sans nom"}</p>
                     <p className="text-xs text-muted-foreground">
@@ -352,7 +352,7 @@ function AdminPage() {
                       {u.company_name ? `${u.company_name} · ` : ""}Inscrit le {new Date(u.created_at).toLocaleDateString("fr-FR")}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                     <Select
                       value={u.role}
                       onValueChange={(v) => changeRole.mutate({ id: u.id, role: v as "admin" | "prestataire" | "observateur" })}
