@@ -820,6 +820,7 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      is_editor: { Args: { _user_id: string }; Returns: boolean }
       mark_shared_read:
         | {
             Args: { p_token: string; p_user_agent?: string }
@@ -854,6 +855,13 @@ export type Database = {
       }
       set_user_approval: {
         Args: { p_status: string; p_user_id: string }
+        Returns: undefined
+      }
+      set_user_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
         Returns: undefined
       }
     }
