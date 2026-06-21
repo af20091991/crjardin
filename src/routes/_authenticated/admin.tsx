@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { deleteUserAccount } from "@/lib/admin.functions";
+import { exportFullData } from "@/lib/export.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/use-auth";
 import { Trash2 } from "lucide-react";
@@ -112,6 +113,7 @@ function AdminPage() {
 
   const deleteUser = useServerFn(deleteUserAccount);
   const fetchEmailLog = useServerFn(listEmailLog);
+  const runFullExport = useServerFn(exportFullData);
   const removeUser = useMutation({
     mutationFn: (userId: string) => deleteUser({ data: { userId } }),
     onSuccess: () => {
@@ -191,6 +193,25 @@ function AdminPage() {
     }
   };
 
+  const exportFull = async () => {
+    try {
+      toast.info("Préparation de l'export complet…");
+      const res = await runFullExport();
+      const blob = new Blob([res.json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `export-application-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Export complet téléchargé");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur d'export");
+    }
+  };
+
   if (isLoading || !isAdmin) {
     return (
       <AppShell title="Administration">
@@ -243,6 +264,9 @@ function AdminPage() {
             </Button>
             <Button variant="outline" size="sm" onClick={exportEmails}>
               <Download className="mr-1.5 h-3.5 w-3.5" /> E-mails
+            </Button>
+            <Button variant="default" size="sm" onClick={exportFull}>
+              <Download className="mr-1.5 h-3.5 w-3.5" /> Export complet (JSON)
             </Button>
           </CardContent>
         </Card>
