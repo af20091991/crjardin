@@ -401,6 +401,31 @@ function AdminPage() {
         </Card>
 
         <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ScrollText className="h-4 w-4 text-primary" /> Journal d'audit
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(audit ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune action enregistrée.</p>
+            ) : (
+              (audit ?? []).map((a) => (
+                <div key={a.id} className="flex items-center justify-between gap-2 border-b pb-2 text-sm last:border-0">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{auditLabel(a.action)}{a.target_name ? ` · ${a.target_name}` : ""}</p>
+                    <p className="text-xs text-muted-foreground">par {a.actor_name ?? "Admin"}</p>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    {new Date(a.created_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader><CardTitle className="text-base">Derniers messages clients</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {(messages ?? []).length === 0 ? (
