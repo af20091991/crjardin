@@ -26,6 +26,32 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-06-21",
+    version: "1.7.1",
+    theme: "Général",
+    title: "Fiabilité & corrections",
+    details: [
+      "Correction de l'enregistrement des rôles : l'administrateur voit désormais le bon rôle de chaque compte.",
+      "Les préconisations et l'état du jardin se mettent à jour partout (fiche client, statistiques, tableau de bord) après modification.",
+      "Les informations de profil (entreprise, signature, cachet) se propagent immédiatement aux exports PDF.",
+      "Rafraîchissement des droits en direct après un changement de rôle.",
+    ],
+  },
+  {
+    date: "2026-06-21",
+    version: "1.7.0",
+    theme: "Général",
+    title: "Rôles utilisateurs & espace administrateur enrichi",
+    details: [
+      "Trois rôles : observateur (lecture seule), prestataire (édition) et administrateur unique.",
+      "Anthony défini comme super-administrateur ; correction de l'affichage et de l'enregistrement des rôles.",
+      "Tableau de bord de statistiques dans l'espace administrateur.",
+      "Export complet des données de l'application (réservé à l'administrateur).",
+      "Notes de planning partagées et historique des connexions.",
+      "Bouton pour vider l'historique des consultations clients (adresses IP).",
+    ],
+  },
+  {
     date: "2026-06-20",
     version: "1.6.0",
     theme: "Général",

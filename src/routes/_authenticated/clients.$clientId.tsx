@@ -243,7 +243,7 @@ function ClientDetail() {
                         </div>
                       </div>
                       {r.description && <p className="mt-1.5 text-sm text-muted-foreground">{r.description}</p>}
-                      <RecoInterest reco={r} onCleared={() => qc.invalidateQueries({ queryKey: ["recommendations", clientId] })} />
+                      <RecoInterest reco={r} onCleared={() => { qc.invalidateQueries({ queryKey: ["recommendations", clientId] }); qc.invalidateQueries({ queryKey: ["recommendations-all"] }); }} />
                     </Card>
                   );
                 })}

@@ -132,6 +132,8 @@ function AdminPage() {
     onSuccess: () => {
       toast.success("Rôle mis à jour");
       qc.invalidateQueries({ queryKey: ["admin-all-users"] });
+      qc.invalidateQueries({ queryKey: ["my-roles"] });
+      qc.invalidateQueries({ queryKey: ["is-admin"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });

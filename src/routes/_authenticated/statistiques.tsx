@@ -27,7 +27,7 @@ function StatsPage() {
   const { data: interventions } = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: recos } = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
-  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: getMyProfile });
+  const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
 
   const list = interventions ?? [];
   const years = useMemo(

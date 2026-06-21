@@ -76,7 +76,7 @@ function InterventionDetail() {
     queryFn: () => getClient(iv!.client_id),
     enabled: !!iv?.client_id,
   });
-  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: getMyProfile });
+  const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
   const { data: tasks } = useQuery({
     queryKey: ["tasks", interventionId],
     queryFn: () => listTasks(interventionId),
@@ -133,14 +133,21 @@ function InterventionDetail() {
     enabled: !!iv?.client_id,
     select: (rows) => rows.filter((r) => r.intervention_id === interventionId),
   });
-  const invRecos = () => qc.invalidateQueries({ queryKey: ["recommendations-iv", interventionId] });
+  const invRecos = () => {
+    qc.invalidateQueries({ queryKey: ["recommendations-iv", interventionId] });
+    qc.invalidateQueries({ queryKey: ["recommendations"] });
+    qc.invalidateQueries({ queryKey: ["recommendations-all"] });
+  };
   const { data: healthList } = useQuery({
     queryKey: ["health-iv", interventionId],
     queryFn: () => listHealthByClient(iv!.client_id),
     enabled: !!iv?.client_id,
     select: (rows) => rows.filter((r) => r.intervention_id === interventionId),
   });
-  const invHealth = () => qc.invalidateQueries({ queryKey: ["health-iv", interventionId] });
+  const invHealth = () => {
+    qc.invalidateQueries({ queryKey: ["health-iv", interventionId] });
+    qc.invalidateQueries({ queryKey: ["health"] });
+  };
 
   const runAi = useMutation({
     mutationFn: () => generateAi({ data: { interventionId } }),
