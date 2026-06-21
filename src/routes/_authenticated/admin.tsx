@@ -177,7 +177,7 @@ function AdminPage() {
 
   const exportEmails = async () => {
     try {
-      const logs = await listEmailLog();
+      const logs = await fetchEmailLog();
       const rows = (logs ?? []).map((l) => ({
         destinataire: l.recipient_email, statut: l.status,
         date: l.created_at, erreur: l.error_message ?? "",
