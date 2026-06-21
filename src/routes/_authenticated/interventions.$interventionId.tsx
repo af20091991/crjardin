@@ -317,6 +317,16 @@ function InterventionDetail() {
                 {exportPdf.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileDown className="mr-1.5 h-4 w-4" />}
                 Exporter le PDF
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={notifyClient.isPending || !done || !client?.email}
+                title={!done ? "Marquez le compte-rendu comme terminé d'abord" : !client?.email ? "Aucune adresse e-mail pour ce client" : "Prévenir le client par e-mail"}
+                onClick={() => notifyClient.mutate()}
+              >
+                {notifyClient.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Mail className="mr-1.5 h-4 w-4" />}
+                Prévenir le client
+              </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
