@@ -230,6 +230,20 @@ function AdminPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
+                    <Select
+                      value={u.role}
+                      onValueChange={(v) => changeRole.mutate({ id: u.id, role: v as "admin" | "prestataire" | "observateur" })}
+                      disabled={u.id === user?.id || changeRole.isPending}
+                    >
+                      <SelectTrigger className="h-7 w-[130px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="observateur">Observateur</SelectItem>
+                        <SelectItem value="prestataire">Prestataire</SelectItem>
+                        <SelectItem value="admin">Administrateur</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${
                       u.approval_status === "approved"
                         ? "bg-primary/10 text-primary"
