@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useRole } from "@/hooks/use-role";
 
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({
   component: ClientDetail,
@@ -36,6 +37,7 @@ function ClientDetail() {
   const { clientId } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { canEdit } = useRole();
   const [copied, setCopied] = useState(false);
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", clientId],
@@ -114,6 +116,7 @@ function ClientDetail() {
                   </div>
                 </div>
               </div>
+              {canEdit && (
               <div className="flex shrink-0 gap-1.5">
                 <ClientForm client={client} trigger={<Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>} />
                 <AlertDialog>
@@ -134,6 +137,7 @@ function ClientDetail() {
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
+              )}
             </div>
 
             <div className="mt-5 grid gap-2 text-sm sm:grid-cols-2">

@@ -3,6 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-admin";
+import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History, Mail } from "lucide-react";
@@ -21,6 +22,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
+  const { canEdit } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   async function signOut() {
@@ -71,12 +73,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           ))}
         </nav>
         <div className="border-t border-border p-3">
-          <Link
-            to="/interventions/new"
-            className="mb-2 flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" /> Compte-rendu
-          </Link>
+          {canEdit && (
+            <Link
+              to="/interventions/new"
+              className="mb-2 flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4" /> Compte-rendu
+            </Link>
+          )}
           <div className="flex items-center justify-between gap-2 px-1">
             <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
             <button onClick={signOut} className="shrink-0 text-muted-foreground hover:text-destructive" title="Déconnexion">
@@ -125,14 +129,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             {item.label}
           </Link>
         ))}
-        <Link
-          to="/interventions/new"
-          className="flex flex-1 flex-col items-center gap-0.5 rounded-lg py-1 text-[11px] font-medium text-primary"
-        >
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground shadow">
-            <Plus className="h-5 w-5" />
-          </div>
-        </Link>
+        {canEdit && (
+          <Link
+            to="/interventions/new"
+            className="flex flex-1 flex-col items-center gap-0.5 rounded-lg py-1 text-[11px] font-medium text-primary"
+          >
+            <div className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground shadow">
+              <Plus className="h-5 w-5" />
+            </div>
+          </Link>
+        )}
       </nav>
       <InstallPrompt />
     </div>

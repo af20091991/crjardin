@@ -15,6 +15,7 @@ export interface AppUser {
   created_at: string;
   approved_at: string | null;
   is_admin: boolean;
+  role: "admin" | "prestataire" | "observateur";
 }
 
 export interface ClientAccess {
@@ -50,10 +51,21 @@ export async function listAllUsers(): Promise<AppUser[]> {
     .select("id, display_name, company_name, approval_status, created_at, approved_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  const profiles = (data ?? []) as Omit<AppUser, "is_admin">[];
-  const { data: roles } = await supabase.from("user_roles").select("user_id, role").eq("role", "admin");
-  const adminIds = new Set((roles ?? []).map((r) => r.user_id));
-  return profiles.map((p) => ({ ...p, is_admin: adminIds.has(p.id) }));
+  const profiles = (data ?? []) as Omit<AppUser, "is_admin" | "role">[];
+  const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+  const byUser: Record<string, Set<string>> = {};
+  for (const r of roles ?? []) {
+    (byUser[r.user_id] ??= new Set()).add(r.role);
+  }
+  return profiles.map((p) => {
+    const set = byUser[p.id] ?? new Set<string>();
+    const role: AppUser["role"] = set.has("admin")
+      ? "admin"
+      : set.has("prestataire")
+      ? "prestataire"
+      : "observateur";
+    return { ...p, is_admin: role === "admin", role };
+  });
 }
 
 export async function listClientAccesses(limit = 50): Promise<ClientAccess[]> {
@@ -75,6 +87,11 @@ export async function listClientAccesses(limit = 50): Promise<ClientAccess[]> {
 
 export async function setUserApproval(userId: string, status: "approved" | "rejected" | "pending"): Promise<void> {
   const { error } = await supabase.rpc("set_user_approval", { p_user_id: userId, p_status: status });
+  if (error) throw error;
+}
+
+export async function setUserRole(userId: string, role: "admin" | "prestataire" | "observateur"): Promise<void> {
+  const { error } = await supabase.rpc("set_user_role", { p_user_id: userId, p_role: role });
   if (error) throw error;
 }
 

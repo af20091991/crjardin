@@ -820,6 +820,7 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      is_editor: { Args: { _user_id: string }; Returns: boolean }
       mark_shared_read:
         | {
             Args: { p_token: string; p_user_agent?: string }
@@ -856,9 +857,16 @@ export type Database = {
         Args: { p_status: string; p_user_id: string }
         Returns: undefined
       }
+      set_user_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "prestataire" | "observateur"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -986,7 +994,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "prestataire", "observateur"],
     },
   },
 } as const
