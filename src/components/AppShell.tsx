@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History } from "lucide-react";
+import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 
@@ -35,6 +35,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     ? [
         ...NAV,
         { to: "/admin", label: "Administration", icon: Shield, exact: false },
+        { to: "/emails", label: "Suivi e-mails", icon: Mail, exact: false },
         { to: "/versions", label: "Versions", icon: History, exact: false },
       ]
     : NAV;
