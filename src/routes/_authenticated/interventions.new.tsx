@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Plus, X, ArrowLeft, Check, Star, LayoutTemplate, Save } from "lucide-react";
 import { toast } from "sonner";
-import { useEffect } from "react";
 import { useRole } from "@/hooks/use-role";
 
 const searchSchema = z.object({ client: z.string().optional() });
