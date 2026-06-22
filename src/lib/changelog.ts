@@ -26,6 +26,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-06-22",
+    version: "1.8.0",
+    theme: "Compte-rendus",
+    title: "Fiches chantier (sous-traitance)",
+    details: [
+      "Intégration de l'outil « Fiche chantier » : préparation complète d'une intervention de sous-traitance (infos client, matériel, EPI, travaux ordonnés, checklist avant départ, photos, notes).",
+      "Les fiches peuvent être reliées à un client existant pour préremplir nom, adresse et téléphone.",
+      "Chaque fiche est enregistrée et modifiable, avec export PDF.",
+      "Accès réservé aux prestataires et à l'administrateur.",
+    ],
+  },
+  {
     date: "2026-06-21",
     version: "1.7.1",
     theme: "Général",
