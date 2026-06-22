@@ -860,6 +860,89 @@ export type Database = {
         }
         Relationships: []
       }
+      worksite_sheets: {
+        Row: {
+          access_complement: string | null
+          address: string | null
+          checklist: Json
+          civility: string | null
+          client_id: string | null
+          client_name: string
+          client_phone: string | null
+          client_phone_backup: string | null
+          client_present: boolean | null
+          contact_person: string | null
+          created_at: string
+          epi: Json
+          equipment: Json
+          green_waste: boolean | null
+          id: string
+          intervenant: string | null
+          intervention_date: string | null
+          notes: string | null
+          photos: Json
+          tasks: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_complement?: string | null
+          address?: string | null
+          checklist?: Json
+          civility?: string | null
+          client_id?: string | null
+          client_name?: string
+          client_phone?: string | null
+          client_phone_backup?: string | null
+          client_present?: boolean | null
+          contact_person?: string | null
+          created_at?: string
+          epi?: Json
+          equipment?: Json
+          green_waste?: boolean | null
+          id?: string
+          intervenant?: string | null
+          intervention_date?: string | null
+          notes?: string | null
+          photos?: Json
+          tasks?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_complement?: string | null
+          address?: string | null
+          checklist?: Json
+          civility?: string | null
+          client_id?: string | null
+          client_name?: string
+          client_phone?: string | null
+          client_phone_backup?: string | null
+          client_present?: boolean | null
+          contact_person?: string | null
+          created_at?: string
+          epi?: Json
+          equipment?: Json
+          green_waste?: boolean | null
+          id?: string
+          intervenant?: string | null
+          intervention_date?: string | null
+          notes?: string | null
+          photos?: Json
+          tasks?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worksite_sheets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
