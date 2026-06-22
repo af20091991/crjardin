@@ -75,7 +75,7 @@ export type WorksiteSheetInput = Omit<
 function normalize(row: Record<string, unknown>): WorksiteSheet {
   const arr = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : []);
   return {
-    ...(row as WorksiteSheet),
+    ...(row as unknown as WorksiteSheet),
     equipment: arr(row.equipment),
     epi: arr(row.epi),
     tasks: arr(row.tasks),
