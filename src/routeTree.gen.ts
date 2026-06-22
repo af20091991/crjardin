@@ -31,6 +31,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
 import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './routes/_authenticated/interventions.$interventionId'
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
+import { Route as AuthenticatedFichesFicheIdRouteImport } from './routes/_authenticated/fiches.$ficheId'
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients.$clientId'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -150,6 +151,12 @@ const AuthenticatedFichesNewRoute = AuthenticatedFichesNewRouteImport.update({
   path: '/fiches/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFichesFicheIdRoute =
+  AuthenticatedFichesFicheIdRouteImport.update({
+    id: '/fiches/$ficheId',
+    path: '/fiches/$ficheId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientsClientIdRoute =
   AuthenticatedClientsClientIdRouteImport.update({
     id: '/clients/$clientId',
@@ -192,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/partage/$token': typeof PartageTokenRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
+  '/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
@@ -219,6 +227,7 @@ export interface FileRoutesByTo {
   '/partage/$token': typeof PartageTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
+  '/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
@@ -248,6 +257,7 @@ export interface FileRoutesById {
   '/partage/$token': typeof PartageTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
+  '/_authenticated/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
   '/_authenticated/fiches/new': typeof AuthenticatedFichesNewRoute
   '/_authenticated/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/_authenticated/interventions/new': typeof AuthenticatedInterventionsNewRoute
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/partage/$token'
     | '/clients/$clientId'
+    | '/fiches/$ficheId'
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/partage/$token'
     | '/'
     | '/clients/$clientId'
+    | '/fiches/$ficheId'
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
@@ -332,6 +344,7 @@ export interface FileRouteTypes {
     | '/partage/$token'
     | '/_authenticated/'
     | '/_authenticated/clients/$clientId'
+    | '/_authenticated/fiches/$ficheId'
     | '/_authenticated/fiches/new'
     | '/_authenticated/interventions/$interventionId'
     | '/_authenticated/interventions/new'
@@ -514,6 +527,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFichesNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/fiches/$ficheId': {
+      id: '/_authenticated/fiches/$ficheId'
+      path: '/fiches/$ficheId'
+      fullPath: '/fiches/$ficheId'
+      preLoaderRoute: typeof AuthenticatedFichesFicheIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clients/$clientId': {
       id: '/_authenticated/clients/$clientId'
       path: '/clients/$clientId'
@@ -555,6 +575,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVersionsRoute: typeof AuthenticatedVersionsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedClientsClientIdRoute: typeof AuthenticatedClientsClientIdRoute
+  AuthenticatedFichesFicheIdRoute: typeof AuthenticatedFichesFicheIdRoute
   AuthenticatedFichesNewRoute: typeof AuthenticatedFichesNewRoute
   AuthenticatedInterventionsInterventionIdRoute: typeof AuthenticatedInterventionsInterventionIdRoute
   AuthenticatedInterventionsNewRoute: typeof AuthenticatedInterventionsNewRoute
@@ -572,6 +593,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVersionsRoute: AuthenticatedVersionsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedClientsClientIdRoute: AuthenticatedClientsClientIdRoute,
+  AuthenticatedFichesFicheIdRoute: AuthenticatedFichesFicheIdRoute,
   AuthenticatedFichesNewRoute: AuthenticatedFichesNewRoute,
   AuthenticatedInterventionsInterventionIdRoute:
     AuthenticatedInterventionsInterventionIdRoute,

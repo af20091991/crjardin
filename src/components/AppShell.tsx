@@ -6,7 +6,7 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History, Mail, MoreHorizontal } from "lucide-react";
+import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
@@ -34,14 +34,18 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const isActive = (to: string, exact: boolean) =>
     exact ? pathname === to : pathname.startsWith(to);
 
+  const editorItems = canEdit
+    ? [{ to: "/fiches", label: "Fiches chantier", short: "Fiches", icon: ClipboardList, exact: false, primary: false }]
+    : [];
   const navItems = isAdmin
     ? [
         ...NAV,
+        ...editorItems,
         { to: "/admin", label: "Administration", short: "Admin", icon: Shield, exact: false, primary: false },
         { to: "/emails", label: "Suivi e-mails", short: "E-mails", icon: Mail, exact: false, primary: false },
         { to: "/versions", label: "Versions", short: "Versions", icon: History, exact: false, primary: false },
       ]
-    : NAV;
+    : [...NAV, ...editorItems];
 
   const primaryItems = navItems.filter((i) => i.primary);
   const moreItems = navItems.filter((i) => !i.primary);
