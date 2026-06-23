@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 export const INTERVENANTS = ["Chloé", "Fanny", "Angélique", "Lionel"] as const;
 
 export const EQUIPMENT_GROUPS: { group: string; items: string[] }[] = [
-  { group: "Taille-haie", items: ["Taille-haie thermique", "Taille-haie sur perche", "Sécateur électrique"] },
-  { group: "Motorisé", items: ["Tondeuse", "Débroussailleuse", "Souffleur", "Tronçonneuse", "Scarificateur"] },
-  { group: "Outils à main", items: ["Sécateur", "Cisaille", "Râteau", "Bêche", "Balai à gazon", "Serpette"] },
-  { group: "Accessoires", items: ["Bâche", "Sacs à déchets verts", "Brouette", "Rallonge", "Échelle"] },
-  { group: "Batterie", items: ["Batteries chargées", "Chargeur", "Carburant / mélange"] },
+  { group: "Taille-haie", items: ["Taille-haie déflecteur (R)", "Taille-haie double peigne (T)", "Taille-haie perche télescopique", "Taille-haie perche de rabattage"] },
+  { group: "Motorisé", items: ["Souffleur", "Tondeuse", "Débroussailleuse", "Broyeur", "Désherbeur thermique", "Tronçonneuse", "Tronçonneuse perche"] },
+  { group: "Outils à main", items: ["Râteau feuille", "Râteau métal", "Pioche", "Bêche", "Fourche", "Balai brosse", "Pelle minérale", "Pelle terre", "Échenilloir", "Sécateur à main", "Sécateur de force", "Cisaille"] },
+  { group: "Accessoires", items: ["Escabeau", "Poubelle", "Sacs à déchets", "Rampes"] },
+  { group: "Batterie", items: ["AP200S", "AP300", "AP500S", "AR3000", "AS1", "Batterie portable", "Chargeur AL301", "Chargeur AS1"] },
 ];
 
 export const EPI_OPTIONS = [
@@ -25,13 +25,13 @@ export const EPI_OPTIONS = [
 ] as const;
 
 export const TASK_GROUPS: { group: string; items: string[] }[] = [
-  { group: "Taille de haie", items: ["Taille de haie", "Taille de haie en hauteur", "Évacuation des tailles"] },
-  { group: "Élagage & arbres", items: ["Élagage", "Abattage", "Démontage", "Broyage des branches"] },
-  { group: "Entretien de pelouse", items: ["Tonte", "Tonte des bordures", "Scarification", "Semis / regarnissage"] },
-  { group: "Entretien de massif", items: ["Désherbage massif", "Binage", "Paillage", "Plantation"] },
-  { group: "Débroussaillage", items: ["Débroussaillage", "Fauchage", "Nettoyage de friche"] },
-  { group: "Nettoyage & finitions", items: ["Soufflage", "Nettoyage des allées", "Ramassage des feuilles"] },
-  { group: "Évacuation", items: ["Évacuation des déchets verts", "Chargement remorque"] },
+  { group: "Taille de haie", items: ["Taille de haie sur 1 face", "Taille de haie sur 2 faces", "Taille de haie sur 3 faces", "Taille de haie de rabattage"] },
+  { group: "Élagage & arbres", items: ["Taille d'arbustes", "Taille de rosiers", "Taille de fruitiers", "Élagage", "Abattage", "Broyage des branches"] },
+  { group: "Entretien de pelouse", items: ["Tonte", "Tonte mulching", "Scarification", "Aération du gazon", "Engazonnement / semis", "Réfection de pelouse"] },
+  { group: "Entretien de massif", items: ["Désherbage manuel", "Désherbage thermique", "Binage", "Sarclage", "Paillage", "Apport d'engrais / amendement", "Nettoyage des massifs", "Plantation", "Bêchage / préparation du sol"] },
+  { group: "Débroussaillage", items: ["Débroussaillage léger", "Débroussaillage dense", "Débroussaillage réglementaire (OLD)"] },
+  { group: "Nettoyage & finitions", items: ["Ramassage de feuilles", "Soufflage des allées", "Nettoyage des terrasses / allées", "Désherbage des joints", "Arrosage"] },
+  { group: "Évacuation", items: ["Évacuation des déchets verts", "Dépôt en déchèterie"] },
 ];
 
 export const CHECKLIST_OPTIONS = [
