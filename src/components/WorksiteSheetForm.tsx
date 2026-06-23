@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Check, ChevronDown, ChevronUp, Loader2, Plus, X, ImagePlus, ArrowUp, ArrowDown } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Loader2, Plus, X, ImagePlus, ArrowUp, ArrowDown, MapPin, Recycle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import type { Client } from "@/lib/clients";
 import {
@@ -15,6 +16,8 @@ import {
   INTERVENANTS, EQUIPMENT_GROUPS, EPI_OPTIONS, TASK_GROUPS, CHECKLIST_OPTIONS,
   uploadWorksitePhoto, worksitePhotoUrl,
 } from "@/lib/worksite";
+import { placeAutocomplete, geocodeAddress, nearestRecyclingCenter, type PlaceSuggestion } from "@/lib/maps.functions";
+import { GardenPlanMap } from "@/components/GardenPlanMap";
 
 function Toggle({ label, value, onChange }: { label: string; value: boolean | null; onChange: (v: boolean) => void }) {
   return (
