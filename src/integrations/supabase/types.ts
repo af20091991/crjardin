@@ -875,12 +875,16 @@ export type Database = {
           created_at: string
           epi: Json
           equipment: Json
+          garden_markers: Json
           green_waste: boolean | null
           id: string
           intervenant: string | null
           intervention_date: string | null
+          latitude: number | null
+          longitude: number | null
           notes: string | null
           photos: Json
+          recycling_center: Json | null
           tasks: Json
           updated_at: string
           user_id: string
@@ -899,12 +903,16 @@ export type Database = {
           created_at?: string
           epi?: Json
           equipment?: Json
+          garden_markers?: Json
           green_waste?: boolean | null
           id?: string
           intervenant?: string | null
           intervention_date?: string | null
+          latitude?: number | null
+          longitude?: number | null
           notes?: string | null
           photos?: Json
+          recycling_center?: Json | null
           tasks?: Json
           updated_at?: string
           user_id: string
@@ -923,12 +931,16 @@ export type Database = {
           created_at?: string
           epi?: Json
           equipment?: Json
+          garden_markers?: Json
           green_waste?: boolean | null
           id?: string
           intervenant?: string | null
           intervention_date?: string | null
+          latitude?: number | null
+          longitude?: number | null
           notes?: string | null
           photos?: Json
+          recycling_center?: Json | null
           tasks?: Json
           updated_at?: string
           user_id?: string
