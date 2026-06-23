@@ -78,6 +78,15 @@ export function WorksiteSheetForm({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const autocompleteFn = useServerFn(placeAutocomplete);
+  const geocodeFn = useServerFn(geocodeAddress);
+  const recyclingFn = useServerFn(nearestRecyclingCenter);
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [showSug, setShowSug] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [recyLoading, setRecyLoading] = useState(false);
+  const sugTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const set = <K extends keyof WorksiteSheetInput>(k: K, v: WorksiteSheetInput[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
@@ -109,6 +118,57 @@ export function WorksiteSheetForm({
       address: c.address ?? f.address,
       client_phone: c.phone ?? f.client_phone,
     }));
+    if (c.address) void geocode(c.address);
+  }
+
+  function onAddressChange(v: string) {
+    setForm((f) => ({ ...f, address: v, latitude: null, longitude: null }));
+    if (sugTimer.current) clearTimeout(sugTimer.current);
+    if (v.trim().length < 3) { setSuggestions([]); return; }
+    sugTimer.current = setTimeout(async () => {
+      try {
+        const res = await autocompleteFn({ data: { input: v } });
+        setSuggestions(res);
+        setShowSug(true);
+      } catch { /* ignore */ }
+    }, 300);
+  }
+
+  async function geocode(address: string) {
+    if (!address.trim()) return;
+    setGeoLoading(true);
+    try {
+      const res = await geocodeFn({ data: { address } });
+      if (res) {
+        setForm((f) => ({ ...f, address: res.formatted, latitude: res.lat, longitude: res.lng }));
+      }
+    } catch { /* ignore */ }
+    finally { setGeoLoading(false); }
+  }
+
+  async function pickSuggestion(s: PlaceSuggestion) {
+    setShowSug(false);
+    setSuggestions([]);
+    await geocode(s.description);
+  }
+
+  async function findRecyclingCenter() {
+    if (form.latitude == null || form.longitude == null) {
+      toast.error("Validez d'abord l'adresse du chantier");
+      return;
+    }
+    setRecyLoading(true);
+    try {
+      const res = await recyclingFn({ data: { lat: form.latitude, lng: form.longitude } });
+      if (!res) { toast.error("Aucune déchèterie trouvée à proximité"); return; }
+      set("recycling_center", {
+        name: res.name, address: res.address, lat: res.lat, lng: res.lng,
+        distance_km: res.distance_km, hours: res.hours,
+      });
+      toast.success("Déchèterie la plus proche trouvée");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur de recherche");
+    } finally { setRecyLoading(false); }
   }
 
   function moveTask(i: number, dir: -1 | 1) {
