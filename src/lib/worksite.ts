@@ -63,8 +63,31 @@ export interface WorksiteSheet {
   checklist: string[];
   photos: string[];
   notes: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  garden_markers: GardenMarker[];
+  recycling_center: RecyclingCenterInfo | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Repère positionné sur le plan jardin, associé à une tâche prévue. */
+export interface GardenMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  task: string;
+  note?: string;
+}
+
+/** Déchèterie la plus proche enregistrée sur la fiche. */
+export interface RecyclingCenterInfo {
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  distance_km: number;
+  hours: string[];
 }
 
 export type WorksiteSheetInput = Omit<
@@ -81,6 +104,8 @@ function normalize(row: Record<string, unknown>): WorksiteSheet {
     tasks: arr(row.tasks),
     checklist: arr(row.checklist),
     photos: arr(row.photos),
+    garden_markers: Array.isArray(row.garden_markers) ? (row.garden_markers as GardenMarker[]) : [],
+    recycling_center: (row.recycling_center as RecyclingCenterInfo | null) ?? null,
   };
 }
 
@@ -104,6 +129,10 @@ export function emptyWorksiteSheet(): WorksiteSheetInput {
     checklist: [],
     photos: [],
     notes: "",
+    latitude: null,
+    longitude: null,
+    garden_markers: [],
+    recycling_center: null,
   };
 }
 
