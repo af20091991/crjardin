@@ -1,3 +1,4 @@
+/// <reference types="google.maps" />
 /** Charge l'API Google Maps JS (une seule fois) avec la clé navigateur Lovable. */
 let loaderPromise: Promise<typeof google> | null = null;
 
