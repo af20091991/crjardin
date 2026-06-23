@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import logo from "@/assets/logo.png";
 import type { WorksiteSheet } from "@/lib/worksite";
 import { worksitePhotoUrl } from "@/lib/worksite";
+import { staticGardenMap } from "@/lib/maps.functions";
 
 const GREEN: [number, number, number] = [76, 138, 47];
 const DARK: [number, number, number] = [45, 55, 40];
