@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import logo from "@/assets/logo.png";
 import type { WorksiteSheet } from "@/lib/worksite";
 import { worksitePhotoUrl } from "@/lib/worksite";
+import { staticGardenMap } from "@/lib/maps.functions";
 
 const GREEN: [number, number, number] = [76, 138, 47];
 const DARK: [number, number, number] = [45, 55, 40];
@@ -124,6 +125,51 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
     heading("Notes complémentaires");
     const lines = doc.splitTextToSize(sheet.notes.trim(), contentW);
     lines.forEach((l: string) => { ensureSpace(5.4); doc.text(l, margin, y); y += 5.4; });
+  }
+
+  if (sheet.recycling_center) {
+    const rc = sheet.recycling_center;
+    heading("Déchèterie la plus proche");
+    line("Nom", rc.name);
+    line("Adresse", rc.address);
+    line("Distance", `${rc.distance_km} km`);
+    if (rc.hours.length) {
+      ensureSpace(6);
+      doc.setFont("helvetica", "bold");
+      doc.text("Horaires :", margin, y);
+      y += 5.4;
+      doc.setFont("helvetica", "normal");
+      bullets(rc.hours);
+    }
+  }
+
+  if (sheet.latitude != null && sheet.longitude != null) {
+    heading("Plan jardin (vue aérienne)");
+    try {
+      const dataUrl = await staticGardenMap({
+        data: {
+          lat: sheet.latitude,
+          lng: sheet.longitude,
+          markers: sheet.garden_markers.map((m) => ({ lat: m.lat, lng: m.lng })),
+        },
+      });
+      if (dataUrl) {
+        const img = await loadImage(dataUrl);
+        const w = contentW;
+        const h = w * 0.625;
+        ensureSpace(h + 4);
+        doc.addImage(img, "PNG", margin, y, w, h, undefined, "FAST");
+        y += h + 4;
+      }
+    } catch { /* plan optionnel */ }
+    if (sheet.garden_markers.length) {
+      sheet.garden_markers.forEach((m, i) => {
+        const lines = doc.splitTextToSize(`${i + 1}. ${m.task}${m.note ? ` — ${m.note}` : ""}`, contentW - 4);
+        ensureSpace(lines.length * 5 + 1);
+        doc.text(lines, margin, y);
+        y += lines.length * 5 + 1;
+      });
+    }
   }
 
   if (sheet.photos.length) {

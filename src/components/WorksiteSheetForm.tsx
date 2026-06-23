@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Check, ChevronDown, ChevronUp, Loader2, Plus, X, ImagePlus, ArrowUp, ArrowDown } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Loader2, Plus, X, ImagePlus, ArrowUp, ArrowDown, MapPin, Recycle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import type { Client } from "@/lib/clients";
 import {
@@ -15,6 +16,8 @@ import {
   INTERVENANTS, EQUIPMENT_GROUPS, EPI_OPTIONS, TASK_GROUPS, CHECKLIST_OPTIONS,
   uploadWorksitePhoto, worksitePhotoUrl,
 } from "@/lib/worksite";
+import { placeAutocomplete, geocodeAddress, nearestRecyclingCenter, type PlaceSuggestion } from "@/lib/maps.functions";
+import { GardenPlanMap } from "@/components/GardenPlanMap";
 
 function Toggle({ label, value, onChange }: { label: string; value: boolean | null; onChange: (v: boolean) => void }) {
   return (
@@ -75,6 +78,15 @@ export function WorksiteSheetForm({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const autocompleteFn = useServerFn(placeAutocomplete);
+  const geocodeFn = useServerFn(geocodeAddress);
+  const recyclingFn = useServerFn(nearestRecyclingCenter);
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [showSug, setShowSug] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [recyLoading, setRecyLoading] = useState(false);
+  const sugTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const set = <K extends keyof WorksiteSheetInput>(k: K, v: WorksiteSheetInput[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
@@ -106,6 +118,57 @@ export function WorksiteSheetForm({
       address: c.address ?? f.address,
       client_phone: c.phone ?? f.client_phone,
     }));
+    if (c.address) void geocode(c.address);
+  }
+
+  function onAddressChange(v: string) {
+    setForm((f) => ({ ...f, address: v, latitude: null, longitude: null }));
+    if (sugTimer.current) clearTimeout(sugTimer.current);
+    if (v.trim().length < 3) { setSuggestions([]); return; }
+    sugTimer.current = setTimeout(async () => {
+      try {
+        const res = await autocompleteFn({ data: { input: v } });
+        setSuggestions(res);
+        setShowSug(true);
+      } catch { /* ignore */ }
+    }, 300);
+  }
+
+  async function geocode(address: string) {
+    if (!address.trim()) return;
+    setGeoLoading(true);
+    try {
+      const res = await geocodeFn({ data: { address } });
+      if (res) {
+        setForm((f) => ({ ...f, address: res.formatted, latitude: res.lat, longitude: res.lng }));
+      }
+    } catch { /* ignore */ }
+    finally { setGeoLoading(false); }
+  }
+
+  async function pickSuggestion(s: PlaceSuggestion) {
+    setShowSug(false);
+    setSuggestions([]);
+    await geocode(s.description);
+  }
+
+  async function findRecyclingCenter() {
+    if (form.latitude == null || form.longitude == null) {
+      toast.error("Validez d'abord l'adresse du chantier");
+      return;
+    }
+    setRecyLoading(true);
+    try {
+      const res = await recyclingFn({ data: { lat: form.latitude, lng: form.longitude } });
+      if (!res) { toast.error("Aucune déchèterie trouvée à proximité"); return; }
+      set("recycling_center", {
+        name: res.name, address: res.address, lat: res.lat, lng: res.lng,
+        distance_km: res.distance_km, hours: res.hours,
+      });
+      toast.success("Déchèterie la plus proche trouvée");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur de recherche");
+    } finally { setRecyLoading(false); }
   }
 
   function moveTask(i: number, dir: -1 | 1) {
@@ -187,7 +250,33 @@ export function WorksiteSheetForm({
           </div>
           <div className="space-y-1.5">
             <Label>Adresse</Label>
-            <Input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} placeholder="12 rue des Lilas, 33000 Bordeaux" />
+            <div className="relative">
+              <Input
+                value={form.address ?? ""}
+                onChange={(e) => onAddressChange(e.target.value)}
+                onFocus={() => suggestions.length && setShowSug(true)}
+                onBlur={() => { setTimeout(() => setShowSug(false), 150); if ((form.address ?? "").trim() && form.latitude == null) void geocode(form.address ?? ""); }}
+                placeholder="Commencez à saisir pour voir les suggestions…"
+                autoComplete="off"
+              />
+              {geoLoading && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+              {showSug && suggestions.length > 0 && (
+                <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border bg-popover shadow-lg">
+                  {suggestions.map((s) => (
+                    <li key={s.placeId}>
+                      <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pickSuggestion(s)}
+                        className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-accent">
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        {s.description}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {form.latitude != null && (
+              <p className="flex items-center gap-1 text-xs text-primary"><Check className="h-3 w-3" /> Adresse localisée</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>Complément d'accès (optionnel)</Label>
@@ -321,6 +410,54 @@ export function WorksiteSheetForm({
             {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-2 h-4 w-4" />}
             Ajouter des photos
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Déchèterie la plus proche */}
+      <Card>
+        <CardHeader><CardTitle className="font-serif">Déchèterie la plus proche</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <Button type="button" variant="outline" disabled={recyLoading || form.latitude == null} onClick={findRecyclingCenter}>
+            {recyLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Recycle className="mr-2 h-4 w-4" />}
+            {form.recycling_center ? "Actualiser la déchèterie" : "Trouver la déchèterie la plus proche"}
+          </Button>
+          {form.latitude == null && (
+            <p className="text-xs text-muted-foreground">Renseignez et localisez l'adresse du chantier pour activer la recherche.</p>
+          )}
+          {form.recycling_center && (
+            <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold">{form.recycling_center.name}</p>
+                  <p className="text-muted-foreground">{form.recycling_center.address}</p>
+                  <p className="text-xs text-muted-foreground">À environ {form.recycling_center.distance_km} km du chantier</p>
+                </div>
+                <button type="button" className="text-destructive" onClick={() => set("recycling_center", null)}><X className="h-4 w-4" /></button>
+              </div>
+              {form.recycling_center.hours.length > 0 && (
+                <div className="mt-2 border-t border-border pt-2">
+                  <p className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Clock className="h-3 w-3" /> Horaires</p>
+                  <ul className="space-y-0.5 text-xs">
+                    {form.recycling_center.hours.map((h, i) => <li key={i}>{h}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Plan jardin */}
+      <Card>
+        <CardHeader><CardTitle className="font-serif">Plan jardin <span className="text-sm font-normal text-muted-foreground">({form.garden_markers.length} repère{form.garden_markers.length > 1 ? "s" : ""})</span></CardTitle></CardHeader>
+        <CardContent>
+          <GardenPlanMap
+            lat={form.latitude}
+            lng={form.longitude}
+            tasks={form.tasks}
+            markers={form.garden_markers}
+            onMarkersChange={(m) => set("garden_markers", m)}
+          />
         </CardContent>
       </Card>
 

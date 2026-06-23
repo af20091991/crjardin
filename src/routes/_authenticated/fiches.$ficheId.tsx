@@ -99,6 +99,10 @@ function EditFiche() {
               checklist: sheet.checklist,
               photos: sheet.photos,
               notes: sheet.notes,
+              latitude: sheet.latitude,
+              longitude: sheet.longitude,
+              garden_markers: sheet.garden_markers,
+              recycling_center: sheet.recycling_center,
             }}
             submitting={save.isPending}
             submitLabel="Enregistrer les modifications"
