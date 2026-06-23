@@ -413,6 +413,54 @@ export function WorksiteSheetForm({
         </CardContent>
       </Card>
 
+      {/* Déchèterie la plus proche */}
+      <Card>
+        <CardHeader><CardTitle className="font-serif">Déchèterie la plus proche</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <Button type="button" variant="outline" disabled={recyLoading || form.latitude == null} onClick={findRecyclingCenter}>
+            {recyLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Recycle className="mr-2 h-4 w-4" />}
+            {form.recycling_center ? "Actualiser la déchèterie" : "Trouver la déchèterie la plus proche"}
+          </Button>
+          {form.latitude == null && (
+            <p className="text-xs text-muted-foreground">Renseignez et localisez l'adresse du chantier pour activer la recherche.</p>
+          )}
+          {form.recycling_center && (
+            <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold">{form.recycling_center.name}</p>
+                  <p className="text-muted-foreground">{form.recycling_center.address}</p>
+                  <p className="text-xs text-muted-foreground">À environ {form.recycling_center.distance_km} km du chantier</p>
+                </div>
+                <button type="button" className="text-destructive" onClick={() => set("recycling_center", null)}><X className="h-4 w-4" /></button>
+              </div>
+              {form.recycling_center.hours.length > 0 && (
+                <div className="mt-2 border-t border-border pt-2">
+                  <p className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Clock className="h-3 w-3" /> Horaires</p>
+                  <ul className="space-y-0.5 text-xs">
+                    {form.recycling_center.hours.map((h, i) => <li key={i}>{h}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Plan jardin */}
+      <Card>
+        <CardHeader><CardTitle className="font-serif">Plan jardin <span className="text-sm font-normal text-muted-foreground">({form.garden_markers.length} repère{form.garden_markers.length > 1 ? "s" : ""})</span></CardTitle></CardHeader>
+        <CardContent>
+          <GardenPlanMap
+            lat={form.latitude}
+            lng={form.longitude}
+            tasks={form.tasks}
+            markers={form.garden_markers}
+            onMarkersChange={(m) => set("garden_markers", m)}
+          />
+        </CardContent>
+      </Card>
+
       {/* Notes */}
       <Card>
         <CardHeader><CardTitle className="font-serif">Notes complémentaires</CardTitle></CardHeader>
