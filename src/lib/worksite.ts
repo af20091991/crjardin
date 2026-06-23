@@ -157,7 +157,7 @@ export async function createWorksiteSheet(input: WorksiteSheetInput): Promise<Wo
   if (!auth.user) throw new Error("Non authentifié");
   const { data, error } = await supabase
     .from("worksite_sheets")
-    .insert({ ...input, user_id: auth.user.id })
+    .insert({ ...input, user_id: auth.user.id } as never)
     .select()
     .single();
   if (error) throw error;
@@ -167,7 +167,7 @@ export async function createWorksiteSheet(input: WorksiteSheetInput): Promise<Wo
 export async function updateWorksiteSheet(id: string, input: WorksiteSheetInput): Promise<WorksiteSheet> {
   const { data, error } = await supabase
     .from("worksite_sheets")
-    .update(input)
+    .update(input as never)
     .eq("id", id)
     .select()
     .single();
