@@ -26,6 +26,20 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-06-23",
+    version: "1.9.0",
+    theme: "Compte-rendus",
+    title: "Fiches chantier : adresse intelligente, déchèterie & plan jardin",
+    details: [
+      "Auto-détection de l'adresse du chantier avec suggestions et localisation automatique.",
+      "Recherche de la déchèterie la plus proche du chantier, avec adresse, distance et horaires en français.",
+      "Nouvel encart « Plan jardin » : vue aérienne du jardin à l'adresse renseignée.",
+      "Ajout de repères sur le plan, associés aux travaux prévus, pour indiquer au prestataire quoi faire et où.",
+      "Listes d'équipement, matériel, outils, travaux et EPI alignées sur l'outil SST d'origine.",
+      "Le plan jardin, les repères et la déchèterie sont repris dans l'export PDF.",
+    ],
+  },
+  {
     date: "2026-06-22",
     version: "1.8.0",
     theme: "Compte-rendus",
