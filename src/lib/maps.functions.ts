@@ -129,3 +129,30 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
       open_now: p.currentOpeningHours?.openNow ?? null,
     };
   });
+
+/** Image statique (vue aérienne) du plan jardin avec repères, en data URL pour le PDF. */
+export const staticGardenMap = createServerFn({ method: "POST" })
+  .inputValidator((d: { lat: number; lng: number; markers?: { lat: number; lng: number }[] }) => d)
+  .handler(async ({ data }): Promise<string | null> => {
+    const { lat, lng, markers = [] } = data;
+    if (typeof lat !== "number" || typeof lng !== "number") return null;
+    const params = new URLSearchParams({
+      center: `${lat},${lng}`,
+      zoom: "19",
+      size: "640x400",
+      scale: "2",
+      maptype: "satellite",
+      language: "fr",
+    });
+    markers.forEach((m, i) => {
+      params.append("markers", `color:0x4F8E33|label:${i + 1}|${m.lat},${m.lng}`);
+    });
+    const res = await fetch(`${GATEWAY}/maps/api/staticmap?${params.toString()}`, { headers: headers() });
+    if (!res.ok) { console.error("staticmap failed", res.status, await res.text()); return null; }
+    const buf = await res.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    const b64 = typeof btoa === "function" ? btoa(bin) : Buffer.from(buf).toString("base64");
+    return `data:image/png;base64,${b64}`;
+  });
