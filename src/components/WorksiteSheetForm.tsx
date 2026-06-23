@@ -250,7 +250,33 @@ export function WorksiteSheetForm({
           </div>
           <div className="space-y-1.5">
             <Label>Adresse</Label>
-            <Input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} placeholder="12 rue des Lilas, 33000 Bordeaux" />
+            <div className="relative">
+              <Input
+                value={form.address ?? ""}
+                onChange={(e) => onAddressChange(e.target.value)}
+                onFocus={() => suggestions.length && setShowSug(true)}
+                onBlur={() => { setTimeout(() => setShowSug(false), 150); if ((form.address ?? "").trim() && form.latitude == null) void geocode(form.address ?? ""); }}
+                placeholder="Commencez à saisir pour voir les suggestions…"
+                autoComplete="off"
+              />
+              {geoLoading && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+              {showSug && suggestions.length > 0 && (
+                <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border bg-popover shadow-lg">
+                  {suggestions.map((s) => (
+                    <li key={s.placeId}>
+                      <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pickSuggestion(s)}
+                        className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-accent">
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        {s.description}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {form.latitude != null && (
+              <p className="flex items-center gap-1 text-xs text-primary"><Check className="h-3 w-3" /> Adresse localisée</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label>Complément d'accès (optionnel)</Label>
