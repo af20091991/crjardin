@@ -48,8 +48,8 @@ function Dashboard() {
 
   const stats = [
     { label: "Clients actifs", value: clients?.length ?? 0, icon: Users, to: "/clients" as const },
-    { label: "Interventions", value: interventions?.length ?? 0, icon: ClipboardList, to: "/clients" as const },
-    { label: "Terminées", value: interventions?.filter((i) => i.status === "termine").length ?? 0, icon: FileText, to: "/clients" as const },
+    { label: "Interventions", value: interventions?.length ?? 0, icon: ClipboardList, to: "/interventions" as const, search: {} },
+    { label: "Terminées", value: interventions?.filter((i) => i.status === "termine").length ?? 0, icon: FileText, to: "/interventions" as const, search: { status: "termine" as const } },
     { label: "Préco. en attente", value: pending.length, icon: Lightbulb, to: "/clients" as const },
   ];
 
@@ -101,7 +101,7 @@ function Dashboard() {
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {stats.map((s) => (
-            <Link key={s.label} to={s.to}>
+            <Link key={s.label} to={s.to} search={"search" in s ? (s.search as never) : undefined}>
               <Card className="h-full transition-colors hover:border-primary/40">
                 <CardContent className="py-5">
                   <s.icon className="h-5 w-5 text-primary" />

@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Mail, CheckCircle2, Clock, AlertTriangle, RefreshCw } from "lucide-react";
+import { Loader2, Mail, MailOpen, CheckCircle2, Clock, AlertTriangle, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/emails")({
   head: () => ({ meta: [{ title: "Suivi des e-mails — De la graine au jardin" }] }),
@@ -161,6 +161,7 @@ function EmailsPage() {
                       <TableHead>Destinataire</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>Ouvert</TableHead>
                       <TableHead>Erreur</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -175,6 +176,17 @@ function EmailsPage() {
                           </TableCell>
                           <TableCell className="whitespace-nowrap text-muted-foreground">
                             {fmtDate(r.created_at)}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {r.opened_at ? (
+                              <span className="inline-flex items-center gap-1 text-primary">
+                                <MailOpen className="h-3.5 w-3.5" />
+                                {fmtDate(r.opened_at)}
+                                {r.open_count && r.open_count > 1 ? ` (${r.open_count}×)` : ""}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">Non ouvert</span>
+                            )}
                           </TableCell>
                           <TableCell className="max-w-xs text-xs text-destructive">
                             {r.error_message ?? "—"}
