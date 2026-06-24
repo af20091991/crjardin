@@ -25,6 +25,7 @@ import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
 import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -118,6 +119,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInterventionsIndexRoute =
+  AuthenticatedInterventionsIndexRouteImport.update({
+    id: '/interventions/',
+    path: '/interventions/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFichesIndexRoute =
   AuthenticatedFichesIndexRouteImport.update({
     id: '/fiches/',
@@ -213,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/fiches/': typeof AuthenticatedFichesIndexRoute
+  '/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -242,6 +250,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/fiches': typeof AuthenticatedFichesIndexRoute
+  '/interventions': typeof AuthenticatedInterventionsIndexRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -273,6 +282,7 @@ export interface FileRoutesById {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/fiches/': typeof AuthenticatedFichesIndexRoute
+  '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -304,6 +314,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/clients/'
     | '/fiches/'
+    | '/interventions/'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -333,6 +344,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/clients'
     | '/fiches'
+    | '/interventions'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -363,6 +375,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/_authenticated/clients/'
     | '/_authenticated/fiches/'
+    | '/_authenticated/interventions/'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -498,6 +511,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/interventions/': {
+      id: '/_authenticated/interventions/'
+      path: '/interventions'
+      fullPath: '/interventions/'
+      preLoaderRoute: typeof AuthenticatedInterventionsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/fiches/': {
       id: '/_authenticated/fiches/'
       path: '/fiches'
@@ -601,6 +621,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInterventionsNewRoute: typeof AuthenticatedInterventionsNewRoute
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute
   AuthenticatedFichesIndexRoute: typeof AuthenticatedFichesIndexRoute
+  AuthenticatedInterventionsIndexRoute: typeof AuthenticatedInterventionsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -620,6 +641,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInterventionsNewRoute: AuthenticatedInterventionsNewRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
   AuthenticatedFichesIndexRoute: AuthenticatedFichesIndexRoute,
+  AuthenticatedInterventionsIndexRoute: AuthenticatedInterventionsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
