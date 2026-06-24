@@ -253,8 +253,16 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
 
         // 4. Render React Email template to HTML and plain text
         const element = React.createElement(template.component, templateData)
-        const html = await render(element)
+        let html = await render(element)
         const plainText = await render(element, { plainText: true })
+
+        // Inject an open-tracking pixel tied to this message id.
+        const trackingPixel = `<img src="https://crjardin.lovable.app/api/public/email-open?m=${messageId}" width="1" height="1" alt="" style="display:none" />`
+        if (html.includes('</body>')) {
+          html = html.replace('</body>', `${trackingPixel}</body>`)
+        } else {
+          html = `${html}${trackingPixel}`
+        }
 
         // Resolve subject — supports static string or dynamic function
         const resolvedSubject =

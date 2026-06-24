@@ -146,6 +146,30 @@ export type Database = {
         }
         Relationships: []
       }
+      email_opens: {
+        Row: {
+          created_at: string
+          message_id: string
+          open_count: number
+          opened_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          message_id: string
+          open_count?: number
+          opened_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          message_id?: string
+          open_count?: number
+          opened_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string

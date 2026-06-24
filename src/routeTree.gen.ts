@@ -28,6 +28,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
 import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './routes/_authenticated/interventions.$interventionId'
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
@@ -134,6 +135,11 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
+  id: '/api/public/email-open',
+  path: '/api/public/email-open',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedInterventionsNewRoute =
   AuthenticatedInterventionsNewRouteImport.update({
     id: '/interventions/new',
@@ -203,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/fiches/': typeof AuthenticatedFichesIndexRoute
@@ -231,6 +238,7 @@ export interface FileRoutesByTo {
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/fiches': typeof AuthenticatedFichesIndexRoute
@@ -261,6 +269,7 @@ export interface FileRoutesById {
   '/_authenticated/fiches/new': typeof AuthenticatedFichesNewRoute
   '/_authenticated/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/_authenticated/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/fiches/': typeof AuthenticatedFichesIndexRoute
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
+    | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients/'
     | '/fiches/'
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
+    | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients'
     | '/fiches'
@@ -348,6 +359,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fiches/new'
     | '/_authenticated/interventions/$interventionId'
     | '/_authenticated/interventions/new'
+    | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/_authenticated/clients/'
     | '/_authenticated/fiches/'
@@ -365,6 +377,7 @@ export interface RootRouteChildren {
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   PartageTokenRoute: typeof PartageTokenRoute
+  ApiPublicEmailOpenRoute: typeof ApiPublicEmailOpenRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -506,6 +519,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/email-open': {
+      id: '/api/public/email-open'
+      path: '/api/public/email-open'
+      fullPath: '/api/public/email-open'
+      preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/interventions/new': {
       id: '/_authenticated/interventions/new'
       path: '/interventions/new'
@@ -614,6 +634,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   PartageTokenRoute: PartageTokenRoute,
+  ApiPublicEmailOpenRoute: ApiPublicEmailOpenRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
@@ -622,13 +643,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

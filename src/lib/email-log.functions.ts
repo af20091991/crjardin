@@ -9,6 +9,8 @@ export interface EmailLogEntry {
   status: string;
   error_message: string | null;
   created_at: string;
+  opened_at: string | null;
+  open_count: number | null;
 }
 
 /** Admin-only: latest status per email (deduplicated by message_id). */
@@ -33,11 +35,34 @@ export const listEmailLog = createServerFn({ method: "GET" })
     // Deduplicate by message_id, keeping the latest row (already sorted desc).
     const seen = new Set<string>();
     const result: EmailLogEntry[] = [];
-    for (const row of (data ?? []) as EmailLogEntry[]) {
+    for (const row of (data ?? []) as Omit<EmailLogEntry, "opened_at" | "open_count">[]) {
       const key = row.message_id ?? row.id;
       if (seen.has(key)) continue;
       seen.add(key);
-      result.push(row);
+      result.push({ ...row, opened_at: null, open_count: null });
     }
+
+    // Merge open-tracking data keyed by message_id.
+    const messageIds = result
+      .map((r) => r.message_id)
+      .filter((id): id is string => Boolean(id));
+    if (messageIds.length) {
+      const { data: opens } = await supabaseAdmin
+        .from("email_opens")
+        .select("message_id, opened_at, open_count")
+        .in("message_id", messageIds);
+      const byId = new Map(
+        (opens ?? []).map((o) => [o.message_id, o]),
+      );
+      for (const row of result) {
+        if (!row.message_id) continue;
+        const open = byId.get(row.message_id);
+        if (open) {
+          row.opened_at = open.opened_at;
+          row.open_count = open.open_count;
+        }
+      }
+    }
+
     return result;
   });
