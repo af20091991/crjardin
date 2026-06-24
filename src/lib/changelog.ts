@@ -26,6 +26,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-06-24",
+    version: "1.10.0",
+    theme: "Général",
+    title: "Notifications inscriptions, suivi des ouvertures & navigation",
+    details: [
+      "L'administrateur reçoit désormais un e-mail dès qu'une nouvelle inscription est en attente de validation.",
+      "Suivi des e-mails : nouvelle colonne indiquant si et quand chaque e-mail a été ouvert (avec le nombre d'ouvertures).",
+      "Graphique « Activité » de l'administration rendu plus lisible (barres) et affichant correctement les données existantes.",
+      "Tableau de bord : les vignettes « Interventions » et « Terminées » ouvrent désormais la liste filtrée correspondante, et non plus la liste des clients.",
+    ],
+  },
+  {
     date: "2026-06-23",
     version: "1.9.0",
     theme: "Compte-rendus",
