@@ -105,6 +105,7 @@ export type Database = {
           contract_type: string | null
           created_at: string
           email: string | null
+          emails: string[]
           frequency: string | null
           id: string
           name: string
@@ -120,6 +121,7 @@ export type Database = {
           contract_type?: string | null
           created_at?: string
           email?: string | null
+          emails?: string[]
           frequency?: string | null
           id?: string
           name: string
@@ -135,6 +137,7 @@ export type Database = {
           contract_type?: string | null
           created_at?: string
           email?: string | null
+          emails?: string[]
           frequency?: string | null
           id?: string
           name?: string
