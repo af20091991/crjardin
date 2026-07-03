@@ -16,7 +16,7 @@ import {
   recommendationPrice, formatEuro,
 } from "@/lib/garden";
 import { generateInterventionInsights, analyzeInterventionPhotos } from "@/lib/ai.functions";
-import { getClient } from "@/lib/clients";
+import { getClient, clientEmails } from "@/lib/clients";
 import { getMyProfile } from "@/lib/profile";
 import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
@@ -208,7 +208,8 @@ function InterventionDetail() {
   const notifyClient = useMutation({
     mutationFn: async () => {
       if (!iv || !client) throw new Error("Données indisponibles");
-      if (!client.email) throw new Error("Ce client n'a pas d'adresse e-mail renseignée.");
+      const recipients = clientEmails(client);
+      if (recipients.length === 0) throw new Error("Ce client n'a pas d'adresse e-mail renseignée.");
       const settings = await getEmailSettings();
       const shareUrl = `${window.location.origin}/partage/${client.share_token}`;
       const reportDate = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
@@ -219,16 +220,18 @@ function InterventionDetail() {
         nom: client.name,
         date: reportDate,
       });
-      await sendTransactionalEmail({
-        templateName: "new-report",
-        recipientEmail: client.email,
-        idempotencyKey: `new-report-${interventionId}`,
-        templateData: {
-          subject: settings.subject,
-          bodyText,
-          shareUrl,
-        },
-      });
+      for (const recipientEmail of recipients) {
+        await sendTransactionalEmail({
+          templateName: "new-report",
+          recipientEmail,
+          idempotencyKey: `new-report-${interventionId}-${recipientEmail}`,
+          templateData: {
+            subject: settings.subject,
+            bodyText,
+            shareUrl,
+          },
+        });
+      }
     },
     onSuccess: () => toast.success("E-mail envoyé au client"),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'envoi"),
@@ -332,8 +335,8 @@ function InterventionDetail() {
               <Button
                 size="sm"
                 variant="outline"
-                disabled={notifyClient.isPending || !done || !client?.email}
-                title={!done ? "Marquez le compte-rendu comme terminé d'abord" : !client?.email ? "Aucune adresse e-mail pour ce client" : "Prévenir le client par e-mail"}
+                disabled={notifyClient.isPending || !done || !client || clientEmails(client).length === 0}
+                title={!done ? "Marquez le compte-rendu comme terminé d'abord" : !client || clientEmails(client).length === 0 ? "Aucune adresse e-mail pour ce client" : "Prévenir le client par e-mail"}
                 onClick={() => notifyClient.mutate()}
               >
                 {notifyClient.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Mail className="mr-1.5 h-4 w-4" />}

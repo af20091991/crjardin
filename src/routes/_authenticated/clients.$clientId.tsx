@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
-import { getClient, deleteClient } from "@/lib/clients";
+import { getClient, deleteClient, clientEmails } from "@/lib/clients";
 import { listInterventionsByClient } from "@/lib/interventions";
 import {
   listRecommendationsByClient, listHealthByClient,
@@ -143,7 +143,7 @@ function ClientDetail() {
             <div className="mt-5 grid gap-2 text-sm sm:grid-cols-2">
               {client.address && <Info icon={MapPin} text={client.address} />}
               {client.phone && <Info icon={Phone} text={client.phone} />}
-              {client.email && <Info icon={Mail} text={client.email} />}
+              {clientEmails(client).map((e) => <Info key={e} icon={Mail} text={e} />)}
             </div>
 
             {client.notes && (

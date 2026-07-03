@@ -7,6 +7,7 @@ export interface Client {
   address: string | null;
   phone: string | null;
   email: string | null;
+  emails: string[];
   contract_type: string | null;
   frequency: string | null;
   notes: string | null;
@@ -21,10 +22,19 @@ export type ClientInput = {
   address?: string | null;
   phone?: string | null;
   email?: string | null;
+  emails?: string[];
   contract_type?: string | null;
   frequency?: string | null;
   notes?: string | null;
 };
+
+/** Toutes les adresses e-mail d'un client (nouvelle liste + ancien champ), dédupliquées. */
+export function clientEmails(client: { email?: string | null; emails?: string[] | null }): string[] {
+  const list = [...(client.emails ?? []), ...(client.email ? [client.email] : [])]
+    .map((e) => e.trim())
+    .filter(Boolean);
+  return Array.from(new Set(list));
+}
 
 export async function listClients(): Promise<Client[]> {
   const { data, error } = await supabase
@@ -32,13 +42,13 @@ export async function listClients(): Promise<Client[]> {
     .select("*")
     .order("name", { ascending: true });
   if (error) throw error;
-  return data as Client[];
+  return data as unknown as Client[];
 }
 
 export async function getClient(id: string): Promise<Client> {
   const { data, error } = await supabase.from("clients").select("*").eq("id", id).single();
   if (error) throw error;
-  return data as Client;
+  return data as unknown as Client;
 }
 
 export async function createClient(input: ClientInput): Promise<Client> {
@@ -46,22 +56,22 @@ export async function createClient(input: ClientInput): Promise<Client> {
   if (!auth.user) throw new Error("Non authentifié");
   const { data, error } = await supabase
     .from("clients")
-    .insert({ ...input, user_id: auth.user.id })
+    .insert({ ...input, user_id: auth.user.id } as never)
     .select()
     .single();
   if (error) throw error;
-  return data as Client;
+  return data as unknown as Client;
 }
 
 export async function updateClient(id: string, input: ClientInput): Promise<Client> {
   const { data, error } = await supabase
     .from("clients")
-    .update(input)
+    .update(input as never)
     .eq("id", id)
     .select()
     .single();
   if (error) throw error;
-  return data as Client;
+  return data as unknown as Client;
 }
 
 export async function deleteClient(id: string): Promise<void> {
