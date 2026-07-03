@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { createClient, updateClient, type Client, type ClientInput } from "@/lib/clients";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 
 const CONTRACTS = ["Entretien annuel", "Ponctuel", "Création", "Saisonnier"];
 const FREQUENCIES = ["Hebdomadaire", "Bimensuelle", "Mensuelle", "Trimestrielle", "Saisonnière"];
@@ -50,6 +50,15 @@ export function ClientForm({
   const open = openProp ?? openInternal;
   const setOpen = (v: boolean) => { setOpenInternal(v); onOpenChange?.(v); };
   const qc = useQueryClient();
+  const initialEmails = (() => {
+    const list = [
+      ...((client?.emails ?? initial?.emails) ?? []),
+      ...(client?.email ? [client.email] : initial?.email ? [initial.email] : []),
+    ].map((e) => e.trim()).filter(Boolean);
+    const uniq = Array.from(new Set(list));
+    return uniq.length ? uniq : [""];
+  })();
+  const [emails, setEmails] = useState<string[]>(initialEmails);
   const [form, setForm] = useState<ClientInput>({
     name: client?.name ?? initial?.name ?? "",
     civility: client?.civility ?? initial?.civility ?? "",
@@ -95,7 +104,11 @@ export function ClientForm({
   const mutation = useMutation({
     mutationFn: async () => {
       if (!form.name.trim()) throw new Error("Le nom est requis");
-      return client ? updateClient(client.id, form) : createClient(form);
+      const cleaned = Array.from(
+        new Set(emails.map((e) => e.trim()).filter(Boolean)),
+      );
+      const payload: ClientInput = { ...form, emails: cleaned, email: cleaned[0] ?? null };
+      return client ? updateClient(client.id, payload) : createClient(payload);
     },
     onSuccess: (saved) => {
       qc.invalidateQueries({ queryKey: ["clients"] });
