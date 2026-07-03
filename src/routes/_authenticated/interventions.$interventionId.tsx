@@ -208,7 +208,8 @@ function InterventionDetail() {
   const notifyClient = useMutation({
     mutationFn: async () => {
       if (!iv || !client) throw new Error("Données indisponibles");
-      if (!client.email) throw new Error("Ce client n'a pas d'adresse e-mail renseignée.");
+      const recipients = clientEmails(client);
+      if (recipients.length === 0) throw new Error("Ce client n'a pas d'adresse e-mail renseignée.");
       const settings = await getEmailSettings();
       const shareUrl = `${window.location.origin}/partage/${client.share_token}`;
       const reportDate = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
@@ -219,16 +220,18 @@ function InterventionDetail() {
         nom: client.name,
         date: reportDate,
       });
-      await sendTransactionalEmail({
-        templateName: "new-report",
-        recipientEmail: client.email,
-        idempotencyKey: `new-report-${interventionId}`,
-        templateData: {
-          subject: settings.subject,
-          bodyText,
-          shareUrl,
-        },
-      });
+      for (const recipientEmail of recipients) {
+        await sendTransactionalEmail({
+          templateName: "new-report",
+          recipientEmail,
+          idempotencyKey: `new-report-${interventionId}-${recipientEmail}`,
+          templateData: {
+            subject: settings.subject,
+            bodyText,
+            shareUrl,
+          },
+        });
+      }
     },
     onSuccess: () => toast.success("E-mail envoyé au client"),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'envoi"),
