@@ -170,25 +170,54 @@ export function ClientForm({
               </ul>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Téléphone</Label>
-              <Input
-                type="tel"
-                value={form.phone ?? ""}
-                onChange={(e) => set("phone", e.target.value)}
-                placeholder="+33 6 60 22 13 21"
-              />
+          <div className="space-y-1.5">
+            <Label>Téléphone</Label>
+            <Input
+              type="tel"
+              value={form.phone ?? ""}
+              onChange={(e) => set("phone", e.target.value)}
+              placeholder="+33 6 60 22 13 21"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Adresses e-mail (comptes-rendus)</Label>
+            <div className="space-y-2">
+              {emails.map((val, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    type="email"
+                    value={val}
+                    onChange={(e) =>
+                      setEmails((list) => list.map((v, idx) => (idx === i ? e.target.value : v)))
+                    }
+                    placeholder="nom@exemple.fr"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="shrink-0 text-muted-foreground"
+                    disabled={emails.length === 1}
+                    onClick={() => setEmails((list) => list.filter((_, idx) => idx !== i))}
+                    aria-label="Supprimer cette adresse"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
-            <div className="space-y-1.5">
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={form.email ?? ""}
-                onChange={(e) => set("email", e.target.value)}
-                placeholder="nom@exemple.fr"
-              />
-            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="mt-1"
+              onClick={() => setEmails((list) => [...list, ""])}
+            >
+              <Plus className="mr-1.5 h-4 w-4" /> Ajouter une adresse
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Les comptes-rendus seront envoyés à toutes les adresses renseignées.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
