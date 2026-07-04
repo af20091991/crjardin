@@ -26,6 +26,23 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-07-04",
+    version: "1.11.0",
+    theme: "Général",
+    title: "Civilités, suivi de consultation & améliorations PDF",
+    details: [
+      "Liste des clients : la civilité (Madame, Monsieur, Madame et Monsieur) est affichée avant le nom.",
+      "Menu latéral et titre de l'application : nom « CR Pro » suivi du numéro de version actuelle.",
+      "Export PDF : signature (l'intervenant) et cachet (l'entreprise) mieux différenciés et en meilleure résolution.",
+      "Export PDF client : pied de page avec la civilité complète du client et légendes des photos reprises.",
+      "Fiches chantier : un clic sur un repère du plan jardin affiche le titre du poste concerné.",
+      "Administration : aperçu de l'e-mail tel que reçu par le client (rendu, sans balises).",
+      "Consultations clients : localisation, appareil et navigateur affichés en plus de l'adresse IP (rétroactif).",
+      "Onglet « Préconisations » côté client mis en avant, avec pastille des préconisations non encore consultées.",
+      "Suivi des consultations de l'onglet Préconisations : qui, quand et où.",
+    ],
+  },
+  {
     date: "2026-06-24",
     version: "1.10.0",
     theme: "Général",
