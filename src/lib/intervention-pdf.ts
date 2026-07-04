@@ -241,31 +241,51 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   }
 
   // ---- Signature ----
-  ensureSpace(40);
-  y += 6;
+  ensureSpace(52);
+  y += 8;
   doc.setDrawColor(...MUTED);
   doc.setLineWidth(0.3);
-  doc.setFontSize(9.5);
-  doc.setTextColor(...DARK);
   const author = data.authorName?.trim() || company;
-  doc.text(`Le prestataire — ${author}`, margin, y);
-  const sigW = 60;
-  const sigH = 22;
+
+  // Bloc « Signature — l'intervenant » (à gauche)
+  const sigW = 62;
+  const sigH = 26;
+  doc.setFontSize(9.5);
+  doc.setTextColor(...GREEN);
+  doc.setFont("helvetica", "bold");
+  doc.text("Signature — l'intervenant", margin, y);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...MUTED);
+  doc.setFontSize(8.5);
+  doc.text(author, margin, y + 4.5);
+  doc.setTextColor(...DARK);
   if (data.signatureData) {
     try {
-      doc.addImage(data.signatureData, "PNG", margin, y + 2, sigW, sigH);
+      // Compression "NONE" : conserve la résolution native de la signature (PNG).
+      doc.addImage(data.signatureData, "PNG", margin, y + 7, sigW, sigH, undefined, "NONE");
     } catch { /* signature optionnelle */ }
   }
-  // Cachet d'entreprise, à droite de la signature
+  doc.line(margin, y + sigH + 9, margin + sigW, y + sigH + 9);
+
+  // Bloc « Cachet — l'entreprise » (à droite)
+  const stampW = 40;
+  const stampH = 40;
+  const stampX = pageW - margin - stampW;
+  doc.setFontSize(9.5);
+  doc.setTextColor(...GREEN);
+  doc.setFont("helvetica", "bold");
+  doc.text("Cachet — l'entreprise", stampX, y, { align: "left" });
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...MUTED);
+  doc.setFontSize(8.5);
+  doc.text(company, stampX, y + 4.5);
+  doc.setTextColor(...DARK);
   if (data.stampData) {
     try {
-      const stampW = 34;
-      const stampH = 34;
-      doc.addImage(data.stampData, "PNG", pageW - margin - stampW, y - 4, stampW, stampH);
+      doc.addImage(data.stampData, "PNG", stampX, y + 7, stampW, stampH, undefined, "NONE");
     } catch { /* cachet optionnel */ }
   }
-  y += sigH + 4;
-  doc.line(margin, y, margin + sigW, y);
+  y += sigH + 14;
 
   footer();
 

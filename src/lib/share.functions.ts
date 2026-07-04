@@ -41,6 +41,7 @@ export interface SharedRecommendation {
   estimated_hours: number | null;
   unit_price: number;
   client_interest: string | null;
+  client_viewed_at: string | null;
 }
 
 export interface SharedClientData {
@@ -88,6 +89,24 @@ export const markSharedRead = createServerFn({ method: "POST" })
     const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
     const ua = getRequestHeader("user-agent") ?? null;
     const { error } = await publicClient().rpc("mark_shared_read", {
+      p_token: data.token,
+      p_user_agent: ua ?? undefined,
+      p_ip: ip ?? undefined,
+    });
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const markRecommendationsViewed = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    return { token: data.token };
+  })
+  .handler(async ({ data }) => {
+    const fwd = getRequestHeader("x-forwarded-for") ?? "";
+    const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
+    const ua = getRequestHeader("user-agent") ?? null;
+    const { error } = await publicClient().rpc("mark_recommendations_viewed", {
       p_token: data.token,
       p_user_agent: ua ?? undefined,
       p_ip: ip ?? undefined,

@@ -16,6 +16,53 @@ const TOKEN_HELP = [
   { token: EMAIL_TOKENS.lien, desc: "Lien privé vers la fiche client" },
 ];
 
+const SAMPLE = {
+  titre: "Madame",
+  nom: "Martin",
+  date: "12 juillet 2026",
+  lien: "https://crjardin.lovable.app/partage/exemple",
+};
+
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** Construit l'e-mail tel que reçu par le client (rendu, sans balises). */
+function buildPreviewHtml(subject: string, body: string): string {
+  const filled = body
+    .split(EMAIL_TOKENS.titre).join(SAMPLE.titre)
+    .split(EMAIL_TOKENS.nom).join(SAMPLE.nom)
+    .split(EMAIL_TOKENS.date).join(SAMPLE.date);
+  const lines = filled.split("\n").map((line) => {
+    const trimmed = line.trim();
+    if (trimmed === "") return '<div style="height:8px"></div>';
+    const withLink = esc(line).split(EMAIL_TOKENS.lien).join(
+      `<a href="${SAMPLE.lien}" style="color:#4F8E33;font-weight:700;text-decoration:underline">${SAMPLE.lien}</a>`,
+    );
+    const isBullet = trimmed.startsWith("·");
+    const style = isBullet
+      ? "font-size:16px;line-height:1.5;color:#2f3a26;margin:0 0 4px 12px"
+      : "font-size:16px;line-height:1.6;color:#2f3a26;margin:0 0 12px";
+    return `<p style="${style}">${withLink}</p>`;
+  });
+  const garamond = "Garamond,'EB Garamond','Cormorant Garamond',Georgia,'Times New Roman',serif";
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+  <body style="margin:0;background:#f4f4f4;font-family:${garamond}">
+    <div style="padding:16px 8px;color:#666;font-size:12px;font-family:system-ui,sans-serif">
+      <strong>Objet :</strong> ${esc(subject)}
+    </div>
+    <div style="background:#fff;max-width:600px;margin:0 auto;padding:24px;font-family:${garamond}">
+      <div style="text-align:center;margin-bottom:4px">
+        <p style="font-size:22px;font-weight:700;color:#4F8E33;margin:0">De la graine au jardin</p>
+        <p style="font-size:14px;color:#EE8627;margin:2px 0 0;font-style:italic">au rythme de la nature</p>
+      </div>
+      <hr style="border:none;border-top:1px solid #e6e6e6;margin:16px 0 20px"/>
+      ${lines.join("")}
+    </div>
+  </body></html>`;
+}
+
 export function EmailTemplateEditor() {
   const qc = useQueryClient();
   const { data, isPending } = useQuery({
@@ -102,6 +149,21 @@ export function EmailTemplateEditor() {
                 )}
                 Enregistrer
               </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Aperçu — l'e-mail tel que reçu par le client</Label>
+              <div className="overflow-hidden rounded-lg border bg-muted/30">
+                <iframe
+                  title="Aperçu de l'e-mail"
+                  className="h-[520px] w-full bg-white"
+                  sandbox=""
+                  srcDoc={buildPreviewHtml(subject, body)}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Exemple avec un client fictif (Madame Martin). Les balises sont remplacées automatiquement à l'envoi.
+              </p>
             </div>
           </>
         )}

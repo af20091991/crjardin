@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { CHANGELOG, THEME_LABELS, type ChangeEntry, type ChangeTheme } from "@/lib/changelog";
+import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +113,9 @@ function VersionsPage() {
               <h2 className="font-serif text-xl font-semibold">Historique des versions</h2>
               <p className="text-sm text-muted-foreground">
                 Toutes les évolutions appliquées jusqu'à la version actuelle.
+              </p>
+              <p className="mt-1 text-sm font-medium text-primary">
+                {APP_NAME} — version actuelle : v{APP_VERSION}
               </p>
             </div>
           </CardContent>

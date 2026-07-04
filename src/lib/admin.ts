@@ -25,6 +25,7 @@ export interface ClientAccess {
   ip_address: string | null;
   user_agent: string | null;
   accessed_at: string;
+  section: string | null;
 }
 
 export interface LoginEvent {
@@ -71,7 +72,7 @@ export async function listAllUsers(): Promise<AppUser[]> {
 export async function listClientAccesses(limit = 50): Promise<ClientAccess[]> {
   const { data, error } = await supabase
     .from("share_access_log")
-    .select("id, client_id, ip_address, user_agent, accessed_at")
+    .select("id, client_id, ip_address, user_agent, accessed_at, section")
     .order("accessed_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -210,4 +211,31 @@ export async function recordLogin(): Promise<void> {
   } catch {
     /* non-blocking */
   }
+}
+
+/** Analyse un user-agent pour en extraire un appareil, un OS et un navigateur lisibles. */
+export function parseUserAgent(ua: string | null): { device: string; os: string; browser: string; summary: string } {
+  if (!ua) return { device: "Inconnu", os: "Inconnu", browser: "Inconnu", summary: "Appareil inconnu" };
+
+  let os = "Inconnu";
+  if (/Windows NT/i.test(ua)) os = "Windows";
+  else if (/iPhone|iPad|iPod/i.test(ua)) os = "iOS";
+  else if (/Mac OS X/i.test(ua)) os = "macOS";
+  else if (/Android/i.test(ua)) os = "Android";
+  else if (/Linux/i.test(ua)) os = "Linux";
+
+  let browser = "Inconnu";
+  if (/Edg\//i.test(ua)) browser = "Edge";
+  else if (/OPR\/|Opera/i.test(ua)) browser = "Opera";
+  else if (/Chrome\//i.test(ua) && !/Chromium/i.test(ua)) browser = "Chrome";
+  else if (/CriOS/i.test(ua)) browser = "Chrome";
+  else if (/Firefox\//i.test(ua) || /FxiOS/i.test(ua)) browser = "Firefox";
+  else if (/Safari\//i.test(ua)) browser = "Safari";
+
+  const isTablet = /iPad/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua));
+  const isMobile = /Mobile|iPhone|iPod|Android/i.test(ua) && !isTablet;
+  const device = isTablet ? "Tablette" : isMobile ? "Mobile" : "Ordinateur";
+
+  const summary = `${device} · ${os} · ${browser}`;
+  return { device, os, browser, summary };
 }

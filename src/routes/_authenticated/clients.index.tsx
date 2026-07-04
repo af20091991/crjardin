@@ -88,7 +88,10 @@ function ClientsPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="truncate font-medium">{c.name}</p>
+                      <p className="truncate font-medium">
+                        {c.civility ? <span className="text-muted-foreground">{c.civility} </span> : null}
+                        {c.name}
+                      </p>
                       {c.contract_type && (
                         <Badge variant="secondary" className="shrink-0 text-[10px]">{c.contract_type}</Badge>
                       )}
