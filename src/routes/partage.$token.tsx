@@ -3,6 +3,7 @@ import { queryOptions, useSuspenseQuery, useQuery, useMutation, useQueryClient }
 import { useEffect, useMemo, useState } from "react";
 import {
   getSharedClient, markSharedRead, addClientMessage, getSharedMessages, setRecommendationInterest,
+  markRecommendationsViewed,
   type SharedIntervention, type ClientMessage, type SharedRecommendation, type SharedClientData,
 } from "@/lib/share.functions";
 import { exportSharedInterventionPdf } from "@/lib/share-pdf";
@@ -105,6 +106,8 @@ function SharePage() {
   const { data } = useSuspenseQuery(sharedQuery(token));
   const { data: messages } = useQuery(messagesQuery(token));
   const { dark, large, toggleDark, toggleLarge } = useShareTheme();
+  const qc = useQueryClient();
+  const [tab, setTab] = useState("reports");
 
   useEffect(() => {
     markSharedRead({ data: { token } }).catch(() => {});
@@ -112,6 +115,17 @@ function SharePage() {
 
   if (!data) return null;
   const { client, interventions, recommendations } = data;
+
+  const unreadRecos = recommendations.filter((r) => !r.client_viewed_at).length;
+
+  function openRecos() {
+    setTab("recos");
+    if (unreadRecos > 0) {
+      markRecommendationsViewed({ data: { token } })
+        .then(() => qc.invalidateQueries({ queryKey: ["shared-client", token] }))
+        .catch(() => {});
+    }
+  }
 
   const lastVisit = interventions
     .map((i) => i.client_read_at)
@@ -163,11 +177,21 @@ function SharePage() {
           <p className="text-xs text-muted-foreground">Vous avez consulté votre fiche pour la dernière fois le {fmtDate(lastVisit)}.</p>
         )}
 
-        <Tabs defaultValue="reports">
+        <Tabs value={tab} onValueChange={(v) => (v === "recos" ? openRecos() : setTab(v))}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="reports"><ClipboardList className="mr-1.5 h-4 w-4" />Comptes-rendus</TabsTrigger>
             <TabsTrigger value="photos"><Images className="mr-1.5 h-4 w-4" />Photos</TabsTrigger>
-            <TabsTrigger value="recos"><Sparkles className="mr-1.5 h-4 w-4" />Préconisations</TabsTrigger>
+            <TabsTrigger
+              value="recos"
+              className="relative data-[state=inactive]:animate-pulse data-[state=inactive]:bg-accent/15 data-[state=inactive]:text-accent-foreground"
+            >
+              <Sparkles className="mr-1.5 h-4 w-4" />Préconisations
+              {unreadRecos > 0 && (
+                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground shadow">
+                  +{unreadRecos}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="reports" className="space-y-4">
