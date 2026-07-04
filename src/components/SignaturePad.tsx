@@ -28,7 +28,7 @@ export function SignaturePad({
       img.src = value;
     }
     ctx.strokeStyle = "#1f2937";
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 4;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
   }, [value]);
@@ -73,8 +73,8 @@ export function SignaturePad({
     <div className="space-y-2">
       <canvas
         ref={canvasRef}
-        width={500}
-        height={180}
+        width={1000}
+        height={360}
         className="w-full touch-none rounded-lg border border-border bg-white"
         onPointerDown={start}
         onPointerMove={move}
