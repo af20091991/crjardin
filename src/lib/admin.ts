@@ -211,3 +211,30 @@ export async function recordLogin(): Promise<void> {
     /* non-blocking */
   }
 }
+
+/** Analyse un user-agent pour en extraire un appareil, un OS et un navigateur lisibles. */
+export function parseUserAgent(ua: string | null): { device: string; os: string; browser: string; summary: string } {
+  if (!ua) return { device: "Inconnu", os: "Inconnu", browser: "Inconnu", summary: "Appareil inconnu" };
+
+  let os = "Inconnu";
+  if (/Windows NT/i.test(ua)) os = "Windows";
+  else if (/iPhone|iPad|iPod/i.test(ua)) os = "iOS";
+  else if (/Mac OS X/i.test(ua)) os = "macOS";
+  else if (/Android/i.test(ua)) os = "Android";
+  else if (/Linux/i.test(ua)) os = "Linux";
+
+  let browser = "Inconnu";
+  if (/Edg\//i.test(ua)) browser = "Edge";
+  else if (/OPR\/|Opera/i.test(ua)) browser = "Opera";
+  else if (/Chrome\//i.test(ua) && !/Chromium/i.test(ua)) browser = "Chrome";
+  else if (/CriOS/i.test(ua)) browser = "Chrome";
+  else if (/Firefox\//i.test(ua) || /FxiOS/i.test(ua)) browser = "Firefox";
+  else if (/Safari\//i.test(ua)) browser = "Safari";
+
+  const isTablet = /iPad/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua));
+  const isMobile = /Mobile|iPhone|iPod|Android/i.test(ua) && !isTablet;
+  const device = isTablet ? "Tablette" : isMobile ? "Mobile" : "Ordinateur";
+
+  const summary = `${device} · ${os} · ${browser}`;
+  return { device, os, browser, summary };
+}
