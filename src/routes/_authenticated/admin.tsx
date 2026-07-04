@@ -541,6 +541,9 @@ function AdminPage() {
                     <Link to="/clients/$clientId" params={{ clientId: a.client_id }} className="flex items-center gap-2 font-medium text-primary hover:underline">
                       <Eye className="h-4 w-4 shrink-0" /> {a.client_name ?? "Fiche consultée"}
                     </Link>
+                    <span className={`mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${a.section === "preconisations" ? "bg-accent/15 text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
+                      {a.section === "preconisations" ? "Onglet Préconisations" : "Fiche"}
+                    </span>
                     <p className="truncate text-xs text-muted-foreground">
                       IP : {a.ip_address ?? "inconnue"}
                       {a.ip_address && geo?.[a.ip_address] && (
