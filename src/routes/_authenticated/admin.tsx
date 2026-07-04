@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { listUsersByStatus, setUserApproval, listLoginEvents, listAllUsers, listClientAccesses, setUserRole, setUserApprovalStatus, listAuditLog } from "@/lib/admin";
-import { clearShareAccessLog } from "@/lib/admin";
+import { clearShareAccessLog, parseUserAgent } from "@/lib/admin";
+import { geolocateIps } from "@/lib/geo.functions";
 import type { AppUser } from "@/lib/admin";
 import { listClients } from "@/lib/clients";
 import { listEmailLog } from "@/lib/email-log.functions";
@@ -83,6 +84,14 @@ function AdminPage() {
     queryKey: ["admin-accesses"],
     enabled: isAdmin,
     queryFn: () => listClientAccesses(50),
+  });
+
+  const fetchGeo = useServerFn(geolocateIps);
+  const accessIps = (accesses ?? []).map((a) => a.ip_address).filter(Boolean) as string[];
+  const { data: geo } = useQuery({
+    queryKey: ["admin-accesses-geo", accessIps.join(",")],
+    enabled: isAdmin && accessIps.length > 0,
+    queryFn: () => fetchGeo({ data: { ips: accessIps } }),
   });
 
   const { data: allUsers } = useQuery({
