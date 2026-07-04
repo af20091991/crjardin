@@ -673,6 +673,7 @@ export type Database = {
           client_id: string
           client_interest: string | null
           client_interest_at: string | null
+          client_viewed_at: string | null
           created_at: string
           description: string | null
           estimated_hours: number | null
@@ -690,6 +691,7 @@ export type Database = {
           client_id: string
           client_interest?: string | null
           client_interest_at?: string | null
+          client_viewed_at?: string | null
           created_at?: string
           description?: string | null
           estimated_hours?: number | null
@@ -707,6 +709,7 @@ export type Database = {
           client_id?: string
           client_interest?: string | null
           client_interest_at?: string | null
+          client_viewed_at?: string | null
           created_at?: string
           description?: string | null
           estimated_hours?: number | null
@@ -816,6 +819,7 @@ export type Database = {
           client_id: string
           id: string
           ip_address: string | null
+          section: string
           user_agent: string | null
         }
         Insert: {
@@ -823,6 +827,7 @@ export type Database = {
           client_id: string
           id?: string
           ip_address?: string | null
+          section?: string
           user_agent?: string | null
         }
         Update: {
@@ -830,6 +835,7 @@ export type Database = {
           client_id?: string
           id?: string
           ip_address?: string | null
+          section?: string
           user_agent?: string | null
         }
         Relationships: [
@@ -1021,6 +1027,10 @@ export type Database = {
       is_editor: { Args: { _user_id: string }; Returns: boolean }
       log_admin_action: {
         Args: { p_action: string; p_details?: Json; p_target_user_id: string }
+        Returns: undefined
+      }
+      mark_recommendations_viewed: {
+        Args: { p_ip?: string; p_token: string; p_user_agent?: string }
         Returns: undefined
       }
       mark_shared_read:
