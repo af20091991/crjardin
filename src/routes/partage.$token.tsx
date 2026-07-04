@@ -177,6 +177,26 @@ function SharePage() {
           <p className="text-xs text-muted-foreground">Vous avez consulté votre fiche pour la dernière fois le {fmtDate(lastVisit)}.</p>
         )}
 
+        {unreadRecos > 0 && (
+          <button
+            onClick={openRecos}
+            className="flex w-full items-center gap-3 rounded-lg border border-accent/40 bg-accent/10 p-3 text-left transition-colors hover:bg-accent/20"
+          >
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent/20 text-accent-foreground">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-accent-foreground">
+                {unreadRecos} préconisation{unreadRecos > 1 ? "s" : ""} en attente
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Découvrez ce que nous vous conseillons pour votre jardin.
+              </span>
+            </span>
+            <Badge className="shrink-0 bg-accent text-accent-foreground">Voir</Badge>
+          </button>
+        )}
+
         <Tabs value={tab} onValueChange={(v) => (v === "recos" ? openRecos() : setTab(v))}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="reports"><ClipboardList className="mr-1.5 h-4 w-4" />Comptes-rendus</TabsTrigger>
