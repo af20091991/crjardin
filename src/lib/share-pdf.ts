@@ -20,6 +20,11 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+/** Libellé client avec civilité : « Madame Dupont ». */
+function clientLabel(client: SharedClientData["client"]): string {
+  return [client.civility?.trim(), client.name?.trim()].filter(Boolean).join(" ");
+}
+
 export async function exportSharedInterventionPdf(
   iv: SharedIntervention,
   client: SharedClientData["client"],
@@ -70,7 +75,7 @@ export async function exportSharedInterventionPdf(
   doc.text("Compte-rendu d'intervention", margin, 13);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text(client.name, margin, 21);
+  doc.text(clientLabel(client), margin, 21);
   y = 36;
 
   doc.setTextColor(...DARK);
@@ -108,17 +113,26 @@ export async function exportSharedInterventionPdf(
     const w = (contentW - gap) / cols;
     const h = w * 0.7;
     let col = 0;
+    let rowY = y;
     for (const p of photos) {
       try {
         const img = await loadImage(p.url!);
-        if (col === 0) ensureSpace(h + 4);
+        if (col === 0) { ensureSpace(h + 12); rowY = y; }
         const x = margin + col * (w + gap);
-        doc.addImage(img, "JPEG", x, y, w, h, undefined, "FAST");
+        doc.addImage(img, "JPEG", x, rowY, w, h, undefined, "FAST");
+        if (p.caption?.trim()) {
+          doc.setFontSize(8);
+          doc.setTextColor(...MUTED);
+          const cap = doc.splitTextToSize(p.caption.trim(), w);
+          doc.text(cap.slice(0, 2), x, rowY + h + 4);
+          doc.setFontSize(10.5);
+          doc.setTextColor(...DARK);
+        }
         col++;
-        if (col >= cols) { col = 0; y += h + 4; }
+        if (col >= cols) { col = 0; y = rowY + h + 12; }
       } catch { /* skip */ }
     }
-    if (col !== 0) y += h + 4;
+    if (col !== 0) y = rowY + h + 12;
   }
 
   const pages = doc.getNumberOfPages();
@@ -126,7 +140,7 @@ export async function exportSharedInterventionPdf(
     doc.setPage(p);
     doc.setFontSize(8);
     doc.setTextColor(...MUTED);
-    doc.text(`${client.name} · Compte-rendu`, margin, pageH - 8);
+    doc.text(`${clientLabel(client)} · Compte-rendu`, margin, pageH - 8);
     doc.text(`${p} / ${pages}`, pageW - margin, pageH - 8, { align: "right" });
   }
 
