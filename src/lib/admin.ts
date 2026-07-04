@@ -25,6 +25,7 @@ export interface ClientAccess {
   ip_address: string | null;
   user_agent: string | null;
   accessed_at: string;
+  section: string | null;
 }
 
 export interface LoginEvent {
@@ -71,7 +72,7 @@ export async function listAllUsers(): Promise<AppUser[]> {
 export async function listClientAccesses(limit = 50): Promise<ClientAccess[]> {
   const { data, error } = await supabase
     .from("share_access_log")
-    .select("id, client_id, ip_address, user_agent, accessed_at")
+    .select("id, client_id, ip_address, user_agent, accessed_at, section")
     .order("accessed_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
