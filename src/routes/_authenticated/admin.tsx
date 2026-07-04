@@ -543,6 +543,13 @@ function AdminPage() {
                     </Link>
                     <p className="truncate text-xs text-muted-foreground">
                       IP : {a.ip_address ?? "inconnue"}
+                      {a.ip_address && geo?.[a.ip_address] && (
+                        <> · {[geo[a.ip_address].city, geo[a.ip_address].region, geo[a.ip_address].country].filter(Boolean).join(", ")}</>
+                      )}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {parseUserAgent(a.user_agent).summary}
+                      {a.ip_address && geo?.[a.ip_address]?.isp ? ` · ${geo[a.ip_address].isp}` : ""}
                     </p>
                   </div>
                   <span className="shrink-0 text-[10px] text-muted-foreground">
