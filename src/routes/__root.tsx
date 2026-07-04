@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { registerPwa } from "@/lib/pwa";
+import { APP_VERSION } from "@/lib/app-meta";
 
 function NotFoundComponent() {
   return (
@@ -80,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "De la graine au jardin — Paysagiste" },
+      { title: `De la graine au jardin v${APP_VERSION} — Paysagiste` },
       { name: "description", content: "Espace de suivi d'entretien paysager De la graine au jardin : comptes-rendus, préconisations et partage client, au rythme de la nature." },
       { name: "author", content: "De la graine au jardin" },
       { property: "og:title", content: "De la graine au jardin — Paysagiste" },

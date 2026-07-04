@@ -10,6 +10,7 @@ import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, B
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
+import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 
 const NAV = [
   { to: "/", label: "Tableau de bord", short: "Accueil", icon: LayoutDashboard, exact: true, primary: true },
@@ -58,8 +59,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           <div className="flex min-w-0 items-center gap-2.5">
             <img src={logo} alt="De la graine au jardin" className="h-11 w-11 shrink-0 object-contain" />
             <div className="min-w-0 leading-tight">
-              <p className="font-serif text-sm font-semibold leading-tight text-primary">De la graine<br />au jardin</p>
-              <p className="truncate text-[11px] text-muted-foreground">au rythme de la nature</p>
+              <p className="font-serif text-base font-semibold leading-tight text-primary">{APP_NAME}</p>
+              <p className="truncate text-[11px] text-muted-foreground">Version {APP_VERSION}</p>
             </div>
           </div>
           <NotificationBell />
@@ -104,7 +105,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2">
             <img src={logo} alt="De la graine au jardin" className="h-8 w-8 shrink-0 object-contain" />
-            <span className="truncate font-serif text-base font-semibold text-primary">{title ?? "De la graine au jardin"}</span>
+            <span className="truncate font-serif text-base font-semibold text-primary">{title ?? `${APP_NAME} v${APP_VERSION}`}</span>
           </div>
           <div className="flex items-center gap-4">
             <NotificationBell />
