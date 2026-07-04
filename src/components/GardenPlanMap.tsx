@@ -28,6 +28,7 @@ export function GardenPlanMap({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapObj = useRef<google.maps.Map | null>(null);
   const overlays = useRef<google.maps.Marker[]>([]);
+  const infoWin = useRef<google.maps.InfoWindow | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTask, setActiveTask] = useState<string>("");
@@ -88,6 +89,7 @@ export function GardenPlanMap({
   useEffect(() => {
     if (!ready || !mapObj.current) return;
     const g = window.google;
+    if (!infoWin.current) infoWin.current = new g.maps.InfoWindow();
     overlays.current.forEach((m) => m.setMap(null));
     overlays.current = markers.map((mk, i) => {
       const marker = new g.maps.Marker({
@@ -97,7 +99,13 @@ export function GardenPlanMap({
         title: mk.task,
       });
       marker.addListener("click", () => {
-        onMarkersChange(markersRef.current.filter((x) => x.id !== mk.id));
+        const safe = mk.task.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        infoWin.current!.setContent(
+          `<div style="font-family:system-ui,sans-serif;font-size:13px;max-width:200px">
+             <strong style="color:#4F8E33">Repère ${i + 1}</strong><br/>${safe}
+           </div>`,
+        );
+        infoWin.current!.open({ map: mapObj.current!, anchor: marker });
       });
       return marker;
     });
