@@ -28,10 +28,12 @@ export function GardenPlanMap({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapObj = useRef<google.maps.Map | null>(null);
   const overlays = useRef<google.maps.Marker[]>([]);
+  const overlayById = useRef<Record<string, google.maps.Marker>>({});
   const infoWin = useRef<google.maps.InfoWindow | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTask, setActiveTask] = useState<string>("");
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const markersRef = useRef(markers);
   const activeTaskRef = useRef(activeTask);
   markersRef.current = markers;
@@ -91,6 +93,7 @@ export function GardenPlanMap({
     const g = window.google;
     if (!infoWin.current) infoWin.current = new g.maps.InfoWindow();
     overlays.current.forEach((m) => m.setMap(null));
+    overlayById.current = {};
     overlays.current = markers.map((mk, i) => {
       const marker = new g.maps.Marker({
         position: { lat: mk.lat, lng: mk.lng },
@@ -107,9 +110,25 @@ export function GardenPlanMap({
         );
         infoWin.current!.open({ map: mapObj.current!, anchor: marker });
       });
+      overlayById.current[mk.id] = marker;
       return marker;
     });
   }, [markers, ready, onMarkersChange]);
+
+  // highlight the hovered marker (bounce + raise)
+  useEffect(() => {
+    if (!ready) return;
+    const g = window.google;
+    Object.entries(overlayById.current).forEach(([id, marker]) => {
+      if (id === hoveredId) {
+        marker.setAnimation(g.maps.Animation.BOUNCE);
+        marker.setZIndex(999);
+      } else {
+        marker.setAnimation(null);
+        marker.setZIndex(null);
+      }
+    });
+  }, [hoveredId, ready, markers]);
 
   if (lat == null || lng == null) {
     return (
@@ -147,7 +166,14 @@ export function GardenPlanMap({
           {markers.length > 0 && (
             <ul className="space-y-1.5">
               {markers.map((mk, i) => (
-                <li key={mk.id} className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+                <li
+                  key={mk.id}
+                  onMouseEnter={() => setHoveredId(mk.id)}
+                  onMouseLeave={() => setHoveredId((cur) => (cur === mk.id ? null : cur))}
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                    hoveredId === mk.id ? "border-primary bg-primary/10" : "border-border bg-card"
+                  }`}
+                >
                   <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">{i + 1}</span>
                   <span className="flex-1 truncate">{mk.task}</span>
                   <button type="button" className="text-destructive" onClick={() => onMarkersChange(markers.filter((x) => x.id !== mk.id))}>
