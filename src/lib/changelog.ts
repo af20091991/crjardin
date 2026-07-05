@@ -26,6 +26,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-07-05",
+    version: "1.12.0",
+    theme: "Fiches chantier",
+    title: "Notifications messages clients & plan jardin plus lisible",
+    details: [
+      "Notification e-mail dès qu'un client ajoute une annotation ou une question sur sa fiche partagée.",
+      "Fiches chantier : survoler un poste dans la liste sous la vue satellite le met en surbrillance (rebond) sur la carte.",
+      "Les listes de matériel, travaux, EPI et checklist restent alignées sur l'outil Fiche chantier SST.",
+    ],
+  },
+  {
     date: "2026-07-04",
     version: "1.11.0",
     theme: "Général",
