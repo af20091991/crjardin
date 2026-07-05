@@ -125,7 +125,7 @@ export function GardenPlanMap({
         marker.setZIndex(999);
       } else {
         marker.setAnimation(null);
-        marker.setZIndex(undefined as unknown as number);
+        marker.setZIndex(null);
       }
     });
   }, [hoveredId, ready, markers]);
