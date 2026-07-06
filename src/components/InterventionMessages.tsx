@@ -4,6 +4,8 @@ import { listMessagesByClient, replyToClient, resolveMessage } from "@/lib/messa
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { MessagesSquare, Send, Loader2, Reply, HelpCircle, MessageSquarePlus, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -13,10 +15,11 @@ export function InterventionMessages({ clientId, interventionId, authorName }: {
   const { data: all } = useQuery({ queryKey: ["client-messages", clientId], queryFn: () => listMessagesByClient(clientId) });
   const messages = (all ?? []).filter((m) => m.intervention_id === interventionId);
   const [reply, setReply] = useState("");
+  const [author, setAuthor] = useState(authorName ?? "");
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["client-messages", clientId] });
   const send = useMutation({
-    mutationFn: () => replyToClient({ client_id: clientId, intervention_id: interventionId, content: reply, authorName }),
+    mutationFn: () => replyToClient({ client_id: clientId, intervention_id: interventionId, content: reply, authorName: author.trim() || authorName || null }),
     onSuccess: () => { setReply(""); invalidate(); toast.success("Réponse envoyée au client"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
@@ -41,7 +44,7 @@ export function InterventionMessages({ clientId, interventionId, authorName }: {
                 <div className="flex items-center justify-between gap-2">
                   <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
                     {isGardener ? <Reply className="h-3 w-3" /> : m.kind === "question" ? <HelpCircle className="h-3 w-3" /> : <MessageSquarePlus className="h-3 w-3" />}
-                    {isGardener ? "Vous" : (m.author_name || "Client")} · {new Date(m.created_at).toLocaleDateString("fr-FR")}
+                    {isGardener ? (m.author_name || "Vous") : (m.author_name || "Client")} · {new Date(m.created_at).toLocaleDateString("fr-FR")}
                   </p>
                   {!isGardener && (
                     <button onClick={() => resolve.mutate({ id: m.id, v: !m.resolved })} className="text-xs text-muted-foreground hover:text-primary" title="Marquer traité">
@@ -54,11 +57,17 @@ export function InterventionMessages({ clientId, interventionId, authorName }: {
             );
           })}
         </div>
-        <div className="flex gap-2">
-          <Textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder="Répondre au client…" />
-          <Button disabled={!reply.trim() || send.isPending} onClick={() => send.mutate()}>
-            {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </Button>
+        <div className="space-y-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="reply-author" className="text-xs">Auteur de la réponse</Label>
+            <Input id="reply-author" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="Votre nom" className="h-9" />
+          </div>
+          <div className="flex gap-2">
+            <Textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} placeholder="Répondre au client…" />
+            <Button disabled={!reply.trim() || send.isPending} onClick={() => send.mutate()}>
+              {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
