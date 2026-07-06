@@ -255,6 +255,18 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   doc.setLineWidth(0.3);
   const author = data.authorName?.trim() || company;
 
+  // Ajoute une image en conservant son ratio d'origine (aucune compression ni redimensionnement forcé).
+  const fitImage = async (dataUrl: string, x: number, top: number, maxW: number, maxH: number) => {
+    try {
+      const img = await loadImage(dataUrl);
+      const ratio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
+      let w = maxW;
+      let h = w / ratio;
+      if (h > maxH) { h = maxH; w = h * ratio; }
+      doc.addImage(dataUrl, "PNG", x, top, w, h, undefined, "NONE");
+    } catch { /* image optionnelle */ }
+  };
+
   // Bloc « Signature — l'intervenant » (à gauche)
   const sigW = 62;
   const sigH = 26;
@@ -268,10 +280,7 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   doc.text(author, margin, y + 4.5);
   doc.setTextColor(...DARK);
   if (data.signatureData) {
-    try {
-      // Compression "NONE" : conserve la résolution native de la signature (PNG).
-      doc.addImage(data.signatureData, "PNG", margin, y + 7, sigW, sigH, undefined, "NONE");
-    } catch { /* signature optionnelle */ }
+    await fitImage(data.signatureData, margin, y + 7, sigW, sigH);
   }
   doc.line(margin, y + sigH + 9, margin + sigW, y + sigH + 9);
 
@@ -289,9 +298,8 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   doc.text(company, stampX, y + 4.5);
   doc.setTextColor(...DARK);
   if (data.stampData) {
-    try {
-      doc.addImage(data.stampData, "PNG", stampX, y + 7, stampW, stampH, undefined, "NONE");
-    } catch { /* cachet optionnel */ }
+    // Cachet : conserve le format et la résolution d'origine (ratio préservé, sans compression).
+    await fitImage(data.stampData, stampX, y + 7, stampW, stampH);
   }
   y += sigH + 14;
 
