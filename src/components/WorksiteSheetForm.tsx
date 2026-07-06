@@ -405,10 +405,10 @@ export function WorksiteSheetForm({
               ))}
             </div>
           )}
-          <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" className="hidden" onChange={(e) => onFiles(e.target.files)} />
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => onFiles(e.target.files)} />
           <Button type="button" variant="outline" disabled={uploading} onClick={() => fileRef.current?.click()}>
             {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-2 h-4 w-4" />}
-            Ajouter des photos
+            Importer photos chantier
           </Button>
         </CardContent>
       </Card>
