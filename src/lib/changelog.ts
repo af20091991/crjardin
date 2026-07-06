@@ -26,6 +26,20 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-07-06",
+    version: "1.13.0",
+    theme: "Général",
+    title: "Notifications e-mail, saisie et fiches",
+    details: [
+      "Correction des notifications par e-mail qui échouaient (jeton de désinscription manquant) : inscription à valider et messages clients partent à nouveau.",
+      "Champs de saisie agrandis et correcteur orthographique actif partout pour faciliter la rédaction.",
+      "Fiches SST : un seul bouton « Importer photos chantier ».",
+      "Export PDF : logo sur fond blanc en haut à droite, civilité + nom en première ligne, signature et cachet au format d'origine (sans compression).",
+      "Réponses aux clients : ajout d'un champ « Auteur » pour identifier qui répond.",
+      "Menu : « Fiches chantier » renommé « Fiches SST » et nouvel espace « Fiches CR » regroupant l'historique des comptes-rendus.",
+    ],
+  },
+  {
     date: "2026-07-05",
     version: "1.12.0",
     theme: "Général",
