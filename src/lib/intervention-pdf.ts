@@ -91,9 +91,14 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   // ---- Cover ----
   doc.setFillColor(...GREEN);
   doc.rect(0, 0, pageW, 70, "F");
+  // Logo dans une pastille blanche en haut à droite (identification de la marque)
+  const badge = 30;
+  const badgeX = pageW - margin - badge;
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(badgeX, 14, badge, badge, 4, 4, "F");
   try {
     const img = await loadImage(logo);
-    doc.addImage(img, "PNG", margin, 16, 20, 20);
+    doc.addImage(img, "PNG", badgeX + 4, 18, badge - 8, badge - 8, undefined, "NONE");
   } catch { /* logo optionnel */ }
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
@@ -104,15 +109,18 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   doc.text(company, margin, 60);
   y = 84;
 
+  // Première ligne après l'en-tête : civilité + nom du client
+  const clientFull = [client.civility?.trim(), client.name?.trim()].filter(Boolean).join(" ") || garden;
   doc.setTextColor(...DARK);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(15);
-  doc.text(iv.title ?? garden, margin, y);
+  doc.text(clientFull, margin, y);
   y += 8;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10.5);
   doc.setTextColor(...MUTED);
   const infoLines = [
+    iv.title?.trim() ? `Objet : ${iv.title.trim()}` : null,
     iv.reference ? `Référence : ${iv.reference}` : null,
     `Client : ${garden}`,
     client.address ? `Adresse : ${client.address}` : null,
