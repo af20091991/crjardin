@@ -9,7 +9,7 @@ import { listWorksiteSheets } from "@/lib/worksite";
 import { useRole } from "@/hooks/use-role";
 
 export const Route = createFileRoute("/_authenticated/fiches/")({
-  head: () => ({ meta: [{ title: "Fiches chantier — De la graine au jardin" }] }),
+  head: () => ({ meta: [{ title: "Fiches SST — De la graine au jardin" }] }),
   component: FichesIndex,
 });
 
@@ -20,7 +20,7 @@ function FichesIndex() {
   const { data: sheets, isLoading } = useQuery({ queryKey: ["worksite-sheets"], queryFn: listWorksiteSheets, enabled: canEdit });
 
   return (
-    <AppShell title="Fiches chantier">
+    <AppShell title="Fiches SST">
       <div className="mx-auto max-w-2xl space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">Préparation des interventions de sous-traitance</p>

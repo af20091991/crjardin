@@ -1014,6 +1014,10 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_or_create_unsubscribe_token: {
+        Args: { p_email: string }
+        Returns: string
+      }
       get_shared_client: { Args: { p_token: string }; Returns: Json }
       get_shared_messages: { Args: { p_token: string }; Returns: Json }
       has_role: {

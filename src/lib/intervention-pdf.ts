@@ -91,9 +91,14 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   // ---- Cover ----
   doc.setFillColor(...GREEN);
   doc.rect(0, 0, pageW, 70, "F");
+  // Logo dans une pastille blanche en haut à droite (identification de la marque)
+  const badge = 30;
+  const badgeX = pageW - margin - badge;
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(badgeX, 14, badge, badge, 4, 4, "F");
   try {
     const img = await loadImage(logo);
-    doc.addImage(img, "PNG", margin, 16, 20, 20);
+    doc.addImage(img, "PNG", badgeX + 4, 18, badge - 8, badge - 8, undefined, "NONE");
   } catch { /* logo optionnel */ }
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
@@ -104,15 +109,18 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   doc.text(company, margin, 60);
   y = 84;
 
+  // Première ligne après l'en-tête : civilité + nom du client
+  const clientFull = [client.civility?.trim(), client.name?.trim()].filter(Boolean).join(" ") || garden;
   doc.setTextColor(...DARK);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(15);
-  doc.text(iv.title ?? garden, margin, y);
+  doc.text(clientFull, margin, y);
   y += 8;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10.5);
   doc.setTextColor(...MUTED);
   const infoLines = [
+    iv.title?.trim() ? `Objet : ${iv.title.trim()}` : null,
     iv.reference ? `Référence : ${iv.reference}` : null,
     `Client : ${garden}`,
     client.address ? `Adresse : ${client.address}` : null,
@@ -247,6 +255,18 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   doc.setLineWidth(0.3);
   const author = data.authorName?.trim() || company;
 
+  // Ajoute une image en conservant son ratio d'origine (aucune compression ni redimensionnement forcé).
+  const fitImage = async (dataUrl: string, x: number, top: number, maxW: number, maxH: number) => {
+    try {
+      const img = await loadImage(dataUrl);
+      const ratio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
+      let w = maxW;
+      let h = w / ratio;
+      if (h > maxH) { h = maxH; w = h * ratio; }
+      doc.addImage(dataUrl, "PNG", x, top, w, h, undefined, "NONE");
+    } catch { /* image optionnelle */ }
+  };
+
   // Bloc « Signature — l'intervenant » (à gauche)
   const sigW = 62;
   const sigH = 26;
@@ -260,10 +280,7 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   doc.text(author, margin, y + 4.5);
   doc.setTextColor(...DARK);
   if (data.signatureData) {
-    try {
-      // Compression "NONE" : conserve la résolution native de la signature (PNG).
-      doc.addImage(data.signatureData, "PNG", margin, y + 7, sigW, sigH, undefined, "NONE");
-    } catch { /* signature optionnelle */ }
+    await fitImage(data.signatureData, margin, y + 7, sigW, sigH);
   }
   doc.line(margin, y + sigH + 9, margin + sigW, y + sigH + 9);
 
@@ -281,9 +298,8 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
   doc.text(company, stampX, y + 4.5);
   doc.setTextColor(...DARK);
   if (data.stampData) {
-    try {
-      doc.addImage(data.stampData, "PNG", stampX, y + 7, stampW, stampH, undefined, "NONE");
-    } catch { /* cachet optionnel */ }
+    // Cachet : conserve le format et la résolution d'origine (ratio préservé, sans compression).
+    await fitImage(data.stampData, stampX, y + 7, stampW, stampH);
   }
   y += sigH + 14;
 

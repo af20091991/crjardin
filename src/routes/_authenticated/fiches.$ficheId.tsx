@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
 
 export const Route = createFileRoute("/_authenticated/fiches/$ficheId")({
-  head: () => ({ meta: [{ title: "Fiche chantier — De la graine au jardin" }] }),
+  head: () => ({ meta: [{ title: "Fiche SST — De la graine au jardin" }] }),
   component: EditFiche,
 });
 
@@ -59,7 +59,7 @@ function EditFiche() {
   }
 
   return (
-    <AppShell title="Fiche chantier">
+    <AppShell title="Fiche SST">
       <div className="mx-auto max-w-2xl space-y-4">
         <div className="flex items-center justify-between gap-2">
           <Link to="/fiches" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">

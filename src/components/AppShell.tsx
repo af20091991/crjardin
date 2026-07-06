@@ -6,7 +6,7 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
@@ -36,7 +36,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     exact ? pathname === to : pathname.startsWith(to);
 
   const editorItems = canEdit
-    ? [{ to: "/fiches", label: "Fiches chantier", short: "Fiches", icon: ClipboardList, exact: false, primary: false }]
+    ? [
+        { to: "/fiches", label: "Fiches SST", short: "SST", icon: ClipboardList, exact: false, primary: false },
+        { to: "/interventions", label: "Fiches CR", short: "CR", icon: FileText, exact: false, primary: false },
+      ]
     : [];
   const navItems = isAdmin
     ? [
