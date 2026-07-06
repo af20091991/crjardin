@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
 
 export const Route = createFileRoute("/_authenticated/fiches/new")({
-  head: () => ({ meta: [{ title: "Nouvelle fiche chantier — De la graine au jardin" }] }),
+  head: () => ({ meta: [{ title: "Nouvelle fiche SST — De la graine au jardin" }] }),
   component: NewFiche,
 });
 
@@ -32,7 +32,7 @@ function NewFiche() {
   });
 
   return (
-    <AppShell title="Nouvelle fiche chantier">
+    <AppShell title="Nouvelle fiche SST">
       <div className="mx-auto max-w-2xl space-y-4">
         <Link to="/fiches" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Retour
