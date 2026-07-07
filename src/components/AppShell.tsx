@@ -7,18 +7,19 @@ import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 
-const NAV = [
-  { to: "/", label: "Tableau de bord", short: "Accueil", icon: LayoutDashboard, exact: true, primary: true },
-  { to: "/planning", label: "Planning", short: "Planning", icon: CalendarDays, exact: false, primary: true },
-  { to: "/clients", label: "Clients", short: "Clients", icon: Users, exact: false, primary: true },
-  { to: "/statistiques", label: "Statistiques", short: "Stats", icon: BarChart3, exact: false, primary: true },
-  { to: "/settings", label: "Profil & signature", short: "Profil", icon: Settings, exact: false, primary: false },
-] as const;
+type NavItem = {
+  to: string;
+  label: string;
+  short: string;
+  icon: typeof LayoutDashboard;
+  exact: boolean;
+  primary: boolean;
+};
+type NavGroup = { label: string; items: NavItem[] };
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const navigate = useNavigate();
@@ -35,22 +36,48 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const isActive = (to: string, exact: boolean) =>
     exact ? pathname === to : pathname.startsWith(to);
 
-  const editorItems = canEdit
-    ? [
-        { to: "/fiches", label: "Fiches SST", short: "SST", icon: ClipboardList, exact: false, primary: false },
-        { to: "/interventions", label: "Fiches CR", short: "CR", icon: FileText, exact: false, primary: false },
-      ]
-    : [];
-  const navItems = isAdmin
-    ? [
-        ...NAV,
-        ...editorItems,
-        { to: "/admin", label: "Administration", short: "Admin", icon: Shield, exact: false, primary: false },
-        { to: "/emails", label: "Suivi e-mails", short: "E-mails", icon: Mail, exact: false, primary: false },
-        { to: "/versions", label: "Versions", short: "Versions", icon: History, exact: false, primary: false },
-      ]
-    : [...NAV, ...editorItems];
+  const groups: NavGroup[] = [
+    {
+      label: "CR Pro",
+      items: [
+        { to: "/", label: "Tableau de bord", short: "Accueil", icon: LayoutDashboard, exact: true, primary: true },
+        { to: "/planning", label: "Planning", short: "Planning", icon: CalendarDays, exact: false, primary: true },
+        { to: "/clients", label: "Clients", short: "Clients", icon: Users, exact: false, primary: true },
+        { to: "/statistiques", label: "Statistiques", short: "Stats", icon: BarChart3, exact: false, primary: true },
+        ...(isAdmin
+          ? [{ to: "/emails", label: "Suivi des emails", short: "E-mails", icon: Mail, exact: false, primary: false }]
+          : []),
+      ],
+    },
+    {
+      label: "SST Pro",
+      items: canEdit
+        ? [{ to: "/fiches", label: "Fiches SST", short: "SST", icon: ClipboardList, exact: false, primary: false }]
+        : [],
+    },
+    {
+      label: "Fiches CR Pro",
+      items: [
+        ...(canEdit
+          ? [{ to: "/interventions", label: "Fiches CR", short: "CR", icon: FileText, exact: false, primary: false }]
+          : []),
+        { to: "/settings", label: "Profil & signature", short: "Profil", icon: Settings, exact: false, primary: false },
+      ],
+    },
+    ...(isAdmin
+      ? [
+          {
+            label: "Administration",
+            items: [
+              { to: "/admin", label: "Administration", short: "Admin", icon: Shield, exact: false, primary: false },
+              { to: "/versions", label: "Versions", short: "Versions", icon: History, exact: false, primary: false },
+            ],
+          },
+        ]
+      : []),
+  ].filter((g) => g.items.length > 0);
 
+  const navItems = groups.flatMap((g) => g.items);
   const primaryItems = navItems.filter((i) => i.primary);
   const moreItems = navItems.filter((i) => !i.primary);
 
@@ -68,31 +95,38 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </div>
           <NotificationBell />
         </div>
-        <nav className="flex-1 space-y-1 px-3">
-          {navItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive(item.to, item.exact)
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-              }`}
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-            </Link>
+        <nav className="flex-1 space-y-4 overflow-y-auto px-3 pb-3">
+          {groups.map((group) => (
+            <div key={group.label} className="space-y-1">
+              <p className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+                {group.label}
+              </p>
+              {group.items.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive(item.to, item.exact)
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                  }`}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              ))}
+              {group.label === "Fiches CR Pro" && canEdit && (
+                <Link
+                  to="/interventions/new"
+                  className="mt-1 flex items-center gap-3 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <Plus className="h-5 w-5" /> Nouveau compte-rendu
+                </Link>
+              )}
+            </div>
           ))}
         </nav>
         <div className="border-t border-border p-3">
-          {canEdit && (
-            <Link
-              to="/interventions/new"
-              className="mb-2 flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <Plus className="h-4 w-4" /> Compte-rendu
-            </Link>
-          )}
           <div className="flex items-center justify-between gap-2 px-1">
             <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
             <button onClick={signOut} className="shrink-0 text-muted-foreground hover:text-destructive" title="Déconnexion">
@@ -168,20 +202,32 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               <SheetHeader className="text-left">
                 <SheetTitle className="font-serif">Menu</SheetTitle>
               </SheetHeader>
-              <div className="mt-2 grid grid-cols-2 gap-2 pb-[env(safe-area-inset-bottom)]">
-                {moreItems.map((item) => (
-                  <SheetClose asChild key={item.to}>
-                    <Link
-                      to={item.to}
-                      className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
-                        isActive(item.to, item.exact) ? "bg-primary/10 text-primary" : "text-foreground"
-                      }`}
-                    >
-                      <item.icon className="h-5 w-5 shrink-0" />
-                      <span className="truncate">{item.label}</span>
-                    </Link>
-                  </SheetClose>
-                ))}
+              <div className="mt-2 space-y-4 pb-[env(safe-area-inset-bottom)]">
+                {groups
+                  .map((g) => ({ label: g.label, items: g.items.filter((i) => !i.primary) }))
+                  .filter((g) => g.items.length > 0)
+                  .map((group) => (
+                    <div key={group.label} className="space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+                        {group.label}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {group.items.map((item) => (
+                          <SheetClose asChild key={item.to}>
+                            <Link
+                              to={item.to}
+                              className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
+                                isActive(item.to, item.exact) ? "bg-primary/10 text-primary" : "text-foreground"
+                              }`}
+                            >
+                              <item.icon className="h-5 w-5 shrink-0" />
+                              <span className="truncate">{item.label}</span>
+                            </Link>
+                          </SheetClose>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
               </div>
             </SheetContent>
           </Sheet>
