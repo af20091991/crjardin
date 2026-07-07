@@ -231,13 +231,18 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               </SheetHeader>
               <div className="mt-2 space-y-4 pb-[env(safe-area-inset-bottom)]">
                 {groups
-                  .map((g) => ({ label: g.label, items: g.items.filter((i) => !i.primary) }))
-                  .filter((g) => g.items.length > 0)
+                  .map((g) => ({ label: g.label, emptyLabel: g.emptyLabel, items: g.items.filter((i) => !i.primary) }))
+                  .filter((g) => g.items.length > 0 || g.emptyLabel)
                   .map((group) => (
                     <div key={group.label} className="space-y-2">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
                         {group.label}
                       </p>
+                      {group.items.length === 0 && group.emptyLabel ? (
+                        <p className="rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground/60">
+                          {group.emptyLabel}
+                        </p>
+                      ) : (
                       <div className="grid grid-cols-2 gap-2">
                         {group.items.map((item) => (
                           <SheetClose asChild key={item.to}>
@@ -253,6 +258,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                           </SheetClose>
                         ))}
                       </div>
+                      )}
                     </div>
                   ))}
               </div>
