@@ -116,18 +116,18 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                   {item.label}
                 </Link>
               ))}
+              {group.label === "Fiches CR Pro" && canEdit && (
+                <Link
+                  to="/interventions/new"
+                  className="mt-1 flex items-center gap-3 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <Plus className="h-5 w-5" /> Nouveau compte-rendu
+                </Link>
+              )}
             </div>
           ))}
         </nav>
         <div className="border-t border-border p-3">
-          {canEdit && (
-            <Link
-              to="/interventions/new"
-              className="mb-2 flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <Plus className="h-4 w-4" /> Compte-rendu
-            </Link>
-          )}
           <div className="flex items-center justify-between gap-2 px-1">
             <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
             <button onClick={signOut} className="shrink-0 text-muted-foreground hover:text-destructive" title="Déconnexion">
