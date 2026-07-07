@@ -105,30 +105,50 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         <nav className="flex-1 space-y-4 overflow-y-auto px-3 pb-3">
           {groups.map((group) => (
             <div key={group.label} className="space-y-1">
-              <p className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
-                {group.label}
-              </p>
-              {group.items.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive(item.to, item.exact)
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-                  }`}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
-                </Link>
-              ))}
-              {group.label === "Fiches CR Pro" && canEdit && (
-                <Link
-                  to="/interventions/new"
-                  className="mt-1 flex items-center gap-3 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  <Plus className="h-5 w-5" /> Nouveau compte-rendu
-                </Link>
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.label)}
+                className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 transition-colors hover:text-foreground"
+              >
+                <span>{group.label}</span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${isGroupOpen(group.label) ? "" : "-rotate-90"}`}
+                />
+              </button>
+              {isGroupOpen(group.label) && (
+                <div className="space-y-1">
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        isActive(item.to, item.exact)
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                      }`}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {item.label}
+                    </Link>
+                  ))}
+                  {group.items.length === 0 && group.emptyLabel && (
+                    <p className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/60">
+                      {(() => {
+                        const Icon = groupIcon[group.label];
+                        return Icon ? <Icon className="h-5 w-5" /> : null;
+                      })()}
+                      {group.emptyLabel}
+                    </p>
+                  )}
+                  {group.label === "CR Pro" && canEdit && (
+                    <Link
+                      to="/interventions/new"
+                      className="mt-1 flex items-center gap-3 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    >
+                      <Plus className="h-5 w-5" /> Nouveau compte-rendu
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
           ))}
