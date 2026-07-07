@@ -26,6 +26,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-07-07",
+    version: "1.14.0",
+    theme: "Général",
+    title: "Menu latéral déroulant et catégories Pro",
+    details: [
+      "Les catégories du menu (CR Pro, SST Pro, Administration…) peuvent désormais être dépliées/repliées.",
+      "Nouvelles catégories préparées : Catalogue Pro et Pilot Pro (bientôt disponibles).",
+      "La catégorie Administration regroupe Réglage, Version et un nouvel onglet Backend.",
+      "Onglet Backend : accès centralisé à tous les paramètres réglables et personnalisables.",
+    ],
+  },
+  {
     date: "2026-07-06",
     version: "1.13.0",
     theme: "Général",

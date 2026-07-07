@@ -24,6 +24,7 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
 import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
 import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
+import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
@@ -112,6 +113,11 @@ const AuthenticatedModelesRoute = AuthenticatedModelesRouteImport.update({
 const AuthenticatedEmailsRoute = AuthenticatedEmailsRouteImport.update({
   id: '/emails',
   path: '/emails',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBackendRoute = AuthenticatedBackendRouteImport.update({
+  id: '/backend',
+  path: '/backend',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -203,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/backend': typeof AuthenticatedBackendRoute
   '/emails': typeof AuthenticatedEmailsRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/planning': typeof AuthenticatedPlanningRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/backend': typeof AuthenticatedBackendRoute
   '/emails': typeof AuthenticatedEmailsRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/planning': typeof AuthenticatedPlanningRoute
@@ -264,6 +272,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/backend': typeof AuthenticatedBackendRoute
   '/_authenticated/emails': typeof AuthenticatedEmailsRoute
   '/_authenticated/modeles': typeof AuthenticatedModelesRoute
   '/_authenticated/planning': typeof AuthenticatedPlanningRoute
@@ -297,6 +306,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/admin'
+    | '/backend'
     | '/emails'
     | '/modeles'
     | '/planning'
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/admin'
+    | '/backend'
     | '/emails'
     | '/modeles'
     | '/planning'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/unsubscribe'
     | '/_authenticated/admin'
+    | '/_authenticated/backend'
     | '/_authenticated/emails'
     | '/_authenticated/modeles'
     | '/_authenticated/planning'
@@ -504,6 +516,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEmailsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/backend': {
+      id: '/_authenticated/backend'
+      path: '/backend'
+      fullPath: '/backend'
+      preLoaderRoute: typeof AuthenticatedBackendRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -607,6 +626,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedBackendRoute: typeof AuthenticatedBackendRoute
   AuthenticatedEmailsRoute: typeof AuthenticatedEmailsRoute
   AuthenticatedModelesRoute: typeof AuthenticatedModelesRoute
   AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
@@ -626,6 +646,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedBackendRoute: AuthenticatedBackendRoute,
   AuthenticatedEmailsRoute: AuthenticatedEmailsRoute,
   AuthenticatedModelesRoute: AuthenticatedModelesRoute,
   AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
