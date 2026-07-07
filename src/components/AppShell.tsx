@@ -203,20 +203,32 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               <SheetHeader className="text-left">
                 <SheetTitle className="font-serif">Menu</SheetTitle>
               </SheetHeader>
-              <div className="mt-2 grid grid-cols-2 gap-2 pb-[env(safe-area-inset-bottom)]">
-                {moreItems.map((item) => (
-                  <SheetClose asChild key={item.to}>
-                    <Link
-                      to={item.to}
-                      className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
-                        isActive(item.to, item.exact) ? "bg-primary/10 text-primary" : "text-foreground"
-                      }`}
-                    >
-                      <item.icon className="h-5 w-5 shrink-0" />
-                      <span className="truncate">{item.label}</span>
-                    </Link>
-                  </SheetClose>
-                ))}
+              <div className="mt-2 space-y-4 pb-[env(safe-area-inset-bottom)]">
+                {groups
+                  .map((g) => ({ label: g.label, items: g.items.filter((i) => !i.primary) }))
+                  .filter((g) => g.items.length > 0)
+                  .map((group) => (
+                    <div key={group.label} className="space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+                        {group.label}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {group.items.map((item) => (
+                          <SheetClose asChild key={item.to}>
+                            <Link
+                              to={item.to}
+                              className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
+                                isActive(item.to, item.exact) ? "bg-primary/10 text-primary" : "text-foreground"
+                              }`}
+                            >
+                              <item.icon className="h-5 w-5 shrink-0" />
+                              <span className="truncate">{item.label}</span>
+                            </Link>
+                          </SheetClose>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
               </div>
             </SheetContent>
           </Sheet>
