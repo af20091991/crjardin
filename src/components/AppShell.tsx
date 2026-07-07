@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -6,7 +6,7 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { LayoutDashboard, Users, Plus, LogOut, Settings, Shield, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText } from "lucide-react";
+import { LayoutDashboard, Users, Plus, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
@@ -19,7 +19,7 @@ type NavItem = {
   exact: boolean;
   primary: boolean;
 };
-type NavGroup = { label: string; items: NavItem[] };
+type NavGroup = { label: string; items: NavItem[]; emptyLabel?: string };
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const navigate = useNavigate();
@@ -44,6 +44,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         { to: "/planning", label: "Planning", short: "Planning", icon: CalendarDays, exact: false, primary: true },
         { to: "/clients", label: "Clients", short: "Clients", icon: Users, exact: false, primary: true },
         { to: "/statistiques", label: "Statistiques", short: "Stats", icon: BarChart3, exact: false, primary: true },
+        ...(canEdit
+          ? [{ to: "/interventions", label: "Fiches CR Pro", short: "CR", icon: FileText, exact: false, primary: false }]
+          : []),
         ...(isAdmin
           ? [{ to: "/emails", label: "Suivi des emails", short: "E-mails", icon: Mail, exact: false, primary: false }]
           : []),
@@ -54,32 +57,36 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       items: canEdit
         ? [{ to: "/fiches", label: "Fiches SST", short: "SST", icon: ClipboardList, exact: false, primary: false }]
         : [],
+      emptyLabel: canEdit ? undefined : "Bientôt disponible",
     },
+    { label: "Catalogue Pro", items: [], emptyLabel: "Bientôt disponible" },
+    { label: "Pilot Pro", items: [], emptyLabel: "Bientôt disponible" },
     {
-      label: "Fiches CR Pro",
+      label: "Administration",
       items: [
-        ...(canEdit
-          ? [{ to: "/interventions", label: "Fiches CR", short: "CR", icon: FileText, exact: false, primary: false }]
+        { to: "/settings", label: "Réglage", short: "Réglage", icon: Settings, exact: false, primary: false },
+        ...(isAdmin
+          ? [
+              { to: "/versions", label: "Version", short: "Version", icon: History, exact: false, primary: false },
+              { to: "/backend", label: "Backend", short: "Backend", icon: Database, exact: false, primary: false },
+            ]
           : []),
-        { to: "/settings", label: "Profil & signature", short: "Profil", icon: Settings, exact: false, primary: false },
       ],
     },
-    ...(isAdmin
-      ? [
-          {
-            label: "Administration",
-            items: [
-              { to: "/admin", label: "Administration", short: "Admin", icon: Shield, exact: false, primary: false },
-              { to: "/versions", label: "Versions", short: "Versions", icon: History, exact: false, primary: false },
-            ],
-          },
-        ]
-      : []),
-  ].filter((g) => g.items.length > 0);
+  ].filter((g) => g.items.length > 0 || g.emptyLabel);
 
   const navItems = groups.flatMap((g) => g.items);
   const primaryItems = navItems.filter((i) => i.primary);
   const moreItems = navItems.filter((i) => !i.primary);
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const isGroupOpen = (label: string) => openGroups[label] ?? true;
+  const toggleGroup = (label: string) =>
+    setOpenGroups((s) => ({ ...s, [label]: !(s[label] ?? true) }));
+  const groupIcon: Record<string, typeof LayoutDashboard> = {
+    "Catalogue Pro": BookOpen,
+    "Pilot Pro": Compass,
+  };
 
   return (
     <div className="min-h-screen bg-secondary/30">
