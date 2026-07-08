@@ -16,7 +16,7 @@ import {
   recommendationPrice, formatEuro,
 } from "@/lib/garden";
 import { generateInterventionInsights, analyzeInterventionPhotos } from "@/lib/ai.functions";
-import { getClient, clientEmails } from "@/lib/clients";
+import { getClient, clientEmails, updateClient } from "@/lib/clients";
 import { getMyProfile } from "@/lib/profile";
 import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
@@ -94,6 +94,32 @@ function InterventionDetail() {
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+
+  const saveClientName = useMutation({
+    mutationFn: (name: string) => {
+      if (!client) throw new Error("Client indisponible");
+      return updateClient(client.id, {
+        name,
+        civility: client.civility,
+        address: client.address,
+        phone: client.phone,
+        email: client.email,
+        emails: client.emails,
+        contract_type: client.contract_type,
+        frequency: client.frequency,
+        notes: client.notes,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client", iv?.client_id] });
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      setEditingName(false);
+      toast.success("Nom du client mis à jour");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
 
   const setStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: TaskStatus }) => updateTask(id, { status }),
