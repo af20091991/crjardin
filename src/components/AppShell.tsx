@@ -140,14 +140,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                       {group.emptyLabel}
                     </p>
                   )}
-                  {group.label === "CR Pro" && canEdit && (
-                    <Link
-                      to="/interventions/new"
-                      className="mt-1 flex items-center gap-3 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                    >
-                      <Plus className="h-5 w-5" /> Nouveau compte-rendu
-                    </Link>
-                  )}
                 </div>
               )}
             </div>
