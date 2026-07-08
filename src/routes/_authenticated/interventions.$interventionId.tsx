@@ -16,7 +16,7 @@ import {
   recommendationPrice, formatEuro,
 } from "@/lib/garden";
 import { generateInterventionInsights, analyzeInterventionPhotos } from "@/lib/ai.functions";
-import { getClient, clientEmails, updateClient } from "@/lib/clients";
+import { getClient, clientEmails, listClients } from "@/lib/clients";
 import { getMyProfile } from "@/lib/profile";
 import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
@@ -77,6 +77,7 @@ function InterventionDetail() {
     enabled: !!iv?.client_id,
   });
   const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
+  const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: tasks } = useQuery({
     queryKey: ["tasks", interventionId],
     queryFn: () => listTasks(interventionId),
@@ -94,29 +95,13 @@ function InterventionDetail() {
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState("");
-
-  const saveClientName = useMutation({
-    mutationFn: (name: string) => {
-      if (!client) throw new Error("Client indisponible");
-      return updateClient(client.id, {
-        name,
-        civility: client.civility,
-        address: client.address,
-        phone: client.phone,
-        email: client.email,
-        emails: client.emails,
-        contract_type: client.contract_type,
-        frequency: client.frequency,
-        notes: client.notes,
-      });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["client", iv?.client_id] });
-      qc.invalidateQueries({ queryKey: ["clients"] });
-      setEditingName(false);
-      toast.success("Nom du client mis à jour");
+  const changeClient = useMutation({
+    mutationFn: (clientId: string) => updateIntervention(interventionId, { client_id: clientId }),
+    onSuccess: (_data, clientId) => {
+      invIv();
+      qc.invalidateQueries({ queryKey: ["client", clientId] });
+      qc.invalidateQueries({ queryKey: ["interventions"] });
+      toast.success("Client mis à jour");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
@@ -334,33 +319,19 @@ function InterventionDetail() {
           <CardContent className="pt-6">
             {client && (
               <div className="mb-4 space-y-1.5">
-                <Label>Nom du client</Label>
-                {editingName ? (
-                  <div className="flex gap-2">
-                    <Input
-                      value={nameDraft}
-                      autoFocus
-                      onChange={(e) => setNameDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && nameDraft.trim()) { e.preventDefault(); saveClientName.mutate(nameDraft.trim()); }
-                        if (e.key === "Escape") setEditingName(false);
-                      }}
-                    />
-                    <Button size="sm" disabled={!nameDraft.trim() || saveClientName.isPending} onClick={() => saveClientName.mutate(nameDraft.trim())}>
-                      {saveClientName.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingName(false)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{client.name}</span>
-                    <Button size="sm" variant="ghost" onClick={() => { setNameDraft(client.name); setEditingName(true); }}>
-                      Modifier
-                    </Button>
-                  </div>
-                )}
+                <Label>Client</Label>
+                <Select
+                  value={client.id}
+                  onValueChange={(v) => { if (v !== client.id) changeClient.mutate(v); }}
+                  disabled={changeClient.isPending}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(clients ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
             <div className="flex items-start justify-between gap-3">

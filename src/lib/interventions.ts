@@ -188,7 +188,7 @@ export function buildInterventionTitle(
 
 export async function updateIntervention(
   id: string,
-  patch: Partial<Pick<Intervention, "intervention_date" | "intervention_type" | "status" | "summary" | "garden_state" | "upcoming_works" | "recommendations_text">>,
+  patch: Partial<Pick<Intervention, "client_id" | "intervention_date" | "intervention_type" | "status" | "summary" | "garden_state" | "upcoming_works" | "recommendations_text">>,
 ): Promise<Intervention> {
   const { data, error } = await supabase
     .from("interventions")
