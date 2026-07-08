@@ -319,33 +319,19 @@ function InterventionDetail() {
           <CardContent className="pt-6">
             {client && (
               <div className="mb-4 space-y-1.5">
-                <Label>Nom du client</Label>
-                {editingName ? (
-                  <div className="flex gap-2">
-                    <Input
-                      value={nameDraft}
-                      autoFocus
-                      onChange={(e) => setNameDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && nameDraft.trim()) { e.preventDefault(); saveClientName.mutate(nameDraft.trim()); }
-                        if (e.key === "Escape") setEditingName(false);
-                      }}
-                    />
-                    <Button size="sm" disabled={!nameDraft.trim() || saveClientName.isPending} onClick={() => saveClientName.mutate(nameDraft.trim())}>
-                      {saveClientName.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingName(false)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{client.name}</span>
-                    <Button size="sm" variant="ghost" onClick={() => { setNameDraft(client.name); setEditingName(true); }}>
-                      Modifier
-                    </Button>
-                  </div>
-                )}
+                <Label>Client</Label>
+                <Select
+                  value={client.id}
+                  onValueChange={(v) => { if (v !== client.id) changeClient.mutate(v); }}
+                  disabled={changeClient.isPending}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(clients ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
             <div className="flex items-start justify-between gap-3">
