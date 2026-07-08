@@ -194,17 +194,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             <span className="max-w-full truncate">{item.short}</span>
           </Link>
         ))}
-        {canEdit && (
-          <Link
-            to="/interventions/new"
-            aria-label="Nouveau compte-rendu"
-            className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-0.5 py-1 text-[10px] font-medium text-primary"
-          >
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow">
-              <Plus className="h-5 w-5" />
-            </div>
-          </Link>
-        )}
         {moreItems.length > 0 && (
           <Sheet>
             <SheetTrigger asChild>
