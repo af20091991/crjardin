@@ -6,7 +6,7 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { LayoutDashboard, Users, Plus, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
@@ -140,14 +140,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                       {group.emptyLabel}
                     </p>
                   )}
-                  {group.label === "CR Pro" && canEdit && (
-                    <Link
-                      to="/interventions/new"
-                      className="mt-1 flex items-center gap-3 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                    >
-                      <Plus className="h-5 w-5" /> Nouveau compte-rendu
-                    </Link>
-                  )}
                 </div>
               )}
             </div>
@@ -202,17 +194,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             <span className="max-w-full truncate">{item.short}</span>
           </Link>
         ))}
-        {canEdit && (
-          <Link
-            to="/interventions/new"
-            aria-label="Nouveau compte-rendu"
-            className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-0.5 py-1 text-[10px] font-medium text-primary"
-          >
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow">
-              <Plus className="h-5 w-5" />
-            </div>
-          </Link>
-        )}
         {moreItems.length > 0 && (
           <Sheet>
             <SheetTrigger asChild>
