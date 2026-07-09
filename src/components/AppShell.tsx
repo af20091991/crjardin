@@ -232,7 +232,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       </TooltipProvider>
 
       {/* Main */}
-      <div className="md:pl-60">
+      <div className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : "md:pl-60"}`}>
         {/* Mobile header */}
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2">
