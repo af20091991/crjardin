@@ -181,5 +181,14 @@
 
   h1, h2, h3, .font-serif {
     font-family: var(--font-serif);
+    letter-spacing: -0.01em;
   }
+}
+
+/* Densité compacte pilotée par la personnalisation */
+[data-density="compact"] {
+  font-size: 0.94rem;
+}
+[data-density="compact"] .space-y-5 > * + * {
+  margin-top: 0.85rem;
 }
