@@ -6,10 +6,17 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
+import { useAppearance } from "@/lib/appearance";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type NavItem = {
   to: string;
@@ -27,6 +34,22 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const { isAdmin } = useIsAdmin();
   const { canEdit } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { appearance } = useAppearance();
+
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("cr-sidebar-collapsed") === "1";
+  });
+  const toggleCollapsed = () =>
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        window.localStorage.setItem("cr-sidebar-collapsed", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -65,6 +88,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Administration",
       items: [
         { to: "/settings", label: "Réglage", short: "Réglage", icon: Settings, exact: false, primary: false },
+        { to: "/personnalisation", label: "Personnalisation", short: "Apparence", icon: Palette, exact: false, primary: false },
         ...(isAdmin
           ? [
               { to: "/versions", label: "Version", short: "Version", icon: History, exact: false, primary: false },
@@ -73,7 +97,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           : []),
       ],
     },
-  ].filter((g) => g.items.length > 0 || g.emptyLabel);
+  ]
+    .filter((g) => !appearance.hiddenGroups.includes(g.label))
+    .filter((g) => g.items.length > 0 || g.emptyLabel);
 
   const navItems = groups.flatMap((g) => g.items);
   const primaryItems = navItems.filter((i) => i.primary);
