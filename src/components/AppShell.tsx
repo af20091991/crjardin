@@ -6,10 +6,17 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
+import { useAppearance } from "@/lib/appearance";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type NavItem = {
   to: string;
@@ -27,6 +34,22 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const { isAdmin } = useIsAdmin();
   const { canEdit } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { appearance } = useAppearance();
+
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("cr-sidebar-collapsed") === "1";
+  });
+  const toggleCollapsed = () =>
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        window.localStorage.setItem("cr-sidebar-collapsed", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -65,6 +88,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Administration",
       items: [
         { to: "/settings", label: "Réglage", short: "Réglage", icon: Settings, exact: false, primary: false },
+        { to: "/personnalisation", label: "Personnalisation", short: "Apparence", icon: Palette, exact: false, primary: false },
         ...(isAdmin
           ? [
               { to: "/versions", label: "Version", short: "Version", icon: History, exact: false, primary: false },
@@ -73,7 +97,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           : []),
       ],
     },
-  ].filter((g) => g.items.length > 0 || g.emptyLabel);
+  ]
+    .filter((g) => !appearance.hiddenGroups.includes(g.label))
+    .filter((g) => g.items.length > 0 || g.emptyLabel);
 
   const navItems = groups.flatMap((g) => g.items);
   const primaryItems = navItems.filter((i) => i.primary);
@@ -91,47 +117,76 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   return (
     <div className="min-h-screen bg-secondary/30">
       {/* Sidebar desktop */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card md:flex">
-        <div className="flex items-center justify-between gap-2 px-4 py-5">
+      <TooltipProvider delayDuration={150}>
+      <aside
+        className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card transition-[width] duration-200 md:flex ${
+          collapsed ? "w-16" : "w-60"
+        }`}
+      >
+        <div className={`flex items-center gap-2 py-5 ${collapsed ? "flex-col px-2" : "justify-between px-4"}`}>
           <div className="flex min-w-0 items-center gap-2.5">
-            <img src={logo} alt="De la graine au jardin" className="h-11 w-11 shrink-0 object-contain" />
-            <div className="min-w-0 leading-tight">
-              <p className="font-serif text-base font-semibold leading-tight text-primary">{APP_NAME}</p>
-              <p className="truncate text-[11px] text-muted-foreground">Version {APP_VERSION}</p>
-            </div>
+            <img src={logo} alt="De la graine au jardin" className="h-10 w-10 shrink-0 object-contain" />
+            {!collapsed && (
+              <div className="min-w-0 leading-tight">
+                <p className="font-serif text-base font-semibold leading-tight text-primary">{APP_NAME}</p>
+                <p className="truncate text-[11px] text-muted-foreground">Version {APP_VERSION}</p>
+              </div>
+            )}
           </div>
-          <NotificationBell />
+          {!collapsed && <NotificationBell />}
         </div>
-        <nav className="flex-1 space-y-4 overflow-y-auto px-3 pb-3">
+        <nav className={`flex-1 space-y-4 overflow-y-auto pb-3 ${collapsed ? "px-2" : "px-3"}`}>
           {groups.map((group) => (
             <div key={group.label} className="space-y-1">
-              <button
-                type="button"
-                onClick={() => toggleGroup(group.label)}
-                className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 transition-colors hover:text-foreground"
-              >
-                <span>{group.label}</span>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${isGroupOpen(group.label) ? "" : "-rotate-90"}`}
-                />
-              </button>
-              {isGroupOpen(group.label) && (
+              {collapsed ? (
+                <div className="mx-2 my-1 border-t border-border/60" />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.label)}
+                  className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 transition-colors hover:text-foreground"
+                >
+                  <span>{group.label}</span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${isGroupOpen(group.label) ? "" : "-rotate-90"}`}
+                  />
+                </button>
+              )}
+              {(collapsed || isGroupOpen(group.label)) && (
                 <div className="space-y-1">
-                  {group.items.map((item) => (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        isActive(item.to, item.exact)
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-                      }`}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {item.label}
-                    </Link>
-                  ))}
-                  {group.items.length === 0 && group.emptyLabel && (
+                  {group.items.map((item) =>
+                    collapsed ? (
+                      <Tooltip key={item.to}>
+                        <TooltipTrigger asChild>
+                          <Link
+                            to={item.to}
+                            className={`flex items-center justify-center rounded-lg p-2.5 transition-colors ${
+                              isActive(item.to, item.exact)
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                            }`}
+                          >
+                            <item.icon className="h-5 w-5" />
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">{item.label}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                          isActive(item.to, item.exact)
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                        }`}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        {item.label}
+                      </Link>
+                    ),
+                  )}
+                  {!collapsed && group.items.length === 0 && group.emptyLabel && (
                     <p className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/60">
                       {(() => {
                         const Icon = groupIcon[group.label];
@@ -146,17 +201,38 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           ))}
         </nav>
         <div className="border-t border-border p-3">
-          <div className="flex items-center justify-between gap-2 px-1">
-            <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
-            <button onClick={signOut} className="shrink-0 text-muted-foreground hover:text-destructive" title="Déconnexion">
-              <LogOut className="h-4 w-4" />
+          <button
+            onClick={toggleCollapsed}
+            className={`mb-2 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground ${
+              collapsed ? "justify-center" : ""
+            }`}
+            title={collapsed ? "Déplier le menu" : "Replier le menu"}
+          >
+            {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+            {!collapsed && <span>Replier</span>}
+          </button>
+          {!collapsed ? (
+            <div className="flex items-center justify-between gap-2 px-1">
+              <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
+              <button onClick={signOut} className="shrink-0 text-muted-foreground hover:text-destructive" title="Déconnexion">
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={signOut}
+              className="flex w-full justify-center rounded-lg p-2 text-muted-foreground hover:text-destructive"
+              title="Déconnexion"
+            >
+              <LogOut className="h-5 w-5" />
             </button>
-          </div>
+          )}
         </div>
       </aside>
+      </TooltipProvider>
 
       {/* Main */}
-      <div className="md:pl-60">
+      <div className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : "md:pl-60"}`}>
         {/* Mobile header */}
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2">

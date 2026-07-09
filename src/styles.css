@@ -19,8 +19,8 @@
  */
 
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Syne", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -70,7 +70,7 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.9rem;
 
   /* Brand palette — "De la graine au jardin" */
   --brand-green: oklch(0.661 0.182 140.2); /* #4AAC33 */
@@ -81,8 +81,8 @@
   --brand-brown: oklch(0.504 0.065 52.7); /* #825A41 */
   --brand-bark: oklch(0.388 0.103 40.7); /* #702D12 */
 
-  --background: oklch(0.987 0.008 95);
-  --foreground: oklch(0.32 0.02 60);
+  --background: oklch(0.982 0.010 96);
+  --foreground: oklch(0.28 0.022 62);
   --card: oklch(1 0.002 95);
   --card-foreground: oklch(0.32 0.02 60);
   --popover: oklch(1 0.002 95);
@@ -92,13 +92,13 @@
   --secondary: oklch(0.95 0.035 125);
   --secondary-foreground: oklch(0.38 0.08 140);
   --muted: oklch(0.955 0.018 95);
-  --muted-foreground: oklch(0.52 0.03 70);
+  --muted-foreground: oklch(0.50 0.03 72);
   --accent: oklch(0.720 0.161 56.8);
   --accent-foreground: oklch(0.99 0.01 95);
   --destructive: oklch(0.55 0.2 27);
   --destructive-foreground: oklch(0.98 0.01 95);
-  --border: oklch(0.9 0.018 95);
-  --input: oklch(0.9 0.018 95);
+  --border: oklch(0.915 0.014 96);
+  --input: oklch(0.915 0.014 96);
   --ring: oklch(0.661 0.182 140.2);
   --chart-1: oklch(0.661 0.182 140.2);
   --chart-2: oklch(0.720 0.161 56.8);
@@ -117,7 +117,8 @@
   /* Brand gradients & shadows */
   --gradient-brand: linear-gradient(135deg, var(--brand-green) 0%, var(--brand-yellow) 100%);
   --gradient-earth: linear-gradient(135deg, var(--brand-orange) 0%, var(--brand-brown) 100%);
-  --shadow-elegant: 0 12px 32px -12px color-mix(in oklab, var(--brand-green) 35%, transparent);
+  --shadow-elegant: 0 10px 30px -14px color-mix(in oklab, var(--brand-green) 28%, transparent);
+  --shadow-soft: 0 1px 2px -1px color-mix(in oklab, var(--foreground) 12%, transparent), 0 6px 16px -10px color-mix(in oklab, var(--foreground) 14%, transparent);
 }
 
 .dark {
@@ -180,5 +181,14 @@
 
   h1, h2, h3, .font-serif {
     font-family: var(--font-serif);
+    letter-spacing: -0.01em;
   }
+}
+
+/* Densité compacte pilotée par la personnalisation */
+[data-density="compact"] {
+  font-size: 0.94rem;
+}
+[data-density="compact"] .space-y-5 > * + * {
+  margin-top: 0.85rem;
 }

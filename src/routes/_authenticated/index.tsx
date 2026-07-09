@@ -99,6 +99,40 @@ function Dashboard() {
           />
         </div>
 
+        {/* Actions rapides */}
+        <div className="grid grid-cols-3 gap-3">
+          <Link to="/interventions/new">
+            <Card className="h-full transition-colors hover:border-primary/40 hover:bg-accent/20">
+              <CardContent className="flex flex-col items-center gap-2 py-4 text-center">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium sm:text-sm">Nouveau CR</span>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/fiches/new">
+            <Card className="h-full transition-colors hover:border-primary/40 hover:bg-accent/20">
+              <CardContent className="flex flex-col items-center gap-2 py-4 text-center">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary">
+                  <ClipboardList className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium sm:text-sm">Nouvelle fiche</span>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/clients">
+            <Card className="h-full transition-colors hover:border-primary/40 hover:bg-accent/20">
+              <CardContent className="flex flex-col items-center gap-2 py-4 text-center">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary">
+                  <Users className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium sm:text-sm">Nouveau client</span>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {stats.map((s) => (
             <Link key={s.label} to={s.to} search={"search" in s ? (s.search as never) : undefined}>
