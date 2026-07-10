@@ -34,6 +34,7 @@ import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
+import { Route as AuthenticatedPilotCaRouteImport } from './routes/_authenticated/pilot.ca'
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
 import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './routes/_authenticated/interventions.$interventionId'
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
@@ -172,6 +173,11 @@ const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
   path: '/api/public/email-open',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPilotCaRoute = AuthenticatedPilotCaRouteImport.update({
+  id: '/ca',
+  path: '/ca',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
 const AuthenticatedInterventionsNewRoute =
   AuthenticatedInterventionsNewRouteImport.update({
     id: '/interventions/new',
@@ -244,6 +250,7 @@ export interface FileRoutesByFullPath {
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
@@ -277,6 +284,7 @@ export interface FileRoutesByTo {
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
@@ -313,6 +321,7 @@ export interface FileRoutesById {
   '/_authenticated/fiches/new': typeof AuthenticatedFichesNewRoute
   '/_authenticated/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/_authenticated/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/_authenticated/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
@@ -349,6 +358,7 @@ export interface FileRouteTypes {
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
+    | '/pilot/ca'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients/'
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
+    | '/pilot/ca'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients'
@@ -417,6 +428,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fiches/new'
     | '/_authenticated/interventions/$interventionId'
     | '/_authenticated/interventions/new'
+    | '/_authenticated/pilot/ca'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/_authenticated/clients/'
@@ -621,6 +633,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/pilot/ca': {
+      id: '/_authenticated/pilot/ca'
+      path: '/ca'
+      fullPath: '/pilot/ca'
+      preLoaderRoute: typeof AuthenticatedPilotCaRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/interventions/new': {
       id: '/_authenticated/interventions/new'
       path: '/interventions/new'
@@ -681,10 +700,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedPilotRouteChildren {
+  AuthenticatedPilotCaRoute: typeof AuthenticatedPilotCaRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
 }
 
 const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
+  AuthenticatedPilotCaRoute: AuthenticatedPilotCaRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
 }
 
