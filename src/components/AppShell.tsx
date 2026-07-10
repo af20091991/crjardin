@@ -83,7 +83,13 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       emptyLabel: canEdit ? undefined : "Bientôt disponible",
     },
     { label: "Catalogue Pro", items: [], emptyLabel: "Bientôt disponible" },
-    { label: "Pilot Pro", items: [], emptyLabel: "Bientôt disponible" },
+    {
+      label: "Pilot Pro",
+      items: canEdit
+        ? [{ to: "/pilot", label: "Pilotage", short: "Pilot", icon: Compass, exact: false, primary: false }]
+        : [],
+      emptyLabel: canEdit ? undefined : "Bientôt disponible",
+    },
     {
       label: "Administration",
       items: [
