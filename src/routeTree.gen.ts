@@ -34,6 +34,7 @@ import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
+import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authenticated/pilot.objectifs'
 import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
 import { Route as AuthenticatedPilotCaRouteImport } from './routes/_authenticated/pilot.ca'
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
@@ -174,6 +175,12 @@ const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
   path: '/api/public/email-open',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPilotObjectifsRoute =
+  AuthenticatedPilotObjectifsRouteImport.update({
+    id: '/objectifs',
+    path: '/objectifs',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotClientsRoute =
   AuthenticatedPilotClientsRouteImport.update({
     id: '/clients',
@@ -259,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/pilot/clients': typeof AuthenticatedPilotClientsRoute
+  '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
@@ -294,6 +302,7 @@ export interface FileRoutesByTo {
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/pilot/clients': typeof AuthenticatedPilotClientsRoute
+  '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
@@ -332,6 +341,7 @@ export interface FileRoutesById {
   '/_authenticated/interventions/new': typeof AuthenticatedInterventionsNewRoute
   '/_authenticated/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/_authenticated/pilot/clients': typeof AuthenticatedPilotClientsRoute
+  '/_authenticated/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
@@ -370,6 +380,7 @@ export interface FileRouteTypes {
     | '/interventions/new'
     | '/pilot/ca'
     | '/pilot/clients'
+    | '/pilot/objectifs'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients/'
@@ -405,6 +416,7 @@ export interface FileRouteTypes {
     | '/interventions/new'
     | '/pilot/ca'
     | '/pilot/clients'
+    | '/pilot/objectifs'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients'
@@ -442,6 +454,7 @@ export interface FileRouteTypes {
     | '/_authenticated/interventions/new'
     | '/_authenticated/pilot/ca'
     | '/_authenticated/pilot/clients'
+    | '/_authenticated/pilot/objectifs'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/_authenticated/clients/'
@@ -646,6 +659,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/pilot/objectifs': {
+      id: '/_authenticated/pilot/objectifs'
+      path: '/objectifs'
+      fullPath: '/pilot/objectifs'
+      preLoaderRoute: typeof AuthenticatedPilotObjectifsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/clients': {
       id: '/_authenticated/pilot/clients'
       path: '/clients'
@@ -722,12 +742,14 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotCaRoute: typeof AuthenticatedPilotCaRoute
   AuthenticatedPilotClientsRoute: typeof AuthenticatedPilotClientsRoute
+  AuthenticatedPilotObjectifsRoute: typeof AuthenticatedPilotObjectifsRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
 }
 
 const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotCaRoute: AuthenticatedPilotCaRoute,
   AuthenticatedPilotClientsRoute: AuthenticatedPilotClientsRoute,
+  AuthenticatedPilotObjectifsRoute: AuthenticatedPilotObjectifsRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
 }
 
