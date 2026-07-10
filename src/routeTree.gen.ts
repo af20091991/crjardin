@@ -34,6 +34,7 @@ import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
+import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
 import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authenticated/pilot.objectifs'
 import { Route as AuthenticatedPilotFinanceRouteImport } from './routes/_authenticated/pilot.finance'
 import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
@@ -176,6 +177,12 @@ const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
   path: '/api/public/email-open',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPilotSaisonRoute =
+  AuthenticatedPilotSaisonRouteImport.update({
+    id: '/saison',
+    path: '/saison',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotObjectifsRoute =
   AuthenticatedPilotObjectifsRouteImport.update({
     id: '/objectifs',
@@ -275,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/pilot/clients': typeof AuthenticatedPilotClientsRoute
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
+  '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
@@ -312,6 +320,7 @@ export interface FileRoutesByTo {
   '/pilot/clients': typeof AuthenticatedPilotClientsRoute
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
+  '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
@@ -352,6 +361,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/clients': typeof AuthenticatedPilotClientsRoute
   '/_authenticated/pilot/finance': typeof AuthenticatedPilotFinanceRoute
   '/_authenticated/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
+  '/_authenticated/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/pilot/clients'
     | '/pilot/finance'
     | '/pilot/objectifs'
+    | '/pilot/saison'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients/'
@@ -429,6 +440,7 @@ export interface FileRouteTypes {
     | '/pilot/clients'
     | '/pilot/finance'
     | '/pilot/objectifs'
+    | '/pilot/saison'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients'
@@ -468,6 +480,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/clients'
     | '/_authenticated/pilot/finance'
     | '/_authenticated/pilot/objectifs'
+    | '/_authenticated/pilot/saison'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/_authenticated/clients/'
@@ -672,6 +685,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/pilot/saison': {
+      id: '/_authenticated/pilot/saison'
+      path: '/saison'
+      fullPath: '/pilot/saison'
+      preLoaderRoute: typeof AuthenticatedPilotSaisonRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/objectifs': {
       id: '/_authenticated/pilot/objectifs'
       path: '/objectifs'
@@ -764,6 +784,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotClientsRoute: typeof AuthenticatedPilotClientsRoute
   AuthenticatedPilotFinanceRoute: typeof AuthenticatedPilotFinanceRoute
   AuthenticatedPilotObjectifsRoute: typeof AuthenticatedPilotObjectifsRoute
+  AuthenticatedPilotSaisonRoute: typeof AuthenticatedPilotSaisonRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
 }
 
@@ -772,6 +793,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotClientsRoute: AuthenticatedPilotClientsRoute,
   AuthenticatedPilotFinanceRoute: AuthenticatedPilotFinanceRoute,
   AuthenticatedPilotObjectifsRoute: AuthenticatedPilotObjectifsRoute,
+  AuthenticatedPilotSaisonRoute: AuthenticatedPilotSaisonRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
 }
 
