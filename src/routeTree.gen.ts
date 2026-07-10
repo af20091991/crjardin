@@ -22,16 +22,27 @@ import { Route as AuthenticatedVersionsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
+import { Route as AuthenticatedPilotRouteImport } from './routes/_authenticated/pilot'
 import { Route as AuthenticatedPersonnalisationRouteImport } from './routes/_authenticated/personnalisation'
 import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
 import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
 import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedPilotIndexRouteImport } from './routes/_authenticated/pilot.index'
 import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
+import { Route as AuthenticatedPilotSimulateurRouteImport } from './routes/_authenticated/pilot.simulateur'
+import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
+import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
+import { Route as AuthenticatedPilotRapportsRouteImport } from './routes/_authenticated/pilot.rapports'
+import { Route as AuthenticatedPilotParametresRouteImport } from './routes/_authenticated/pilot.parametres'
+import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authenticated/pilot.objectifs'
+import { Route as AuthenticatedPilotFinanceRouteImport } from './routes/_authenticated/pilot.finance'
+import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
+import { Route as AuthenticatedPilotCaRouteImport } from './routes/_authenticated/pilot.ca'
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
 import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './routes/_authenticated/interventions.$interventionId'
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
@@ -106,6 +117,11 @@ const AuthenticatedPlanningRoute = AuthenticatedPlanningRouteImport.update({
   path: '/planning',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPilotRoute = AuthenticatedPilotRouteImport.update({
+  id: '/pilot',
+  path: '/pilot',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPersonnalisationRoute =
   AuthenticatedPersonnalisationRouteImport.update({
     id: '/personnalisation',
@@ -131,6 +147,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPilotIndexRoute = AuthenticatedPilotIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
 const AuthenticatedInterventionsIndexRoute =
   AuthenticatedInterventionsIndexRouteImport.update({
@@ -159,6 +180,58 @@ const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
   id: '/api/public/email-open',
   path: '/api/public/email-open',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedPilotSimulateurRoute =
+  AuthenticatedPilotSimulateurRouteImport.update({
+    id: '/simulateur',
+    path: '/simulateur',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotSanteRoute = AuthenticatedPilotSanteRouteImport.update({
+  id: '/sante',
+  path: '/sante',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
+const AuthenticatedPilotSaisonRoute =
+  AuthenticatedPilotSaisonRouteImport.update({
+    id: '/saison',
+    path: '/saison',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotRapportsRoute =
+  AuthenticatedPilotRapportsRouteImport.update({
+    id: '/rapports',
+    path: '/rapports',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotParametresRoute =
+  AuthenticatedPilotParametresRouteImport.update({
+    id: '/parametres',
+    path: '/parametres',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotObjectifsRoute =
+  AuthenticatedPilotObjectifsRouteImport.update({
+    id: '/objectifs',
+    path: '/objectifs',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotFinanceRoute =
+  AuthenticatedPilotFinanceRouteImport.update({
+    id: '/finance',
+    path: '/finance',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotClientsRoute =
+  AuthenticatedPilotClientsRouteImport.update({
+    id: '/clients',
+    path: '/clients',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotCaRoute = AuthenticatedPilotCaRouteImport.update({
+  id: '/ca',
+  path: '/ca',
+  getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
 const AuthenticatedInterventionsNewRoute =
   AuthenticatedInterventionsNewRouteImport.update({
@@ -220,6 +293,7 @@ export interface FileRoutesByFullPath {
   '/emails': typeof AuthenticatedEmailsRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
+  '/pilot': typeof AuthenticatedPilotRouteWithChildren
   '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
@@ -231,11 +305,21 @@ export interface FileRoutesByFullPath {
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/pilot/ca': typeof AuthenticatedPilotCaRoute
+  '/pilot/clients': typeof AuthenticatedPilotClientsRoute
+  '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
+  '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
+  '/pilot/parametres': typeof AuthenticatedPilotParametresRoute
+  '/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
+  '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
+  '/pilot/sante': typeof AuthenticatedPilotSanteRoute
+  '/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/fiches/': typeof AuthenticatedFichesIndexRoute
   '/interventions/': typeof AuthenticatedInterventionsIndexRoute
+  '/pilot/': typeof AuthenticatedPilotIndexRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -263,11 +347,21 @@ export interface FileRoutesByTo {
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/pilot/ca': typeof AuthenticatedPilotCaRoute
+  '/pilot/clients': typeof AuthenticatedPilotClientsRoute
+  '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
+  '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
+  '/pilot/parametres': typeof AuthenticatedPilotParametresRoute
+  '/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
+  '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
+  '/pilot/sante': typeof AuthenticatedPilotSanteRoute
+  '/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/fiches': typeof AuthenticatedFichesIndexRoute
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
+  '/pilot': typeof AuthenticatedPilotIndexRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -285,6 +379,7 @@ export interface FileRoutesById {
   '/_authenticated/emails': typeof AuthenticatedEmailsRoute
   '/_authenticated/modeles': typeof AuthenticatedModelesRoute
   '/_authenticated/personnalisation': typeof AuthenticatedPersonnalisationRoute
+  '/_authenticated/pilot': typeof AuthenticatedPilotRouteWithChildren
   '/_authenticated/planning': typeof AuthenticatedPlanningRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/statistiques': typeof AuthenticatedStatistiquesRoute
@@ -297,11 +392,21 @@ export interface FileRoutesById {
   '/_authenticated/fiches/new': typeof AuthenticatedFichesNewRoute
   '/_authenticated/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/_authenticated/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/_authenticated/pilot/ca': typeof AuthenticatedPilotCaRoute
+  '/_authenticated/pilot/clients': typeof AuthenticatedPilotClientsRoute
+  '/_authenticated/pilot/finance': typeof AuthenticatedPilotFinanceRoute
+  '/_authenticated/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
+  '/_authenticated/pilot/parametres': typeof AuthenticatedPilotParametresRoute
+  '/_authenticated/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
+  '/_authenticated/pilot/saison': typeof AuthenticatedPilotSaisonRoute
+  '/_authenticated/pilot/sante': typeof AuthenticatedPilotSanteRoute
+  '/_authenticated/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/fiches/': typeof AuthenticatedFichesIndexRoute
   '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
+  '/_authenticated/pilot/': typeof AuthenticatedPilotIndexRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -320,6 +425,7 @@ export interface FileRouteTypes {
     | '/emails'
     | '/modeles'
     | '/personnalisation'
+    | '/pilot'
     | '/planning'
     | '/settings'
     | '/statistiques'
@@ -331,11 +437,21 @@ export interface FileRouteTypes {
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
+    | '/pilot/ca'
+    | '/pilot/clients'
+    | '/pilot/finance'
+    | '/pilot/objectifs'
+    | '/pilot/parametres'
+    | '/pilot/rapports'
+    | '/pilot/saison'
+    | '/pilot/sante'
+    | '/pilot/simulateur'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients/'
     | '/fiches/'
     | '/interventions/'
+    | '/pilot/'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -363,11 +479,21 @@ export interface FileRouteTypes {
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
+    | '/pilot/ca'
+    | '/pilot/clients'
+    | '/pilot/finance'
+    | '/pilot/objectifs'
+    | '/pilot/parametres'
+    | '/pilot/rapports'
+    | '/pilot/saison'
+    | '/pilot/sante'
+    | '/pilot/simulateur'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients'
     | '/fiches'
     | '/interventions'
+    | '/pilot'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -384,6 +510,7 @@ export interface FileRouteTypes {
     | '/_authenticated/emails'
     | '/_authenticated/modeles'
     | '/_authenticated/personnalisation'
+    | '/_authenticated/pilot'
     | '/_authenticated/planning'
     | '/_authenticated/settings'
     | '/_authenticated/statistiques'
@@ -396,11 +523,21 @@ export interface FileRouteTypes {
     | '/_authenticated/fiches/new'
     | '/_authenticated/interventions/$interventionId'
     | '/_authenticated/interventions/new'
+    | '/_authenticated/pilot/ca'
+    | '/_authenticated/pilot/clients'
+    | '/_authenticated/pilot/finance'
+    | '/_authenticated/pilot/objectifs'
+    | '/_authenticated/pilot/parametres'
+    | '/_authenticated/pilot/rapports'
+    | '/_authenticated/pilot/saison'
+    | '/_authenticated/pilot/sante'
+    | '/_authenticated/pilot/simulateur'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/_authenticated/clients/'
     | '/_authenticated/fiches/'
     | '/_authenticated/interventions/'
+    | '/_authenticated/pilot/'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -515,6 +652,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlanningRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pilot': {
+      id: '/_authenticated/pilot'
+      path: '/pilot'
+      fullPath: '/pilot'
+      preLoaderRoute: typeof AuthenticatedPilotRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/personnalisation': {
       id: '/_authenticated/personnalisation'
       path: '/personnalisation'
@@ -550,6 +694,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pilot/': {
+      id: '/_authenticated/pilot/'
+      path: '/'
+      fullPath: '/pilot/'
+      preLoaderRoute: typeof AuthenticatedPilotIndexRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/interventions/': {
       id: '/_authenticated/interventions/'
       path: '/interventions'
@@ -584,6 +735,69 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/email-open'
       preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/pilot/simulateur': {
+      id: '/_authenticated/pilot/simulateur'
+      path: '/simulateur'
+      fullPath: '/pilot/simulateur'
+      preLoaderRoute: typeof AuthenticatedPilotSimulateurRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/sante': {
+      id: '/_authenticated/pilot/sante'
+      path: '/sante'
+      fullPath: '/pilot/sante'
+      preLoaderRoute: typeof AuthenticatedPilotSanteRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/saison': {
+      id: '/_authenticated/pilot/saison'
+      path: '/saison'
+      fullPath: '/pilot/saison'
+      preLoaderRoute: typeof AuthenticatedPilotSaisonRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/rapports': {
+      id: '/_authenticated/pilot/rapports'
+      path: '/rapports'
+      fullPath: '/pilot/rapports'
+      preLoaderRoute: typeof AuthenticatedPilotRapportsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/parametres': {
+      id: '/_authenticated/pilot/parametres'
+      path: '/parametres'
+      fullPath: '/pilot/parametres'
+      preLoaderRoute: typeof AuthenticatedPilotParametresRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/objectifs': {
+      id: '/_authenticated/pilot/objectifs'
+      path: '/objectifs'
+      fullPath: '/pilot/objectifs'
+      preLoaderRoute: typeof AuthenticatedPilotObjectifsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/finance': {
+      id: '/_authenticated/pilot/finance'
+      path: '/finance'
+      fullPath: '/pilot/finance'
+      preLoaderRoute: typeof AuthenticatedPilotFinanceRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/clients': {
+      id: '/_authenticated/pilot/clients'
+      path: '/clients'
+      fullPath: '/pilot/clients'
+      preLoaderRoute: typeof AuthenticatedPilotClientsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/ca': {
+      id: '/_authenticated/pilot/ca'
+      path: '/ca'
+      fullPath: '/pilot/ca'
+      preLoaderRoute: typeof AuthenticatedPilotCaRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
     }
     '/_authenticated/interventions/new': {
       id: '/_authenticated/interventions/new'
@@ -644,12 +858,42 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedPilotRouteChildren {
+  AuthenticatedPilotCaRoute: typeof AuthenticatedPilotCaRoute
+  AuthenticatedPilotClientsRoute: typeof AuthenticatedPilotClientsRoute
+  AuthenticatedPilotFinanceRoute: typeof AuthenticatedPilotFinanceRoute
+  AuthenticatedPilotObjectifsRoute: typeof AuthenticatedPilotObjectifsRoute
+  AuthenticatedPilotParametresRoute: typeof AuthenticatedPilotParametresRoute
+  AuthenticatedPilotRapportsRoute: typeof AuthenticatedPilotRapportsRoute
+  AuthenticatedPilotSaisonRoute: typeof AuthenticatedPilotSaisonRoute
+  AuthenticatedPilotSanteRoute: typeof AuthenticatedPilotSanteRoute
+  AuthenticatedPilotSimulateurRoute: typeof AuthenticatedPilotSimulateurRoute
+  AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
+}
+
+const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
+  AuthenticatedPilotCaRoute: AuthenticatedPilotCaRoute,
+  AuthenticatedPilotClientsRoute: AuthenticatedPilotClientsRoute,
+  AuthenticatedPilotFinanceRoute: AuthenticatedPilotFinanceRoute,
+  AuthenticatedPilotObjectifsRoute: AuthenticatedPilotObjectifsRoute,
+  AuthenticatedPilotParametresRoute: AuthenticatedPilotParametresRoute,
+  AuthenticatedPilotRapportsRoute: AuthenticatedPilotRapportsRoute,
+  AuthenticatedPilotSaisonRoute: AuthenticatedPilotSaisonRoute,
+  AuthenticatedPilotSanteRoute: AuthenticatedPilotSanteRoute,
+  AuthenticatedPilotSimulateurRoute: AuthenticatedPilotSimulateurRoute,
+  AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
+}
+
+const AuthenticatedPilotRouteWithChildren =
+  AuthenticatedPilotRoute._addFileChildren(AuthenticatedPilotRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBackendRoute: typeof AuthenticatedBackendRoute
   AuthenticatedEmailsRoute: typeof AuthenticatedEmailsRoute
   AuthenticatedModelesRoute: typeof AuthenticatedModelesRoute
   AuthenticatedPersonnalisationRoute: typeof AuthenticatedPersonnalisationRoute
+  AuthenticatedPilotRoute: typeof AuthenticatedPilotRouteWithChildren
   AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStatistiquesRoute: typeof AuthenticatedStatistiquesRoute
@@ -671,6 +915,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEmailsRoute: AuthenticatedEmailsRoute,
   AuthenticatedModelesRoute: AuthenticatedModelesRoute,
   AuthenticatedPersonnalisationRoute: AuthenticatedPersonnalisationRoute,
+  AuthenticatedPilotRoute: AuthenticatedPilotRouteWithChildren,
   AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStatistiquesRoute: AuthenticatedStatistiquesRoute,
@@ -708,13 +953,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
