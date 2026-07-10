@@ -37,6 +37,7 @@ import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/emai
 import { Route as AuthenticatedPilotSimulateurRouteImport } from './routes/_authenticated/pilot.simulateur'
 import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
 import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
+import { Route as AuthenticatedPilotParametresRouteImport } from './routes/_authenticated/pilot.parametres'
 import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authenticated/pilot.objectifs'
 import { Route as AuthenticatedPilotFinanceRouteImport } from './routes/_authenticated/pilot.finance'
 import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
@@ -196,6 +197,12 @@ const AuthenticatedPilotSaisonRoute =
     path: '/saison',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedPilotParametresRoute =
+  AuthenticatedPilotParametresRouteImport.update({
+    id: '/parametres',
+    path: '/parametres',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotObjectifsRoute =
   AuthenticatedPilotObjectifsRouteImport.update({
     id: '/objectifs',
@@ -295,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/pilot/clients': typeof AuthenticatedPilotClientsRoute
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
+  '/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
@@ -335,6 +343,7 @@ export interface FileRoutesByTo {
   '/pilot/clients': typeof AuthenticatedPilotClientsRoute
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
+  '/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
@@ -378,6 +387,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/clients': typeof AuthenticatedPilotClientsRoute
   '/_authenticated/pilot/finance': typeof AuthenticatedPilotFinanceRoute
   '/_authenticated/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
+  '/_authenticated/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/_authenticated/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/_authenticated/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/_authenticated/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
@@ -421,6 +431,7 @@ export interface FileRouteTypes {
     | '/pilot/clients'
     | '/pilot/finance'
     | '/pilot/objectifs'
+    | '/pilot/parametres'
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulateur'
@@ -461,6 +472,7 @@ export interface FileRouteTypes {
     | '/pilot/clients'
     | '/pilot/finance'
     | '/pilot/objectifs'
+    | '/pilot/parametres'
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulateur'
@@ -503,6 +515,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/clients'
     | '/_authenticated/pilot/finance'
     | '/_authenticated/pilot/objectifs'
+    | '/_authenticated/pilot/parametres'
     | '/_authenticated/pilot/saison'
     | '/_authenticated/pilot/sante'
     | '/_authenticated/pilot/simulateur'
@@ -731,6 +744,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotSaisonRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/parametres': {
+      id: '/_authenticated/pilot/parametres'
+      path: '/parametres'
+      fullPath: '/pilot/parametres'
+      preLoaderRoute: typeof AuthenticatedPilotParametresRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/objectifs': {
       id: '/_authenticated/pilot/objectifs'
       path: '/objectifs'
@@ -823,6 +843,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotClientsRoute: typeof AuthenticatedPilotClientsRoute
   AuthenticatedPilotFinanceRoute: typeof AuthenticatedPilotFinanceRoute
   AuthenticatedPilotObjectifsRoute: typeof AuthenticatedPilotObjectifsRoute
+  AuthenticatedPilotParametresRoute: typeof AuthenticatedPilotParametresRoute
   AuthenticatedPilotSaisonRoute: typeof AuthenticatedPilotSaisonRoute
   AuthenticatedPilotSanteRoute: typeof AuthenticatedPilotSanteRoute
   AuthenticatedPilotSimulateurRoute: typeof AuthenticatedPilotSimulateurRoute
@@ -834,6 +855,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotClientsRoute: AuthenticatedPilotClientsRoute,
   AuthenticatedPilotFinanceRoute: AuthenticatedPilotFinanceRoute,
   AuthenticatedPilotObjectifsRoute: AuthenticatedPilotObjectifsRoute,
+  AuthenticatedPilotParametresRoute: AuthenticatedPilotParametresRoute,
   AuthenticatedPilotSaisonRoute: AuthenticatedPilotSaisonRoute,
   AuthenticatedPilotSanteRoute: AuthenticatedPilotSanteRoute,
   AuthenticatedPilotSimulateurRoute: AuthenticatedPilotSimulateurRoute,
