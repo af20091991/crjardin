@@ -35,6 +35,7 @@ import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authent
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
 import { Route as AuthenticatedPilotSimulateurRouteImport } from './routes/_authenticated/pilot.simulateur'
+import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
 import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
 import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authenticated/pilot.objectifs'
 import { Route as AuthenticatedPilotFinanceRouteImport } from './routes/_authenticated/pilot.finance'
@@ -184,6 +185,11 @@ const AuthenticatedPilotSimulateurRoute =
     path: '/simulateur',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedPilotSanteRoute = AuthenticatedPilotSanteRouteImport.update({
+  id: '/sante',
+  path: '/sante',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
 const AuthenticatedPilotSaisonRoute =
   AuthenticatedPilotSaisonRouteImport.update({
     id: '/saison',
@@ -290,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
+  '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -329,6 +336,7 @@ export interface FileRoutesByTo {
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
+  '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -371,6 +379,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/finance': typeof AuthenticatedPilotFinanceRoute
   '/_authenticated/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/_authenticated/pilot/saison': typeof AuthenticatedPilotSaisonRoute
+  '/_authenticated/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/_authenticated/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -413,6 +422,7 @@ export interface FileRouteTypes {
     | '/pilot/finance'
     | '/pilot/objectifs'
     | '/pilot/saison'
+    | '/pilot/sante'
     | '/pilot/simulateur'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
@@ -452,6 +462,7 @@ export interface FileRouteTypes {
     | '/pilot/finance'
     | '/pilot/objectifs'
     | '/pilot/saison'
+    | '/pilot/sante'
     | '/pilot/simulateur'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
@@ -493,6 +504,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/finance'
     | '/_authenticated/pilot/objectifs'
     | '/_authenticated/pilot/saison'
+    | '/_authenticated/pilot/sante'
     | '/_authenticated/pilot/simulateur'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
@@ -705,6 +717,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotSimulateurRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/sante': {
+      id: '/_authenticated/pilot/sante'
+      path: '/sante'
+      fullPath: '/pilot/sante'
+      preLoaderRoute: typeof AuthenticatedPilotSanteRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/saison': {
       id: '/_authenticated/pilot/saison'
       path: '/saison'
@@ -805,6 +824,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotFinanceRoute: typeof AuthenticatedPilotFinanceRoute
   AuthenticatedPilotObjectifsRoute: typeof AuthenticatedPilotObjectifsRoute
   AuthenticatedPilotSaisonRoute: typeof AuthenticatedPilotSaisonRoute
+  AuthenticatedPilotSanteRoute: typeof AuthenticatedPilotSanteRoute
   AuthenticatedPilotSimulateurRoute: typeof AuthenticatedPilotSimulateurRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
 }
@@ -815,6 +835,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotFinanceRoute: AuthenticatedPilotFinanceRoute,
   AuthenticatedPilotObjectifsRoute: AuthenticatedPilotObjectifsRoute,
   AuthenticatedPilotSaisonRoute: AuthenticatedPilotSaisonRoute,
+  AuthenticatedPilotSanteRoute: AuthenticatedPilotSanteRoute,
   AuthenticatedPilotSimulateurRoute: AuthenticatedPilotSimulateurRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
 }
