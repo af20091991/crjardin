@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_authenticated/pilot")({
 
 const TABS = [
   { to: "/pilot", label: "Direction", icon: LayoutDashboard, exact: true },
-  { to: "/pilot/ca", label: "Suivi du CA", icon: Euro, exact: false },
+  { to: "/pilot/ca", label: "CA 2026", icon: Euro, exact: false },
   { to: "/pilot/clients", label: "Clients", icon: Users, exact: false },
   { to: "/pilot/objectifs", label: "Objectifs", icon: Target, exact: false },
   { to: "/pilot/finance", label: "Finance", icon: Calculator, exact: false },
