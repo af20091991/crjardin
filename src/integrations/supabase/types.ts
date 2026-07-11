@@ -584,6 +584,51 @@ export type Database = {
         }
         Relationships: []
       }
+      pilot_ca_entries: {
+        Row: {
+          amount_ht: number
+          created_at: string
+          designation: string | null
+          hours: number | null
+          id: string
+          is_fixed: boolean
+          kind: string
+          month: number
+          position: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          amount_ht?: number
+          created_at?: string
+          designation?: string | null
+          hours?: number | null
+          id?: string
+          is_fixed?: boolean
+          kind: string
+          month: number
+          position?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          amount_ht?: number
+          created_at?: string
+          designation?: string | null
+          hours?: number | null
+          id?: string
+          is_fixed?: boolean
+          kind?: string
+          month?: number
+          position?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       pilot_charges: {
         Row: {
           amount: number
