@@ -191,17 +191,26 @@ function CaPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Désignation</TableHead>
+                    <TableHead className="w-32">Type</TableHead>
                     <TableHead className="w-36 text-right">Montant HT</TableHead>
                     <TableHead className="w-24 text-right">Temps</TableHead>
                     <TableHead className="w-10" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ventes.length === 0 && <TableRow><TableCell colSpan={4} className="py-6 text-center text-sm text-muted-foreground">Aucune vente — ajoutez une ligne</TableCell></TableRow>}
+                  {ventes.length === 0 && <TableRow><TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">Aucune vente — ajoutez une ligne</TableCell></TableRow>}
                   {ventes.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell>
                         <Input defaultValue={row.designation ?? ""} placeholder="Désignation" className="h-8 border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
+                      </TableCell>
+                      <TableCell>
+                        <Select value={row.category ?? "AP"} onValueChange={(v) => save(row.id, { category: v as CaCategory })}>
+                          <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {CA_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell className="text-right">
                         <Input defaultValue={row.amount_ht || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }} />
@@ -221,6 +230,15 @@ function CaPage() {
                   <span className="font-semibold text-emerald-600">{formatEuro(mt.ventesHt)}</span>
                 </div>
               </div>
+              {catTotals.length > 0 && (
+                <div className="flex flex-wrap gap-2 border-t px-4 py-2.5">
+                  {catTotals.map((c) => (
+                    <Badge key={c.category} variant="secondary" className="gap-1 font-normal">
+                      {c.category} · {formatEuro(c.ht)}{c.hours ? ` · ${c.hours} h` : ""}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
