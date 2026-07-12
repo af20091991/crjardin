@@ -144,6 +144,23 @@ export function yearTotals(entries: CaEntry[]): YearTotals {
   };
 }
 
+// ---------- Répartition des ventes par type de chantier ----------
+export type CategoryTotal = { category: CaCategory; ht: number; hours: number };
+
+export function categoryTotals(entries: CaEntry[], month?: number): CategoryTotal[] {
+  const ventes = entries.filter(
+    (e) => e.kind === "vente" && (month == null || e.month === month),
+  );
+  return CA_CATEGORIES.map((category) => {
+    const rows = ventes.filter((e) => (e.category ?? "Autre") === category);
+    return {
+      category,
+      ht: rows.reduce((s, e) => s + (e.amount_ht || 0), 0),
+      hours: rows.reduce((s, e) => s + (e.hours || 0), 0),
+    };
+  }).filter((c) => c.ht > 0 || c.hours > 0);
+}
+
 // ---------- Calculateurs (convertisseurs du tableur) ----------
 export function calcHtToTtc(ht: number) {
   return { ttc: ht * (1 + TVA_RATE), tva: ht * TVA_RATE };
