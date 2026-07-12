@@ -8,6 +8,16 @@ async function uid(): Promise<string> {
 
 export type CaKind = "vente" | "charge" | "remuneration";
 
+export type CaCategory = "AP" | "SAP" | "CEEV" | "Conseil" | "Autre";
+export const CA_CATEGORIES: CaCategory[] = ["AP", "SAP", "CEEV", "Conseil", "Autre"];
+export const CATEGORY_LABELS: Record<CaCategory, string> = {
+  AP: "AP",
+  SAP: "SAP",
+  CEEV: "CEEV",
+  Conseil: "Conseil",
+  Autre: "Autre",
+};
+
 export interface CaEntry {
   id: string;
   user_id: string;
@@ -15,6 +25,7 @@ export interface CaEntry {
   month: number; // 1-12
   kind: CaKind;
   designation: string | null;
+  category: CaCategory | null;
   amount_ht: number;
   hours: number | null;
   is_fixed: boolean;
@@ -28,6 +39,7 @@ export type CaEntryInput = {
   month: number;
   kind: CaKind;
   designation?: string | null;
+  category?: CaCategory | null;
   amount_ht?: number;
   hours?: number | null;
   is_fixed?: boolean;
