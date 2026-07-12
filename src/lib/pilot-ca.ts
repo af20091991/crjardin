@@ -8,6 +8,16 @@ async function uid(): Promise<string> {
 
 export type CaKind = "vente" | "charge" | "remuneration";
 
+export type CaCategory = "AP" | "SAP" | "CEEV" | "Conseil" | "Autre";
+export const CA_CATEGORIES: CaCategory[] = ["AP", "SAP", "CEEV", "Conseil", "Autre"];
+export const CATEGORY_LABELS: Record<CaCategory, string> = {
+  AP: "AP",
+  SAP: "SAP",
+  CEEV: "CEEV",
+  Conseil: "Conseil",
+  Autre: "Autre",
+};
+
 export interface CaEntry {
   id: string;
   user_id: string;
@@ -15,6 +25,7 @@ export interface CaEntry {
   month: number; // 1-12
   kind: CaKind;
   designation: string | null;
+  category: CaCategory | null;
   amount_ht: number;
   hours: number | null;
   is_fixed: boolean;
@@ -28,6 +39,7 @@ export type CaEntryInput = {
   month: number;
   kind: CaKind;
   designation?: string | null;
+  category?: CaCategory | null;
   amount_ht?: number;
   hours?: number | null;
   is_fixed?: boolean;
@@ -130,6 +142,23 @@ export function yearTotals(entries: CaEntry[]): YearTotals {
     hours: months.reduce((s, m) => s + m.hours, 0),
     months,
   };
+}
+
+// ---------- Répartition des ventes par type de chantier ----------
+export type CategoryTotal = { category: CaCategory; ht: number; hours: number };
+
+export function categoryTotals(entries: CaEntry[], month?: number): CategoryTotal[] {
+  const ventes = entries.filter(
+    (e) => e.kind === "vente" && (month == null || e.month === month),
+  );
+  return CA_CATEGORIES.map((category) => {
+    const rows = ventes.filter((e) => (e.category ?? "Autre") === category);
+    return {
+      category,
+      ht: rows.reduce((s, e) => s + (e.amount_ht || 0), 0),
+      hours: rows.reduce((s, e) => s + (e.hours || 0), 0),
+    };
+  }).filter((c) => c.ht > 0 || c.hours > 0);
 }
 
 // ---------- Calculateurs (convertisseurs du tableur) ----------

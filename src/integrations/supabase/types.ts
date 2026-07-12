@@ -587,6 +587,7 @@ export type Database = {
       pilot_ca_entries: {
         Row: {
           amount_ht: number
+          category: string | null
           created_at: string
           designation: string | null
           hours: number | null
@@ -601,6 +602,7 @@ export type Database = {
         }
         Insert: {
           amount_ht?: number
+          category?: string | null
           created_at?: string
           designation?: string | null
           hours?: number | null
@@ -615,6 +617,7 @@ export type Database = {
         }
         Update: {
           amount_ht?: number
+          category?: string | null
           created_at?: string
           designation?: string | null
           hours?: number | null
