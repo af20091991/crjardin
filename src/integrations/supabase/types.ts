@@ -727,6 +727,51 @@ export type Database = {
           },
         ]
       }
+      pilot_goals: {
+        Row: {
+          comment: string | null
+          completed_date: string | null
+          created_at: string
+          deadline: string | null
+          id: string
+          position: number
+          priority: string
+          status: string
+          theme: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          completed_date?: string | null
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          position?: number
+          priority?: string
+          status?: string
+          theme: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          completed_date?: string | null
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          position?: number
+          priority?: string
+          status?: string
+          theme?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pilot_objectives: {
         Row: {
           client_id: string | null
