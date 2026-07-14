@@ -772,6 +772,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pilot_hours: {
+        Row: {
+          created_at: string
+          id: string
+          jours_travailles: number | null
+          month: number
+          temps_terrain: number | null
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          jours_travailles?: number | null
+          month: number
+          temps_terrain?: number | null
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          jours_travailles?: number | null
+          month?: number
+          temps_terrain?: number | null
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       pilot_objectives: {
         Row: {
           client_id: string | null
@@ -846,6 +879,63 @@ export type Database = {
           updated_at?: string
           user_id?: string
           weekly_hours?: number
+        }
+        Relationships: []
+      }
+      pilot_tjm_settings: {
+        Row: {
+          bureau: number
+          charges_fixes: number
+          charges_variables: number
+          conges: number
+          created_at: string
+          feries: number
+          heures_gestion: number
+          heures_jour: number
+          id: string
+          jours_off: number
+          meteo: number
+          objectif_remuneration: number
+          revenus_bruts: number
+          updated_at: string
+          user_id: string
+          weekend: number
+        }
+        Insert: {
+          bureau?: number
+          charges_fixes?: number
+          charges_variables?: number
+          conges?: number
+          created_at?: string
+          feries?: number
+          heures_gestion?: number
+          heures_jour?: number
+          id?: string
+          jours_off?: number
+          meteo?: number
+          objectif_remuneration?: number
+          revenus_bruts?: number
+          updated_at?: string
+          user_id: string
+          weekend?: number
+        }
+        Update: {
+          bureau?: number
+          charges_fixes?: number
+          charges_variables?: number
+          conges?: number
+          created_at?: string
+          feries?: number
+          heures_gestion?: number
+          heures_jour?: number
+          id?: string
+          jours_off?: number
+          meteo?: number
+          objectif_remuneration?: number
+          revenus_bruts?: number
+          updated_at?: string
+          user_id?: string
+          weekend?: number
         }
         Relationships: []
       }

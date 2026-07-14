@@ -34,6 +34,7 @@ import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
+import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
 import { Route as AuthenticatedPilotSimulateurRouteImport } from './routes/_authenticated/pilot.simulateur'
 import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
 import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
@@ -181,6 +182,11 @@ const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
   path: '/api/public/email-open',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPilotTauxRoute = AuthenticatedPilotTauxRouteImport.update({
+  id: '/taux',
+  path: '/taux',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
 const AuthenticatedPilotSimulateurRoute =
   AuthenticatedPilotSimulateurRouteImport.update({
     id: '/simulateur',
@@ -314,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
+  '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
@@ -356,6 +363,7 @@ export interface FileRoutesByTo {
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
+  '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
@@ -401,6 +409,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/_authenticated/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/_authenticated/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
+  '/_authenticated/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
@@ -446,6 +455,7 @@ export interface FileRouteTypes {
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulateur'
+    | '/pilot/taux'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients/'
@@ -488,6 +498,7 @@ export interface FileRouteTypes {
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulateur'
+    | '/pilot/taux'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/clients'
@@ -532,6 +543,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/saison'
     | '/_authenticated/pilot/sante'
     | '/_authenticated/pilot/simulateur'
+    | '/_authenticated/pilot/taux'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
     | '/_authenticated/clients/'
@@ -736,6 +748,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/pilot/taux': {
+      id: '/_authenticated/pilot/taux'
+      path: '/taux'
+      fullPath: '/pilot/taux'
+      preLoaderRoute: typeof AuthenticatedPilotTauxRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/simulateur': {
       id: '/_authenticated/pilot/simulateur'
       path: '/simulateur'
@@ -868,6 +887,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotSaisonRoute: typeof AuthenticatedPilotSaisonRoute
   AuthenticatedPilotSanteRoute: typeof AuthenticatedPilotSanteRoute
   AuthenticatedPilotSimulateurRoute: typeof AuthenticatedPilotSimulateurRoute
+  AuthenticatedPilotTauxRoute: typeof AuthenticatedPilotTauxRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
 }
 
@@ -881,6 +901,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotSaisonRoute: AuthenticatedPilotSaisonRoute,
   AuthenticatedPilotSanteRoute: AuthenticatedPilotSanteRoute,
   AuthenticatedPilotSimulateurRoute: AuthenticatedPilotSimulateurRoute,
+  AuthenticatedPilotTauxRoute: AuthenticatedPilotTauxRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
 }
 
@@ -953,13 +974,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
