@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-r
 import { AppShell } from "@/components/AppShell";
 import {
   LayoutDashboard, Euro, Users, Target, Calculator, CalendarRange,
-  SlidersHorizontal, HeartPulse, FileBarChart, Settings2, Clock,
+  SlidersHorizontal, HeartPulse, FileBarChart, Settings2, Clock, BarChart3,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot")({
@@ -20,6 +20,7 @@ const TABS = [
   { to: "/pilot/saison", label: "Saisonnalité", icon: CalendarRange, exact: false },
   { to: "/pilot/simulateur", label: "Simulateur", icon: SlidersHorizontal, exact: false },
   { to: "/pilot/sante", label: "Santé", icon: HeartPulse, exact: false },
+  { to: "/pilot/benchmark", label: "Benchmark & SMART", icon: BarChart3, exact: false },
   { to: "/pilot/rapports", label: "Rapports", icon: FileBarChart, exact: false },
   { to: "/pilot/parametres", label: "Paramètres", icon: Settings2, exact: false },
 ] as const;

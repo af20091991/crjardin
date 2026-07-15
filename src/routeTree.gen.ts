@@ -44,6 +44,7 @@ import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authe
 import { Route as AuthenticatedPilotFinanceRouteImport } from './routes/_authenticated/pilot.finance'
 import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
 import { Route as AuthenticatedPilotCaRouteImport } from './routes/_authenticated/pilot.ca'
+import { Route as AuthenticatedPilotBenchmarkRouteImport } from './routes/_authenticated/pilot.benchmark'
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
 import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './routes/_authenticated/interventions.$interventionId'
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
@@ -239,6 +240,12 @@ const AuthenticatedPilotCaRoute = AuthenticatedPilotCaRouteImport.update({
   path: '/ca',
   getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
+const AuthenticatedPilotBenchmarkRoute =
+  AuthenticatedPilotBenchmarkRouteImport.update({
+    id: '/benchmark',
+    path: '/benchmark',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedInterventionsNewRoute =
   AuthenticatedInterventionsNewRouteImport.update({
     id: '/interventions/new',
@@ -311,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/pilot/clients': typeof AuthenticatedPilotClientsRoute
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
@@ -354,6 +362,7 @@ export interface FileRoutesByTo {
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/pilot/clients': typeof AuthenticatedPilotClientsRoute
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
@@ -400,6 +409,7 @@ export interface FileRoutesById {
   '/_authenticated/fiches/new': typeof AuthenticatedFichesNewRoute
   '/_authenticated/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/_authenticated/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/_authenticated/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/_authenticated/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/_authenticated/pilot/clients': typeof AuthenticatedPilotClientsRoute
   '/_authenticated/pilot/finance': typeof AuthenticatedPilotFinanceRoute
@@ -446,6 +456,7 @@ export interface FileRouteTypes {
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
+    | '/pilot/benchmark'
     | '/pilot/ca'
     | '/pilot/clients'
     | '/pilot/finance'
@@ -489,6 +500,7 @@ export interface FileRouteTypes {
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
+    | '/pilot/benchmark'
     | '/pilot/ca'
     | '/pilot/clients'
     | '/pilot/finance'
@@ -534,6 +546,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fiches/new'
     | '/_authenticated/interventions/$interventionId'
     | '/_authenticated/interventions/new'
+    | '/_authenticated/pilot/benchmark'
     | '/_authenticated/pilot/ca'
     | '/_authenticated/pilot/clients'
     | '/_authenticated/pilot/finance'
@@ -818,6 +831,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotCaRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/benchmark': {
+      id: '/_authenticated/pilot/benchmark'
+      path: '/benchmark'
+      fullPath: '/pilot/benchmark'
+      preLoaderRoute: typeof AuthenticatedPilotBenchmarkRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/interventions/new': {
       id: '/_authenticated/interventions/new'
       path: '/interventions/new'
@@ -878,6 +898,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedPilotRouteChildren {
+  AuthenticatedPilotBenchmarkRoute: typeof AuthenticatedPilotBenchmarkRoute
   AuthenticatedPilotCaRoute: typeof AuthenticatedPilotCaRoute
   AuthenticatedPilotClientsRoute: typeof AuthenticatedPilotClientsRoute
   AuthenticatedPilotFinanceRoute: typeof AuthenticatedPilotFinanceRoute
@@ -892,6 +913,7 @@ interface AuthenticatedPilotRouteChildren {
 }
 
 const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
+  AuthenticatedPilotBenchmarkRoute: AuthenticatedPilotBenchmarkRoute,
   AuthenticatedPilotCaRoute: AuthenticatedPilotCaRoute,
   AuthenticatedPilotClientsRoute: AuthenticatedPilotClientsRoute,
   AuthenticatedPilotFinanceRoute: AuthenticatedPilotFinanceRoute,
@@ -974,13 +996,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
