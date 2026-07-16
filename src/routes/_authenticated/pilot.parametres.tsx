@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Settings2, Target, CalendarClock } from "lucide-react";
+import { Settings2, Target, CalendarClock, FileSpreadsheet, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import * as XLSX from "xlsx";
+import { useRef } from "react";
 
 export const Route = createFileRoute("/_authenticated/pilot/parametres")({
   head: () => ({ meta: [{ title: "Paramètres — Pilot Pro" }] }),
@@ -84,6 +87,7 @@ function ParamsPage() {
       </Card>
 
       <TjmSettingsCard />
+      <ExcelImportCard />
     </div>
   );
 }
