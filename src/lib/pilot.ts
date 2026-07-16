@@ -103,7 +103,52 @@ export async function listEntries(): Promise<PilotEntry[]> {
     .select("*")
     .order("entry_date", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as unknown as PilotEntry[];
+  const native = (data ?? []) as unknown as PilotEntry[];
+  // Pont : les ventes du module « CA 2026 » (pilot_ca_entries) alimentent aussi
+  // toutes les analyses (Finance, Saisonnalité, Santé, Rapports, Clients ABC).
+  const bridged = await bridgeCaEntries();
+  return [...bridged, ...native];
+}
+
+function categoryToFamily(cat: string | null): PilotFamily {
+  switch ((cat ?? "").toLowerCase()) {
+    case "sap": return "sap";
+    case "conseil": return "conseil";
+    default: return "amenagement"; // AP, CEEV, Autre, null
+  }
+}
+
+async function bridgeCaEntries(): Promise<PilotEntry[]> {
+  const { data, error } = await supabase
+    .from("pilot_ca_entries" as never)
+    .select("id,user_id,year,month,kind,designation,category,amount_ht,hours,created_at,updated_at")
+    .eq("kind", "vente");
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as Array<{
+    id: string; user_id: string; year: number; month: number;
+    designation: string | null; category: string | null;
+    amount_ht: number; hours: number | null;
+    created_at: string; updated_at: string;
+  }>;
+  return rows.map((r) => {
+    const mm = String(r.month).padStart(2, "0");
+    const ht = Number(r.amount_ht) || 0;
+    return {
+      id: r.id,
+      user_id: r.user_id,
+      entry_date: `${r.year}-${mm}-15`,
+      client_id: null,
+      client_name: r.designation,
+      family: categoryToFamily(r.category),
+      nature: r.category,
+      amount_ht: ht,
+      amount_ttc: ht * 1.2,
+      hours: Number(r.hours) || 0,
+      observation: null,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+    } as PilotEntry;
+  });
 }
 
 export async function createEntry(input: PilotEntryInput): Promise<PilotEntry> {
@@ -134,7 +179,37 @@ export async function listCharges(): Promise<PilotCharge[]> {
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as unknown as PilotCharge[];
+  const native = (data ?? []) as unknown as PilotCharge[];
+  const bridged = await bridgeCaCharges();
+  return [...bridged, ...native];
+}
+
+async function bridgeCaCharges(): Promise<PilotCharge[]> {
+  const { data, error } = await supabase
+    .from("pilot_ca_entries" as never)
+    .select("id,user_id,year,month,kind,designation,category,amount_ht,created_at,updated_at")
+    .eq("kind", "charge");
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as Array<{
+    id: string; user_id: string; year: number; month: number;
+    designation: string | null; category: string | null;
+    amount_ht: number; created_at: string; updated_at: string;
+  }>;
+  return rows.map((r) => {
+    const mm = String(r.month).padStart(2, "0");
+    return {
+      id: r.id,
+      user_id: r.user_id,
+      label: r.designation ?? "Charge",
+      category: r.category,
+      kind: "variable",
+      amount: Number(r.amount_ht) || 0,
+      period: "ponctuel",
+      charge_date: `${r.year}-${mm}-15`,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+    } as PilotCharge;
+  });
 }
 
 export async function createCharge(input: PilotChargeInput): Promise<PilotCharge> {
