@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listCaEntries, createCaEntry, updateCaEntry, deleteCaEntry,
@@ -153,8 +153,8 @@ function CaPage() {
                     const hasNote = !!(row as CaEntry & { note?: string }).note;
                     const opened = openNote[row.id] || hasNote;
                     return (
-                    <>
-                    <TableRow key={row.id}>
+                    <Fragment key={row.id}>
+                    <TableRow>
                       <TableCell>
                         <Input defaultValue={row.designation ?? ""} placeholder="Désignation" className="h-8 border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
                       </TableCell>
@@ -167,7 +167,7 @@ function CaPage() {
                       </TableCell>
                     </TableRow>
                     {opened && (
-                      <TableRow key={`${row.id}-note`}>
+                      <TableRow>
                         <TableCell colSpan={3} className="bg-muted/20 py-2">
                           <Textarea
                             defaultValue={(row as CaEntry & { note?: string }).note ?? ""}
@@ -181,7 +181,7 @@ function CaPage() {
                         </TableCell>
                       </TableRow>
                     )}
-                    </>
+                    </Fragment>
                     );
                   })}
                 </TableBody>
@@ -230,8 +230,8 @@ function CaPage() {
                     const hasNote = !!(row as CaEntry & { note?: string }).note;
                     const opened = openNote[row.id] || hasNote;
                     return (
-                    <>
-                    <TableRow key={row.id}>
+                    <Fragment key={row.id}>
+                    <TableRow>
                       <TableCell>
                         <Input defaultValue={row.designation ?? ""} placeholder="Désignation" className="h-8 border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
                       </TableCell>
@@ -255,7 +255,7 @@ function CaPage() {
                       </TableCell>
                     </TableRow>
                     {opened && (
-                      <TableRow key={`${row.id}-note`}>
+                      <TableRow>
                         <TableCell colSpan={5} className="bg-muted/20 py-2">
                           <Textarea
                             defaultValue={(row as CaEntry & { note?: string }).note ?? ""}
@@ -269,7 +269,7 @@ function CaPage() {
                         </TableCell>
                       </TableRow>
                     )}
-                    </>
+                    </Fragment>
                     );
                   })}
                 </TableBody>
