@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ChevronLeft, ChevronRight, TrendingUp, Wallet, Clock, PiggyBank } from "lucide-react";
+import { Plus, Trash2, ChevronLeft, ChevronRight, TrendingUp, Wallet, Clock, PiggyBank, MessageSquare } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pilot/ca")({
@@ -41,6 +42,8 @@ function CaPage() {
   const [year, setYear] = useState(2026);
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
   const [pending, setPending] = useState<number | null>(null);
+  const [openNote, setOpenNote] = useState<Record<string, boolean>>({});
+  const toggleNote = (id: string) => setOpenNote((s) => ({ ...s, [id]: !s[id] }));
 
   const entriesQ = useQuery({ queryKey: ["pilot-ca", year], queryFn: () => listCaEntries(year) });
   const entries = entriesQ.data ?? [];
@@ -146,7 +149,11 @@ function CaPage() {
                 </TableHeader>
                 <TableBody>
                   {charges.length === 0 && <TableRow><TableCell colSpan={3} className="py-6 text-center text-sm text-muted-foreground">Aucune charge — ajoutez une ligne</TableCell></TableRow>}
-                  {charges.map((row) => (
+                  {charges.map((row) => {
+                    const hasNote = !!(row as CaEntry & { note?: string }).note;
+                    const opened = openNote[row.id] || hasNote;
+                    return (
+                    <>
                     <TableRow key={row.id}>
                       <TableCell>
                         <Input defaultValue={row.designation ?? ""} placeholder="Désignation" className="h-8 border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
@@ -154,9 +161,29 @@ function CaPage() {
                       <TableCell className="text-right">
                         <Input defaultValue={row.amount_ht || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }} />
                       </TableCell>
-                      <TableCell><Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(row.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title="Commentaire" onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(row.id)}><Trash2 className="h-4 w-4" /></Button>
+                      </TableCell>
                     </TableRow>
-                  ))}
+                    {opened && (
+                      <TableRow key={`${row.id}-note`}>
+                        <TableCell colSpan={3} className="bg-muted/20 py-2">
+                          <Textarea
+                            defaultValue={(row as CaEntry & { note?: string }).note ?? ""}
+                            placeholder="Commentaire (optionnel)…"
+                            className="min-h-[60px] text-sm"
+                            onBlur={(e) => {
+                              const v = e.target.value;
+                              if (v !== ((row as CaEntry & { note?: string }).note ?? "")) save(row.id, { note: v } as Partial<CaEntry>);
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </>
+                    );
+                  })}
                 </TableBody>
               </Table>
               <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
@@ -199,7 +226,11 @@ function CaPage() {
                 </TableHeader>
                 <TableBody>
                   {ventes.length === 0 && <TableRow><TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">Aucune vente — ajoutez une ligne</TableCell></TableRow>}
-                  {ventes.map((row) => (
+                  {ventes.map((row) => {
+                    const hasNote = !!(row as CaEntry & { note?: string }).note;
+                    const opened = openNote[row.id] || hasNote;
+                    return (
+                    <>
                     <TableRow key={row.id}>
                       <TableCell>
                         <Input defaultValue={row.designation ?? ""} placeholder="Désignation" className="h-8 border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
@@ -218,9 +249,29 @@ function CaPage() {
                       <TableCell className="text-right">
                         <Input defaultValue={row.hours || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== (row.hours ?? 0)) save(row.id, { hours: v }); }} />
                       </TableCell>
-                      <TableCell><Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(row.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title="Commentaire" onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(row.id)}><Trash2 className="h-4 w-4" /></Button>
+                      </TableCell>
                     </TableRow>
-                  ))}
+                    {opened && (
+                      <TableRow key={`${row.id}-note`}>
+                        <TableCell colSpan={5} className="bg-muted/20 py-2">
+                          <Textarea
+                            defaultValue={(row as CaEntry & { note?: string }).note ?? ""}
+                            placeholder="Commentaire (optionnel)…"
+                            className="min-h-[60px] text-sm"
+                            onBlur={(e) => {
+                              const v = e.target.value;
+                              if (v !== ((row as CaEntry & { note?: string }).note ?? "")) save(row.id, { note: v } as Partial<CaEntry>);
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </>
+                    );
+                  })}
                 </TableBody>
               </Table>
               <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
