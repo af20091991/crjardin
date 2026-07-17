@@ -150,7 +150,7 @@ function CaPage() {
                 <TableBody>
                   {charges.length === 0 && <TableRow><TableCell colSpan={3} className="py-6 text-center text-sm text-muted-foreground">Aucune charge — ajoutez une ligne</TableCell></TableRow>}
                   {charges.map((row) => {
-                    const hasNote = !!(row as CaEntry & { note?: string }).note;
+                    const hasNote = !!row.note;
                     const opened = openNote[row.id] || hasNote;
                     return (
                     <Fragment key={row.id}>
@@ -170,12 +170,12 @@ function CaPage() {
                       <TableRow>
                         <TableCell colSpan={3} className="bg-muted/20 py-2">
                           <Textarea
-                            defaultValue={(row as CaEntry & { note?: string }).note ?? ""}
+                            defaultValue={row.note ?? ""}
                             placeholder="Commentaire (optionnel)…"
                             className="min-h-[60px] text-sm"
                             onBlur={(e) => {
                               const v = e.target.value;
-                              if (v !== ((row as CaEntry & { note?: string }).note ?? "")) save(row.id, { note: v } as Partial<CaEntry>);
+                              if (v !== (row.note ?? "")) save(row.id, { note: v });
                             }}
                           />
                         </TableCell>
@@ -227,7 +227,7 @@ function CaPage() {
                 <TableBody>
                   {ventes.length === 0 && <TableRow><TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">Aucune vente — ajoutez une ligne</TableCell></TableRow>}
                   {ventes.map((row) => {
-                    const hasNote = !!(row as CaEntry & { note?: string }).note;
+                    const hasNote = !!row.note;
                     const opened = openNote[row.id] || hasNote;
                     return (
                     <Fragment key={row.id}>
@@ -258,12 +258,12 @@ function CaPage() {
                       <TableRow>
                         <TableCell colSpan={5} className="bg-muted/20 py-2">
                           <Textarea
-                            defaultValue={(row as CaEntry & { note?: string }).note ?? ""}
+                            defaultValue={row.note ?? ""}
                             placeholder="Commentaire (optionnel)…"
                             className="min-h-[60px] text-sm"
                             onBlur={(e) => {
                               const v = e.target.value;
-                              if (v !== ((row as CaEntry & { note?: string }).note ?? "")) save(row.id, { note: v } as Partial<CaEntry>);
+                              if (v !== (row.note ?? "")) save(row.id, { note: v });
                             }}
                           />
                         </TableCell>
