@@ -1,13 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
-import { computeKpis, healthScore, HEALTH_META, generateInsights, clientStats, DEFAULT_SETTINGS } from "@/lib/pilot";
-import { Card, CardContent } from "@/components/ui/card";
+import { computeKpis, healthScore, HEALTH_META, generateThematicInsights, clientStats, DEFAULT_SETTINGS } from "@/lib/pilot";
+import { askPilotAi } from "@/lib/pilot-ai.functions";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, Send, Bot } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pilot/sante")({
   component: SantePage,
 });
+
+const BREAKDOWN_DEFS: Record<string, string> = {
+  Marge: "Marge nette (bénéfice / CA). Objectif ≥ 30 % pour une note maximale.",
+  Croissance: "Progression du CA vs même période N-1. +25 % ≈ 100/100.",
+  Objectif: "Pourcentage de l'objectif annuel de CA atteint à date.",
+  Rentabilité: "Taux horaire réel comparé au taux horaire cible défini dans les paramètres.",
+  Activité: "Volume d'interventions annuelles (100 interventions = 100/100).",
+};
+
+const THEME_TONE: Record<string, string> = {
+  Croissance: "bg-emerald-100 text-emerald-700",
+  Rentabilité: "bg-blue-100 text-blue-700",
+  Activité: "bg-amber-100 text-amber-700",
+  Mix: "bg-purple-100 text-purple-700",
+  Clients: "bg-orange-100 text-orange-700",
+  Saisonnalité: "bg-cyan-100 text-cyan-700",
+  Charges: "bg-rose-100 text-rose-700",
+  Objectif: "bg-primary/10 text-primary",
+};
 
 function SantePage() {
   const { entries, charges, objectives, settings } = usePilotData();
@@ -18,8 +44,31 @@ function SantePage() {
     [entries.data, charges.data, objectives.data, set, year],
   );
   const health = useMemo(() => healthScore(k, set), [k, set]);
-  const insights = useMemo(() => generateInsights(k, set, clientStats(entries.data ?? [], year)), [k, set, entries.data, year]);
+  const insights = useMemo(
+    () => generateThematicInsights(k, set, clientStats(entries.data ?? [], year), charges.data ?? []),
+    [k, set, entries.data, charges.data, year],
+  );
   const meta = HEALTH_META[health.level];
+
+  // Groupe par thème
+  const insightsByTheme = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const i of insights) {
+      const arr = map.get(i.theme) ?? [];
+      arr.push(i.text);
+      map.set(i.theme, arr);
+    }
+    return [...map.entries()];
+  }, [insights]);
+
+  // AI chat
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<string | null>(null);
+  const askMut = useMutation({
+    mutationFn: (q: string) => askPilotAi({ data: { question: q } }),
+    onSuccess: (r) => setAnswer(r.answer),
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   if (entries.isLoading) return <Skeleton className="h-64 rounded-xl" />;
 
@@ -45,21 +94,64 @@ function SantePage() {
         <Card><CardContent className="space-y-3 pt-6">
           <h3 className="font-medium">Détail de la note</h3>
           {health.breakdown.map((b) => (
-            <div key={b.label} className="space-y-1">
+            <div key={b.label} className="space-y-1" title={BREAKDOWN_DEFS[b.label]}>
               <div className="flex justify-between text-sm"><span>{b.label}</span><span className="font-medium">{b.value}/100</span></div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${b.value}%` }} /></div>
             </div>
           ))}
         </CardContent></Card>
       </div>
-      {insights.length > 0 && (
-        <Card><CardContent className="space-y-2 pt-6">
-          <h3 className="font-medium">Explications automatiques</h3>
-          <ul className="space-y-1.5">
-            {insights.map((t, i) => <li key={i} className="flex gap-2 text-sm text-muted-foreground"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />{t}</li>)}
-          </ul>
-        </CardContent></Card>
+
+      {/* Explications automatiques par thématique */}
+      {insightsByTheme.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base"><Sparkles className="h-4 w-4 text-primary" />Explications automatiques</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            {insightsByTheme.map(([theme, texts]) => (
+              <div key={theme} className="space-y-2">
+                <Badge className={THEME_TONE[theme] ?? "bg-muted"}>{theme}</Badge>
+                <ul className="space-y-1.5">
+                  {texts.map((t, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
+
+      {/* Assistant IA */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base"><Bot className="h-4 w-4 text-primary" />Assistant IA CR Pro</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">Posez une question sur votre activité (CA, marge, clients, saisonnalité, objectifs…). L'IA interroge les données de votre application.</p>
+          <Textarea
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Ex. : Sur quels clients dois-je concentrer mes efforts commerciaux au T3 ?"
+            className="min-h-[80px]"
+          />
+          <div className="flex justify-end">
+            <Button size="sm" onClick={() => askMut.mutate(question)} disabled={askMut.isPending || question.trim().length < 3}>
+              <Send className="mr-1.5 h-4 w-4" />{askMut.isPending ? "Analyse…" : "Interroger l'IA"}
+            </Button>
+          </div>
+          {answer && (
+            <div className="rounded-lg border border-border bg-muted/20 p-4 text-sm">
+              <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-primary"><Sparkles className="h-3.5 w-3.5" />Réponse</div>
+              <div className="whitespace-pre-wrap leading-relaxed text-foreground">{answer}</div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
