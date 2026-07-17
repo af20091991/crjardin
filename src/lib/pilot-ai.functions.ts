@@ -30,8 +30,8 @@ export const askPilotAi = createServerFn({ method: "POST" })
       supabase.from("pilot_objectives" as never).select("year,month,family,target_amount"),
       supabase.from("clients").select("name,civility,contract_type,frequency,notes,address"),
       supabase.from("interventions").select("intervention_date,intervention_type,client_id,summary").gte("intervention_date", `${year - 1}-01-01`).order("intervention_date", { ascending: false }).limit(80),
-      supabase.from("worksite_sheets").select("title,client_id,start_date,end_date,status").order("start_date", { ascending: false }).limit(40),
-      supabase.from("garden_health").select("client_id,score,updated_at").order("updated_at", { ascending: false }).limit(30),
+      supabase.from("worksite_sheets").select("client_name,intervention_date,intervenant").order("intervention_date", { ascending: false }).limit(40),
+      supabase.from("garden_health").select("client_id,rating,zone,assessed_on").order("assessed_on", { ascending: false }).limit(30),
     ]);
 
     type CaRow = { year: number; month: number; kind: string; designation: string | null; category: string | null; amount_ht: number; hours: number | null; note: string | null };
@@ -50,8 +50,8 @@ export const askPilotAi = createServerFn({ method: "POST" })
 
     const clientsList = (clientsRes.data ?? []) as Array<{ name: string; civility: string | null; contract_type: string | null; frequency: string | null; notes: string | null; address: string | null }>;
     const interventions = (intRes.data ?? []) as Array<{ intervention_date: string; intervention_type: string | null; client_id: string; summary: string | null }>;
-    const fiches = (fichesRes.data ?? []) as Array<{ title: string; start_date: string | null; end_date: string | null; status: string | null }>;
-    const healths = (healthRes.data ?? []) as Array<{ score: number; updated_at: string }>;
+    const fiches = (fichesRes.data ?? []) as unknown as Array<{ client_name: string | null; intervention_date: string | null; intervenant: string | null }>;
+    const healths = (healthRes.data ?? []) as unknown as Array<{ rating: number | null; zone: string | null; assessed_on: string | null }>;
 
     const settings = settingsRes.data as unknown as { target_tjm?: number; target_hourly_rate?: number; monthly_salary?: number; weekly_hours?: number; monthly_fixed_charges?: number } | null;
     const objectives = (objRes.data ?? []) as Array<{ year: number; month: number | null; family: string | null; target_amount: number }>;
@@ -84,10 +84,10 @@ INTERVENTIONS RÉCENTES (${interventions.length})
 ${interventions.slice(0, 20).map((i) => `- ${i.intervention_date} : ${i.intervention_type ?? "Entretien"}${i.summary ? ` — ${i.summary.slice(0, 80)}` : ""}`).join("\n")}
 
 FICHES CHANTIER (${fiches.length})
-${fiches.slice(0, 15).map((f) => `- ${f.title} (${f.status ?? "?"}${f.start_date ? `, ${f.start_date}` : ""})`).join("\n")}
+${fiches.slice(0, 15).map((f) => `- ${f.client_name ?? "?"} ${f.intervention_date ? "(" + f.intervention_date + ")" : ""}${f.intervenant ? " — " + f.intervenant : ""}`).join("\n")}
 
 SANTÉ DES JARDINS
-${healths.slice(0, 10).map((h) => `- score ${h.score}/100 (${h.updated_at.slice(0, 10)})`).join("\n") || "Aucune évaluation."}`;
+${healths.slice(0, 10).map((h) => `- ${h.zone ?? "zone ?"} : note ${h.rating ?? "?"}/5 (${h.assessed_on ?? ""})`).join("\n") || "Aucune évaluation."}`;
 
     const prompt = `Tu es l'assistant IA du module Pilotage de « CR Pro », logiciel de gestion pour paysagistes indépendants.
 On te fournit un instantané chiffré de l'activité de l'utilisateur. Tu réponds à ses questions en français, de façon détaillée mais synthétique :
