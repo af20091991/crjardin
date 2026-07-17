@@ -446,33 +446,71 @@ export type ClientStat = {
   cumShare: number;
   abc: "A" | "B" | "C";
   lastDate: string | null;
+  avgTime: number;   // heures moyennes par intervention
+  avgCa: number;     // CA HT moyen par intervention
+  nature: string;    // nature dominante du client (AP, SAP, CEEV, Conseil, Autre)
+  natureBreakdown: Record<string, number>; // CA HT par nature
+  clientId: string | null;
 };
 
 export function clientStats(entries: PilotEntry[], year?: number): ClientStat[] {
   const filtered = year ? entries.filter((e) => y(e.entry_date) === year) : entries;
-  const map = new Map<string, { name: string; ca: number; hours: number; count: number; last: string }>();
+  const map = new Map<
+    string,
+    {
+      name: string;
+      ca: number;
+      hours: number;
+      count: number;
+      last: string;
+      natures: Record<string, number>;
+      clientId: string | null;
+    }
+  >();
   for (const e of filtered) {
     const key = e.client_id ?? `name:${(e.client_name ?? "Sans nom").toLowerCase()}`;
-    const cur = map.get(key) ?? { name: e.client_name ?? "Sans nom", ca: 0, hours: 0, count: 0, last: e.entry_date };
+    const cur =
+      map.get(key) ??
+      {
+        name: e.client_name ?? "Sans nom",
+        ca: 0,
+        hours: 0,
+        count: 0,
+        last: e.entry_date,
+        natures: {} as Record<string, number>,
+        clientId: e.client_id ?? null,
+      };
     cur.ca += e.amount_ht;
     cur.hours += e.hours;
     cur.count += 1;
     if (e.entry_date > cur.last) cur.last = e.entry_date;
     if (e.client_name) cur.name = e.client_name;
+    const nat = (e.nature ?? "Autre").trim() || "Autre";
+    cur.natures[nat] = (cur.natures[nat] ?? 0) + (e.amount_ht || 0);
+    if (e.client_id) cur.clientId = e.client_id;
     map.set(key, cur);
   }
   const total = sum([...map.values()].map((v) => v.ca)) || 1;
   const rows = [...map.entries()]
-    .map(([key, v]) => ({
-      key,
-      name: v.name,
-      ca: v.ca,
-      hours: v.hours,
-      count: v.count,
-      hourlyRate: v.hours > 0 ? v.ca / v.hours : 0,
-      share: (v.ca / total) * 100,
-      lastDate: v.last,
-    }))
+    .map(([key, v]) => {
+      const nature =
+        Object.entries(v.natures).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Autre";
+      return {
+        key,
+        name: v.name,
+        ca: v.ca,
+        hours: v.hours,
+        count: v.count,
+        hourlyRate: v.hours > 0 ? v.ca / v.hours : 0,
+        share: (v.ca / total) * 100,
+        lastDate: v.last,
+        avgTime: v.count > 0 ? v.hours / v.count : 0,
+        avgCa: v.count > 0 ? v.ca / v.count : 0,
+        nature,
+        natureBreakdown: v.natures,
+        clientId: v.clientId,
+      };
+    })
     .sort((a, b) => b.ca - a.ca);
   let cum = 0;
   return rows.map((r) => {
