@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { clientStats, formatEuro } from "@/lib/pilot";
@@ -16,6 +16,14 @@ const ABC_TONE: Record<string, string> = {
   A: "bg-emerald-100 text-emerald-700",
   B: "bg-amber-100 text-amber-700",
   C: "bg-slate-100 text-slate-600",
+};
+
+const NATURE_TONE: Record<string, string> = {
+  AP: "bg-blue-100 text-blue-700",
+  SAP: "bg-emerald-100 text-emerald-700",
+  CEEV: "bg-purple-100 text-purple-700",
+  Conseil: "bg-orange-100 text-orange-700",
+  Autre: "bg-slate-100 text-slate-600",
 };
 
 function PilotClientsPage() {
@@ -80,21 +88,35 @@ function PilotClientsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Client</TableHead>
+                  <TableHead className="text-center" title="Nature dominante du client (AP, SAP, CEEV, Conseil, Autre) déduite de la répartition de son CA.">Nature</TableHead>
                   <TableHead className="text-right">CA</TableHead>
                   <TableHead className="text-right">Part</TableHead>
                   <TableHead className="text-right">Interv.</TableHead>
+                  <TableHead className="text-right" title="CA HT moyen par intervention pour ce client.">CA moy.</TableHead>
+                  <TableHead className="text-right" title="Temps moyen (en heures) par intervention pour ce client.">Temps moy.</TableHead>
                   <TableHead className="text-right">Taux/h</TableHead>
                   <TableHead className="text-center">Cat.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stats.length === 0 && <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">Aucune donnée</TableCell></TableRow>}
+                {stats.length === 0 && <TableRow><TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">Aucune donnée</TableCell></TableRow>}
                 {stats.map((c) => (
                   <TableRow key={c.key}>
-                    <TableCell className="text-sm font-medium">{c.name}</TableCell>
+                    <TableCell className="text-sm font-medium">
+                      <Link
+                        to="/pilot/clients/$clientKey"
+                        params={{ clientKey: encodeURIComponent(c.key) }}
+                        className="text-primary underline-offset-2 hover:underline"
+                      >
+                        {c.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-center"><Badge className={NATURE_TONE[c.nature] ?? NATURE_TONE.Autre}>{c.nature}</Badge></TableCell>
                     <TableCell className="text-right text-sm">{formatEuro(c.ca)}</TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">{c.share.toFixed(0)} %</TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">{c.count}</TableCell>
+                    <TableCell className="text-right text-sm text-muted-foreground">{formatEuro(c.avgCa)}</TableCell>
+                    <TableCell className="text-right text-sm text-muted-foreground">{c.avgTime.toFixed(1)} h</TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">{formatEuro(c.hourlyRate)}</TableCell>
                     <TableCell className="text-center"><Badge className={ABC_TONE[c.abc]}>{c.abc}</Badge></TableCell>
                   </TableRow>

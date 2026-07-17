@@ -446,33 +446,71 @@ export type ClientStat = {
   cumShare: number;
   abc: "A" | "B" | "C";
   lastDate: string | null;
+  avgTime: number;   // heures moyennes par intervention
+  avgCa: number;     // CA HT moyen par intervention
+  nature: string;    // nature dominante du client (AP, SAP, CEEV, Conseil, Autre)
+  natureBreakdown: Record<string, number>; // CA HT par nature
+  clientId: string | null;
 };
 
 export function clientStats(entries: PilotEntry[], year?: number): ClientStat[] {
   const filtered = year ? entries.filter((e) => y(e.entry_date) === year) : entries;
-  const map = new Map<string, { name: string; ca: number; hours: number; count: number; last: string }>();
+  const map = new Map<
+    string,
+    {
+      name: string;
+      ca: number;
+      hours: number;
+      count: number;
+      last: string;
+      natures: Record<string, number>;
+      clientId: string | null;
+    }
+  >();
   for (const e of filtered) {
     const key = e.client_id ?? `name:${(e.client_name ?? "Sans nom").toLowerCase()}`;
-    const cur = map.get(key) ?? { name: e.client_name ?? "Sans nom", ca: 0, hours: 0, count: 0, last: e.entry_date };
+    const cur =
+      map.get(key) ??
+      {
+        name: e.client_name ?? "Sans nom",
+        ca: 0,
+        hours: 0,
+        count: 0,
+        last: e.entry_date,
+        natures: {} as Record<string, number>,
+        clientId: e.client_id ?? null,
+      };
     cur.ca += e.amount_ht;
     cur.hours += e.hours;
     cur.count += 1;
     if (e.entry_date > cur.last) cur.last = e.entry_date;
     if (e.client_name) cur.name = e.client_name;
+    const nat = (e.nature ?? "Autre").trim() || "Autre";
+    cur.natures[nat] = (cur.natures[nat] ?? 0) + (e.amount_ht || 0);
+    if (e.client_id) cur.clientId = e.client_id;
     map.set(key, cur);
   }
   const total = sum([...map.values()].map((v) => v.ca)) || 1;
   const rows = [...map.entries()]
-    .map(([key, v]) => ({
-      key,
-      name: v.name,
-      ca: v.ca,
-      hours: v.hours,
-      count: v.count,
-      hourlyRate: v.hours > 0 ? v.ca / v.hours : 0,
-      share: (v.ca / total) * 100,
-      lastDate: v.last,
-    }))
+    .map(([key, v]) => {
+      const nature =
+        Object.entries(v.natures).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Autre";
+      return {
+        key,
+        name: v.name,
+        ca: v.ca,
+        hours: v.hours,
+        count: v.count,
+        hourlyRate: v.hours > 0 ? v.ca / v.hours : 0,
+        share: (v.ca / total) * 100,
+        lastDate: v.last,
+        avgTime: v.count > 0 ? v.hours / v.count : 0,
+        avgCa: v.count > 0 ? v.ca / v.count : 0,
+        nature,
+        natureBreakdown: v.natures,
+        clientId: v.clientId,
+      };
+    })
     .sort((a, b) => b.ca - a.ca);
   let cum = 0;
   return rows.map((r) => {
@@ -526,48 +564,149 @@ export function healthScore(k: Kpis, settings: PilotSettings) {
 }
 
 // ---------- Analyses automatiques (insights) ----------
-export function generateInsights(k: Kpis, settings: PilotSettings, clients: ClientStat[]): string[] {
-  const out: string[] = [];
+export type Insight = { theme: string; text: string };
+
+const MONTH_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+
+export function generateThematicInsights(
+  k: Kpis,
+  settings: PilotSettings,
+  clients: ClientStat[],
+  charges: PilotCharge[] = [],
+): Insight[] {
+  const out: Insight[] = [];
+  const push = (theme: string, text: string) => out.push({ theme, text });
+
+  // === CROISSANCE ===
   if (k.caPrevYTD > 0) {
     const p = k.progression;
-    out.push(
+    push("Croissance",
       p >= 0
         ? `Le CA est supérieur de ${p.toFixed(0)} % à la même période de l'année précédente.`
-        : `Le CA est inférieur de ${Math.abs(p).toFixed(0)} % à la même période de l'année précédente.`,
-    );
+        : `Le CA est inférieur de ${Math.abs(p).toFixed(0)} % à la même période de l'année précédente.`);
   }
+  if (k.caPrevYear > 0) {
+    const evo = ((k.caYear - k.caPrevYear) / k.caPrevYear) * 100;
+    push("Croissance", `Sur l'année complète, l'évolution du CA vs N-1 est de ${evo >= 0 ? "+" : ""}${evo.toFixed(0)} %.`);
+  }
+  if (k.projection > 0 && k.caYear > 0) {
+    push("Croissance", `À rythme constant, la projection de CA en fin d'année atteint ${formatEuro(k.projection)}.`);
+  }
+
+  // === RENTABILITÉ ===
+  if (k.caYear > 0) {
+    push("Rentabilité",
+      k.marge >= 25
+        ? `Marge nette de ${k.marge.toFixed(0)} % : très bonne rentabilité (référence secteur : 20-25 %).`
+        : k.marge >= 15
+          ? `Marge nette de ${k.marge.toFixed(0)} % : rentabilité correcte, un léger effort sur les charges permettrait d'améliorer le résultat.`
+          : `Marge nette de ${k.marge.toFixed(0)} % : rentabilité faible, revoyez le mix charges / prix.`);
+  }
+  if (settings.target_hourly_rate > 0 && k.tauxHoraire > 0) {
+    const ecart = k.tauxHoraire - settings.target_hourly_rate;
+    push("Rentabilité",
+      ecart >= 0
+        ? `Le taux horaire réel (${formatEuro(k.tauxHoraire)}/h) dépasse la cible de ${formatEuro(ecart)}/h.`
+        : `Le taux horaire réel (${formatEuro(k.tauxHoraire)}/h) est inférieur de ${formatEuro(-ecart)}/h à la cible.`);
+  }
+  if (settings.target_tjm > 0 && k.tjm > 0) {
+    push("Rentabilité",
+      k.tjm >= settings.target_tjm
+        ? `TJM réel de ${formatEuro(k.tjm)} : cible atteinte.`
+        : `TJM réel de ${formatEuro(k.tjm)}, en dessous de la cible ${formatEuro(settings.target_tjm)}.`);
+  }
+
+  // === ACTIVITÉ / TEMPS ===
+  if (k.totalHours > 0) {
+    push("Activité", `Vous avez facturé ${k.totalHours.toFixed(0)} heures sur ${k.workedDays} jours travaillés cette année.`);
+  }
+  if (k.nbEntries > 0 && k.caYear > 0) {
+    push("Activité", `Panier moyen par intervention : ${formatEuro(k.panierMoyen)} pour ${k.nbEntries} interventions.`);
+  }
+  if (k.workedDays > 0 && k.totalHours > 0) {
+    const hParJour = k.totalHours / k.workedDays;
+    push("Activité", `Vous facturez en moyenne ${hParJour.toFixed(1)} h par jour travaillé.`);
+  }
+
+  // === MIX D'ACTIVITÉ ===
   const dominant = [...k.byFamily].sort((a, b) => b.value - a.value)[0];
   if (dominant && k.caYear > 0) {
-    out.push(`${dominant.label} représente ${((dominant.value / k.caYear) * 100).toFixed(0)} % de l'activité.`);
+    push("Mix", `${dominant.label} représente ${((dominant.value / k.caYear) * 100).toFixed(0)} % de l'activité.`);
   }
-  if (k.target > 0) {
-    out.push(
-      k.projection >= k.target
-        ? `Projection favorable : l'objectif annuel devrait être atteint (${k.objectifPct.toFixed(0)} % réalisé).`
-        : `Le bénéfice projeté est inférieur à l'objectif (${k.objectifPct.toFixed(0)} % réalisé, projection ${formatEuro(k.projection)}).`,
-    );
+  const sap = k.byFamily.find((f) => f.family === "sap")?.value ?? 0;
+  if (sap > 0 && k.caYear > 0) {
+    push("Mix", `La part SAP (services à la personne) est de ${((sap / k.caYear) * 100).toFixed(0)} %, source de récurrence et d'avantage fiscal client.`);
   }
+  const conseil = k.byFamily.find((f) => f.family === "conseil")?.value ?? 0;
+  if (conseil > 0 && k.caYear > 0) {
+    push("Mix", `Le conseil pèse ${((conseil / k.caYear) * 100).toFixed(0)} % du CA — une activité à forte valeur ajoutée horaire.`);
+  }
+
+  // === CLIENTS ===
   const top = clients[0];
   if (top && k.caYear > 0) {
-    out.push(`Votre meilleur client (${top.name}) représente ${top.share.toFixed(0)} % du chiffre d'affaires.`);
+    push("Clients", `Meilleur client : ${top.name} (${top.share.toFixed(0)} % du CA, ${formatEuro(top.ca)}).`);
   }
-  if (settings.target_hourly_rate > 0) {
-    out.push(
-      k.tauxHoraire >= settings.target_hourly_rate
-        ? `Le taux horaire réel (${formatEuro(k.tauxHoraire)}/h) atteint le taux cible.`
-        : `Le taux horaire réel (${formatEuro(k.tauxHoraire)}/h) est inférieur au taux cible (${formatEuro(settings.target_hourly_rate)}/h).`,
-    );
+  if (top && top.share > 30) {
+    push("Clients", `Dépendance élevée : ${top.name} dépasse 30 % du CA. Diversifiez votre portefeuille pour réduire le risque.`);
   }
-  // Mois faible historique
+  const aClients = clients.filter((c) => c.abc === "A");
+  if (aClients.length > 0) {
+    push("Clients", `${aClients.length} client(s) « A » génèrent 80 % de votre CA — concentrez-y votre effort commercial et relationnel.`);
+  }
+  const cClients = clients.filter((c) => c.abc === "C");
+  if (cClients.length >= 5) {
+    push("Clients", `${cClients.length} clients « C » ne contribuent qu'à 5 % du CA — évaluez ceux qui coûtent plus qu'ils ne rapportent.`);
+  }
+  const now = Date.now();
+  const DAY = 86400000;
+  const dormants = clients.filter((c) => c.lastDate && now - new Date(c.lastDate).getTime() > 180 * DAY);
+  if (dormants.length > 0) {
+    push("Clients", `${dormants.length} client(s) sans intervention depuis plus de 6 mois — pensez à relancer.`);
+  }
+
+  // === SAISONNALITÉ ===
   const monthTotals = MONTHS.map((_, i) => ({
     i,
     total: sum(k.yearEntries.concat(k.prevYearEntries).filter((e) => m(e.entry_date) === i).map((e) => e.amount_ht)),
   })).filter((x) => x.total > 0);
   if (monthTotals.length >= 4) {
-    const weakest = [...monthTotals].sort((a, b) => a.total - b.total)[0];
-    out.push(`Le mois de ${["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"][weakest.i]} est historiquement faible.`);
+    const sorted = [...monthTotals].sort((a, b) => a.total - b.total);
+    push("Saisonnalité", `Le mois de ${MONTH_FR[sorted[0].i]} est historiquement le plus faible — anticipez cette période creuse.`);
+    push("Saisonnalité", `Le mois de ${MONTH_FR[sorted[sorted.length - 1].i]} est votre mois le plus fort en moyenne.`);
   }
+
+  // === CHARGES ===
+  if (k.chargesYear > 0 && k.caYear > 0) {
+    const ratio = (k.chargesYear / k.caYear) * 100;
+    push("Charges",
+      ratio <= 60
+        ? `Ratio charges / CA de ${ratio.toFixed(0)} % : structure de coûts maîtrisée.`
+        : `Ratio charges / CA de ${ratio.toFixed(0)} % : les charges pèsent lourd, examinez les postes à optimiser.`);
+  }
+  const mensualisees = monthlyRecurringCharges(charges);
+  if (mensualisees > 0) {
+    push("Charges", `Vos charges récurrentes s'élèvent à ${formatEuro(mensualisees)}/mois, soit ${formatEuro(mensualisees * 12)}/an.`);
+  }
+
+  // === OBJECTIF ===
+  if (k.target > 0) {
+    push("Objectif",
+      k.projection >= k.target
+        ? `Projection favorable : l'objectif annuel devrait être atteint (${k.objectifPct.toFixed(0)} % réalisé).`
+        : `Objectif à date : ${k.objectifPct.toFixed(0)} % atteint. Projection ${formatEuro(k.projection)} vs cible ${formatEuro(k.target)}.`);
+    if (k.caYear < k.target && k.caYear > 0) {
+      const reste = k.target - k.caYear;
+      push("Objectif", `Il reste ${formatEuro(reste)} à facturer pour atteindre l'objectif annuel.`);
+    }
+  }
+
   return out;
+}
+
+/** Compatibilité : ancienne signature renvoyant uniquement le texte. */
+export function generateInsights(k: Kpis, settings: PilotSettings, clients: ClientStat[]): string[] {
+  return generateThematicInsights(k, settings, clients).map((i) => i.text);
 }
 
 // ---------- Seuil de rentabilité ----------

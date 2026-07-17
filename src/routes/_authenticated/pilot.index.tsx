@@ -73,7 +73,7 @@ function PilotDashboard() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-        <KpiCard label="CA du mois" value={formatEuro(k.caMonth)} icon={Euro} to="/pilot/ca" />
+        <KpiCard label="CA du mois" value={formatEuro(k.caMonth)} icon={Euro} to="/pilot/ca" description="Chiffre d'affaires hors taxes facturé sur le mois en cours (somme des ventes HT du mois)." />
         <KpiCard
           label="CA annuel"
           value={formatEuro(k.caYear)}
@@ -81,6 +81,7 @@ function PilotDashboard() {
           to="/pilot/saison"
           sub={k.caPrevYTD > 0 ? `${formatPct(k.progression)} vs N-1` : undefined}
           tone={k.progression >= 0 ? "positive" : "negative"}
+          description="Chiffre d'affaires HT cumulé depuis le 1er janvier de l'année en cours."
         />
         <KpiCard
           label="Bénéfice estimé"
@@ -88,8 +89,9 @@ function PilotDashboard() {
           icon={Wallet}
           to="/pilot/finance"
           tone={k.benefice >= 0 ? "positive" : "negative"}
+          description="Bénéfice net estimé sur l'année : CA HT − charges annuelles (fixes, variables et ponctuelles)."
         />
-        <KpiCard label="Marge" value={`${k.marge.toFixed(0)} %`} icon={Percent} to="/pilot/finance" />
+        <KpiCard label="Marge" value={`${k.marge.toFixed(0)} %`} icon={Percent} to="/pilot/finance" description="Marge nette = bénéfice / CA HT. Indique la rentabilité globale de l'activité." />
         <KpiCard
           label="Objectif atteint"
           value={k.target > 0 ? `${k.objectifPct.toFixed(0)} %` : "—"}
@@ -97,10 +99,11 @@ function PilotDashboard() {
           icon={Target}
           to="/pilot/objectifs"
           progress={k.target > 0 ? k.objectifPct : undefined}
+          description="Pourcentage de l'objectif annuel de chiffre d'affaires atteint à ce jour."
         />
-        <KpiCard label="Projection fin d'année" value={formatEuro(k.projection)} icon={LineChart} to="/pilot/saison" />
-        <KpiCard label="Panier moyen" value={formatEuro(k.panierMoyen)} icon={ShoppingCart} to="/pilot/ca" />
-        <KpiCard label="TJM réel" value={formatEuro(k.tjm)} icon={Clock} to="/pilot/finance" />
+        <KpiCard label="Projection fin d'année" value={formatEuro(k.projection)} icon={LineChart} to="/pilot/saison" description="Estimation du CA HT au 31 décembre en extrapolant le rythme de facturation actuel." />
+        <KpiCard label="Panier moyen" value={formatEuro(k.panierMoyen)} icon={ShoppingCart} to="/pilot/ca" description="CA HT moyen par intervention facturée sur l'année." />
+        <KpiCard label="TJM réel" value={formatEuro(k.tjm)} icon={Clock} to="/pilot/finance" description="Taux journalier moyen = CA HT annuel / nombre de jours travaillés distincts." />
         <KpiCard
           label="Taux horaire réel"
           value={`${formatEuro(k.tauxHoraire)}/h`}
@@ -108,9 +111,10 @@ function PilotDashboard() {
           to="/pilot/finance"
           sub={set.target_hourly_rate > 0 ? `Cible ${formatEuro(set.target_hourly_rate)}/h` : undefined}
           tone={k.tauxHoraire >= set.target_hourly_rate ? "positive" : "warning"}
+          description="Taux horaire réel = CA HT annuel / heures facturées. À comparer au taux cible de vos paramètres."
         />
-        <KpiCard label="Interventions" value={k.nbEntries} icon={Users} to="/pilot/ca" sub={`${k.workedDays} jours travaillés`} />
-        <KpiCard label="Heures facturées" value={`${k.totalHours.toFixed(0)} h`} icon={Clock} to="/pilot/ca" />
+        <KpiCard label="Interventions" value={k.nbEntries} icon={Users} to="/pilot/ca" sub={`${k.workedDays} jours travaillés`} description="Nombre total de lignes de vente saisies sur l'année (une ligne = une intervention/prestation facturée)." />
+        <KpiCard label="Heures facturées" value={`${k.totalHours.toFixed(0)} h`} icon={Clock} to="/pilot/ca" description="Cumul des heures terrain déclarées sur les ventes de l'année." />
         <KpiCard
           label="Santé financière"
           value={`${health.score}/100`}
@@ -118,6 +122,7 @@ function PilotDashboard() {
           to="/pilot/sante"
           sub={HEALTH_META[health.level].label}
           progress={health.score}
+          description="Score global (0-100) synthétisant marge, croissance, objectif, rentabilité horaire et niveau d'activité."
         />
       </div>
 

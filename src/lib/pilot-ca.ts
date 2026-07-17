@@ -30,6 +30,7 @@ export interface CaEntry {
   hours: number | null;
   is_fixed: boolean;
   position: number;
+  note: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +44,7 @@ export type CaEntryInput = {
   amount_ht?: number;
   hours?: number | null;
   is_fixed?: boolean;
+  note?: string | null;
   position?: number;
 };
 

@@ -595,6 +595,7 @@ export type Database = {
           is_fixed: boolean
           kind: string
           month: number
+          note: string | null
           position: number
           updated_at: string
           user_id: string
@@ -610,6 +611,7 @@ export type Database = {
           is_fixed?: boolean
           kind: string
           month: number
+          note?: string | null
           position?: number
           updated_at?: string
           user_id: string
@@ -625,6 +627,7 @@ export type Database = {
           is_fixed?: boolean
           kind?: string
           month?: number
+          note?: string | null
           position?: number
           updated_at?: string
           user_id?: string
@@ -666,6 +669,33 @@ export type Database = {
           kind?: string
           label?: string
           period?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pilot_client_notes: {
+        Row: {
+          client_key: string
+          created_at: string
+          id: string
+          note: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_key: string
+          created_at?: string
+          id?: string
+          note?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_key?: string
+          created_at?: string
+          id?: string
+          note?: string
           updated_at?: string
           user_id?: string
         }

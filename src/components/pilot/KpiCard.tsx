@@ -12,6 +12,7 @@ export function KpiCard({
   to,
   tone = "default",
   progress,
+  description,
 }: {
   label: string;
   value: ReactNode;
@@ -20,11 +21,13 @@ export function KpiCard({
   to?: string;
   tone?: "default" | "positive" | "negative" | "warning";
   progress?: number;
+  description?: string;
 }) {
   const toneText =
     tone === "positive" ? "text-emerald-600" : tone === "negative" ? "text-rose-600" : tone === "warning" ? "text-amber-600" : "text-muted-foreground";
   const inner = (
     <Card
+      title={description}
       className={cn(
         "group h-full p-4 transition-all",
         to && "cursor-pointer hover:-translate-y-0.5 hover:shadow-md",
