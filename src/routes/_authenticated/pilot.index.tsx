@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/pilot/")({
 });
 
 function PilotDashboard() {
-  const { entries, charges, objectives, settings } = usePilotData();
+  const { entries, charges, settings } = usePilotData();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
@@ -33,12 +33,11 @@ function PilotDashboard() {
       computeKpis({
         entries: entries.data ?? [],
         charges: charges.data ?? [],
-        objectives: objectives.data ?? [],
         settings: set,
         year,
         month,
       }),
-    [entries.data, charges.data, objectives.data, set, year, month],
+    [entries.data, charges.data, set, year, month],
   );
   const cstats = useMemo(() => clientStats(entries.data ?? [], year), [entries.data, year]);
   const health = useMemo(() => healthScore(k, set), [k, set]);

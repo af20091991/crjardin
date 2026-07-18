@@ -33,18 +33,6 @@ export interface PilotEntry {
   updated_at: string;
 }
 
-export type PilotEntryInput = {
-  entry_date: string;
-  client_id?: string | null;
-  client_name?: string | null;
-  family: PilotFamily;
-  nature?: string | null;
-  amount_ht: number;
-  amount_ttc: number;
-  hours: number;
-  observation?: string | null;
-};
-
 export interface PilotCharge {
   id: string;
   user_id: string;
@@ -67,18 +55,6 @@ export type PilotChargeInput = {
   charge_date?: string | null;
 };
 
-export interface PilotObjective {
-  id: string;
-  user_id: string;
-  year: number;
-  month: number | null;
-  family: PilotFamily | null;
-  client_id: string | null;
-  target_amount: number;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface PilotSettings {
   user_id: string;
   target_tjm: number;
@@ -96,18 +72,11 @@ export const DEFAULT_SETTINGS: Omit<PilotSettings, "user_id"> = {
   monthly_fixed_charges: 0,
 };
 
-// ---------- CRUD: entries ----------
+// ---------- Lecture des ventes (source unique : pilot_ca_entries) ----------
+// Toutes les analyses (Finance, Saisonnalité, Santé, Rapports, Clients ABC)
+// s'alimentent depuis la table pilot_ca_entries — seule source de vérité du CA.
 export async function listEntries(): Promise<PilotEntry[]> {
-  const { data, error } = await supabase
-    .from("pilot_entries" as never)
-    .select("*")
-    .order("entry_date", { ascending: false });
-  if (error) throw error;
-  const native = (data ?? []) as unknown as PilotEntry[];
-  // Pont : les ventes du module « CA 2026 » (pilot_ca_entries) alimentent aussi
-  // toutes les analyses (Finance, Saisonnalité, Santé, Rapports, Clients ABC).
-  const bridged = await bridgeCaEntries();
-  return [...bridged, ...native];
+  return bridgeCaEntries();
 }
 
 function categoryToFamily(cat: string | null): PilotFamily {
@@ -120,16 +89,11 @@ function categoryToFamily(cat: string | null): PilotFamily {
 
 async function bridgeCaEntries(): Promise<PilotEntry[]> {
   const { data, error } = await supabase
-    .from("pilot_ca_entries" as never)
-    .select("id,user_id,year,month,kind,designation,category,amount_ht,hours,created_at,updated_at")
+    .from("pilot_ca_entries")
+    .select("id,user_id,year,month,kind,designation,category,amount_ht,hours,client_id,created_at,updated_at")
     .eq("kind", "vente");
   if (error) throw error;
-  const rows = (data ?? []) as unknown as Array<{
-    id: string; user_id: string; year: number; month: number;
-    designation: string | null; category: string | null;
-    amount_ht: number; hours: number | null;
-    created_at: string; updated_at: string;
-  }>;
+  const rows = data ?? [];
   return rows.map((r) => {
     const mm = String(r.month).padStart(2, "0");
     const ht = Number(r.amount_ht) || 0;
@@ -137,7 +101,7 @@ async function bridgeCaEntries(): Promise<PilotEntry[]> {
       id: r.id,
       user_id: r.user_id,
       entry_date: `${r.year}-${mm}-15`,
-      client_id: null,
+      client_id: r.client_id ?? null,
       client_name: r.designation,
       family: categoryToFamily(r.category),
       nature: r.category,
@@ -151,31 +115,10 @@ async function bridgeCaEntries(): Promise<PilotEntry[]> {
   });
 }
 
-export async function createEntry(input: PilotEntryInput): Promise<PilotEntry> {
-  const user_id = await uid();
-  const { data, error } = await supabase
-    .from("pilot_entries" as never)
-    .insert({ ...input, user_id } as never)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as unknown as PilotEntry;
-}
-
-export async function updateEntry(id: string, input: Partial<PilotEntryInput>): Promise<void> {
-  const { error } = await supabase.from("pilot_entries" as never).update(input as never).eq("id", id);
-  if (error) throw error;
-}
-
-export async function deleteEntry(id: string): Promise<void> {
-  const { error } = await supabase.from("pilot_entries" as never).delete().eq("id", id);
-  if (error) throw error;
-}
-
 // ---------- CRUD: charges ----------
 export async function listCharges(): Promise<PilotCharge[]> {
   const { data, error } = await supabase
-    .from("pilot_charges" as never)
+    .from("pilot_charges")
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -186,15 +129,11 @@ export async function listCharges(): Promise<PilotCharge[]> {
 
 async function bridgeCaCharges(): Promise<PilotCharge[]> {
   const { data, error } = await supabase
-    .from("pilot_ca_entries" as never)
+    .from("pilot_ca_entries")
     .select("id,user_id,year,month,kind,designation,category,amount_ht,created_at,updated_at")
     .eq("kind", "charge");
   if (error) throw error;
-  const rows = (data ?? []) as unknown as Array<{
-    id: string; user_id: string; year: number; month: number;
-    designation: string | null; category: string | null;
-    amount_ht: number; created_at: string; updated_at: string;
-  }>;
+  const rows = data ?? [];
   return rows.map((r) => {
     const mm = String(r.month).padStart(2, "0");
     return {
@@ -202,21 +141,21 @@ async function bridgeCaCharges(): Promise<PilotCharge[]> {
       user_id: r.user_id,
       label: r.designation ?? "Charge",
       category: r.category,
-      kind: "variable",
+      kind: "variable" as const,
       amount: Number(r.amount_ht) || 0,
-      period: "ponctuel",
+      period: "ponctuel" as const,
       charge_date: `${r.year}-${mm}-15`,
       created_at: r.created_at,
       updated_at: r.updated_at,
-    } as PilotCharge;
+    };
   });
 }
 
 export async function createCharge(input: PilotChargeInput): Promise<PilotCharge> {
   const user_id = await uid();
   const { data, error } = await supabase
-    .from("pilot_charges" as never)
-    .insert({ ...input, user_id } as never)
+    .from("pilot_charges")
+    .insert({ ...input, user_id })
     .select()
     .single();
   if (error) throw error;
@@ -224,55 +163,12 @@ export async function createCharge(input: PilotChargeInput): Promise<PilotCharge
 }
 
 export async function updateCharge(id: string, input: Partial<PilotChargeInput>): Promise<void> {
-  const { error } = await supabase.from("pilot_charges" as never).update(input as never).eq("id", id);
+  const { error } = await supabase.from("pilot_charges").update(input).eq("id", id);
   if (error) throw error;
 }
 
 export async function deleteCharge(id: string): Promise<void> {
-  const { error } = await supabase.from("pilot_charges" as never).delete().eq("id", id);
-  if (error) throw error;
-}
-
-// ---------- CRUD: objectives ----------
-export async function listObjectives(): Promise<PilotObjective[]> {
-  const { data, error } = await supabase
-    .from("pilot_objectives" as never)
-    .select("*")
-    .order("year", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as unknown as PilotObjective[];
-}
-
-export async function upsertObjective(input: {
-  id?: string;
-  year: number;
-  month?: number | null;
-  family?: PilotFamily | null;
-  client_id?: string | null;
-  target_amount: number;
-}): Promise<void> {
-  const user_id = await uid();
-  if (input.id) {
-    const { error } = await supabase
-      .from("pilot_objectives" as never)
-      .update({ target_amount: input.target_amount } as never)
-      .eq("id", input.id);
-    if (error) throw error;
-    return;
-  }
-  const { error } = await supabase.from("pilot_objectives" as never).insert({
-    user_id,
-    year: input.year,
-    month: input.month ?? null,
-    family: input.family ?? null,
-    client_id: input.client_id ?? null,
-    target_amount: input.target_amount,
-  } as never);
-  if (error) throw error;
-}
-
-export async function deleteObjective(id: string): Promise<void> {
-  const { error } = await supabase.from("pilot_objectives" as never).delete().eq("id", id);
+  const { error } = await supabase.from("pilot_charges").delete().eq("id", id);
   if (error) throw error;
 }
 
@@ -280,7 +176,7 @@ export async function deleteObjective(id: string): Promise<void> {
 export async function getSettings(): Promise<PilotSettings> {
   const user_id = await uid();
   const { data, error } = await supabase
-    .from("pilot_settings" as never)
+    .from("pilot_settings")
     .select("*")
     .eq("user_id", user_id)
     .maybeSingle();
@@ -292,8 +188,8 @@ export async function getSettings(): Promise<PilotSettings> {
 export async function saveSettings(input: Omit<PilotSettings, "user_id">): Promise<void> {
   const user_id = await uid();
   const { error } = await supabase
-    .from("pilot_settings" as never)
-    .upsert({ user_id, ...input } as never, { onConflict: "user_id" });
+    .from("pilot_settings")
+    .upsert({ user_id, ...input }, { onConflict: "user_id" });
   if (error) throw error;
 }
 
@@ -344,12 +240,11 @@ export type Kpis = ReturnType<typeof computeKpis>;
 export function computeKpis(params: {
   entries: PilotEntry[];
   charges: PilotCharge[];
-  objectives: PilotObjective[];
   settings: PilotSettings;
   year: number;
   month: number; // 0-11 current month reference
 }) {
-  const { entries, charges, objectives, settings, year, month } = params;
+  const { entries, charges, settings, year, month } = params;
 
   const yearEntries = entries.filter((e) => y(e.entry_date) === year);
   const prevYearEntries = entries.filter((e) => y(e.entry_date) === year - 1);
@@ -367,11 +262,9 @@ export function computeKpis(params: {
   const benefice = caYear - chargesYear;
   const marge = caYear > 0 ? (benefice / caYear) * 100 : 0;
 
-  // Objectif annuel global
-  const annualObjective = objectives.find(
-    (o) => o.year === year && o.month == null && o.family == null && o.client_id == null,
-  );
-  const target = annualObjective?.target_amount ?? 0;
+  // Objectif annuel global (désormais géré via les objectifs stratégiques —
+  // pilot_goals — non chiffrés monétairement). Cible = 0 par défaut.
+  const target = 0;
   const objectifPct = target > 0 ? (caYear / target) * 100 : 0;
 
   // Projection fin d'année selon jours écoulés

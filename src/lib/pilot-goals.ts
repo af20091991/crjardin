@@ -60,7 +60,7 @@ export type GoalInput = {
 
 export async function listGoals(): Promise<Goal[]> {
   const { data, error } = await supabase
-    .from("pilot_goals" as never)
+    .from("pilot_goals")
     .select("*")
     .order("position", { ascending: true })
     .order("created_at", { ascending: true });
@@ -71,7 +71,7 @@ export async function listGoals(): Promise<Goal[]> {
 export async function createGoal(input: GoalInput): Promise<Goal> {
   const user_id = await uid();
   const { data, error } = await supabase
-    .from("pilot_goals" as never)
+    .from("pilot_goals")
     .insert({ ...input, user_id } as never)
     .select()
     .single();
@@ -80,12 +80,12 @@ export async function createGoal(input: GoalInput): Promise<Goal> {
 }
 
 export async function updateGoal(id: string, input: Partial<GoalInput>): Promise<void> {
-  const { error } = await supabase.from("pilot_goals" as never).update(input as never).eq("id", id);
+  const { error } = await supabase.from("pilot_goals").update(input as never).eq("id", id);
   if (error) throw error;
 }
 
 export async function deleteGoal(id: string): Promise<void> {
-  const { error } = await supabase.from("pilot_goals" as never).delete().eq("id", id);
+  const { error } = await supabase.from("pilot_goals").delete().eq("id", id);
   if (error) throw error;
 }
 

@@ -36,12 +36,12 @@ const THEME_TONE: Record<string, string> = {
 };
 
 function SantePage() {
-  const { entries, charges, objectives, settings } = usePilotData();
+  const { entries, charges, settings } = usePilotData();
   const year = new Date().getFullYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   const k = useMemo(
-    () => computeKpis({ entries: entries.data ?? [], charges: charges.data ?? [], objectives: objectives.data ?? [], settings: set, year, month: new Date().getMonth() }),
-    [entries.data, charges.data, objectives.data, set, year],
+    () => computeKpis({ entries: entries.data ?? [], charges: charges.data ?? [], settings: set, year, month: new Date().getMonth() }),
+    [entries.data, charges.data, set, year],
   );
   const health = useMemo(() => healthScore(k, set), [k, set]);
   const insights = useMemo(

@@ -38,7 +38,7 @@ export type TjmSettingsInput = Partial<Omit<TjmSettings, "id" | "user_id">>;
 
 export async function listHours(year: number): Promise<HoursRow[]> {
   const { data, error } = await supabase
-    .from("pilot_hours" as never)
+    .from("pilot_hours")
     .select("*")
     .eq("year", year)
     .order("month", { ascending: true });
@@ -53,13 +53,13 @@ export async function upsertHours(
 ): Promise<void> {
   const user_id = await uid();
   const { error } = await supabase
-    .from("pilot_hours" as never)
+    .from("pilot_hours")
     .upsert({ user_id, year, month, ...input } as never, { onConflict: "user_id,year,month" });
   if (error) throw error;
 }
 
 export async function getTjmSettings(): Promise<TjmSettings | null> {
-  const { data, error } = await supabase.from("pilot_tjm_settings" as never).select("*").maybeSingle();
+  const { data, error } = await supabase.from("pilot_tjm_settings").select("*").maybeSingle();
   if (error) throw error;
   return (data as unknown as TjmSettings) ?? null;
 }
@@ -67,7 +67,7 @@ export async function getTjmSettings(): Promise<TjmSettings | null> {
 export async function saveTjmSettings(input: TjmSettingsInput): Promise<void> {
   const user_id = await uid();
   const { error } = await supabase
-    .from("pilot_tjm_settings" as never)
+    .from("pilot_tjm_settings")
     .upsert({ user_id, ...input } as never, { onConflict: "user_id" });
   if (error) throw error;
 }
@@ -75,7 +75,7 @@ export async function saveTjmSettings(input: TjmSettingsInput): Promise<void> {
 /** CA HT mensuel réel agrégé depuis les ventes saisies (pilot_ca_entries). */
 export async function monthlyCa(year: number): Promise<number[]> {
   const { data, error } = await supabase
-    .from("pilot_ca_entries" as never)
+    .from("pilot_ca_entries")
     .select("month, amount_ht, kind")
     .eq("year", year)
     .eq("kind", "vente");
