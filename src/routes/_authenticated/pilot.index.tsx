@@ -33,7 +33,6 @@ function PilotDashboard() {
       computeKpis({
         entries: entries.data ?? [],
         charges: charges.data ?? [],
-        objectives: objectives.data ?? [],
         settings: set,
         year,
         month,
