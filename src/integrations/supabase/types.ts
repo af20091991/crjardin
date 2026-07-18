@@ -588,6 +588,7 @@ export type Database = {
         Row: {
           amount_ht: number
           category: string | null
+          client_id: string | null
           created_at: string
           designation: string | null
           hours: number | null
@@ -604,6 +605,7 @@ export type Database = {
         Insert: {
           amount_ht?: number
           category?: string | null
+          client_id?: string | null
           created_at?: string
           designation?: string | null
           hours?: number | null
@@ -620,6 +622,7 @@ export type Database = {
         Update: {
           amount_ht?: number
           category?: string | null
+          client_id?: string | null
           created_at?: string
           designation?: string | null
           hours?: number | null
@@ -633,7 +636,15 @@ export type Database = {
           user_id?: string
           year?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pilot_ca_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pilot_charges: {
         Row: {
@@ -700,62 +711,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      pilot_entries: {
-        Row: {
-          amount_ht: number
-          amount_ttc: number
-          client_id: string | null
-          client_name: string | null
-          created_at: string
-          entry_date: string
-          family: Database["public"]["Enums"]["pilot_family"]
-          hours: number
-          id: string
-          nature: string | null
-          observation: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          amount_ht?: number
-          amount_ttc?: number
-          client_id?: string | null
-          client_name?: string | null
-          created_at?: string
-          entry_date?: string
-          family?: Database["public"]["Enums"]["pilot_family"]
-          hours?: number
-          id?: string
-          nature?: string | null
-          observation?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          amount_ht?: number
-          amount_ttc?: number
-          client_id?: string | null
-          client_name?: string | null
-          created_at?: string
-          entry_date?: string
-          family?: Database["public"]["Enums"]["pilot_family"]
-          hours?: number
-          id?: string
-          nature?: string | null
-          observation?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pilot_entries_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       pilot_goals: {
         Row: {
@@ -834,50 +789,6 @@ export type Database = {
           year?: number
         }
         Relationships: []
-      }
-      pilot_objectives: {
-        Row: {
-          client_id: string | null
-          created_at: string
-          family: Database["public"]["Enums"]["pilot_family"] | null
-          id: string
-          month: number | null
-          target_amount: number
-          updated_at: string
-          user_id: string
-          year: number
-        }
-        Insert: {
-          client_id?: string | null
-          created_at?: string
-          family?: Database["public"]["Enums"]["pilot_family"] | null
-          id?: string
-          month?: number | null
-          target_amount?: number
-          updated_at?: string
-          user_id: string
-          year: number
-        }
-        Update: {
-          client_id?: string | null
-          created_at?: string
-          family?: Database["public"]["Enums"]["pilot_family"] | null
-          id?: string
-          month?: number | null
-          target_amount?: number
-          updated_at?: string
-          user_id?: string
-          year?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pilot_objectives_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       pilot_settings: {
         Row: {
@@ -1468,7 +1379,6 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "prestataire" | "observateur"
-      pilot_family: "sap" | "amenagement" | "conseil"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1597,7 +1507,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "prestataire", "observateur"],
-      pilot_family: ["sap", "amenagement", "conseil"],
     },
   },
 } as const
