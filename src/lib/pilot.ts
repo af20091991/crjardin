@@ -240,12 +240,11 @@ export type Kpis = ReturnType<typeof computeKpis>;
 export function computeKpis(params: {
   entries: PilotEntry[];
   charges: PilotCharge[];
-  objectives: PilotObjective[];
   settings: PilotSettings;
   year: number;
   month: number; // 0-11 current month reference
 }) {
-  const { entries, charges, objectives, settings, year, month } = params;
+  const { entries, charges, settings, year, month } = params;
 
   const yearEntries = entries.filter((e) => y(e.entry_date) === year);
   const prevYearEntries = entries.filter((e) => y(e.entry_date) === year - 1);
@@ -263,11 +262,9 @@ export function computeKpis(params: {
   const benefice = caYear - chargesYear;
   const marge = caYear > 0 ? (benefice / caYear) * 100 : 0;
 
-  // Objectif annuel global
-  const annualObjective = objectives.find(
-    (o) => o.year === year && o.month == null && o.family == null && o.client_id == null,
-  );
-  const target = annualObjective?.target_amount ?? 0;
+  // Objectif annuel global (désormais géré via les objectifs stratégiques —
+  // pilot_goals — non chiffrés monétairement). Cible = 0 par défaut.
+  const target = 0;
   const objectifPct = target > 0 ? (caYear / target) * 100 : 0;
 
   // Projection fin d'année selon jours écoulés
