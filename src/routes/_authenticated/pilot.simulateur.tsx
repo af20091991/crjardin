@@ -11,12 +11,12 @@ export const Route = createFileRoute("/_authenticated/pilot/simulateur")({
 });
 
 function SimulateurPage() {
-  const { entries, charges, objectives, settings } = usePilotData();
+  const { entries, charges, settings } = usePilotData();
   const year = new Date().getFullYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   const base = useMemo(
-    () => computeKpis({ entries: entries.data ?? [], charges: charges.data ?? [], objectives: objectives.data ?? [], settings: set, year, month: new Date().getMonth() }),
-    [entries.data, charges.data, objectives.data, set, year],
+    () => computeKpis({ entries: entries.data ?? [], charges: charges.data ?? [], settings: set, year, month: new Date().getMonth() }),
+    [entries.data, charges.data, set, year],
   );
   const baseCharges = annualCharges(charges.data ?? [], year);
 

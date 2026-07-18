@@ -25,15 +25,15 @@ const emptyCharge = (): PilotChargeInput => ({ label: "", category: "", kind: "f
 
 function FinancePage() {
   const qc = useQueryClient();
-  const { entries, charges, objectives, settings } = usePilotData();
+  const { entries, charges, settings } = usePilotData();
   const year = new Date().getFullYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<PilotChargeInput>(emptyCharge());
 
   const k = useMemo(
-    () => computeKpis({ entries: entries.data ?? [], charges: charges.data ?? [], objectives: objectives.data ?? [], settings: set, year, month: new Date().getMonth() }),
-    [entries.data, charges.data, objectives.data, set, year],
+    () => computeKpis({ entries: entries.data ?? [], charges: charges.data ?? [], settings: set, year, month: new Date().getMonth() }),
+    [entries.data, charges.data, set, year],
   );
   const be = useMemo(() => breakEven(k), [k]);
 
