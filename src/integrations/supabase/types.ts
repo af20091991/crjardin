@@ -47,6 +47,183 @@ export type Database = {
         }
         Relationships: []
       }
+      charge_categories: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          kind: string
+          label: string
+          position: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          kind: string
+          label: string
+          position?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          position?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      charges_one_off: {
+        Row: {
+          amortization_months: number | null
+          amount_ht: number
+          charge_category_id: string
+          created_at: string
+          id: string
+          label: string
+          note: string | null
+          purchase_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amortization_months?: number | null
+          amount_ht: number
+          charge_category_id: string
+          created_at?: string
+          id?: string
+          label: string
+          note?: string | null
+          purchase_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amortization_months?: number | null
+          amount_ht?: number
+          charge_category_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          note?: string | null
+          purchase_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charges_one_off_charge_category_id_fkey"
+            columns: ["charge_category_id"]
+            isOneToOne: false
+            referencedRelation: "charge_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charges_recurring: {
+        Row: {
+          amount_ht: number
+          charge_category_id: string
+          created_at: string
+          id: string
+          label: string
+          note: string | null
+          periodicity: string
+          updated_at: string
+          user_id: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          amount_ht: number
+          charge_category_id: string
+          created_at?: string
+          id?: string
+          label: string
+          note?: string | null
+          periodicity: string
+          updated_at?: string
+          user_id: string
+          valid_from: string
+          valid_to?: string | null
+        }
+        Update: {
+          amount_ht?: number
+          charge_category_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          note?: string | null
+          periodicity?: string
+          updated_at?: string
+          user_id?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charges_recurring_charge_category_id_fkey"
+            columns: ["charge_category_id"]
+            isOneToOne: false
+            referencedRelation: "charge_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charges_variable_rates: {
+        Row: {
+          amount_per_unit: number
+          charge_category_id: string
+          created_at: string
+          id: string
+          label: string
+          note: string | null
+          unit: string
+          user_id: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          amount_per_unit: number
+          charge_category_id: string
+          created_at?: string
+          id?: string
+          label: string
+          note?: string | null
+          unit: string
+          user_id: string
+          valid_from: string
+          valid_to?: string | null
+        }
+        Update: {
+          amount_per_unit?: number
+          charge_category_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          note?: string | null
+          unit?: string
+          user_id?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charges_variable_rates_charge_category_id_fkey"
+            columns: ["charge_category_id"]
+            isOneToOne: false
+            referencedRelation: "charge_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_messages: {
         Row: {
           author_name: string | null
@@ -1109,6 +1286,227 @@ export type Database = {
         }
         Relationships: []
       }
+      service_categories: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string
+          id: string
+          is_archived: boolean
+          label: string
+          position: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          label: string
+          position?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          label?: string
+          position?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      service_prices: {
+        Row: {
+          created_at: string
+          id: string
+          material_cost: number
+          note: string | null
+          price_ht: number
+          service_id: string
+          tva_rate: number
+          user_id: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_cost?: number
+          note?: string | null
+          price_ht: number
+          service_id: string
+          tva_rate?: number
+          user_id: string
+          valid_from: string
+          valid_to?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_cost?: number
+          note?: string | null
+          price_ht?: number
+          service_id?: string
+          tva_rate?: number
+          user_id?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_prices_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_prices_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_margin"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "service_prices_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_seasonality_resolved"
+            referencedColumns: ["service_id"]
+          },
+        ]
+      }
+      service_seasonality: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          id: string
+          intensity: number
+          month: number
+          scope: string
+          service_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          intensity?: number
+          month: number
+          scope: string
+          service_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          intensity?: number
+          month?: number
+          scope?: string
+          service_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_seasonality_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_seasonality_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_seasonality_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_margin"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "service_seasonality_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_seasonality_resolved"
+            referencedColumns: ["service_id"]
+          },
+        ]
+      }
+      services: {
+        Row: {
+          category_id: string
+          code: string
+          created_at: string
+          default_frequency: string | null
+          description: string | null
+          id: string
+          is_archived: boolean
+          is_recurring: boolean
+          label: string
+          standard_duration_hours: number | null
+          tags: string[]
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          code: string
+          created_at?: string
+          default_frequency?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          is_recurring?: boolean
+          label: string
+          standard_duration_hours?: number | null
+          tags?: string[]
+          unit: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          code?: string
+          created_at?: string
+          default_frequency?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          is_recurring?: boolean
+          label?: string
+          standard_duration_hours?: number | null
+          tags?: string[]
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       share_access_log: {
         Row: {
           accessed_at: string
@@ -1167,6 +1565,89 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      time_categories: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string
+          id: string
+          is_billable: boolean
+          label: string
+          position: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_billable?: boolean
+          label: string
+          position?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_billable?: boolean
+          label?: string
+          position?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      time_standards: {
+        Row: {
+          created_at: string
+          hours_per_day: number
+          id: string
+          note: string | null
+          target_ratio: number
+          time_category_id: string
+          user_id: string
+          valid_from: string
+          valid_to: string | null
+          working_days_per_year: number
+        }
+        Insert: {
+          created_at?: string
+          hours_per_day?: number
+          id?: string
+          note?: string | null
+          target_ratio: number
+          time_category_id: string
+          user_id: string
+          valid_from: string
+          valid_to?: string | null
+          working_days_per_year?: number
+        }
+        Update: {
+          created_at?: string
+          hours_per_day?: number
+          id?: string
+          note?: string | null
+          target_ratio?: number
+          time_category_id?: string
+          user_id?: string
+          valid_from?: string
+          valid_to?: string | null
+          working_days_per_year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_standards_time_category_id_fkey"
+            columns: ["time_category_id"]
+            isOneToOne: false
+            referencedRelation: "time_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -1286,7 +1767,83 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_billable_hours_target: {
+        Row: {
+          billable_hours_year: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_charges_monthly: {
+        Row: {
+          monthly_recurring: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_real_hourly_cost: {
+        Row: {
+          real_hourly_cost: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_service_current_price: {
+        Row: {
+          material_cost: number | null
+          price_ht: number | null
+          service_id: string | null
+          tva_rate: number | null
+          user_id: string | null
+          valid_from: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_prices_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_prices_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_margin"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "service_prices_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_seasonality_resolved"
+            referencedColumns: ["service_id"]
+          },
+        ]
+      }
+      v_service_margin: {
+        Row: {
+          gross_margin: number | null
+          label: string | null
+          material_cost: number | null
+          price_ht: number | null
+          real_hourly_cost: number | null
+          service_id: string | null
+          standard_duration_hours: number | null
+          unit: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_service_seasonality_resolved: {
+        Row: {
+          intensity: number | null
+          month: number | null
+          service_id: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_client_message: {
