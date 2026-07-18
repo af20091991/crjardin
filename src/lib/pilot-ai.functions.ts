@@ -23,6 +23,7 @@ export const askPilotAi = createServerFn({ method: "POST" })
     const year = new Date().getFullYear();
 
     // --- Chargement du contexte ---
+    const [caRes, chargesRes, settingsRes, clientsRes, intRes, fichesRes, healthRes] = await Promise.all([
       supabase.from("pilot_ca_entries").select("year,month,kind,designation,category,amount_ht,hours,note").gte("year", year - 1),
       supabase.from("pilot_charges").select("label,category,kind,amount,period,charge_date"),
       supabase.from("pilot_settings").select("*").maybeSingle(),
@@ -31,6 +32,7 @@ export const askPilotAi = createServerFn({ method: "POST" })
       supabase.from("worksite_sheets").select("client_name,intervention_date,intervenant").order("intervention_date", { ascending: false }).limit(40),
       supabase.from("garden_health").select("client_id,rating,zone,assessed_on").order("assessed_on", { ascending: false }).limit(30),
     ]);
+    void chargesRes;
 
     type CaRow = { year: number; month: number; kind: string; designation: string | null; category: string | null; amount_ht: number; hours: number | null; note: string | null };
     const ca = (caRes.data ?? []) as unknown as CaRow[];
