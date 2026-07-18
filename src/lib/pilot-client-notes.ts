@@ -4,7 +4,7 @@ export async function getClientNote(clientKey: string): Promise<string> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return "";
   const { data, error } = await supabase
-    .from("pilot_client_notes" as never)
+    .from("pilot_client_notes")
     .select("note")
     .eq("user_id", auth.user.id)
     .eq("client_key", clientKey)
@@ -17,7 +17,7 @@ export async function saveClientNote(clientKey: string, note: string): Promise<v
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error("Non authentifié");
   const { error } = await supabase
-    .from("pilot_client_notes" as never)
+    .from("pilot_client_notes")
     .upsert(
       { user_id: auth.user.id, client_key: clientKey, note } as never,
       { onConflict: "user_id,client_key" },

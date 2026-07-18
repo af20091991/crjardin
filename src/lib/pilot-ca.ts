@@ -50,7 +50,7 @@ export type CaEntryInput = {
 
 export async function listCaEntries(year: number): Promise<CaEntry[]> {
   const { data, error } = await supabase
-    .from("pilot_ca_entries" as never)
+    .from("pilot_ca_entries")
     .select("*")
     .eq("year", year)
     .order("month", { ascending: true })
@@ -63,7 +63,7 @@ export async function listCaEntries(year: number): Promise<CaEntry[]> {
 export async function createCaEntry(input: CaEntryInput): Promise<CaEntry> {
   const user_id = await uid();
   const { data, error } = await supabase
-    .from("pilot_ca_entries" as never)
+    .from("pilot_ca_entries")
     .insert({ amount_ht: 0, ...input, user_id } as never)
     .select()
     .single();
@@ -72,12 +72,12 @@ export async function createCaEntry(input: CaEntryInput): Promise<CaEntry> {
 }
 
 export async function updateCaEntry(id: string, input: Partial<CaEntryInput>): Promise<void> {
-  const { error } = await supabase.from("pilot_ca_entries" as never).update(input as never).eq("id", id);
+  const { error } = await supabase.from("pilot_ca_entries").update(input as never).eq("id", id);
   if (error) throw error;
 }
 
 export async function deleteCaEntry(id: string): Promise<void> {
-  const { error } = await supabase.from("pilot_ca_entries" as never).delete().eq("id", id);
+  const { error } = await supabase.from("pilot_ca_entries").delete().eq("id", id);
   if (error) throw error;
 }
 

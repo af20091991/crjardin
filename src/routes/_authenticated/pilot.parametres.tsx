@@ -293,14 +293,14 @@ function ExcelImportCard() {
       const years = Array.from(new Set(preview.map((r) => r.year)));
       // Remplace les données des années présentes dans le fichier
       for (const y of years) {
-        const { error } = await supabase.from("pilot_ca_entries" as never).delete().eq("year", y);
+        const { error } = await supabase.from("pilot_ca_entries").delete().eq("year", y);
         if (error) throw error;
       }
       const payload = preview.map((r, i) => ({ ...r, user_id, position: i, is_fixed: false }));
       // Insert par lots de 200 pour rester sous les limites
       for (let i = 0; i < payload.length; i += 200) {
         const chunk = payload.slice(i, i + 200);
-        const { error } = await supabase.from("pilot_ca_entries" as never).insert(chunk as never);
+        const { error } = await supabase.from("pilot_ca_entries").insert(chunk as never);
         if (error) throw error;
       }
       toast.success(`${preview.length} ligne(s) importées`);

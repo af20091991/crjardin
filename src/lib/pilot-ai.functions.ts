@@ -23,11 +23,9 @@ export const askPilotAi = createServerFn({ method: "POST" })
     const year = new Date().getFullYear();
 
     // --- Chargement du contexte ---
-    const [caRes, chargesRes, settingsRes, objRes, clientsRes, intRes, fichesRes, healthRes] = await Promise.all([
-      supabase.from("pilot_ca_entries" as never).select("year,month,kind,designation,category,amount_ht,hours,note").gte("year", year - 1),
-      supabase.from("pilot_charges" as never).select("label,category,kind,amount,period,charge_date"),
-      supabase.from("pilot_settings" as never).select("*").maybeSingle(),
-      supabase.from("pilot_objectives" as never).select("year,month,family,target_amount"),
+      supabase.from("pilot_ca_entries").select("year,month,kind,designation,category,amount_ht,hours,note").gte("year", year - 1),
+      supabase.from("pilot_charges").select("label,category,kind,amount,period,charge_date"),
+      supabase.from("pilot_settings").select("*").maybeSingle(),
       supabase.from("clients").select("name,civility,contract_type,frequency,notes,address"),
       supabase.from("interventions").select("intervention_date,intervention_type,client_id,summary").gte("intervention_date", `${year - 1}-01-01`).order("intervention_date", { ascending: false }).limit(80),
       supabase.from("worksite_sheets").select("client_name,intervention_date,intervenant").order("intervention_date", { ascending: false }).limit(40),
@@ -54,7 +52,6 @@ export const askPilotAi = createServerFn({ method: "POST" })
     const healths = (healthRes.data ?? []) as unknown as Array<{ rating: number | null; zone: string | null; assessed_on: string | null }>;
 
     const settings = settingsRes.data as unknown as { target_tjm?: number; target_hourly_rate?: number; monthly_salary?: number; weekly_hours?: number; monthly_fixed_charges?: number } | null;
-    const objectives = (objRes.data ?? []) as Array<{ year: number; month: number | null; family: string | null; target_amount: number }>;
 
     const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
