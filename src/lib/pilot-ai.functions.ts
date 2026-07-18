@@ -74,7 +74,7 @@ PARAMÈTRES
 - Charges fixes mensuelles : ${settings?.monthly_fixed_charges ?? "?"} €
 
 OBJECTIFS
-${objectives.map((o) => `- ${o.year}${o.month ? "/" + o.month : ""} ${o.family ?? "global"} : ${fmt(o.target_amount)}`).join("\n") || "Aucun objectif défini."}
+Voir le module Objectifs stratégiques (pilot_goals).
 
 CLIENTS (${clientsList.length})
 ${clientsList.slice(0, 30).map((c) => `- ${c.civility ?? ""} ${c.name} — ${c.contract_type ?? "sans contrat"}${c.frequency ? ` (${c.frequency})` : ""}${c.notes ? ` — note: ${c.notes.slice(0, 80)}` : ""}`).join("\n")}
