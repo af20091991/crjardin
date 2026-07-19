@@ -285,6 +285,9 @@ function InterventionDetail() {
   const notifyClient = useMutation({
     mutationFn: async () => {
       if (!iv || !client) throw new Error("Données indisponibles");
+      if (!iv.pdf_storage_path) {
+        throw new Error("Aucune archive PDF disponible. Archivez le compte-rendu avant l'envoi.");
+      }
       const recipients = clientEmails(client);
       if (recipients.length === 0) throw new Error("Ce client n'a pas d'adresse e-mail renseignée.");
       const settings = await getEmailSettings();
@@ -297,11 +300,14 @@ function InterventionDetail() {
         nom: client.name,
         date: reportDate,
       });
+      // Empreinte stable de l'archive référencée : évite les doublons
+      // mais permet un renvoi volontaire dès qu'une nouvelle version est archivée.
+      const archiveKey = iv.pdf_storage_path.replace(/[^a-zA-Z0-9]/g, "").slice(-24);
       for (const recipientEmail of recipients) {
         await sendTransactionalEmail({
           templateName: "new-report",
           recipientEmail,
-          idempotencyKey: `new-report-${interventionId}-${recipientEmail}`,
+          idempotencyKey: `new-report-${interventionId}-${recipientEmail}-${archiveKey}`,
           templateData: {
             subject: settings.subject,
             bodyText,
