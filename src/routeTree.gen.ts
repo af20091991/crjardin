@@ -20,6 +20,7 @@ import { Route as PartageTokenRouteImport } from './routes/partage.$token'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AuthenticatedVersionsRouteImport } from './routes/_authenticated/versions'
 import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
+import { Route as AuthenticatedSstRouteImport } from './routes/_authenticated/sst'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
 import { Route as AuthenticatedPilotRouteImport } from './routes/_authenticated/pilot'
@@ -110,6 +111,11 @@ const AuthenticatedStatistiquesRoute =
     path: '/statistiques',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSstRoute = AuthenticatedSstRouteImport.update({
+  id: '/sst',
+  path: '/sst',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -316,6 +322,7 @@ export interface FileRoutesByFullPath {
   '/pilot': typeof AuthenticatedPilotRouteWithChildren
   '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/sst': typeof AuthenticatedSstRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/versions': typeof AuthenticatedVersionsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -360,6 +367,7 @@ export interface FileRoutesByTo {
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/sst': typeof AuthenticatedSstRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/versions': typeof AuthenticatedVersionsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -408,6 +416,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot': typeof AuthenticatedPilotRouteWithChildren
   '/_authenticated/planning': typeof AuthenticatedPlanningRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/sst': typeof AuthenticatedSstRoute
   '/_authenticated/statistiques': typeof AuthenticatedStatistiquesRoute
   '/_authenticated/versions': typeof AuthenticatedVersionsRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -457,6 +466,7 @@ export interface FileRouteTypes {
     | '/pilot'
     | '/planning'
     | '/settings'
+    | '/sst'
     | '/statistiques'
     | '/versions'
     | '/email/unsubscribe'
@@ -501,6 +511,7 @@ export interface FileRouteTypes {
     | '/personnalisation'
     | '/planning'
     | '/settings'
+    | '/sst'
     | '/statistiques'
     | '/versions'
     | '/email/unsubscribe'
@@ -548,6 +559,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot'
     | '/_authenticated/planning'
     | '/_authenticated/settings'
+    | '/_authenticated/sst'
     | '/_authenticated/statistiques'
     | '/_authenticated/versions'
     | '/email/unsubscribe'
@@ -674,6 +686,13 @@ declare module '@tanstack/react-router' {
       path: '/statistiques'
       fullPath: '/statistiques'
       preLoaderRoute: typeof AuthenticatedStatistiquesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sst': {
+      id: '/_authenticated/sst'
+      path: '/sst'
+      fullPath: '/sst'
+      preLoaderRoute: typeof AuthenticatedSstRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings': {
@@ -974,6 +993,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPilotRoute: typeof AuthenticatedPilotRouteWithChildren
   AuthenticatedPlanningRoute: typeof AuthenticatedPlanningRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedSstRoute: typeof AuthenticatedSstRoute
   AuthenticatedStatistiquesRoute: typeof AuthenticatedStatistiquesRoute
   AuthenticatedVersionsRoute: typeof AuthenticatedVersionsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -996,6 +1016,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPilotRoute: AuthenticatedPilotRouteWithChildren,
   AuthenticatedPlanningRoute: AuthenticatedPlanningRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedSstRoute: AuthenticatedSstRoute,
   AuthenticatedStatistiquesRoute: AuthenticatedStatistiquesRoute,
   AuthenticatedVersionsRoute: AuthenticatedVersionsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
