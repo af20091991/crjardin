@@ -1,11 +1,15 @@
 import { jsPDF } from "jspdf";
 import logo from "@/assets/logo.png";
 import type { Intervention, InterventionTask, InterventionPhoto } from "@/lib/interventions";
-import { TASK_STATUS_META, type TaskStatus, signedPhotoUrl } from "@/lib/interventions";
+import { TASK_STATUS_META, type TaskStatus, signedPhotoUrl, normalizeReportSections } from "@/lib/interventions";
 import type { Client } from "@/lib/clients";
 import { gardenLabel } from "@/lib/clients";
 import type { GardenHealth, Recommendation } from "@/lib/garden";
-import { HEALTH_RATING_META, type HealthRating, RECO_STATUS_META, type RecommendationStatus } from "@/lib/garden";
+import {
+  HEALTH_RATING_META, type HealthRating, RECO_STATUS_META, type RecommendationStatus,
+  RECO_PRIORITY_META, type RecommendationPriority,
+  RECO_SEASON_LABELS, type RecommendationSeason,
+} from "@/lib/garden";
 import { recommendationPrice, formatEuro } from "@/lib/garden";
 import type { WorksiteSheet } from "@/lib/worksite";
 
@@ -40,6 +44,16 @@ export interface InterventionReportData {
 
 export async function buildInterventionPdf(data: InterventionReportData): Promise<{ blob: Blob; filename: string }> {
   const { intervention: iv, client, tasks, photos, health, recommendations } = data;
+  const sections = normalizeReportSections(iv.report_sections);
+  const reportRecos = recommendations
+    .filter((r) => r.include_in_report ?? true)
+    .slice()
+    .sort((a, b) => {
+      const ap = a.report_position ?? Number.MAX_SAFE_INTEGER;
+      const bp = b.report_position ?? Number.MAX_SAFE_INTEGER;
+      if (ap !== bp) return ap - bp;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
   const company = data.companyName?.trim() || "De la graine au jardin";
   const garden = gardenLabel(client);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -135,11 +149,13 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
   doc.setTextColor(...DARK);
 
   // ---- Synthèse ----
-  heading("Synthèse de l'intervention");
-  paragraph(iv.summary ?? "");
+  if (sections.summary) {
+    heading("Synthèse de l'intervention");
+    paragraph(iv.summary ?? "");
+  }
 
   // ---- Fiche jardin (informations utiles au suivi, pas de données internes) ----
-  if (data.worksite) {
+  if (sections.worksite && data.worksite) {
     const w = data.worksite;
     const lines: string[] = [];
     if (w.client_name) lines.push(`Jardin : ${w.client_name}`);
@@ -155,10 +171,11 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
   }
 
   // ---- Travaux ----
-  heading("Travaux réalisés");
-  if (tasks.length === 0) paragraph("");
-  else {
-    for (const t of tasks) {
+  if (sections.tasks) {
+    heading("Travaux réalisés");
+    if (tasks.length === 0) paragraph("");
+    else {
+      for (const t of tasks) {
       const st = (t.status as TaskStatus) in TASK_STATUS_META ? (t.status as TaskStatus) : "realise";
       const label = `${t.label}  —  ${TASK_STATUS_META[st].label}`;
       const lines = doc.splitTextToSize(label, contentW - 6);
@@ -179,11 +196,30 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
         y += nl.length * 4.5;
       }
       y += 2;
+      }
     }
   }
 
+  // ---- Points positifs ----
+  if (sections.positive_points && iv.positive_points?.trim()) {
+    heading("Points positifs observés");
+    paragraph(iv.positive_points);
+  }
+
+  // ---- Points de vigilance ----
+  if (sections.attention_points && iv.attention_points?.trim()) {
+    heading("Points de vigilance");
+    paragraph(iv.attention_points);
+  }
+
+  // ---- Évolution du jardin ----
+  if (sections.garden_evolution && iv.garden_evolution?.trim()) {
+    heading("Évolution du jardin");
+    paragraph(iv.garden_evolution);
+  }
+
   // ---- État du jardin ----
-  if (iv.garden_state?.trim() || health.length) {
+  if (sections.garden_state && (iv.garden_state?.trim() || health.length)) {
     heading("État du jardin");
     if (iv.garden_state?.trim()) paragraph(iv.garden_state);
     for (const h of health) {
@@ -198,13 +234,17 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
   }
 
   // ---- Préconisations ----
-  if (iv.recommendations_text?.trim() || recommendations.length) {
+  if (sections.recommendations && (iv.recommendations_text?.trim() || reportRecos.length)) {
     heading("Préconisations & conseils");
     if (iv.recommendations_text?.trim()) paragraph(iv.recommendations_text);
-    for (const r of recommendations) {
+    for (const r of reportRecos) {
       const st = (r.status as RecommendationStatus) in RECO_STATUS_META ? (r.status as RecommendationStatus) : "en_attente";
       const price = recommendationPrice(r);
-      const title = `${r.title}${r.category ? ` [${r.category}]` : ""} — ${RECO_STATUS_META[st].label}${price != null ? ` · ${formatEuro(price)}` : ""}`;
+      const pr = r.priority as RecommendationPriority | null | undefined;
+      const se = r.recommended_season as RecommendationSeason | null | undefined;
+      const prTxt = pr && RECO_PRIORITY_META[pr] ? ` · ${RECO_PRIORITY_META[pr].label}` : "";
+      const seTxt = se && RECO_SEASON_LABELS[se] ? ` · ${RECO_SEASON_LABELS[se]}` : "";
+      const title = `${r.title}${r.category ? ` [${r.category}]` : ""} — ${RECO_STATUS_META[st].label}${price != null ? ` · ${formatEuro(price)}` : ""}${prTxt}${seTxt}`;
       const lines = doc.splitTextToSize(title, contentW - 6);
       ensureSpace(lines.length * 5 + 1);
       doc.setFont("helvetica", "bold");
@@ -226,14 +266,17 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
     }
   }
 
-  if (iv.upcoming_works?.trim()) {
+  if (sections.upcoming && iv.upcoming_works?.trim()) {
     heading("Travaux prévus — prochaine intervention");
     paragraph(iv.upcoming_works);
   }
 
   // ---- Photos ----
-  const reportPhotos = photos.filter((p) => p.include_in_report);
-  if (reportPhotos.length) {
+  const reportPhotos = photos
+    .filter((p) => p.include_in_report)
+    .slice()
+    .sort((a, b) => a.position - b.position);
+  if (sections.photos && reportPhotos.length) {
     heading("Photos de l'intervention");
     const cols = 2;
     const gap = 6;
