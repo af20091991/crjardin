@@ -21,6 +21,8 @@ import { getMyProfile } from "@/lib/profile";
 import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
+import { archiveInterventionReport, listReportHistory, signedReportUrl, logReportEvent, REPORT_EVENT_LABEL } from "@/lib/report-history";
+import { InterventionReportPreview } from "@/components/InterventionReportPreview";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { getEmailSettings, fillTemplate } from "@/lib/email-settings";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -40,8 +42,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
-  FileDown, ScanSearch, Check, Mail,
+  FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
