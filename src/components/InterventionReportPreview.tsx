@@ -72,7 +72,20 @@ export function InterventionReportPreview({
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
   const clientFull = [client.civility?.trim(), client.name?.trim()].filter(Boolean).join(" ") || garden;
-  const reportPhotos = photos.filter((p) => p.include_in_report);
+  const sections = normalizeReportSections(iv.report_sections);
+  const reportPhotos = photos
+    .filter((p) => p.include_in_report)
+    .slice()
+    .sort((a, b) => a.position - b.position);
+  const reportRecos = recommendations
+    .filter((r) => r.include_in_report ?? true)
+    .slice()
+    .sort((a, b) => {
+      const ap = a.report_position ?? Number.MAX_SAFE_INTEGER;
+      const bp = b.report_position ?? Number.MAX_SAFE_INTEGER;
+      if (ap !== bp) return ap - bp;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
 
   return (
     <div className="mx-auto max-w-[210mm] rounded-lg border border-border bg-white text-[13px] text-foreground shadow-sm print:shadow-none">
@@ -97,10 +110,14 @@ export function InterventionReportPreview({
           {client.contract_type && <p>Contrat : {client.contract_type}{client.frequency ? ` (${client.frequency})` : ""}</p>}
         </div>
 
-        <Heading>Synthèse de l'intervention</Heading>
-        <p className="mt-2 whitespace-pre-wrap text-[13px]">{iv.summary?.trim() || <span className="text-muted-foreground">—</span>}</p>
+        {sections.summary && (
+          <>
+            <Heading>Synthèse de l'intervention</Heading>
+            <p className="mt-2 whitespace-pre-wrap text-[13px]">{iv.summary?.trim() || <span className="text-muted-foreground">—</span>}</p>
+          </>
+        )}
 
-        {worksite && (
+        {sections.worksite && worksite && (
           <>
             <Heading>Fiche jardin</Heading>
             <div className="mt-2 space-y-1 text-[12.5px]">
@@ -120,24 +137,49 @@ export function InterventionReportPreview({
           </>
         )}
 
-        <Heading>Travaux réalisés</Heading>
-        {tasks.length === 0 ? (
-          <p className="mt-2 text-muted-foreground">—</p>
-        ) : (
-          <ul className="mt-2 space-y-1.5">
-            {tasks.map((t) => {
-              const st = (t.status as TaskStatus) in TASK_STATUS_META ? (t.status as TaskStatus) : "realise";
-              return (
-                <li key={t.id}>
-                  <div className="font-medium">• {t.label} — {TASK_STATUS_META[st].label}</div>
-                  {t.note?.trim() && <div className="ml-3 text-[12px] text-muted-foreground">{t.note}</div>}
-                </li>
-              );
-            })}
-          </ul>
+        {sections.tasks && (
+          <>
+            <Heading>Travaux réalisés</Heading>
+            {tasks.length === 0 ? (
+              <p className="mt-2 text-muted-foreground">—</p>
+            ) : (
+              <ul className="mt-2 space-y-1.5">
+                {tasks.map((t) => {
+                  const st = (t.status as TaskStatus) in TASK_STATUS_META ? (t.status as TaskStatus) : "realise";
+                  return (
+                    <li key={t.id}>
+                      <div className="font-medium">• {t.label} — {TASK_STATUS_META[st].label}</div>
+                      {t.note?.trim() && <div className="ml-3 text-[12px] text-muted-foreground">{t.note}</div>}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </>
         )}
 
-        {(iv.garden_state?.trim() || health.length > 0) && (
+        {sections.positive_points && iv.positive_points?.trim() && (
+          <>
+            <Heading>Points positifs observés</Heading>
+            <p className="mt-2 whitespace-pre-wrap">{iv.positive_points}</p>
+          </>
+        )}
+
+        {sections.attention_points && iv.attention_points?.trim() && (
+          <>
+            <Heading>Points de vigilance</Heading>
+            <p className="mt-2 whitespace-pre-wrap">{iv.attention_points}</p>
+          </>
+        )}
+
+        {sections.garden_evolution && iv.garden_evolution?.trim() && (
+          <>
+            <Heading>Évolution du jardin</Heading>
+            <p className="mt-2 whitespace-pre-wrap">{iv.garden_evolution}</p>
+          </>
+        )}
+
+        {sections.garden_state && (iv.garden_state?.trim() || health.length > 0) && (
           <>
             <Heading>État du jardin</Heading>
             {iv.garden_state?.trim() && <p className="mt-2 whitespace-pre-wrap">{iv.garden_state}</p>}
@@ -154,20 +196,24 @@ export function InterventionReportPreview({
           </>
         )}
 
-        {(iv.recommendations_text?.trim() || recommendations.length > 0) && (
+        {sections.recommendations && (iv.recommendations_text?.trim() || reportRecos.length > 0) && (
           <>
             <Heading>Préconisations & conseils</Heading>
             {iv.recommendations_text?.trim() && <p className="mt-2 whitespace-pre-wrap">{iv.recommendations_text}</p>}
-            {recommendations.length > 0 && (
+            {reportRecos.length > 0 && (
               <ul className="mt-2 space-y-1.5">
-                {recommendations.map((r) => {
+                {reportRecos.map((r) => {
                   const st = (r.status as RecommendationStatus) in RECO_STATUS_META ? (r.status as RecommendationStatus) : "en_attente";
                   const price = recommendationPrice(r);
+                  const pr = r.priority as RecommendationPriority | null | undefined;
+                  const se = r.recommended_season as RecommendationSeason | null | undefined;
                   return (
                     <li key={r.id}>
                       <div className="font-medium">
                         • {r.title}{r.category ? ` [${r.category}]` : ""} — {RECO_STATUS_META[st].label}
                         {price != null && ` · ${formatEuro(price)}`}
+                        {pr && RECO_PRIORITY_META[pr] && ` · ${RECO_PRIORITY_META[pr].label}`}
+                        {se && RECO_SEASON_LABELS[se] && ` · ${RECO_SEASON_LABELS[se]}`}
                       </div>
                       {r.description?.trim() && <div className="ml-3 text-[12px] text-muted-foreground">{r.description}</div>}
                     </li>
@@ -178,14 +224,14 @@ export function InterventionReportPreview({
           </>
         )}
 
-        {iv.upcoming_works?.trim() && (
+        {sections.upcoming && iv.upcoming_works?.trim() && (
           <>
             <Heading>Travaux prévus — prochaine intervention</Heading>
             <p className="mt-2 whitespace-pre-wrap">{iv.upcoming_works}</p>
           </>
         )}
 
-        {reportPhotos.length > 0 && (
+        {sections.photos && reportPhotos.length > 0 && (
           <>
             <Heading>Photos de l'intervention</Heading>
             <div className="mt-3 grid grid-cols-2 gap-3">
