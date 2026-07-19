@@ -212,3 +212,36 @@ export const getSharedClient = createServerFn({ method: "GET" })
 
     return result;
   });
+
+/**
+ * Renvoie une URL signée vers la version du compte-rendu **envoyée au client**
+ * (`sent_pdf_storage_path`). Journalise également l'événement
+ * `viewed_by_client` dans l'historique.
+ */
+export const getSharedInterventionPdfUrl = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; interventionId: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data?.interventionId) throw new Error("Compte-rendu invalide");
+    return { token: data.token, interventionId: data.interventionId };
+  })
+  .handler(async ({ data }): Promise<{ url: string }> => {
+    const fwd = getRequestHeader("x-forwarded-for") ?? "";
+    const ip = fwd.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
+    const ua = getRequestHeader("user-agent") ?? null;
+    const { data: payload, error } = await publicClient().rpc("record_shared_report_view", {
+      p_token: data.token,
+      p_intervention_id: data.interventionId,
+      p_user_agent: ua ?? undefined,
+      p_ip: ip ?? undefined,
+    });
+    if (error) throw error;
+    const path = (payload as { pdf_storage_path?: string } | null)?.pdf_storage_path;
+    if (!path) throw new Error("Aucun PDF disponible");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error: signErr } = await supabaseAdmin.storage
+      .from("intervention-reports")
+      .createSignedUrl(path, 60 * 60);
+    if (signErr) throw signErr;
+    return { url: signed.signedUrl };
+  });
