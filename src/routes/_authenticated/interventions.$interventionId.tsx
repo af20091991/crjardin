@@ -524,6 +524,7 @@ function InterventionDetail() {
                           photos={photos ?? []}
                           health={healthList ?? []}
                           recommendations={recos ?? []}
+                          worksite={worksite ?? null}
                           companyName={profile?.company_name ?? undefined}
                           authorName={profile?.display_name ?? undefined}
                           signatureData={profile?.signature_data ?? null}
