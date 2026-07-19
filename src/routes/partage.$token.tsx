@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getSharedClient, markSharedRead, addClientMessage, getSharedMessages, setRecommendationInterest,
   markRecommendationsViewed,
+  getSharedInterventionPdfUrl,
   type SharedIntervention, type ClientMessage, type SharedRecommendation, type SharedClientData,
 } from "@/lib/share.functions";
 import { exportSharedInterventionPdf } from "@/lib/share-pdf";
