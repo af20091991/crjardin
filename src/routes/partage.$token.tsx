@@ -368,7 +368,16 @@ function InterventionCard({
   async function download() {
     setDownloading(true);
     try {
-      await exportSharedInterventionPdf(iv, client);
+      if (iv.has_sent_pdf || iv.has_pdf) {
+        // Version envoyée par le paysagiste (ou dernière archive disponible),
+        // et non un PDF regénéré à la volée.
+        const { url } = await getSharedInterventionPdfUrl({
+          data: { token, interventionId: iv.id },
+        });
+        window.open(url, "_blank", "noopener");
+      } else {
+        await exportSharedInterventionPdf(iv, client);
+      }
     } catch {
       toast.error("Impossible de générer le PDF.");
     } finally {
