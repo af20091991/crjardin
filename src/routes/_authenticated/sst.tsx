@@ -204,6 +204,7 @@ function SubcontractorDialog({ editing, onDone }: { editing: Subcontractor | nul
   const [hourlyRate, setHourlyRate] = useState(editing?.hourly_rate?.toString() ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [active, setActive] = useState(editing?.active ?? true);
+  const [defaultTypesText, setDefaultTypesText] = useState((editing?.default_service_types ?? []).join(", "));
   const [saving, setSaving] = useState(false);
 
   async function submit() {
@@ -211,6 +212,10 @@ function SubcontractorDialog({ editing, onDone }: { editing: Subcontractor | nul
     setSaving(true);
     try {
       const specialties = specialtiesText
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const default_service_types = defaultTypesText
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
@@ -224,6 +229,7 @@ function SubcontractorDialog({ editing, onDone }: { editing: Subcontractor | nul
         hourly_rate: hourlyRate ? Number(hourlyRate) : null,
         notes: notes.trim() || null,
         active,
+        default_service_types,
       };
       if (editing) {
         await updateSubcontractor(editing.id, payload);
