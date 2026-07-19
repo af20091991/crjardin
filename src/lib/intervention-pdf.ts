@@ -36,7 +36,7 @@ export interface InterventionReportData {
   stampData?: string;
 }
 
-export async function exportInterventionPdf(data: InterventionReportData): Promise<void> {
+export async function buildInterventionPdf(data: InterventionReportData): Promise<{ blob: Blob; filename: string }> {
   const { intervention: iv, client, tasks, photos, health, recommendations } = data;
   const company = data.companyName?.trim() || "De la graine au jardin";
   const garden = gardenLabel(client);
@@ -316,5 +316,20 @@ export async function exportInterventionPdf(data: InterventionReportData): Promi
     .filter(Boolean)
     .join(" ");
   const fileName = parts.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
-  doc.save(`${fileName}.pdf`);
+  const filename = `${fileName}.pdf`;
+  const blob = doc.output("blob");
+  return { blob, filename };
+}
+
+export async function exportInterventionPdf(data: InterventionReportData): Promise<{ blob: Blob; filename: string }> {
+  const built = await buildInterventionPdf(data);
+  const url = URL.createObjectURL(built.blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = built.filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return built;
 }
