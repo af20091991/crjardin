@@ -256,7 +256,7 @@ export async function updateIntervention(
 ): Promise<Intervention> {
   const { data, error } = await supabase
     .from("interventions")
-    .update(patch)
+    .update(patch as never)
     .eq("id", id)
     .select()
     .single();
