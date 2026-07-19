@@ -28,6 +28,9 @@ export interface SharedIntervention {
   upcoming_works: string | null;
   recommendations_text: string | null;
   client_read_at: string | null;
+  sent_to_client_at: string | null;
+  has_sent_pdf: boolean;
+  has_pdf: boolean;
   tasks: SharedTask[];
   photos: SharedPhoto[];
 }
