@@ -114,8 +114,8 @@ export interface Intervention {
   positive_points?: string | null;
   attention_points?: string | null;
   garden_evolution?: string | null;
-  report_sections?: unknown;
-  ai_metadata?: unknown;
+  report_sections?: ReportSections | null;
+  ai_metadata?: Record<string, unknown> | null;
 }
 
 export interface InterventionTask {
