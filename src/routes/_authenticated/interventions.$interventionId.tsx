@@ -512,6 +512,14 @@ function InterventionDetail() {
                       ? `Dernière archive : ${new Date(iv.report_generated_at).toLocaleString("fr-FR")}`
                       : "Aucune archive PDF pour l'instant."}
                   </p>
+                  {iv.sent_to_client_at && (
+                    <p className="text-xs text-emerald-700">
+                      Envoyé au client le {new Date(iv.sent_to_client_at).toLocaleString("fr-FR")}
+                      {iv.sent_pdf_storage_path && iv.pdf_storage_path && iv.sent_pdf_storage_path !== iv.pdf_storage_path && (
+                        <span className="ml-1 text-amber-700">· une version plus récente est archivée</span>
+                      )}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
