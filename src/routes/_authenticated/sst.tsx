@@ -20,13 +20,17 @@ import {
   createMission,
   updateMission,
   deleteMission,
+  listMissionPnl,
+  listSubcontractorSummary,
   MISSION_STATUS_META,
   type Subcontractor,
   type SubcontractorMission,
   type MissionStatus,
+  type MissionPnl,
+  type SubcontractorSummary,
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
-import { HardHat, Plus, Pencil, Trash2, Phone, Mail, MapPin, Euro, ClipboardList } from "lucide-react";
+import { HardHat, Plus, Pencil, Trash2, Phone, Mail, MapPin, Euro, ClipboardList, Star, TrendingUp, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/sst")({
