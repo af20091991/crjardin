@@ -895,7 +895,7 @@ function SyntheseField({
   label, field, iv, onSave,
 }: {
   label: string;
-  field: "summary" | "garden_state" | "upcoming_works" | "recommendations_text";
+  field: "summary" | "garden_state" | "upcoming_works" | "recommendations_text" | "positive_points" | "attention_points" | "garden_evolution";
   iv: Intervention;
   onSave: (v: string) => void;
 }) {
