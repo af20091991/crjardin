@@ -619,6 +619,54 @@ export type Database = {
           },
         ]
       }
+      intervention_report_history: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          intervention_id: string
+          metadata: Json | null
+          pdf_storage_path: string | null
+          recipient: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          intervention_id: string
+          metadata?: Json | null
+          pdf_storage_path?: string | null
+          recipient?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          intervention_id?: string
+          metadata?: Json | null
+          pdf_storage_path?: string | null
+          recipient?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intervention_report_history_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "interventions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intervention_report_history_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
+          },
+        ]
+      }
       intervention_tasks: {
         Row: {
           created_at: string
@@ -706,6 +754,7 @@ export type Database = {
           pdf_storage_path: string | null
           recommendations_text: string | null
           reference: string | null
+          report_generated_at: string | null
           sent_to_client_at: string | null
           status: string
           summary: string | null
@@ -729,6 +778,7 @@ export type Database = {
           pdf_storage_path?: string | null
           recommendations_text?: string | null
           reference?: string | null
+          report_generated_at?: string | null
           sent_to_client_at?: string | null
           status?: string
           summary?: string | null
@@ -752,6 +802,7 @@ export type Database = {
           pdf_storage_path?: string | null
           recommendations_text?: string | null
           reference?: string | null
+          report_generated_at?: string | null
           sent_to_client_at?: string | null
           status?: string
           summary?: string | null
@@ -1243,6 +1294,8 @@ export type Database = {
           estimated_hours: number | null
           id: string
           intervention_id: string | null
+          priority: string | null
+          recommended_season: string | null
           source: string
           status: string
           title: string
@@ -1261,6 +1314,8 @@ export type Database = {
           estimated_hours?: number | null
           id?: string
           intervention_id?: string | null
+          priority?: string | null
+          recommended_season?: string | null
           source?: string
           status?: string
           title: string
@@ -1279,6 +1334,8 @@ export type Database = {
           estimated_hours?: number | null
           id?: string
           intervention_id?: string | null
+          priority?: string | null
+          recommended_season?: string | null
           source?: string
           status?: string
           title?: string
