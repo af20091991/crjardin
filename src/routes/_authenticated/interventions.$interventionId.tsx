@@ -84,6 +84,16 @@ function InterventionDetail() {
   });
   const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const { data: worksiteOptions } = useQuery({
+    queryKey: ["worksite-sheets-by-client", iv?.client_id],
+    queryFn: () => listWorksiteSheetsByClient(iv!.client_id),
+    enabled: !!iv?.client_id,
+  });
+  const { data: worksite } = useQuery({
+    queryKey: ["worksite-sheet", iv?.worksite_sheet_id],
+    queryFn: () => getWorksiteSheet(iv!.worksite_sheet_id!),
+    enabled: !!iv?.worksite_sheet_id,
+  });
   const { data: tasks } = useQuery({
     queryKey: ["tasks", interventionId],
     queryFn: () => listTasks(interventionId),
