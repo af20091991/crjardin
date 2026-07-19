@@ -599,23 +599,30 @@ function MissionDialog({
           <Label>Prestation demandée *</Label>
           <Input value={serviceRequested} onChange={(e) => setServiceRequested(e.target.value)} />
         </div>
-        <div className="space-y-1.5">
-          <Label>Consignes</Label>
-          <Textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={2} />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>Prix convenu (€)</Label>
-            <Input type="number" step="0.01" value={agreedPrice} onChange={(e) => setAgreedPrice(e.target.value)} />
+
+        {/* AVANT */}
+        <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-900">Avant intervention</p>
+          <div className="space-y-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Objectif de la mission</Label>
+              <Input value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="Ex. Éclaircir 3 tilleuls avant montée en sève" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Contexte du jardin</Label>
+              <Textarea value={contextNotes} onChange={(e) => setContextNotes(e.target.value)} rows={2} placeholder="Accès, contraintes, informations utiles" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Consignes / briefing détaillé</Label>
+              <Textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={2} />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Montant facturé (€)</Label>
-            <Input type="number" step="0.01" value={invoicedAmount} onChange={(e) => setInvoicedAmount(e.target.value)} />
-          </div>
         </div>
-        <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
-          <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <ClipboardList className="h-3.5 w-3.5" /> Retour d'intervention
+
+        {/* APRÈS */}
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-900">
+            <ClipboardList className="h-3.5 w-3.5" /> Pendant / Après intervention
           </p>
           <div className="space-y-2">
             <div className="space-y-1.5">
@@ -623,14 +630,71 @@ function MissionDialog({
               <Textarea value={reportNotes} onChange={(e) => setReportNotes(e.target.value)} rows={2} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Anomalies détectées</Label>
+              <Label className="text-xs">Anomalies constatées</Label>
               <Textarea value={anomalies} onChange={(e) => setAnomalies(e.target.value)} rows={2} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Recommandations</Label>
               <Textarea value={recommendations} onChange={(e) => setRecommendations(e.target.value)} rows={2} />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Temps passé (h)</Label>
+                <Input type="number" step="0.25" value={hoursSpent} onChange={(e) => setHoursSpent(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1.5">
+                  Note interne <span className="text-[10px] text-muted-foreground">(non visible client)</span>
+                </Label>
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setInternalRating(internalRating === n ? 0 : n)}
+                      className="p-0.5"
+                      aria-label={`Note ${n}`}
+                    >
+                      <Star
+                        className={`h-5 w-5 ${
+                          n <= internalRating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* FINANCIER */}
+        <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Suivi financier</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Prix vendu client (€)</Label>
+              <Input type="number" step="0.01" value={clientPrice} onChange={(e) => setClientPrice(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Prix convenu SST (€)</Label>
+              <Input type="number" step="0.01" value={agreedPrice} onChange={(e) => setAgreedPrice(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Coût SST facturé (€)</Label>
+              <Input type="number" step="0.01" value={invoicedAmount} onChange={(e) => setInvoicedAmount(e.target.value)} />
+            </div>
+          </div>
+          {clientRev > 0 && (
+            <div className="mt-3 flex items-center justify-between rounded-md border border-border/60 bg-background px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Marge brute estimée</span>
+              <span className={`flex items-center gap-1.5 font-semibold ${margin >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                {margin >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                {margin.toFixed(2)} €
+                {marginPct !== null && <span className="text-xs opacity-70">({marginPct}%)</span>}
+              </span>
+            </div>
+          )}
         </div>
       </div>
       <DialogFooter>
