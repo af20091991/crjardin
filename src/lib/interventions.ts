@@ -338,10 +338,19 @@ export async function addPhoto(
 
 export async function updatePhoto(
   id: string,
-  patch: Partial<Pick<InterventionPhoto, "caption" | "include_in_report">>,
+  patch: Partial<Pick<InterventionPhoto, "caption" | "include_in_report" | "position">>,
 ): Promise<void> {
   const { error } = await supabase.from("intervention_photos").update(patch).eq("id", id);
   if (error) throw error;
+}
+
+/** Réordonne les photos d'une intervention selon l'ordre transmis. */
+export async function reorderPhotos(ids: string[]): Promise<void> {
+  await Promise.all(
+    ids.map((id, position) =>
+      supabase.from("intervention_photos").update({ position }).eq("id", id),
+    ),
+  );
 }
 
 export async function deletePhoto(id: string, storagePath: string): Promise<void> {
