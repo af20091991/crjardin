@@ -551,9 +551,14 @@ function InterventionDetail() {
                     <History className="h-3.5 w-3.5" /> Historique
                   </div>
                   <ul className="space-y-1 text-sm">
-                    {reportHistory!.slice(0, 8).map((h) => (
+                    {withVersions(reportHistory!).slice(0, 12).map((h) => (
                       <li key={h.id} className="flex items-center justify-between gap-2">
                         <span>
+                          {h.version != null && (
+                            <span className="mr-1.5 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">
+                              Version {h.version}
+                            </span>
+                          )}
                           <span className="font-medium">{REPORT_EVENT_LABEL[h.event_type]}</span>
                           {h.recipient && <span className="text-muted-foreground"> · {h.recipient}</span>}
                         </span>
