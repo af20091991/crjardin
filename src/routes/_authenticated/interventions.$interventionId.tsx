@@ -777,6 +777,9 @@ function InterventionDetail() {
             </div>
             <p className="text-xs text-muted-foreground">L'assistant rédige automatiquement la synthèse à partir des travaux saisis.</p>
             <SyntheseField label="Synthèse de l'intervention" field="summary" iv={iv} onSave={(v) => saveSynthese.mutate({ summary: v })} />
+            <SyntheseField label="Points positifs observés" field="positive_points" iv={iv} onSave={(v) => saveSynthese.mutate({ positive_points: v })} />
+            <SyntheseField label="Points de vigilance" field="attention_points" iv={iv} onSave={(v) => saveSynthese.mutate({ attention_points: v })} />
+            <SyntheseField label="Évolution du jardin" field="garden_evolution" iv={iv} onSave={(v) => saveSynthese.mutate({ garden_evolution: v })} />
             <SyntheseField label="État du jardin" field="garden_state" iv={iv} onSave={(v) => saveSynthese.mutate({ garden_state: v })} />
             <SyntheseField label="Travaux prévus prochaine intervention" field="upcoming_works" iv={iv} onSave={(v) => saveSynthese.mutate({ upcoming_works: v })} />
             <SyntheseField label="Préconisations / conseils" field="recommendations_text" iv={iv} onSave={(v) => saveSynthese.mutate({ recommendations_text: v })} />
