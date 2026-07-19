@@ -61,6 +61,7 @@ export interface Intervention {
   pdf_storage_path?: string | null;
   report_generated_at?: string | null;
   sent_to_client_at?: string | null;
+  sent_pdf_storage_path?: string | null;
   worksite_sheet_id?: string | null;
 }
 
