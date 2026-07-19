@@ -407,6 +407,31 @@ function InterventionDetail() {
                 </Select>
               </div>
             )}
+            {client && (
+              <div className="mb-4 space-y-1.5">
+                <Label>Fiche jardin</Label>
+                <Select
+                  value={iv.worksite_sheet_id ?? "__none__"}
+                  onValueChange={(v) => changeWorksite.mutate(v === "__none__" ? null : v)}
+                  disabled={changeWorksite.isPending}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Aucune fiche jardin liée" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Aucune —</SelectItem>
+                    {(worksiteOptions ?? []).map((w) => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.client_name || "Jardin"}{w.intervention_date ? ` · ${new Date(w.intervention_date).toLocaleDateString("fr-FR")}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(worksiteOptions?.length ?? 0) === 0 && (
+                  <p className="text-xs text-muted-foreground">Aucune fiche jardin n'existe pour ce client.</p>
+                )}
+              </div>
+            )}
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-serif text-xl font-semibold">{iv.title ?? iv.intervention_type ?? "Intervention"}</h2>
