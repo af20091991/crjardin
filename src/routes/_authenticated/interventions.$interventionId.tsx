@@ -609,6 +609,46 @@ function InterventionDetail() {
           </Card>
         )}
 
+        {/* Contenu du compte-rendu : sélection des sections, photos, préconisations */}
+        {client && (
+          <Card>
+            <CardContent className="space-y-4 pt-6">
+              <div className="flex items-center gap-2">
+                <Settings2 className="h-5 w-5 text-primary" />
+                <h3 className="font-serif text-lg font-semibold">Contenu du compte-rendu</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Choisissez précisément ce qui apparaît dans l'aperçu et le PDF envoyé au client.
+              </p>
+
+              <div>
+                <p className="mb-2 text-sm font-medium">Sections</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(Object.keys(REPORT_SECTION_LABELS) as (keyof ReportSections)[]).map((k) => (
+                    <label key={k} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                      <Checkbox
+                        checked={sections[k]}
+                        onCheckedChange={() => toggleSection(k)}
+                      />
+                      <span>{REPORT_SECTION_LABELS[k]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <ReportPhotosPicker
+                photos={photos ?? []}
+                onChange={invPhotos}
+              />
+
+              <ReportRecosPicker
+                recos={recos ?? []}
+                onChange={invRecos}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Tâches */}
         <Card>
           <CardContent className="space-y-3 pt-6">
