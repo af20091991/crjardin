@@ -288,9 +288,11 @@ function InterventionDetail() {
             shareUrl,
           },
         });
+        await logReportEvent(interventionId, "sent", { recipient: recipientEmail, pdf_storage_path: iv.pdf_storage_path ?? null });
       }
+      await updateIntervention(interventionId, { });
     },
-    onSuccess: () => toast.success("E-mail envoyé au client"),
+    onSuccess: () => { invIv(); qc.invalidateQueries({ queryKey: ["report-history", interventionId] }); toast.success("E-mail envoyé au client"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'envoi"),
   });
 
