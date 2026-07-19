@@ -321,16 +321,19 @@ function MissionsTab() {
   const { data: missions = [] } = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
   const { data: ssts = [] } = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const { data: pnls = [] } = useQuery({ queryKey: ["sst-pnl"], queryFn: listMissionPnl });
   const [editing, setEditing] = useState<SubcontractorMission | null>(null);
   const [open, setOpen] = useState(false);
 
   const sstById = new Map(ssts.map((s) => [s.id, s]));
   const clientById = new Map(clients.map((c) => [c.id, c]));
+  const pnlById = new Map(pnls.map((p) => [p.mission_id, p]));
 
   const del = useMutation({
     mutationFn: (id: string) => deleteMission(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sst-missions"] });
+      qc.invalidateQueries({ queryKey: ["sst-pnl"] });
       toast.success("Mission supprimée");
     },
   });
@@ -358,6 +361,7 @@ function MissionsTab() {
               setOpen(false);
               setEditing(null);
               qc.invalidateQueries({ queryKey: ["sst-missions"] });
+              qc.invalidateQueries({ queryKey: ["sst-pnl"] });
             }}
           />
         </Dialog>
@@ -428,6 +432,28 @@ function MissionsTab() {
                           {m.agreed_price != null && m.invoiced_amount != null && " · "}
                           {m.invoiced_amount != null && <>Facturé : <strong>{m.invoiced_amount} €</strong></>}
                         </p>
+                      )}
+                      {(() => {
+                        const p = pnlById.get(m.id);
+                        if (!p || Number(p.client_revenue) <= 0) return null;
+                        const gm = Number(p.gross_margin);
+                        return (
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                            <span className="rounded-md bg-slate-100 px-2 py-0.5">CA client : <strong>{Number(p.client_revenue).toFixed(2)} €</strong></span>
+                            <span className="rounded-md bg-slate-100 px-2 py-0.5">Coût SST : <strong>{Number(p.sst_cost).toFixed(2)} €</strong></span>
+                            <span className={`rounded-md px-2 py-0.5 font-semibold ${gm >= 0 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                              Marge : {gm.toFixed(2)} €{p.margin_pct != null && ` (${p.margin_pct}%)`}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                      {m.internal_rating != null && (
+                        <div className="mt-1 flex items-center gap-0.5" aria-label={`Note interne ${m.internal_rating}/5`}>
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <Star key={n} className={`h-3.5 w-3.5 ${n <= m.internal_rating! ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                          ))}
+                          <span className="ml-1 text-[10px] text-muted-foreground">interne</span>
+                        </div>
                       )}
                     </div>
                     <div className="flex gap-1">
