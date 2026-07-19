@@ -46,6 +46,10 @@ export interface Recommendation {
   client_interest_at: string | null;
   created_at: string;
   updated_at: string;
+  priority?: string | null;
+  recommended_season?: string | null;
+  include_in_report?: boolean;
+  report_position?: number | null;
 }
 
 export function recommendationPrice(r: Pick<Recommendation, "estimated_hours" | "unit_price">): number | null {
