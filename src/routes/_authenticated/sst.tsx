@@ -477,14 +477,24 @@ function MissionDialog({
   const [clientId, setClientId] = useState<string>(editing?.client_id ?? "");
   const [missionDate, setMissionDate] = useState(editing?.mission_date ?? new Date().toISOString().slice(0, 10));
   const [serviceRequested, setServiceRequested] = useState(editing?.service_requested ?? "");
+  const [objective, setObjective] = useState(editing?.objective ?? "");
+  const [contextNotes, setContextNotes] = useState(editing?.context_notes ?? "");
   const [instructions, setInstructions] = useState(editing?.instructions ?? "");
   const [status, setStatus] = useState<MissionStatus>(editing?.status ?? "planned");
   const [reportNotes, setReportNotes] = useState(editing?.report_notes ?? "");
   const [anomalies, setAnomalies] = useState(editing?.anomalies ?? "");
   const [recommendations, setRecommendations] = useState(editing?.recommendations ?? "");
+  const [hoursSpent, setHoursSpent] = useState(editing?.hours_spent?.toString() ?? "");
+  const [internalRating, setInternalRating] = useState<number>(editing?.internal_rating ?? 0);
+  const [clientPrice, setClientPrice] = useState(editing?.client_price?.toString() ?? "");
   const [agreedPrice, setAgreedPrice] = useState(editing?.agreed_price?.toString() ?? "");
   const [invoicedAmount, setInvoicedAmount] = useState(editing?.invoiced_amount?.toString() ?? "");
   const [saving, setSaving] = useState(false);
+
+  const clientRev = clientPrice ? Number(clientPrice) : 0;
+  const sstCost = invoicedAmount ? Number(invoicedAmount) : agreedPrice ? Number(agreedPrice) : 0;
+  const margin = clientRev - sstCost;
+  const marginPct = clientRev > 0 ? Math.round((margin / clientRev) * 1000) / 10 : null;
 
   async function submit() {
     if (!subcontractorId) return toast.error("Sélectionnez un sous-traitant");
@@ -495,13 +505,20 @@ function MissionDialog({
         subcontractor_id: subcontractorId,
         client_id: clientId || null,
         worksite_sheet_id: null,
+        intervention_id: editing?.intervention_id ?? null,
+        service_id: editing?.service_id ?? null,
         mission_date: missionDate,
         service_requested: serviceRequested.trim(),
+        objective: objective.trim() || null,
+        context_notes: contextNotes.trim() || null,
         instructions: instructions.trim() || null,
         status,
         report_notes: reportNotes.trim() || null,
         anomalies: anomalies.trim() || null,
         recommendations: recommendations.trim() || null,
+        hours_spent: hoursSpent ? Number(hoursSpent) : null,
+        internal_rating: internalRating > 0 ? internalRating : null,
+        client_price: clientPrice ? Number(clientPrice) : null,
         agreed_price: agreedPrice ? Number(agreedPrice) : null,
         invoiced_amount: invoicedAmount ? Number(invoicedAmount) : null,
       };
