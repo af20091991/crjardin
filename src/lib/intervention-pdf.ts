@@ -7,6 +7,7 @@ import { gardenLabel } from "@/lib/clients";
 import type { GardenHealth, Recommendation } from "@/lib/garden";
 import { HEALTH_RATING_META, type HealthRating, RECO_STATUS_META, type RecommendationStatus } from "@/lib/garden";
 import { recommendationPrice, formatEuro } from "@/lib/garden";
+import type { WorksiteSheet } from "@/lib/worksite";
 
 const GREEN: [number, number, number] = [76, 138, 47];
 const DARK: [number, number, number] = [45, 55, 40];
@@ -30,6 +31,7 @@ export interface InterventionReportData {
   photos: InterventionPhoto[];
   health: GardenHealth[];
   recommendations: Recommendation[];
+  worksite?: WorksiteSheet | null;
   companyName?: string;
   authorName?: string;
   signatureData?: string;
@@ -135,6 +137,22 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
   // ---- Synthèse ----
   heading("Synthèse de l'intervention");
   paragraph(iv.summary ?? "");
+
+  // ---- Fiche jardin (informations utiles au suivi, pas de données internes) ----
+  if (data.worksite) {
+    const w = data.worksite;
+    const lines: string[] = [];
+    if (w.client_name) lines.push(`Jardin : ${w.client_name}`);
+    if (w.address) lines.push(`Adresse : ${w.address}`);
+    if (w.access_complement) lines.push(`Accès : ${w.access_complement}`);
+    if (w.tasks && w.tasks.length) lines.push(`Travaux prévus sur la fiche : ${w.tasks.join(", ")}`);
+    if (w.garden_markers && w.garden_markers.length) lines.push(`Repères jardin : ${w.garden_markers.length} point(s) identifié(s)`);
+    if (w.notes?.trim()) lines.push(`Observations : ${w.notes.trim()}`);
+    if (lines.length) {
+      heading("Fiche jardin");
+      for (const l of lines) paragraph(l);
+    }
+  }
 
   // ---- Travaux ----
   heading("Travaux réalisés");
