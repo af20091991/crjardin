@@ -82,6 +82,24 @@ export const RECO_STATUS_META: Record<RecommendationStatus, { label: string; ton
 
 export const RECO_STATUSES: RecommendationStatus[] = ["en_attente", "acceptee", "refusee", "realisee"];
 
+export const RECO_PRIORITIES = ["haute", "moyenne", "basse"] as const;
+export type RecommendationPriority = (typeof RECO_PRIORITIES)[number];
+export const RECO_PRIORITY_META: Record<RecommendationPriority, { label: string; tone: string }> = {
+  haute: { label: "Priorité haute", tone: "bg-rose-100 text-rose-800" },
+  moyenne: { label: "Priorité moyenne", tone: "bg-amber-100 text-amber-800" },
+  basse: { label: "Priorité basse", tone: "bg-slate-100 text-slate-700" },
+};
+
+export const RECO_SEASONS = ["printemps", "été", "automne", "hiver", "toute-saison"] as const;
+export type RecommendationSeason = (typeof RECO_SEASONS)[number];
+export const RECO_SEASON_LABELS: Record<RecommendationSeason, string> = {
+  printemps: "Printemps",
+  "été": "Été",
+  automne: "Automne",
+  hiver: "Hiver",
+  "toute-saison": "Toute saison",
+};
+
 // ---- Garden health ----
 export async function listHealthByClient(clientId: string): Promise<GardenHealth[]> {
   const { data, error } = await supabase
