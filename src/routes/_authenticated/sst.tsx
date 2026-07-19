@@ -72,8 +72,10 @@ function SstPage() {
 function CarnetTab() {
   const qc = useQueryClient();
   const { data: ssts = [] } = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
+  const { data: summaries = [] } = useQuery({ queryKey: ["sst-summary"], queryFn: listSubcontractorSummary });
   const [editing, setEditing] = useState<Subcontractor | null>(null);
   const [open, setOpen] = useState(false);
+  const summaryById = new Map(summaries.map((s) => [s.subcontractor_id, s]));
 
   const del = useMutation({
     mutationFn: (id: string) => deleteSubcontractor(id),
@@ -185,6 +187,42 @@ function CarnetTab() {
                     Inactif
                   </Badge>
                 )}
+                {(() => {
+                  const s = summaryById.get(sst.id);
+                  if (!s || s.missions_count === 0) return null;
+                  return (
+                    <div className="mt-3 space-y-1.5 rounded-md border border-border/60 bg-muted/30 p-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Missions</span>
+                        <span className="font-semibold">{s.missions_done}/{s.missions_count}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">CA confié</span>
+                        <span className="font-semibold">{Number(s.total_client_revenue).toFixed(0)} €</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Coût SST</span>
+                        <span className="font-semibold">{Number(s.total_sst_cost).toFixed(0)} €</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Marge cumulée</span>
+                        <span className={`font-semibold ${Number(s.total_gross_margin) >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                          {Number(s.total_gross_margin).toFixed(0)} €
+                        </span>
+                      </div>
+                      {s.avg_rating != null && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Note moyenne</span>
+                          <span className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <Star key={n} className={`h-3 w-3 ${n <= Math.round(Number(s.avg_rating)) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                            ))}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           ))}
