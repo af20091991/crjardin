@@ -216,9 +216,50 @@ function InterventionDetail() {
         signatureData: profile?.signature_data ?? undefined,
         stampData: profile?.stamp_data ?? undefined,
       });
+      if (iv.id) await logReportEvent(iv.id, "downloaded");
     },
     onSuccess: () => toast.success("PDF généré"),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur PDF"),
+  });
+
+  const { data: reportHistory } = useQuery({
+    queryKey: ["report-history", interventionId],
+    queryFn: () => listReportHistory(interventionId),
+  });
+  const invHistory = () => qc.invalidateQueries({ queryKey: ["report-history", interventionId] });
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const archivePdf = useMutation({
+    mutationFn: async () => {
+      if (!iv || !client) throw new Error("Données indisponibles");
+      const [t, p, h, r, profile] = await Promise.all([
+        listTasks(interventionId),
+        listPhotos(interventionId),
+        listHealthByClient(iv.client_id),
+        listRecommendationsByClient(iv.client_id),
+        getMyProfile(),
+      ]);
+      return archiveInterventionReport({
+        intervention: iv,
+        client,
+        tasks: t,
+        photos: p,
+        health: h.filter((x) => x.intervention_id === interventionId),
+        recommendations: r.filter((x) => x.intervention_id === interventionId),
+        companyName: profile?.company_name ?? undefined,
+        authorName: profile?.display_name ?? undefined,
+        signatureData: profile?.signature_data ?? undefined,
+        stampData: profile?.stamp_data ?? undefined,
+      });
+    },
+    onSuccess: () => { invIv(); invHistory(); toast.success("Compte-rendu archivé"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'archivage"),
+  });
+
+  const openArchivedPdf = useMutation({
+    mutationFn: async (path: string) => signedReportUrl(path),
+    onSuccess: (url) => { window.open(url, "_blank", "noopener"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Lien indisponible"),
   });
 
   const notifyClient = useMutation({
