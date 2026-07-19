@@ -111,6 +111,11 @@ export interface Intervention {
   sent_to_client_at?: string | null;
   sent_pdf_storage_path?: string | null;
   worksite_sheet_id?: string | null;
+  positive_points?: string | null;
+  attention_points?: string | null;
+  garden_evolution?: string | null;
+  report_sections?: unknown;
+  ai_metadata?: unknown;
 }
 
 export interface InterventionTask {
@@ -245,6 +250,8 @@ export async function updateIntervention(
     "client_id" | "intervention_date" | "intervention_type" | "status"
     | "summary" | "garden_state" | "upcoming_works" | "recommendations_text"
     | "worksite_sheet_id" | "sent_pdf_storage_path" | "sent_to_client_at"
+    | "positive_points" | "attention_points" | "garden_evolution"
+    | "report_sections"
   >>,
 ): Promise<Intervention> {
   const { data, error } = await supabase
