@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Intervention, InterventionTask, InterventionPhoto } from "@/lib/interventions";
-import { TASK_STATUS_META, type TaskStatus, signedPhotoUrl } from "@/lib/interventions";
+import {
+  TASK_STATUS_META, type TaskStatus, signedPhotoUrl,
+  normalizeReportSections,
+} from "@/lib/interventions";
 import type { Client } from "@/lib/clients";
 import { gardenLabel } from "@/lib/clients";
 import type { GardenHealth, Recommendation } from "@/lib/garden";
@@ -9,6 +12,8 @@ import {
   HEALTH_RATING_META, type HealthRating,
   RECO_STATUS_META, type RecommendationStatus,
   recommendationPrice, formatEuro,
+  RECO_PRIORITY_META, type RecommendationPriority,
+  RECO_SEASON_LABELS, type RecommendationSeason,
 } from "@/lib/garden";
 import logo from "@/assets/logo.png";
 
