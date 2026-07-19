@@ -4,6 +4,7 @@ import { TASK_STATUS_META, type TaskStatus, signedPhotoUrl } from "@/lib/interve
 import type { Client } from "@/lib/clients";
 import { gardenLabel } from "@/lib/clients";
 import type { GardenHealth, Recommendation } from "@/lib/garden";
+import type { WorksiteSheet } from "@/lib/worksite";
 import {
   HEALTH_RATING_META, type HealthRating,
   RECO_STATUS_META, type RecommendationStatus,
@@ -18,6 +19,7 @@ export interface ReportPreviewProps {
   photos: InterventionPhoto[];
   health: GardenHealth[];
   recommendations: Recommendation[];
+  worksite?: WorksiteSheet | null;
   companyName?: string;
   authorName?: string;
   signatureData?: string | null;
@@ -55,7 +57,7 @@ function PhotoTile({ path, caption }: { path: string; caption: string | null }) 
  * de vérité côté mise en page.
  */
 export function InterventionReportPreview({
-  intervention: iv, client, tasks, photos, health, recommendations,
+  intervention: iv, client, tasks, photos, health, recommendations, worksite,
   companyName, authorName, signatureData, stampData,
 }: ReportPreviewProps) {
   const company = companyName?.trim() || "De la graine au jardin";
@@ -92,6 +94,26 @@ export function InterventionReportPreview({
 
         <Heading>Synthèse de l'intervention</Heading>
         <p className="mt-2 whitespace-pre-wrap text-[13px]">{iv.summary?.trim() || <span className="text-muted-foreground">—</span>}</p>
+
+        {worksite && (
+          <>
+            <Heading>Fiche jardin</Heading>
+            <div className="mt-2 space-y-1 text-[12.5px]">
+              {worksite.client_name && <p><span className="font-medium">Jardin :</span> {worksite.client_name}</p>}
+              {worksite.address && <p><span className="font-medium">Adresse :</span> {worksite.address}</p>}
+              {worksite.access_complement && <p><span className="font-medium">Accès :</span> {worksite.access_complement}</p>}
+              {worksite.tasks && worksite.tasks.length > 0 && (
+                <p><span className="font-medium">Travaux prévus sur la fiche :</span> {worksite.tasks.join(", ")}</p>
+              )}
+              {worksite.garden_markers && worksite.garden_markers.length > 0 && (
+                <p><span className="font-medium">Repères jardin :</span> {worksite.garden_markers.length} point(s) identifié(s)</p>
+              )}
+              {worksite.notes?.trim() && (
+                <p className="whitespace-pre-wrap"><span className="font-medium">Observations sur la fiche :</span> {worksite.notes.trim()}</p>
+              )}
+            </div>
+          </>
+        )}
 
         <Heading>Travaux réalisés</Heading>
         {tasks.length === 0 ? (
