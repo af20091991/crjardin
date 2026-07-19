@@ -3,6 +3,54 @@ import { supabase } from "@/integrations/supabase/client";
 export type TaskStatus = "realise" | "partiel" | "reporte" | "impossible";
 export type InterventionStatus = "brouillon" | "termine";
 
+export interface ReportSections {
+  summary: boolean;
+  worksite: boolean;
+  tasks: boolean;
+  positive_points: boolean;
+  attention_points: boolean;
+  garden_evolution: boolean;
+  garden_state: boolean;
+  recommendations: boolean;
+  upcoming: boolean;
+  photos: boolean;
+}
+
+export const DEFAULT_REPORT_SECTIONS: ReportSections = {
+  summary: true,
+  worksite: true,
+  tasks: true,
+  positive_points: true,
+  attention_points: true,
+  garden_evolution: true,
+  garden_state: true,
+  recommendations: true,
+  upcoming: true,
+  photos: true,
+};
+
+export const REPORT_SECTION_LABELS: Record<keyof ReportSections, string> = {
+  summary: "Synthèse de l'intervention",
+  worksite: "Fiche jardin",
+  tasks: "Travaux réalisés",
+  positive_points: "Points positifs",
+  attention_points: "Points de vigilance",
+  garden_evolution: "Évolution du jardin",
+  garden_state: "État du jardin",
+  recommendations: "Préconisations & conseils",
+  upcoming: "Prochaine intervention",
+  photos: "Photos",
+};
+
+export function normalizeReportSections(raw: unknown): ReportSections {
+  const src = (raw && typeof raw === "object" ? raw : {}) as Partial<Record<keyof ReportSections, unknown>>;
+  const out = { ...DEFAULT_REPORT_SECTIONS };
+  (Object.keys(DEFAULT_REPORT_SECTIONS) as (keyof ReportSections)[]).forEach((k) => {
+    if (typeof src[k] === "boolean") out[k] = src[k] as boolean;
+  });
+  return out;
+}
+
 export const TASK_STATUS_META: Record<
   TaskStatus,
   { label: string; tone: string; short: string }
