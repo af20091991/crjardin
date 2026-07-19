@@ -122,6 +122,13 @@ function InterventionDetail() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
+  const changeWorksite = useMutation({
+    mutationFn: (worksiteId: string | null) =>
+      updateIntervention(interventionId, { worksite_sheet_id: worksiteId }),
+    onSuccess: () => { invIv(); toast.success("Fiche jardin liée"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
   const setStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: TaskStatus }) => updateTask(id, { status }),
     onSuccess: invTasks,
