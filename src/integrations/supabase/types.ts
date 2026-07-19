@@ -1581,6 +1581,13 @@ export type Database = {
             referencedRelation: "subcontractor_missions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "subcontractor_mission_photos_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "v_sst_mission_pnl"
+            referencedColumns: ["mission_id"]
+          },
         ]
       }
       subcontractor_missions: {
@@ -1588,13 +1595,20 @@ export type Database = {
           agreed_price: number | null
           anomalies: string | null
           client_id: string | null
+          client_price: number | null
+          context_notes: string | null
           created_at: string
+          hours_spent: number | null
           id: string
           instructions: string | null
+          internal_rating: number | null
+          intervention_id: string | null
           invoiced_amount: number | null
           mission_date: string
+          objective: string | null
           recommendations: string | null
           report_notes: string | null
+          service_id: string | null
           service_requested: string
           status: string
           subcontractor_id: string
@@ -1606,13 +1620,20 @@ export type Database = {
           agreed_price?: number | null
           anomalies?: string | null
           client_id?: string | null
+          client_price?: number | null
+          context_notes?: string | null
           created_at?: string
+          hours_spent?: number | null
           id?: string
           instructions?: string | null
+          internal_rating?: number | null
+          intervention_id?: string | null
           invoiced_amount?: number | null
           mission_date: string
+          objective?: string | null
           recommendations?: string | null
           report_notes?: string | null
+          service_id?: string | null
           service_requested: string
           status?: string
           subcontractor_id: string
@@ -1624,13 +1645,20 @@ export type Database = {
           agreed_price?: number | null
           anomalies?: string | null
           client_id?: string | null
+          client_price?: number | null
+          context_notes?: string | null
           created_at?: string
+          hours_spent?: number | null
           id?: string
           instructions?: string | null
+          internal_rating?: number | null
+          intervention_id?: string | null
           invoiced_amount?: number | null
           mission_date?: string
+          objective?: string | null
           recommendations?: string | null
           report_notes?: string | null
+          service_id?: string | null
           service_requested?: string
           status?: string
           subcontractor_id?: string
@@ -1647,11 +1675,46 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "subcontractor_missions_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "interventions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_margin"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_seasonality_resolved"
+            referencedColumns: ["service_id"]
+          },
+          {
             foreignKeyName: "subcontractor_missions_subcontractor_id_fkey"
             columns: ["subcontractor_id"]
             isOneToOne: false
             referencedRelation: "subcontractors"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "v_sst_summary"
+            referencedColumns: ["subcontractor_id"]
           },
           {
             foreignKeyName: "subcontractor_missions_worksite_sheet_id_fkey"
@@ -1668,6 +1731,7 @@ export type Database = {
           address: string | null
           company: string | null
           created_at: string
+          default_service_types: string[]
           email: string | null
           hourly_rate: number | null
           id: string
@@ -1683,6 +1747,7 @@ export type Database = {
           address?: string | null
           company?: string | null
           created_at?: string
+          default_service_types?: string[]
           email?: string | null
           hourly_rate?: number | null
           id?: string
@@ -1698,6 +1763,7 @@ export type Database = {
           address?: string | null
           company?: string | null
           created_at?: string
+          default_service_types?: string[]
           email?: string | null
           hourly_rate?: number | null
           id?: string
@@ -2008,6 +2074,102 @@ export type Database = {
           intensity: number | null
           month: number | null
           service_id: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_sst_mission_pnl: {
+        Row: {
+          agreed_price: number | null
+          client_id: string | null
+          client_price: number | null
+          client_revenue: number | null
+          gross_margin: number | null
+          intervention_id: string | null
+          invoiced_amount: number | null
+          margin_pct: number | null
+          mission_date: string | null
+          mission_id: string | null
+          sst_cost: number | null
+          status: string | null
+          subcontractor_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          agreed_price?: number | null
+          client_id?: string | null
+          client_price?: number | null
+          client_revenue?: never
+          gross_margin?: never
+          intervention_id?: string | null
+          invoiced_amount?: number | null
+          margin_pct?: never
+          mission_date?: string | null
+          mission_id?: string | null
+          sst_cost?: never
+          status?: string | null
+          subcontractor_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          agreed_price?: number | null
+          client_id?: string | null
+          client_price?: number | null
+          client_revenue?: never
+          gross_margin?: never
+          intervention_id?: string | null
+          invoiced_amount?: number | null
+          margin_pct?: never
+          mission_date?: string | null
+          mission_id?: string | null
+          sst_cost?: never
+          status?: string | null
+          subcontractor_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcontractor_missions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "interventions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "v_sst_summary"
+            referencedColumns: ["subcontractor_id"]
+          },
+        ]
+      }
+      v_sst_summary: {
+        Row: {
+          active: boolean | null
+          avg_rating: number | null
+          last_mission_date: string | null
+          missions_count: number | null
+          missions_done: number | null
+          name: string | null
+          subcontractor_id: string | null
+          total_client_revenue: number | null
+          total_gross_margin: number | null
+          total_sst_cost: number | null
           user_id: string | null
         }
         Relationships: []

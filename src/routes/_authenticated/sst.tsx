@@ -20,13 +20,17 @@ import {
   createMission,
   updateMission,
   deleteMission,
+  listMissionPnl,
+  listSubcontractorSummary,
   MISSION_STATUS_META,
   type Subcontractor,
   type SubcontractorMission,
   type MissionStatus,
+  type MissionPnl,
+  type SubcontractorSummary,
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
-import { HardHat, Plus, Pencil, Trash2, Phone, Mail, MapPin, Euro, ClipboardList } from "lucide-react";
+import { HardHat, Plus, Pencil, Trash2, Phone, Mail, MapPin, Euro, ClipboardList, Star, TrendingUp, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/sst")({
@@ -68,8 +72,10 @@ function SstPage() {
 function CarnetTab() {
   const qc = useQueryClient();
   const { data: ssts = [] } = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
+  const { data: summaries = [] } = useQuery({ queryKey: ["sst-summary"], queryFn: listSubcontractorSummary });
   const [editing, setEditing] = useState<Subcontractor | null>(null);
   const [open, setOpen] = useState(false);
+  const summaryById = new Map(summaries.map((s) => [s.subcontractor_id, s]));
 
   const del = useMutation({
     mutationFn: (id: string) => deleteSubcontractor(id),
@@ -181,6 +187,42 @@ function CarnetTab() {
                     Inactif
                   </Badge>
                 )}
+                {(() => {
+                  const s = summaryById.get(sst.id);
+                  if (!s || s.missions_count === 0) return null;
+                  return (
+                    <div className="mt-3 space-y-1.5 rounded-md border border-border/60 bg-muted/30 p-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Missions</span>
+                        <span className="font-semibold">{s.missions_done}/{s.missions_count}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">CA confié</span>
+                        <span className="font-semibold">{Number(s.total_client_revenue).toFixed(0)} €</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Coût SST</span>
+                        <span className="font-semibold">{Number(s.total_sst_cost).toFixed(0)} €</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Marge cumulée</span>
+                        <span className={`font-semibold ${Number(s.total_gross_margin) >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                          {Number(s.total_gross_margin).toFixed(0)} €
+                        </span>
+                      </div>
+                      {s.avg_rating != null && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Note moyenne</span>
+                          <span className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <Star key={n} className={`h-3 w-3 ${n <= Math.round(Number(s.avg_rating)) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                            ))}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           ))}
@@ -200,6 +242,7 @@ function SubcontractorDialog({ editing, onDone }: { editing: Subcontractor | nul
   const [hourlyRate, setHourlyRate] = useState(editing?.hourly_rate?.toString() ?? "");
   const [notes, setNotes] = useState(editing?.notes ?? "");
   const [active, setActive] = useState(editing?.active ?? true);
+  const [defaultTypesText, setDefaultTypesText] = useState((editing?.default_service_types ?? []).join(", "));
   const [saving, setSaving] = useState(false);
 
   async function submit() {
@@ -207,6 +250,10 @@ function SubcontractorDialog({ editing, onDone }: { editing: Subcontractor | nul
     setSaving(true);
     try {
       const specialties = specialtiesText
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const default_service_types = defaultTypesText
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
@@ -220,6 +267,7 @@ function SubcontractorDialog({ editing, onDone }: { editing: Subcontractor | nul
         hourly_rate: hourlyRate ? Number(hourlyRate) : null,
         notes: notes.trim() || null,
         active,
+        default_service_types,
       };
       if (editing) {
         await updateSubcontractor(editing.id, payload);
@@ -273,6 +321,17 @@ function SubcontractorDialog({ editing, onDone }: { editing: Subcontractor | nul
           />
         </div>
         <div className="space-y-1.5">
+          <Label>Types de prestations réalisées (par défaut)</Label>
+          <Input
+            value={defaultTypesText}
+            onChange={(e) => setDefaultTypesText(e.target.value)}
+            placeholder="taille de haies, abattage, tonte grand terrain"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Utilisé comme pré-remplissage lors de la création d'une mission.
+          </p>
+        </div>
+        <div className="space-y-1.5">
           <Label>Taux horaire (€/h)</Label>
           <Input type="number" step="0.01" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} />
         </div>
@@ -300,16 +359,19 @@ function MissionsTab() {
   const { data: missions = [] } = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
   const { data: ssts = [] } = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const { data: pnls = [] } = useQuery({ queryKey: ["sst-pnl"], queryFn: listMissionPnl });
   const [editing, setEditing] = useState<SubcontractorMission | null>(null);
   const [open, setOpen] = useState(false);
 
   const sstById = new Map(ssts.map((s) => [s.id, s]));
   const clientById = new Map(clients.map((c) => [c.id, c]));
+  const pnlById = new Map(pnls.map((p) => [p.mission_id, p]));
 
   const del = useMutation({
     mutationFn: (id: string) => deleteMission(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sst-missions"] });
+      qc.invalidateQueries({ queryKey: ["sst-pnl"] });
       toast.success("Mission supprimée");
     },
   });
@@ -337,6 +399,7 @@ function MissionsTab() {
               setOpen(false);
               setEditing(null);
               qc.invalidateQueries({ queryKey: ["sst-missions"] });
+              qc.invalidateQueries({ queryKey: ["sst-pnl"] });
             }}
           />
         </Dialog>
@@ -408,6 +471,28 @@ function MissionsTab() {
                           {m.invoiced_amount != null && <>Facturé : <strong>{m.invoiced_amount} €</strong></>}
                         </p>
                       )}
+                      {(() => {
+                        const p = pnlById.get(m.id);
+                        if (!p || Number(p.client_revenue) <= 0) return null;
+                        const gm = Number(p.gross_margin);
+                        return (
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                            <span className="rounded-md bg-slate-100 px-2 py-0.5">CA client : <strong>{Number(p.client_revenue).toFixed(2)} €</strong></span>
+                            <span className="rounded-md bg-slate-100 px-2 py-0.5">Coût SST : <strong>{Number(p.sst_cost).toFixed(2)} €</strong></span>
+                            <span className={`rounded-md px-2 py-0.5 font-semibold ${gm >= 0 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                              Marge : {gm.toFixed(2)} €{p.margin_pct != null && ` (${p.margin_pct}%)`}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                      {m.internal_rating != null && (
+                        <div className="mt-1 flex items-center gap-0.5" aria-label={`Note interne ${m.internal_rating}/5`}>
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <Star key={n} className={`h-3.5 w-3.5 ${n <= m.internal_rating! ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                          ))}
+                          <span className="ml-1 text-[10px] text-muted-foreground">interne</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-1">
                       <Button
@@ -456,14 +541,24 @@ function MissionDialog({
   const [clientId, setClientId] = useState<string>(editing?.client_id ?? "");
   const [missionDate, setMissionDate] = useState(editing?.mission_date ?? new Date().toISOString().slice(0, 10));
   const [serviceRequested, setServiceRequested] = useState(editing?.service_requested ?? "");
+  const [objective, setObjective] = useState(editing?.objective ?? "");
+  const [contextNotes, setContextNotes] = useState(editing?.context_notes ?? "");
   const [instructions, setInstructions] = useState(editing?.instructions ?? "");
   const [status, setStatus] = useState<MissionStatus>(editing?.status ?? "planned");
   const [reportNotes, setReportNotes] = useState(editing?.report_notes ?? "");
   const [anomalies, setAnomalies] = useState(editing?.anomalies ?? "");
   const [recommendations, setRecommendations] = useState(editing?.recommendations ?? "");
+  const [hoursSpent, setHoursSpent] = useState(editing?.hours_spent?.toString() ?? "");
+  const [internalRating, setInternalRating] = useState<number>(editing?.internal_rating ?? 0);
+  const [clientPrice, setClientPrice] = useState(editing?.client_price?.toString() ?? "");
   const [agreedPrice, setAgreedPrice] = useState(editing?.agreed_price?.toString() ?? "");
   const [invoicedAmount, setInvoicedAmount] = useState(editing?.invoiced_amount?.toString() ?? "");
   const [saving, setSaving] = useState(false);
+
+  const clientRev = clientPrice ? Number(clientPrice) : 0;
+  const sstCost = invoicedAmount ? Number(invoicedAmount) : agreedPrice ? Number(agreedPrice) : 0;
+  const margin = clientRev - sstCost;
+  const marginPct = clientRev > 0 ? Math.round((margin / clientRev) * 1000) / 10 : null;
 
   async function submit() {
     if (!subcontractorId) return toast.error("Sélectionnez un sous-traitant");
@@ -474,13 +569,20 @@ function MissionDialog({
         subcontractor_id: subcontractorId,
         client_id: clientId || null,
         worksite_sheet_id: null,
+        intervention_id: editing?.intervention_id ?? null,
+        service_id: editing?.service_id ?? null,
         mission_date: missionDate,
         service_requested: serviceRequested.trim(),
+        objective: objective.trim() || null,
+        context_notes: contextNotes.trim() || null,
         instructions: instructions.trim() || null,
         status,
         report_notes: reportNotes.trim() || null,
         anomalies: anomalies.trim() || null,
         recommendations: recommendations.trim() || null,
+        hours_spent: hoursSpent ? Number(hoursSpent) : null,
+        internal_rating: internalRating > 0 ? internalRating : null,
+        client_price: clientPrice ? Number(clientPrice) : null,
         agreed_price: agreedPrice ? Number(agreedPrice) : null,
         invoiced_amount: invoicedAmount ? Number(invoicedAmount) : null,
       };
@@ -561,23 +663,30 @@ function MissionDialog({
           <Label>Prestation demandée *</Label>
           <Input value={serviceRequested} onChange={(e) => setServiceRequested(e.target.value)} />
         </div>
-        <div className="space-y-1.5">
-          <Label>Consignes</Label>
-          <Textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={2} />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>Prix convenu (€)</Label>
-            <Input type="number" step="0.01" value={agreedPrice} onChange={(e) => setAgreedPrice(e.target.value)} />
+
+        {/* AVANT */}
+        <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-900">Avant intervention</p>
+          <div className="space-y-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Objectif de la mission</Label>
+              <Input value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="Ex. Éclaircir 3 tilleuls avant montée en sève" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Contexte du jardin</Label>
+              <Textarea value={contextNotes} onChange={(e) => setContextNotes(e.target.value)} rows={2} placeholder="Accès, contraintes, informations utiles" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Consignes / briefing détaillé</Label>
+              <Textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={2} />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Montant facturé (€)</Label>
-            <Input type="number" step="0.01" value={invoicedAmount} onChange={(e) => setInvoicedAmount(e.target.value)} />
-          </div>
         </div>
-        <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
-          <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <ClipboardList className="h-3.5 w-3.5" /> Retour d'intervention
+
+        {/* APRÈS */}
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-900">
+            <ClipboardList className="h-3.5 w-3.5" /> Pendant / Après intervention
           </p>
           <div className="space-y-2">
             <div className="space-y-1.5">
@@ -585,14 +694,71 @@ function MissionDialog({
               <Textarea value={reportNotes} onChange={(e) => setReportNotes(e.target.value)} rows={2} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Anomalies détectées</Label>
+              <Label className="text-xs">Anomalies constatées</Label>
               <Textarea value={anomalies} onChange={(e) => setAnomalies(e.target.value)} rows={2} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Recommandations</Label>
               <Textarea value={recommendations} onChange={(e) => setRecommendations(e.target.value)} rows={2} />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Temps passé (h)</Label>
+                <Input type="number" step="0.25" value={hoursSpent} onChange={(e) => setHoursSpent(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1.5">
+                  Note interne <span className="text-[10px] text-muted-foreground">(non visible client)</span>
+                </Label>
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setInternalRating(internalRating === n ? 0 : n)}
+                      className="p-0.5"
+                      aria-label={`Note ${n}`}
+                    >
+                      <Star
+                        className={`h-5 w-5 ${
+                          n <= internalRating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* FINANCIER */}
+        <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Suivi financier</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Prix vendu client (€)</Label>
+              <Input type="number" step="0.01" value={clientPrice} onChange={(e) => setClientPrice(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Prix convenu SST (€)</Label>
+              <Input type="number" step="0.01" value={agreedPrice} onChange={(e) => setAgreedPrice(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Coût SST facturé (€)</Label>
+              <Input type="number" step="0.01" value={invoicedAmount} onChange={(e) => setInvoicedAmount(e.target.value)} />
+            </div>
+          </div>
+          {clientRev > 0 && (
+            <div className="mt-3 flex items-center justify-between rounded-md border border-border/60 bg-background px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Marge brute estimée</span>
+              <span className={`flex items-center gap-1.5 font-semibold ${margin >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                {margin >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                {margin.toFixed(2)} €
+                {marginPct !== null && <span className="text-xs opacity-70">({marginPct}%)</span>}
+              </span>
+            </div>
+          )}
         </div>
       </div>
       <DialogFooter>

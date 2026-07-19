@@ -29,6 +29,7 @@ export interface Subcontractor {
   hourly_rate: number | null;
   notes: string | null;
   active: boolean;
+  default_service_types: string[];
   created_at: string;
   updated_at: string;
 }
@@ -41,20 +42,68 @@ export interface SubcontractorMission {
   subcontractor_id: string;
   client_id: string | null;
   worksite_sheet_id: string | null;
+  intervention_id: string | null;
+  service_id: string | null;
   mission_date: string;
   service_requested: string;
+  objective: string | null;
+  context_notes: string | null;
   instructions: string | null;
   status: MissionStatus;
   report_notes: string | null;
   anomalies: string | null;
   recommendations: string | null;
+  hours_spent: number | null;
+  internal_rating: number | null;
   agreed_price: number | null;
   invoiced_amount: number | null;
+  client_price: number | null;
   created_at: string;
   updated_at: string;
 }
 
 export type MissionInput = Omit<SubcontractorMission, "id" | "user_id" | "created_at" | "updated_at">;
+
+export interface MissionPnl {
+  mission_id: string;
+  sst_cost: number;
+  client_revenue: number;
+  gross_margin: number;
+  margin_pct: number | null;
+}
+
+export interface SubcontractorSummary {
+  subcontractor_id: string;
+  name: string;
+  active: boolean;
+  missions_count: number;
+  missions_done: number;
+  total_sst_cost: number;
+  total_client_revenue: number;
+  total_gross_margin: number;
+  avg_rating: number | null;
+  last_mission_date: string | null;
+}
+
+export async function listMissionPnl(): Promise<MissionPnl[]> {
+  const { data, error } = await (supabase as unknown as {
+    from: (t: string) => { select: (c: string) => Promise<{ data: MissionPnl[] | null; error: unknown }> };
+  })
+    .from("v_sst_mission_pnl")
+    .select("mission_id, sst_cost, client_revenue, gross_margin, margin_pct");
+  if (error) throw error;
+  return (data ?? []) as MissionPnl[];
+}
+
+export async function listSubcontractorSummary(): Promise<SubcontractorSummary[]> {
+  const { data, error } = await (supabase as unknown as {
+    from: (t: string) => { select: (c: string) => Promise<{ data: SubcontractorSummary[] | null; error: unknown }> };
+  })
+    .from("v_sst_summary")
+    .select("subcontractor_id, name, active, missions_count, missions_done, total_sst_cost, total_client_revenue, total_gross_margin, avg_rating, last_mission_date");
+  if (error) throw error;
+  return (data ?? []) as SubcontractorSummary[];
+}
 
 export interface MissionPhoto {
   id: string;
