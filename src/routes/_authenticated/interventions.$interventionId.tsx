@@ -303,6 +303,7 @@ function InterventionDetail() {
       // Empreinte stable de l'archive référencée : évite les doublons
       // mais permet un renvoi volontaire dès qu'une nouvelle version est archivée.
       const archiveKey = iv.pdf_storage_path.replace(/[^a-zA-Z0-9]/g, "").slice(-24);
+      const sentPath = iv.pdf_storage_path;
       for (const recipientEmail of recipients) {
         await sendTransactionalEmail({
           templateName: "new-report",
@@ -314,8 +315,13 @@ function InterventionDetail() {
             shareUrl,
           },
         });
-        await logReportEvent(interventionId, "sent", { recipient: recipientEmail, pdf_storage_path: iv.pdf_storage_path ?? null });
+        await logReportEvent(interventionId, "sent", { recipient: recipientEmail, pdf_storage_path: sentPath });
       }
+      // Fige la version envoyée : c'est cette archive que le portail servira au client.
+      await updateIntervention(interventionId, {
+        sent_pdf_storage_path: sentPath,
+        sent_to_client_at: new Date().toISOString(),
+      });
     },
     onSuccess: () => { invIv(); qc.invalidateQueries({ queryKey: ["report-history", interventionId] }); toast.success("E-mail envoyé au client"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'envoi"),
