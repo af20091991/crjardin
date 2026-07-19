@@ -6,14 +6,17 @@ import { AppShell } from "@/components/AppShell";
 import {
   getIntervention, updateIntervention, deleteIntervention,
   listTasks, addTask, updateTask, deleteTask,
-  listPhotos, addPhoto, updatePhoto, deletePhoto, signedPhotoUrl,
+  listPhotos, addPhoto, updatePhoto, deletePhoto, signedPhotoUrl, reorderPhotos,
   TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
+  DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, normalizeReportSections, type ReportSections,
 } from "@/lib/interventions";
 import {
   listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
   listRecommendationsByClient, addRecommendation, updateRecommendation, deleteRecommendation,
   RECO_STATUSES, RECO_STATUS_META, type RecommendationStatus,
   recommendationPrice, formatEuro,
+  RECO_PRIORITIES, RECO_PRIORITY_META, type RecommendationPriority,
+  RECO_SEASONS, RECO_SEASON_LABELS, type RecommendationSeason,
 } from "@/lib/garden";
 import { generateInterventionInsights, analyzeInterventionPhotos } from "@/lib/ai.functions";
 import { getClient, clientEmails, listClients } from "@/lib/clients";
@@ -47,7 +50,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
-  FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download,
+  FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download, ArrowUp, ArrowDown, Settings2,
 } from "lucide-react";
 import { toast } from "sonner";
 
