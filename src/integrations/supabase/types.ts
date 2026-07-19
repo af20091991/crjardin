@@ -1542,6 +1542,174 @@ export type Database = {
           },
         ]
       }
+      subcontractor_mission_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          kind: string
+          mission_id: string
+          position: number
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          mission_id: string
+          position?: number
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          mission_id?: string
+          position?: number
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcontractor_mission_photos_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractor_missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcontractor_missions: {
+        Row: {
+          agreed_price: number | null
+          anomalies: string | null
+          client_id: string | null
+          created_at: string
+          id: string
+          instructions: string | null
+          invoiced_amount: number | null
+          mission_date: string
+          recommendations: string | null
+          report_notes: string | null
+          service_requested: string
+          status: string
+          subcontractor_id: string
+          updated_at: string
+          user_id: string
+          worksite_sheet_id: string | null
+        }
+        Insert: {
+          agreed_price?: number | null
+          anomalies?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          invoiced_amount?: number | null
+          mission_date: string
+          recommendations?: string | null
+          report_notes?: string | null
+          service_requested: string
+          status?: string
+          subcontractor_id: string
+          updated_at?: string
+          user_id: string
+          worksite_sheet_id?: string | null
+        }
+        Update: {
+          agreed_price?: number | null
+          anomalies?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          invoiced_amount?: number | null
+          mission_date?: string
+          recommendations?: string | null
+          report_notes?: string | null
+          service_requested?: string
+          status?: string
+          subcontractor_id?: string
+          updated_at?: string
+          user_id?: string
+          worksite_sheet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcontractor_missions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_worksite_sheet_id_fkey"
+            columns: ["worksite_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "worksite_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcontractors: {
+        Row: {
+          active: boolean
+          address: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          hourly_rate: number | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          specialties: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          hourly_rate?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          specialties?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          hourly_rate?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          specialties?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
