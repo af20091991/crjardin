@@ -58,6 +58,9 @@ export interface Intervention {
   client_read_count: number;
   created_at: string;
   updated_at: string;
+  pdf_storage_path?: string | null;
+  report_generated_at?: string | null;
+  sent_to_client_at?: string | null;
 }
 
 export interface InterventionTask {
