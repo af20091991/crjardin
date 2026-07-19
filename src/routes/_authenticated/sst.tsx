@@ -283,6 +283,17 @@ function SubcontractorDialog({ editing, onDone }: { editing: Subcontractor | nul
           />
         </div>
         <div className="space-y-1.5">
+          <Label>Types de prestations réalisées (par défaut)</Label>
+          <Input
+            value={defaultTypesText}
+            onChange={(e) => setDefaultTypesText(e.target.value)}
+            placeholder="taille de haies, abattage, tonte grand terrain"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Utilisé comme pré-remplissage lors de la création d'une mission.
+          </p>
+        </div>
+        <div className="space-y-1.5">
           <Label>Taux horaire (€/h)</Label>
           <Input type="number" step="0.01" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} />
         </div>
