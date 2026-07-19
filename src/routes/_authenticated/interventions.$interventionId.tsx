@@ -21,6 +21,8 @@ import { getMyProfile } from "@/lib/profile";
 import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
+import { archiveInterventionReport, listReportHistory, signedReportUrl, logReportEvent, REPORT_EVENT_LABEL } from "@/lib/report-history";
+import { InterventionReportPreview } from "@/components/InterventionReportPreview";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { getEmailSettings, fillTemplate } from "@/lib/email-settings";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -40,8 +42,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
-  FileDown, ScanSearch, Check, Mail,
+  FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -211,9 +216,50 @@ function InterventionDetail() {
         signatureData: profile?.signature_data ?? undefined,
         stampData: profile?.stamp_data ?? undefined,
       });
+      if (iv.id) await logReportEvent(iv.id, "downloaded");
     },
     onSuccess: () => toast.success("PDF généré"),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur PDF"),
+  });
+
+  const { data: reportHistory } = useQuery({
+    queryKey: ["report-history", interventionId],
+    queryFn: () => listReportHistory(interventionId),
+  });
+  const invHistory = () => qc.invalidateQueries({ queryKey: ["report-history", interventionId] });
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const archivePdf = useMutation({
+    mutationFn: async () => {
+      if (!iv || !client) throw new Error("Données indisponibles");
+      const [t, p, h, r, profile] = await Promise.all([
+        listTasks(interventionId),
+        listPhotos(interventionId),
+        listHealthByClient(iv.client_id),
+        listRecommendationsByClient(iv.client_id),
+        getMyProfile(),
+      ]);
+      return archiveInterventionReport({
+        intervention: iv,
+        client,
+        tasks: t,
+        photos: p,
+        health: h.filter((x) => x.intervention_id === interventionId),
+        recommendations: r.filter((x) => x.intervention_id === interventionId),
+        companyName: profile?.company_name ?? undefined,
+        authorName: profile?.display_name ?? undefined,
+        signatureData: profile?.signature_data ?? undefined,
+        stampData: profile?.stamp_data ?? undefined,
+      });
+    },
+    onSuccess: () => { invIv(); invHistory(); toast.success("Compte-rendu archivé"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'archivage"),
+  });
+
+  const openArchivedPdf = useMutation({
+    mutationFn: async (path: string) => signedReportUrl(path),
+    onSuccess: (url) => { window.open(url, "_blank", "noopener"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Lien indisponible"),
   });
 
   const notifyClient = useMutation({
@@ -242,9 +288,10 @@ function InterventionDetail() {
             shareUrl,
           },
         });
+        await logReportEvent(interventionId, "sent", { recipient: recipientEmail, pdf_storage_path: iv.pdf_storage_path ?? null });
       }
     },
-    onSuccess: () => toast.success("E-mail envoyé au client"),
+    onSuccess: () => { invIv(); qc.invalidateQueries({ queryKey: ["report-history", interventionId] }); toast.success("E-mail envoyé au client"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'envoi"),
   });
 
@@ -390,6 +437,89 @@ function InterventionDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Compte-rendu client (aperçu + archivage) */}
+        {client && (
+          <Card>
+            <CardContent className="space-y-3 pt-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-serif text-lg font-semibold">Compte-rendu client</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {iv.report_generated_at
+                      ? `Dernière archive : ${new Date(iv.report_generated_at).toLocaleString("fr-FR")}`
+                      : "Aucune archive PDF pour l'instant."}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline"><Eye className="mr-1.5 h-4 w-4" /> Aperçu</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl overflow-y-auto sm:max-h-[90vh]">
+                      <DialogHeader>
+                        <DialogTitle>Aperçu du compte-rendu</DialogTitle>
+                      </DialogHeader>
+                      {previewOpen && (
+                        <InterventionReportPreview
+                          intervention={iv}
+                          client={client}
+                          tasks={tasks ?? []}
+                          photos={photos ?? []}
+                          health={healthList ?? []}
+                          recommendations={recos ?? []}
+                          companyName={profile?.company_name ?? undefined}
+                          authorName={profile?.display_name ?? undefined}
+                          signatureData={profile?.signature_data ?? null}
+                          stampData={profile?.stamp_data ?? null}
+                        />
+                      )}
+                    </DialogContent>
+                  </Dialog>
+                  <Button size="sm" variant="outline" disabled={archivePdf.isPending} onClick={() => archivePdf.mutate()}>
+                    {archivePdf.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Archive className="mr-1.5 h-4 w-4" />}
+                    Archiver le PDF
+                  </Button>
+                  {iv.pdf_storage_path && (
+                    <Button size="sm" variant="outline" onClick={() => openArchivedPdf.mutate(iv.pdf_storage_path!)}>
+                      <Download className="mr-1.5 h-4 w-4" /> Dernière archive
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {(reportHistory?.length ?? 0) > 0 && (
+                <div className="rounded-lg border border-border p-3">
+                  <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                    <History className="h-3.5 w-3.5" /> Historique
+                  </div>
+                  <ul className="space-y-1 text-sm">
+                    {reportHistory!.slice(0, 8).map((h) => (
+                      <li key={h.id} className="flex items-center justify-between gap-2">
+                        <span>
+                          <span className="font-medium">{REPORT_EVENT_LABEL[h.event_type]}</span>
+                          {h.recipient && <span className="text-muted-foreground"> · {h.recipient}</span>}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(h.created_at).toLocaleString("fr-FR")}
+                          {h.pdf_storage_path && (
+                            <button
+                              type="button"
+                              onClick={() => openArchivedPdf.mutate(h.pdf_storage_path!)}
+                              className="ml-2 text-primary hover:underline"
+                            >
+                              Ouvrir
+                            </button>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tâches */}
         <Card>
