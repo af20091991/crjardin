@@ -755,6 +755,7 @@ export type Database = {
           recommendations_text: string | null
           reference: string | null
           report_generated_at: string | null
+          sent_pdf_storage_path: string | null
           sent_to_client_at: string | null
           status: string
           summary: string | null
@@ -779,6 +780,7 @@ export type Database = {
           recommendations_text?: string | null
           reference?: string | null
           report_generated_at?: string | null
+          sent_pdf_storage_path?: string | null
           sent_to_client_at?: string | null
           status?: string
           summary?: string | null
@@ -803,6 +805,7 @@ export type Database = {
           recommendations_text?: string | null
           reference?: string | null
           report_generated_at?: string | null
+          sent_pdf_storage_path?: string | null
           sent_to_client_at?: string | null
           status?: string
           summary?: string | null
@@ -2442,6 +2445,15 @@ export type Database = {
         }[]
       }
       record_login: { Args: { p_user_agent?: string }; Returns: undefined }
+      record_shared_report_view: {
+        Args: {
+          p_intervention_id: string
+          p_ip?: string
+          p_token: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
       set_recommendation_interest: {
         Args: { p_interest: string; p_reco_id: string; p_token: string }
         Returns: undefined

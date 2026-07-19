@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getSharedClient, markSharedRead, addClientMessage, getSharedMessages, setRecommendationInterest,
   markRecommendationsViewed,
+  getSharedInterventionPdfUrl,
   type SharedIntervention, type ClientMessage, type SharedRecommendation, type SharedClientData,
 } from "@/lib/share.functions";
 import { exportSharedInterventionPdf } from "@/lib/share-pdf";
@@ -367,7 +368,16 @@ function InterventionCard({
   async function download() {
     setDownloading(true);
     try {
-      await exportSharedInterventionPdf(iv, client);
+      if (iv.has_sent_pdf || iv.has_pdf) {
+        // Version envoyée par le paysagiste (ou dernière archive disponible),
+        // et non un PDF regénéré à la volée.
+        const { url } = await getSharedInterventionPdfUrl({
+          data: { token, interventionId: iv.id },
+        });
+        window.open(url, "_blank", "noopener");
+      } else {
+        await exportSharedInterventionPdf(iv, client);
+      }
     } catch {
       toast.error("Impossible de générer le PDF.");
     } finally {
@@ -383,6 +393,11 @@ function InterventionCard({
             <div className="flex items-center gap-2">
               <h3 className="font-medium">{iv.title ?? iv.intervention_type ?? "Intervention"}</h3>
               {isNew && <Badge className="bg-primary text-primary-foreground">Nouveau</Badge>}
+              {iv.sent_to_client_at && (
+                <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
+                  Envoyé le {fmtDate(iv.sent_to_client_at)}
+                </Badge>
+              )}
             </div>
             <p className="flex flex-wrap gap-1 text-xs text-muted-foreground">
               {iv.reference && <span className="font-mono">{iv.reference} ·</span>}
