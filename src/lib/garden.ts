@@ -187,9 +187,12 @@ export async function addRecommendation(input: {
 
 export async function updateRecommendation(
   id: string,
-  patch: Partial<Pick<Recommendation, "title" | "description" | "category" | "status" | "estimated_hours" | "unit_price">>,
+  patch: Partial<Pick<Recommendation,
+    "title" | "description" | "category" | "status" | "estimated_hours" | "unit_price"
+    | "priority" | "recommended_season" | "include_in_report" | "report_position"
+  >>,
 ): Promise<void> {
-  const { error } = await supabase.from("recommendations").update(patch).eq("id", id);
+  const { error } = await supabase.from("recommendations").update(patch as never).eq("id", id);
   if (error) throw error;
 }
 
