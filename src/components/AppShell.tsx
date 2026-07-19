@@ -6,7 +6,7 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
@@ -78,7 +78,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     {
       label: "SST Pro",
       items: canEdit
-        ? [{ to: "/fiches", label: "Fiches SST", short: "SST", icon: ClipboardList, exact: false, primary: false }]
+        ? [
+            { to: "/fiches", label: "Fiches SST", short: "SST", icon: ClipboardList, exact: false, primary: false },
+            { to: "/sst", label: "Sous-traitants", short: "SST", icon: HardHat, exact: false, primary: false },
+          ]
         : [],
       emptyLabel: canEdit ? undefined : "Bientôt disponible",
     },
