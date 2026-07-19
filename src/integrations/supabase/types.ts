@@ -741,10 +741,13 @@ export type Database = {
       }
       interventions: {
         Row: {
+          ai_metadata: Json | null
+          attention_points: string | null
           client_id: string
           client_read_at: string | null
           client_read_count: number
           created_at: string
+          garden_evolution: string | null
           garden_state: string | null
           hours_spent: number | null
           id: string
@@ -752,9 +755,11 @@ export type Database = {
           intervention_date: string
           intervention_type: string | null
           pdf_storage_path: string | null
+          positive_points: string | null
           recommendations_text: string | null
           reference: string | null
           report_generated_at: string | null
+          report_sections: Json
           sent_pdf_storage_path: string | null
           sent_to_client_at: string | null
           status: string
@@ -766,10 +771,13 @@ export type Database = {
           worksite_sheet_id: string | null
         }
         Insert: {
+          ai_metadata?: Json | null
+          attention_points?: string | null
           client_id: string
           client_read_at?: string | null
           client_read_count?: number
           created_at?: string
+          garden_evolution?: string | null
           garden_state?: string | null
           hours_spent?: number | null
           id?: string
@@ -777,9 +785,11 @@ export type Database = {
           intervention_date?: string
           intervention_type?: string | null
           pdf_storage_path?: string | null
+          positive_points?: string | null
           recommendations_text?: string | null
           reference?: string | null
           report_generated_at?: string | null
+          report_sections?: Json
           sent_pdf_storage_path?: string | null
           sent_to_client_at?: string | null
           status?: string
@@ -791,10 +801,13 @@ export type Database = {
           worksite_sheet_id?: string | null
         }
         Update: {
+          ai_metadata?: Json | null
+          attention_points?: string | null
           client_id?: string
           client_read_at?: string | null
           client_read_count?: number
           created_at?: string
+          garden_evolution?: string | null
           garden_state?: string | null
           hours_spent?: number | null
           id?: string
@@ -802,9 +815,11 @@ export type Database = {
           intervention_date?: string
           intervention_type?: string | null
           pdf_storage_path?: string | null
+          positive_points?: string | null
           recommendations_text?: string | null
           reference?: string | null
           report_generated_at?: string | null
+          report_sections?: Json
           sent_pdf_storage_path?: string | null
           sent_to_client_at?: string | null
           status?: string
@@ -1296,9 +1311,11 @@ export type Database = {
           description: string | null
           estimated_hours: number | null
           id: string
+          include_in_report: boolean
           intervention_id: string | null
           priority: string | null
           recommended_season: string | null
+          report_position: number | null
           source: string
           status: string
           title: string
@@ -1316,9 +1333,11 @@ export type Database = {
           description?: string | null
           estimated_hours?: number | null
           id?: string
+          include_in_report?: boolean
           intervention_id?: string | null
           priority?: string | null
           recommended_season?: string | null
+          report_position?: number | null
           source?: string
           status?: string
           title: string
@@ -1336,9 +1355,11 @@ export type Database = {
           description?: string | null
           estimated_hours?: number | null
           id?: string
+          include_in_report?: boolean
           intervention_id?: string | null
           priority?: string | null
           recommended_season?: string | null
+          report_position?: number | null
           source?: string
           status?: string
           title?: string

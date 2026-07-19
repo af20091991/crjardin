@@ -46,6 +46,10 @@ export interface Recommendation {
   client_interest_at: string | null;
   created_at: string;
   updated_at: string;
+  priority?: string | null;
+  recommended_season?: string | null;
+  include_in_report?: boolean;
+  report_position?: number | null;
 }
 
 export function recommendationPrice(r: Pick<Recommendation, "estimated_hours" | "unit_price">): number | null {
@@ -77,6 +81,24 @@ export const RECO_STATUS_META: Record<RecommendationStatus, { label: string; ton
 };
 
 export const RECO_STATUSES: RecommendationStatus[] = ["en_attente", "acceptee", "refusee", "realisee"];
+
+export const RECO_PRIORITIES = ["haute", "moyenne", "basse"] as const;
+export type RecommendationPriority = (typeof RECO_PRIORITIES)[number];
+export const RECO_PRIORITY_META: Record<RecommendationPriority, { label: string; tone: string }> = {
+  haute: { label: "Priorité haute", tone: "bg-rose-100 text-rose-800" },
+  moyenne: { label: "Priorité moyenne", tone: "bg-amber-100 text-amber-800" },
+  basse: { label: "Priorité basse", tone: "bg-slate-100 text-slate-700" },
+};
+
+export const RECO_SEASONS = ["printemps", "été", "automne", "hiver", "toute-saison"] as const;
+export type RecommendationSeason = (typeof RECO_SEASONS)[number];
+export const RECO_SEASON_LABELS: Record<RecommendationSeason, string> = {
+  printemps: "Printemps",
+  "été": "Été",
+  automne: "Automne",
+  hiver: "Hiver",
+  "toute-saison": "Toute saison",
+};
 
 // ---- Garden health ----
 export async function listHealthByClient(clientId: string): Promise<GardenHealth[]> {
@@ -183,9 +205,12 @@ export async function addRecommendation(input: {
 
 export async function updateRecommendation(
   id: string,
-  patch: Partial<Pick<Recommendation, "title" | "description" | "category" | "status" | "estimated_hours" | "unit_price">>,
+  patch: Partial<Pick<Recommendation,
+    "title" | "description" | "category" | "status" | "estimated_hours" | "unit_price"
+    | "priority" | "recommended_season" | "include_in_report" | "report_position"
+  >>,
 ): Promise<void> {
-  const { error } = await supabase.from("recommendations").update(patch).eq("id", id);
+  const { error } = await supabase.from("recommendations").update(patch as never).eq("id", id);
   if (error) throw error;
 }
 

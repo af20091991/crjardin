@@ -3,6 +3,54 @@ import { supabase } from "@/integrations/supabase/client";
 export type TaskStatus = "realise" | "partiel" | "reporte" | "impossible";
 export type InterventionStatus = "brouillon" | "termine";
 
+export interface ReportSections {
+  summary: boolean;
+  worksite: boolean;
+  tasks: boolean;
+  positive_points: boolean;
+  attention_points: boolean;
+  garden_evolution: boolean;
+  garden_state: boolean;
+  recommendations: boolean;
+  upcoming: boolean;
+  photos: boolean;
+}
+
+export const DEFAULT_REPORT_SECTIONS: ReportSections = {
+  summary: true,
+  worksite: true,
+  tasks: true,
+  positive_points: true,
+  attention_points: true,
+  garden_evolution: true,
+  garden_state: true,
+  recommendations: true,
+  upcoming: true,
+  photos: true,
+};
+
+export const REPORT_SECTION_LABELS: Record<keyof ReportSections, string> = {
+  summary: "Synthèse de l'intervention",
+  worksite: "Fiche jardin",
+  tasks: "Travaux réalisés",
+  positive_points: "Points positifs",
+  attention_points: "Points de vigilance",
+  garden_evolution: "Évolution du jardin",
+  garden_state: "État du jardin",
+  recommendations: "Préconisations & conseils",
+  upcoming: "Prochaine intervention",
+  photos: "Photos",
+};
+
+export function normalizeReportSections(raw: unknown): ReportSections {
+  const src = (raw && typeof raw === "object" ? raw : {}) as Partial<Record<keyof ReportSections, unknown>>;
+  const out = { ...DEFAULT_REPORT_SECTIONS };
+  (Object.keys(DEFAULT_REPORT_SECTIONS) as (keyof ReportSections)[]).forEach((k) => {
+    if (typeof src[k] === "boolean") out[k] = src[k] as boolean;
+  });
+  return out;
+}
+
 export const TASK_STATUS_META: Record<
   TaskStatus,
   { label: string; tone: string; short: string }
@@ -63,6 +111,11 @@ export interface Intervention {
   sent_to_client_at?: string | null;
   sent_pdf_storage_path?: string | null;
   worksite_sheet_id?: string | null;
+  positive_points?: string | null;
+  attention_points?: string | null;
+  garden_evolution?: string | null;
+  report_sections?: ReportSections | null;
+  ai_metadata?: Record<string, unknown> | null;
 }
 
 export interface InterventionTask {
@@ -197,11 +250,13 @@ export async function updateIntervention(
     "client_id" | "intervention_date" | "intervention_type" | "status"
     | "summary" | "garden_state" | "upcoming_works" | "recommendations_text"
     | "worksite_sheet_id" | "sent_pdf_storage_path" | "sent_to_client_at"
+    | "positive_points" | "attention_points" | "garden_evolution"
+    | "report_sections"
   >>,
 ): Promise<Intervention> {
   const { data, error } = await supabase
     .from("interventions")
-    .update(patch)
+    .update(patch as never)
     .eq("id", id)
     .select()
     .single();
@@ -283,10 +338,19 @@ export async function addPhoto(
 
 export async function updatePhoto(
   id: string,
-  patch: Partial<Pick<InterventionPhoto, "caption" | "include_in_report">>,
+  patch: Partial<Pick<InterventionPhoto, "caption" | "include_in_report" | "position">>,
 ): Promise<void> {
   const { error } = await supabase.from("intervention_photos").update(patch).eq("id", id);
   if (error) throw error;
+}
+
+/** Réordonne les photos d'une intervention selon l'ordre transmis. */
+export async function reorderPhotos(ids: string[]): Promise<void> {
+  await Promise.all(
+    ids.map((id, position) =>
+      supabase.from("intervention_photos").update({ position }).eq("id", id),
+    ),
+  );
 }
 
 export async function deletePhoto(id: string, storagePath: string): Promise<void> {

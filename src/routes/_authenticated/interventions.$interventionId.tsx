@@ -6,14 +6,17 @@ import { AppShell } from "@/components/AppShell";
 import {
   getIntervention, updateIntervention, deleteIntervention,
   listTasks, addTask, updateTask, deleteTask,
-  listPhotos, addPhoto, updatePhoto, deletePhoto, signedPhotoUrl,
+  listPhotos, addPhoto, updatePhoto, deletePhoto, signedPhotoUrl, reorderPhotos,
   TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
+  DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, normalizeReportSections, type ReportSections,
 } from "@/lib/interventions";
 import {
   listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
   listRecommendationsByClient, addRecommendation, updateRecommendation, deleteRecommendation,
   RECO_STATUSES, RECO_STATUS_META, type RecommendationStatus,
   recommendationPrice, formatEuro,
+  RECO_PRIORITIES, RECO_PRIORITY_META, type RecommendationPriority,
+  RECO_SEASONS, RECO_SEASON_LABELS, type RecommendationSeason,
 } from "@/lib/garden";
 import { generateInterventionInsights, analyzeInterventionPhotos } from "@/lib/ai.functions";
 import { getClient, clientEmails, listClients } from "@/lib/clients";
@@ -47,7 +50,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
-  FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download,
+  FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download, ArrowUp, ArrowDown, Settings2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -156,6 +159,15 @@ function InterventionDetail() {
     mutationFn: (patch: Parameters<typeof updateIntervention>[1]) => updateIntervention(interventionId, patch),
     onSuccess: () => { invIv(); toast.success("Enregistré"); },
   });
+
+  const sections: ReportSections = normalizeReportSections(iv?.report_sections);
+  const saveSections = useMutation({
+    mutationFn: (next: ReportSections) => updateIntervention(interventionId, { report_sections: next }),
+    onSuccess: () => invIv(),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+  const toggleSection = (key: keyof ReportSections) =>
+    saveSections.mutate({ ...sections, [key]: !sections[key] });
 
   const generateAi = useServerFn(generateInterventionInsights);
   const analyzePhotos = useServerFn(analyzeInterventionPhotos);
@@ -597,6 +609,46 @@ function InterventionDetail() {
           </Card>
         )}
 
+        {/* Contenu du compte-rendu : sélection des sections, photos, préconisations */}
+        {client && (
+          <Card>
+            <CardContent className="space-y-4 pt-6">
+              <div className="flex items-center gap-2">
+                <Settings2 className="h-5 w-5 text-primary" />
+                <h3 className="font-serif text-lg font-semibold">Contenu du compte-rendu</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Choisissez précisément ce qui apparaît dans l'aperçu et le PDF envoyé au client.
+              </p>
+
+              <div>
+                <p className="mb-2 text-sm font-medium">Sections</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(Object.keys(REPORT_SECTION_LABELS) as (keyof ReportSections)[]).map((k) => (
+                    <label key={k} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                      <Checkbox
+                        checked={sections[k]}
+                        onCheckedChange={() => toggleSection(k)}
+                      />
+                      <span>{REPORT_SECTION_LABELS[k]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <ReportPhotosPicker
+                photos={photos ?? []}
+                onChange={invPhotos}
+              />
+
+              <ReportRecosPicker
+                recos={recos ?? []}
+                onChange={invRecos}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Tâches */}
         <Card>
           <CardContent className="space-y-3 pt-6">
@@ -725,6 +777,9 @@ function InterventionDetail() {
             </div>
             <p className="text-xs text-muted-foreground">L'assistant rédige automatiquement la synthèse à partir des travaux saisis.</p>
             <SyntheseField label="Synthèse de l'intervention" field="summary" iv={iv} onSave={(v) => saveSynthese.mutate({ summary: v })} />
+            <SyntheseField label="Points positifs observés" field="positive_points" iv={iv} onSave={(v) => saveSynthese.mutate({ positive_points: v })} />
+            <SyntheseField label="Points de vigilance" field="attention_points" iv={iv} onSave={(v) => saveSynthese.mutate({ attention_points: v })} />
+            <SyntheseField label="Évolution du jardin" field="garden_evolution" iv={iv} onSave={(v) => saveSynthese.mutate({ garden_evolution: v })} />
             <SyntheseField label="État du jardin" field="garden_state" iv={iv} onSave={(v) => saveSynthese.mutate({ garden_state: v })} />
             <SyntheseField label="Travaux prévus prochaine intervention" field="upcoming_works" iv={iv} onSave={(v) => saveSynthese.mutate({ upcoming_works: v })} />
             <SyntheseField label="Préconisations / conseils" field="recommendations_text" iv={iv} onSave={(v) => saveSynthese.mutate({ recommendations_text: v })} />
@@ -840,7 +895,7 @@ function SyntheseField({
   label, field, iv, onSave,
 }: {
   label: string;
-  field: "summary" | "garden_state" | "upcoming_works" | "recommendations_text";
+  field: "summary" | "garden_state" | "upcoming_works" | "recommendations_text" | "positive_points" | "attention_points" | "garden_evolution";
   iv: Intervention;
   onSave: (v: string) => void;
 }) {
@@ -962,6 +1017,197 @@ function PhotoCard({ photo, onChange }: { photo: InterventionPhoto; onChange: ()
           Inclure dans le rapport
         </label>
       </div>
+    </div>
+  );
+}
+
+/* ---- Sélection & réordonnancement des photos ---- */
+function ReportPhotosPicker({
+  photos, onChange,
+}: {
+  photos: InterventionPhoto[];
+  onChange: () => void;
+}) {
+  const ordered = [...photos].sort((a, b) => a.position - b.position);
+  const move = useMutation({
+    mutationFn: (ids: string[]) => reorderPhotos(ids),
+    onSuccess: onChange,
+  });
+  const toggle = useMutation({
+    mutationFn: ({ id, include }: { id: string; include: boolean }) =>
+      updatePhoto(id, { include_in_report: include }),
+    onSuccess: onChange,
+  });
+  const setCaption = useMutation({
+    mutationFn: ({ id, caption }: { id: string; caption: string }) =>
+      updatePhoto(id, { caption }),
+    onSuccess: onChange,
+  });
+  function reorder(idx: number, dir: -1 | 1) {
+    const next = [...ordered];
+    const j = idx + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[idx], next[j]] = [next[j], next[idx]];
+    move.mutate(next.map((p) => p.id));
+  }
+  if (photos.length === 0) {
+    return (
+      <div>
+        <p className="mb-1 text-sm font-medium">Photos du rapport</p>
+        <p className="text-xs text-muted-foreground">Aucune photo n'a été ajoutée à cette intervention.</p>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium">Photos du rapport</p>
+      <ul className="space-y-1.5">
+        {ordered.map((p, idx) => (
+          <li key={p.id} className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5">
+            <Checkbox
+              checked={p.include_in_report}
+              onCheckedChange={(v) => toggle.mutate({ id: p.id, include: !!v })}
+            />
+            <span className="w-5 text-center text-xs text-muted-foreground">#{idx + 1}</span>
+            <Input
+              defaultValue={p.caption ?? ""}
+              placeholder="Légende…"
+              className="h-8 text-xs"
+              onBlur={(e) => {
+                if (e.target.value !== (p.caption ?? "")) setCaption.mutate({ id: p.id, caption: e.target.value });
+              }}
+            />
+            <div className="flex gap-0.5">
+              <button
+                type="button"
+                className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+                disabled={idx === 0}
+                onClick={() => reorder(idx, -1)}
+                aria-label="Monter"
+              >
+                <ArrowUp className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+                disabled={idx === ordered.length - 1}
+                onClick={() => reorder(idx, 1)}
+                aria-label="Descendre"
+              >
+                <ArrowDown className="h-4 w-4" />
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/* ---- Sélection, ordre, priorité et saison des préconisations ---- */
+function ReportRecosPicker({
+  recos, onChange,
+}: {
+  recos: import("@/lib/garden").Recommendation[];
+  onChange: () => void;
+}) {
+  const ordered = [...recos].sort((a, b) => {
+    const ap = a.report_position ?? Number.MAX_SAFE_INTEGER;
+    const bp = b.report_position ?? Number.MAX_SAFE_INTEGER;
+    if (ap !== bp) return ap - bp;
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  });
+  const update = useMutation({
+    mutationFn: async (args: { id: string; patch: Parameters<typeof updateRecommendation>[1] }) => {
+      await updateRecommendation(args.id, args.patch);
+    },
+    onSuccess: onChange,
+  });
+  function reorder(idx: number, dir: -1 | 1) {
+    const next = [...ordered];
+    const j = idx + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[idx], next[j]] = [next[j], next[idx]];
+    // Persist positions
+    next.forEach((r, i) => {
+      if (r.report_position !== i) update.mutate({ id: r.id, patch: { report_position: i } });
+    });
+  }
+  if (recos.length === 0) {
+    return (
+      <div>
+        <p className="mb-1 text-sm font-medium">Préconisations du rapport</p>
+        <p className="text-xs text-muted-foreground">Aucune préconisation liée à cette intervention.</p>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium">Préconisations du rapport</p>
+      <ul className="space-y-1.5">
+        {ordered.map((r, idx) => (
+          <li key={r.id} className="rounded-md border border-border px-2 py-1.5">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={r.include_in_report ?? true}
+                onCheckedChange={(v) => update.mutate({ id: r.id, patch: { include_in_report: !!v } })}
+              />
+              <span className="w-5 text-center text-xs text-muted-foreground">#{idx + 1}</span>
+              <span className="flex-1 truncate text-sm font-medium">{r.title}</span>
+              <div className="flex gap-0.5">
+                <button
+                  type="button"
+                  className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+                  disabled={idx === 0}
+                  onClick={() => reorder(idx, -1)}
+                  aria-label="Monter"
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+                  disabled={idx === ordered.length - 1}
+                  onClick={() => reorder(idx, 1)}
+                  aria-label="Descendre"
+                >
+                  <ArrowDown className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="mt-1.5 grid gap-1.5 sm:grid-cols-2">
+              <Select
+                value={r.priority ?? "__none__"}
+                onValueChange={(v) =>
+                  update.mutate({ id: r.id, patch: { priority: v === "__none__" ? null : v } })
+                }
+              >
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Priorité" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Priorité —</SelectItem>
+                  {RECO_PRIORITIES.map((p) => (
+                    <SelectItem key={p} value={p}>{RECO_PRIORITY_META[p as RecommendationPriority].label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={r.recommended_season ?? "__none__"}
+                onValueChange={(v) =>
+                  update.mutate({ id: r.id, patch: { recommended_season: v === "__none__" ? null : v } })
+                }
+              >
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Saison" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Saison —</SelectItem>
+                  {RECO_SEASONS.map((s) => (
+                    <SelectItem key={s} value={s}>{RECO_SEASON_LABELS[s as RecommendationSeason]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
