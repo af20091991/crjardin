@@ -21,7 +21,8 @@ import { getMyProfile } from "@/lib/profile";
 import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
-import { archiveInterventionReport, listReportHistory, signedReportUrl, logReportEvent, REPORT_EVENT_LABEL } from "@/lib/report-history";
+import { archiveInterventionReport, listReportHistory, signedReportUrl, logReportEvent, REPORT_EVENT_LABEL, withVersions } from "@/lib/report-history";
+import { listWorksiteSheetsByClient, getWorksiteSheet } from "@/lib/worksite";
 import { InterventionReportPreview } from "@/components/InterventionReportPreview";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { getEmailSettings, fillTemplate } from "@/lib/email-settings";
@@ -83,6 +84,16 @@ function InterventionDetail() {
   });
   const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const { data: worksiteOptions } = useQuery({
+    queryKey: ["worksite-sheets-by-client", iv?.client_id],
+    queryFn: () => listWorksiteSheetsByClient(iv!.client_id),
+    enabled: !!iv?.client_id,
+  });
+  const { data: worksite } = useQuery({
+    queryKey: ["worksite-sheet", iv?.worksite_sheet_id],
+    queryFn: () => getWorksiteSheet(iv!.worksite_sheet_id!),
+    enabled: !!iv?.worksite_sheet_id,
+  });
   const { data: tasks } = useQuery({
     queryKey: ["tasks", interventionId],
     queryFn: () => listTasks(interventionId),
@@ -108,6 +119,13 @@ function InterventionDetail() {
       qc.invalidateQueries({ queryKey: ["interventions"] });
       toast.success("Client mis à jour");
     },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const changeWorksite = useMutation({
+    mutationFn: (worksiteId: string | null) =>
+      updateIntervention(interventionId, { worksite_sheet_id: worksiteId }),
+    onSuccess: () => { invIv(); toast.success("Fiche jardin liée"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
@@ -211,6 +229,7 @@ function InterventionDetail() {
         photos: p,
         health: h.filter((x) => x.intervention_id === interventionId),
         recommendations: r.filter((x) => x.intervention_id === interventionId),
+        worksite: worksite ?? null,
         companyName: profile?.company_name ?? undefined,
         authorName: profile?.display_name ?? undefined,
         signatureData: profile?.signature_data ?? undefined,
@@ -246,6 +265,7 @@ function InterventionDetail() {
         photos: p,
         health: h.filter((x) => x.intervention_id === interventionId),
         recommendations: r.filter((x) => x.intervention_id === interventionId),
+        worksite: worksite ?? null,
         companyName: profile?.company_name ?? undefined,
         authorName: profile?.display_name ?? undefined,
         signatureData: profile?.signature_data ?? undefined,
@@ -265,6 +285,9 @@ function InterventionDetail() {
   const notifyClient = useMutation({
     mutationFn: async () => {
       if (!iv || !client) throw new Error("Données indisponibles");
+      if (!iv.pdf_storage_path) {
+        throw new Error("Aucune archive PDF disponible. Archivez le compte-rendu avant l'envoi.");
+      }
       const recipients = clientEmails(client);
       if (recipients.length === 0) throw new Error("Ce client n'a pas d'adresse e-mail renseignée.");
       const settings = await getEmailSettings();
@@ -277,11 +300,14 @@ function InterventionDetail() {
         nom: client.name,
         date: reportDate,
       });
+      // Empreinte stable de l'archive référencée : évite les doublons
+      // mais permet un renvoi volontaire dès qu'une nouvelle version est archivée.
+      const archiveKey = iv.pdf_storage_path.replace(/[^a-zA-Z0-9]/g, "").slice(-24);
       for (const recipientEmail of recipients) {
         await sendTransactionalEmail({
           templateName: "new-report",
           recipientEmail,
-          idempotencyKey: `new-report-${interventionId}-${recipientEmail}`,
+          idempotencyKey: `new-report-${interventionId}-${recipientEmail}-${archiveKey}`,
           templateData: {
             subject: settings.subject,
             bodyText,
@@ -381,6 +407,31 @@ function InterventionDetail() {
                 </Select>
               </div>
             )}
+            {client && (
+              <div className="mb-4 space-y-1.5">
+                <Label>Fiche jardin</Label>
+                <Select
+                  value={iv.worksite_sheet_id ?? "__none__"}
+                  onValueChange={(v) => changeWorksite.mutate(v === "__none__" ? null : v)}
+                  disabled={changeWorksite.isPending}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Aucune fiche jardin liée" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Aucune —</SelectItem>
+                    {(worksiteOptions ?? []).map((w) => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.client_name || "Jardin"}{w.intervention_date ? ` · ${new Date(w.intervention_date).toLocaleDateString("fr-FR")}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(worksiteOptions?.length ?? 0) === 0 && (
+                  <p className="text-xs text-muted-foreground">Aucune fiche jardin n'existe pour ce client.</p>
+                )}
+              </div>
+            )}
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-serif text-xl font-semibold">{iv.title ?? iv.intervention_type ?? "Intervention"}</h2>
@@ -410,8 +461,13 @@ function InterventionDetail() {
               <Button
                 size="sm"
                 variant="outline"
-                disabled={notifyClient.isPending || !done || !client || clientEmails(client).length === 0}
-                title={!done ? "Marquez le compte-rendu comme terminé d'abord" : !client || clientEmails(client).length === 0 ? "Aucune adresse e-mail pour ce client" : "Prévenir le client par e-mail"}
+                disabled={notifyClient.isPending || !done || !client || clientEmails(client).length === 0 || !iv.pdf_storage_path}
+                title={
+                  !done ? "Marquez le compte-rendu comme terminé d'abord"
+                  : !iv.pdf_storage_path ? "Archivez le PDF avant l'envoi au client"
+                  : (!client || clientEmails(client).length === 0) ? "Aucune adresse e-mail pour ce client"
+                  : "Prévenir le client par e-mail"
+                }
                 onClick={() => notifyClient.mutate()}
               >
                 {notifyClient.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Mail className="mr-1.5 h-4 w-4" />}
@@ -468,6 +524,7 @@ function InterventionDetail() {
                           photos={photos ?? []}
                           health={healthList ?? []}
                           recommendations={recos ?? []}
+                          worksite={worksite ?? null}
                           companyName={profile?.company_name ?? undefined}
                           authorName={profile?.display_name ?? undefined}
                           signatureData={profile?.signature_data ?? null}
@@ -494,9 +551,14 @@ function InterventionDetail() {
                     <History className="h-3.5 w-3.5" /> Historique
                   </div>
                   <ul className="space-y-1 text-sm">
-                    {reportHistory!.slice(0, 8).map((h) => (
+                    {withVersions(reportHistory!).slice(0, 12).map((h) => (
                       <li key={h.id} className="flex items-center justify-between gap-2">
                         <span>
+                          {h.version != null && (
+                            <span className="mr-1.5 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">
+                              Version {h.version}
+                            </span>
+                          )}
                           <span className="font-medium">{REPORT_EVENT_LABEL[h.event_type]}</span>
                           {h.recipient && <span className="text-muted-foreground"> · {h.recipient}</span>}
                         </span>

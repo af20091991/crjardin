@@ -61,6 +61,7 @@ export interface Intervention {
   pdf_storage_path?: string | null;
   report_generated_at?: string | null;
   sent_to_client_at?: string | null;
+  worksite_sheet_id?: string | null;
 }
 
 export interface InterventionTask {
@@ -191,7 +192,7 @@ export function buildInterventionTitle(
 
 export async function updateIntervention(
   id: string,
-  patch: Partial<Pick<Intervention, "client_id" | "intervention_date" | "intervention_type" | "status" | "summary" | "garden_state" | "upcoming_works" | "recommendations_text">>,
+  patch: Partial<Pick<Intervention, "client_id" | "intervention_date" | "intervention_type" | "status" | "summary" | "garden_state" | "upcoming_works" | "recommendations_text" | "worksite_sheet_id">>,
 ): Promise<Intervention> {
   const { data, error } = await supabase
     .from("interventions")

@@ -27,6 +27,39 @@ export const REPORT_EVENT_LABEL: Record<ReportEventType, string> = {
   viewed_by_client: "Consulté par le client",
 };
 
+/**
+ * Entrée d'historique enrichie d'un numéro de version PDF stable.
+ * La version est attribuée uniquement aux événements d'archivage
+ * (`generated`, `regenerated`) dans l'ordre chronologique croissant.
+ * Les événements `sent`/`downloaded`/`viewed_by_client` héritent de
+ * la version dont le `pdf_storage_path` correspond.
+ */
+export interface ReportHistoryEntryVersioned extends ReportHistoryEntry {
+  version: number | null;
+}
+
+/**
+ * Enrichit une liste d'entrées d'historique (ordre libre) avec un
+ * numéro de version PDF calculé depuis la table `intervention_report_history`.
+ */
+export function withVersions(entries: ReportHistoryEntry[]): ReportHistoryEntryVersioned[] {
+  const asc = [...entries].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  );
+  const versionByPath = new Map<string, number>();
+  let counter = 0;
+  for (const e of asc) {
+    if ((e.event_type === "generated" || e.event_type === "regenerated") && e.pdf_storage_path) {
+      counter += 1;
+      if (!versionByPath.has(e.pdf_storage_path)) versionByPath.set(e.pdf_storage_path, counter);
+    }
+  }
+  return entries.map((e) => ({
+    ...e,
+    version: e.pdf_storage_path ? versionByPath.get(e.pdf_storage_path) ?? null : null,
+  }));
+}
+
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser();
   if (!data.user) throw new Error("Non authentifié");

@@ -146,6 +146,18 @@ export async function listWorksiteSheets(): Promise<WorksiteSheet[]> {
   return (data ?? []).map((r) => normalize(r as Record<string, unknown>));
 }
 
+/** Liste les fiches jardin rattachées à un client donné. */
+export async function listWorksiteSheetsByClient(clientId: string): Promise<WorksiteSheet[]> {
+  const { data, error } = await supabase
+    .from("worksite_sheets")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("intervention_date", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r) => normalize(r as Record<string, unknown>));
+}
+
 export async function getWorksiteSheet(id: string): Promise<WorksiteSheet> {
   const { data, error } = await supabase.from("worksite_sheets").select("*").eq("id", id).single();
   if (error) throw error;
