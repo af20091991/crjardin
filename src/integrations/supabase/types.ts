@@ -273,6 +273,13 @@ export type Database = {
             referencedRelation: "interventions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "client_messages_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
+          },
         ]
       }
       clients: {
@@ -531,6 +538,13 @@ export type Database = {
             referencedRelation: "interventions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "garden_health_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
+          },
         ]
       }
       intervention_counters: {
@@ -596,6 +610,13 @@ export type Database = {
             referencedRelation: "interventions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "intervention_photos_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
+          },
         ]
       }
       intervention_tasks: {
@@ -606,6 +627,7 @@ export type Database = {
           label: string
           note: string | null
           position: number
+          service_id: string | null
           status: string
           user_id: string
         }
@@ -616,6 +638,7 @@ export type Database = {
           label: string
           note?: string | null
           position?: number
+          service_id?: string | null
           status?: string
           user_id: string
         }
@@ -626,6 +649,7 @@ export type Database = {
           label?: string
           note?: string | null
           position?: number
+          service_id?: string | null
           status?: string
           user_id?: string
         }
@@ -637,6 +661,34 @@ export type Database = {
             referencedRelation: "interventions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "intervention_tasks_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
+          },
+          {
+            foreignKeyName: "intervention_tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intervention_tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_margin"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "intervention_tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_seasonality_resolved"
+            referencedColumns: ["service_id"]
+          },
         ]
       }
       interventions: {
@@ -646,17 +698,22 @@ export type Database = {
           client_read_count: number
           created_at: string
           garden_state: string | null
+          hours_spent: number | null
           id: string
+          internal_hourly_rate: number | null
           intervention_date: string
           intervention_type: string | null
+          pdf_storage_path: string | null
           recommendations_text: string | null
           reference: string | null
+          sent_to_client_at: string | null
           status: string
           summary: string | null
           title: string | null
           upcoming_works: string | null
           updated_at: string
           user_id: string
+          worksite_sheet_id: string | null
         }
         Insert: {
           client_id: string
@@ -664,17 +721,22 @@ export type Database = {
           client_read_count?: number
           created_at?: string
           garden_state?: string | null
+          hours_spent?: number | null
           id?: string
+          internal_hourly_rate?: number | null
           intervention_date?: string
           intervention_type?: string | null
+          pdf_storage_path?: string | null
           recommendations_text?: string | null
           reference?: string | null
+          sent_to_client_at?: string | null
           status?: string
           summary?: string | null
           title?: string | null
           upcoming_works?: string | null
           updated_at?: string
           user_id: string
+          worksite_sheet_id?: string | null
         }
         Update: {
           client_id?: string
@@ -682,17 +744,22 @@ export type Database = {
           client_read_count?: number
           created_at?: string
           garden_state?: string | null
+          hours_spent?: number | null
           id?: string
+          internal_hourly_rate?: number | null
           intervention_date?: string
           intervention_type?: string | null
+          pdf_storage_path?: string | null
           recommendations_text?: string | null
           reference?: string | null
+          sent_to_client_at?: string | null
           status?: string
           summary?: string | null
           title?: string | null
           upcoming_works?: string | null
           updated_at?: string
           user_id?: string
+          worksite_sheet_id?: string | null
         }
         Relationships: [
           {
@@ -700,6 +767,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_worksite_sheet_id_fkey"
+            columns: ["worksite_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "worksite_sheets"
             referencedColumns: ["id"]
           },
         ]
@@ -770,6 +844,7 @@ export type Database = {
           designation: string | null
           hours: number | null
           id: string
+          intervention_id: string | null
           is_fixed: boolean
           kind: string
           month: number
@@ -787,6 +862,7 @@ export type Database = {
           designation?: string | null
           hours?: number | null
           id?: string
+          intervention_id?: string | null
           is_fixed?: boolean
           kind: string
           month: number
@@ -804,6 +880,7 @@ export type Database = {
           designation?: string | null
           hours?: number | null
           id?: string
+          intervention_id?: string | null
           is_fixed?: boolean
           kind?: string
           month?: number
@@ -820,6 +897,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_entries_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "interventions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_entries_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
           },
         ]
       }
@@ -1209,6 +1300,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "interventions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendations_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
           },
         ]
       }
@@ -1682,6 +1780,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "subcontractor_missions_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
+          },
+          {
             foreignKeyName: "subcontractor_missions_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
@@ -2015,6 +2120,31 @@ export type Database = {
         }
         Relationships: []
       }
+      v_intervention_pnl: {
+        Row: {
+          ca_direct: number | null
+          client_id: string | null
+          client_revenue: number | null
+          gross_margin: number | null
+          internal_cost: number | null
+          intervention_date: string | null
+          intervention_id: string | null
+          margin_pct: number | null
+          sst_client_revenue: number | null
+          sst_cost: number | null
+          status: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interventions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_real_hourly_cost: {
         Row: {
           real_hourly_cost: number | null
@@ -2141,6 +2271,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "interventions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
           },
           {
             foreignKeyName: "subcontractor_missions_subcontractor_id_fkey"
