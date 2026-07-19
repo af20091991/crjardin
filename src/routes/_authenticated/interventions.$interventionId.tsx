@@ -436,8 +436,13 @@ function InterventionDetail() {
               <Button
                 size="sm"
                 variant="outline"
-                disabled={notifyClient.isPending || !done || !client || clientEmails(client).length === 0}
-                title={!done ? "Marquez le compte-rendu comme terminé d'abord" : !client || clientEmails(client).length === 0 ? "Aucune adresse e-mail pour ce client" : "Prévenir le client par e-mail"}
+                disabled={notifyClient.isPending || !done || !client || clientEmails(client).length === 0 || !iv.pdf_storage_path}
+                title={
+                  !done ? "Marquez le compte-rendu comme terminé d'abord"
+                  : !iv.pdf_storage_path ? "Archivez le PDF avant l'envoi au client"
+                  : (!client || clientEmails(client).length === 0) ? "Aucune adresse e-mail pour ce client"
+                  : "Prévenir le client par e-mail"
+                }
                 onClick={() => notifyClient.mutate()}
               >
                 {notifyClient.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Mail className="mr-1.5 h-4 w-4" />}
