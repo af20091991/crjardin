@@ -160,6 +160,15 @@ function InterventionDetail() {
     onSuccess: () => { invIv(); toast.success("Enregistré"); },
   });
 
+  const sections: ReportSections = normalizeReportSections(iv?.report_sections);
+  const saveSections = useMutation({
+    mutationFn: (next: ReportSections) => updateIntervention(interventionId, { report_sections: next }),
+    onSuccess: () => invIv(),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+  const toggleSection = (key: keyof ReportSections) =>
+    saveSections.mutate({ ...sections, [key]: !sections[key] });
+
   const generateAi = useServerFn(generateInterventionInsights);
   const analyzePhotos = useServerFn(analyzeInterventionPhotos);
   type PhotoSuggestion = { title: string; description: string; category: string; estimated_hours: number | null };
