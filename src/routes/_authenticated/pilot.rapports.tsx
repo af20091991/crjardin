@@ -19,8 +19,12 @@ function RapportsPage() {
   const year = new Date().getFullYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   const k = useMemo(
-    () => computeKpis({ entries: entries.data ?? [], charges: charges.data ?? [], settings: set, year, month: new Date().getMonth() }),
-    [entries.data, charges.data, set, year],
+    () => computeKpis({
+      entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
+      year, month: new Date().getMonth(),
+      confirmedHoursByClient: confirmed.data,
+    }),
+    [entries.data, charges.data, set, year, confirmed.data],
   );
   const series = useMemo(() => monthlySeries(entries.data ?? [], year), [entries.data, year]);
   const confirmed = useQuery({
