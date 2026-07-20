@@ -83,6 +83,21 @@ function TodayPage() {
     interventions.isLoading || recos.isLoading || goals.isLoading;
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
+  // Heures confirmées (interventions.hours_spent, statut = termine) sur l'année en cours.
+  // Calculé avant `computeKpis` pour alimenter `tauxHoraireReel`.
+  const confirmedHoursByClient = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const i of interventions.data ?? []) {
+      if (i.status !== "termine" || i.hours_spent == null) continue;
+      const d = new Date(i.intervention_date);
+      if (d.getFullYear() !== year) continue;
+      const h = Number(i.hours_spent);
+      if (!Number.isFinite(h) || h <= 0) continue;
+      map.set(i.client_id, (map.get(i.client_id) ?? 0) + h);
+    }
+    return map;
+  }, [interventions.data, year]);
+
   const k = useMemo(
     () =>
       computeKpis({
@@ -91,8 +106,9 @@ function TodayPage() {
         settings: set,
         year,
         month,
+        confirmedHoursByClient,
       }),
-    [entries.data, charges.data, set, year, month],
+    [entries.data, charges.data, set, year, month, confirmedHoursByClient],
   );
 
   // Objectif du mois = CA du même mois N-1 (référentiel factuel, aucune nouvelle donnée)
@@ -191,20 +207,6 @@ function TodayPage() {
       }),
     [allI, avgHoursByType],
   );
-
-  // Source de vérité : heures confirmées sur interventions terminées (année en cours)
-  const confirmedHoursByClient = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const i of allI) {
-      if (i.status !== "termine" || i.hours_spent == null) continue;
-      const d = new Date(i.intervention_date);
-      if (d.getFullYear() !== year) continue;
-      const h = Number(i.hours_spent);
-      if (!Number.isFinite(h) || h <= 0) continue;
-      map.set(i.client_id, (map.get(i.client_id) ?? 0) + h);
-    }
-    return map;
-  }, [allI, year]);
 
   // CA agrégé par client sur l'année (pour taux horaire réel par client)
   const caByClient = useMemo(() => {
