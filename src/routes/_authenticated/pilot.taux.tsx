@@ -15,8 +15,9 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { toast } from "sonner";
+import { currentYear } from "@/lib/date-utils";
 
-const YEAR = 2026;
+const YEAR = currentYear();
 
 export const Route = createFileRoute("/_authenticated/pilot/taux")({
   head: () => ({ meta: [{ title: "Taux horaire & TJM — Pilot Pro" }] }),
