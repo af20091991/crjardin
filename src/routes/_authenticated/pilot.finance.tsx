@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import {
-  createCharge, deleteCharge, formatEuro, computeKpis, breakEven, annualCharges, sum,
+  createCharge, deleteCharge, formatEuro, computeKpis, breakEven, annualCharges,
+  fetchConfirmedHoursByClient,
   DEFAULT_SETTINGS, type PilotChargeInput,
 } from "@/lib/pilot";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,9 +32,18 @@ function FinancePage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<PilotChargeInput>(emptyCharge());
 
+  const confirmed = useQuery({
+    queryKey: ["confirmed-hours-by-client", year],
+    queryFn: () => fetchConfirmedHoursByClient(year),
+  });
+
   const k = useMemo(
-    () => computeKpis({ entries: entries.data ?? [], charges: charges.data ?? [], settings: set, year, month: new Date().getMonth() }),
-    [entries.data, charges.data, set, year],
+    () => computeKpis({
+      entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
+      year, month: new Date().getMonth(),
+      confirmedHoursByClient: confirmed.data,
+    }),
+    [entries.data, charges.data, set, year, confirmed.data],
   );
   const be = useMemo(() => breakEven(k), [k]);
 
@@ -42,6 +52,10 @@ function FinancePage() {
   const variables = annualCharges(chargeList.filter((c) => c.kind === "variable"), year);
   const coutHoraire = k.totalHours > 0 ? k.chargesYear / k.totalHours : 0;
   const caf = k.benefice; // simplifié : bénéfice (résultat) comme proxy de la CAF
+  const ecartTaux =
+    k.tauxHoraireReel > 0 && k.tauxHoraireVendu > 0
+      ? k.tauxHoraireReel - k.tauxHoraireVendu
+      : null;
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["pilot-charges"] });
   const saveMut = useMutation({
@@ -63,7 +77,15 @@ function FinancePage() {
     { label: "Bénéfice / Résultat", value: formatEuro(k.benefice) },
     { label: "Marge nette", value: `${k.marge.toFixed(0)} %` },
     { label: "Coût horaire", value: `${formatEuro(coutHoraire)}/h` },
-    { label: "Rentabilité (taux/h)", value: `${formatEuro(k.tauxHoraire)}/h` },
+    { label: "Taux horaire vendu", value: k.tauxHoraireVendu > 0 ? `${formatEuro(k.tauxHoraireVendu)}/h` : "—" },
+    { label: "Taux horaire réel", value: k.tauxHoraireReel > 0 ? `${formatEuro(k.tauxHoraireReel)}/h` : "—" },
+    {
+      label: "Écart vendu / réel",
+      value:
+        ecartTaux === null
+          ? "—"
+          : `${ecartTaux >= 0 ? "+" : ""}${formatEuro(ecartTaux)}/h`,
+    },
     { label: "CAF (approx.)", value: formatEuro(caf) },
     { label: "Seuil de rentabilité", value: formatEuro(be.seuil) },
     { label: "Point mort", value: `${be.pointMortJours.toFixed(0)} j` },
@@ -80,6 +102,14 @@ function FinancePage() {
           </CardContent></Card>
         ))}
       </div>
+
+      {ecartTaux !== null && (
+        <p className="text-xs text-muted-foreground">
+          {ecartTaux >= 0
+            ? "Écart positif : le taux horaire réel dépasse le taux vendu — temps consommé inférieur aux heures facturées."
+            : "Écart négatif : le taux horaire réel est inférieur au taux vendu — temps consommé supérieur aux heures facturées."}
+        </p>
+      )}
 
       <Card>
         <CardContent className="p-0">

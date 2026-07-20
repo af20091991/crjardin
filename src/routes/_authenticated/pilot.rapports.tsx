@@ -18,15 +18,19 @@ function RapportsPage() {
   const { entries, charges, settings } = usePilotData();
   const year = new Date().getFullYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const k = useMemo(
-    () => computeKpis({ entries: entries.data ?? [], charges: charges.data ?? [], settings: set, year, month: new Date().getMonth() }),
-    [entries.data, charges.data, set, year],
-  );
-  const series = useMemo(() => monthlySeries(entries.data ?? [], year), [entries.data, year]);
   const confirmed = useQuery({
     queryKey: ["confirmed-hours-by-client", year],
     queryFn: () => fetchConfirmedHoursByClient(year),
   });
+  const k = useMemo(
+    () => computeKpis({
+      entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
+      year, month: new Date().getMonth(),
+      confirmedHoursByClient: confirmed.data,
+    }),
+    [entries.data, charges.data, set, year, confirmed.data],
+  );
+  const series = useMemo(() => monthlySeries(entries.data ?? [], year), [entries.data, year]);
   const cstats = useMemo(
     () => clientStatsWithHours(entries.data ?? [], year, confirmed.data),
     [entries.data, year, confirmed.data],
@@ -43,7 +47,9 @@ function RapportsPage() {
         `Charges annuelles : ${formatEuro(k.chargesYear)}`,
         `Projection fin d'annee : ${formatEuro(k.projection)}`,
         `Objectif : ${k.target > 0 ? `${formatEuro(k.target)} (${k.objectifPct.toFixed(0)} %)` : "non defini"}`,
-        `TJM reel : ${formatEuro(k.tjm)} - Taux horaire : ${formatEuro(k.tauxHoraire)}/h`,
+        `TJM reel : ${formatEuro(k.tjm)}`,
+        `Taux horaire vendu : ${k.tauxHoraireVendu > 0 ? `${formatEuro(k.tauxHoraireVendu)}/h` : "n/a"}`,
+        `Taux horaire reel : ${k.tauxHoraireReel > 0 ? `${formatEuro(k.tauxHoraireReel)}/h` : "n/a"}`,
         `Panier moyen : ${formatEuro(k.panierMoyen)} - ${k.nbEntries} interventions`,
       ];
       let yy = 34; lines.forEach((l) => { doc.text(l, 14, yy); yy += 8; });
