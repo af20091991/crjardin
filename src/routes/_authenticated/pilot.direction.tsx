@@ -18,7 +18,7 @@ import {
   Clock, Sparkles, Users, Lightbulb, Gauge, Handshake,
 } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/pilot/")({
+export const Route = createFileRoute("/_authenticated/pilot/direction")({
   component: PilotDashboard,
 });
 
