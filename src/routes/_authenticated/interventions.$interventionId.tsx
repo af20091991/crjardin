@@ -1217,6 +1217,72 @@ function ReportPhotosPicker({
   );
 }
 
+function HoursSpentBlock({
+  iv,
+  done,
+  hoursInput,
+  setHoursInput,
+  onSave,
+  saving,
+}: {
+  iv: Intervention;
+  done: boolean;
+  hoursInput: string;
+  setHoursInput: (v: string) => void;
+  onSave: (hours: number) => void;
+  saving: boolean;
+}) {
+  const meta = (iv.ai_metadata ?? {}) as Record<string, unknown>;
+  const isEstimated = meta.hours_spent_estimated === true;
+  const missing = done && (iv.hours_spent == null || iv.hours_spent <= 0);
+  const current = iv.hours_spent ?? null;
+  const parsed = Number.parseFloat(hoursInput.replace(",", "."));
+  const dirty = Number.isFinite(parsed) && parsed > 0 && parsed !== current;
+
+  return (
+    <div className="mt-4 rounded-lg border bg-muted/30 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Clock className="h-4 w-4 text-muted-foreground" />
+        <Label htmlFor="hours-spent" className="text-sm font-medium">Heures passées</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="hours-spent"
+            type="number"
+            step="0.25"
+            min="0"
+            inputMode="decimal"
+            value={hoursInput}
+            onChange={(e) => setHoursInput(e.target.value)}
+            className="h-8 w-24"
+            placeholder="0.00"
+          />
+          <span className="text-xs text-muted-foreground">h</span>
+          <Button
+            size="sm"
+            variant={dirty || isEstimated ? "default" : "outline"}
+            disabled={!dirty || saving}
+            onClick={() => onSave(parsed)}
+          >
+            {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
+            {isEstimated ? "Confirmer" : "Enregistrer"}
+          </Button>
+        </div>
+        {isEstimated && current != null && (
+          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
+            Estimé automatiquement — à confirmer
+          </Badge>
+        )}
+      </div>
+      {missing && (
+        <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Cette intervention est terminée mais aucune heure passée n'est renseignée. La rentabilité ne pourra pas être calculée tant que cette valeur est vide.</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---- Sélection, ordre, priorité et saison des préconisations ---- */
 function ReportRecosPicker({
   recos, onChange,
