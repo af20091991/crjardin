@@ -154,7 +154,7 @@ async function fetchAggregates() {
   const [caRes, ivRes, oppRes, clientsRes] = await Promise.all([
     supabase
       .from("pilot_ca_entries")
-      .select("client_id,client_name,year,amount_ht")
+      .select("client_id,year,amount_ht")
       .eq("kind", "vente"),
     supabase
       .from("interventions")
@@ -234,7 +234,7 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
 
   for (const r of ca) {
     if (!r.client_id) continue;
-    const e = ensure(r.client_id, r.client_name ?? null);
+    const e = ensure(r.client_id, null);
     const ht = Number(r.amount_ht) || 0;
     e.revenueTotalHt += ht;
     if (Number(r.year) === yr) e.revenueYearHt += ht;
