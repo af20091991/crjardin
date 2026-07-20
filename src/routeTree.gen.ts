@@ -55,6 +55,7 @@ import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_auth
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as AuthenticatedPilotFicheClientIdRouteImport } from './routes/_authenticated/pilot.fiche.$clientId'
 import { Route as AuthenticatedPilotClientsClientKeyRouteImport } from './routes/_authenticated/pilot.clients.$clientKey'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
@@ -307,6 +308,12 @@ const LovableEmailQueueProcessRoute =
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedPilotFicheClientIdRoute =
+  AuthenticatedPilotFicheClientIdRouteImport.update({
+    id: '/fiche/$clientId',
+    path: '/fiche/$clientId',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotClientsClientKeyRoute =
   AuthenticatedPilotClientsClientKeyRouteImport.update({
     id: '/$clientKey',
@@ -358,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/pilot/': typeof AuthenticatedPilotIndexRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
+  '/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -405,6 +413,7 @@ export interface FileRoutesByTo {
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
   '/pilot': typeof AuthenticatedPilotIndexRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
+  '/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -455,6 +464,7 @@ export interface FileRoutesById {
   '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/_authenticated/pilot/': typeof AuthenticatedPilotIndexRoute
   '/_authenticated/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
+  '/_authenticated/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -505,6 +515,7 @@ export interface FileRouteTypes {
     | '/interventions/'
     | '/pilot/'
     | '/pilot/clients/$clientKey'
+    | '/pilot/fiche/$clientId'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -552,6 +563,7 @@ export interface FileRouteTypes {
     | '/interventions'
     | '/pilot'
     | '/pilot/clients/$clientKey'
+    | '/pilot/fiche/$clientId'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -601,6 +613,7 @@ export interface FileRouteTypes {
     | '/_authenticated/interventions/'
     | '/_authenticated/pilot/'
     | '/_authenticated/pilot/clients/$clientKey'
+    | '/_authenticated/pilot/fiche/$clientId'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -946,6 +959,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/pilot/fiche/$clientId': {
+      id: '/_authenticated/pilot/fiche/$clientId'
+      path: '/fiche/$clientId'
+      fullPath: '/pilot/fiche/$clientId'
+      preLoaderRoute: typeof AuthenticatedPilotFicheClientIdRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/clients/$clientKey': {
       id: '/_authenticated/pilot/clients/$clientKey'
       path: '/$clientKey'
@@ -985,6 +1005,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotSimulateurRoute: typeof AuthenticatedPilotSimulateurRoute
   AuthenticatedPilotTauxRoute: typeof AuthenticatedPilotTauxRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
+  AuthenticatedPilotFicheClientIdRoute: typeof AuthenticatedPilotFicheClientIdRoute
 }
 
 const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
@@ -1001,6 +1022,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotSimulateurRoute: AuthenticatedPilotSimulateurRoute,
   AuthenticatedPilotTauxRoute: AuthenticatedPilotTauxRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
+  AuthenticatedPilotFicheClientIdRoute: AuthenticatedPilotFicheClientIdRoute,
 }
 
 const AuthenticatedPilotRouteWithChildren =
