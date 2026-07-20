@@ -85,6 +85,28 @@ function daysBetween(iso: string | null): number | null {
   return Math.floor((Date.now() - d) / 86_400_000);
 }
 
+export function computeConfidenceLevel(
+  interventionsCount: number,
+  hoursConfirmed: number,
+  hoursConfirmedRatio: number,
+): "HIGH" | "MEDIUM" | "LOW" {
+  if (
+    interventionsCount >= CONFIDENCE_RULES.HIGH.minInterventions &&
+    hoursConfirmedRatio >= CONFIDENCE_RULES.HIGH.minConfirmedHoursRatio &&
+    hoursConfirmed > 0
+  ) {
+    return "HIGH";
+  }
+  if (
+    interventionsCount >= CONFIDENCE_RULES.MEDIUM.minInterventions &&
+    hoursConfirmedRatio >= CONFIDENCE_RULES.MEDIUM.minConfirmedHoursRatio &&
+    hoursConfirmed > 0
+  ) {
+    return "MEDIUM";
+  }
+  return "LOW";
+}
+
 function classify(
   s: Omit<ClientScore, "score" | "recommendation">,
 ): { score: ClientScoreLabel; recommendation: string } {
