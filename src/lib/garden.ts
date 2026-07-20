@@ -78,6 +78,8 @@ export function staleClientIds(recos: Recommendation[]): Set<string> {
 
 export type RecommendationStatus =
   | "en_attente"
+  | "proposee"
+  | "vue"
   | "acceptee"
   | "planifiee"
   | "realisee"
@@ -87,6 +89,8 @@ export type RecommendationStatus =
 
 export const RECO_STATUS_META: Record<RecommendationStatus, { label: string; tone: string }> = {
   en_attente: { label: "En attente", tone: "text-amber-700 bg-amber-100" },
+  proposee: { label: "Proposée", tone: "text-sky-700 bg-sky-100" },
+  vue: { label: "Vue", tone: "text-slate-700 bg-slate-100" },
   acceptee: { label: "Acceptée", tone: "text-emerald-700 bg-emerald-100" },
   planifiee: { label: "Planifiée", tone: "text-indigo-700 bg-indigo-100" },
   realisee: { label: "Réalisée", tone: "text-blue-700 bg-blue-100" },
@@ -97,6 +101,8 @@ export const RECO_STATUS_META: Record<RecommendationStatus, { label: string; ton
 
 export const RECO_STATUSES: RecommendationStatus[] = [
   "en_attente",
+  "proposee",
+  "vue",
   "acceptee",
   "planifiee",
   "realisee",
