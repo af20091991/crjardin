@@ -2,12 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp } from "lucide-react";
-import { FUNNEL_STAGES, getRecommendationsFunnel } from "@/lib/recommendations-funnel";
+import { FUNNEL_STAGES, getRecommendationsFunnel, getRecommendationsFunnelInvoicedCa } from "@/lib/recommendations-funnel";
+import { formatEuro } from "@/lib/garden";
 
 export function RecommendationsFunnelWidget() {
   const { data, isLoading } = useQuery({
     queryKey: ["recommendations-funnel"],
     queryFn: getRecommendationsFunnel,
+  });
+  const invoicedCa = useQuery({
+    queryKey: ["recommendations-funnel-ca"],
+    queryFn: getRecommendationsFunnelInvoicedCa,
   });
 
   return (
@@ -26,6 +31,7 @@ export function RecommendationsFunnelWidget() {
             ))}
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {FUNNEL_STAGES.map((s) => (
               <div
@@ -39,6 +45,13 @@ export function RecommendationsFunnelWidget() {
               </div>
             ))}
           </div>
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm">
+            <span className="text-muted-foreground">CA généré par recommandations</span>
+            <span className="font-semibold text-primary tabular-nums">
+              {invoicedCa.data != null ? formatEuro(invoicedCa.data) : "—"}
+            </span>
+          </div>
+          </>
         )}
       </CardContent>
     </Card>

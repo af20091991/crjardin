@@ -390,6 +390,64 @@ export async function linkRecommendationToCaEntry(recoId: string, caEntryId: str
   if (error) throw error;
 }
 
+// ---- Rattachement CA ↔ recommandation (Étape I) ----
+
+export interface BillableRecommendation {
+  id: string;
+  client_id: string;
+  title: string;
+  category: string | null;
+  estimated_hours: number | null;
+  unit_price: number;
+  client_name: string;
+}
+
+/** Recommandations éligibles à un rattachement CA : statut planifiee, non déjà facturées. */
+export async function listBillableRecommendations(): Promise<BillableRecommendation[]> {
+  const { data, error } = await supabase
+    .from("recommendations")
+    .select("id,client_id,title,category,estimated_hours,unit_price,clients(name)")
+    .eq("status", "planifiee")
+    .is("pilot_ca_entry_id", null)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as Array<{
+    id: string; client_id: string; title: string; category: string | null;
+    estimated_hours: number | null; unit_price: number | null;
+    clients: { name: string | null } | null;
+  }>).map((r) => ({
+    id: r.id,
+    client_id: r.client_id,
+    title: r.title,
+    category: r.category,
+    estimated_hours: r.estimated_hours,
+    unit_price: r.unit_price ?? 70,
+    client_name: r.clients?.name ?? "—",
+  }));
+}
+
+/** CA total généré par des recommandations facturées (somme des amount_ht rattachés). */
+export async function getInvoicedRecommendationsCa(): Promise<number> {
+  const { data, error } = await supabase
+    .from("recommendations")
+    .select("pilot_ca_entry_id")
+    .not("pilot_ca_entry_id", "is", null);
+  if (error) throw error;
+  const ids = ((data ?? []) as Array<{ pilot_ca_entry_id: string | null }>)
+    .map((r) => r.pilot_ca_entry_id)
+    .filter((x): x is string => !!x);
+  if (ids.length === 0) return 0;
+  const { data: ca, error: e2 } = await supabase
+    .from("pilot_ca_entries")
+    .select("amount_ht")
+    .in("id", ids);
+  if (e2) throw e2;
+  return ((ca ?? []) as Array<{ amount_ht: number | null }>).reduce(
+    (s, r) => s + (r.amount_ht ?? 0),
+    0,
+  );
+}
+
 /** KPI dashboard : valeur des opportunités commerciales (en attente + acceptées) et CA facturé. */
 export interface OpportunitiesValue {
   pendingValue: number;    // en_attente + proposee + vue

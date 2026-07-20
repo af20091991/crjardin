@@ -8,6 +8,10 @@ import {
   type CaEntry, type CaKind, type CaCategory,
 } from "@/lib/pilot-ca";
 import { formatEuro } from "@/lib/pilot";
+import {
+  listBillableRecommendations, linkRecommendationToCaEntry,
+  recommendationPrice, type BillableRecommendation,
+} from "@/lib/garden";
 import { Calculators } from "@/components/pilot/Calculators";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,8 +19,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ChevronLeft, ChevronRight, TrendingUp, Wallet, Clock, PiggyBank, MessageSquare } from "lucide-react";
+import { Plus, Trash2, ChevronLeft, ChevronRight, TrendingUp, Wallet, Clock, PiggyBank, MessageSquare, Link2, Link2Off, Sparkles } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pilot/ca")({
@@ -44,6 +49,7 @@ function CaPage() {
   const [pending, setPending] = useState<number | null>(null);
   const [openNote, setOpenNote] = useState<Record<string, boolean>>({});
   const toggleNote = (id: string) => setOpenNote((s) => ({ ...s, [id]: !s[id] }));
+  const [originFor, setOriginFor] = useState<CaEntry | null>(null);
 
   const entriesQ = useQuery({ queryKey: ["pilot-ca", year], queryFn: () => listCaEntries(year) });
   const entries = entriesQ.data ?? [];
@@ -250,6 +256,15 @@ function CaPage() {
                         <Input defaultValue={row.hours || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== (row.hours ?? 0)) save(row.id, { hours: v }); }} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className={`h-8 w-8 ${row.client_id ? "text-primary" : "text-muted-foreground"}`}
+                          title={row.client_id ? "Rattachée à une recommandation" : "Rattacher à une recommandation"}
+                          onClick={() => setOriginFor(row)}
+                        >
+                          <Link2 className="h-4 w-4" />
+                        </Button>
                         <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title="Commentaire" onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(row.id)}><Trash2 className="h-4 w-4" /></Button>
                       </TableCell>
@@ -296,6 +311,117 @@ function CaPage() {
 
         <Calculators onUse={(v) => { setPending(v); toast.success(`Résultat prêt : ${formatEuro(v)}`); }} />
       </div>
+
+      <OriginDialog
+        entry={originFor}
+        onClose={() => setOriginFor(null)}
+        onLinked={(clientId) => {
+          if (originFor) save(originFor.id, { client_id: clientId });
+          qc.invalidateQueries({ queryKey: ["recommendations-funnel"] });
+          qc.invalidateQueries({ queryKey: ["recommendations-funnel-ca"] });
+          setOriginFor(null);
+        }}
+      />
     </div>
+  );
+}
+
+function OriginDialog({
+  entry, onClose, onLinked,
+}: {
+  entry: CaEntry | null;
+  onClose: () => void;
+  onLinked: (clientId: string) => void;
+}) {
+  const open = !!entry;
+  const [origin, setOrigin] = useState<"none" | "reco">("none");
+  const [recoId, setRecoId] = useState<string>("");
+
+  const recosQ = useQuery({
+    queryKey: ["billable-recommendations"],
+    queryFn: listBillableRecommendations,
+    enabled: open && origin === "reco",
+  });
+
+  const linkMut = useMutation({
+    mutationFn: async (r: BillableRecommendation) => {
+      if (!entry) throw new Error("Ligne CA introuvable");
+      await linkRecommendationToCaEntry(r.id, entry.id);
+      return r.client_id;
+    },
+    onSuccess: (clientId) => {
+      toast.success("Recommandation facturée");
+      onLinked(clientId);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); setOrigin("none"); setRecoId(""); } }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Origine commerciale</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium">Origine</label>
+            <Select value={origin} onValueChange={(v) => setOrigin(v as "none" | "reco")}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Aucune</SelectItem>
+                <SelectItem value="reco">Recommandation client</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {origin === "reco" && (
+            <div>
+              <label className="text-sm font-medium">Recommandation planifiée</label>
+              {recosQ.isLoading ? (
+                <p className="mt-2 text-sm text-muted-foreground">Chargement…</p>
+              ) : (recosQ.data?.length ?? 0) === 0 ? (
+                <p className="mt-2 text-sm text-muted-foreground">Aucune recommandation planifiée en attente de facturation.</p>
+              ) : (
+                <div className="mt-1 max-h-64 space-y-1 overflow-auto rounded-md border p-1">
+                  {recosQ.data!.map((r) => {
+                    const price = recommendationPrice(r);
+                    const sel = r.id === recoId;
+                    return (
+                      <button
+                        key={r.id}
+                        onClick={() => setRecoId(r.id)}
+                        className={`flex w-full items-start justify-between gap-2 rounded px-2.5 py-2 text-left text-sm transition-colors ${sel ? "bg-primary/10" : "hover:bg-accent/40"}`}
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium">{r.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            <Sparkles className="mr-1 inline h-3 w-3" />
+                            {r.client_name}{r.category ? ` · ${r.category}` : ""}
+                          </p>
+                        </div>
+                        {price != null && <span className="whitespace-nowrap text-xs font-semibold text-primary">{formatEuro(price)}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => { onClose(); setOrigin("none"); setRecoId(""); }}>
+            <Link2Off className="mr-1.5 h-4 w-4" />Annuler
+          </Button>
+          <Button
+            disabled={origin !== "reco" || !recoId || linkMut.isPending}
+            onClick={() => {
+              const r = recosQ.data?.find((x) => x.id === recoId);
+              if (r) linkMut.mutate(r);
+            }}
+          >
+            Rattacher
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -31,6 +31,7 @@ export interface CaEntry {
   is_fixed: boolean;
   position: number;
   note: string | null;
+  client_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -46,6 +47,7 @@ export type CaEntryInput = {
   is_fixed?: boolean;
   note?: string | null;
   position?: number;
+  client_id?: string | null;
 };
 
 export async function listCaEntries(year: number): Promise<CaEntry[]> {
