@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser();
@@ -268,9 +269,9 @@ export function computeKpis(params: {
   const benefice = caYear - chargesYear;
   const marge = caYear > 0 ? (benefice / caYear) * 100 : 0;
 
-  // Objectif annuel global (désormais géré via les objectifs stratégiques —
-  // pilot_goals — non chiffrés monétairement). Cible = 0 par défaut.
-  const target = 0;
+  // Objectif annuel : dérivé de la cible taux horaire (pilot_settings.target_hourly_rate).
+  // Reste 0 tant que le paramètre n'est pas défini.
+  const target = settings.target_hourly_rate ?? 0;
   const objectifPct = target > 0 ? (caYear / target) * 100 : 0;
 
   // Projection fin d'année selon jours écoulés
