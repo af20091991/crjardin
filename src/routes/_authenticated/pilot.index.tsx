@@ -131,6 +131,17 @@ function PilotDashboard() {
           progress={health.score}
           description="Score global (0-100) synthétisant marge, croissance, objectif, rentabilité horaire et niveau d'activité."
         />
+        <KpiCard
+          label="Opportunités commerciales"
+          value={formatEuro((opps.data?.pendingValue ?? 0) + (opps.data?.acceptedValue ?? 0))}
+          icon={Handshake}
+          sub={
+            opps.data
+              ? `En attente ${formatEuro(opps.data.pendingValue)} · Acceptées ${formatEuro(opps.data.acceptedValue)} · CA facturé ${formatEuro(opps.data.invoicedCa)}`
+              : "—"
+          }
+          description="Valeur estimée des recommandations en attente et acceptées, et CA généré par les recommandations facturées."
+        />
       </div>
 
       {/* Insights */}
