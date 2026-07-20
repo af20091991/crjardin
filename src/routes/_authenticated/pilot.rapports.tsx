@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { usePilotData } from "@/components/pilot/usePilotData";
-import { computeKpis, monthlySeries, clientStats, MONTHS, formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
+import { useQuery } from "@tanstack/react-query";
+import { computeKpis, monthlySeries, clientStatsWithHours, fetchConfirmedHoursByClient, MONTHS, formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileDown, FileSpreadsheet } from "lucide-react";
@@ -22,7 +23,14 @@ function RapportsPage() {
     [entries.data, charges.data, set, year],
   );
   const series = useMemo(() => monthlySeries(entries.data ?? [], year), [entries.data, year]);
-  const cstats = useMemo(() => clientStats(entries.data ?? [], year), [entries.data, year]);
+  const confirmed = useQuery({
+    queryKey: ["confirmed-hours-by-client", year],
+    queryFn: () => fetchConfirmedHoursByClient(year),
+  });
+  const cstats = useMemo(
+    () => clientStatsWithHours(entries.data ?? [], year, confirmed.data),
+    [entries.data, year, confirmed.data],
+  );
 
   function exportPdf() {
     try {
