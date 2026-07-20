@@ -347,6 +347,21 @@ export type ClientStat = {
 };
 
 export function clientStats(entries: PilotEntry[], year?: number): ClientStat[] {
+  return clientStatsWithHours(entries, year);
+}
+
+/**
+ * Variante de clientStats qui accepte une source de vérité pour les heures.
+ * `confirmedHoursByClient` : map (client_id → heures confirmées) issue des interventions.
+ * Si fourni, `hours`, `hourlyRate` et `avgTime` reflètent les heures réellement passées
+ * (source de vérité = interventions.hours_spent). Les valeurs par défaut restent
+ * les heures déclarées sur les lignes CA (heures vendues / facturées).
+ */
+export function clientStatsWithHours(
+  entries: PilotEntry[],
+  year?: number,
+  confirmedHoursByClient?: Map<string, number>,
+): ClientStat[] {
   const filtered = year ? entries.filter((e) => y(e.entry_date) === year) : entries;
   const map = new Map<
     string,
@@ -388,16 +403,21 @@ export function clientStats(entries: PilotEntry[], year?: number): ClientStat[] 
     .map(([key, v]) => {
       const nature =
         Object.entries(v.natures).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Autre";
+      const confirmed =
+        v.clientId && confirmedHoursByClient
+          ? confirmedHoursByClient.get(v.clientId)
+          : undefined;
+      const hours = confirmed != null ? confirmed : v.hours;
       return {
         key,
         name: v.name,
         ca: v.ca,
-        hours: v.hours,
+        hours,
         count: v.count,
-        hourlyRate: v.hours > 0 ? v.ca / v.hours : 0,
+        hourlyRate: hours > 0 ? v.ca / hours : 0,
         share: (v.ca / total) * 100,
         lastDate: v.last,
-        avgTime: v.count > 0 ? v.hours / v.count : 0,
+        avgTime: v.count > 0 ? hours / v.count : 0,
         avgCa: v.count > 0 ? v.ca / v.count : 0,
         nature,
         natureBreakdown: v.natures,
@@ -411,6 +431,36 @@ export function clientStats(entries: PilotEntry[], year?: number): ClientStat[] 
     const abc: "A" | "B" | "C" = cum <= 80 ? "A" : cum <= 95 ? "B" : "C";
     return { ...r, cumShare: cum, abc };
   });
+}
+
+/**
+ * Charge les heures confirmées par client depuis interventions.hours_spent
+ * (interventions terminées uniquement). Retourne une Map client_id → heures.
+ * Source de vérité pour toutes les analyses de rentabilité.
+ */
+export async function fetchConfirmedHoursByClient(
+  yearFilter?: number,
+): Promise<Map<string, number>> {
+  let q = supabase
+    .from("interventions")
+    .select("client_id,hours_spent,intervention_date")
+    .eq("status", "termine")
+    .not("hours_spent", "is", null);
+  if (yearFilter != null) {
+    q = q
+      .gte("intervention_date", `${yearFilter}-01-01`)
+      .lte("intervention_date", `${yearFilter}-12-31`);
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  const out = new Map<string, number>();
+  for (const r of data ?? []) {
+    if (!r.client_id) continue;
+    const h = Number(r.hours_spent);
+    if (!Number.isFinite(h) || h <= 0) continue;
+    out.set(r.client_id, (out.get(r.client_id) ?? 0) + h);
+  }
+  return out;
 }
 
 // ---------- Santé financière ----------
