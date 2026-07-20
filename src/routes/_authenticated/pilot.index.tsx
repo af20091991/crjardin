@@ -511,7 +511,7 @@ function TodayPage() {
             icon={Gauge}
             title="Rentabilité horaire sous la cible"
             count={lowHourlyEntries.length}
-            hint={targetHR > 0 ? `Lignes CA sous ${formatEuro(targetHR)}/h` : "Définir un taux horaire cible"}
+            hint={targetHR > 0 ? `Lignes CA sous ${formatEuro(targetHR)}/h (heures réelles si dispo)` : "Définir un taux horaire cible"}
             to="/pilot/ca"
           />
           <AlertCard
