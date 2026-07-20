@@ -77,7 +77,7 @@ function BenchmarkPage() {
         <SummaryKpi label="Indicateurs suivis" value={String(BENCHMARKS.length)} sub="Vs. benchmark sectoriel" accent />
         <SummaryKpi label="Au niveau du secteur" value={String(green)} sub="🟢 Positionnement solide" />
         <SummaryKpi label="À améliorer" value={String(yellow)} sub="🟡 Marges de progression" />
-        <SummaryKpi label="Objectifs SMART 2026" value={String(SMART_GOALS.length)} sub="🎯 Feuille de route annuelle" />
+        <SummaryKpi label={`Objectifs SMART ${new Date().getFullYear()}`} value={String(SMART_GOALS.length)} sub="🎯 Feuille de route annuelle" />
       </div>
 
       {/* Benchmarking sectoriel */}
@@ -129,7 +129,7 @@ function BenchmarkPage() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Target className="h-4 w-4 text-primary" /> Objectifs SMART 2026
+            <Target className="h-4 w-4 text-primary" /> Objectifs SMART {new Date().getFullYear()}
           </CardTitle>
         </CardHeader>
         <CardContent>

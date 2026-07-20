@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { clientStatsWithHours, fetchConfirmedHoursByClient, formatEuro } from "@/lib/pilot";
+import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -53,8 +54,15 @@ function PilotClientsPage() {
 
   const now = Date.now();
   const DAY = 86400000;
-  const toRelaunch = allTime.filter((c) => c.lastDate && now - new Date(c.lastDate).getTime() > 60 * DAY && now - new Date(c.lastDate).getTime() <= 180 * DAY);
-  const lost = allTime.filter((c) => c.lastDate && now - new Date(c.lastDate).getTime() > 180 * DAY);
+  const toRelaunch = allTime.filter(
+    (c) =>
+      c.lastDate &&
+      now - new Date(c.lastDate).getTime() > CLIENT_ACTIVITY_RULES.WARNING_DAYS * DAY &&
+      now - new Date(c.lastDate).getTime() <= CLIENT_ACTIVITY_RULES.DORMANT_DAYS * DAY,
+  );
+  const lost = allTime.filter(
+    (c) => c.lastDate && now - new Date(c.lastDate).getTime() > CLIENT_ACTIVITY_RULES.DORMANT_DAYS * DAY,
+  );
   const top = stats.slice(0, 3);
 
   const years = Array.from(new Set((entries.data ?? []).map((e) => new Date(e.entry_date).getFullYear()))).sort((a, b) => b - a);

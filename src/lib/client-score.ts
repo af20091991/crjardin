@@ -1,20 +1,21 @@
 import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_SETTINGS, getSettings } from "@/lib/pilot";
 import { daysBetween as _daysBetween, currentYear as _currentYear } from "@/lib/date-utils";
+import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 
 // ---------- Règles de classement (ajustables) ----------
 export const SCORE_RULES = {
   STRATEGIC: {
     minRateRatio: 0.95,
     minRevenueYear: 2000,
-    maxInactivityDays: 180,
+    maxInactivityDays: CLIENT_ACTIVITY_RULES.WARNING_DAYS,
   },
   TO_OPTIMIZE: {
     minRateRatio: 0.75,
   },
   LOW_PROFITABILITY: {
     maxRateRatio: 0.75,
-    inactivityDays: 365,
+    inactivityDays: CLIENT_ACTIVITY_RULES.DORMANT_DAYS,
   },
   DATA_INSUFFICIENT: {
     minRevenue: 500,

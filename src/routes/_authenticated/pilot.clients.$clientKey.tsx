@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
@@ -22,6 +22,7 @@ function PilotClientDetail() {
   const { clientKey } = Route.useParams();
   const key = decodeURIComponent(clientKey);
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { entries, clients } = usePilotData();
 
   const confirmed = useQuery({
@@ -43,6 +44,19 @@ function PilotClientDetail() {
   }, [clients.data, stat]);
 
   const clientId = client?.id ?? null;
+
+  // Fiche officielle 360° : /pilot/fiche/$clientId. Cette route reste comme
+  // fallback lorsque le client n'existe pas encore dans la table `clients`
+  // (ligne CA saisie uniquement par nom) — sinon on redirige.
+  useEffect(() => {
+    if (clientId) {
+      navigate({
+        to: "/pilot/fiche/$clientId",
+        params: { clientId },
+        replace: true,
+      });
+    }
+  }, [clientId, navigate]);
 
   const interventionsQ = useQuery({
     queryKey: ["client-interventions", clientId],
