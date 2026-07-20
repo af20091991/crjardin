@@ -70,6 +70,7 @@ export interface ClientScore {
   opportunitiesValue: number;
   score: ClientScoreLabel;
   recommendation: string;
+  confidenceLevel: "HIGH" | "MEDIUM" | "LOW";
 }
 
 // ---------- Helpers ----------
