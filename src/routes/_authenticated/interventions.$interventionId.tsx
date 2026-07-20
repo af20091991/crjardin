@@ -9,6 +9,7 @@ import {
   listPhotos, addPhoto, updatePhoto, deletePhoto, signedPhotoUrl, reorderPhotos,
   TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
   DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, normalizeReportSections, type ReportSections,
+  listServiceCatalog,
 } from "@/lib/interventions";
 import {
   listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
@@ -111,6 +112,7 @@ function InterventionDetail() {
   const invIv = () => qc.invalidateQueries({ queryKey: ["intervention", interventionId] });
 
   const [newTask, setNewTask] = useState("");
+  const [newTaskService, setNewTaskService] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -140,9 +142,15 @@ function InterventionDetail() {
     mutationFn: ({ id, note }: { id: string; note: string }) => updateTask(id, { note }),
     onSuccess: invTasks,
   });
+  const setTaskService = useMutation({
+    mutationFn: ({ id, service_id }: { id: string; service_id: string | null }) =>
+      updateTask(id, { service_id }),
+    onSuccess: invTasks,
+  });
   const addT = useMutation({
-    mutationFn: (label: string) => addTask(interventionId, label, tasks?.length ?? 0),
-    onSuccess: () => { invTasks(); setNewTask(""); },
+    mutationFn: ({ label, service_id }: { label: string; service_id: string | null }) =>
+      addTask(interventionId, label, tasks?.length ?? 0, service_id),
+    onSuccess: () => { invTasks(); setNewTask(""); setNewTaskService(""); },
   });
   const delT = useMutation({ mutationFn: deleteTask, onSuccess: invTasks });
 
