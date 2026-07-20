@@ -120,6 +120,12 @@ function InterventionDetail() {
   const [newTask, setNewTask] = useState("");
   const [newTaskService, setNewTaskService] = useState<string>("");
   const [hoursInput, setHoursInput] = useState<string>("");
+
+  useEffect(() => {
+    if (iv?.hours_spent != null) setHoursInput(String(iv.hours_spent));
+    else setHoursInput("");
+  }, [iv?.id, iv?.hours_spent]);
+
   const fileRef = useRef<HTMLInputElement>(null);
 
   const cameraRef = useRef<HTMLInputElement>(null);
