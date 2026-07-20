@@ -192,14 +192,6 @@ function TodayPage() {
     [allI, avgHoursByType],
   );
 
-  // Lignes CA dont la rentabilité horaire est sous la cible
-  const lowHourlyEntries = useMemo(() => {
-    if (targetHR <= 0) return [];
-    return (entries.data ?? []).filter(
-      (e) => e.hours > 0 && e.amount_ht / e.hours < targetHR,
-    );
-  }, [entries.data, targetHR]);
-
   // Source de vérité : heures confirmées sur interventions terminées (année en cours)
   const confirmedHoursByClient = useMemo(() => {
     const map = new Map<string, number>();
@@ -213,6 +205,34 @@ function TodayPage() {
     }
     return map;
   }, [allI, year]);
+
+  // CA agrégé par client sur l'année (pour taux horaire réel par client)
+  const caByClient = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of entries.data ?? []) {
+      if (!e.client_id) continue;
+      if (new Date(e.entry_date).getFullYear() !== year) continue;
+      map.set(e.client_id, (map.get(e.client_id) ?? 0) + e.amount_ht);
+    }
+    return map;
+  }, [entries.data, year]);
+
+  // Lignes CA dont la rentabilité horaire est sous la cible.
+  // Priorité : taux horaire réel du client (CA client / heures confirmées) quand disponible ;
+  // à défaut, ratio de la ligne (amount_ht / hours vendues).
+  const lowHourlyEntries = useMemo(() => {
+    if (targetHR <= 0) return [];
+    return (entries.data ?? []).filter((e) => {
+      const realHours = e.client_id ? confirmedHoursByClient.get(e.client_id) ?? 0 : 0;
+      if (realHours > 0 && e.client_id) {
+        const clientCa = caByClient.get(e.client_id) ?? 0;
+        if (clientCa <= 0) return false;
+        return clientCa / realHours < targetHR;
+      }
+      return e.hours > 0 && e.amount_ht / e.hours < targetHR;
+    });
+  }, [entries.data, targetHR, confirmedHoursByClient, caByClient]);
+
   // Clients A/B avec ratio horaire dégradé (basé sur heures réellement passées)
   const cstats = useMemo(
     () => clientStatsWithHours(entries.data ?? [], year, confirmedHoursByClient),
