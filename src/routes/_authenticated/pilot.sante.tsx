@@ -104,8 +104,17 @@ function SantePage() {
           <h3 className="font-medium">Détail de la note</h3>
           {health.breakdown.map((b) => (
             <div key={b.label} className="space-y-1" title={BREAKDOWN_DEFS[b.label]}>
-              <div className="flex justify-between text-sm"><span>{b.label}</span><span className="font-medium">{b.value}/100</span></div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${b.value}%` }} /></div>
+              <div className="flex justify-between text-sm">
+                <span>{b.label}</span>
+                <span className="font-medium">{b.value == null ? "—" : `${b.value}/100`}</span>
+              </div>
+              {b.value == null ? (
+                <p className="text-[11px] text-muted-foreground">{b.note ?? "Données insuffisantes"}</p>
+              ) : (
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${b.value}%` }} />
+                </div>
+              )}
             </div>
           ))}
         </CardContent></Card>
