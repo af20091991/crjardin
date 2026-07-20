@@ -1,34 +1,82 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { KpiCard } from "@/components/pilot/KpiCard";
-import { RecommendationsFunnelWidget } from "@/components/RecommendationsFunnelWidget";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
+import { computeKpis, formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
+import { listAllInterventions } from "@/lib/interventions";
+import { listAllRecommendations } from "@/lib/garden";
+import { listGoals } from "@/lib/pilot-goals";
+import { supabase } from "@/integrations/supabase/client";
 import {
-  computeKpis, monthlySeries, clientStats, generateInsights, healthScore, HEALTH_META,
-  formatEuro, formatPct, DEFAULT_SETTINGS,
-} from "@/lib/pilot";
-import { getOpportunitiesValue } from "@/lib/garden";
-import {
-  Euro, TrendingUp, Wallet, Percent, Target, LineChart, ShoppingCart,
-  Clock, Sparkles, Users, Lightbulb, Gauge, Handshake,
+  Euro, Wallet, Target, CalendarDays, Sparkles, AlertTriangle, FileText,
+  Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/")({
-  component: PilotDashboard,
+  head: () => ({ meta: [{ title: "Aujourd'hui — Pilot Pro" }] }),
+  component: TodayPage,
 });
 
-function PilotDashboard() {
+type NBOffer = {
+  client_id: string;
+  service_id: string;
+  service_name: string;
+  score_opportunity: number;
+};
+
+function startOfWeek(d: Date): Date {
+  const x = new Date(d);
+  const day = (x.getDay() + 6) % 7; // Mon=0
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - day);
+  return x;
+}
+function endOfWeek(d: Date): Date {
+  const s = startOfWeek(d);
+  const e = new Date(s);
+  e.setDate(s.getDate() + 6);
+  e.setHours(23, 59, 59, 999);
+  return e;
+}
+function isSameDay(a: string, b: Date): boolean {
+  const d = new Date(a);
+  return d.getFullYear() === b.getFullYear() && d.getMonth() === b.getMonth() && d.getDate() === b.getDate();
+}
+function inRange(a: string, from: Date, to: Date): boolean {
+  const t = new Date(a).getTime();
+  return t >= from.getTime() && t <= to.getTime();
+}
+
+function TodayPage() {
   const { entries, charges, settings } = usePilotData();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
 
-  const loading = entries.isLoading || charges.isLoading || settings.isLoading;
+  const interventions = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
+  const recos = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
+  const goals = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
+  const priorityOffers = useQuery({
+    queryKey: ["nbo-priority"],
+    queryFn: async (): Promise<NBOffer[]> => {
+      const { data, error } = await supabase
+        .from("v_client_next_best_offers" as never)
+        .select("client_id, service_id, service_name, score_opportunity")
+        .gte("score_opportunity", 80)
+        .order("score_opportunity", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data ?? []) as unknown as NBOffer[];
+    },
+  });
+
+  const loading =
+    entries.isLoading || charges.isLoading || settings.isLoading ||
+    interventions.isLoading || recos.isLoading || goals.isLoading;
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   const k = useMemo(
@@ -42,16 +90,67 @@ function PilotDashboard() {
       }),
     [entries.data, charges.data, set, year, month],
   );
-  const cstats = useMemo(() => clientStats(entries.data ?? [], year), [entries.data, year]);
-  const health = useMemo(() => healthScore(k, set), [k, set]);
-  const insights = useMemo(() => generateInsights(k, set, cstats), [k, set, cstats]);
-  const series = useMemo(() => monthlySeries(entries.data ?? [], year), [entries.data, year]);
-  const familyData = k.byFamily.filter((f) => f.value > 0);
 
-  const opps = useQuery({
-    queryKey: ["opportunities-value"],
-    queryFn: getOpportunitiesValue,
+  // Objectif du mois = CA du même mois N-1 (référentiel factuel, aucune nouvelle donnée)
+  const objectifMois = useMemo(() => {
+    const rows = (entries.data ?? []).filter((e) => {
+      const d = new Date(e.entry_date);
+      return d.getFullYear() === year - 1 && d.getMonth() === month;
+    });
+    return rows.reduce((s, e) => s + e.amount_ht, 0);
+  }, [entries.data, year, month]);
+  const avancement = objectifMois > 0 ? (k.caMonth / objectifMois) * 100 : 0;
+
+  const beneficeMois = useMemo(() => {
+    // approximation : marge annuelle appliquée au CA du mois
+    const marge = k.marge / 100;
+    return k.caMonth * marge;
+  }, [k]);
+
+  const allI = interventions.data ?? [];
+  const allR = recos.data ?? [];
+  const allG = goals.data ?? [];
+
+  const today = new Date();
+  const wStart = startOfWeek(today);
+  const wEnd = endOfWeek(today);
+
+  const planningToday = allI.filter((i) => isSameDay(i.intervention_date, today));
+  const planningWeek = allI.filter((i) => inRange(i.intervention_date, wStart, wEnd));
+
+  const acceptedNotPlanned = allR.filter(
+    (r) => r.status === "acceptee" && !r.planned_intervention_id,
+  );
+  const terminatedNoReport = allI.filter(
+    (i) => i.status === "termine" && !i.sent_to_client_at,
+  );
+  const missingHours = allI.filter((i) => {
+    if (i.status !== "termine") return false;
+    const estimated =
+      i.ai_metadata && typeof i.ai_metadata === "object" &&
+      (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
+    return i.hours_spent == null || estimated;
   });
+
+  // Clients dormants (dernière intervention > 180 j)
+  const DAY = 24 * 60 * 60 * 1000;
+  const lastByClient = new Map<string, number>();
+  allI.forEach((i) => {
+    const t = new Date(i.intervention_date).getTime();
+    const prev = lastByClient.get(i.client_id) ?? 0;
+    if (t > prev) lastByClient.set(i.client_id, t);
+  });
+  const dormants = Array.from(lastByClient.entries()).filter(
+    ([, t]) => today.getTime() - t > 180 * DAY,
+  );
+
+  // Objectifs mensuels en retard : status en_cours & deadline < aujourd'hui
+  const goalsLate = allG.filter((g) => {
+    if (g.status !== "en_cours" || !g.deadline) return false;
+    return new Date(g.deadline).getTime() < today.setHours(0, 0, 0, 0);
+  });
+
+  const priority = priorityOffers.data ?? [];
 
   if (loading) {
     return (
@@ -61,151 +160,228 @@ function PilotDashboard() {
     );
   }
 
-  const empty = (entries.data ?? []).length === 0;
-
   return (
     <div className="space-y-5">
-      {empty && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center gap-2 py-8 text-center">
-            <Sparkles className="h-8 w-8 text-primary" />
-            <p className="font-medium">Bienvenue dans Pilot Pro</p>
-            <p className="max-w-md text-sm text-muted-foreground">
-              Commencez par saisir votre chiffre d'affaires dans « Suivi du CA », définissez vos objectifs
-              et vos charges : tous les indicateurs se calculeront automatiquement.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-        <KpiCard label="CA du mois" value={formatEuro(k.caMonth)} icon={Euro} to="/pilot/ca" description="Chiffre d'affaires hors taxes facturé sur le mois en cours (somme des ventes HT du mois)." />
-        <KpiCard
-          label="CA annuel"
-          value={formatEuro(k.caYear)}
-          icon={TrendingUp}
-          to="/pilot/saison"
-          sub={k.caPrevYTD > 0 ? `${formatPct(k.progression)} vs N-1` : undefined}
-          tone={k.progression >= 0 ? "positive" : "negative"}
-          description="Chiffre d'affaires HT cumulé depuis le 1er janvier de l'année en cours."
-        />
-        <KpiCard
-          label="Bénéfice estimé"
-          value={formatEuro(k.benefice)}
-          icon={Wallet}
-          to="/pilot/finance"
-          tone={k.benefice >= 0 ? "positive" : "negative"}
-          description="Bénéfice net estimé sur l'année : CA HT − charges annuelles (fixes, variables et ponctuelles)."
-        />
-        <KpiCard label="Marge" value={`${k.marge.toFixed(0)} %`} icon={Percent} to="/pilot/finance" description="Marge nette = bénéfice / CA HT. Indique la rentabilité globale de l'activité." />
-        <KpiCard
-          label="Objectif atteint"
-          value={k.target > 0 ? `${k.objectifPct.toFixed(0)} %` : "—"}
-          sub={k.target > 0 ? `Cible ${formatEuro(k.target)}` : "Définir un objectif"}
-          icon={Target}
-          to="/pilot/objectifs"
-          progress={k.target > 0 ? k.objectifPct : undefined}
-          description="Pourcentage de l'objectif annuel de chiffre d'affaires atteint à ce jour."
-        />
-        <KpiCard label="Projection fin d'année" value={formatEuro(k.projection)} icon={LineChart} to="/pilot/saison" description="Estimation du CA HT au 31 décembre en extrapolant le rythme de facturation actuel." />
-        <KpiCard label="Panier moyen" value={formatEuro(k.panierMoyen)} icon={ShoppingCart} to="/pilot/ca" description="CA HT moyen par intervention facturée sur l'année." />
-        <KpiCard label="TJM réel" value={formatEuro(k.tjm)} icon={Clock} to="/pilot/finance" description="Taux journalier moyen = CA HT annuel / nombre de jours travaillés distincts." />
-        <KpiCard
-          label="Taux horaire réel"
-          value={`${formatEuro(k.tauxHoraire)}/h`}
-          icon={Gauge}
-          to="/pilot/finance"
-          sub={set.target_hourly_rate > 0 ? `Cible ${formatEuro(set.target_hourly_rate)}/h` : undefined}
-          tone={k.tauxHoraire >= set.target_hourly_rate ? "positive" : "warning"}
-          description="Taux horaire réel = CA HT annuel / heures facturées. À comparer au taux cible de vos paramètres."
-        />
-        <KpiCard label="Interventions" value={k.nbEntries} icon={Users} to="/pilot/ca" sub={`${k.workedDays} jours travaillés`} description="Nombre total de lignes de vente saisies sur l'année (une ligne = une intervention/prestation facturée)." />
-        <KpiCard label="Heures facturées" value={`${k.totalHours.toFixed(0)} h`} icon={Clock} to="/pilot/ca" description="Cumul des heures terrain déclarées sur les ventes de l'année." />
-        <KpiCard
-          label="Santé financière"
-          value={`${health.score}/100`}
-          icon={Gauge}
-          to="/pilot/sante"
-          sub={HEALTH_META[health.level].label}
-          progress={health.score}
-          description="Score global (0-100) synthétisant marge, croissance, objectif, rentabilité horaire et niveau d'activité."
-        />
-        <KpiCard
-          label="Opportunités commerciales"
-          value={formatEuro((opps.data?.pendingValue ?? 0) + (opps.data?.acceptedValue ?? 0))}
-          icon={Handshake}
-          sub={
-            opps.data
-              ? `En attente ${formatEuro(opps.data.pendingValue)} · Acceptées ${formatEuro(opps.data.acceptedValue)} · CA facturé ${formatEuro(opps.data.invoicedCa)}`
-              : "—"
-          }
-          description="Valeur estimée des recommandations en attente et acceptées, et CA généré par les recommandations facturées."
-        />
+      <div>
+        <h2 className="font-serif text-2xl font-semibold tracking-tight">
+          Bonjour, voici votre journée
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+        </p>
       </div>
 
-      {/* Insights */}
-      {insights.length > 0 && (
-        <Card>
-          <CardContent className="space-y-2 pt-6">
-            <div className="flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-primary" />
-              <h3 className="font-medium">Analyses automatiques</h3>
-            </div>
-            <ul className="space-y-1.5">
-              {insights.map((t, i) => (
-                <li key={i} className="flex gap-2 text-sm text-muted-foreground">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                  {t}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
+      {/* Performance du jour */}
+      <section className="space-y-2">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Performance du mois</h3>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard label="CA du mois" value={formatEuro(k.caMonth)} icon={Euro} to="/pilot/ca" />
+          <KpiCard
+            label="Objectif du mois"
+            value={objectifMois > 0 ? formatEuro(objectifMois) : "—"}
+            sub={objectifMois > 0 ? `Réf. ${year - 1}` : "Pas d'historique N-1"}
+            icon={Target}
+          />
+          <KpiCard
+            label="Avancement"
+            value={objectifMois > 0 ? `${avancement.toFixed(0)} %` : "—"}
+            icon={CheckCircle2}
+            progress={objectifMois > 0 ? avancement : undefined}
+            tone={avancement >= 100 ? "positive" : avancement >= 60 ? "default" : "warning"}
+          />
+          <KpiCard
+            label="Bénéfice estimé (mois)"
+            value={formatEuro(beneficeMois)}
+            icon={Wallet}
+            tone={beneficeMois >= 0 ? "positive" : "negative"}
+            sub={`Marge ${k.marge.toFixed(0)} %`}
+          />
+        </div>
+      </section>
 
-      {/* Charts */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardContent className="pt-6">
-            <h3 className="mb-3 font-medium">CA mensuel {year} vs {year - 1}</h3>
-            <ChartContainer
-              config={{
-                current: { label: `${year}`, color: "var(--primary)" },
-                previous: { label: `${year - 1}`, color: "#cbd5e1" },
-              }}
-              className="h-[280px] w-full"
-            >
-              <BarChart data={series}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
-                <YAxis tickLine={false} axisLine={false} fontSize={11} width={40} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="previous" fill="var(--color-previous)" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="current" fill="var(--color-current)" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <h3 className="mb-3 font-medium">Répartition par activité</h3>
-            {familyData.length > 0 ? (
-              <ChartContainer config={{}} className="mx-auto h-[280px]">
-                <PieChart>
-                  <Pie data={familyData} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={2}>
-                    {familyData.map((f) => <Cell key={f.family} fill={f.color} />)}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ChartContainer>
-            ) : (
-              <p className="py-12 text-center text-sm text-muted-foreground">Aucune donnée</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-      <RecommendationsFunnelWidget />
+      {/* Actions prioritaires */}
+      <section className="space-y-2">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          Actions prioritaires
+        </h3>
+        <div className="grid gap-3 md:grid-cols-2">
+          <ActionCard
+            icon={Handshake}
+            title="Recommandations acceptées à planifier"
+            count={acceptedNotPlanned.length}
+            to="/pilot/direction"
+            emptyLabel="Rien à planifier"
+          />
+          <ActionCard
+            icon={FileText}
+            title="Interventions terminées sans compte-rendu envoyé"
+            count={terminatedNoReport.length}
+            to="/interventions"
+            emptyLabel="Tous les CR sont envoyés"
+          />
+          <ActionCard
+            icon={Clock}
+            title="Interventions sans heures confirmées"
+            count={missingHours.length}
+            to="/interventions"
+            emptyLabel="Toutes les heures sont confirmées"
+          />
+          <ActionCard
+            icon={Sparkles}
+            title="Opportunités prioritaires (score ≥ 80)"
+            count={priority.length}
+            to="/pilot/clients"
+            emptyLabel="Aucune opportunité prioritaire"
+          />
+        </div>
+      </section>
+
+      {/* Planning */}
+      <section className="space-y-2">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Planning</h3>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Card>
+            <CardContent className="space-y-3 pt-6">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                <h4 className="font-medium">Aujourd'hui</h4>
+                <Badge variant="secondary" className="ml-auto">{planningToday.length}</Badge>
+              </div>
+              {planningToday.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune intervention prévue aujourd'hui.</p>
+              ) : (
+                <ul className="space-y-1.5 text-sm">
+                  {planningToday.slice(0, 6).map((i) => (
+                    <li key={i.id}>
+                      <Link
+                        to="/interventions/$interventionId"
+                        params={{ interventionId: i.id }}
+                        className="flex items-center justify-between gap-2 rounded-md px-2 py-1 hover:bg-accent/40"
+                      >
+                        <span className="truncate">{i.title ?? i.intervention_type ?? "Intervention"}</span>
+                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="space-y-3 pt-6">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                <h4 className="font-medium">Cette semaine</h4>
+                <Badge variant="secondary" className="ml-auto">{planningWeek.length}</Badge>
+              </div>
+              {planningWeek.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune intervention prévue cette semaine.</p>
+              ) : (
+                <ul className="space-y-1.5 text-sm">
+                  {planningWeek.slice(0, 6).map((i) => (
+                    <li key={i.id}>
+                      <Link
+                        to="/interventions/$interventionId"
+                        params={{ interventionId: i.id }}
+                        className="flex items-center justify-between gap-2 rounded-md px-2 py-1 hover:bg-accent/40"
+                      >
+                        <span className="truncate">
+                          {new Date(i.intervention_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" })}
+                          {" · "}
+                          {i.title ?? i.intervention_type ?? "Intervention"}
+                        </span>
+                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Alertes */}
+      <section className="space-y-2">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Alertes</h3>
+        <div className="grid gap-3 md:grid-cols-3">
+          <AlertCard
+            icon={Users}
+            title="Clients dormants"
+            count={dormants.length}
+            hint="Sans intervention depuis + de 6 mois"
+            to="/pilot/clients"
+          />
+          <AlertCard
+            icon={Send}
+            title="Comptes-rendus non envoyés"
+            count={terminatedNoReport.length}
+            hint="Intervention terminée sans envoi client"
+            to="/interventions"
+          />
+          <AlertCard
+            icon={AlertTriangle}
+            title="Objectifs en retard"
+            count={goalsLate.length}
+            hint="Échéance dépassée, statut en cours"
+            to="/pilot/objectifs"
+          />
+        </div>
+      </section>
     </div>
+  );
+}
+
+function ActionCard({
+  icon: Icon, title, count, to, emptyLabel,
+}: {
+  icon: typeof Handshake; title: string; count: number; to: string; emptyLabel: string;
+}) {
+  const empty = count === 0;
+  return (
+    <Link to={to}>
+      <Card className="h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Icon className="h-4 w-4 text-primary/80" />
+            <p className="text-sm font-medium">{title}</p>
+          </div>
+          <Badge variant={empty ? "outline" : "default"} className="shrink-0">
+            {count}
+          </Badge>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {empty ? emptyLabel : "Cliquer pour ouvrir la liste"}
+        </p>
+      </Card>
+    </Link>
+  );
+}
+
+function AlertCard({
+  icon: Icon, title, count, hint, to,
+}: {
+  icon: typeof AlertTriangle; title: string; count: number; hint: string; to: string;
+}) {
+  const active = count > 0;
+  return (
+    <Link to={to}>
+      <Card
+        className={`h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md ${
+          active ? "border-amber-300 bg-amber-50/60" : ""
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Icon className={`h-4 w-4 ${active ? "text-amber-600" : "text-muted-foreground"}`} />
+            <p className="text-sm font-medium">{title}</p>
+          </div>
+          <span className={`font-serif text-lg font-semibold ${active ? "text-amber-700" : "text-muted-foreground"}`}>
+            {count}
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+      </Card>
+    </Link>
   );
 }
