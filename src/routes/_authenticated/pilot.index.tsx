@@ -187,6 +187,7 @@ function PilotDashboard() {
           </CardContent>
         </Card>
       </div>
+      <RecommendationsFunnelWidget />
     </div>
   );
 }
