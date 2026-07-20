@@ -499,7 +499,15 @@ export function healthScore(k: Kpis, settings: PilotSettings) {
   const objectif = Math.max(0, Math.min(100, k.objectifPct));
   const rentabilite =
     settings.target_hourly_rate > 0
-      ? Math.max(0, Math.min(100, (k.tauxHoraire / settings.target_hourly_rate) * 100))
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            ((k.tauxHoraireReel > 0 ? k.tauxHoraireReel : k.tauxHoraireVendu) /
+              settings.target_hourly_rate) *
+              100,
+          ),
+        )
       : 50;
   const activite = Math.max(0, Math.min(100, (k.nbEntries / 100) * 100));
 
@@ -565,12 +573,12 @@ export function generateThematicInsights(
           ? `Marge nette de ${k.marge.toFixed(0)} % : rentabilité correcte, un léger effort sur les charges permettrait d'améliorer le résultat.`
           : `Marge nette de ${k.marge.toFixed(0)} % : rentabilité faible, revoyez le mix charges / prix.`);
   }
-  if (settings.target_hourly_rate > 0 && k.tauxHoraire > 0) {
-    const ecart = k.tauxHoraire - settings.target_hourly_rate;
+  if (settings.target_hourly_rate > 0 && k.tauxHoraireReel > 0) {
+    const ecart = k.tauxHoraireReel - settings.target_hourly_rate;
     push("Rentabilité",
       ecart >= 0
-        ? `Le taux horaire réel (${formatEuro(k.tauxHoraire)}/h) dépasse la cible de ${formatEuro(ecart)}/h.`
-        : `Le taux horaire réel (${formatEuro(k.tauxHoraire)}/h) est inférieur de ${formatEuro(-ecart)}/h à la cible.`);
+        ? `Le taux horaire réel (${formatEuro(k.tauxHoraireReel)}/h, basé sur les heures confirmées) dépasse la cible de ${formatEuro(ecart)}/h.`
+        : `Le taux horaire réel (${formatEuro(k.tauxHoraireReel)}/h, basé sur les heures confirmées) est inférieur de ${formatEuro(-ecart)}/h à la cible.`);
   }
   if (settings.target_tjm > 0 && k.tjm > 0) {
     push("Rentabilité",
