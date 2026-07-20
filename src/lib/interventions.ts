@@ -127,6 +127,37 @@ export interface InterventionTask {
   note: string | null;
   position: number;
   created_at: string;
+  service_id?: string | null;
+}
+
+export interface ServiceCatalogItem {
+  id: string;
+  label: string;
+  category_id: string | null;
+  category_code: string | null;
+  category_label: string | null;
+}
+
+export async function listServiceCatalog(): Promise<ServiceCatalogItem[]> {
+  const { data, error } = await supabase
+    .from("services")
+    .select("id, label, category_id, is_archived, service_categories(code, label)")
+    .eq("is_archived", false)
+    .order("label", { ascending: true });
+  if (error) throw error;
+  type Row = {
+    id: string;
+    label: string;
+    category_id: string | null;
+    service_categories: { code: string | null; label: string | null } | null;
+  };
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    id: r.id,
+    label: r.label,
+    category_id: r.category_id,
+    category_code: r.service_categories?.code ?? null,
+    category_label: r.service_categories?.label ?? null,
+  }));
 }
 
 export interface InterventionPhoto {
@@ -282,11 +313,23 @@ export async function listTasks(interventionId: string): Promise<InterventionTas
   return data as InterventionTask[];
 }
 
-export async function addTask(interventionId: string, label: string, position: number): Promise<InterventionTask> {
+export async function addTask(
+  interventionId: string,
+  label: string,
+  position: number,
+  serviceId?: string | null,
+): Promise<InterventionTask> {
   const user_id = await uid();
   const { data, error } = await supabase
     .from("intervention_tasks")
-    .insert({ intervention_id: interventionId, user_id, label, status: "realise", position })
+    .insert({
+      intervention_id: interventionId,
+      user_id,
+      label,
+      status: "realise",
+      position,
+      service_id: serviceId ?? null,
+    })
     .select()
     .single();
   if (error) throw error;
@@ -295,7 +338,7 @@ export async function addTask(interventionId: string, label: string, position: n
 
 export async function updateTask(
   id: string,
-  patch: Partial<Pick<InterventionTask, "label" | "status" | "note">>,
+  patch: Partial<Pick<InterventionTask, "label" | "status" | "note" | "service_id">>,
 ): Promise<void> {
   const { error } = await supabase.from("intervention_tasks").update(patch).eq("id", id);
   if (error) throw error;
