@@ -2332,6 +2332,23 @@ export type Database = {
         }
         Relationships: []
       }
+      v_client_next_best_offers: {
+        Row: {
+          category_name: string | null
+          client_id: string | null
+          days_since_last_performed: number | null
+          default_frequency: string | null
+          estimated_value: number | null
+          last_performed_at: string | null
+          reason: string | null
+          recommended_season: number[] | null
+          score_opportunity: number | null
+          service_id: string | null
+          service_name: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       v_client_service_gaps: {
         Row: {
           category_id: string | null
