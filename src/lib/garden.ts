@@ -50,6 +50,11 @@ export interface Recommendation {
   recommended_season?: string | null;
   include_in_report?: boolean;
   report_position?: number | null;
+  responded_at?: string | null;
+  planned_intervention_id?: string | null;
+  pilot_ca_entry_id?: string | null;
+  refusal_reason?: string | null;
+  client_viewed_at?: string | null;
 }
 
 export function recommendationPrice(r: Pick<Recommendation, "estimated_hours" | "unit_price">): number | null {
@@ -71,16 +76,34 @@ export function staleClientIds(recos: Recommendation[]): Set<string> {
   return new Set(recos.filter(isStalePending).map((r) => r.client_id));
 }
 
-export type RecommendationStatus = "en_attente" | "acceptee" | "refusee" | "realisee";
+export type RecommendationStatus =
+  | "en_attente"
+  | "acceptee"
+  | "planifiee"
+  | "realisee"
+  | "facturee"
+  | "refusee"
+  | "expiree";
 
 export const RECO_STATUS_META: Record<RecommendationStatus, { label: string; tone: string }> = {
   en_attente: { label: "En attente", tone: "text-amber-700 bg-amber-100" },
   acceptee: { label: "Acceptée", tone: "text-emerald-700 bg-emerald-100" },
-  refusee: { label: "Refusée", tone: "text-rose-700 bg-rose-100" },
+  planifiee: { label: "Planifiée", tone: "text-indigo-700 bg-indigo-100" },
   realisee: { label: "Réalisée", tone: "text-blue-700 bg-blue-100" },
+  facturee: { label: "Facturée", tone: "text-teal-700 bg-teal-100" },
+  refusee: { label: "Refusée", tone: "text-rose-700 bg-rose-100" },
+  expiree: { label: "Expirée", tone: "text-slate-700 bg-slate-100" },
 };
 
-export const RECO_STATUSES: RecommendationStatus[] = ["en_attente", "acceptee", "refusee", "realisee"];
+export const RECO_STATUSES: RecommendationStatus[] = [
+  "en_attente",
+  "acceptee",
+  "planifiee",
+  "realisee",
+  "facturee",
+  "refusee",
+  "expiree",
+];
 
 export const RECO_PRIORITIES = ["haute", "moyenne", "basse"] as const;
 export type RecommendationPriority = (typeof RECO_PRIORITIES)[number];
@@ -208,6 +231,7 @@ export async function updateRecommendation(
   patch: Partial<Pick<Recommendation,
     "title" | "description" | "category" | "status" | "estimated_hours" | "unit_price"
     | "priority" | "recommended_season" | "include_in_report" | "report_position"
+    | "responded_at" | "planned_intervention_id" | "pilot_ca_entry_id" | "refusal_reason"
   >>,
 ): Promise<void> {
   const { error } = await supabase.from("recommendations").update(patch as never).eq("id", id);
