@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
-import { computeKpis, healthScore, HEALTH_META, generateThematicInsights, clientStats, DEFAULT_SETTINGS } from "@/lib/pilot";
+import { useQuery } from "@tanstack/react-query";
+import { computeKpis, healthScore, HEALTH_META, generateThematicInsights, clientStatsWithHours, fetchConfirmedHoursByClient, DEFAULT_SETTINGS } from "@/lib/pilot";
 import { askPilotAi } from "@/lib/pilot-ai.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,9 +45,13 @@ function SantePage() {
     [entries.data, charges.data, set, year],
   );
   const health = useMemo(() => healthScore(k, set), [k, set]);
+  const confirmed = useQuery({
+    queryKey: ["confirmed-hours-by-client", year],
+    queryFn: () => fetchConfirmedHoursByClient(year),
+  });
   const insights = useMemo(
-    () => generateThematicInsights(k, set, clientStats(entries.data ?? [], year), charges.data ?? []),
-    [k, set, entries.data, charges.data, year],
+    () => generateThematicInsights(k, set, clientStatsWithHours(entries.data ?? [], year, confirmed.data), charges.data ?? []),
+    [k, set, entries.data, charges.data, year, confirmed.data],
   );
   const meta = HEALTH_META[health.level];
 
