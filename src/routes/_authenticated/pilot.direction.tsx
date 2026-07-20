@@ -13,9 +13,12 @@ import {
   formatEuro, formatPct, DEFAULT_SETTINGS,
 } from "@/lib/pilot";
 import { getOpportunitiesValue } from "@/lib/garden";
+import { getClientEconomicScores, SCORE_META, type ClientScoreLabel, type ClientScore } from "@/lib/client-score";
+import { Link } from "@tanstack/react-router";
+import { Badge } from "@/components/ui/badge";
 import {
   Euro, TrendingUp, Wallet, Percent, Target, LineChart, ShoppingCart,
-  Clock, Sparkles, Users, Lightbulb, Gauge, Handshake,
+  Clock, Sparkles, Users, Lightbulb, Gauge, Handshake, Briefcase,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/direction")({
@@ -206,6 +209,125 @@ function PilotDashboard() {
         </Card>
       </div>
       <RecommendationsFunnelWidget />
+      <ClientPortfolioSection />
     </div>
+  );
+}
+
+const PRIORITY: Record<ClientScoreLabel, number> = {
+  peu_rentable: 0,
+  a_optimiser: 1,
+  donnees_insuffisantes: 2,
+  strategique: 3,
+};
+
+function ClientPortfolioSection() {
+  const q = useQuery({ queryKey: ["client-economic-scores"], queryFn: getClientEconomicScores });
+  const scores = q.data ?? [];
+
+  const distribution = useMemo(() => {
+    const base: Record<ClientScoreLabel, number> = {
+      strategique: 0, a_optimiser: 0, peu_rentable: 0, donnees_insuffisantes: 0,
+    };
+    for (const s of scores) base[s.score] += 1;
+    return base;
+  }, [scores]);
+
+  const sorted = useMemo(() => {
+    return [...scores].sort((a, b) => {
+      const p = PRIORITY[a.score] - PRIORITY[b.score];
+      if (p !== 0) return p;
+      // Au sein d'un même statut : plus gros CA d'abord (peu rentable → à traiter en priorité)
+      return b.revenueTotalHt - a.revenueTotalHt;
+    });
+  }, [scores]);
+
+  return (
+    <Card>
+      <CardContent className="space-y-4 pt-6">
+        <div className="flex items-center gap-2">
+          <Briefcase className="h-4 w-4 text-primary" />
+          <h3 className="font-medium">Portefeuille clients</h3>
+          <span className="text-xs text-muted-foreground">— score économique par client</span>
+        </div>
+
+        {q.isLoading ? (
+          <Skeleton className="h-32 w-full rounded-lg" />
+        ) : scores.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Aucun client à afficher pour le moment.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {(Object.keys(SCORE_META) as ClientScoreLabel[]).map((k) => (
+                <div key={k} className="rounded-lg border bg-muted/30 px-3 py-2">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>{SCORE_META[k].emoji}</span>
+                    <span className="truncate">{SCORE_META[k].label}</span>
+                  </div>
+                  <div className="mt-1 text-xl font-semibold" style={{ color: SCORE_META[k].color }}>
+                    {distribution[k]}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">Client</th>
+                    <th className="px-3 py-2 text-left font-medium">Statut</th>
+                    <th className="px-3 py-2 text-right font-medium">CA {new Date().getFullYear()}</th>
+                    <th className="px-3 py-2 text-right font-medium">Taux réel</th>
+                    <th className="px-3 py-2 text-right font-medium">Interv.</th>
+                    <th className="px-3 py-2 text-left font-medium">Recommandation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((s) => (
+                    <ClientRow key={s.client_id} s={s} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ClientRow({ s }: { s: ClientScore }) {
+  const meta = SCORE_META[s.score];
+  return (
+    <tr className="border-t">
+      <td className="px-3 py-2">
+        <Link
+          to="/clients/$clientId"
+          params={{ clientId: s.client_id }}
+          className="font-medium text-foreground hover:underline"
+        >
+          {s.client_name ?? "Client sans nom"}
+        </Link>
+      </td>
+      <td className="px-3 py-2">
+        <Badge
+          variant="outline"
+          className="gap-1 font-normal"
+          style={{ borderColor: meta.color, color: meta.color }}
+        >
+          <span>{meta.emoji}</span>
+          <span>{meta.label}</span>
+        </Badge>
+      </td>
+      <td className="px-3 py-2 text-right tabular-nums">{formatEuro(s.revenueYearHt)}</td>
+      <td className="px-3 py-2 text-right tabular-nums">
+        {s.realHourlyRate !== null ? `${formatEuro(s.realHourlyRate)}/h` : "—"}
+      </td>
+      <td className="px-3 py-2 text-right tabular-nums">{s.interventionsCount}</td>
+      <td className="px-3 py-2 text-muted-foreground">{s.recommendation}</td>
+    </tr>
   );
 }
