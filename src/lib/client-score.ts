@@ -21,6 +21,17 @@ export const SCORE_RULES = {
   },
 } as const;
 
+export const CONFIDENCE_RULES = {
+  HIGH: {
+    minInterventions: 5,
+    minConfirmedHoursRatio: 0.8,
+  },
+  MEDIUM: {
+    minInterventions: 2,
+    minConfirmedHoursRatio: 0.5,
+  },
+} as const;
+
 export type ClientScoreLabel =
   | "strategique"
   | "a_optimiser"
