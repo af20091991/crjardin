@@ -9,6 +9,9 @@ import {
   RECO_STATUS_META, type RecommendationStatus,
   HEALTH_RATING_META, type HealthRating,
   recommendationPrice, formatEuro, isStalePending, clearRecommendationInterest,
+  markRecommendationAsProposed, acceptRecommendation, refuseRecommendation,
+  createInterventionFromRecommendation,
+  type Recommendation,
 } from "@/lib/garden";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +26,7 @@ import {
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
   Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check, ExternalLink,
-  ThumbsUp, ThumbsDown, RotateCcw, TrendingUp,
+  ThumbsUp, ThumbsDown, RotateCcw, TrendingUp, Send, ArrowRight, Sprout,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
