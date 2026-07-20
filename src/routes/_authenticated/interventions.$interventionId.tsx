@@ -106,6 +106,10 @@ function InterventionDetail() {
     queryKey: ["photos", interventionId],
     queryFn: () => listPhotos(interventionId),
   });
+  const { data: serviceCatalog } = useQuery({
+    queryKey: ["service-catalog"],
+    queryFn: listServiceCatalog,
+  });
 
   const invTasks = () => qc.invalidateQueries({ queryKey: ["tasks", interventionId] });
   const invPhotos = () => qc.invalidateQueries({ queryKey: ["photos", interventionId] });
