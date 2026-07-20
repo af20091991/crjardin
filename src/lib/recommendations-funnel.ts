@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getInvoicedRecommendationsCa } from "@/lib/garden";
 
 export interface RecommendationsFunnel {
   proposees: number;
@@ -40,6 +41,10 @@ export async function getRecommendationsFunnel(): Promise<RecommendationsFunnel>
     refusees: r.refusees ?? 0,
     expirees: r.expirees ?? 0,
   };
+}
+
+export async function getRecommendationsFunnelInvoicedCa(): Promise<number> {
+  return getInvoicedRecommendationsCa();
 }
 
 export const FUNNEL_STAGES: Array<{
