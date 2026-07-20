@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { KpiCard } from "@/components/pilot/KpiCard";
+import { RecommendationsFunnelWidget } from "@/components/RecommendationsFunnelWidget";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
