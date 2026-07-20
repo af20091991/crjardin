@@ -1355,9 +1355,13 @@ export type Database = {
           id: string
           include_in_report: boolean
           intervention_id: string | null
+          pilot_ca_entry_id: string | null
+          planned_intervention_id: string | null
           priority: string | null
           recommended_season: string | null
+          refusal_reason: string | null
           report_position: number | null
+          responded_at: string | null
           source: string
           status: string
           title: string
@@ -1377,9 +1381,13 @@ export type Database = {
           id?: string
           include_in_report?: boolean
           intervention_id?: string | null
+          pilot_ca_entry_id?: string | null
+          planned_intervention_id?: string | null
           priority?: string | null
           recommended_season?: string | null
+          refusal_reason?: string | null
           report_position?: number | null
+          responded_at?: string | null
           source?: string
           status?: string
           title: string
@@ -1399,9 +1407,13 @@ export type Database = {
           id?: string
           include_in_report?: boolean
           intervention_id?: string | null
+          pilot_ca_entry_id?: string | null
+          planned_intervention_id?: string | null
           priority?: string | null
           recommended_season?: string | null
+          refusal_reason?: string | null
           report_position?: number | null
+          responded_at?: string | null
           source?: string
           status?: string
           title?: string
@@ -1434,6 +1446,27 @@ export type Database = {
           {
             foreignKeyName: "recommendations_intervention_id_fkey"
             columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
+          },
+          {
+            foreignKeyName: "recommendations_pilot_ca_entry_id_fkey"
+            columns: ["pilot_ca_entry_id"]
+            isOneToOne: false
+            referencedRelation: "pilot_ca_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendations_planned_intervention_id_fkey"
+            columns: ["planned_intervention_id"]
+            isOneToOne: false
+            referencedRelation: "interventions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendations_planned_intervention_id_fkey"
+            columns: ["planned_intervention_id"]
             isOneToOne: false
             referencedRelation: "v_intervention_pnl"
             referencedColumns: ["intervention_id"]
@@ -2416,6 +2449,20 @@ export type Database = {
       v_real_hourly_cost: {
         Row: {
           real_hourly_cost: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_recommendations_funnel: {
+        Row: {
+          acceptees: number | null
+          consultees: number | null
+          expirees: number | null
+          facturees: number | null
+          planifiees: number | null
+          proposees: number | null
+          realisees: number | null
+          refusees: number | null
           user_id: string | null
         }
         Relationships: []
