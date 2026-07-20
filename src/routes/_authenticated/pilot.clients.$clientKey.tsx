@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
-import { clientStats, formatEuro } from "@/lib/pilot";
+import { clientStatsWithHours, fetchConfirmedHoursByClient, formatEuro } from "@/lib/pilot";
 import { getClientNote, saveClientNote } from "@/lib/pilot-client-notes";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,10 +24,15 @@ function PilotClientDetail() {
   const qc = useQueryClient();
   const { entries, clients } = usePilotData();
 
+  const confirmed = useQuery({
+    queryKey: ["confirmed-hours-by-client", "all"],
+    queryFn: () => fetchConfirmedHoursByClient(undefined),
+  });
+
   const stat = useMemo(() => {
-    const all = clientStats(entries.data ?? []);
+    const all = clientStatsWithHours(entries.data ?? [], undefined, confirmed.data);
     return all.find((s) => s.key === key);
-  }, [entries.data, key]);
+  }, [entries.data, key, confirmed.data]);
 
   const client = useMemo(() => {
     if (!clients.data) return null;
