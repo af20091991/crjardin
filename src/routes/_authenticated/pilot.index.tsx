@@ -11,6 +11,7 @@ import { listAllInterventions } from "@/lib/interventions";
 import { listAllRecommendations } from "@/lib/garden";
 import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
+import { startOfWeek, endOfWeek, isSameDay, inRange } from "@/lib/date-utils";
 import {
   Euro, Wallet, Target, CalendarDays, Sparkles, AlertTriangle, FileText,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
@@ -53,29 +54,6 @@ const PRIORITY_META: Record<
     ring: "border-emerald-200 bg-emerald-50/50",
   },
 };
-
-function startOfWeek(d: Date): Date {
-  const x = new Date(d);
-  const day = (x.getDay() + 6) % 7; // Mon=0
-  x.setHours(0, 0, 0, 0);
-  x.setDate(x.getDate() - day);
-  return x;
-}
-function endOfWeek(d: Date): Date {
-  const s = startOfWeek(d);
-  const e = new Date(s);
-  e.setDate(s.getDate() + 6);
-  e.setHours(23, 59, 59, 999);
-  return e;
-}
-function isSameDay(a: string, b: Date): boolean {
-  const d = new Date(a);
-  return d.getFullYear() === b.getFullYear() && d.getMonth() === b.getMonth() && d.getDate() === b.getDate();
-}
-function inRange(a: string, from: Date, to: Date): boolean {
-  const t = new Date(a).getTime();
-  return t >= from.getTime() && t <= to.getTime();
-}
 
 function TodayPage() {
   const { entries, charges, settings } = usePilotData();
@@ -214,14 +192,6 @@ function TodayPage() {
     [allI, avgHoursByType],
   );
 
-  // Lignes CA dont la rentabilité horaire est sous la cible
-  const lowHourlyEntries = useMemo(() => {
-    if (targetHR <= 0) return [];
-    return (entries.data ?? []).filter(
-      (e) => e.hours > 0 && e.amount_ht / e.hours < targetHR,
-    );
-  }, [entries.data, targetHR]);
-
   // Source de vérité : heures confirmées sur interventions terminées (année en cours)
   const confirmedHoursByClient = useMemo(() => {
     const map = new Map<string, number>();
@@ -235,6 +205,34 @@ function TodayPage() {
     }
     return map;
   }, [allI, year]);
+
+  // CA agrégé par client sur l'année (pour taux horaire réel par client)
+  const caByClient = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of entries.data ?? []) {
+      if (!e.client_id) continue;
+      if (new Date(e.entry_date).getFullYear() !== year) continue;
+      map.set(e.client_id, (map.get(e.client_id) ?? 0) + e.amount_ht);
+    }
+    return map;
+  }, [entries.data, year]);
+
+  // Lignes CA dont la rentabilité horaire est sous la cible.
+  // Priorité : taux horaire réel du client (CA client / heures confirmées) quand disponible ;
+  // à défaut, ratio de la ligne (amount_ht / hours vendues).
+  const lowHourlyEntries = useMemo(() => {
+    if (targetHR <= 0) return [];
+    return (entries.data ?? []).filter((e) => {
+      const realHours = e.client_id ? confirmedHoursByClient.get(e.client_id) ?? 0 : 0;
+      if (realHours > 0 && e.client_id) {
+        const clientCa = caByClient.get(e.client_id) ?? 0;
+        if (clientCa <= 0) return false;
+        return clientCa / realHours < targetHR;
+      }
+      return e.hours > 0 && e.amount_ht / e.hours < targetHR;
+    });
+  }, [entries.data, targetHR, confirmedHoursByClient, caByClient]);
+
   // Clients A/B avec ratio horaire dégradé (basé sur heures réellement passées)
   const cstats = useMemo(
     () => clientStatsWithHours(entries.data ?? [], year, confirmedHoursByClient),
@@ -513,7 +511,7 @@ function TodayPage() {
             icon={Gauge}
             title="Rentabilité horaire sous la cible"
             count={lowHourlyEntries.length}
-            hint={targetHR > 0 ? `Lignes CA sous ${formatEuro(targetHR)}/h` : "Définir un taux horaire cible"}
+            hint={targetHR > 0 ? `Lignes CA sous ${formatEuro(targetHR)}/h (heures réelles si dispo)` : "Définir un taux horaire cible"}
             to="/pilot/ca"
           />
           <AlertCard

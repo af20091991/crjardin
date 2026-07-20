@@ -243,8 +243,14 @@ export function computeKpis(params: {
   settings: PilotSettings;
   year: number;
   month: number; // 0-11 current month reference
+  /**
+   * Heures réellement consommées par client, issues de interventions.hours_spent
+   * (statut = "termine"). Source de vérité pour `tauxHoraireReel`.
+   * Si absent, `tauxHoraireReel` vaut 0 (pas de fallback silencieux).
+   */
+  confirmedHoursByClient?: Map<string, number>;
 }) {
-  const { entries, charges, settings, year, month } = params;
+  const { entries, charges, settings, year, month, confirmedHoursByClient } = params;
 
   const yearEntries = entries.filter((e) => y(e.entry_date) === year);
   const prevYearEntries = entries.filter((e) => y(e.entry_date) === year - 1);
@@ -279,7 +285,18 @@ export function computeKpis(params: {
   const nbEntries = yearEntries.length;
   const panierMoyen = nbEntries > 0 ? caYear / nbEntries : 0;
   const tjm = workedDays > 0 ? caYear / workedDays : 0;
-  const tauxHoraire = totalHours > 0 ? caYear / totalHours : 0;
+  // Taux horaire vendu = CA HT / heures facturées (pilot_ca_entries.hours)
+  const tauxHoraireVendu = totalHours > 0 ? caYear / totalHours : 0;
+  // Taux horaire réel = CA HT / heures confirmées (interventions.hours_spent)
+  let totalConfirmedHours = 0;
+  if (confirmedHoursByClient) {
+    confirmedHoursByClient.forEach((h) => {
+      if (Number.isFinite(h) && h > 0) totalConfirmedHours += h;
+    });
+  }
+  const tauxHoraireReel = totalConfirmedHours > 0 ? caYear / totalConfirmedHours : 0;
+  // Rétrocompatibilité : `tauxHoraire` = taux horaire vendu (comportement d'origine).
+  const tauxHoraire = tauxHoraireVendu;
 
   // Répartition par famille
   const byFamily = FAMILIES.map((f) => ({
@@ -310,6 +327,9 @@ export function computeKpis(params: {
     panierMoyen,
     tjm,
     tauxHoraire,
+    tauxHoraireVendu,
+    tauxHoraireReel,
+    totalConfirmedHours,
     byFamily,
     yearEntries,
     prevYearEntries,
@@ -479,7 +499,15 @@ export function healthScore(k: Kpis, settings: PilotSettings) {
   const objectif = Math.max(0, Math.min(100, k.objectifPct));
   const rentabilite =
     settings.target_hourly_rate > 0
-      ? Math.max(0, Math.min(100, (k.tauxHoraire / settings.target_hourly_rate) * 100))
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            ((k.tauxHoraireReel > 0 ? k.tauxHoraireReel : k.tauxHoraireVendu) /
+              settings.target_hourly_rate) *
+              100,
+          ),
+        )
       : 50;
   const activite = Math.max(0, Math.min(100, (k.nbEntries / 100) * 100));
 
@@ -545,12 +573,12 @@ export function generateThematicInsights(
           ? `Marge nette de ${k.marge.toFixed(0)} % : rentabilité correcte, un léger effort sur les charges permettrait d'améliorer le résultat.`
           : `Marge nette de ${k.marge.toFixed(0)} % : rentabilité faible, revoyez le mix charges / prix.`);
   }
-  if (settings.target_hourly_rate > 0 && k.tauxHoraire > 0) {
-    const ecart = k.tauxHoraire - settings.target_hourly_rate;
+  if (settings.target_hourly_rate > 0 && k.tauxHoraireReel > 0) {
+    const ecart = k.tauxHoraireReel - settings.target_hourly_rate;
     push("Rentabilité",
       ecart >= 0
-        ? `Le taux horaire réel (${formatEuro(k.tauxHoraire)}/h) dépasse la cible de ${formatEuro(ecart)}/h.`
-        : `Le taux horaire réel (${formatEuro(k.tauxHoraire)}/h) est inférieur de ${formatEuro(-ecart)}/h à la cible.`);
+        ? `Le taux horaire réel (${formatEuro(k.tauxHoraireReel)}/h, basé sur les heures confirmées) dépasse la cible de ${formatEuro(ecart)}/h.`
+        : `Le taux horaire réel (${formatEuro(k.tauxHoraireReel)}/h, basé sur les heures confirmées) est inférieur de ${formatEuro(-ecart)}/h à la cible.`);
   }
   if (settings.target_tjm > 0 && k.tjm > 0) {
     push("Rentabilité",
