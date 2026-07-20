@@ -318,8 +318,8 @@ export async function createInterventionFromRecommendation(recoId: string): Prom
     const { data: svc } = await supabase
       .from("services")
       .select("id")
-      .eq("name", r.title)
-      .eq("active", true)
+      .eq("label", r.title)
+      .eq("is_archived", false)
       .limit(1)
       .maybeSingle();
     serviceId = (svc as { id: string } | null)?.id ?? null;
