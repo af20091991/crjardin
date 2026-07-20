@@ -57,7 +57,8 @@ function PilotClient360() {
         .from("interventions")
         .select("id,intervention_date,intervention_type,status,title,hours_spent,sent_to_client_at,pdf_storage_path,intervention_tasks(id,label,status)")
         .eq("client_id", clientId)
-        .order("intervention_date", { ascending: false });
+        .order("intervention_date", { ascending: false })
+        .limit(50);
       if (error) throw error;
       return (data ?? []) as unknown as InterventionRow[];
     },
@@ -82,7 +83,7 @@ function PilotClient360() {
     },
   });
 
-  if (clientQ.isLoading || scoreQ.isLoading) {
+  if (clientQ.isLoading) {
     return <Skeleton className="h-96 rounded-xl" />;
   }
   if (clientQ.isError || !clientQ.data) {
@@ -96,6 +97,7 @@ function PilotClient360() {
 
   const client = clientQ.data;
   const score = scoreQ.data ?? null;
+  const noEconomicData = !scoreQ.isLoading && score === null;
   const scoreMeta = score ? SCORE_META[score.score] : null;
   const confMeta = score ? CONFIDENCE_META[score.confidenceLevel] : null;
   const ConfIcon = confMeta?.icon;
@@ -142,8 +144,21 @@ function PilotClient360() {
         </CardContent>
       </Card>
 
+      {noEconomicData && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-2 py-8 text-center">
+            <AlertCircle className="h-6 w-6 text-muted-foreground" />
+            <p className="font-medium">Aucune donnée économique disponible</p>
+            <p className="max-w-md text-sm text-muted-foreground">
+              Ce client n'a pas encore de chiffre d'affaires, d'intervention ou d'opportunité enregistrés.
+              Le score et les indicateurs s'afficheront dès la première saisie.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Action recommandée */}
-      {nextAction && (
+      {nextAction && !noEconomicData && (
         <Card className="border-primary/40 bg-primary/5">
           <CardContent className="flex items-start gap-3 pt-6">
             <Compass className="mt-0.5 h-5 w-5 shrink-0 text-primary" />

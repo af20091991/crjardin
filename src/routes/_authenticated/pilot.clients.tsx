@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
-import { clientStats, formatEuro } from "@/lib/pilot";
+import { clientStatsWithHours, fetchConfirmedHoursByClient, formatEuro } from "@/lib/pilot";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,11 +32,24 @@ function PilotClientsPage() {
   const year = new Date().getFullYear();
   const [scope, setScope] = useState<string>(String(year));
 
+  const yearFilter = scope === "all" ? undefined : Number(scope);
+  const confirmed = useQuery({
+    queryKey: ["confirmed-hours-by-client", yearFilter ?? "all"],
+    queryFn: () => fetchConfirmedHoursByClient(yearFilter),
+  });
+  const allConfirmed = useQuery({
+    queryKey: ["confirmed-hours-by-client", "all"],
+    queryFn: () => fetchConfirmedHoursByClient(undefined),
+  });
+
   const stats = useMemo(
-    () => clientStats(entries.data ?? [], scope === "all" ? undefined : Number(scope)),
-    [entries.data, scope],
+    () => clientStatsWithHours(entries.data ?? [], yearFilter, confirmed.data),
+    [entries.data, yearFilter, confirmed.data],
   );
-  const allTime = useMemo(() => clientStats(entries.data ?? []), [entries.data]);
+  const allTime = useMemo(
+    () => clientStatsWithHours(entries.data ?? [], undefined, allConfirmed.data),
+    [entries.data, allConfirmed.data],
+  );
 
   const now = Date.now();
   const DAY = 86400000;

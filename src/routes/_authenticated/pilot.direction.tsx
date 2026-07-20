@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import {
-  computeKpis, monthlySeries, clientStats, generateInsights, healthScore, HEALTH_META,
+  computeKpis, monthlySeries, clientStatsWithHours, fetchConfirmedHoursByClient,
+  generateInsights, healthScore, HEALTH_META,
   formatEuro, formatPct, DEFAULT_SETTINGS,
 } from "@/lib/pilot";
 import { getOpportunitiesValue } from "@/lib/garden";
@@ -45,7 +46,14 @@ function PilotDashboard() {
       }),
     [entries.data, charges.data, set, year, month],
   );
-  const cstats = useMemo(() => clientStats(entries.data ?? [], year), [entries.data, year]);
+  const confirmedHours = useQuery({
+    queryKey: ["confirmed-hours-by-client", year],
+    queryFn: () => fetchConfirmedHoursByClient(year),
+  });
+  const cstats = useMemo(
+    () => clientStatsWithHours(entries.data ?? [], year, confirmedHours.data),
+    [entries.data, year, confirmedHours.data],
+  );
   const health = useMemo(() => healthScore(k, set), [k, set]);
   const insights = useMemo(() => generateInsights(k, set, cstats), [k, set, cstats]);
   const series = useMemo(() => monthlySeries(entries.data ?? [], year), [entries.data, year]);
