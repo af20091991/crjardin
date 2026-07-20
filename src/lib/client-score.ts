@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_SETTINGS, getSettings } from "@/lib/pilot";
+import { daysBetween as _daysBetween, currentYear as _currentYear } from "@/lib/date-utils";
 
 // ---------- Règles de classement (ajustables) ----------
 export const SCORE_RULES = {
@@ -74,16 +75,8 @@ export interface ClientScore {
 }
 
 // ---------- Helpers ----------
-function currentYear(): number {
-  return new Date().getFullYear();
-}
-
-function daysBetween(iso: string | null): number | null {
-  if (!iso) return null;
-  const d = new Date(iso).getTime();
-  if (Number.isNaN(d)) return null;
-  return Math.floor((Date.now() - d) / 86_400_000);
-}
+const currentYear = _currentYear;
+const daysBetween = _daysBetween;
 
 export function computeConfidenceLevel(
   interventionsCount: number,
@@ -354,6 +347,109 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
 export async function getClientEconomicScore(
   clientId: string,
 ): Promise<ClientScore | null> {
-  const all = await getClientEconomicScores();
-  return all.find((s) => s.client_id === clientId) ?? null;
+  // Requêtes ciblées sur un seul client — ne charge jamais tout le portefeuille.
+  const [caRes, ivRes, oppRes, clientRes, settings] = await Promise.all([
+    supabase
+      .from("pilot_ca_entries")
+      .select("client_id,year,amount_ht")
+      .eq("kind", "vente")
+      .eq("client_id", clientId),
+    supabase
+      .from("interventions")
+      .select("client_id,hours_spent,intervention_date,status")
+      .eq("status", "termine")
+      .eq("client_id", clientId),
+    supabase
+      .from("v_client_next_best_offers" as never)
+      .select("client_id,estimated_value,score_opportunity")
+      .eq("client_id", clientId),
+    supabase.from("clients").select("id,name").eq("id", clientId).maybeSingle(),
+    getSettings().catch(() => null),
+  ]);
+  if (caRes.error) throw caRes.error;
+  if (ivRes.error) throw ivRes.error;
+  if (clientRes.error) throw clientRes.error;
+
+  const ca = caRes.data ?? [];
+  const interventions = ivRes.data ?? [];
+  const opps = (oppRes.error
+    ? []
+    : ((oppRes.data as unknown as Array<{
+        client_id: string;
+        estimated_value: number | null;
+        score_opportunity: number | null;
+      }>) ?? [])) as Array<{ estimated_value: number | null; score_opportunity: number | null }>;
+  const clientRow = (clientRes.data as { id: string; name: string | null } | null) ?? null;
+
+  // Aucune trace économique : renvoyer null (fiche gérera l'affichage "données absentes").
+  if (ca.length === 0 && interventions.length === 0 && opps.length === 0) {
+    return null;
+  }
+
+  const target =
+    settings?.target_hourly_rate ?? DEFAULT_SETTINGS.target_hourly_rate;
+  const yr = currentYear();
+
+  let revenueTotalHt = 0;
+  let revenueYearHt = 0;
+  for (const r of ca) {
+    const ht = Number(r.amount_ht) || 0;
+    revenueTotalHt += ht;
+    if (Number(r.year) === yr) revenueYearHt += ht;
+  }
+
+  let interventionsCount = 0;
+  let interventionsWithHours = 0;
+  let hoursConfirmed = 0;
+  let lastInterventionAt: string | null = null;
+  for (const iv of interventions) {
+    interventionsCount += 1;
+    const h = Number(iv.hours_spent) || 0;
+    if (h > 0) {
+      interventionsWithHours += 1;
+      hoursConfirmed += h;
+    }
+    if (iv.intervention_date && (!lastInterventionAt || iv.intervention_date > lastInterventionAt)) {
+      lastInterventionAt = iv.intervention_date;
+    }
+  }
+
+  let opportunitiesCount = 0;
+  let opportunitiesValue = 0;
+  for (const o of opps) {
+    opportunitiesCount += 1;
+    opportunitiesValue += Number(o.estimated_value) || 0;
+  }
+
+  const realRate = hoursConfirmed > 0 ? revenueTotalHt / hoursConfirmed : null;
+  const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
+  const hoursConfirmedRatio =
+    interventionsCount > 0 ? interventionsWithHours / interventionsCount : 0;
+  const days = daysBetween(lastInterventionAt);
+  const confidenceLevel = computeConfidenceLevel(
+    interventionsCount,
+    hoursConfirmed,
+    hoursConfirmedRatio,
+  );
+
+  const base = {
+    client_id: clientId,
+    client_name: clientRow?.name ?? null,
+    revenueTotalHt,
+    revenueYearHt,
+    interventionsCount,
+    hoursConfirmed,
+    interventionsWithHours,
+    hoursConfirmedRatio,
+    realHourlyRate: realRate,
+    targetHourlyRate: target,
+    rateRatio,
+    lastInterventionAt,
+    daysSinceLastIntervention: days,
+    opportunitiesCount,
+    opportunitiesValue,
+    confidenceLevel,
+  };
+  const { score, recommendation } = classify(base);
+  return { ...base, score, recommendation };
 }
