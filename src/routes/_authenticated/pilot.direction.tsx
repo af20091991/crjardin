@@ -35,6 +35,10 @@ function PilotDashboard() {
   const loading = entries.isLoading || charges.isLoading || settings.isLoading;
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
+  const confirmedHours = useQuery({
+    queryKey: ["confirmed-hours-by-client", year],
+    queryFn: () => fetchConfirmedHoursByClient(year),
+  });
   const k = useMemo(
     () =>
       computeKpis({
@@ -43,13 +47,10 @@ function PilotDashboard() {
         settings: set,
         year,
         month,
+        confirmedHoursByClient: confirmedHours.data,
       }),
-    [entries.data, charges.data, set, year, month],
+    [entries.data, charges.data, set, year, month, confirmedHours.data],
   );
-  const confirmedHours = useQuery({
-    queryKey: ["confirmed-hours-by-client", year],
-    queryFn: () => fetchConfirmedHoursByClient(year),
-  });
   const cstats = useMemo(
     () => clientStatsWithHours(entries.data ?? [], year, confirmedHours.data),
     [entries.data, year, confirmedHours.data],
@@ -124,12 +125,22 @@ function PilotDashboard() {
         <KpiCard label="TJM réel" value={formatEuro(k.tjm)} icon={Clock} to="/pilot/finance" description="Taux journalier moyen = CA HT annuel / nombre de jours travaillés distincts." />
         <KpiCard
           label="Taux horaire réel"
-          value={`${formatEuro(k.tauxHoraire)}/h`}
+          value={k.tauxHoraireReel > 0 ? `${formatEuro(k.tauxHoraireReel)}/h` : "—"}
           icon={Gauge}
           to="/pilot/finance"
-          sub={set.target_hourly_rate > 0 ? `Cible ${formatEuro(set.target_hourly_rate)}/h` : undefined}
-          tone={k.tauxHoraire >= set.target_hourly_rate ? "positive" : "warning"}
-          description="Taux horaire réel = CA HT annuel / heures facturées. À comparer au taux cible de vos paramètres."
+          sub={
+            k.tauxHoraireReel > 0
+              ? set.target_hourly_rate > 0
+                ? `Cible ${formatEuro(set.target_hourly_rate)}/h · ${k.totalConfirmedHours.toFixed(0)} h confirmées`
+                : `${k.totalConfirmedHours.toFixed(0)} h confirmées`
+              : "Aucune heure confirmée sur l'année"
+          }
+          tone={
+            k.tauxHoraireReel > 0 && k.tauxHoraireReel >= set.target_hourly_rate
+              ? "positive"
+              : "warning"
+          }
+          description="Taux horaire réel = CA HT annuel / heures réellement consommées (interventions terminées avec heures confirmées). À comparer au taux cible."
         />
         <KpiCard label="Interventions" value={k.nbEntries} icon={Users} to="/pilot/ca" sub={`${k.workedDays} jours travaillés`} description="Nombre total de lignes de vente saisies sur l'année (une ligne = une intervention/prestation facturée)." />
         <KpiCard label="Heures facturées" value={`${k.totalHours.toFixed(0)} h`} icon={Clock} to="/pilot/ca" description="Cumul des heures terrain déclarées sur les ventes de l'année." />
