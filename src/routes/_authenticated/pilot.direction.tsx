@@ -305,7 +305,7 @@ function ClientRow({ s }: { s: ClientScore }) {
     <tr className="border-t">
       <td className="px-3 py-2">
         <Link
-          to="/clients/$clientId"
+          to="/pilot/fiche/$clientId"
           params={{ clientId: s.client_id }}
           className="font-medium text-foreground hover:underline"
         >
