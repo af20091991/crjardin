@@ -40,6 +40,10 @@ function SantePage() {
   const { entries, charges, settings } = usePilotData();
   const year = new Date().getFullYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
+  const confirmed = useQuery({
+    queryKey: ["confirmed-hours-by-client", year],
+    queryFn: () => fetchConfirmedHoursByClient(year),
+  });
   const k = useMemo(
     () => computeKpis({
       entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
@@ -49,10 +53,6 @@ function SantePage() {
     [entries.data, charges.data, set, year, confirmed.data],
   );
   const health = useMemo(() => healthScore(k, set), [k, set]);
-  const confirmed = useQuery({
-    queryKey: ["confirmed-hours-by-client", year],
-    queryFn: () => fetchConfirmedHoursByClient(year),
-  });
   const insights = useMemo(
     () => generateThematicInsights(k, set, clientStatsWithHours(entries.data ?? [], year, confirmed.data), charges.data ?? []),
     [k, set, entries.data, charges.data, year, confirmed.data],
