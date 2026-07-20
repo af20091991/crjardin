@@ -12,6 +12,7 @@ import { listAllRecommendations } from "@/lib/garden";
 import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfWeek, endOfWeek, isSameDay, inRange } from "@/lib/date-utils";
+import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import {
   Euro, Wallet, Target, CalendarDays, Sparkles, AlertTriangle, FileText,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
@@ -152,7 +153,7 @@ function TodayPage() {
     return i.hours_spent == null || estimated;
   });
 
-  // Clients dormants (dernière intervention > 180 j)
+  // Clients dormants — seuils centralisés (CLIENT_ACTIVITY_RULES)
   const DAY = 24 * 60 * 60 * 1000;
   const lastByClient = new Map<string, number>();
   allI.forEach((i) => {
@@ -161,7 +162,7 @@ function TodayPage() {
     if (t > prev) lastByClient.set(i.client_id, t);
   });
   const dormants = Array.from(lastByClient.entries()).filter(
-    ([, t]) => today.getTime() - t > 180 * DAY,
+    ([, t]) => today.getTime() - t > CLIENT_ACTIVITY_RULES.WARNING_DAYS * DAY,
   );
 
   // Objectifs mensuels en retard : status en_cours & deadline < aujourd'hui
@@ -272,7 +273,7 @@ function TodayPage() {
   }, [entries.data]);
 
   const sleeping12m = useMemo(() => {
-    const cut = today.getTime() - 365 * DAY;
+    const cut = today.getTime() - CLIENT_ACTIVITY_RULES.DORMANT_DAYS * DAY;
     return Array.from(lastByClientCa.entries()).filter(([, v]) => v.last < cut);
   }, [lastByClientCa]);
 
@@ -285,7 +286,7 @@ function TodayPage() {
   );
 
   const entretienSansConseil = useMemo(() => {
-    const cut = today.getTime() - 365 * DAY;
+    const cut = today.getTime() - CLIENT_ACTIVITY_RULES.DORMANT_DAYS * DAY;
     return Array.from(lastByClientCa.entries()).filter(([, v]) => {
       if (!v.families.has("sap")) return false;
       const lastConseil = v.lastByFamily.get("conseil") ?? 0;

@@ -498,27 +498,32 @@ export function healthScore(k: Kpis, settings: PilotSettings) {
   const marge = Math.max(0, Math.min(100, (k.marge / 30) * 100)); // 30% marge = 100
   const croissance = Math.max(0, Math.min(100, 50 + k.progression * 2)); // +25% => 100
   const objectif = Math.max(0, Math.min(100, k.objectifPct));
-  const rentabilite =
-    settings.target_hourly_rate > 0
-      ? Math.max(
-          0,
-          Math.min(
-            100,
-            ((k.tauxHoraireReel > 0 ? k.tauxHoraireReel : k.tauxHoraireVendu) /
-              settings.target_hourly_rate) *
-              100,
-          ),
-        )
-      : 50;
+  // Rentabilité : uniquement basée sur le taux horaire réel (interventions.hours_spent).
+  // Aucun fallback silencieux vers les heures vendues — si les heures confirmées
+  // manquent, le sous-score est marqué "données insuffisantes" et exclu du calcul.
+  const rentabiliteAvailable =
+    settings.target_hourly_rate > 0 && k.tauxHoraireReel > 0;
+  const rentabilite = rentabiliteAvailable
+    ? Math.max(0, Math.min(100, (k.tauxHoraireReel / settings.target_hourly_rate) * 100))
+    : null;
   const activite = Math.max(0, Math.min(100, (k.nbEntries / 100) * 100));
 
   const weights = { marge: 0.3, croissance: 0.2, objectif: 0.2, rentabilite: 0.2, activite: 0.1 };
+  // Renormalisation si rentabilité indisponible (pas de heures confirmées) :
+  // son poids est redistribué proportionnellement sur les autres sous-scores.
+  const wSum = rentabiliteAvailable
+    ? 1
+    : weights.marge + weights.croissance + weights.objectif + weights.activite;
+  const rentabiliteContribution = rentabiliteAvailable
+    ? (rentabilite as number) * weights.rentabilite
+    : 0;
   const score = Math.round(
-    marge * weights.marge +
+    (marge * weights.marge +
       croissance * weights.croissance +
       objectif * weights.objectif +
-      rentabilite * weights.rentabilite +
-      activite * weights.activite,
+      rentabiliteContribution +
+      activite * weights.activite) /
+      wSum,
   );
   const level: HealthLevel =
     score >= 80 ? "excellent" : score >= 60 ? "bon" : score >= 40 ? "surveiller" : "critique";
@@ -529,7 +534,11 @@ export function healthScore(k: Kpis, settings: PilotSettings) {
       { label: "Marge", value: Math.round(marge) },
       { label: "Croissance", value: Math.round(croissance) },
       { label: "Objectif", value: Math.round(objectif) },
-      { label: "Rentabilité", value: Math.round(rentabilite) },
+      {
+        label: "Rentabilité",
+        value: rentabiliteAvailable ? Math.round(rentabilite as number) : null,
+        note: rentabiliteAvailable ? undefined : "Données insuffisantes (heures non confirmées)",
+      },
       { label: "Activité", value: Math.round(activite) },
     ],
   };
@@ -632,9 +641,14 @@ export function generateThematicInsights(
   }
   const now = Date.now();
   const DAY = 86400000;
-  const dormants = clients.filter((c) => c.lastDate && now - new Date(c.lastDate).getTime() > 180 * DAY);
+  const dormants = clients.filter(
+    (c) => c.lastDate && now - new Date(c.lastDate).getTime() > CLIENT_ACTIVITY_RULES.WARNING_DAYS * DAY,
+  );
   if (dormants.length > 0) {
-    push("Clients", `${dormants.length} client(s) sans intervention depuis plus de 6 mois — pensez à relancer.`);
+    push(
+      "Clients",
+      `${dormants.length} client(s) sans activité depuis plus de ${CLIENT_ACTIVITY_RULES.WARNING_DAYS} jours — pensez à relancer.`,
+    );
   }
 
   // === SAISONNALITÉ ===
