@@ -669,6 +669,7 @@ function InterventionDetail() {
             <div className="space-y-3">
               {tasks?.map((t) => {
                 const status = (t.status as TaskStatus) in TASK_STATUS_META ? (t.status as TaskStatus) : "realise";
+                const svc = (serviceCatalog ?? []).find((s) => s.id === (t.service_id ?? ""));
                 return (
                   <div key={t.id} className="rounded-lg border border-border p-3">
                     <div className="flex items-start justify-between gap-2">
@@ -676,6 +677,30 @@ function InterventionDetail() {
                       <button onClick={() => delT.mutate(t.id)} className="shrink-0 text-muted-foreground hover:text-destructive">
                         <X className="h-4 w-4" />
                       </button>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Select
+                        value={t.service_id ?? "__none__"}
+                        onValueChange={(v) =>
+                          setTaskService.mutate({ id: t.id, service_id: v === "__none__" ? null : v })
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-full max-w-xs text-xs">
+                          <SelectValue placeholder="Rattacher au catalogue…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— Non catalogué —</SelectItem>
+                          {(serviceCatalog ?? []).map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.label}
+                              {s.category_label ? ` · ${s.category_label}` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {svc?.category_label && (
+                        <Badge variant="secondary" className="text-[10px]">{svc.category_label}</Badge>
+                      )}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {STATUSES.map((s) => (
@@ -700,16 +725,52 @@ function InterventionDetail() {
                 );
               })}
             </div>
-            <div className="flex gap-2">
-              <Input
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && newTask.trim()) { e.preventDefault(); addT.mutate(newTask.trim()); } }}
-                placeholder="Ajouter une tâche…"
-              />
-              <Button variant="outline" disabled={!newTask.trim() || addT.isPending} onClick={() => addT.mutate(newTask.trim())}>
-                <Plus className="h-4 w-4" />
-              </Button>
+            <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
+              <p className="text-xs font-medium text-muted-foreground">Ajouter une tâche</p>
+              <Select
+                value={newTaskService || "__none__"}
+                onValueChange={(v) => {
+                  const val = v === "__none__" ? "" : v;
+                  setNewTaskService(val);
+                  if (val && !newTask.trim()) {
+                    const svc = (serviceCatalog ?? []).find((s) => s.id === val);
+                    if (svc) setNewTask(svc.label);
+                  }
+                }}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Choisir dans le catalogue (optionnel)…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Saisie libre —</SelectItem>
+                  {(serviceCatalog ?? []).map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.label}
+                      {s.category_label ? ` · ${s.category_label}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2">
+                <Input
+                  value={newTask}
+                  onChange={(e) => setNewTask(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newTask.trim()) {
+                      e.preventDefault();
+                      addT.mutate({ label: newTask.trim(), service_id: newTaskService || null });
+                    }
+                  }}
+                  placeholder="Libellé de la tâche…"
+                />
+                <Button
+                  variant="outline"
+                  disabled={!newTask.trim() || addT.isPending}
+                  onClick={() => addT.mutate({ label: newTask.trim(), service_id: newTaskService || null })}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
