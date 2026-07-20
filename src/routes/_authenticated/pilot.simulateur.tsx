@@ -55,7 +55,7 @@ function SimulateurPage() {
           <Metric label="Charges simulées" value={formatEuro(charge)} />
           <Metric label="Bénéfice" value={formatEuro(benefice)} tone={benefice >= 0 ? "text-emerald-600" : "text-rose-600"} />
           <Metric label="Marge" value={`${marge.toFixed(0)} %`} />
-          <Metric label="Taux horaire" value={`${formatEuro(tauxHoraire)}/h`} />
+          <Metric label="Taux horaire vendu (simulé)" value={`${formatEuro(tauxHoraire)}/h`} />
           <Metric label="vs bénéfice actuel" value={formatEuro(benefice - base.benefice)} tone={benefice - base.benefice >= 0 ? "text-emerald-600" : "text-rose-600"} />
         </CardContent></Card>
       </div>
