@@ -21,6 +21,17 @@ export const SCORE_RULES = {
   },
 } as const;
 
+export const CONFIDENCE_RULES = {
+  HIGH: {
+    minInterventions: 5,
+    minConfirmedHoursRatio: 0.8,
+  },
+  MEDIUM: {
+    minInterventions: 2,
+    minConfirmedHoursRatio: 0.5,
+  },
+} as const;
+
 export type ClientScoreLabel =
   | "strategique"
   | "a_optimiser"
@@ -59,6 +70,7 @@ export interface ClientScore {
   opportunitiesValue: number;
   score: ClientScoreLabel;
   recommendation: string;
+  confidenceLevel: "HIGH" | "MEDIUM" | "LOW";
 }
 
 // ---------- Helpers ----------
@@ -71,6 +83,28 @@ function daysBetween(iso: string | null): number | null {
   const d = new Date(iso).getTime();
   if (Number.isNaN(d)) return null;
   return Math.floor((Date.now() - d) / 86_400_000);
+}
+
+export function computeConfidenceLevel(
+  interventionsCount: number,
+  hoursConfirmed: number,
+  hoursConfirmedRatio: number,
+): "HIGH" | "MEDIUM" | "LOW" {
+  if (
+    interventionsCount >= CONFIDENCE_RULES.HIGH.minInterventions &&
+    hoursConfirmedRatio >= CONFIDENCE_RULES.HIGH.minConfirmedHoursRatio &&
+    hoursConfirmed > 0
+  ) {
+    return "HIGH";
+  }
+  if (
+    interventionsCount >= CONFIDENCE_RULES.MEDIUM.minInterventions &&
+    hoursConfirmedRatio >= CONFIDENCE_RULES.MEDIUM.minConfirmedHoursRatio &&
+    hoursConfirmed > 0
+  ) {
+    return "MEDIUM";
+  }
+  return "LOW";
 }
 
 function classify(
@@ -285,6 +319,12 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
         : 0;
     const days = daysBetween(e.lastInterventionAt);
 
+    const confidenceLevel = computeConfidenceLevel(
+      e.interventionsCount,
+      e.hoursConfirmed,
+      hoursConfirmedRatio,
+    );
+
     const base = {
       client_id: e.client_id,
       client_name: e.client_name,
@@ -301,6 +341,7 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       daysSinceLastIntervention: days,
       opportunitiesCount: e.opportunitiesCount,
       opportunitiesValue: e.opportunitiesValue,
+      confidenceLevel,
     };
     const { score, recommendation } = classify(base);
     scores.push({ ...base, score, recommendation });
