@@ -243,8 +243,14 @@ export function computeKpis(params: {
   settings: PilotSettings;
   year: number;
   month: number; // 0-11 current month reference
+  /**
+   * Heures réellement consommées par client, issues de interventions.hours_spent
+   * (statut = "termine"). Source de vérité pour `tauxHoraireReel`.
+   * Si absent, `tauxHoraireReel` vaut 0 (pas de fallback silencieux).
+   */
+  confirmedHoursByClient?: Map<string, number>;
 }) {
-  const { entries, charges, settings, year, month } = params;
+  const { entries, charges, settings, year, month, confirmedHoursByClient } = params;
 
   const yearEntries = entries.filter((e) => y(e.entry_date) === year);
   const prevYearEntries = entries.filter((e) => y(e.entry_date) === year - 1);
@@ -279,7 +285,18 @@ export function computeKpis(params: {
   const nbEntries = yearEntries.length;
   const panierMoyen = nbEntries > 0 ? caYear / nbEntries : 0;
   const tjm = workedDays > 0 ? caYear / workedDays : 0;
-  const tauxHoraire = totalHours > 0 ? caYear / totalHours : 0;
+  // Taux horaire vendu = CA HT / heures facturées (pilot_ca_entries.hours)
+  const tauxHoraireVendu = totalHours > 0 ? caYear / totalHours : 0;
+  // Taux horaire réel = CA HT / heures confirmées (interventions.hours_spent)
+  let totalConfirmedHours = 0;
+  if (confirmedHoursByClient) {
+    confirmedHoursByClient.forEach((h) => {
+      if (Number.isFinite(h) && h > 0) totalConfirmedHours += h;
+    });
+  }
+  const tauxHoraireReel = totalConfirmedHours > 0 ? caYear / totalConfirmedHours : 0;
+  // Rétrocompatibilité : `tauxHoraire` = taux horaire vendu (comportement d'origine).
+  const tauxHoraire = tauxHoraireVendu;
 
   // Répartition par famille
   const byFamily = FAMILIES.map((f) => ({
@@ -310,6 +327,9 @@ export function computeKpis(params: {
     panierMoyen,
     tjm,
     tauxHoraire,
+    tauxHoraireVendu,
+    tauxHoraireReel,
+    totalConfirmedHours,
     byFamily,
     yearEntries,
     prevYearEntries,
