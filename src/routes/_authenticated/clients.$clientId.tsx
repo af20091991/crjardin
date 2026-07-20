@@ -231,27 +231,20 @@ function ClientDetail() {
               <HistoryPlaceholder label="Aucune préconisation enregistrée." icon={Sparkles} />
             ) : (
               <div className="mt-3 space-y-2.5">
-                {recos!.map((r) => {
-                  const status = (r.status as RecommendationStatus) in RECO_STATUS_META ? (r.status as RecommendationStatus) : "en_attente";
-                  return (
-                    <Card key={r.id} className="p-3.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-medium">{r.title}</p>
-                          {r.category && <Badge variant="secondary" className="mt-1">{r.category}</Badge>}
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <Badge className={RECO_STATUS_META[status].tone}>{RECO_STATUS_META[status].label}</Badge>
-                          {recommendationPrice(r) != null && (
-                            <span className="text-xs font-semibold text-primary">{formatEuro(recommendationPrice(r)!)}</span>
-                          )}
-                        </div>
-                      </div>
-                      {r.description && <p className="mt-1.5 text-sm text-muted-foreground">{r.description}</p>}
-                      <RecoInterest reco={r} onCleared={() => { qc.invalidateQueries({ queryKey: ["recommendations", clientId] }); qc.invalidateQueries({ queryKey: ["recommendations-all"] }); }} />
-                    </Card>
-                  );
-                })}
+                {recos!.map((r) => (
+                  <RecoCard
+                    key={r.id}
+                    reco={r}
+                    clientId={clientId}
+                    canEdit={canEdit}
+                    onChanged={() => {
+                      qc.invalidateQueries({ queryKey: ["recommendations", clientId] });
+                      qc.invalidateQueries({ queryKey: ["recommendations-all"] });
+                      qc.invalidateQueries({ queryKey: ["recommendations-funnel"] });
+                      qc.invalidateQueries({ queryKey: ["opportunities-value"] });
+                    }}
+                  />
+                ))}
               </div>
             )}
           </TabsContent>
