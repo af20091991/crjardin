@@ -23,11 +23,12 @@ import {
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
   Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check, ExternalLink,
-  ThumbsUp, ThumbsDown, RotateCcw,
+  ThumbsUp, ThumbsDown, RotateCcw, TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useRole } from "@/hooks/use-role";
+import { ClientOpportunitiesWidget } from "@/components/ClientOpportunitiesWidget";
 
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({
   component: ClientDetail,
@@ -162,6 +163,7 @@ function ClientDetail() {
             <TabsTrigger value="interventions" className="flex-1"><Calendar className="mr-1.5 h-4 w-4" />Interventions</TabsTrigger>
             <TabsTrigger value="health" className="flex-1"><Leaf className="mr-1.5 h-4 w-4" />Santé</TabsTrigger>
             <TabsTrigger value="reco" className="flex-1"><Sparkles className="mr-1.5 h-4 w-4" />Préconisations</TabsTrigger>
+            <TabsTrigger value="opps" className="flex-1"><TrendingUp className="mr-1.5 h-4 w-4" />Opportunités</TabsTrigger>
           </TabsList>
           <TabsContent value="interventions">
             {(interventions?.length ?? 0) === 0 ? (
@@ -249,6 +251,9 @@ function ClientDetail() {
                 })}
               </div>
             )}
+          </TabsContent>
+          <TabsContent value="opps">
+            <ClientOpportunitiesWidget clientId={clientId} />
           </TabsContent>
         </Tabs>
       </div>
