@@ -267,6 +267,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "client_messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
             foreignKeyName: "client_messages_intervention_id_fkey"
             columns: ["intervention_id"]
             isOneToOne: false
@@ -532,6 +539,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "garden_health_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
             foreignKeyName: "garden_health_intervention_id_fkey"
             columns: ["intervention_id"]
             isOneToOne: false
@@ -727,6 +741,13 @@ export type Database = {
             foreignKeyName: "intervention_tasks_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "intervention_tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
             referencedRelation: "v_service_margin"
             referencedColumns: ["service_id"]
           },
@@ -837,6 +858,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "interventions_worksite_sheet_id_fkey"
@@ -966,6 +994,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "pilot_ca_entries_intervention_id_fkey"
@@ -1256,6 +1291,13 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "planning_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
         ]
       }
       profiles: {
@@ -1376,6 +1418,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "recommendations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
             foreignKeyName: "recommendations_intervention_id_fkey"
             columns: ["intervention_id"]
             isOneToOne: false
@@ -1429,6 +1478,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
           },
         ]
       }
@@ -1550,6 +1606,13 @@ export type Database = {
             foreignKeyName: "service_prices_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "service_prices_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
             referencedRelation: "v_service_margin"
             referencedColumns: ["service_id"]
           },
@@ -1610,6 +1673,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_seasonality_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["service_id"]
           },
           {
             foreignKeyName: "service_seasonality_service_id_fkey"
@@ -1718,6 +1788,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_access_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
           },
         ]
       }
@@ -1854,6 +1931,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "subcontractor_missions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
             foreignKeyName: "subcontractor_missions_intervention_id_fkey"
             columns: ["intervention_id"]
             isOneToOne: false
@@ -1873,6 +1957,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["service_id"]
           },
           {
             foreignKeyName: "subcontractor_missions_service_id_fkey"
@@ -2183,6 +2274,13 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "worksite_sheets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
         ]
       }
     }
@@ -2200,6 +2298,88 @@ export type Database = {
           user_id: string | null
         }
         Relationships: []
+      }
+      v_client_service_gaps: {
+        Row: {
+          category_id: string | null
+          client_id: string | null
+          service_id: string | null
+          service_label: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_client_service_profile: {
+        Row: {
+          category_id: string | null
+          client_id: string | null
+          first_date: string | null
+          last_date: string | null
+          last_intervention_id: string | null
+          occurrences: number | null
+          service_id: string | null
+          service_label: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intervention_tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intervention_tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "intervention_tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_margin"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "intervention_tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_seasonality_resolved"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "interventions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "services_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_intervention_pnl: {
         Row: {
@@ -2223,6 +2403,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
           },
         ]
       }
@@ -2249,6 +2436,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_prices_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["service_id"]
           },
           {
             foreignKeyName: "service_prices_service_id_fkey"
@@ -2345,6 +2539,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "subcontractor_missions_intervention_id_fkey"
