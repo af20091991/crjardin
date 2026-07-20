@@ -6,7 +6,7 @@ import { KpiCard } from "@/components/pilot/KpiCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { computeKpis, clientStats, formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
+import { computeKpis, clientStatsWithHours, formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
 import { listAllInterventions } from "@/lib/interventions";
 import { listAllRecommendations } from "@/lib/garden";
 import { listGoals } from "@/lib/pilot-goals";
@@ -222,8 +222,24 @@ function TodayPage() {
     );
   }, [entries.data, targetHR]);
 
-  // Clients A/B avec ratio horaire dégradé sur l'année (temps élevé vs CA)
-  const cstats = useMemo(() => clientStats(entries.data ?? [], year), [entries.data, year]);
+  // Source de vérité : heures confirmées sur interventions terminées (année en cours)
+  const confirmedHoursByClient = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const i of allI) {
+      if (i.status !== "termine" || i.hours_spent == null) continue;
+      const d = new Date(i.intervention_date);
+      if (d.getFullYear() !== year) continue;
+      const h = Number(i.hours_spent);
+      if (!Number.isFinite(h) || h <= 0) continue;
+      map.set(i.client_id, (map.get(i.client_id) ?? 0) + h);
+    }
+    return map;
+  }, [allI, year]);
+  // Clients A/B avec ratio horaire dégradé (basé sur heures réellement passées)
+  const cstats = useMemo(
+    () => clientStatsWithHours(entries.data ?? [], year, confirmedHoursByClient),
+    [entries.data, year, confirmedHoursByClient],
+  );
   const heavyLowMarginClients = useMemo(() => {
     if (targetHR <= 0) return cstats.filter(() => false);
     return cstats.filter(
