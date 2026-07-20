@@ -319,6 +319,12 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
         : 0;
     const days = daysBetween(e.lastInterventionAt);
 
+    const confidenceLevel = computeConfidenceLevel(
+      e.interventionsCount,
+      e.hoursConfirmed,
+      hoursConfirmedRatio,
+    );
+
     const base = {
       client_id: e.client_id,
       client_name: e.client_name,
@@ -335,6 +341,7 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       daysSinceLastIntervention: days,
       opportunitiesCount: e.opportunitiesCount,
       opportunitiesValue: e.opportunitiesValue,
+      confidenceLevel,
     };
     const { score, recommendation } = classify(base);
     scores.push({ ...base, score, recommendation });
