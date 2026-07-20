@@ -547,6 +547,14 @@ function InterventionDetail() {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
+            <HoursSpentBlock
+              iv={iv}
+              done={done}
+              hoursInput={hoursInput}
+              setHoursInput={setHoursInput}
+              onSave={(h) => saveHours.mutate(h)}
+              saving={saveHours.isPending}
+            />
           </CardContent>
         </Card>
 
