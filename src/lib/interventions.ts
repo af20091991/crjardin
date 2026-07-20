@@ -116,6 +116,7 @@ export interface Intervention {
   garden_evolution?: string | null;
   report_sections?: ReportSections | null;
   ai_metadata?: Record<string, unknown> | null;
+  hours_spent?: number | null;
 }
 
 export interface InterventionTask {
@@ -282,7 +283,7 @@ export async function updateIntervention(
     | "summary" | "garden_state" | "upcoming_works" | "recommendations_text"
     | "worksite_sheet_id" | "sent_pdf_storage_path" | "sent_to_client_at"
     | "positive_points" | "attention_points" | "garden_evolution"
-    | "report_sections"
+    | "report_sections" | "hours_spent" | "ai_metadata"
   >>,
 ): Promise<Intervention> {
   const { data, error } = await supabase
@@ -293,6 +294,79 @@ export async function updateIntervention(
     .single();
   if (error) throw error;
   return data as Intervention;
+}
+
+/**
+ * Estime le nombre d'heures passées sur une intervention à partir des tâches
+ * et de la durée standard de leur prestation catalogue. Fallback : 0,5 h/tâche
+ * (minimum 1 h). Retourne un nombre arrondi au quart d'heure.
+ */
+export async function estimateHoursSpent(interventionId: string): Promise<number> {
+  const { data: tasksData } = await supabase
+    .from("intervention_tasks")
+    .select("service_id, status")
+    .eq("intervention_id", interventionId);
+  const tasks = (tasksData ?? []) as Array<{ service_id: string | null; status: string }>;
+  const active = tasks.filter((t) => t.status !== "impossible" && t.status !== "reporte");
+  if (active.length === 0) return 1;
+
+  const serviceIds = Array.from(new Set(active.map((t) => t.service_id).filter((v): v is string => !!v)));
+  const durations = new Map<string, number>();
+  if (serviceIds.length > 0) {
+    const { data: svcData } = await supabase
+      .from("services")
+      .select("id, standard_duration_hours")
+      .in("id", serviceIds);
+    for (const s of (svcData ?? []) as Array<{ id: string; standard_duration_hours: number | null }>) {
+      if (typeof s.standard_duration_hours === "number") durations.set(s.id, s.standard_duration_hours);
+    }
+  }
+
+  let total = 0;
+  for (const t of active) {
+    const d = t.service_id ? durations.get(t.service_id) : undefined;
+    const base = typeof d === "number" && d > 0 ? d : 0.5;
+    const factor = t.status === "partiel" ? 0.5 : 1;
+    total += base * factor;
+  }
+  const rounded = Math.round(total * 4) / 4;
+  return Math.max(1, rounded);
+}
+
+/**
+ * Clôture une intervention en préremplissant hours_spent s'il est vide.
+ * Marque la valeur comme "estimée" dans ai_metadata.hours_spent_estimated.
+ */
+export async function completeInterventionWithHoursAutofill(
+  intervention: Intervention,
+): Promise<Intervention> {
+  if (intervention.hours_spent != null && intervention.hours_spent > 0) {
+    return updateIntervention(intervention.id, { status: "termine" });
+  }
+  const estimated = await estimateHoursSpent(intervention.id);
+  const meta = { ...(intervention.ai_metadata ?? {}), hours_spent_estimated: true, hours_spent_estimated_at: new Date().toISOString() };
+  return updateIntervention(intervention.id, {
+    status: "termine",
+    hours_spent: estimated,
+    ai_metadata: meta,
+  });
+}
+
+/**
+ * Enregistre une valeur d'heures confirmée par l'utilisateur.
+ * Supprime le flag "estimé" dans ai_metadata.
+ */
+export async function confirmHoursSpent(
+  intervention: Intervention,
+  hours: number,
+): Promise<Intervention> {
+  const prev = { ...(intervention.ai_metadata ?? {}) } as Record<string, unknown>;
+  delete prev.hours_spent_estimated;
+  delete prev.hours_spent_estimated_at;
+  return updateIntervention(intervention.id, {
+    hours_spent: hours,
+    ai_metadata: prev,
+  });
 }
 
 export async function deleteIntervention(id: string): Promise<void> {

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
@@ -10,6 +10,7 @@ import {
   TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
   DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, normalizeReportSections, type ReportSections,
   listServiceCatalog,
+  completeInterventionWithHoursAutofill, confirmHoursSpent,
 } from "@/lib/interventions";
 import {
   listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
@@ -52,6 +53,7 @@ import {
 import {
   ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
   FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download, ArrowUp, ArrowDown, Settings2,
+  Clock, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -117,7 +119,15 @@ function InterventionDetail() {
 
   const [newTask, setNewTask] = useState("");
   const [newTaskService, setNewTaskService] = useState<string>("");
+  const [hoursInput, setHoursInput] = useState<string>("");
+
+  useEffect(() => {
+    if (iv?.hours_spent != null) setHoursInput(String(iv.hours_spent));
+    else setHoursInput("");
+  }, [iv?.id, iv?.hours_spent]);
+
   const fileRef = useRef<HTMLInputElement>(null);
+
   const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const changeClient = useMutation({
@@ -232,8 +242,30 @@ function InterventionDetail() {
   });
 
   const toggleComplete = useMutation({
-    mutationFn: () => updateIntervention(interventionId, { status: iv?.status === "termine" ? "brouillon" : "termine" }),
-    onSuccess: () => { invIv(); qc.invalidateQueries({ queryKey: ["interventions"] }); },
+    mutationFn: async () => {
+      if (!iv) return;
+      if (iv.status === "termine") {
+        await updateIntervention(interventionId, { status: "brouillon" });
+      } else {
+        await completeInterventionWithHoursAutofill(iv);
+      }
+    },
+    onSuccess: () => {
+      invIv();
+      qc.invalidateQueries({ queryKey: ["interventions"] });
+      if (iv?.status !== "termine") {
+        toast.success("Intervention clôturée. Vérifiez les heures passées.");
+      }
+    },
+  });
+
+  const saveHours = useMutation({
+    mutationFn: async (hours: number) => {
+      if (!iv) return;
+      await confirmHoursSpent(iv, hours);
+    },
+    onSuccess: () => { invIv(); toast.success("Heures enregistrées"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
   const exportPdf = useMutation({
@@ -521,6 +553,14 @@ function InterventionDetail() {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
+            <HoursSpentBlock
+              iv={iv}
+              done={done}
+              hoursInput={hoursInput}
+              setHoursInput={setHoursInput}
+              onSave={(h) => saveHours.mutate(h)}
+              saving={saveHours.isPending}
+            />
           </CardContent>
         </Card>
 
@@ -1173,6 +1213,72 @@ function ReportPhotosPicker({
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function HoursSpentBlock({
+  iv,
+  done,
+  hoursInput,
+  setHoursInput,
+  onSave,
+  saving,
+}: {
+  iv: Intervention;
+  done: boolean;
+  hoursInput: string;
+  setHoursInput: (v: string) => void;
+  onSave: (hours: number) => void;
+  saving: boolean;
+}) {
+  const meta = (iv.ai_metadata ?? {}) as Record<string, unknown>;
+  const isEstimated = meta.hours_spent_estimated === true;
+  const missing = done && (iv.hours_spent == null || iv.hours_spent <= 0);
+  const current = iv.hours_spent ?? null;
+  const parsed = Number.parseFloat(hoursInput.replace(",", "."));
+  const dirty = Number.isFinite(parsed) && parsed > 0 && parsed !== current;
+
+  return (
+    <div className="mt-4 rounded-lg border bg-muted/30 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Clock className="h-4 w-4 text-muted-foreground" />
+        <Label htmlFor="hours-spent" className="text-sm font-medium">Heures passées</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="hours-spent"
+            type="number"
+            step="0.25"
+            min="0"
+            inputMode="decimal"
+            value={hoursInput}
+            onChange={(e) => setHoursInput(e.target.value)}
+            className="h-8 w-24"
+            placeholder="0.00"
+          />
+          <span className="text-xs text-muted-foreground">h</span>
+          <Button
+            size="sm"
+            variant={dirty || isEstimated ? "default" : "outline"}
+            disabled={!dirty || saving}
+            onClick={() => onSave(parsed)}
+          >
+            {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
+            {isEstimated ? "Confirmer" : "Enregistrer"}
+          </Button>
+        </div>
+        {isEstimated && current != null && (
+          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
+            Estimé automatiquement — à confirmer
+          </Badge>
+        )}
+      </div>
+      {missing && (
+        <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Cette intervention est terminée mais aucune heure passée n'est renseignée. La rentabilité ne pourra pas être calculée tant que cette valeur est vide.</span>
+        </div>
+      )}
     </div>
   );
 }
