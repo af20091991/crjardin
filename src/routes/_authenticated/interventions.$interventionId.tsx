@@ -234,8 +234,30 @@ function InterventionDetail() {
   });
 
   const toggleComplete = useMutation({
-    mutationFn: () => updateIntervention(interventionId, { status: iv?.status === "termine" ? "brouillon" : "termine" }),
-    onSuccess: () => { invIv(); qc.invalidateQueries({ queryKey: ["interventions"] }); },
+    mutationFn: async () => {
+      if (!iv) return;
+      if (iv.status === "termine") {
+        await updateIntervention(interventionId, { status: "brouillon" });
+      } else {
+        await completeInterventionWithHoursAutofill(iv);
+      }
+    },
+    onSuccess: () => {
+      invIv();
+      qc.invalidateQueries({ queryKey: ["interventions"] });
+      if (iv?.status !== "termine") {
+        toast.success("Intervention clôturée. Vérifiez les heures passées.");
+      }
+    },
+  });
+
+  const saveHours = useMutation({
+    mutationFn: async (hours: number) => {
+      if (!iv) return;
+      await confirmHoursSpent(iv, hours);
+    },
+    onSuccess: () => { invIv(); toast.success("Heures enregistrées"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
   const exportPdf = useMutation({
