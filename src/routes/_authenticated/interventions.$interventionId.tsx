@@ -121,6 +121,7 @@ function InterventionDetail() {
   const [newTaskService, setNewTaskService] = useState<string>("");
   const [hoursInput, setHoursInput] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
+
   const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const changeClient = useMutation({
