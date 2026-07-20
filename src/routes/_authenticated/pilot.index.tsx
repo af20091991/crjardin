@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { KpiCard } from "@/components/pilot/KpiCard";
 import { RecommendationsFunnelWidget } from "@/components/RecommendationsFunnelWidget";
@@ -11,9 +12,10 @@ import {
   computeKpis, monthlySeries, clientStats, generateInsights, healthScore, HEALTH_META,
   formatEuro, formatPct, DEFAULT_SETTINGS,
 } from "@/lib/pilot";
+import { getOpportunitiesValue } from "@/lib/garden";
 import {
   Euro, TrendingUp, Wallet, Percent, Target, LineChart, ShoppingCart,
-  Clock, Sparkles, Users, Lightbulb, Gauge,
+  Clock, Sparkles, Users, Lightbulb, Gauge, Handshake,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/")({
@@ -45,6 +47,11 @@ function PilotDashboard() {
   const insights = useMemo(() => generateInsights(k, set, cstats), [k, set, cstats]);
   const series = useMemo(() => monthlySeries(entries.data ?? [], year), [entries.data, year]);
   const familyData = k.byFamily.filter((f) => f.value > 0);
+
+  const opps = useQuery({
+    queryKey: ["opportunities-value"],
+    queryFn: getOpportunitiesValue,
+  });
 
   if (loading) {
     return (
@@ -123,6 +130,17 @@ function PilotDashboard() {
           sub={HEALTH_META[health.level].label}
           progress={health.score}
           description="Score global (0-100) synthétisant marge, croissance, objectif, rentabilité horaire et niveau d'activité."
+        />
+        <KpiCard
+          label="Opportunités commerciales"
+          value={formatEuro((opps.data?.pendingValue ?? 0) + (opps.data?.acceptedValue ?? 0))}
+          icon={Handshake}
+          sub={
+            opps.data
+              ? `En attente ${formatEuro(opps.data.pendingValue)} · Acceptées ${formatEuro(opps.data.acceptedValue)} · CA facturé ${formatEuro(opps.data.invoicedCa)}`
+              : "—"
+          }
+          description="Valeur estimée des recommandations en attente et acceptées, et CA généré par les recommandations facturées."
         />
       </div>
 

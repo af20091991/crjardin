@@ -78,6 +78,8 @@ export function staleClientIds(recos: Recommendation[]): Set<string> {
 
 export type RecommendationStatus =
   | "en_attente"
+  | "proposee"
+  | "vue"
   | "acceptee"
   | "planifiee"
   | "realisee"
@@ -87,6 +89,8 @@ export type RecommendationStatus =
 
 export const RECO_STATUS_META: Record<RecommendationStatus, { label: string; tone: string }> = {
   en_attente: { label: "En attente", tone: "text-amber-700 bg-amber-100" },
+  proposee: { label: "Proposée", tone: "text-sky-700 bg-sky-100" },
+  vue: { label: "Vue", tone: "text-slate-700 bg-slate-100" },
   acceptee: { label: "Acceptée", tone: "text-emerald-700 bg-emerald-100" },
   planifiee: { label: "Planifiée", tone: "text-indigo-700 bg-indigo-100" },
   realisee: { label: "Réalisée", tone: "text-blue-700 bg-blue-100" },
@@ -97,6 +101,8 @@ export const RECO_STATUS_META: Record<RecommendationStatus, { label: string; ton
 
 export const RECO_STATUSES: RecommendationStatus[] = [
   "en_attente",
+  "proposee",
+  "vue",
   "acceptee",
   "planifiee",
   "realisee",
@@ -250,4 +256,190 @@ export async function clearRecommendationInterest(id: string): Promise<void> {
     .update({ client_interest: null, client_interest_at: null })
     .eq("id", id);
   if (error) throw error;
+}
+
+// ---- Cycle de vie commerciale (Étape H) ----
+
+/** en_attente → proposee. */
+export async function markRecommendationAsProposed(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("recommendations")
+    .update({ status: "proposee" } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** proposee → acceptee (+ responded_at). */
+export async function acceptRecommendation(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("recommendations")
+    .update({ status: "acceptee", responded_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** proposee → refusee (+ responded_at + motif). */
+export async function refuseRecommendation(id: string, reason?: string | null): Promise<void> {
+  const { error } = await supabase
+    .from("recommendations")
+    .update({
+      status: "refusee",
+      responded_at: new Date().toISOString(),
+      refusal_reason: reason ?? null,
+    } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * Crée une intervention brouillon à partir d'une recommandation acceptée.
+ * Lie recommendations.planned_intervention_id et passe le statut à "planifiee".
+ * Retourne l'id de l'intervention créée (pour navigation).
+ */
+export async function createInterventionFromRecommendation(recoId: string): Promise<string> {
+  const { data: reco, error: rErr } = await supabase
+    .from("recommendations")
+    .select("id,client_id,title,category,description")
+    .eq("id", recoId)
+    .single();
+  if (rErr) throw rErr;
+  const r = reco as { id: string; client_id: string; title: string; category: string | null; description: string | null };
+
+  // Un seul jardin ? Le rattacher automatiquement.
+  const { data: sheets } = await supabase
+    .from("worksite_sheets")
+    .select("id")
+    .eq("client_id", r.client_id);
+  const worksiteSheetId = (sheets ?? []).length === 1 ? (sheets![0] as { id: string }).id : null;
+
+  // Récupérer service_id éventuel (via matching sur le titre) — non bloquant.
+  let serviceId: string | null = null;
+  try {
+    const { data: svc } = await supabase
+      .from("services")
+      .select("id")
+      .eq("label", r.title)
+      .eq("is_archived", false)
+      .limit(1)
+      .maybeSingle();
+    serviceId = (svc as { id: string } | null)?.id ?? null;
+  } catch {
+    serviceId = null;
+  }
+
+  const { data: userData } = await supabase.auth.getUser();
+  const user_id = userData.user?.id;
+  if (!user_id) throw new Error("Non authentifié");
+
+  // Référence auto (best effort).
+  let reference: string | null = null;
+  try {
+    const { data: ref } = await supabase.rpc("next_intervention_reference");
+    reference = (ref as string | null) ?? null;
+  } catch {
+    reference = null;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: intervention, error: iErr } = await supabase
+    .from("interventions")
+    .insert({
+      client_id: r.client_id,
+      user_id,
+      intervention_date: today,
+      intervention_type: r.category ?? null,
+      status: "brouillon",
+      title: r.title,
+      reference,
+      worksite_sheet_id: worksiteSheetId,
+    } as never)
+    .select("id")
+    .single();
+  if (iErr) throw iErr;
+  const interventionId = (intervention as { id: string }).id;
+
+  // Tâche liée
+  await supabase.from("intervention_tasks").insert({
+    intervention_id: interventionId,
+    user_id,
+    label: r.title,
+    status: "realise",
+    position: 0,
+    service_id: serviceId,
+  } as never);
+
+  // Liaison + statut planifiee
+  const { error: uErr } = await supabase
+    .from("recommendations")
+    .update({ status: "planifiee", planned_intervention_id: interventionId } as never)
+    .eq("id", recoId);
+  if (uErr) throw uErr;
+
+  return interventionId;
+}
+
+/**
+ * Rattache une ligne CA à une recommandation (statut → facturee).
+ * À appeler depuis le mécanisme existant de création/rattachement d'une ligne CA.
+ */
+export async function linkRecommendationToCaEntry(recoId: string, caEntryId: string): Promise<void> {
+  const { error } = await supabase
+    .from("recommendations")
+    .update({ status: "facturee", pilot_ca_entry_id: caEntryId } as never)
+    .eq("id", recoId);
+  if (error) throw error;
+}
+
+/** KPI dashboard : valeur des opportunités commerciales (en attente + acceptées) et CA facturé. */
+export interface OpportunitiesValue {
+  pendingValue: number;    // en_attente + proposee + vue
+  acceptedValue: number;   // acceptee + planifiee
+  invoicedCa: number;      // facturee — somme des amount_ht des CA liés
+  count: { pending: number; accepted: number; invoiced: number };
+}
+
+export async function getOpportunitiesValue(): Promise<OpportunitiesValue> {
+  const { data, error } = await supabase
+    .from("recommendations")
+    .select("status,estimated_hours,unit_price,pilot_ca_entry_id");
+  if (error) throw error;
+  const rows = (data ?? []) as Array<{
+    status: string;
+    estimated_hours: number | null;
+    unit_price: number | null;
+    pilot_ca_entry_id: string | null;
+  }>;
+  const val = (r: { estimated_hours: number | null; unit_price: number | null }) =>
+    r.estimated_hours != null ? Math.round((r.estimated_hours) * (r.unit_price ?? 70)) : 0;
+
+  const pendingStatuses = new Set(["en_attente", "proposee", "vue"]);
+  const acceptedStatuses = new Set(["acceptee", "planifiee"]);
+
+  const pending = rows.filter((r) => pendingStatuses.has(r.status));
+  const accepted = rows.filter((r) => acceptedStatuses.has(r.status));
+  const invoiced = rows.filter((r) => r.status === "facturee");
+
+  const invoicedIds = invoiced.map((r) => r.pilot_ca_entry_id).filter((x): x is string => !!x);
+  let invoicedCa = 0;
+  if (invoicedIds.length > 0) {
+    const { data: ca } = await supabase
+      .from("pilot_ca_entries")
+      .select("amount_ht")
+      .in("id", invoicedIds);
+    invoicedCa = ((ca ?? []) as Array<{ amount_ht: number | null }>).reduce(
+      (s, e) => s + (e.amount_ht ?? 0),
+      0,
+    );
+  }
+  // fallback : ajouter la valeur estimée pour les recos facturées sans lien CA
+  const invoicedFallback = invoiced
+    .filter((r) => !r.pilot_ca_entry_id)
+    .reduce((s, r) => s + val(r), 0);
+
+  return {
+    pendingValue: pending.reduce((s, r) => s + val(r), 0),
+    acceptedValue: accepted.reduce((s, r) => s + val(r), 0),
+    invoicedCa: invoicedCa + invoicedFallback,
+    count: { pending: pending.length, accepted: accepted.length, invoiced: invoiced.length },
+  };
 }

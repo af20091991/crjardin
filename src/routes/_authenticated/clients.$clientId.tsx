@@ -9,6 +9,9 @@ import {
   RECO_STATUS_META, type RecommendationStatus,
   HEALTH_RATING_META, type HealthRating,
   recommendationPrice, formatEuro, isStalePending, clearRecommendationInterest,
+  markRecommendationAsProposed, acceptRecommendation, refuseRecommendation,
+  createInterventionFromRecommendation,
+  type Recommendation,
 } from "@/lib/garden";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +26,7 @@ import {
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
   Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check, ExternalLink,
-  ThumbsUp, ThumbsDown, RotateCcw, TrendingUp,
+  ThumbsUp, ThumbsDown, RotateCcw, TrendingUp, Send, ArrowRight, Sprout,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -228,27 +231,20 @@ function ClientDetail() {
               <HistoryPlaceholder label="Aucune préconisation enregistrée." icon={Sparkles} />
             ) : (
               <div className="mt-3 space-y-2.5">
-                {recos!.map((r) => {
-                  const status = (r.status as RecommendationStatus) in RECO_STATUS_META ? (r.status as RecommendationStatus) : "en_attente";
-                  return (
-                    <Card key={r.id} className="p-3.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-medium">{r.title}</p>
-                          {r.category && <Badge variant="secondary" className="mt-1">{r.category}</Badge>}
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <Badge className={RECO_STATUS_META[status].tone}>{RECO_STATUS_META[status].label}</Badge>
-                          {recommendationPrice(r) != null && (
-                            <span className="text-xs font-semibold text-primary">{formatEuro(recommendationPrice(r)!)}</span>
-                          )}
-                        </div>
-                      </div>
-                      {r.description && <p className="mt-1.5 text-sm text-muted-foreground">{r.description}</p>}
-                      <RecoInterest reco={r} onCleared={() => { qc.invalidateQueries({ queryKey: ["recommendations", clientId] }); qc.invalidateQueries({ queryKey: ["recommendations-all"] }); }} />
-                    </Card>
-                  );
-                })}
+                {recos!.map((r) => (
+                  <RecoCard
+                    key={r.id}
+                    reco={r}
+                    clientId={clientId}
+                    canEdit={canEdit}
+                    onChanged={() => {
+                      qc.invalidateQueries({ queryKey: ["recommendations", clientId] });
+                      qc.invalidateQueries({ queryKey: ["recommendations-all"] });
+                      qc.invalidateQueries({ queryKey: ["recommendations-funnel"] });
+                      qc.invalidateQueries({ queryKey: ["opportunities-value"] });
+                    }}
+                  />
+                ))}
               </div>
             )}
           </TabsContent>
@@ -328,6 +324,114 @@ function RecoInterest({ reco, onCleared }: { reco: { id: string; client_interest
         <RotateCcw className="mr-1.5 h-4 w-4" /> Réinitialiser
       </Button>
     </div>
+  );
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  manuel: "Saisie manuelle",
+  next_best_offer: "Next Best Offer",
+  cr_intervention: "Compte-rendu",
+  intervention: "Compte-rendu",
+};
+
+function RecoCard({
+  reco,
+  clientId,
+  canEdit,
+  onChanged,
+}: {
+  reco: Recommendation;
+  clientId: string;
+  canEdit: boolean;
+  onChanged: () => void;
+}) {
+  const navigate = useNavigate();
+  const status = (reco.status as RecommendationStatus) in RECO_STATUS_META
+    ? (reco.status as RecommendationStatus)
+    : "en_attente";
+  const price = recommendationPrice(reco);
+  const sourceLabel = SOURCE_LABELS[reco.source] ?? reco.source;
+
+  const propose = useMutation({
+    mutationFn: () => markRecommendationAsProposed(reco.id),
+    onSuccess: () => { toast.success("Recommandation proposée"); onChanged(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+  const accept = useMutation({
+    mutationFn: () => acceptRecommendation(reco.id),
+    onSuccess: () => { toast.success("Recommandation acceptée"); onChanged(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+  const refuse = useMutation({
+    mutationFn: () => refuseRecommendation(reco.id),
+    onSuccess: () => { toast.success("Recommandation refusée"); onChanged(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+  const createInt = useMutation({
+    mutationFn: () => createInterventionFromRecommendation(reco.id),
+    onSuccess: (interventionId) => {
+      toast.success("Intervention créée");
+      onChanged();
+      navigate({ to: "/interventions/$interventionId", params: { interventionId } });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  return (
+    <Card className="p-3.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="font-medium">{reco.title}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+            {reco.category && <Badge variant="secondary">{reco.category}</Badge>}
+            <Badge variant="outline">{sourceLabel}</Badge>
+            {reco.recommended_season && (
+              <Badge variant="outline" className="gap-1">
+                <Sprout className="h-3 w-3" /> {reco.recommended_season}
+              </Badge>
+            )}
+            <span className="text-muted-foreground">
+              {new Date(reco.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <Badge className={RECO_STATUS_META[status].tone}>{RECO_STATUS_META[status].label}</Badge>
+          {price != null && (
+            <span className="text-xs font-semibold text-primary">{formatEuro(price)}</span>
+          )}
+        </div>
+      </div>
+      {reco.description && <p className="mt-1.5 text-sm text-muted-foreground">{reco.description}</p>}
+      <RecoInterest reco={reco} onCleared={onChanged} />
+
+      {canEdit && (
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
+          {status === "en_attente" && (
+            <Button size="sm" variant="secondary" disabled={propose.isPending} onClick={() => propose.mutate()}>
+              <Send className="mr-1.5 h-3.5 w-3.5" /> Marquer comme proposée
+            </Button>
+          )}
+          {status === "proposee" && (
+            <>
+              <Button size="sm" variant="outline" disabled={refuse.isPending} onClick={() => refuse.mutate()}>
+                <ThumbsDown className="mr-1.5 h-3.5 w-3.5" /> Refusée
+              </Button>
+              <Button size="sm" disabled={accept.isPending} onClick={() => accept.mutate()}>
+                <ThumbsUp className="mr-1.5 h-3.5 w-3.5" /> Acceptée
+              </Button>
+            </>
+          )}
+          {status === "acceptee" && (
+            <Button size="sm" disabled={createInt.isPending} onClick={() => createInt.mutate()}>
+              <ArrowRight className="mr-1.5 h-3.5 w-3.5" /> Créer intervention
+            </Button>
+          )}
+        </div>
+      )}
+      {/* clientId conservé pour usage éventuel (liens contextuels futurs) */}
+      <span className="hidden" data-client={clientId} />
+    </Card>
   );
 }
 
