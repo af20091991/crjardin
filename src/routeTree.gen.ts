@@ -55,6 +55,7 @@ import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_auth
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as AuthenticatedPilotFocusTopicRouteImport } from './routes/_authenticated/pilot.focus.$topic'
 import { Route as AuthenticatedPilotFicheClientIdRouteImport } from './routes/_authenticated/pilot.fiche.$clientId'
 import { Route as AuthenticatedPilotClientsClientKeyRouteImport } from './routes/_authenticated/pilot.clients.$clientKey'
 
@@ -308,6 +309,12 @@ const LovableEmailQueueProcessRoute =
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedPilotFocusTopicRoute =
+  AuthenticatedPilotFocusTopicRouteImport.update({
+    id: '/focus/$topic',
+    path: '/focus/$topic',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotFicheClientIdRoute =
   AuthenticatedPilotFicheClientIdRouteImport.update({
     id: '/fiche/$clientId',
@@ -366,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/pilot/': typeof AuthenticatedPilotIndexRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
+  '/pilot/focus/$topic': typeof AuthenticatedPilotFocusTopicRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -414,6 +422,7 @@ export interface FileRoutesByTo {
   '/pilot': typeof AuthenticatedPilotIndexRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
+  '/pilot/focus/$topic': typeof AuthenticatedPilotFocusTopicRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -465,6 +474,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/': typeof AuthenticatedPilotIndexRoute
   '/_authenticated/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/_authenticated/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
+  '/_authenticated/pilot/focus/$topic': typeof AuthenticatedPilotFocusTopicRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
@@ -516,6 +526,7 @@ export interface FileRouteTypes {
     | '/pilot/'
     | '/pilot/clients/$clientKey'
     | '/pilot/fiche/$clientId'
+    | '/pilot/focus/$topic'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -564,6 +575,7 @@ export interface FileRouteTypes {
     | '/pilot'
     | '/pilot/clients/$clientKey'
     | '/pilot/fiche/$clientId'
+    | '/pilot/focus/$topic'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -614,6 +626,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/'
     | '/_authenticated/pilot/clients/$clientKey'
     | '/_authenticated/pilot/fiche/$clientId'
+    | '/_authenticated/pilot/focus/$topic'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
@@ -959,6 +972,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/pilot/focus/$topic': {
+      id: '/_authenticated/pilot/focus/$topic'
+      path: '/focus/$topic'
+      fullPath: '/pilot/focus/$topic'
+      preLoaderRoute: typeof AuthenticatedPilotFocusTopicRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/fiche/$clientId': {
       id: '/_authenticated/pilot/fiche/$clientId'
       path: '/fiche/$clientId'
@@ -1006,6 +1026,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotTauxRoute: typeof AuthenticatedPilotTauxRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
   AuthenticatedPilotFicheClientIdRoute: typeof AuthenticatedPilotFicheClientIdRoute
+  AuthenticatedPilotFocusTopicRoute: typeof AuthenticatedPilotFocusTopicRoute
 }
 
 const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
@@ -1023,6 +1044,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotTauxRoute: AuthenticatedPilotTauxRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
   AuthenticatedPilotFicheClientIdRoute: AuthenticatedPilotFicheClientIdRoute,
+  AuthenticatedPilotFocusTopicRoute: AuthenticatedPilotFocusTopicRoute,
 }
 
 const AuthenticatedPilotRouteWithChildren =
@@ -1096,13 +1118,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

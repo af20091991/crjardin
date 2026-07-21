@@ -13,6 +13,7 @@ import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfWeek, endOfWeek, isSameDay, inRange } from "@/lib/date-utils";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
+import type { FocusTopic } from "@/lib/pilot-focus";
 import {
   Euro, Wallet, Target, CalendarDays, Sparkles, AlertTriangle, FileText,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
@@ -402,7 +403,7 @@ function TodayPage() {
             icon={Handshake}
             title="Recommandations acceptées à planifier"
             count={acceptedNotPlanned.length}
-            to="/pilot/direction"
+            focusTopic="recos-a-planifier"
             emptyLabel="Rien à planifier"
           />
           <ActionCard
@@ -410,7 +411,7 @@ function TodayPage() {
             icon={FileText}
             title="Interventions terminées sans compte-rendu envoyé"
             count={terminatedNoReport.length}
-            to="/interventions"
+            focusTopic="cr-non-envoyes"
             emptyLabel="Tous les CR sont envoyés"
           />
           <ActionCard
@@ -418,7 +419,7 @@ function TodayPage() {
             icon={Clock}
             title="Interventions sans heures confirmées"
             count={missingHours.length}
-            to="/interventions"
+            focusTopic="heures-manquantes"
             emptyLabel="Toutes les heures sont confirmées"
           />
           <ActionCard
@@ -426,7 +427,7 @@ function TodayPage() {
             icon={Sparkles}
             title="Opportunités prioritaires (score ≥ 80)"
             count={priority.length}
-            to="/pilot/clients"
+            focusTopic="opportunites"
             emptyLabel="Aucune opportunité prioritaire"
           />
         </div>
@@ -507,7 +508,7 @@ function TodayPage() {
             title="Dépassements de temps"
             count={timeOverruns.length}
             hint="Temps réel > 150 % de la moyenne du type"
-            to="/interventions"
+            focusTopic="depassements-temps"
           />
           <AlertCard
             priority="important"
@@ -515,7 +516,7 @@ function TodayPage() {
             title="Rentabilité horaire sous la cible"
             count={lowHourlyEntries.length}
             hint={targetHR > 0 ? `Lignes CA sous ${formatEuro(targetHR)}/h (heures réelles si dispo)` : "Définir un taux horaire cible"}
-            to="/pilot/ca"
+            focusTopic="rentabilite-faible"
           />
           <AlertCard
             priority="important"
@@ -523,7 +524,7 @@ function TodayPage() {
             title="Clients chronophages peu rentables"
             count={heavyLowMarginClients.length}
             hint="Temps ≥ 20 h/an et taux < 85 % de la cible"
-            to="/pilot/clients"
+            focusTopic="chronophages"
           />
         </div>
         <h3 className="mt-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">Alertes commerciales</h3>
@@ -534,7 +535,7 @@ function TodayPage() {
             title="Clients sans passage 12 mois"
             count={sleeping12m.length}
             hint="Aucun CA depuis plus d'un an"
-            to="/pilot/clients"
+            focusTopic="dormants"
           />
           <AlertCard
             priority="opportunite"
@@ -542,7 +543,7 @@ function TodayPage() {
             title="Créations sans contrat entretien"
             count={creationSansEntretien.length}
             hint="Aménagement facturé, aucun entretien associé"
-            to="/pilot/clients"
+            focusTopic="creation-sans-entretien"
           />
           <AlertCard
             priority="important"
@@ -550,7 +551,7 @@ function TodayPage() {
             title="Entretien sans conseil récent"
             count={entretienSansConseil.length}
             hint="Aucune prestation de conseil depuis 12 mois"
-            to="/pilot/clients"
+            focusTopic="entretien-sans-conseil"
           />
           <AlertCard
             priority="opportunite"
@@ -558,7 +559,7 @@ function TodayPage() {
             title="Potentiel de vente additionnelle"
             count={nboClients.size}
             hint="Clients avec au moins une opportunité à score ≥ 80"
-            to="/pilot/clients"
+            focusTopic="opportunites"
           />
         </div>
         <h3 className="mt-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">Alertes générales</h3>
@@ -569,7 +570,7 @@ function TodayPage() {
             title="Clients dormants (6 mois)"
             count={dormants.length}
             hint="Sans intervention depuis + de 6 mois"
-            to="/pilot/clients"
+            focusTopic="dormants"
           />
           <AlertCard
             priority="urgent"
@@ -577,7 +578,7 @@ function TodayPage() {
             title="Comptes-rendus non envoyés"
             count={terminatedNoReport.length}
             hint="Intervention terminée sans envoi client"
-            to="/interventions"
+            focusTopic="cr-non-envoyes"
           />
           <AlertCard
             priority="urgent"
@@ -594,62 +595,74 @@ function TodayPage() {
 }
 
 function ActionCard({
-  icon: Icon, title, count, to, emptyLabel, priority,
+  icon: Icon, title, count, to, focusTopic, emptyLabel, priority,
 }: {
-  icon: typeof Handshake; title: string; count: number; to: string; emptyLabel: string;
+  icon: typeof Handshake; title: string; count: number; to?: string; focusTopic?: FocusTopic; emptyLabel: string;
   priority: Priority;
 }) {
   const empty = count === 0;
   const meta = PRIORITY_META[priority];
-  return (
-    <Link to={to}>
-      <Card className="h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
-            <Icon className="h-4 w-4 text-primary/80" />
-            <p className="text-sm font-medium">{title}</p>
-          </div>
-          <Badge variant={empty ? "outline" : "default"} className="shrink-0">
-            {count}
-          </Badge>
+  const inner = (
+    <Card className="h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
+          <Icon className="h-4 w-4 text-primary/80" />
+          <p className="text-sm font-medium">{title}</p>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          {empty ? emptyLabel : "Cliquer pour ouvrir la liste"}
-        </p>
-      </Card>
-    </Link>
+        <Badge variant={empty ? "outline" : "default"} className="shrink-0">
+          {count}
+        </Badge>
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {empty ? emptyLabel : "Cliquer pour ouvrir la liste"}
+      </p>
+    </Card>
+  );
+  if (focusTopic) {
+    return (
+      <Link to="/pilot/focus/$topic" params={{ topic: focusTopic }}>{inner}</Link>
+    );
+  }
+  return (
+    <Link to={to ?? "/pilot"}>{inner}</Link>
   );
 }
 
 function AlertCard({
-  icon: Icon, title, count, hint, to, priority,
+  icon: Icon, title, count, hint, to, focusTopic, priority,
 }: {
-  icon: typeof AlertTriangle; title: string; count: number; hint: string; to: string;
+  icon: typeof AlertTriangle; title: string; count: number; hint: string; to?: string; focusTopic?: FocusTopic;
   priority: Priority;
 }) {
   const active = count > 0;
   const meta = PRIORITY_META[priority];
-  return (
-    <Link to={to}>
-      <Card
-        className={`h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md ${
-          active ? meta.ring : ""
-        }`}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
-            <Icon className={`h-4 w-4 ${active ? "text-foreground" : "text-muted-foreground"}`} />
-            <p className="text-sm font-medium">{title}</p>
-          </div>
-          <span className={`font-serif text-lg font-semibold ${active ? "" : "text-muted-foreground"}`}>
-            {count}
-          </span>
+  const inner = (
+    <Card
+      className={`h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md ${
+        active ? meta.ring : ""
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
+          <Icon className={`h-4 w-4 ${active ? "text-foreground" : "text-muted-foreground"}`} />
+          <p className="text-sm font-medium">{title}</p>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-      </Card>
-    </Link>
+        <span className={`font-serif text-lg font-semibold ${active ? "" : "text-muted-foreground"}`}>
+          {count}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+    </Card>
+  );
+  if (focusTopic) {
+    return (
+      <Link to="/pilot/focus/$topic" params={{ topic: focusTopic }}>{inner}</Link>
+    );
+  }
+  return (
+    <Link to={to ?? "/pilot"}>{inner}</Link>
   );
 }
 

@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import {
   createCharge, deleteCharge, formatEuro, computeKpis, breakEven, annualCharges,
-  fetchConfirmedHoursByClient,
+  fetchConfirmedHoursByClient, clientStatsWithHours, FAMILY_META, type PilotFamily,
   DEFAULT_SETTINGS, type PilotChargeInput,
 } from "@/lib/pilot";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,6 +57,46 @@ function FinancePage() {
     k.tauxHoraireReel > 0 && k.tauxHoraireVendu > 0
       ? k.tauxHoraireReel - k.tauxHoraireVendu
       : null;
+
+  // Analyse par client (top 20 CA de l'année, avec heures réelles)
+  const cstats = useMemo(
+    () => clientStatsWithHours(entries.data ?? [], year, confirmed.data),
+    [entries.data, year, confirmed.data],
+  );
+  const topClients = cstats.slice(0, 20);
+
+  // CA N-1 par client (pour évolution)
+  const caPrevByClient = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of entries.data ?? []) {
+      if (new Date(e.entry_date).getFullYear() !== year - 1) continue;
+      const key = e.client_id ?? `name:${(e.client_name ?? "").toLowerCase()}`;
+      map.set(key, (map.get(key) ?? 0) + e.amount_ht);
+    }
+    return map;
+  }, [entries.data, year]);
+
+  // Analyse par famille de prestation
+  const byFamily = useMemo(() => {
+    const acc = new Map<PilotFamily, { ca: number; hours: number; count: number }>();
+    for (const e of entries.data ?? []) {
+      if (new Date(e.entry_date).getFullYear() !== year) continue;
+      const cur = acc.get(e.family) ?? { ca: 0, hours: 0, count: 0 };
+      cur.ca += e.amount_ht;
+      cur.hours += e.hours;
+      cur.count += 1;
+      acc.set(e.family, cur);
+    }
+    return Array.from(acc.entries()).map(([family, v]) => ({
+      family,
+      label: FAMILY_META[family].label,
+      color: FAMILY_META[family].color,
+      ca: v.ca,
+      hours: v.hours,
+      count: v.count,
+      hourlyRate: v.hours > 0 ? v.ca / v.hours : 0,
+    })).sort((a, b) => b.ca - a.ca);
+  }, [entries.data, year]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["pilot-charges"] });
   const saveMut = useMutation({
@@ -163,6 +204,94 @@ function FinancePage() {
                     <TableCell><Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => delMut.mutate(c.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Analyse par famille de prestation */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="border-b border-border px-4 py-3">
+            <h3 className="font-medium">Analyse par prestation ({year})</h3>
+            <p className="text-xs text-muted-foreground">CA, heures et rentabilité horaire par famille — depuis les saisies CA.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Famille</TableHead>
+                <TableHead className="text-right">Lignes CA</TableHead>
+                <TableHead className="text-right">CA HT</TableHead>
+                <TableHead className="text-right">Heures</TableHead>
+                <TableHead className="text-right">€/h vendu</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {byFamily.length === 0 && (
+                  <TableRow><TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">Aucune donnée</TableCell></TableRow>
+                )}
+                {byFamily.map((f) => (
+                  <TableRow key={f.family}>
+                    <TableCell><Badge variant="outline" style={{ borderColor: f.color, color: f.color }}>{f.label}</Badge></TableCell>
+                    <TableCell className="text-right tabular-nums">{f.count}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatEuro(f.ca)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{f.hours.toFixed(1)} h</TableCell>
+                    <TableCell className="text-right tabular-nums">{f.hourlyRate > 0 ? `${formatEuro(f.hourlyRate)}/h` : "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Analyse par client (top 20) */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="border-b border-border px-4 py-3">
+            <h3 className="font-medium">Top 20 clients ({year})</h3>
+            <p className="text-xs text-muted-foreground">CA, heures réelles, taux horaire et évolution N-1.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Client</TableHead>
+                <TableHead className="text-right">CA</TableHead>
+                <TableHead className="text-right">Heures</TableHead>
+                <TableHead className="text-right">€/h réel</TableHead>
+                <TableHead className="text-right">N vs N-1</TableHead>
+                <TableHead>Nature</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {topClients.length === 0 && (
+                  <TableRow><TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">Aucun client sur l'année</TableCell></TableRow>
+                )}
+                {topClients.map((c) => {
+                  const prev = caPrevByClient.get(c.key) ?? 0;
+                  const evo = prev > 0 ? ((c.ca - prev) / prev) * 100 : c.ca > 0 ? 100 : 0;
+                  return (
+                    <TableRow key={c.key}>
+                      <TableCell className="font-medium">
+                        {c.clientId ? (
+                          <Link
+                            to="/pilot/fiche/$clientId"
+                            params={{ clientId: c.clientId }}
+                            className="hover:underline"
+                          >
+                            {c.name}
+                          </Link>
+                        ) : c.name}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{formatEuro(c.ca)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{c.hours.toFixed(1)} h</TableCell>
+                      <TableCell className="text-right tabular-nums">{c.hourlyRate > 0 ? `${formatEuro(c.hourlyRate)}/h` : "—"}</TableCell>
+                      <TableCell className={`text-right tabular-nums ${evo >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                        {prev > 0 ? `${evo >= 0 ? "+" : ""}${evo.toFixed(0)} %` : "—"}
+                      </TableCell>
+                      <TableCell><Badge variant="secondary">{c.nature}</Badge></TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
