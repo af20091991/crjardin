@@ -13,6 +13,7 @@ import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfWeek, endOfWeek, isSameDay, inRange } from "@/lib/date-utils";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
+import type { FocusTopic } from "@/lib/pilot-focus";
 import {
   Euro, Wallet, Target, CalendarDays, Sparkles, AlertTriangle, FileText,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
@@ -594,62 +595,74 @@ function TodayPage() {
 }
 
 function ActionCard({
-  icon: Icon, title, count, to, emptyLabel, priority,
+  icon: Icon, title, count, to, focusTopic, emptyLabel, priority,
 }: {
-  icon: typeof Handshake; title: string; count: number; to: string; emptyLabel: string;
+  icon: typeof Handshake; title: string; count: number; to?: string; focusTopic?: FocusTopic; emptyLabel: string;
   priority: Priority;
 }) {
   const empty = count === 0;
   const meta = PRIORITY_META[priority];
-  return (
-    <Link to={to}>
-      <Card className="h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
-            <Icon className="h-4 w-4 text-primary/80" />
-            <p className="text-sm font-medium">{title}</p>
-          </div>
-          <Badge variant={empty ? "outline" : "default"} className="shrink-0">
-            {count}
-          </Badge>
+  const inner = (
+    <Card className="h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
+          <Icon className="h-4 w-4 text-primary/80" />
+          <p className="text-sm font-medium">{title}</p>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          {empty ? emptyLabel : "Cliquer pour ouvrir la liste"}
-        </p>
-      </Card>
-    </Link>
+        <Badge variant={empty ? "outline" : "default"} className="shrink-0">
+          {count}
+        </Badge>
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {empty ? emptyLabel : "Cliquer pour ouvrir la liste"}
+      </p>
+    </Card>
+  );
+  if (focusTopic) {
+    return (
+      <Link to="/pilot/focus/$topic" params={{ topic: focusTopic }}>{inner}</Link>
+    );
+  }
+  return (
+    <Link to={to ?? "/pilot"}>{inner}</Link>
   );
 }
 
 function AlertCard({
-  icon: Icon, title, count, hint, to, priority,
+  icon: Icon, title, count, hint, to, focusTopic, priority,
 }: {
-  icon: typeof AlertTriangle; title: string; count: number; hint: string; to: string;
+  icon: typeof AlertTriangle; title: string; count: number; hint: string; to?: string; focusTopic?: FocusTopic;
   priority: Priority;
 }) {
   const active = count > 0;
   const meta = PRIORITY_META[priority];
-  return (
-    <Link to={to}>
-      <Card
-        className={`h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md ${
-          active ? meta.ring : ""
-        }`}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
-            <Icon className={`h-4 w-4 ${active ? "text-foreground" : "text-muted-foreground"}`} />
-            <p className="text-sm font-medium">{title}</p>
-          </div>
-          <span className={`font-serif text-lg font-semibold ${active ? "" : "text-muted-foreground"}`}>
-            {count}
-          </span>
+  const inner = (
+    <Card
+      className={`h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md ${
+        active ? meta.ring : ""
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
+          <Icon className={`h-4 w-4 ${active ? "text-foreground" : "text-muted-foreground"}`} />
+          <p className="text-sm font-medium">{title}</p>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-      </Card>
-    </Link>
+        <span className={`font-serif text-lg font-semibold ${active ? "" : "text-muted-foreground"}`}>
+          {count}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+    </Card>
+  );
+  if (focusTopic) {
+    return (
+      <Link to="/pilot/focus/$topic" params={{ topic: focusTopic }}>{inner}</Link>
+    );
+  }
+  return (
+    <Link to={to ?? "/pilot"}>{inner}</Link>
   );
 }
 
