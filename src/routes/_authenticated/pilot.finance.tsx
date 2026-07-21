@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import {
   createCharge, deleteCharge, formatEuro, computeKpis, breakEven, annualCharges,
-  fetchConfirmedHoursByClient,
+  fetchConfirmedHoursByClient, clientStatsWithHours, FAMILY_META, type PilotFamily,
   DEFAULT_SETTINGS, type PilotChargeInput,
 } from "@/lib/pilot";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,6 +57,46 @@ function FinancePage() {
     k.tauxHoraireReel > 0 && k.tauxHoraireVendu > 0
       ? k.tauxHoraireReel - k.tauxHoraireVendu
       : null;
+
+  // Analyse par client (top 20 CA de l'année, avec heures réelles)
+  const cstats = useMemo(
+    () => clientStatsWithHours(entries.data ?? [], year, confirmed.data),
+    [entries.data, year, confirmed.data],
+  );
+  const topClients = cstats.slice(0, 20);
+
+  // CA N-1 par client (pour évolution)
+  const caPrevByClient = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of entries.data ?? []) {
+      if (new Date(e.entry_date).getFullYear() !== year - 1) continue;
+      const key = e.client_id ?? `name:${(e.client_name ?? "").toLowerCase()}`;
+      map.set(key, (map.get(key) ?? 0) + e.amount_ht);
+    }
+    return map;
+  }, [entries.data, year]);
+
+  // Analyse par famille de prestation
+  const byFamily = useMemo(() => {
+    const acc = new Map<PilotFamily, { ca: number; hours: number; count: number }>();
+    for (const e of entries.data ?? []) {
+      if (new Date(e.entry_date).getFullYear() !== year) continue;
+      const cur = acc.get(e.family) ?? { ca: 0, hours: 0, count: 0 };
+      cur.ca += e.amount_ht;
+      cur.hours += e.hours;
+      cur.count += 1;
+      acc.set(e.family, cur);
+    }
+    return Array.from(acc.entries()).map(([family, v]) => ({
+      family,
+      label: FAMILY_META[family].label,
+      color: FAMILY_META[family].color,
+      ca: v.ca,
+      hours: v.hours,
+      count: v.count,
+      hourlyRate: v.hours > 0 ? v.ca / v.hours : 0,
+    })).sort((a, b) => b.ca - a.ca);
+  }, [entries.data, year]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["pilot-charges"] });
   const saveMut = useMutation({
