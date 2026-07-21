@@ -403,7 +403,7 @@ function TodayPage() {
             icon={Handshake}
             title="Recommandations acceptées à planifier"
             count={acceptedNotPlanned.length}
-            to="/pilot/direction"
+            focusTopic="recos-a-planifier"
             emptyLabel="Rien à planifier"
           />
           <ActionCard
@@ -411,7 +411,7 @@ function TodayPage() {
             icon={FileText}
             title="Interventions terminées sans compte-rendu envoyé"
             count={terminatedNoReport.length}
-            to="/interventions"
+            focusTopic="cr-non-envoyes"
             emptyLabel="Tous les CR sont envoyés"
           />
           <ActionCard
@@ -419,7 +419,7 @@ function TodayPage() {
             icon={Clock}
             title="Interventions sans heures confirmées"
             count={missingHours.length}
-            to="/interventions"
+            focusTopic="heures-manquantes"
             emptyLabel="Toutes les heures sont confirmées"
           />
           <ActionCard
@@ -427,7 +427,7 @@ function TodayPage() {
             icon={Sparkles}
             title="Opportunités prioritaires (score ≥ 80)"
             count={priority.length}
-            to="/pilot/clients"
+            focusTopic="opportunites"
             emptyLabel="Aucune opportunité prioritaire"
           />
         </div>
@@ -508,7 +508,7 @@ function TodayPage() {
             title="Dépassements de temps"
             count={timeOverruns.length}
             hint="Temps réel > 150 % de la moyenne du type"
-            to="/interventions"
+            focusTopic="depassements-temps"
           />
           <AlertCard
             priority="important"
@@ -516,7 +516,7 @@ function TodayPage() {
             title="Rentabilité horaire sous la cible"
             count={lowHourlyEntries.length}
             hint={targetHR > 0 ? `Lignes CA sous ${formatEuro(targetHR)}/h (heures réelles si dispo)` : "Définir un taux horaire cible"}
-            to="/pilot/ca"
+            focusTopic="rentabilite-faible"
           />
           <AlertCard
             priority="important"
@@ -524,7 +524,7 @@ function TodayPage() {
             title="Clients chronophages peu rentables"
             count={heavyLowMarginClients.length}
             hint="Temps ≥ 20 h/an et taux < 85 % de la cible"
-            to="/pilot/clients"
+            focusTopic="chronophages"
           />
         </div>
         <h3 className="mt-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">Alertes commerciales</h3>
@@ -535,7 +535,7 @@ function TodayPage() {
             title="Clients sans passage 12 mois"
             count={sleeping12m.length}
             hint="Aucun CA depuis plus d'un an"
-            to="/pilot/clients"
+            focusTopic="dormants"
           />
           <AlertCard
             priority="opportunite"
@@ -543,7 +543,7 @@ function TodayPage() {
             title="Créations sans contrat entretien"
             count={creationSansEntretien.length}
             hint="Aménagement facturé, aucun entretien associé"
-            to="/pilot/clients"
+            focusTopic="creation-sans-entretien"
           />
           <AlertCard
             priority="important"
@@ -551,7 +551,7 @@ function TodayPage() {
             title="Entretien sans conseil récent"
             count={entretienSansConseil.length}
             hint="Aucune prestation de conseil depuis 12 mois"
-            to="/pilot/clients"
+            focusTopic="entretien-sans-conseil"
           />
           <AlertCard
             priority="opportunite"
@@ -559,7 +559,7 @@ function TodayPage() {
             title="Potentiel de vente additionnelle"
             count={nboClients.size}
             hint="Clients avec au moins une opportunité à score ≥ 80"
-            to="/pilot/clients"
+            focusTopic="opportunites"
           />
         </div>
         <h3 className="mt-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">Alertes générales</h3>
@@ -570,7 +570,7 @@ function TodayPage() {
             title="Clients dormants (6 mois)"
             count={dormants.length}
             hint="Sans intervention depuis + de 6 mois"
-            to="/pilot/clients"
+            focusTopic="dormants"
           />
           <AlertCard
             priority="urgent"
@@ -578,7 +578,7 @@ function TodayPage() {
             title="Comptes-rendus non envoyés"
             count={terminatedNoReport.length}
             hint="Intervention terminée sans envoi client"
-            to="/interventions"
+            focusTopic="cr-non-envoyes"
           />
           <AlertCard
             priority="urgent"
