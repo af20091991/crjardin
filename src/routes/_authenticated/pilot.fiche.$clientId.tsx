@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getClient } from "@/lib/clients";
 import { getClientEconomicScore, SCORE_META } from "@/lib/client-score";
+import { computeScoreBreakdown } from "@/lib/client-score-breakdown";
 import { listNextBestOffers, explainOffer, reasonLabel, formatSeason } from "@/lib/next-best-offers";
 import { formatEuro } from "@/lib/pilot";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft, MapPin, Phone, Mail, TrendingUp, Clock, Activity, Sparkles,
-  Target, FileText, Compass, ShieldCheck, AlertCircle,
+  Target, FileText, Compass, ShieldCheck, AlertCircle, ThumbsUp, ThumbsDown, Gauge,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/fiche/$clientId")({
@@ -192,6 +193,70 @@ function PilotClient360() {
           <CardContent><p className="text-sm text-muted-foreground">{score.recommendation}</p></CardContent>
         </Card>
       )}
+
+      {/* Détail du score */}
+      {score && !noEconomicData && (() => {
+        const b = computeScoreBreakdown(score);
+        const axes: Array<{ label: string; v: { value: number; max: number; note: string } }> = [
+          { label: "Rentabilité", v: b.rentabilite },
+          { label: "Relation", v: b.relation },
+          { label: "Potentiel", v: b.potentiel },
+          { label: "Récence", v: b.recence },
+        ];
+        return (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Gauge className="h-4 w-4 text-primary" />
+                Score détaillé — {b.total}/100
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {axes.map((a) => {
+                  const pct = (a.v.value / a.v.max) * 100;
+                  return (
+                    <div key={a.label} className="space-y-1">
+                      <div className="flex items-baseline justify-between text-sm">
+                        <span className="font-medium">{a.label}</span>
+                        <span className="tabular-nums text-muted-foreground">{a.v.value}/{a.v.max}</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">{a.v.note}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              {(b.strengths.length > 0 || b.weaknesses.length > 0) && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {b.strengths.length > 0 && (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
+                      <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                        <ThumbsUp className="h-3.5 w-3.5" />Points forts
+                      </div>
+                      <ul className="space-y-1 text-xs text-emerald-900/80">
+                        {b.strengths.map((s, i) => <li key={i}>• {s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {b.weaknesses.length > 0 && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+                      <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                        <ThumbsDown className="h-3.5 w-3.5" />Points faibles
+                      </div>
+                      <ul className="space-y-1 text-xs text-amber-900/80">
+                        {b.weaknesses.map((s, i) => <li key={i}>• {s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Historique */}
       <Card>
