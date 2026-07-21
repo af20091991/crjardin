@@ -209,6 +209,94 @@ function FinancePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Analyse par famille de prestation */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="border-b border-border px-4 py-3">
+            <h3 className="font-medium">Analyse par prestation ({year})</h3>
+            <p className="text-xs text-muted-foreground">CA, heures et rentabilité horaire par famille — depuis les saisies CA.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Famille</TableHead>
+                <TableHead className="text-right">Lignes CA</TableHead>
+                <TableHead className="text-right">CA HT</TableHead>
+                <TableHead className="text-right">Heures</TableHead>
+                <TableHead className="text-right">€/h vendu</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {byFamily.length === 0 && (
+                  <TableRow><TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">Aucune donnée</TableCell></TableRow>
+                )}
+                {byFamily.map((f) => (
+                  <TableRow key={f.family}>
+                    <TableCell><Badge variant="outline" style={{ borderColor: f.color, color: f.color }}>{f.label}</Badge></TableCell>
+                    <TableCell className="text-right tabular-nums">{f.count}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatEuro(f.ca)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{f.hours.toFixed(1)} h</TableCell>
+                    <TableCell className="text-right tabular-nums">{f.hourlyRate > 0 ? `${formatEuro(f.hourlyRate)}/h` : "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Analyse par client (top 20) */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="border-b border-border px-4 py-3">
+            <h3 className="font-medium">Top 20 clients ({year})</h3>
+            <p className="text-xs text-muted-foreground">CA, heures réelles, taux horaire et évolution N-1.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Client</TableHead>
+                <TableHead className="text-right">CA</TableHead>
+                <TableHead className="text-right">Heures</TableHead>
+                <TableHead className="text-right">€/h réel</TableHead>
+                <TableHead className="text-right">N vs N-1</TableHead>
+                <TableHead>Nature</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {topClients.length === 0 && (
+                  <TableRow><TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">Aucun client sur l'année</TableCell></TableRow>
+                )}
+                {topClients.map((c) => {
+                  const prev = caPrevByClient.get(c.key) ?? 0;
+                  const evo = prev > 0 ? ((c.ca - prev) / prev) * 100 : c.ca > 0 ? 100 : 0;
+                  return (
+                    <TableRow key={c.key}>
+                      <TableCell className="font-medium">
+                        {c.clientId ? (
+                          <Link
+                            to="/pilot/fiche/$clientId"
+                            params={{ clientId: c.clientId }}
+                            className="hover:underline"
+                          >
+                            {c.name}
+                          </Link>
+                        ) : c.name}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{formatEuro(c.ca)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{c.hours.toFixed(1)} h</TableCell>
+                      <TableCell className="text-right tabular-nums">{c.hourlyRate > 0 ? `${formatEuro(c.hourlyRate)}/h` : "—"}</TableCell>
+                      <TableCell className={`text-right tabular-nums ${evo >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                        {prev > 0 ? `${evo >= 0 ? "+" : ""}${evo.toFixed(0)} %` : "—"}
+                      </TableCell>
+                      <TableCell><Badge variant="secondary">{c.nature}</Badge></TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
