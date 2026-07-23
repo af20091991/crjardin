@@ -270,6 +270,13 @@ export type Database = {
             foreignKeyName: "client_messages_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "client_messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
           },
@@ -537,6 +544,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "garden_health_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
           },
           {
             foreignKeyName: "garden_health_client_id_fkey"
@@ -863,6 +877,13 @@ export type Database = {
             foreignKeyName: "interventions_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "interventions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
           },
@@ -1020,6 +1041,13 @@ export type Database = {
             foreignKeyName: "pilot_ca_entries_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
           },
@@ -1099,6 +1127,13 @@ export type Database = {
             foreignKeyName: "pilot_ca_match_log_new_client_id_fkey"
             columns: ["new_client_id"]
             isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_match_log_new_client_id_fkey"
+            columns: ["new_client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
           },
@@ -1108,6 +1143,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_match_log_previous_client_id_fkey"
+            columns: ["previous_client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
           },
           {
             foreignKeyName: "pilot_ca_match_log_previous_client_id_fkey"
@@ -1488,6 +1530,13 @@ export type Database = {
             foreignKeyName: "planning_notes_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "planning_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
           },
@@ -1626,6 +1675,13 @@ export type Database = {
             foreignKeyName: "recommendations_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "recommendations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
           },
@@ -1711,6 +1767,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
           },
           {
             foreignKeyName: "reminders_client_id_fkey"
@@ -1852,6 +1915,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
           },
           {
             foreignKeyName: "service_contracts_client_id_fkey"
@@ -2126,6 +2196,13 @@ export type Database = {
             foreignKeyName: "share_access_log_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "share_access_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
           },
@@ -2262,6 +2339,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
           },
           {
             foreignKeyName: "subcontractor_missions_client_id_fkey"
@@ -2611,6 +2695,13 @@ export type Database = {
             foreignKeyName: "worksite_sheets_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "worksite_sheets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
           },
@@ -2624,6 +2715,41 @@ export type Database = {
           user_id: string | null
         }
         Relationships: []
+      }
+      v_ca_match_rules: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          confidence_pct: number | null
+          last_seen: string | null
+          normalized_designation: string | null
+          sample_designation: string | null
+          total_votes: number | null
+          votes: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilot_ca_match_log_new_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_match_log_new_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_match_log_new_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+        ]
       }
       v_ca_non_qualifie: {
         Row: {
@@ -2677,10 +2803,33 @@ export type Database = {
             foreignKeyName: "pilot_ca_entries_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
           },
         ]
+      }
+      v_ca_orphans_report: {
+        Row: {
+          best_candidate_id: string | null
+          best_candidate_name: string | null
+          best_score: number | null
+          ca_ht: number | null
+          designation: string | null
+          entry_ids: string[] | null
+          learned_rule_client: string | null
+          learned_rule_confidence: number | null
+          occurrences: number | null
+          raw_designation: string | null
+          recommended_action: string | null
+        }
+        Relationships: []
       }
       v_charges_monthly: {
         Row: {
@@ -2776,6 +2925,13 @@ export type Database = {
             foreignKeyName: "interventions_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "interventions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
           },
@@ -2810,6 +2966,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
           },
           {
             foreignKeyName: "interventions_client_id_fkey"
@@ -2960,6 +3123,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
           },
           {
             foreignKeyName: "subcontractor_missions_client_id_fkey"
@@ -3119,6 +3289,7 @@ export type Database = {
         Returns: number
       }
       next_intervention_reference: { Args: never; Returns: string }
+      pilot_normalize_designation: { Args: { t: string }; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
