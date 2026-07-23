@@ -939,6 +939,7 @@ export type Database = {
           client_id: string | null
           created_at: string
           designation: string | null
+          fiscal_tag: string | null
           hours: number | null
           id: string
           intervention_id: string | null
@@ -947,6 +948,12 @@ export type Database = {
           month: number
           note: string | null
           position: number
+          raw_category: string | null
+          raw_client_text: string | null
+          raw_designation: string | null
+          source_file: string | null
+          source_row: number | null
+          source_sheet: string | null
           updated_at: string
           user_id: string
           year: number
@@ -957,6 +964,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           designation?: string | null
+          fiscal_tag?: string | null
           hours?: number | null
           id?: string
           intervention_id?: string | null
@@ -965,6 +973,12 @@ export type Database = {
           month: number
           note?: string | null
           position?: number
+          raw_category?: string | null
+          raw_client_text?: string | null
+          raw_designation?: string | null
+          source_file?: string | null
+          source_row?: number | null
+          source_sheet?: string | null
           updated_at?: string
           user_id: string
           year: number
@@ -975,6 +989,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           designation?: string | null
+          fiscal_tag?: string | null
           hours?: number | null
           id?: string
           intervention_id?: string | null
@@ -983,6 +998,12 @@ export type Database = {
           month?: number
           note?: string | null
           position?: number
+          raw_category?: string | null
+          raw_client_text?: string | null
+          raw_designation?: string | null
+          source_file?: string | null
+          source_row?: number | null
+          source_sheet?: string | null
           updated_at?: string
           user_id?: string
           year?: number
@@ -1231,6 +1252,99 @@ export type Database = {
           updated_at?: string
           user_id?: string
           year?: number
+        }
+        Relationships: []
+      }
+      pilot_migration_log: {
+        Row: {
+          actor: string | null
+          created_at: string
+          details: Json
+          finished_at: string | null
+          id: string
+          phase: string | null
+          started_at: string | null
+          status: string
+          step: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          details?: Json
+          finished_at?: string | null
+          id?: string
+          phase?: string | null
+          started_at?: string | null
+          status?: string
+          step: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          details?: Json
+          finished_at?: string | null
+          id?: string
+          phase?: string | null
+          started_at?: string | null
+          status?: string
+          step?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pilot_quality_checks: {
+        Row: {
+          check_type: string
+          context: Json
+          created_at: string
+          detected_by: string | null
+          id: string
+          message: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          target_id: string | null
+          target_table: string
+          updated_at: string
+        }
+        Insert: {
+          check_type: string
+          context?: Json
+          created_at?: string
+          detected_by?: string | null
+          id?: string
+          message?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          target_id?: string | null
+          target_table: string
+          updated_at?: string
+        }
+        Update: {
+          check_type?: string
+          context?: Json
+          created_at?: string
+          detected_by?: string | null
+          id?: string
+          message?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          target_id?: string | null
+          target_table?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1661,6 +1775,106 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      service_contracts: {
+        Row: {
+          annual_value_ht: number | null
+          client_id: string | null
+          created_at: string
+          end_date: string | null
+          frequency: string | null
+          frequency_details: Json
+          id: string
+          label: string | null
+          next_due_date: string | null
+          notes: string | null
+          seasonality: Json
+          service_id: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          annual_value_ht?: number | null
+          client_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          frequency?: string | null
+          frequency_details?: Json
+          id?: string
+          label?: string | null
+          next_due_date?: string | null
+          notes?: string | null
+          seasonality?: Json
+          service_id?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          annual_value_ht?: number | null
+          client_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          frequency?: string | null
+          frequency_details?: Json
+          id?: string
+          label?: string | null
+          next_due_date?: string | null
+          notes?: string | null
+          seasonality?: Json
+          service_id?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "service_contracts_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_contracts_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "service_contracts_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_margin"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "service_contracts_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_seasonality_resolved"
+            referencedColumns: ["service_id"]
+          },
+        ]
       }
       service_prices: {
         Row: {
@@ -2781,6 +2995,7 @@ export type Database = {
           client_id: string | null
           created_at: string
           designation: string | null
+          fiscal_tag: string | null
           hours: number | null
           id: string
           intervention_id: string | null
@@ -2789,6 +3004,12 @@ export type Database = {
           month: number
           note: string | null
           position: number
+          raw_category: string | null
+          raw_client_text: string | null
+          raw_designation: string | null
+          source_file: string | null
+          source_row: number | null
+          source_sheet: string | null
           updated_at: string
           user_id: string
           year: number
