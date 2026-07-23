@@ -39,6 +39,7 @@ import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authentica
 import { Route as AuthenticatedPilotSimulateurRouteImport } from './routes/_authenticated/pilot.simulateur'
 import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
 import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
+import { Route as AuthenticatedPilotRapprochementRouteImport } from './routes/_authenticated/pilot.rapprochement'
 import { Route as AuthenticatedPilotRapportsRouteImport } from './routes/_authenticated/pilot.rapports'
 import { Route as AuthenticatedPilotParametresRouteImport } from './routes/_authenticated/pilot.parametres'
 import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authenticated/pilot.objectifs'
@@ -215,6 +216,12 @@ const AuthenticatedPilotSaisonRoute =
     path: '/saison',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedPilotRapprochementRoute =
+  AuthenticatedPilotRapprochementRouteImport.update({
+    id: '/rapprochement',
+    path: '/rapprochement',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotRapportsRoute =
   AuthenticatedPilotRapportsRouteImport.update({
     id: '/rapports',
@@ -361,6 +368,7 @@ export interface FileRoutesByFullPath {
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
+  '/pilot/rapprochement': typeof AuthenticatedPilotRapprochementRoute
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
@@ -410,6 +418,7 @@ export interface FileRoutesByTo {
   '/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
+  '/pilot/rapprochement': typeof AuthenticatedPilotRapprochementRoute
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
@@ -462,6 +471,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/objectifs': typeof AuthenticatedPilotObjectifsRoute
   '/_authenticated/pilot/parametres': typeof AuthenticatedPilotParametresRoute
   '/_authenticated/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
+  '/_authenticated/pilot/rapprochement': typeof AuthenticatedPilotRapprochementRoute
   '/_authenticated/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/_authenticated/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/_authenticated/pilot/simulateur': typeof AuthenticatedPilotSimulateurRoute
@@ -514,6 +524,7 @@ export interface FileRouteTypes {
     | '/pilot/objectifs'
     | '/pilot/parametres'
     | '/pilot/rapports'
+    | '/pilot/rapprochement'
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulateur'
@@ -563,6 +574,7 @@ export interface FileRouteTypes {
     | '/pilot/objectifs'
     | '/pilot/parametres'
     | '/pilot/rapports'
+    | '/pilot/rapprochement'
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulateur'
@@ -614,6 +626,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/objectifs'
     | '/_authenticated/pilot/parametres'
     | '/_authenticated/pilot/rapports'
+    | '/_authenticated/pilot/rapprochement'
     | '/_authenticated/pilot/saison'
     | '/_authenticated/pilot/sante'
     | '/_authenticated/pilot/simulateur'
@@ -860,6 +873,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotSaisonRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/rapprochement': {
+      id: '/_authenticated/pilot/rapprochement'
+      path: '/rapprochement'
+      fullPath: '/pilot/rapprochement'
+      preLoaderRoute: typeof AuthenticatedPilotRapprochementRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/rapports': {
       id: '/_authenticated/pilot/rapports'
       path: '/rapports'
@@ -1020,6 +1040,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotObjectifsRoute: typeof AuthenticatedPilotObjectifsRoute
   AuthenticatedPilotParametresRoute: typeof AuthenticatedPilotParametresRoute
   AuthenticatedPilotRapportsRoute: typeof AuthenticatedPilotRapportsRoute
+  AuthenticatedPilotRapprochementRoute: typeof AuthenticatedPilotRapprochementRoute
   AuthenticatedPilotSaisonRoute: typeof AuthenticatedPilotSaisonRoute
   AuthenticatedPilotSanteRoute: typeof AuthenticatedPilotSanteRoute
   AuthenticatedPilotSimulateurRoute: typeof AuthenticatedPilotSimulateurRoute
@@ -1038,6 +1059,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotObjectifsRoute: AuthenticatedPilotObjectifsRoute,
   AuthenticatedPilotParametresRoute: AuthenticatedPilotParametresRoute,
   AuthenticatedPilotRapportsRoute: AuthenticatedPilotRapportsRoute,
+  AuthenticatedPilotRapprochementRoute: AuthenticatedPilotRapprochementRoute,
   AuthenticatedPilotSaisonRoute: AuthenticatedPilotSaisonRoute,
   AuthenticatedPilotSanteRoute: AuthenticatedPilotSanteRoute,
   AuthenticatedPilotSimulateurRoute: AuthenticatedPilotSimulateurRoute,
@@ -1118,13 +1140,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
