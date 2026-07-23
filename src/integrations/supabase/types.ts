@@ -1082,6 +1082,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pilot_ca_match_log_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_non_qualifie"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pilot_ca_match_log_new_client_id_fkey"
             columns: ["new_client_id"]
             isOneToOne: false
@@ -1641,6 +1648,13 @@ export type Database = {
             columns: ["pilot_ca_entry_id"]
             isOneToOne: false
             referencedRelation: "pilot_ca_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendations_pilot_ca_entry_id_fkey"
+            columns: ["pilot_ca_entry_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_non_qualifie"
             referencedColumns: ["id"]
           },
           {
@@ -2610,6 +2624,63 @@ export type Database = {
           user_id: string | null
         }
         Relationships: []
+      }
+      v_ca_non_qualifie: {
+        Row: {
+          amount_ht: number | null
+          client_id: string | null
+          designation: string | null
+          fiscal_tag: string | null
+          id: string | null
+          month: number | null
+          open_checks: Json | null
+          qualification_state: string | null
+          source_category: string | null
+          user_id: string | null
+          year: number | null
+        }
+        Insert: {
+          amount_ht?: number | null
+          client_id?: string | null
+          designation?: string | null
+          fiscal_tag?: string | null
+          id?: string | null
+          month?: number | null
+          open_checks?: never
+          qualification_state?: never
+          source_category?: string | null
+          user_id?: string | null
+          year?: number | null
+        }
+        Update: {
+          amount_ht?: number | null
+          client_id?: string | null
+          designation?: string | null
+          fiscal_tag?: string | null
+          id?: string | null
+          month?: number | null
+          open_checks?: never
+          qualification_state?: never
+          source_category?: string | null
+          user_id?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilot_ca_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+        ]
       }
       v_charges_monthly: {
         Row: {
