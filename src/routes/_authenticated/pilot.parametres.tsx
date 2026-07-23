@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Settings2, Target, CalendarClock, FileSpreadsheet, Upload } from "lucide-react";
+import { Settings2, Target, CalendarClock, FileSpreadsheet, Upload, Link2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { listOrphanEntries } from "@/lib/pilot-ca-matching";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { useRef } from "react";
@@ -23,6 +25,7 @@ export const Route = createFileRoute("/_authenticated/pilot/parametres")({
 function ParamsPage() {
   const qc = useQueryClient();
   const { settings } = usePilotData();
+  const orphans = useQuery({ queryKey: ["pilot-ca-orphans"], queryFn: listOrphanEntries });
   const [form, setForm] = useState<Omit<PilotSettings, "user_id">>(DEFAULT_SETTINGS);
 
   useEffect(() => {
@@ -56,6 +59,27 @@ function ParamsPage() {
           Réglez ici toutes les valeurs de référence utilisées par les différents onglets (Direction, Taux horaire, Finance, Simulateur…).
         </p>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Link2 className="h-4 w-4 text-primary" /> Rapprochement CA ↔ Clients
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+          <p className="max-w-lg text-sm text-muted-foreground">
+            {orphans.isLoading
+              ? "Analyse des lignes CA en cours…"
+              : `${orphans.data?.length ?? 0} ligne(s) de chiffre d'affaires ne sont pas encore rattachées à un client.`}
+          </p>
+          <Link
+            to="/pilot/rapprochement"
+            className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Ouvrir l'outil
+          </Link>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-2">
