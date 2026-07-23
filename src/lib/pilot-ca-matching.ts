@@ -192,7 +192,7 @@ export async function linkEntryToClient(params: {
     _method: params.method,
     _score: params.score ?? null,
     _note: params.note ?? null,
-  });
+  } as never);
   if (error) throw error;
 }
 
