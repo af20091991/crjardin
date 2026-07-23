@@ -1,118 +1,80 @@
+# Pilot Pro v2 — Étape 1.1 : Rapprochement CA ↔ clients
 
-# Pilot Pro v1.1 — Reconnexion des données métier
+## 1. Fichiers créés / modifiés
 
-Objectif : brancher les écrans existants sur les données déjà saisies (CA 2026, interventions, CR, clients). Aucune nouvelle table, aucun écran décoratif, priorité aux liens actionnables.
+**Créés**
+- `src/lib/pilot-ca-matching.ts` — logique de suggestion (similarité nom, historique désignation→client), acceptation/refus, journalisation.
+- `src/routes/_authenticated/pilot.rapprochement.tsx` — interface de rapprochement assisté (liste orphelines + panneau suggestions).
+- Migration SQL : nouvelle table `pilot_ca_match_log` (journal des décisions) + fonction RPC `link_ca_entry_to_client(entry_id, client_id, method, note)` en `security definer` qui **n'écrit que `client_id`** et insère le log.
 
----
+**Modifiés**
+- `src/routes/_authenticated/pilot.parametres.tsx` — carte "Rapprochement CA" avec compteur d'orphelines + lien vers l'écran.
+- `src/components/AppShell.tsx` — entrée menu sous Pilotage (visible admin uniquement).
 
-## PHASE 1 — Source client consolidée (`src/lib/client-360.ts` — nouveau, léger)
+Aucun changement sur `pilot_ca_entries` en dehors de `client_id`. `pilot.ts` (calcul) reste intact.
 
-Créer un helper unique `getClient360(clientId | ca_key)` qui agrège en une seule passe :
-- `clients` (identité) + fallback `pilot_ca_entries.client_name` (clients CA-only)
-- `pilot_ca_entries` → CA cumulé, CA annuel, historique prestations vendues, dernière vente
-- `interventions` (statut `termine`) → nb interventions, temps total réel (`hours_spent`), dernière intervention, prestations réalisées
-- Calculs dérivés : taux horaire réel = CA total / heures confirmées, fréquence (interventions/an), prestations distinctes
+## 2. Schéma technique
 
-Un seul fetcher `getAllClient360()` pour les listes (Direction, Cockpit, Clients). Réutilise `fetchConfirmedHoursByClient` et `client-score`.
-
-**Cas clients CA-only** : clé stable `ca:${slug(client_name)}` quand `client_id` est nul, exposée dans les listes.
-
----
-
-## PHASE 2 — Cockpit Aujourd'hui décisionnel (`pilot.index.tsx` + nouvelle route `pilot.focus.$topic.tsx`)
-
-Chaque carte "Décisions / Actions prioritaires" devient un lien vers `/pilot/focus/$topic` avec la liste filtrée :
-
-Topics couverts :
-- `chronophages` — clients A/B avec taux horaire réel < 85 % de la cible (nom, CA, heures, €/h réel, raison)
-- `cr-non-envoyes` — interventions `termine` sans `sent_to_client_at`
-- `heures-manquantes` — interventions sans `hours_spent` ou estimées
-- `recos-a-planifier` — recos `acceptee` sans `planned_intervention_id`
-- `opportunites` — clients avec offres NBO ≥ 80 (avec justification depuis la vue)
-- `dormants` — clients sans activité > 365 j
-- `depassements-temps` — interventions > 150 % moyenne du type
-- `creation-sans-entretien` / `entretien-sans-conseil` — croisements familles CA
-
-Route `pilot.focus.$topic.tsx` : un composant unique qui, selon `$topic`, réutilise les calculs déjà faits dans `pilot.index.tsx` (extraits dans `src/lib/pilot-focus.ts`) et affiche un tableau standard (Client → Fiche 360, colonnes contextuelles, raison de l'alerte).
-
-Supprimer les redirections génériques vers `/pilot/direction` ou `/interventions` depuis les cartes actions.
-
----
-
-## PHASE 3 — Fiche client 360 explicable (`pilot.fiche.$clientId.tsx` + `client-score.ts`)
-
-Enrichir `ClientScore` avec un `scoreBreakdown` :
+**Table `pilot_ca_match_log`**
 ```
-{
-  rentabilite: { value: 0-30, max: 30, note: "..." },
-  relation:    { value: 0-25, max: 25, note: "..." },
-  potentiel:   { value: 0-25, max: 25, note: "..." },
-  recence:     { value: 0-20, max: 20, note: "..." },
-  total: 0-100,
-  strengths: string[],
-  weaknesses: string[],
-  recommendedAction: string,
-}
+id uuid pk
+entry_id uuid → pilot_ca_entries(id)
+previous_client_id uuid null
+new_client_id uuid null
+method text  -- 'manual' | 'suggestion' | 'refused' | 'reverted' | 'new_client'
+score numeric null
+decided_by uuid → auth.users(id)
+decided_at timestamptz default now()
+note text null
 ```
+RLS : lecture/écriture réservées à l'utilisateur propriétaire des entrées ; GRANT authenticated + service_role.
 
-Composantes :
-- **Rentabilité (30)** : ratio réel / cible (0.6→0, 1.0→30, saturé à 1.2)
-- **Relation (25)** : nb interventions année + fréquence
-- **Potentiel (25)** : opportunités NBO (score + valeur estimée)
-- **Récence (20)** : jours depuis dernière intervention (0j→20, 365j→0)
+**RPC `link_ca_entry_to_client`**
+- Vérifie que l'entrée appartient à `auth.uid()`.
+- Vérifie que `client_id` cible appartient au même user (ou NULL pour "refusé").
+- UPDATE `pilot_ca_entries SET client_id = $2` (jamais amount/date/category/designation).
+- INSERT dans `pilot_ca_match_log`.
+- Retourne la ligne mise à jour.
 
-Bloc UI sur la fiche : note globale + 4 barres composantes + listes "Points forts" / "Points faibles" / "Action recommandée" (déjà présente, gardée).
+**Suggestions (côté client, sans SQL lourd)**
+1. Cache des désignations déjà rattachées : `designation → client_id` fréquent → suggestion "historique" (score 0.9+).
+2. Similarité fuzzy (Dice / trigram JS) entre `designation` et `client.name` (+ `civility`) → score 0..1.
+3. Tri décroissant, top 5, seuil affichage ≥ 0.35.
 
----
+## 3. Fonctionnement de validation
 
-## PHASE 4 — Opportunités commerciales justifiées
+Écran `/pilot/rapprochement` :
+- Liste paginée des lignes CA avec `client_id IS NULL` (filtres : année, catégorie, montant min, recherche texte).
+- Ligne sélectionnée → panneau latéral :
+  - Détails **en lecture seule** : désignation, montant HT, mois/année, catégorie, heures, note.
+  - Suggestions (top 5) avec score et raison ("historique désignation", "similarité nom").
+  - Actions :
+    - **Associer** → appelle RPC (`method='suggestion'` ou `'manual'`).
+    - **Refuser / Ignorer** → RPC avec `new_client_id=null, method='refused'` (marque décidé sans muter la ligne).
+    - **Rechercher un client** (combobox sur `clients`).
+    - **Créer un client** (ouvre `ClientForm` existant ; à la création, propose association immédiate).
+  - **Annuler la dernière décision** : nouveau log `reverted` + restauration `previous_client_id`.
+- Historique des 20 dernières décisions consultable en bas d'écran.
+- Aucune action en masse « auto ». Un bouton « Appliquer toutes les suggestions ≥ 0.9 » **désactivé par défaut**, verrou explicite + confirmation, chaque application génère un log individuel.
 
-Composant `<OpportunityCard>` réutilisé dans Cockpit, Direction et Fiche 360, alimenté par `v_client_next_best_offers` :
-- Client (link fiche)
-- Prestation suggérée
-- Trigger data : familles présentes/absentes, dernière vente famille, CA client, heures totales
-- Valeur potentielle (via `service_prices` moyens ou `estimated_value` de la vue)
-- Bouton "Créer une recommandation"
+## 4. Risques identifiés
 
-Le focus `opportunites` liste toutes les offres ≥ 60 avec justification textuelle générée côté client (pas de nouvelle table).
+| Risque | Mitigation |
+|---|---|
+| Faux positif de similarité rattache la mauvaise ligne | Validation unitaire obligatoire ; bulk verrouillé ; annulation par log. |
+| Perte d'historique / audit | Table `pilot_ca_match_log` insert-only ; jamais de DELETE. |
+| Mutation involontaire d'`amount`/`date`/`category` | RPC dédiée qui n'update **que** `client_id` ; pas d'UPDATE côté client. |
+| Rattachement à un client d'un autre user | RPC vérifie ownership des deux côtés. |
+| Recalculs (Fiche 360, portefeuille) faussés pendant l'opération | Invalidation React Query ciblée (`pilot-ca-entries`, `client-scores`) après chaque décision. |
+| Charge cognitive sur 330 lignes | Filtres + tri par score ; possibilité de traiter par lots (par année/catégorie). |
 
----
+## 5. Ce qui ne change pas
 
-## PHASE 5 — Analyse économique (extension `pilot.finance.tsx`)
-
-Deux nouvelles sections branchées uniquement sur données existantes :
-
-**Par client** — tableau (top 20 par CA) :
-- CA, heures réelles, €/h réel, évolution N vs N-1 (via `pilot_ca_entries`), top 2 prestations contributives
-
-**Par prestation** — agrégation sur `pilot_ca_entries` (colonne `family` + libellé) :
-- CA généré, heures consommées (via `intervention_tasks.service_id` quand présent, fallback moyenne famille), €/h réel
-
-Aucune nouvelle table : les prestations sont dérivées des libellés/famille CA + `services` existant.
-
----
-
-## Impacts fichiers (résumé)
-
-**Nouveaux** :
-- `src/lib/client-360.ts` — agrégat unique
-- `src/lib/pilot-focus.ts` — extractions des filtres du cockpit
-- `src/routes/_authenticated/pilot.focus.$topic.tsx` — page listes actionnables
-
-**Modifiés** :
-- `src/lib/client-score.ts` — ajout `scoreBreakdown` + reco
-- `src/routes/_authenticated/pilot.index.tsx` — cartes → liens focus
-- `src/routes/_authenticated/pilot.fiche.$clientId.tsx` — bloc composantes + opportunités enrichies
-- `src/routes/_authenticated/pilot.direction.tsx` — réutilise `getAllClient360`
-- `src/routes/_authenticated/pilot.finance.tsx` — sections analyse par client / prestation
-- Nouveau composant `src/components/pilot/OpportunityCard.tsx`
-
-**Aucune migration SQL**. Typecheck obligatoire en fin de chaque phase.
+- Aucun recalcul rétroactif de CA/marge.
+- Aucune modification de `pilot.ts`, `pilot.index.tsx`, fiches 360.
+- Aucune suppression de ligne.
+- Les lignes refusées restent visibles (filtrables) ; elles peuvent être ré-ouvertes plus tard.
 
 ---
 
-## Livraison
-
-Chaque phase = un lot cohérent. Je livre les 5 en séquence dans cette session (Phase 1 → 5), avec `bunx tsgo --noEmit` à la fin, puis un rapport récap des fichiers touchés.
-
-Ok pour démarrer sur cette base ?
+En attente de validation avant implémentation.

@@ -1018,6 +1018,78 @@ export type Database = {
           },
         ]
       }
+      pilot_ca_match_log: {
+        Row: {
+          decided_at: string
+          decided_by: string
+          entry_id: string
+          id: string
+          method: string
+          new_client_id: string | null
+          note: string | null
+          previous_client_id: string | null
+          score: number | null
+        }
+        Insert: {
+          decided_at?: string
+          decided_by: string
+          entry_id: string
+          id?: string
+          method: string
+          new_client_id?: string | null
+          note?: string | null
+          previous_client_id?: string | null
+          score?: number | null
+        }
+        Update: {
+          decided_at?: string
+          decided_by?: string
+          entry_id?: string
+          id?: string
+          method?: string
+          new_client_id?: string | null
+          note?: string | null
+          previous_client_id?: string | null
+          score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilot_ca_match_log_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "pilot_ca_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_match_log_new_client_id_fkey"
+            columns: ["new_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_match_log_new_client_id_fkey"
+            columns: ["new_client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_match_log_previous_client_id_fkey"
+            columns: ["previous_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_match_log_previous_client_id_fkey"
+            columns: ["previous_client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+        ]
+      }
       pilot_charges: {
         Row: {
           amount: number
@@ -2695,6 +2767,39 @@ export type Database = {
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
       is_editor: { Args: { _user_id: string }; Returns: boolean }
+      link_ca_entry_to_client: {
+        Args: {
+          _client_id: string
+          _entry_id: string
+          _method: string
+          _note?: string
+          _score?: number
+        }
+        Returns: {
+          amount_ht: number
+          category: string | null
+          client_id: string | null
+          created_at: string
+          designation: string | null
+          hours: number | null
+          id: string
+          intervention_id: string | null
+          is_fixed: boolean
+          kind: string
+          month: number
+          note: string | null
+          position: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pilot_ca_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       log_admin_action: {
         Args: { p_action: string; p_details?: Json; p_target_user_id: string }
         Returns: undefined
