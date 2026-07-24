@@ -6,7 +6,7 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat, Home, Euro, Target, Calculator, CalendarRange, FileBarChart, Link2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
@@ -61,46 +61,70 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
 
   const groups: NavGroup[] = [
     {
-      label: "CR Pro",
+      label: "Aujourd'hui",
       items: [
-        { to: "/", label: "Tableau de bord", short: "Accueil", icon: LayoutDashboard, exact: true, primary: true },
-        { to: "/planning", label: "Planning", short: "Planning", icon: CalendarDays, exact: false, primary: true },
-        { to: "/clients", label: "Clients", short: "Clients", icon: Users, exact: false, primary: true },
-        { to: "/statistiques", label: "Statistiques", short: "Stats", icon: BarChart3, exact: false, primary: true },
-        ...(canEdit
-          ? [{ to: "/interventions", label: "Fiches CR Pro", short: "CR", icon: FileText, exact: false, primary: false }]
-          : []),
-        ...(isAdmin
-          ? [{ to: "/emails", label: "Suivi des emails", short: "E-mails", icon: Mail, exact: false, primary: false }]
-          : []),
+        { to: "/", label: "Aujourd'hui", short: "Accueil", icon: Home, exact: true, primary: true },
       ],
+    },
+    {
+      label: "Clients",
+      items: [
+        { to: "/clients", label: "Clients", short: "Clients", icon: Users, exact: false, primary: true },
+      ],
+    },
+    {
+      label: "Pilot Pro",
+      items: canEdit
+        ? [
+            { to: "/pilot", label: "Vue d'ensemble", short: "Pilot", icon: Compass, exact: true, primary: true },
+            { to: "/pilot/direction", label: "Direction", short: "Direction", icon: BarChart3, exact: false, primary: false },
+            { to: "/pilot/ca", label: "CA", short: "CA", icon: Euro, exact: false, primary: false },
+            { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
+            { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
+            { to: "/pilot/clients", label: "Rentabilité", short: "Rentab.", icon: Users, exact: false, primary: false },
+            { to: "/pilot/saison", label: "Prévisions", short: "Prévis.", icon: CalendarRange, exact: false, primary: false },
+            { to: "/pilot/rapports", label: "Rapports", short: "Rapports", icon: FileBarChart, exact: false, primary: false },
+            { to: "/pilot/rapprochement", label: "Rapprochement CA", short: "Rappr.", icon: Link2, exact: false, primary: false },
+            { to: "/statistiques", label: "Statistiques", short: "Stats", icon: BarChart3, exact: false, primary: false },
+          ]
+        : [],
+      emptyLabel: canEdit ? undefined : "Réservé",
+    },
+    {
+      label: "CR Chantier",
+      items: canEdit
+        ? [
+            { to: "/interventions", label: "Comptes-rendus", short: "CR", icon: FileText, exact: false, primary: false },
+          ]
+        : [],
+      emptyLabel: canEdit ? undefined : "Réservé",
     },
     {
       label: "SST Pro",
       items: canEdit
         ? [
-            { to: "/fiches", label: "Fiches SST", short: "SST", icon: ClipboardList, exact: false, primary: false },
             { to: "/sst", label: "Sous-traitants", short: "SST", icon: HardHat, exact: false, primary: false },
+            { to: "/fiches", label: "Fiches SST", short: "Fiches", icon: ClipboardList, exact: false, primary: false },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Bientôt disponible",
     },
-    { label: "Catalogue Pro", items: [], emptyLabel: "Bientôt disponible" },
+    { label: "Catalogue", items: [], emptyLabel: "Bientôt disponible" },
     {
-      label: "Pilot Pro",
-      items: canEdit
-        ? [{ to: "/pilot", label: "Pilotage", short: "Pilot", icon: Compass, exact: false, primary: false }]
-        : [],
-      emptyLabel: canEdit ? undefined : "Bientôt disponible",
+      label: "Planning",
+      items: [
+        { to: "/planning", label: "Planning", short: "Planning", icon: CalendarDays, exact: false, primary: true },
+      ],
     },
     {
-      label: "Administration",
+      label: "Paramètres",
       items: [
-        { to: "/settings", label: "Réglage", short: "Réglage", icon: Settings, exact: false, primary: false },
+        { to: "/settings", label: "Réglages", short: "Réglages", icon: Settings, exact: false, primary: false },
         { to: "/personnalisation", label: "Personnalisation", short: "Apparence", icon: Palette, exact: false, primary: false },
         ...(isAdmin
           ? [
               { to: "/versions", label: "Version", short: "Version", icon: History, exact: false, primary: false },
+              { to: "/emails", label: "Suivi des emails", short: "E-mails", icon: Mail, exact: false, primary: false },
               { to: "/backend", label: "Backend", short: "Backend", icon: Database, exact: false, primary: false },
             ]
           : []),
@@ -119,7 +143,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const toggleGroup = (label: string) =>
     setOpenGroups((s) => ({ ...s, [label]: !(s[label] ?? true) }));
   const groupIcon: Record<string, typeof LayoutDashboard> = {
-    "Catalogue Pro": BookOpen,
+    "Catalogue": BookOpen,
     "Pilot Pro": Compass,
   };
 
