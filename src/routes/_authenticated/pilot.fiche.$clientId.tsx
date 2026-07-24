@@ -6,6 +6,7 @@ import { getClientEconomicScore, SCORE_META } from "@/lib/client-score";
 import { computeScoreBreakdown } from "@/lib/client-score-breakdown";
 import { listNextBestOffers, explainOffer, reasonLabel, formatSeason } from "@/lib/next-best-offers";
 import { formatEuro } from "@/lib/pilot";
+import { getClientActivityStatus } from "@/lib/client-activity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft, MapPin, Phone, Mail, TrendingUp, Clock, Activity, Sparkles,
   Target, FileText, Compass, ShieldCheck, AlertCircle, ThumbsUp, ThumbsDown, Gauge,
+  Wallet, CalendarClock, Lightbulb,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/fiche/$clientId")({
@@ -25,6 +27,23 @@ const CONFIDENCE_META: Record<"HIGH" | "MEDIUM" | "LOW", { label: string; color:
   MEDIUM: { label: "Fiabilité moyenne", color: "#EE8627", icon: Activity },
   LOW: { label: "Fiabilité faible", color: "#8896A0", icon: AlertCircle },
 };
+
+const ACTIVITY_META: Record<"actif" | "a_relancer" | "dormant", { label: string; color: string }> = {
+  actif: { label: "Client actif", color: "#4F8E33" },
+  a_relancer: { label: "À relancer", color: "#EE8627" },
+  dormant: { label: "Dormant", color: "#8896A0" },
+};
+
+interface CaEntryRow {
+  id: string;
+  entry_date: string;
+  year: number;
+  month: number;
+  amount_ht: number;
+  designation: string | null;
+  family: string | null;
+  kind: string;
+}
 
 interface InterventionRow {
   id: string;
@@ -84,6 +103,21 @@ function PilotClient360() {
     },
   });
 
+  const caQ = useQuery({
+    queryKey: ["fiche-ca", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pilot_ca_entries")
+        .select("id,entry_date,year,month,amount_ht,designation,family,kind")
+        .eq("client_id", clientId)
+        .eq("kind", "vente")
+        .order("entry_date", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as unknown as CaEntryRow[];
+    },
+  });
+
   if (clientQ.isLoading) {
     return <Skeleton className="h-96 rounded-xl" />;
   }
@@ -106,6 +140,40 @@ function PilotClient360() {
   const topOffer = (offersQ.data ?? [])[0] ?? null;
   const nextAction = buildNextAction(score, topOffer);
 
+  // Dernière activité = max(intervention_date, entry_date des ventes)
+  const lastIntervention = (interventionsQ.data ?? [])[0]?.intervention_date ?? null;
+  const lastSale = (caQ.data ?? [])[0]?.entry_date ?? null;
+  const lastActivity =
+    lastIntervention && lastSale
+      ? lastIntervention > lastSale ? lastIntervention : lastSale
+      : lastIntervention ?? lastSale ?? null;
+  const activityStatus = getClientActivityStatus(lastActivity);
+  const activityMeta = ACTIVITY_META[activityStatus];
+
+  // Prestations connues (top désignations)
+  const topDesignations = (() => {
+    const acc = new Map<string, { total: number; n: number }>();
+    for (const r of caQ.data ?? []) {
+      const key = (r.designation ?? "—").trim() || "—";
+      const cur = acc.get(key) ?? { total: 0, n: 0 };
+      cur.total += Number(r.amount_ht) || 0;
+      cur.n += 1;
+      acc.set(key, cur);
+    }
+    return Array.from(acc.entries())
+      .map(([label, v]) => ({ label, total: v.total, n: v.n }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 6);
+  })();
+
+  const caCumule = score?.revenueTotalHt ?? (caQ.data ?? []).reduce((s, r) => s + (Number(r.amount_ht) || 0), 0);
+  const totalHours = (interventionsQ.data ?? []).reduce((s, iv) => s + (iv.hours_spent ?? 0), 0);
+  const missingHours = (interventionsQ.data ?? []).filter(
+    (iv) => iv.status === "termine" && iv.hours_spent == null,
+  ).length;
+  const crSent = (interventionsQ.data ?? []).filter((iv) => iv.sent_to_client_at).length;
+  const crTotal = (interventionsQ.data ?? []).length;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
@@ -115,7 +183,7 @@ function PilotClient360() {
         </Link>
       </div>
 
-      {/* En-tête */}
+      {/* 1 — En-tête client */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -127,6 +195,9 @@ function PilotClient360() {
                     <span>{scoreMeta.emoji}</span>{scoreMeta.label}
                   </Badge>
                 )}
+                <Badge variant="outline" className="gap-1" style={{ borderColor: activityMeta.color, color: activityMeta.color }}>
+                  <Activity className="h-3 w-3" />{activityMeta.label}
+                </Badge>
                 {confMeta && ConfIcon && (
                   <Badge variant="outline" className="gap-1" style={{ borderColor: confMeta.color, color: confMeta.color }}>
                     <ConfIcon className="h-3 w-3" />{confMeta.label}
@@ -139,6 +210,20 @@ function PilotClient360() {
                 {client.phone && <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{client.phone}</span>}
                 {client.email && <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{client.email}</span>}
                 {client.frequency && <span>Fréquence : {client.frequency}</span>}
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                <HeaderStat icon={Wallet} label="CA cumulé" value={formatEuro(caCumule)} />
+                <HeaderStat
+                  icon={CalendarClock}
+                  label="Dernière activité"
+                  value={lastActivity ? new Date(lastActivity).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "—"}
+                />
+                <HeaderStat
+                  icon={Activity}
+                  label="Statut relation"
+                  value={activityMeta.label}
+                  color={activityMeta.color}
+                />
               </div>
             </div>
           </div>
@@ -172,7 +257,59 @@ function PilotClient360() {
         </Card>
       )}
 
-      {/* Synthèse économique */}
+      {/* 2 — Historique commercial */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Wallet className="h-4 w-4 text-primary" />Historique commercial
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {caQ.isLoading ? (
+            <Skeleton className="h-24" />
+          ) : (caQ.data ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucune vente enregistrée pour ce client.</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <MiniStat icon={Wallet} label="Ventes" value={String((caQ.data ?? []).length)} />
+                <MiniStat icon={TrendingUp} label="CA cumulé HT" value={formatEuro(caCumule)} />
+                <MiniStat icon={TrendingUp} label="CA année en cours" value={formatEuro(score?.revenueYearHt ?? 0)} />
+                <MiniStat icon={FileText} label="Prestations connues" value={String(topDesignations.length)} />
+              </div>
+              {topDesignations.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Top prestations</p>
+                  <ul className="space-y-1.5">
+                    {topDesignations.map((d) => (
+                      <li key={d.label} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="truncate">{d.label}</span>
+                        <span className="tabular-nums text-muted-foreground">{formatEuro(d.total)} <span className="text-xs">· {d.n}×</span></span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <details className="text-sm">
+                <summary className="cursor-pointer text-xs font-medium text-primary hover:underline">
+                  Voir le détail des {(caQ.data ?? []).length} lignes
+                </summary>
+                <ul className="mt-2 space-y-1">
+                  {(caQ.data ?? []).slice(0, 30).map((r) => (
+                    <li key={r.id} className="flex items-center justify-between gap-2 border-b border-border/60 py-1 text-xs">
+                      <span className="text-muted-foreground">{new Date(r.entry_date).toLocaleDateString("fr-FR")}</span>
+                      <span className="min-w-0 flex-1 truncate">{r.designation ?? "—"}</span>
+                      <span className="tabular-nums">{formatEuro(Number(r.amount_ht) || 0)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 3 — Rentabilité client — synthèse chiffrée */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <MiniStat icon={TrendingUp} label="CA historique" value={formatEuro(score?.revenueTotalHt ?? 0)} />
         <MiniStat icon={TrendingUp} label="CA année en cours" value={formatEuro(score?.revenueYearHt ?? 0)} />
@@ -258,10 +395,27 @@ function PilotClient360() {
         );
       })()}
 
-      {/* Historique */}
+      {/* 4 — Historique interventions */}
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><FileText className="h-4 w-4 text-primary" />Historique des interventions</CardTitle></CardHeader>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileText className="h-4 w-4 text-primary" />Historique interventions
+          </CardTitle>
+        </CardHeader>
         <CardContent>
+          {(interventionsQ.data ?? []).length > 0 && (
+            <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <MiniStat icon={Activity} label="Interventions" value={String(crTotal)} />
+              <MiniStat icon={FileText} label="CR envoyés" value={`${crSent}/${crTotal}`} />
+              <MiniStat icon={Clock} label="Heures cumulées" value={`${totalHours.toFixed(1)} h`} />
+              <MiniStat
+                icon={AlertCircle}
+                label="Heures manquantes"
+                value={String(missingHours)}
+                sub={missingHours > 0 ? "À confirmer" : undefined}
+              />
+            </div>
+          )}
           {interventionsQ.isLoading ? <Skeleton className="h-24" /> : (interventionsQ.data ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucune intervention enregistrée.</p>
           ) : (
@@ -300,7 +454,7 @@ function PilotClient360() {
         </CardContent>
       </Card>
 
-      {/* Opportunités commerciales */}
+      {/* 5 — Opportunités */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Sparkles className="h-4 w-4 text-primary" />Opportunités commerciales</CardTitle></CardHeader>
         <CardContent>
@@ -330,11 +484,20 @@ function PilotClient360() {
         </CardContent>
       </Card>
 
-      {/* Recommandations */}
-      {(recosQ.data?.length ?? 0) > 0 && (
-        <Card>
-          <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Target className="h-4 w-4 text-primary" />Recommandations en cours</CardTitle></CardHeader>
-          <CardContent>
+      {/* Recommandations — placeholder pour les futures propositions */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Lightbulb className="h-4 w-4 text-primary" />Recommandations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(recosQ.data?.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aucune recommandation en cours. Les futures propositions issues des comptes-rendus et de l'analyse
+              apparaîtront ici.
+            </p>
+          ) : (
             <ul className="space-y-2">
               {(recosQ.data ?? []).map((r) => (
                 <li key={r.id} className="rounded-lg border border-border p-3">
@@ -346,17 +509,17 @@ function PilotClient360() {
                 </li>
               ))}
             </ul>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 function BackLink() {
   return (
-    <Link to="/pilot/direction" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-      <ArrowLeft className="h-4 w-4" />Retour au dashboard Direction
+    <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <ArrowLeft className="h-4 w-4" />Retour aux clients
     </Link>
   );
 }
