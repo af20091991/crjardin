@@ -17,6 +17,7 @@ import { getOpportunitiesValue } from "@/lib/garden";
 import { getClientEconomicScores, SCORE_META, type ClientScoreLabel, type ClientScore } from "@/lib/client-score";
 import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
+import { CoverageHistoryCard } from "@/components/pilot/CoverageBanner";
 import {
   Euro, TrendingUp, Wallet, Percent, Target, LineChart, ShoppingCart,
   Clock, Sparkles, Users, Lightbulb, Gauge, Handshake, Briefcase,
@@ -89,6 +90,8 @@ function PilotDashboard() {
           </CardContent>
         </Card>
       )}
+
+      <CoverageHistoryCard />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">

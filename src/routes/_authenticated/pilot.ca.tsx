@@ -23,6 +23,7 @@ import { Plus, Trash2, ChevronLeft, ChevronRight, TrendingUp, Wallet, Clock, Pig
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 
 export const Route = createFileRoute("/_authenticated/pilot/ca")({
   component: CaPage,
@@ -99,6 +100,8 @@ function CaPage() {
         <StatBox label="Bénéfices nets" value={formatEuro(yt.benefice)} icon={PiggyBank} tone="text-emerald-600" />
         <StatBox label="Temps total" value={`${yt.hours.toLocaleString("fr-FR")} h`} icon={Clock} />
       </div>
+
+      <CoverageBanner year={year} compact />
 
       {/* Onglets mois */}
       <div className="-mx-1 overflow-x-auto pb-1">

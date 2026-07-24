@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { startOfWeek, endOfWeek, isSameDay, inRange } from "@/lib/date-utils";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import type { FocusTopic } from "@/lib/pilot-focus";
+import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import {
   Euro, Wallet, Target, CalendarDays, Sparkles, AlertTriangle, FileText,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
@@ -336,6 +337,8 @@ function TodayPage() {
           {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
         </p>
       </div>
+
+      <CoverageBanner year={year} />
 
       {/* Performance du jour */}
       <section className="space-y-2">

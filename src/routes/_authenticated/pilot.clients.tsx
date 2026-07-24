@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, AlertTriangle, UserX, TrendingUp } from "lucide-react";
+import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 
 export const Route = createFileRoute("/_authenticated/pilot/clients")({
   component: PilotClientsPage,
@@ -79,6 +80,8 @@ function PilotClientsPage() {
           </SelectContent>
         </Select>
       </div>
+
+      <CoverageBanner year={yearFilter} compact />
 
       {/* Top clients */}
       <div className="grid gap-3 sm:grid-cols-3">
