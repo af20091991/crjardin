@@ -346,11 +346,11 @@ function TodayPage() {
     key: string; label: string; count: number; icon: typeof Handshake;
     topic?: FocusTopic; to?: string; tone: Priority;
   }> = [
-    { key: "cr", label: "Comptes-rendus à envoyer", count: terminatedNoReport.length, icon: Send, topic: "cr-non-envoyes", tone: "urgent" },
-    { key: "h", label: "Heures à confirmer", count: missingHours.length, icon: Clock, topic: "heures-manquantes", tone: "urgent" },
-    { key: "r", label: "Recommandations à planifier", count: acceptedNotPlanned.length, icon: Handshake, topic: "recos-a-planifier", tone: "urgent" },
-    { key: "d", label: "Dépassements de temps", count: timeOverruns.length, icon: TrendingDown, topic: "depassements-temps", tone: "urgent" },
-    { key: "g", label: "Objectifs en retard", count: goalsLate.length, icon: Flag, to: "/pilot/objectifs", tone: "urgent" },
+    { key: "cr", label: "Comptes-rendus à envoyer", count: terminatedNoReport.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "urgent" as Priority },
+    { key: "h", label: "Heures à confirmer", count: missingHours.length, icon: Clock, topic: "heures-manquantes" as FocusTopic, tone: "urgent" as Priority },
+    { key: "r", label: "Recommandations à planifier", count: acceptedNotPlanned.length, icon: Handshake, topic: "recos-a-planifier" as FocusTopic, tone: "urgent" as Priority },
+    { key: "d", label: "Dépassements de temps", count: timeOverruns.length, icon: TrendingDown, topic: "depassements-temps" as FocusTopic, tone: "urgent" as Priority },
+    { key: "g", label: "Objectifs en retard", count: goalsLate.length, icon: Flag, to: "/pilot/objectifs", tone: "urgent" as Priority },
   ].filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
 
   // Risques — condensés, seuls les non-vides.
@@ -364,7 +364,7 @@ function TodayPage() {
       count: lowHourlyEntries.length,
       hint: targetHR > 0 ? `Sous ${formatEuro(targetHR)}/h` : "Définir un taux cible",
       icon: Gauge,
-      topic: "rentabilite-faible",
+      topic: "rentabilite-faible" as FocusTopic,
     },
     {
       key: "chr",
@@ -372,7 +372,7 @@ function TodayPage() {
       count: heavyLowMarginClients.length,
       hint: "≥ 20 h/an et taux < 85 % de la cible",
       icon: Flame,
-      topic: "chronophages",
+      topic: "chronophages" as FocusTopic,
     },
     {
       key: "sl",
@@ -380,7 +380,7 @@ function TodayPage() {
       count: sleeping12m.length,
       hint: "Aucun CA depuis plus d'un an",
       icon: Users,
-      topic: "dormants",
+      topic: "dormants" as FocusTopic,
     },
   ].filter((r) => r.count > 0);
 
@@ -391,9 +391,9 @@ function TodayPage() {
   const secondarySignals: Array<{
     label: string; count: number; topic: FocusTopic;
   }> = [
-    { label: "Créations sans entretien", count: creationSansEntretien.length, topic: "creation-sans-entretien" },
-    { label: "Entretien sans conseil récent", count: entretienSansConseil.length, topic: "entretien-sans-conseil" },
-    { label: "Clients dormants (6 mois)", count: dormants.length, topic: "dormants" },
+    { label: "Créations sans entretien", count: creationSansEntretien.length, topic: "creation-sans-entretien" as FocusTopic },
+    { label: "Entretien sans conseil récent", count: entretienSansConseil.length, topic: "entretien-sans-conseil" as FocusTopic },
+    { label: "Clients dormants (6 mois)", count: dormants.length, topic: "dormants" as FocusTopic },
   ].filter((s) => s.count > 0);
 
   return (
