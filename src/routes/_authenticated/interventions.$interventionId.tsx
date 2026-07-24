@@ -10,8 +10,9 @@ import {
   TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
   DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, normalizeReportSections, type ReportSections,
   listServiceCatalog,
-  completeInterventionWithHoursAutofill, confirmHoursSpent,
+  completeInterventionWithHoursAutofill, confirmHoursSpent, estimateHoursSpent,
 } from "@/lib/interventions";
+import { getSettings } from "@/lib/pilot";
 import {
   listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
   listRecommendationsByClient, addRecommendation, updateRecommendation, deleteRecommendation,
@@ -53,7 +54,7 @@ import {
 import {
   ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
   FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download, ArrowUp, ArrowDown, Settings2,
-  Clock, AlertTriangle,
+  Clock, AlertTriangle, Gauge, TrendingUp, TrendingDown, Minus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -111,6 +112,14 @@ function InterventionDetail() {
   const { data: serviceCatalog } = useQuery({
     queryKey: ["service-catalog"],
     queryFn: listServiceCatalog,
+  });
+  const plannedHoursQ = useQuery({
+    queryKey: ["planned-hours", interventionId],
+    queryFn: () => estimateHoursSpent(interventionId),
+  });
+  const pilotSettingsQ = useQuery({
+    queryKey: ["pilot-settings-target"],
+    queryFn: getSettings,
   });
 
   const invTasks = () => qc.invalidateQueries({ queryKey: ["tasks", interventionId] });
@@ -560,6 +569,13 @@ function InterventionDetail() {
               setHoursInput={setHoursInput}
               onSave={(h) => saveHours.mutate(h)}
               saving={saveHours.isPending}
+            />
+            <RentabilityEstimateBlock
+              plannedHours={plannedHoursQ.data ?? null}
+              actualHours={iv.hours_spent ?? null}
+              done={done}
+              targetHourlyRate={pilotSettingsQ.data?.target_hourly_rate ?? 0}
+              estimated={((iv.ai_metadata ?? {}) as Record<string, unknown>).hours_spent_estimated === true}
             />
           </CardContent>
         </Card>
@@ -1218,6 +1234,124 @@ function ReportPhotosPicker({
 }
 
 function HoursSpentBlock({
+  iv,
+  done,
+  hoursInput,
+  setHoursInput,
+  onSave,
+  saving,
+}: {
+  iv: Intervention;
+  done: boolean;
+  hoursInput: string;
+  setHoursInput: (v: string) => void;
+  onSave: (hours: number) => void;
+  saving: boolean;
+}) {
+  return _renderHoursSpentBlock({ iv, done, hoursInput, setHoursInput, onSave, saving });
+}
+
+function RentabilityEstimateBlock({
+  plannedHours,
+  actualHours,
+  done,
+  targetHourlyRate,
+  estimated,
+}: {
+  plannedHours: number | null;
+  actualHours: number | null;
+  done: boolean;
+  targetHourlyRate: number;
+  estimated: boolean;
+}) {
+  if (!plannedHours && !actualHours) return null;
+  const hasBoth = plannedHours != null && actualHours != null && actualHours > 0;
+  const delta = hasBoth ? (actualHours as number) - (plannedHours as number) : null;
+  const deltaPct = hasBoth && (plannedHours as number) > 0 ? (delta! / (plannedHours as number)) * 100 : null;
+  const valueProduced = hasBoth && targetHourlyRate > 0 ? (plannedHours as number) * targetHourlyRate : null;
+  const realCost = hasBoth && targetHourlyRate > 0 ? (actualHours as number) * targetHourlyRate : null;
+  const marginDelta = valueProduced !== null && realCost !== null ? valueProduced - realCost : null;
+
+  const tone = delta === null ? "neutral" : delta <= 0 ? "positive" : delta / (plannedHours as number) > 0.2 ? "negative" : "warning";
+  const toneColor = { positive: "#4F8E33", warning: "#EE8627", negative: "#C0392B", neutral: "#8896A0" }[tone];
+  const TrendIcon = delta === null ? Minus : delta < 0 ? TrendingDown : delta > 0 ? TrendingUp : Minus;
+  const confidence: "HIGH" | "MEDIUM" | "LOW" = !hasBoth ? "LOW" : estimated ? "MEDIUM" : "HIGH";
+  const confLabel = { HIGH: "Fiable", MEDIUM: "Estimé", LOW: "Incomplet" }[confidence];
+  const confColor = { HIGH: "#4F8E33", MEDIUM: "#EE8627", LOW: "#8896A0" }[confidence];
+
+  return (
+    <div className="mt-3 rounded-lg border bg-muted/20 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-sm font-medium">
+          <Gauge className="h-4 w-4 text-primary" />
+          Rentabilité estimée
+          {!done && <span className="ml-1 text-xs font-normal text-muted-foreground">(après clôture)</span>}
+        </div>
+        <Badge variant="outline" className="gap-1 font-normal" style={{ borderColor: confColor, color: confColor }}>
+          {confLabel}
+        </Badge>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="rounded border bg-background/60 p-2">
+          <div className="text-[11px] text-muted-foreground">Temps prévu</div>
+          <div className="text-base font-semibold tabular-nums">
+            {plannedHours != null ? `${plannedHours.toFixed(2)} h` : "—"}
+          </div>
+          <div className="text-[10px] text-muted-foreground">selon catalogue</div>
+        </div>
+        <div className="rounded border bg-background/60 p-2">
+          <div className="text-[11px] text-muted-foreground">Temps réel</div>
+          <div className="text-base font-semibold tabular-nums">
+            {actualHours != null && actualHours > 0 ? `${actualHours.toFixed(2)} h` : "—"}
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            {actualHours != null && actualHours > 0 ? (estimated ? "estimé auto" : "confirmé") : "à renseigner"}
+          </div>
+        </div>
+        <div className="rounded border bg-background/60 p-2">
+          <div className="text-[11px] text-muted-foreground">Écart</div>
+          <div className="flex items-baseline gap-1 text-base font-semibold tabular-nums" style={{ color: toneColor }}>
+            <TrendIcon className="h-3.5 w-3.5" />
+            {delta !== null ? `${delta >= 0 ? "+" : ""}${delta.toFixed(2)} h` : "—"}
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            {deltaPct !== null ? `${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(0)}% vs prévu` : "—"}
+          </div>
+        </div>
+        <div className="rounded border bg-background/60 p-2">
+          <div className="text-[11px] text-muted-foreground">Rentabilité</div>
+          {targetHourlyRate > 0 && hasBoth ? (
+            <>
+              <div className="text-base font-semibold tabular-nums" style={{ color: (marginDelta ?? 0) >= 0 ? "#4F8E33" : "#C0392B" }}>
+                {(marginDelta ?? 0) >= 0 ? "+" : ""}
+                {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(marginDelta ?? 0)}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                base {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(targetHourlyRate)}/h
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-base font-semibold text-muted-foreground">—</div>
+              <div className="text-[10px] text-muted-foreground">
+                {targetHourlyRate > 0 ? "données incomplètes" : "définir la cible taux horaire"}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      {confidence !== "HIGH" && (
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {confidence === "LOW"
+            ? "Rentabilité non calculable — renseigner les tâches et le temps passé."
+            : "Estimation automatique — confirmer le temps réel pour fiabiliser la rentabilité."}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function _renderHoursSpentBlock({
   iv,
   done,
   hoursInput,

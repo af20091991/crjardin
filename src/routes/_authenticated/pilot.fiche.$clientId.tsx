@@ -310,7 +310,21 @@ function PilotClient360() {
       </Card>
 
       {/* 3 — Rentabilité client — synthèse chiffrée */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Gauge className="h-4 w-4 text-primary" />
+            Rentabilité client
+            {confMeta && ConfIcon && (
+              <Badge variant="outline" className="ml-2 gap-1 font-normal" style={{ borderColor: confMeta.color, color: confMeta.color }}>
+                <ConfIcon className="h-3 w-3" />
+                {confMeta.label}
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <MiniStat icon={TrendingUp} label="CA historique" value={formatEuro(score?.revenueTotalHt ?? 0)} />
         <MiniStat icon={TrendingUp} label="CA année en cours" value={formatEuro(score?.revenueYearHt ?? 0)} />
         <MiniStat icon={Activity} label="Interventions" value={String(score?.interventionsCount ?? 0)} />
@@ -322,7 +336,16 @@ function PilotClient360() {
           sub={score?.targetHourlyRate ? `Cible ${formatEuro(score.targetHourlyRate)}/h` : undefined}
         />
         <MiniStat icon={Sparkles} label="Potentiel commercial" value={formatEuro(score?.opportunitiesValue ?? 0)} sub={`${score?.opportunitiesCount ?? 0} offre(s)`} />
-      </div>
+          </div>
+          {score && score.confidenceLevel !== "HIGH" && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              {score.confidenceLevel === "LOW"
+                ? "Données limitées — le taux horaire réel est indicatif. Confirmer les heures des dernières interventions améliore la fiabilité."
+                : "Fiabilité moyenne — quelques interventions supplémentaires avec heures confirmées consolideront le taux horaire réel."}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {score?.recommendation && (
         <Card>
