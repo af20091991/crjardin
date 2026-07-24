@@ -81,7 +81,7 @@ function PilotDashboard() {
   const caPrevFull = useMemo(() => {
     const list = entries.data ?? [];
     return list
-      .filter((e) => new Date(e.entry_date).getFullYear() === year - 1 && e.kind === "vente")
+      .filter((e) => new Date(e.entry_date).getFullYear() === year - 1)
       .reduce((s, e) => s + (Number(e.amount_ht) || 0), 0);
   }, [entries.data, year]);
   const prevHourlyRate = prevHoursTotal > 0 ? caPrevFull / prevHoursTotal : 0;
