@@ -11,14 +11,13 @@ import { listAllInterventions } from "@/lib/interventions";
 import { listAllRecommendations } from "@/lib/garden";
 import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfWeek, endOfWeek, isSameDay, inRange } from "@/lib/date-utils";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import {
-  Euro, Wallet, Target, CalendarDays, Sparkles, AlertTriangle, FileText,
+  Euro, Wallet, Sparkles, AlertTriangle,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
-  TrendingDown, Gauge, Flame, Leaf, Lightbulb, Flag,
+  TrendingDown, Gauge, Flame, Leaf, Flag,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/")({
@@ -135,11 +134,6 @@ function TodayPage() {
   const allG = goals.data ?? [];
 
   const today = new Date();
-  const wStart = startOfWeek(today);
-  const wEnd = endOfWeek(today);
-
-  const planningToday = allI.filter((i) => isSameDay(i.intervention_date, today));
-  const planningWeek = allI.filter((i) => inRange(i.intervention_date, wStart, wEnd));
 
   const acceptedNotPlanned = allR.filter(
     (r) => r.status === "acceptee" && !r.planned_intervention_id,
@@ -411,7 +405,7 @@ function TodayPage() {
 
       {/* 1 — Où en est mon entreprise aujourd'hui ? */}
       <section className="space-y-2">
-        <SectionTitle question="Où en est mon entreprise ?" label="État à date" />
+      <SectionTitle question="Où en est mon entreprise ?" label="Synthèse dirigeant" />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard
             label="CA du mois"
@@ -459,7 +453,7 @@ function TodayPage() {
 
       {/* 2 — Quelles sont mes priorités ? */}
       <section className="space-y-2">
-        <SectionTitle question="Quelles sont mes priorités ?" label="À traiter" />
+      <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
         {priorities.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex items-center gap-3 py-5">
@@ -486,7 +480,7 @@ function TodayPage() {
 
       {/* 3 — Quels risques dois-je traiter ? */}
       <section className="space-y-2">
-        <SectionTitle question="Quels risques dois-je traiter ?" label="Rentabilité & portefeuille" />
+      <SectionTitle question="Quelles alertes dois-je traiter ?" label="Alertes" />
         {risks.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex items-center gap-3 py-5">
@@ -505,7 +499,7 @@ function TodayPage() {
 
       {/* 4 — Quelles opportunités puis-je saisir ? */}
       <section className="space-y-2">
-        <SectionTitle question="Quelles opportunités puis-je saisir ?" label="Commerciales" />
+      <SectionTitle question="Quelles opportunités puis-je saisir ?" label="Opportunités commerciales" />
         <div className="grid gap-3 md:grid-cols-3">
           <Card className="md:col-span-2">
             <CardContent className="space-y-3 pt-6">
@@ -571,71 +565,6 @@ function TodayPage() {
                       >
                         <span className="truncate">{s.label}</span>
                         <Badge variant="outline" className="shrink-0">{s.count}</Badge>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Planning — support opérationnel, compact */}
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Planning</h3>
-        <div className="grid gap-3 md:grid-cols-2">
-          <Card>
-            <CardContent className="space-y-3 pt-6">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-primary" />
-                <h4 className="font-medium">Aujourd'hui</h4>
-                <Badge variant="secondary" className="ml-auto">{planningToday.length}</Badge>
-              </div>
-              {planningToday.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune intervention prévue aujourd'hui.</p>
-              ) : (
-                <ul className="space-y-1.5 text-sm">
-                  {planningToday.slice(0, 6).map((i) => (
-                    <li key={i.id}>
-                      <Link
-                        to="/interventions/$interventionId"
-                        params={{ interventionId: i.id }}
-                        className="flex items-center justify-between gap-2 rounded-md px-2 py-1 hover:bg-accent/40"
-                      >
-                        <span className="truncate">{i.title ?? i.intervention_type ?? "Intervention"}</span>
-                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="space-y-3 pt-6">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-primary" />
-                <h4 className="font-medium">Cette semaine</h4>
-                <Badge variant="secondary" className="ml-auto">{planningWeek.length}</Badge>
-              </div>
-              {planningWeek.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune intervention prévue cette semaine.</p>
-              ) : (
-                <ul className="space-y-1.5 text-sm">
-                  {planningWeek.slice(0, 6).map((i) => (
-                    <li key={i.id}>
-                      <Link
-                        to="/interventions/$interventionId"
-                        params={{ interventionId: i.id }}
-                        className="flex items-center justify-between gap-2 rounded-md px-2 py-1 hover:bg-accent/40"
-                      >
-                        <span className="truncate">
-                          {new Date(i.intervention_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" })}
-                          {" · "}
-                          {i.title ?? i.intervention_type ?? "Intervention"}
-                        </span>
-                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       </Link>
                     </li>
                   ))}
