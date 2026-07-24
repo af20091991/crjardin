@@ -11,12 +11,11 @@ import { listAllInterventions } from "@/lib/interventions";
 import { listAllRecommendations } from "@/lib/garden";
 import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfWeek, endOfWeek, isSameDay, inRange } from "@/lib/date-utils";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import {
-  Euro, Wallet, Target, CalendarDays, Sparkles, AlertTriangle, FileText,
+  Euro, Wallet, Sparkles, AlertTriangle,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
   TrendingDown, Gauge, Flame, Leaf, Lightbulb, Flag,
 } from "lucide-react";
@@ -135,11 +134,6 @@ function TodayPage() {
   const allG = goals.data ?? [];
 
   const today = new Date();
-  const wStart = startOfWeek(today);
-  const wEnd = endOfWeek(today);
-
-  const planningToday = allI.filter((i) => isSameDay(i.intervention_date, today));
-  const planningWeek = allI.filter((i) => inRange(i.intervention_date, wStart, wEnd));
 
   const acceptedNotPlanned = allR.filter(
     (r) => r.status === "acceptee" && !r.planned_intervention_id,
@@ -411,7 +405,7 @@ function TodayPage() {
 
       {/* 1 — Où en est mon entreprise aujourd'hui ? */}
       <section className="space-y-2">
-        <SectionTitle question="Où en est mon entreprise ?" label="État à date" />
+      <SectionTitle question="Où en est mon entreprise ?" label="Synthèse dirigeant" />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard
             label="CA du mois"
@@ -459,7 +453,7 @@ function TodayPage() {
 
       {/* 2 — Quelles sont mes priorités ? */}
       <section className="space-y-2">
-        <SectionTitle question="Quelles sont mes priorités ?" label="À traiter" />
+      <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
         {priorities.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex items-center gap-3 py-5">
@@ -486,7 +480,7 @@ function TodayPage() {
 
       {/* 3 — Quels risques dois-je traiter ? */}
       <section className="space-y-2">
-        <SectionTitle question="Quels risques dois-je traiter ?" label="Rentabilité & portefeuille" />
+      <SectionTitle question="Quelles alertes dois-je traiter ?" label="Alertes" />
         {risks.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex items-center gap-3 py-5">
@@ -505,7 +499,7 @@ function TodayPage() {
 
       {/* 4 — Quelles opportunités puis-je saisir ? */}
       <section className="space-y-2">
-        <SectionTitle question="Quelles opportunités puis-je saisir ?" label="Commerciales" />
+      <SectionTitle question="Quelles opportunités puis-je saisir ?" label="Opportunités commerciales" />
         <div className="grid gap-3 md:grid-cols-3">
           <Card className="md:col-span-2">
             <CardContent className="space-y-3 pt-6">
