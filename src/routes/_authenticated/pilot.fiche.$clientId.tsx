@@ -537,6 +537,22 @@ function MiniStat({ icon: Icon, label, value, sub }: { icon: React.ComponentType
   );
 }
 
+function HeaderStat({
+  icon: Icon, label, value, color,
+}: {
+  icon: React.ComponentType<{ className?: string }>; label: string; value: string; color?: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+      <Icon className="h-4 w-4 shrink-0 text-primary/70" />
+      <div className="min-w-0">
+        <div className="text-[11px] text-muted-foreground">{label}</div>
+        <div className="truncate text-sm font-medium" style={color ? { color } : undefined}>{value}</div>
+      </div>
+    </div>
+  );
+}
+
 function crStatus(iv: InterventionRow): { label: string; color: string } {
   if (iv.sent_to_client_at) return { label: "CR envoyé", color: "#4F8E33" };
   if (iv.pdf_storage_path) return { label: "CR archivé", color: "#EE8627" };
