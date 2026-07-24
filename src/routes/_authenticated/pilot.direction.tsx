@@ -314,6 +314,137 @@ const PRIORITY: Record<ClientScoreLabel, number> = {
   strategique: 3,
 };
 
+function RentabilitySection(props: {
+  taux: number;
+  target: number;
+  prevTaux: number;
+  rateDelta: number | null;
+  rateDeltaPct: number | null;
+  rateGapToTarget: number | null;
+  hoursConfirmed: number;
+  hoursPrev: number;
+  familiesRanked: Array<{ family: string; label: string; value: number; color: string }>;
+  familyConcentration: number;
+  confidence: { label: string; color: string; Icon: typeof Gauge };
+  year: number;
+}) {
+  const {
+    taux, target, prevTaux, rateDelta, rateDeltaPct, rateGapToTarget,
+    hoursConfirmed, hoursPrev, familiesRanked, familyConcentration, confidence, year,
+  } = props;
+  const CIcon = confidence.Icon;
+  const noData = taux <= 0;
+  const targetPct = target > 0 && taux > 0 ? Math.min(100, (taux / target) * 100) : 0;
+  const evolPositive = (rateDelta ?? 0) >= 0;
+  const top = familiesRanked[0];
+  const bottom = familiesRanked.length > 1 ? familiesRanked[familiesRanked.length - 1] : null;
+
+  return (
+    <Card>
+      <CardContent className="space-y-4 pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Gauge className="h-4 w-4 text-primary" />
+            <h3 className="font-medium">Rentabilité — {year}</h3>
+          </div>
+          <Badge variant="outline" className="gap-1" style={{ borderColor: confidence.color, color: confidence.color }}>
+            <CIcon className="h-3 w-3" />
+            {confidence.label}
+          </Badge>
+        </div>
+
+        {noData ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Aucune heure confirmée sur l'année — clôturez des interventions avec heures passées pour calculer la rentabilité.
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="text-xs text-muted-foreground">Taux horaire réel</div>
+              <div className="mt-1 text-2xl font-semibold tabular-nums">{formatEuro(taux)}<span className="ml-0.5 text-sm text-muted-foreground">/h</span></div>
+              <div className="mt-1 text-xs text-muted-foreground">{hoursConfirmed.toFixed(0)} h confirmées</div>
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="text-xs text-muted-foreground">vs Cible ({target > 0 ? `${formatEuro(target)}/h` : "non définie"})</div>
+              <div className="mt-1 text-2xl font-semibold tabular-nums" style={{ color: rateGapToTarget !== null && rateGapToTarget >= 0 ? "#4F8E33" : "#C0392B" }}>
+                {rateGapToTarget !== null ? `${rateGapToTarget >= 0 ? "+" : ""}${formatEuro(rateGapToTarget)}` : "—"}
+              </div>
+              {target > 0 && (
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-primary" style={{ width: `${targetPct}%` }} />
+                </div>
+              )}
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="text-xs text-muted-foreground">Évolution vs {year - 1}</div>
+              {rateDelta !== null ? (
+                <div className="mt-1 flex items-baseline gap-1">
+                  {evolPositive ? <ArrowUpRight className="h-4 w-4 text-emerald-600" /> : <ArrowDownRight className="h-4 w-4 text-rose-600" />}
+                  <span className="text-2xl font-semibold tabular-nums" style={{ color: evolPositive ? "#4F8E33" : "#C0392B" }}>
+                    {evolPositive ? "+" : ""}{rateDeltaPct !== null ? `${rateDeltaPct.toFixed(0)}%` : "—"}
+                  </span>
+                </div>
+              ) : (
+                <div className="mt-1 text-2xl font-semibold text-muted-foreground">—</div>
+              )}
+              <div className="mt-1 text-xs text-muted-foreground">
+                {prevTaux > 0 ? `${formatEuro(prevTaux)}/h · ${hoursPrev.toFixed(0)} h N-1` : "Pas de référence N-1"}
+              </div>
+            </div>
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="text-xs text-muted-foreground">Concentration activité</div>
+              {top ? (
+                <>
+                  <div className="mt-1 text-lg font-semibold truncate" style={{ color: top.color }}>{top.label}</div>
+                  <div className="text-xs text-muted-foreground">{familyConcentration.toFixed(0)}% du CA</div>
+                </>
+              ) : (
+                <div className="mt-1 text-sm text-muted-foreground">—</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!noData && familiesRanked.length > 0 && (
+          <div className="rounded-lg border p-3">
+            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Activités à surveiller</div>
+            <ul className="space-y-1.5 text-sm">
+              {familyConcentration >= 60 && top && (
+                <li className="flex gap-2 text-amber-800">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span><strong>{top.label}</strong> concentre {familyConcentration.toFixed(0)}% du CA — dépendance forte, diversifier.</span>
+                </li>
+              )}
+              {bottom && bottom.value > 0 && bottom.value < (top?.value ?? 0) * 0.15 && (
+                <li className="flex gap-2 text-muted-foreground">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/60" />
+                  <span><strong>{bottom.label}</strong> ne représente que {((bottom.value / (totalOrOne(top?.value))) * 100).toFixed(0)}% du principal — potentiel de développement ou à arbitrer.</span>
+                </li>
+              )}
+              {rateGapToTarget !== null && rateGapToTarget < 0 && (
+                <li className="flex gap-2 text-rose-700">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>Taux horaire réel sous la cible de {formatEuro(-rateGapToTarget)}/h — revoir tarifs ou temps passés.</span>
+                </li>
+              )}
+              {rateGapToTarget !== null && rateGapToTarget >= 0 && familyConcentration < 60 && (
+                <li className="flex gap-2 text-emerald-700">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>Rentabilité conforme à la cible et portefeuille équilibré.</span>
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function totalOrOne(v: number | undefined): number {
+  return v && v > 0 ? v : 1;
+}
+
 function ClientPortfolioSection() {
   const q = useQuery({ queryKey: ["client-economic-scores"], queryFn: getClientEconomicScores });
   const scores = q.data ?? [];
