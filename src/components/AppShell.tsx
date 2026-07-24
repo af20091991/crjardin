@@ -61,7 +61,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
 
   const groups: NavGroup[] = [
     {
-    {
       label: "Aujourd'hui",
       items: [
         { to: "/", label: "Aujourd'hui", short: "Accueil", icon: Home, exact: true, primary: true },
