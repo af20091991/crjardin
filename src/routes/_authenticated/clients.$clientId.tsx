@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
-  Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check, ExternalLink,
+  Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check, ExternalLink, Compass,
   ThumbsUp, ThumbsDown, RotateCcw, TrendingUp, Send, ArrowRight, Sprout,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -97,6 +97,19 @@ function ClientDetail() {
       <div className="mx-auto max-w-3xl space-y-4">
         <Link to="/clients" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Tous les clients
+        </Link>
+
+        <Link to="/pilot/fiche/$clientId" params={{ clientId }}>
+          <Card className="flex items-center gap-3 border-primary/40 bg-primary/5 p-3 transition-colors hover:bg-primary/10">
+            <Compass className="h-5 w-5 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Ouvrir la fiche 360°</p>
+              <p className="text-xs text-muted-foreground">
+                Synthèse dirigeant : CA, activité, rentabilité, opportunités.
+              </p>
+            </div>
+            <ArrowRight className="h-4 w-4 shrink-0 text-primary" />
+          </Card>
         </Link>
 
         <Card>
