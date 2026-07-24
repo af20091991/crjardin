@@ -570,6 +570,13 @@ function InterventionDetail() {
               onSave={(h) => saveHours.mutate(h)}
               saving={saveHours.isPending}
             />
+            <RentabilityEstimateBlock
+              plannedHours={plannedHoursQ.data ?? null}
+              actualHours={iv.hours_spent ?? null}
+              done={done}
+              targetHourlyRate={pilotSettingsQ.data?.target_hourly_rate ?? 0}
+              estimated={((iv.ai_metadata ?? {}) as Record<string, unknown>).hours_spent_estimated === true}
+            />
           </CardContent>
         </Card>
 
