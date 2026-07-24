@@ -175,6 +175,15 @@ function TodayPage() {
 
   const priority = priorityOffers.data ?? [];
 
+  // Nom client par ID (pour opportunités et priorités affichées)
+  const clientNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of entries.data ?? []) {
+      if (e.client_id && e.client_name) map.set(e.client_id, e.client_name);
+    }
+    return map;
+  }, [entries.data]);
+
   // ------- Nouvelles analyses (aucune nouvelle donnée) -------
   const targetHR = set.target_hourly_rate || 0;
 
@@ -327,6 +336,66 @@ function TodayPage() {
     );
   }
 
+  // Delta CA mois vs N-1 (question "où en suis-je ?")
+  const deltaMoisPct = objectifMois > 0 ? ((k.caMonth - objectifMois) / objectifMois) * 100 : 0;
+  const tauxReel = k.tauxHoraireReel ?? 0;
+  const tauxEcartPct = targetHR > 0 && tauxReel > 0 ? ((tauxReel - targetHR) / targetHR) * 100 : 0;
+
+  // Priorités du jour — classées par volume, ne montre que les non-vides.
+  const priorities: Array<{
+    key: string; label: string; count: number; icon: typeof Handshake;
+    topic?: FocusTopic; to?: string; tone: Priority;
+  }> = [
+    { key: "cr", label: "Comptes-rendus à envoyer", count: terminatedNoReport.length, icon: Send, topic: "cr-non-envoyes", tone: "urgent" },
+    { key: "h", label: "Heures à confirmer", count: missingHours.length, icon: Clock, topic: "heures-manquantes", tone: "urgent" },
+    { key: "r", label: "Recommandations à planifier", count: acceptedNotPlanned.length, icon: Handshake, topic: "recos-a-planifier", tone: "urgent" },
+    { key: "d", label: "Dépassements de temps", count: timeOverruns.length, icon: TrendingDown, topic: "depassements-temps", tone: "urgent" },
+    { key: "g", label: "Objectifs en retard", count: goalsLate.length, icon: Flag, to: "/pilot/objectifs", tone: "urgent" },
+  ].filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
+
+  // Risques — condensés, seuls les non-vides.
+  const risks: Array<{
+    key: string; label: string; count: number; hint: string;
+    icon: typeof AlertTriangle; topic: FocusTopic;
+  }> = [
+    {
+      key: "low",
+      label: "Rentabilité horaire sous cible",
+      count: lowHourlyEntries.length,
+      hint: targetHR > 0 ? `Sous ${formatEuro(targetHR)}/h` : "Définir un taux cible",
+      icon: Gauge,
+      topic: "rentabilite-faible",
+    },
+    {
+      key: "chr",
+      label: "Clients chronophages",
+      count: heavyLowMarginClients.length,
+      hint: "≥ 20 h/an et taux < 85 % de la cible",
+      icon: Flame,
+      topic: "chronophages",
+    },
+    {
+      key: "sl",
+      label: "Clients dormants (> 12 mois)",
+      count: sleeping12m.length,
+      hint: "Aucun CA depuis plus d'un an",
+      icon: Users,
+      topic: "dormants",
+    },
+  ].filter((r) => r.count > 0);
+
+  // Opportunités — Top 3 NBO déjà scorées ≥ 80.
+  const topOffers = priority.slice(0, 3);
+
+  // Signaux commerciaux annexes (chips)
+  const secondarySignals: Array<{
+    label: string; count: number; topic: FocusTopic;
+  }> = [
+    { label: "Créations sans entretien", count: creationSansEntretien.length, topic: "creation-sans-entretien" },
+    { label: "Entretien sans conseil récent", count: entretienSansConseil.length, topic: "entretien-sans-conseil" },
+    { label: "Clients dormants (6 mois)", count: dormants.length, topic: "dormants" },
+  ].filter((s) => s.count > 0);
+
   return (
     <div className="space-y-5">
       <div>
@@ -340,103 +409,179 @@ function TodayPage() {
 
       <CoverageBanner year={year} />
 
-      {/* Performance du jour */}
+      {/* 1 — Où en est mon entreprise aujourd'hui ? */}
       <section className="space-y-2">
-        <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Performance du mois</h3>
+        <SectionTitle question="Où en est mon entreprise ?" label="État à date" />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard label="CA du mois" value={formatEuro(k.caMonth)} icon={Euro} to="/pilot/ca" />
           <KpiCard
-            label="Objectif du mois"
-            value={objectifMois > 0 ? formatEuro(objectifMois) : "—"}
-            sub={objectifMois > 0 ? `Réf. ${year - 1}` : "Pas d'historique N-1"}
-            icon={Target}
+            label="CA du mois"
+            value={formatEuro(k.caMonth)}
+            icon={Euro}
+            to="/pilot/ca"
+            sub={
+              objectifMois > 0
+                ? `${deltaMoisPct >= 0 ? "+" : ""}${deltaMoisPct.toFixed(0)} % vs ${year - 1}`
+                : undefined
+            }
+            tone={objectifMois > 0 ? (deltaMoisPct >= 0 ? "positive" : "warning") : "default"}
           />
           <KpiCard
-            label="Avancement"
+            label="Avancement mois"
             value={objectifMois > 0 ? `${avancement.toFixed(0)} %` : "—"}
             icon={CheckCircle2}
             progress={objectifMois > 0 ? avancement : undefined}
             tone={avancement >= 100 ? "positive" : avancement >= 60 ? "default" : "warning"}
+            sub={objectifMois > 0 ? `Objectif ${formatEuro(objectifMois)}` : "Pas d'historique N-1"}
           />
           <KpiCard
-            label="Bénéfice estimé (mois)"
-            value={formatEuro(beneficeMois)}
+            label="Marge estimée"
+            value={`${k.marge.toFixed(0)} %`}
             icon={Wallet}
-            tone={beneficeMois >= 0 ? "positive" : "negative"}
-            sub={`Marge ${k.marge.toFixed(0)} %`}
+            tone={k.marge >= 20 ? "positive" : k.marge >= 10 ? "default" : "warning"}
+            sub={`Bénéfice mois ${formatEuro(beneficeMois)}`}
+          />
+          <KpiCard
+            label="Taux horaire réel"
+            value={tauxReel > 0 ? `${formatEuro(tauxReel)}/h` : "—"}
+            icon={Gauge}
+            to="/pilot/taux"
+            tone={targetHR > 0 && tauxReel > 0 ? (tauxReel >= targetHR ? "positive" : "warning") : "default"}
+            sub={
+              targetHR > 0 && tauxReel > 0
+                ? `${tauxEcartPct >= 0 ? "+" : ""}${tauxEcartPct.toFixed(0)} % vs cible ${formatEuro(targetHR)}`
+                : targetHR > 0
+                  ? `Cible ${formatEuro(targetHR)}/h`
+                  : undefined
+            }
           />
         </div>
       </section>
 
-      {/* Décisions du jour */}
+      {/* 2 — Quelles sont mes priorités ? */}
       <section className="space-y-2">
-        <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Décisions du jour
-        </h3>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <DecisionCard
-            priority="urgent"
-            title="Actions urgentes"
-            count={decisionCounts.urgent}
-            hint="Compte-rendus, heures, retards, dépassements"
-          />
-          <DecisionCard
-            priority="opportunite"
-            title="Opportunités commerciales"
-            count={decisionCounts.opportunite}
-            hint="Recos à convertir & clients à fort potentiel"
-          />
-          <DecisionCard
-            priority="important"
-            title="Actions administratives / commerciales"
-            count={decisionCounts.important}
-            hint="Relances, ventes croisées, dérives de marge"
-          />
-        </div>
+        <SectionTitle question="Quelles sont mes priorités ?" label="À traiter" />
+        {priorities.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex items-center gap-3 py-5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <p className="text-sm text-muted-foreground">Aucune action urgente. Concentrez-vous sur les opportunités.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {priorities.map((p, idx) => (
+              <PriorityRow
+                key={p.key}
+                rank={idx + 1}
+                icon={p.icon}
+                label={p.label}
+                count={p.count}
+                topic={p.topic}
+                to={p.to}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* Actions prioritaires */}
+      {/* 3 — Quels risques dois-je traiter ? */}
       <section className="space-y-2">
-        <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Actions prioritaires
-        </h3>
-        <div className="grid gap-3 md:grid-cols-2">
-          <ActionCard
-            priority="urgent"
-            icon={Handshake}
-            title="Recommandations acceptées à planifier"
-            count={acceptedNotPlanned.length}
-            focusTopic="recos-a-planifier"
-            emptyLabel="Rien à planifier"
-          />
-          <ActionCard
-            priority="urgent"
-            icon={FileText}
-            title="Interventions terminées sans compte-rendu envoyé"
-            count={terminatedNoReport.length}
-            focusTopic="cr-non-envoyes"
-            emptyLabel="Tous les CR sont envoyés"
-          />
-          <ActionCard
-            priority="urgent"
-            icon={Clock}
-            title="Interventions sans heures confirmées"
-            count={missingHours.length}
-            focusTopic="heures-manquantes"
-            emptyLabel="Toutes les heures sont confirmées"
-          />
-          <ActionCard
-            priority="opportunite"
-            icon={Sparkles}
-            title="Opportunités prioritaires (score ≥ 80)"
-            count={priority.length}
-            focusTopic="opportunites"
-            emptyLabel="Aucune opportunité prioritaire"
-          />
+        <SectionTitle question="Quels risques dois-je traiter ?" label="Rentabilité & portefeuille" />
+        {risks.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex items-center gap-3 py-5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <p className="text-sm text-muted-foreground">Aucun risque détecté avec les seuils actuels.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-3">
+            {risks.map((r) => (
+              <RiskCard key={r.key} icon={r.icon} title={r.label} count={r.count} hint={r.hint} topic={r.topic} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 4 — Quelles opportunités puis-je saisir ? */}
+      <section className="space-y-2">
+        <SectionTitle question="Quelles opportunités puis-je saisir ?" label="Commerciales" />
+        <div className="grid gap-3 md:grid-cols-3">
+          <Card className="md:col-span-2">
+            <CardContent className="space-y-3 pt-6">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-emerald-600" />
+                <h4 className="font-medium">Top offres à proposer</h4>
+                <Badge variant="secondary" className="ml-auto">{priority.length}</Badge>
+              </div>
+              {topOffers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune opportunité à score ≥ 80.</p>
+              ) : (
+                <ul className="divide-y">
+                  {topOffers.map((o) => (
+                    <li key={`${o.client_id}-${o.service_id}`}>
+                      <Link
+                        to="/pilot/fiche/$clientId"
+                        params={{ clientId: o.client_id }}
+                        className="flex items-center gap-3 py-2 hover:bg-accent/40 rounded-md px-2 -mx-2"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {clientNameById.get(o.client_id) ?? "Client"}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">{o.service_name}</p>
+                        </div>
+                        <Badge className="shrink-0 bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+                          Score {Math.round(o.score_opportunity)}
+                        </Badge>
+                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {priority.length > 3 && (
+                <Link
+                  to="/pilot/focus/$topic"
+                  params={{ topic: "opportunites" }}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                >
+                  Voir les {priority.length} opportunités <ArrowRight className="h-3 w-3" />
+                </Link>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="space-y-3 pt-6">
+              <div className="flex items-center gap-2">
+                <Leaf className="h-4 w-4 text-primary" />
+                <h4 className="font-medium">Signaux à activer</h4>
+              </div>
+              {secondarySignals.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucun signal secondaire actif.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {secondarySignals.map((s) => (
+                    <li key={s.topic}>
+                      <Link
+                        to="/pilot/focus/$topic"
+                        params={{ topic: s.topic }}
+                        className="flex items-center justify-between gap-2 rounded-md px-2 py-1 text-sm hover:bg-accent/40"
+                      >
+                        <span className="truncate">{s.label}</span>
+                        <Badge variant="outline" className="shrink-0">{s.count}</Badge>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </section>
 
-      {/* Planning */}
+      {/* Planning — support opérationnel, compact */}
       <section className="space-y-2">
         <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Planning</h3>
         <div className="grid gap-3 md:grid-cols-2">
@@ -500,194 +645,59 @@ function TodayPage() {
           </Card>
         </div>
       </section>
-
-      {/* Alertes */}
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Alertes rentabilité</h3>
-        <div className="grid gap-3 md:grid-cols-3">
-          <AlertCard
-            priority="urgent"
-            icon={TrendingDown}
-            title="Dépassements de temps"
-            count={timeOverruns.length}
-            hint="Temps réel > 150 % de la moyenne du type"
-            focusTopic="depassements-temps"
-          />
-          <AlertCard
-            priority="important"
-            icon={Gauge}
-            title="Rentabilité horaire sous la cible"
-            count={lowHourlyEntries.length}
-            hint={targetHR > 0 ? `Lignes CA sous ${formatEuro(targetHR)}/h (heures réelles si dispo)` : "Définir un taux horaire cible"}
-            focusTopic="rentabilite-faible"
-          />
-          <AlertCard
-            priority="important"
-            icon={Flame}
-            title="Clients chronophages peu rentables"
-            count={heavyLowMarginClients.length}
-            hint="Temps ≥ 20 h/an et taux < 85 % de la cible"
-            focusTopic="chronophages"
-          />
-        </div>
-        <h3 className="mt-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">Alertes commerciales</h3>
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <AlertCard
-            priority="important"
-            icon={Users}
-            title="Clients sans passage 12 mois"
-            count={sleeping12m.length}
-            hint="Aucun CA depuis plus d'un an"
-            focusTopic="dormants"
-          />
-          <AlertCard
-            priority="opportunite"
-            icon={Leaf}
-            title="Créations sans contrat entretien"
-            count={creationSansEntretien.length}
-            hint="Aménagement facturé, aucun entretien associé"
-            focusTopic="creation-sans-entretien"
-          />
-          <AlertCard
-            priority="important"
-            icon={Lightbulb}
-            title="Entretien sans conseil récent"
-            count={entretienSansConseil.length}
-            hint="Aucune prestation de conseil depuis 12 mois"
-            focusTopic="entretien-sans-conseil"
-          />
-          <AlertCard
-            priority="opportunite"
-            icon={Sparkles}
-            title="Potentiel de vente additionnelle"
-            count={nboClients.size}
-            hint="Clients avec au moins une opportunité à score ≥ 80"
-            focusTopic="opportunites"
-          />
-        </div>
-        <h3 className="mt-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">Alertes générales</h3>
-        <div className="grid gap-3 md:grid-cols-3">
-          <AlertCard
-            priority="important"
-            icon={Users}
-            title="Clients dormants (6 mois)"
-            count={dormants.length}
-            hint="Sans intervention depuis + de 6 mois"
-            focusTopic="dormants"
-          />
-          <AlertCard
-            priority="urgent"
-            icon={Send}
-            title="Comptes-rendus non envoyés"
-            count={terminatedNoReport.length}
-            hint="Intervention terminée sans envoi client"
-            focusTopic="cr-non-envoyes"
-          />
-          <AlertCard
-            priority="urgent"
-            icon={Flag}
-            title="Objectifs en retard"
-            count={goalsLate.length}
-            hint="Échéance dépassée, statut en cours"
-            to="/pilot/objectifs"
-          />
-        </div>
-      </section>
     </div>
   );
 }
 
-function ActionCard({
-  icon: Icon, title, count, to, focusTopic, emptyLabel, priority,
-}: {
-  icon: typeof Handshake; title: string; count: number; to?: string; focusTopic?: FocusTopic; emptyLabel: string;
-  priority: Priority;
-}) {
-  const empty = count === 0;
-  const meta = PRIORITY_META[priority];
-  const inner = (
-    <Card className="h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
-          <Icon className="h-4 w-4 text-primary/80" />
-          <p className="text-sm font-medium">{title}</p>
-        </div>
-        <Badge variant={empty ? "outline" : "default"} className="shrink-0">
-          {count}
-        </Badge>
-      </div>
-      <p className="mt-2 text-xs text-muted-foreground">
-        {empty ? emptyLabel : "Cliquer pour ouvrir la liste"}
-      </p>
-    </Card>
-  );
-  if (focusTopic) {
-    return (
-      <Link to="/pilot/focus/$topic" params={{ topic: focusTopic }}>{inner}</Link>
-    );
-  }
+function SectionTitle({ question, label }: { question: string; label: string }) {
   return (
-    <Link to={to ?? "/pilot"}>{inner}</Link>
+    <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <h3 className="font-serif text-lg font-semibold tracking-tight">{question}</h3>
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+    </div>
   );
 }
 
-function AlertCard({
-  icon: Icon, title, count, hint, to, focusTopic, priority,
+function PriorityRow({
+  rank, icon: Icon, label, count, topic, to,
 }: {
-  icon: typeof AlertTriangle; title: string; count: number; hint: string; to?: string; focusTopic?: FocusTopic;
-  priority: Priority;
+  rank: number; icon: typeof Handshake; label: string; count: number;
+  topic?: FocusTopic; to?: string;
 }) {
-  const active = count > 0;
-  const meta = PRIORITY_META[priority];
   const inner = (
-    <Card
-      className={`h-full p-4 transition-all hover:-translate-y-0.5 hover:shadow-md ${
-        active ? meta.ring : ""
-      }`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
-          <Icon className={`h-4 w-4 ${active ? "text-foreground" : "text-muted-foreground"}`} />
-          <p className="text-sm font-medium">{title}</p>
-        </div>
-        <span className={`font-serif text-lg font-semibold ${active ? "" : "text-muted-foreground"}`}>
-          {count}
-        </span>
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+    <Card className="flex items-center gap-3 p-3 transition-all hover:-translate-y-0.5 hover:shadow-md">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 font-serif text-sm font-semibold text-primary">
+        {rank}
+      </span>
+      <Icon className="h-4 w-4 shrink-0 text-primary/80" />
+      <p className="min-w-0 flex-1 truncate text-sm font-medium">{label}</p>
+      <Badge className="shrink-0">{count}</Badge>
+      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
     </Card>
   );
-  if (focusTopic) {
-    return (
-      <Link to="/pilot/focus/$topic" params={{ topic: focusTopic }}>{inner}</Link>
-    );
+  if (topic) {
+    return <Link to="/pilot/focus/$topic" params={{ topic }}>{inner}</Link>;
   }
-  return (
-    <Link to={to ?? "/pilot"}>{inner}</Link>
-  );
+  return <Link to={to ?? "/pilot"}>{inner}</Link>;
 }
 
-function DecisionCard({
-  priority, title, count, hint,
+function RiskCard({
+  icon: Icon, title, count, hint, topic,
 }: {
-  priority: Priority; title: string; count: number; hint: string;
+  icon: typeof AlertTriangle; title: string; count: number; hint: string; topic: FocusTopic;
 }) {
-  const meta = PRIORITY_META[priority];
   return (
-    <Card className={`h-full p-4 ${count > 0 ? meta.ring : ""}`}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
-          <p className="text-sm font-medium">{title}</p>
+    <Link to="/pilot/focus/$topic" params={{ topic }}>
+      <Card className="h-full border-orange-200 bg-orange-50/40 p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Icon className="h-4 w-4 text-orange-700" />
+            <p className="text-sm font-medium">{title}</p>
+          </div>
+          <span className="font-serif text-xl font-semibold text-orange-800">{count}</span>
         </div>
-        <Badge variant="outline" className={`shrink-0 ${meta.badge}`}>{meta.label}</Badge>
-      </div>
-      <div className="mt-3 flex items-end justify-between gap-2">
-        <span className="font-serif text-3xl font-semibold tracking-tight">{count}</span>
-        <p className="pb-1 text-right text-xs text-muted-foreground">{hint}</p>
-      </div>
-    </Card>
+        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+      </Card>
+    </Link>
   );
 }
