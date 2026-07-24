@@ -21,6 +21,7 @@ import { CoverageHistoryCard } from "@/components/pilot/CoverageBanner";
 import {
   Euro, TrendingUp, Wallet, Percent, Target, LineChart, ShoppingCart,
   Clock, Sparkles, Users, Lightbulb, Gauge, Handshake, Briefcase,
+  ShieldCheck, AlertCircle, Activity, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/direction")({
@@ -65,6 +66,44 @@ function PilotDashboard() {
     queryKey: ["opportunities-value"],
     queryFn: getOpportunitiesValue,
   });
+
+  // Rentabilité N-1 (heures confirmées année précédente)
+  const prevConfirmedHours = useQuery({
+    queryKey: ["confirmed-hours-by-client", year - 1],
+    queryFn: () => fetchConfirmedHoursByClient(year - 1),
+  });
+  const prevHoursTotal = useMemo(() => {
+    const m = prevConfirmedHours.data;
+    if (!m) return 0;
+    let s = 0; for (const v of m.values()) s += v;
+    return s;
+  }, [prevConfirmedHours.data]);
+  const caPrevFull = useMemo(() => {
+    const list = entries.data ?? [];
+    return list
+      .filter((e) => new Date(e.entry_date).getFullYear() === year - 1 && e.kind === "vente")
+      .reduce((s, e) => s + (Number(e.amount_ht) || 0), 0);
+  }, [entries.data, year]);
+  const prevHourlyRate = prevHoursTotal > 0 ? caPrevFull / prevHoursTotal : 0;
+  const rateDelta = prevHourlyRate > 0 && k.tauxHoraireReel > 0 ? k.tauxHoraireReel - prevHourlyRate : null;
+  const rateDeltaPct = rateDelta !== null && prevHourlyRate > 0 ? (rateDelta / prevHourlyRate) * 100 : null;
+  const target = set.target_hourly_rate ?? 0;
+  const rateGapToTarget = target > 0 && k.tauxHoraireReel > 0 ? k.tauxHoraireReel - target : null;
+  const totalFamily = k.byFamily.reduce((s, f) => s + f.value, 0);
+  const familiesRanked = [...k.byFamily].filter((f) => f.value > 0).sort((a, b) => b.value - a.value);
+  const familyConcentration = familiesRanked[0] && totalFamily > 0 ? (familiesRanked[0].value / totalFamily) * 100 : 0;
+  const rentabilityConfidence: "HIGH" | "MEDIUM" | "LOW" =
+    k.totalConfirmedHours >= 200 && k.nbEntries >= 20
+      ? "HIGH"
+      : k.totalConfirmedHours >= 80 && k.nbEntries >= 8
+        ? "MEDIUM"
+        : "LOW";
+  const confidenceMeta = {
+    HIGH: { label: "Fiabilité élevée", color: "#4F8E33", icon: ShieldCheck },
+    MEDIUM: { label: "Fiabilité moyenne", color: "#EE8627", icon: Activity },
+    LOW: { label: "Fiabilité faible", color: "#8896A0", icon: AlertCircle },
+  }[rentabilityConfidence];
+  const ConfIcon = confidenceMeta.icon;
 
   if (loading) {
     return (
@@ -171,6 +210,21 @@ function PilotDashboard() {
 
       {/* Insights */}
       {insights.length > 0 && (
+        <>
+        <RentabilitySection
+          taux={k.tauxHoraireReel}
+          target={target}
+          prevTaux={prevHourlyRate}
+          rateDelta={rateDelta}
+          rateDeltaPct={rateDeltaPct}
+          rateGapToTarget={rateGapToTarget}
+          hoursConfirmed={k.totalConfirmedHours}
+          hoursPrev={prevHoursTotal}
+          familiesRanked={familiesRanked}
+          familyConcentration={familyConcentration}
+          confidence={{ label: confidenceMeta.label, color: confidenceMeta.color, Icon: ConfIcon }}
+          year={year}
+        />
         <Card>
           <CardContent className="space-y-2 pt-6">
             <div className="flex items-center gap-2">
@@ -187,6 +241,23 @@ function PilotDashboard() {
             </ul>
           </CardContent>
         </Card>
+        </>
+      )}
+      {insights.length === 0 && (
+        <RentabilitySection
+          taux={k.tauxHoraireReel}
+          target={target}
+          prevTaux={prevHourlyRate}
+          rateDelta={rateDelta}
+          rateDeltaPct={rateDeltaPct}
+          rateGapToTarget={rateGapToTarget}
+          hoursConfirmed={k.totalConfirmedHours}
+          hoursPrev={prevHoursTotal}
+          familiesRanked={familiesRanked}
+          familyConcentration={familyConcentration}
+          confidence={{ label: confidenceMeta.label, color: confidenceMeta.color, Icon: ConfIcon }}
+          year={year}
+        />
       )}
 
       {/* Charts */}
