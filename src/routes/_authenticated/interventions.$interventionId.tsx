@@ -10,8 +10,9 @@ import {
   TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
   DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, normalizeReportSections, type ReportSections,
   listServiceCatalog,
-  completeInterventionWithHoursAutofill, confirmHoursSpent,
+  completeInterventionWithHoursAutofill, confirmHoursSpent, estimateHoursSpent,
 } from "@/lib/interventions";
+import { getSettings } from "@/lib/pilot";
 import {
   listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
   listRecommendationsByClient, addRecommendation, updateRecommendation, deleteRecommendation,
@@ -53,7 +54,7 @@ import {
 import {
   ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
   FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download, ArrowUp, ArrowDown, Settings2,
-  Clock, AlertTriangle,
+  Clock, AlertTriangle, Gauge, TrendingUp, TrendingDown, Minus,
 } from "lucide-react";
 import { toast } from "sonner";
 
