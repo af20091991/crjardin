@@ -91,6 +91,8 @@ function PilotDashboard() {
         </Card>
       )}
 
+      <CoverageHistoryCard />
+
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
         <KpiCard label="CA du mois" value={formatEuro(k.caMonth)} icon={Euro} to="/pilot/ca" description="Chiffre d'affaires hors taxes facturé sur le mois en cours (somme des ventes HT du mois)." />
