@@ -113,6 +113,14 @@ function InterventionDetail() {
     queryKey: ["service-catalog"],
     queryFn: listServiceCatalog,
   });
+  const plannedHoursQ = useQuery({
+    queryKey: ["planned-hours", interventionId],
+    queryFn: () => estimateHoursSpent(interventionId),
+  });
+  const pilotSettingsQ = useQuery({
+    queryKey: ["pilot-settings-target"],
+    queryFn: getSettings,
+  });
 
   const invTasks = () => qc.invalidateQueries({ queryKey: ["tasks", interventionId] });
   const invPhotos = () => qc.invalidateQueries({ queryKey: ["photos", interventionId] });
