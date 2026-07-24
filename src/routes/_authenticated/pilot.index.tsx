@@ -17,7 +17,7 @@ import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import {
   Euro, Wallet, Sparkles, AlertTriangle,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
-  TrendingDown, Gauge, Flame, Leaf, Lightbulb, Flag,
+  TrendingDown, Gauge, Flame, Leaf, Flag,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/")({
