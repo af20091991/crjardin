@@ -206,8 +206,8 @@ function ClientDetail() {
                           {new Date(iv.intervention_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
                         </p>
                       </div>
-                      <Badge variant={iv.status === "termine" ? "default" : "secondary"} className="shrink-0">
-                        {iv.status === "termine" ? "Terminé" : "Brouillon"}
+                      <Badge variant={iv.status === "terminee" ? "default" : "secondary"} className="shrink-0">
+                        {iv.status === "terminee" ? "Terminé" : "Brouillon"}
                       </Badge>
                     </Card>
                   </Link>

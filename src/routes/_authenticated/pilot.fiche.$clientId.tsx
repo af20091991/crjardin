@@ -169,7 +169,7 @@ function PilotClient360() {
   const caCumule = score?.revenueTotalHt ?? (caQ.data ?? []).reduce((s, r) => s + (Number(r.amount_ht) || 0), 0);
   const totalHours = (interventionsQ.data ?? []).reduce((s, iv) => s + (iv.hours_spent ?? 0), 0);
   const missingHours = (interventionsQ.data ?? []).filter(
-    (iv) => iv.status === "termine" && iv.hours_spent == null,
+    (iv) => iv.status === "terminee" && iv.hours_spent == null,
   ).length;
   const crSent = (interventionsQ.data ?? []).filter((iv) => iv.sent_to_client_at).length;
   const crTotal = (interventionsQ.data ?? []).length;
@@ -579,7 +579,7 @@ function HeaderStat({
 function crStatus(iv: InterventionRow): { label: string; color: string } {
   if (iv.sent_to_client_at) return { label: "CR envoyé", color: "#4F8E33" };
   if (iv.pdf_storage_path) return { label: "CR archivé", color: "#EE8627" };
-  if (iv.status === "termine") return { label: "Terminée", color: "#8896A0" };
+  if (iv.status === "terminee") return { label: "Terminée", color: "#8896A0" };
   return { label: "Brouillon", color: "#8896A0" };
 }
 
