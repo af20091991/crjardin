@@ -90,7 +90,7 @@ function TodayPage() {
   const confirmedHoursByClient = useMemo(() => {
     const map = new Map<string, number>();
     for (const i of interventions.data ?? []) {
-      if (i.status !== "termine" || i.hours_spent == null) continue;
+      if (i.status !== "terminee" || i.hours_spent == null) continue;
       const d = new Date(i.intervention_date);
       if (d.getFullYear() !== year) continue;
       const h = Number(i.hours_spent);
@@ -139,10 +139,10 @@ function TodayPage() {
     (r) => r.status === "acceptee" && !r.planned_intervention_id,
   );
   const terminatedNoReport = allI.filter(
-    (i) => i.status === "termine" && !i.sent_to_client_at,
+    (i) => i.status === "terminee" && !i.sent_to_client_at,
   );
   const missingHours = allI.filter((i) => {
-    if (i.status !== "termine") return false;
+    if (i.status !== "terminee") return false;
     const estimated =
       i.ai_metadata && typeof i.ai_metadata === "object" &&
       (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
@@ -185,7 +185,7 @@ function TodayPage() {
   const avgHoursByType = useMemo(() => {
     const acc = new Map<string, { total: number; n: number }>();
     for (const i of allI) {
-      if (i.status !== "termine" || i.hours_spent == null) continue;
+      if (i.status !== "terminee" || i.hours_spent == null) continue;
       const estimated =
         i.ai_metadata && typeof i.ai_metadata === "object" &&
         (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
@@ -205,7 +205,7 @@ function TodayPage() {
   const timeOverruns = useMemo(
     () =>
       allI.filter((i) => {
-        if (i.status !== "termine" || i.hours_spent == null) return false;
+        if (i.status !== "terminee" || i.hours_spent == null) return false;
         const key = i.intervention_type ?? "—";
         const avg = avgHoursByType.get(key);
         if (!avg || avg <= 0) return false;

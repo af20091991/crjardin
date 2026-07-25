@@ -201,8 +201,8 @@ function PlanningPage() {
                             </p>
                           )}
                         </div>
-                        <Badge variant={iv.status === "termine" ? "default" : "secondary"}>
-                          {iv.status === "termine" ? "Terminé" : "Brouillon"}
+                        <Badge variant={iv.status === "terminee" ? "default" : "secondary"}>
+                          {iv.status === "terminee" ? "Terminé" : "Brouillon"}
                         </Badge>
                       </CardContent>
                     </Card>

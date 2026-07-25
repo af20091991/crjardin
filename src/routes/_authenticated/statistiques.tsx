@@ -92,7 +92,7 @@ function StatsPage() {
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Interventions" value={String(yearIvs.length)} />
-          <Stat label="Terminées" value={String(yearIvs.filter((i) => i.status === "termine").length)} />
+          <Stat label="Terminées" value={String(yearIvs.filter((i) => i.status === "terminee").length)} />
           <Stat label="Préco. acceptées" value={String(accepted.length)} />
           <Stat label="CA accepté" value={formatEuro(revenue)} />
         </div>

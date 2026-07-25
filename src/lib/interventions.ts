@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type TaskStatus = "realise" | "partiel" | "reporte" | "impossible";
-export type InterventionStatus = "brouillon" | "termine";
+export type InterventionStatus = "brouillon" | "terminee";
 
 export interface ReportSections {
   summary: boolean;
@@ -341,12 +341,12 @@ export async function completeInterventionWithHoursAutofill(
   intervention: Intervention,
 ): Promise<Intervention> {
   if (intervention.hours_spent != null && intervention.hours_spent > 0) {
-    return updateIntervention(intervention.id, { status: "termine" });
+    return updateIntervention(intervention.id, { status: "terminee" });
   }
   const estimated = await estimateHoursSpent(intervention.id);
   const meta = { ...(intervention.ai_metadata ?? {}), hours_spent_estimated: true, hours_spent_estimated_at: new Date().toISOString() };
   return updateIntervention(intervention.id, {
-    status: "termine",
+    status: "terminee",
     hours_spent: estimated,
     ai_metadata: meta,
   });
