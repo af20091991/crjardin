@@ -63,7 +63,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     {
       label: "Aujourd'hui",
       items: [
-        { to: "/", label: "Aujourd'hui", short: "Accueil", icon: Home, exact: true, primary: true },
+        { to: "/pilot", label: "Aujourd'hui", short: "Accueil", icon: Home, exact: true, primary: true },
       ],
     },
     {
@@ -85,7 +85,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/saison", label: "Prévisions", short: "Prévis.", icon: CalendarRange, exact: false, primary: false },
             { to: "/pilot/rapports", label: "Rapports", short: "Rapports", icon: FileBarChart, exact: false, primary: false },
             { to: "/pilot/rapprochement", label: "Rapprochement CA", short: "Rappr.", icon: Link2, exact: false, primary: false },
-            { to: "/statistiques", label: "Statistiques", short: "Stats", icon: BarChart3, exact: false, primary: false },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Réservé",
@@ -109,7 +108,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         : [],
       emptyLabel: canEdit ? undefined : "Bientôt disponible",
     },
-    { label: "Catalogue", items: [], emptyLabel: "Bientôt disponible" },
     {
       label: "Planning",
       items: [
