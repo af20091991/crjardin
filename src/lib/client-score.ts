@@ -187,7 +187,7 @@ async function fetchAggregates() {
     supabase
       .from("interventions")
       .select("client_id,hours_spent,intervention_date,status")
-      .eq("status", "termine"),
+      .eq("status", "terminee"),
     supabase
       .from("v_client_next_best_offers" as never)
       .select("client_id,estimated_value,score_opportunity"),
@@ -358,7 +358,7 @@ export async function getClientEconomicScore(
     supabase
       .from("interventions")
       .select("client_id,hours_spent,intervention_date,status")
-      .eq("status", "termine")
+      .eq("status", "terminee")
       .eq("client_id", clientId),
     supabase
       .from("v_client_next_best_offers" as never)

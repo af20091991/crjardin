@@ -11,12 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ClipboardList, Clock, Plus, Search } from "lucide-react";
 
-type SearchParams = { status?: "termine" | "brouillon" };
+type SearchParams = { status?: "terminee" | "brouillon" };
 
 export const Route = createFileRoute("/_authenticated/interventions/")({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     status:
-      search.status === "termine" || search.status === "brouillon"
+      search.status === "terminee" || search.status === "brouillon"
         ? search.status
         : undefined,
   }),
@@ -52,7 +52,7 @@ function InterventionsIndex() {
   }, [interventions, clients, q, status]);
 
   const title =
-    status === "termine"
+    status === "terminee"
       ? "Interventions terminées"
       : status === "brouillon"
       ? "Brouillons"
@@ -60,7 +60,7 @@ function InterventionsIndex() {
 
   const filters: { label: string; value: SearchParams["status"] }[] = [
     { label: "Toutes", value: undefined },
-    { label: "Terminées", value: "termine" },
+    { label: "Terminées", value: "terminee" },
     { label: "Brouillons", value: "brouillon" },
   ];
 
@@ -135,8 +135,8 @@ function InterventionsIndex() {
                       })}
                     </p>
                   </div>
-                  <Badge variant={iv.status === "termine" ? "default" : "secondary"} className="shrink-0">
-                    {iv.status === "termine" ? "Terminé" : "Brouillon"}
+                  <Badge variant={iv.status === "terminee" ? "default" : "secondary"} className="shrink-0">
+                    {iv.status === "terminee" ? "Terminé" : "Brouillon"}
                   </Badge>
                 </Card>
               </Link>

@@ -246,7 +246,7 @@ export function computeKpis(params: {
   month: number; // 0-11 current month reference
   /**
    * Heures réellement consommées par client, issues de interventions.hours_spent
-   * (statut = "termine"). Source de vérité pour `tauxHoraireReel`.
+   * (statut = "terminee"). Source de vérité pour `tauxHoraireReel`.
    * Si absent, `tauxHoraireReel` vaut 0 (pas de fallback silencieux).
    */
   confirmedHoursByClient?: Map<string, number>;
@@ -465,7 +465,7 @@ export async function fetchConfirmedHoursByClient(
   let q = supabase
     .from("interventions")
     .select("client_id,hours_spent,intervention_date")
-    .eq("status", "termine")
+    .eq("status", "terminee")
     .not("hours_spent", "is", null);
   if (yearFilter != null) {
     q = q

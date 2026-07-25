@@ -99,7 +99,7 @@ function FocusPage() {
 
     if (topic === "cr-non-envoyes") {
       return allI
-        .filter((i) => i.status === "termine" && !i.sent_to_client_at)
+        .filter((i) => i.status === "terminee" && !i.sent_to_client_at)
         .slice(0, 100)
         .map((i) => ({
           key: i.id,
@@ -118,7 +118,7 @@ function FocusPage() {
     if (topic === "heures-manquantes") {
       return allI
         .filter((i) => {
-          if (i.status !== "termine") return false;
+          if (i.status !== "terminee") return false;
           const estimated =
             i.ai_metadata && typeof i.ai_metadata === "object" &&
             (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
@@ -270,7 +270,7 @@ function FocusPage() {
     if (topic === "depassements-temps") {
       const avg = new Map<string, { total: number; n: number }>();
       for (const i of allI) {
-        if (i.status !== "termine" || i.hours_spent == null) continue;
+        if (i.status !== "terminee" || i.hours_spent == null) continue;
         const est =
           i.ai_metadata && typeof i.ai_metadata === "object" &&
           (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
@@ -285,7 +285,7 @@ function FocusPage() {
       avg.forEach((v, k) => v.n >= 2 && avgMap.set(k, v.total / v.n));
       return allI
         .filter((i) => {
-          if (i.status !== "termine" || i.hours_spent == null) return false;
+          if (i.status !== "terminee" || i.hours_spent == null) return false;
           const a = avgMap.get(i.intervention_type ?? "—");
           return a != null && Number(i.hours_spent) > a * 1.5;
         })

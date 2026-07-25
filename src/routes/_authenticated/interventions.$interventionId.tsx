@@ -253,7 +253,7 @@ function InterventionDetail() {
   const toggleComplete = useMutation({
     mutationFn: async () => {
       if (!iv) return;
-      if (iv.status === "termine") {
+      if (iv.status === "terminee") {
         await updateIntervention(interventionId, { status: "brouillon" });
       } else {
         await completeInterventionWithHoursAutofill(iv);
@@ -262,7 +262,7 @@ function InterventionDetail() {
     onSuccess: () => {
       invIv();
       qc.invalidateQueries({ queryKey: ["interventions"] });
-      if (iv?.status !== "termine") {
+      if (iv?.status !== "terminee") {
         toast.success("Intervention clôturée. Vérifiez les heures passées.");
       }
     },
@@ -448,7 +448,7 @@ function InterventionDetail() {
     );
   }
 
-  const done = iv.status === "termine";
+  const done = iv.status === "terminee";
 
   return (
     <AppShell title="Compte-rendu">

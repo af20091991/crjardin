@@ -48,7 +48,7 @@ export function exportPeriodReport(opts: {
   doc.setTextColor(...DARK);
   doc.setFontSize(11);
   const stats = [
-    ["Interventions réalisées", String(ivs.filter((i) => i.status === "termine").length)],
+    ["Interventions réalisées", String(ivs.filter((i) => i.status === "terminee").length)],
     ["Total interventions", String(ivs.length)],
     ["Préconisations émises", String(recos.length)],
     ["Préconisations acceptées", String(accepted.length)],
