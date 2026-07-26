@@ -19,8 +19,44 @@ export interface MatchLog {
 export interface Suggestion {
   client: Client;
   score: number;
-  reason: "historique" | "similarite";
+  reason: "historique" | "exact" | "renforce" | "similarite";
+  confidence: ConfidenceLevel;
+  evidence: string[];
 }
+
+/** Niveau de confiance d'un rapprochement proposé. */
+export type ConfidenceLevel = "haute" | "moyenne" | "faible";
+
+export const CONFIDENCE_META: Record<
+  ConfidenceLevel,
+  { label: string; hint: string; badge: string }
+> = {
+  haute: {
+    label: "Confiance haute",
+    hint: "Correspondance certaine (exacte ou déjà validée) — rattachement automatique autorisé.",
+    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
+  moyenne: {
+    label: "Confiance moyenne",
+    hint: "Suggestion uniquement — validation humaine obligatoire.",
+    badge: "border-orange-200 bg-orange-50 text-orange-700",
+  },
+  faible: {
+    label: "Confiance faible",
+    hint: "Aucune suggestion fiable — recherche manuelle recommandée.",
+    badge: "border-border bg-muted text-muted-foreground",
+  },
+};
+
+/** Seuils du moteur de rapprochement (constantes métier centralisées). */
+export const MATCH_RULES = {
+  /** En dessous : aucune suggestion affichée. */
+  MIN_SUGGESTION: 0.55,
+  /** Écart minimal entre 1re et 2e proposition pour rester en confiance haute. */
+  AMBIGUITY_GAP: 0.08,
+  /** Distance d'édition minimale considérée comme "faux ami" (Mauric ≠ Maurice). */
+  NEAR_MISS_MAX: 2,
+} as const;
 
 // ---- Normalisation & similarité ----
 function normalize(s: string): string {
