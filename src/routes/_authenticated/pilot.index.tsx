@@ -11,7 +11,8 @@ import { listAllInterventions } from "@/lib/interventions";
 import { listAllRecommendations } from "@/lib/garden";
 import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
-import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
+import { fetchClientActivityRows } from "@/lib/client-activity";
+import { realHourlyRate, marginPct, periodComparison } from "@/lib/pilot-reliability";
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
@@ -68,6 +69,10 @@ function TodayPage() {
   const recos = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
   const goals = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
   const orphanCount = useQuery({ queryKey: ["pilot-ca-orphan-count"], queryFn: countOrphanEntries });
+  const clientActivity = useQuery({
+    queryKey: ["client-activity-rows"],
+    queryFn: fetchClientActivityRows,
+  });
   const priorityOffers = useQuery({
     queryKey: ["nbo-priority"],
     queryFn: async (): Promise<NBOffer[]> => {
@@ -140,8 +145,14 @@ function TodayPage() {
   const acceptedNotPlanned = allR.filter(
     (r) => r.status === "acceptee" && !r.planned_intervention_id,
   );
-  const terminatedNoReport = allI.filter(
-    (i) => i.status === "terminee" && !i.sent_to_client_at,
+  // Distinction explicite du cycle de vie du compte-rendu :
+  // terminée → CR généré → CR envoyé. Une intervention terminée sans CR généré
+  // n'est PAS un « CR à envoyer ».
+  const reportsToGenerate = allI.filter(
+    (i) => i.status === "terminee" && !i.report_generated_at && !i.sent_to_client_at,
+  );
+  const reportsToSend = allI.filter(
+    (i) => i.status === "terminee" && !!i.report_generated_at && !i.sent_to_client_at,
   );
   const missingHours = allI.filter((i) => {
     if (i.status !== "terminee") return false;
@@ -151,17 +162,11 @@ function TodayPage() {
     return i.hours_spent == null || estimated;
   });
 
-  // Clients dormants — seuils centralisés (CLIENT_ACTIVITY_RULES)
-  const DAY = 24 * 60 * 60 * 1000;
-  const lastByClient = new Map<string, number>();
-  allI.forEach((i) => {
-    const t = new Date(i.intervention_date).getTime();
-    const prev = lastByClient.get(i.client_id) ?? 0;
-    if (t > prev) lastByClient.set(i.client_id, t);
-  });
-  const dormants = Array.from(lastByClient.entries()).filter(
-    ([, t]) => today.getTime() - t > CLIENT_ACTIVITY_RULES.WARNING_DAYS * DAY,
-  );
+  // Clients dormants / à relancer — clients UNIQUES du référentiel `clients`.
+  // Jamais de comptage de lignes CA ou d'historique non rattaché.
+  const activityRows = clientActivity.data ?? [];
+  const clientsARelancer = activityRows.filter((c) => c.status === "a_relancer");
+  const clientsDormants = activityRows.filter((c) => c.status === "dormant");
 
   // Objectifs mensuels en retard : status en_cours & deadline < aujourd'hui
   const goalsLate = allG.filter((g) => {
