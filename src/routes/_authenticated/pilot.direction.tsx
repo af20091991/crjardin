@@ -224,6 +224,7 @@ function PilotDashboard() {
       {/* Insights */}
       {insights.length > 0 && (
         <>
+        <HoursGapCard year={year} />
         <RentabilitySection
           taux={k.tauxHoraireReel}
           target={target}
