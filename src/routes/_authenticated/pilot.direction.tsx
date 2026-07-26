@@ -88,6 +88,17 @@ function PilotDashboard() {
   const rateDelta = prevHourlyRate > 0 && k.tauxHoraireReel > 0 ? k.tauxHoraireReel - prevHourlyRate : null;
   const rateDeltaPct = rateDelta !== null && prevHourlyRate > 0 ? (rateDelta / prevHourlyRate) * 100 : null;
   const target = set.target_hourly_rate ?? 0;
+  // Plausibilité du taux horaire réel : jamais afficher une valeur calculée sur
+  // une poignée d'heures confirmées (valeurs aberrantes trompeuses).
+  const realRate: { available: true; value: number } | { available: false; detail: string } =
+    k.totalConfirmedHours < 20
+      ? {
+          available: false,
+          detail: `Heures confirmées insuffisantes (${k.totalConfirmedHours.toFixed(0)} h) — clôturez les interventions avec leurs heures réelles.`,
+        }
+      : k.tauxHoraireReel > (target > 0 ? target * 5 : 500)
+        ? { available: false, detail: "Valeur incohérente — vérifiez les heures réelles saisies." }
+        : { available: true, value: k.tauxHoraireReel };
   const rateGapToTarget = target > 0 && k.tauxHoraireReel > 0 ? k.tauxHoraireReel - target : null;
   const totalFamily = k.byFamily.reduce((s, f) => s + f.value, 0);
   const familiesRanked = [...k.byFamily].filter((f) => f.value > 0).sort((a, b) => b.value - a.value);
