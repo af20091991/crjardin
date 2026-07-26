@@ -443,11 +443,12 @@ function TodayPage() {
             icon={Euro}
             to="/pilot/ca"
             sub={
-              objectifMois > 0
-                ? `${deltaMoisPct >= 0 ? "+" : ""}${deltaMoisPct.toFixed(0)} % vs ${year - 1}`
-                : undefined
+              caComparison.available
+                ? `${caComparison.value >= 0 ? "+" : ""}${caComparison.value.toFixed(0)} % vs ${year - 1}`
+                : caComparison.detail
             }
-            tone={objectifMois > 0 ? (deltaMoisPct >= 0 ? "positive" : "warning") : "default"}
+            description={caComparison.available ? undefined : caComparison.detail}
+            tone={caComparison.available ? (caComparison.value >= 0 ? "positive" : "warning") : "default"}
           />
           <KpiCard
             label="Avancement mois"
@@ -459,23 +460,33 @@ function TodayPage() {
           />
           <KpiCard
             label="Marge estimée"
-            value={`${k.marge.toFixed(0)} %`}
+            value={margin.available ? `${margin.value.toFixed(0)} %` : "Non calculable"}
             icon={Wallet}
-            tone={k.marge >= 20 ? "positive" : k.marge >= 10 ? "default" : "warning"}
-            sub={`Bénéfice mois ${formatEuro(beneficeMois)}`}
+            tone={
+              !margin.available ? "default" : margin.value >= 20 ? "positive" : margin.value >= 10 ? "default" : "warning"
+            }
+            sub={margin.available ? `Bénéfice mois ${formatEuro(beneficeMois)}` : margin.detail}
+            description={margin.available ? undefined : margin.detail}
           />
           <KpiCard
             label="Taux horaire réel"
-            value={tauxReel > 0 ? `${formatEuro(tauxReel)}/h` : "—"}
+            value={realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible"}
             icon={Gauge}
             to="/pilot/taux"
-            tone={targetHR > 0 && tauxReel > 0 ? (tauxReel >= targetHR ? "positive" : "warning") : "default"}
+            description={realRate.available ? realRate.note : realRate.detail}
+            tone={
+              realRate.available && targetHR > 0
+                ? realRate.value >= targetHR
+                  ? "positive"
+                  : "warning"
+                : "default"
+            }
             sub={
-              targetHR > 0 && tauxReel > 0
+              realRate.available && targetHR > 0
                 ? `${tauxEcartPct >= 0 ? "+" : ""}${tauxEcartPct.toFixed(0)} % vs cible ${formatEuro(targetHR)}`
-                : targetHR > 0
-                  ? `Cible ${formatEuro(targetHR)}/h`
-                  : undefined
+                : realRate.available
+                  ? realRate.note
+                  : realRate.detail
             }
           />
         </div>
