@@ -7,6 +7,7 @@ import { computeScoreBreakdown } from "@/lib/client-score-breakdown";
 import { listNextBestOffers, explainOffer, reasonLabel, formatSeason } from "@/lib/next-best-offers";
 import { formatEuro } from "@/lib/pilot";
 import { getClientActivityStatus } from "@/lib/client-activity";
+import { AUTO_CLIENT_MARKER, countOrphanEntries, sumOrphanAmount } from "@/lib/pilot-ca-matching";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft, MapPin, Phone, Mail, TrendingUp, Clock, Activity, Sparkles,
   Target, FileText, Compass, ShieldCheck, AlertCircle, ThumbsUp, ThumbsDown, Gauge,
-  Wallet, CalendarClock, Lightbulb,
+  Wallet, CalendarClock, Lightbulb, Link2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/fiche/$clientId")({
@@ -258,6 +259,8 @@ function PilotClient360() {
       )}
 
       {/* 2 — Historique commercial */}
+      <PendingCaNotice autoCreated={(clientQ.data?.notes ?? "").includes(AUTO_CLIENT_MARKER)} />
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -540,6 +543,43 @@ function PilotClient360() {
 }
 
 function BackLink() {
+  return <BackLinkInner />;
+}
+
+/** Historique CA global non encore attribué — jamais masqué, toujours actionnable. */
+function PendingCaNotice({ autoCreated }: { autoCreated: boolean }) {
+  const countQ = useQuery({ queryKey: ["pilot-ca-orphan-count"], queryFn: countOrphanEntries });
+  const sumQ = useQuery({ queryKey: ["pilot-ca-orphan-sum"], queryFn: sumOrphanAmount });
+  const n = countQ.data ?? 0;
+  if (!autoCreated && n === 0) return null;
+  return (
+    <Card className="border-orange-200 bg-orange-50/40">
+      <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+        <div className="min-w-0 space-y-1">
+          <p className="flex items-center gap-2 text-sm font-medium">
+            <Link2 className="h-4 w-4 text-orange-600" />
+            Historique CA en attente d'attribution
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {n > 0
+              ? `${n} ligne(s) de CA — ${sumQ.data != null ? formatEuro(sumQ.data) : "…"} HT — ne sont rattachées à aucun client. Ce montant reste comptabilisé mais n'alimente aucune fiche.`
+              : "Toutes les lignes de CA sont rattachées."}
+            {autoCreated
+              ? " Cette fiche a été créée automatiquement depuis l'historique CA : complétez adresse, téléphone et e-mail."
+              : ""}
+          </p>
+        </div>
+        {n > 0 ? (
+          <Button asChild size="sm" variant="outline">
+            <Link to="/pilot/rapprochement">Ouvrir le rapprochement</Link>
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function BackLinkInner() {
   return (
     <Link to="/clients" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
       <ArrowLeft className="h-4 w-4" />Retour aux clients
