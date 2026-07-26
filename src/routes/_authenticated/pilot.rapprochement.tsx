@@ -282,11 +282,10 @@ function RapprochementPage() {
                   <div className="font-medium">{selected.designation || "(sans désignation)"}</div>
                   {(() => {
                     const p = parseDesignation(selected.designation);
-                    if (p.codes.length === 0) return null;
                     return (
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
-                        <span className="text-muted-foreground">Lecture métier :</span>
-                        <Badge variant="outline" className="text-[10px]">Client : {p.name}</Badge>
+                        <span className="text-muted-foreground">Désignation nettoyée :</span>
+                        <Badge variant="outline" className="text-[10px]">{p.name || "—"}</Badge>
                         {p.codes.map((c) => (
                           <Badge key={c} variant="outline" className="text-[10px]">
                             {c} — {CA_CODES[c].label}
