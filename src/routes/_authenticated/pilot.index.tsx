@@ -566,6 +566,23 @@ function TodayPage() {
             ))}
           </div>
         )}
+        {crToQualifyCount > 0 && (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-wrap items-center gap-3 py-4">
+              <Send className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                {crToQualifyCount} client{crToQualifyCount > 1 ? "s" : ""} à qualifier : indiquez s'ils
+                sont concernés par l'envoi de comptes-rendus (aucun retard comptabilisé).
+              </p>
+              <Link
+                to="/clients"
+                className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                Qualifier <ArrowRight className="h-3 w-3" />
+              </Link>
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       {/* 4 — Quelles opportunités puis-je saisir ? */}
