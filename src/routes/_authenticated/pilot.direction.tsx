@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { CoverageHistoryCard } from "@/components/pilot/CoverageBanner";
 import {
   Euro, TrendingUp, Wallet, Percent, Target, LineChart, ShoppingCart,
-  Clock, Sparkles, Users, Lightbulb, Gauge, Handshake, Briefcase,
+  Clock, Sparkles, Users, Gauge, Handshake, Briefcase,
   ShieldCheck, AlertCircle, Activity, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 
@@ -57,10 +57,6 @@ function PilotDashboard() {
         confirmedHoursByClient: confirmedHours.data,
       }),
     [entries.data, charges.data, set, year, month, confirmedHours.data],
-  );
-  const cstats = useMemo(
-    () => clientStatsWithHours(entries.data ?? [], year, confirmedHours.data),
-    [entries.data, year, confirmedHours.data],
   );
   const health = useMemo(() => healthScore(k, set), [k, set]);
   const series = useMemo(() => monthlySeries(entries.data ?? [], year), [entries.data, year]);
