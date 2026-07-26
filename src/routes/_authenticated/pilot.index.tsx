@@ -527,6 +527,11 @@ function TodayPage() {
 
       {/* 2 — Quelles sont mes priorités ? */}
       <section className="space-y-2">
+        <SectionTitle question="Où passent mes heures ?" label="Heures consolidées" />
+        <HoursSummaryCards year={year} month={month + 1} />
+      </section>
+
+      <section className="space-y-2">
       <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
         {priorities.length === 0 ? (
           <Card className="border-dashed">
