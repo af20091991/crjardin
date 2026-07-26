@@ -93,6 +93,9 @@ export function DirectorInsightsCard({
                       {i.theme}
                     </span>
                     <span className="text-foreground">{i.text}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      Donnée : {i.source} · Décision : {i.decision}
+                    </span>
                   </span>
                 </li>
               ))}

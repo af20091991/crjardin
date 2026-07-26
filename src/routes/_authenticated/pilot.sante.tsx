@@ -142,14 +142,19 @@ function SantePage() {
                 ) : (
                   <ul className="space-y-1 text-sm">
                     {t.details.map((d) => (
-                      <li key={d.label} className="flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-1.5 text-muted-foreground">
-                          {d.ok == null ? <MinusCircle className="h-3.5 w-3.5" />
-                            : d.ok ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                              : <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
-                          {d.label}
-                        </span>
-                        <span className="font-medium tabular-nums">{d.value}</span>
+                      <li key={d.label} className="space-y-0.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 text-muted-foreground">
+                            {d.ok == null ? <MinusCircle className="h-3.5 w-3.5" />
+                              : d.ok ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                                : <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
+                            {d.label}
+                          </span>
+                          <span className="font-medium tabular-nums">{d.value}</span>
+                        </div>
+                        <p className="pl-5 text-xs text-muted-foreground">
+                          Origine : {d.origin} · {d.why}
+                        </p>
                       </li>
                     ))}
                   </ul>
