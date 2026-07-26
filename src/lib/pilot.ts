@@ -327,7 +327,11 @@ export function computeKpis(params: {
       if (Number.isFinite(h) && h > 0) totalConfirmedHours += h;
     });
   }
-  const tauxHoraireReel = totalConfirmedHours > 0 ? caYear / totalConfirmedHours : 0;
+  // Seuil de plausibilité : en dessous de 20 h confirmées sur l'année, le taux
+  // horaire réel n'est pas significatif — il reste à 0 (affiché « — »).
+  const MIN_CONFIRMED_HOURS = 20;
+  const tauxHoraireReel =
+    totalConfirmedHours >= MIN_CONFIRMED_HOURS ? caYear / totalConfirmedHours : 0;
   // Rétrocompatibilité : `tauxHoraire` = taux horaire vendu (comportement d'origine).
   const tauxHoraire = tauxHoraireVendu;
 
