@@ -330,9 +330,9 @@ function CaPage() {
               )}
             </CardContent>
           </Card>
-        </div>
 
-        <Calculators onUse={(v) => { setPending(v); toast.success(`Résultat prêt : ${formatEuro(v)}`); }} />
+          <Calculators onUse={(v) => { setPending(v); toast.success(`Résultat prêt : ${formatEuro(v)}`); }} />
+        </div>
       </div>
 
       <OriginDialog
