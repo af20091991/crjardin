@@ -20,6 +20,10 @@ export interface DirectorInsight {
   tone: InsightTone;
   /** Poids de décision : plus élevé = affiché en premier. */
   weight: number;
+  /** Donnée réellement utilisée pour produire l'information. */
+  source: string;
+  /** Intérêt décisionnel : quelle décision cette information permet de prendre. */
+  decision: string;
 }
 
 const eur = (n: number) => formatEuro(n);
@@ -38,7 +42,7 @@ export function buildDirectorInsights(params: {
   year: number;
 }): DirectorInsight[] {
   const { k, settings, annual, charges, projection, portfolio, hours, opportunities, year } = params;
-  const out: DirectorInsight[] = [];
+  const out: Omit<DirectorInsight, "source" | "decision">[] = [];
   const add = (id: string, theme: string, text: string, tone: InsightTone, weight: number) =>
     out.push({ id, theme, text, tone, weight });
 
@@ -257,5 +261,42 @@ export function buildDirectorInsights(params: {
     add("historique", "Économique", `Moyenne de CA sur les ${last3.length} derniers exercices : ${eur(avg)}.`, "neutral", 54);
   }
 
-  return out.sort((a, b) => b.weight - a.weight);
+  return out
+    .map((i) => ({
+      ...i,
+      source: META[i.id]?.source ?? "Données Pilot Pro consolidées.",
+      decision: META[i.id]?.decision ?? "Suivi de pilotage.",
+    }))
+    .sort((a, b) => b.weight - a.weight);
 }
+
+/** Origine de la donnée et intérêt décisionnel, par information produite. */
+const META: Record<string, { source: string; decision: string }> = {
+  "ca-annuel": { source: "pilot_ca_entries — ventes de l'exercice", decision: "Situer l'activité réelle avant tout arbitrage." },
+  "ca-evol": { source: "pilot_ca_entries — exercices N et N-1", decision: "Décider s'il faut relancer la prospection." },
+  "ca-ytd": { source: "pilot_ca_entries — cumul à date équivalente", decision: "Corriger le rythme commercial en cours d'année." },
+  "ca-projection": { source: "Rythme de facturation observé", decision: "Anticiper la trésorerie de fin d'exercice." },
+  benefice: { source: "CA HT − charges enregistrées (module charges)", decision: "Valider si la structure de coûts est tenable." },
+  "marge-dispo": { source: "CA à date − charges à date", decision: "Décider d'un investissement ou d'une embauche." },
+  "charges-mix": { source: "Charges classées fixes/variables", decision: "Cibler le levier d'économie le plus rapide." },
+  "charges-poids": { source: "Charges / CA de l'exercice", decision: "Arbitrer une hausse de prix ou une baisse de coûts." },
+  "charges-mensuel": { source: "Moyenne des charges sur les mois observés", decision: "Fixer le CA mensuel minimum à réaliser." },
+  "charges-a-classer": { source: "Lignes de charges sans catégorie", decision: "Fiabiliser l'analyse avant décision budgétaire." },
+  "charges-top": { source: "Cumul par catégorie de charge", decision: "Renégocier le premier poste de dépense." },
+  "charges-derive": { source: "Évolution annuelle par catégorie", decision: "Arbitrer ou plafonner un poste qui dérive." },
+  "taux-reel": { source: "CA / heures réelles (interventions + historiques)", decision: "Vérifier que le prix couvre le temps passé." },
+  "taux-cible": { source: "Taux réel vs cible des paramètres PP", decision: "Ajuster la grille tarifaire." },
+  "ecart-heures": { source: "Heures vendues vs heures réalisées", decision: "Corriger le chiffrage ou la traçabilité terrain." },
+  "charge-jour": { source: "Heures facturées / jours d'activité", decision: "Évaluer la charge de travail soutenable." },
+  panier: { source: "CA / nombre de prestations facturées", decision: "Décider d'un minimum de facturation." },
+  tjm: { source: "CA / jours d'activité", decision: "Comparer au TJM cible pour les devis." },
+  "client-top": { source: "CA par client de l'exercice", decision: "Sécuriser la relation du client principal." },
+  "client-concentration": { source: "Part des 5 premiers clients", decision: "Décider d'élargir le portefeuille si le risque est fort." },
+  "clients-peu-rentables": { source: "Rentabilité horaire par client", decision: "Renégocier ou arrêter les clients sous la cible." },
+  "client-best-rate": { source: "Rentabilité horaire par client", decision: "Répliquer ce profil de mission." },
+  "clients-sans-heures": { source: "Clients facturés sans heures identifiées", decision: "Compléter les heures pour fiabiliser la rentabilité." },
+  opportunites: { source: "Recommandations en attente / acceptées", decision: "Prioriser les relances commerciales." },
+  "opportunites-ca": { source: "Recommandations facturées", decision: "Mesurer le retour du travail de recommandation." },
+  investissement: { source: "Charges fixes de l'exercice", decision: "Calibrer la capacité d'investissement." },
+  historique: { source: "CA des trois derniers exercices", decision: "Fixer un objectif annuel réaliste." },
+};
