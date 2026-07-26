@@ -14,10 +14,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
+import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import {
   Euro, Wallet, Sparkles, AlertTriangle,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
-  TrendingDown, Gauge, Flame, Leaf, Flag,
+  TrendingDown, Gauge, Flame, Leaf, Flag, Link2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/")({
@@ -66,6 +67,7 @@ function TodayPage() {
   const interventions = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
   const recos = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
   const goals = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
+  const orphanCount = useQuery({ queryKey: ["pilot-ca-orphan-count"], queryFn: countOrphanEntries });
   const priorityOffers = useQuery({
     queryKey: ["nbo-priority"],
     queryFn: async (): Promise<NBOffer[]> => {
@@ -345,6 +347,7 @@ function TodayPage() {
     { key: "r", label: "Recommandations à planifier", count: acceptedNotPlanned.length, icon: Handshake, topic: "recos-a-planifier" as FocusTopic, tone: "urgent" as Priority },
     { key: "d", label: "Dépassements de temps", count: timeOverruns.length, icon: TrendingDown, topic: "depassements-temps" as FocusTopic, tone: "urgent" as Priority },
     { key: "g", label: "Objectifs en retard", count: goalsLate.length, icon: Flag, to: "/pilot/objectifs", tone: "urgent" as Priority },
+    { key: "ca", label: "Rapprochements CA à valider", count: orphanCount.data ?? 0, icon: Link2, to: "/pilot/rapprochement", tone: "important" as Priority },
   ].filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
 
   // Risques — condensés, seuls les non-vides.
