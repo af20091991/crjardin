@@ -2,7 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
-import { getClient, deleteClient, clientEmails } from "@/lib/clients";
+import {
+  getClient,
+  deleteClient,
+  clientEmails,
+  REPORT_POLICY_META,
+  type ReportPolicy,
+} from "@/lib/clients";
 import { listInterventionsByClient } from "@/lib/interventions";
 import {
   listRecommendationsByClient, listHealthByClient,
@@ -130,6 +136,17 @@ function ClientDetail() {
                         <AlertTriangle className="h-3 w-3" /> Préco. en attente +30j
                       </Badge>
                     )}
+                    {/* Badge « CR » : uniquement avec un historique de compte-rendu envoyé */}
+                    {(interventions ?? []).some((iv) => iv.sent_to_client_at) && (
+                      <Badge variant="outline" className="border-primary/40 text-primary">CR</Badge>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className={REPORT_POLICY_META[(client.report_policy ?? "a_confirmer") as ReportPolicy].badge}
+                      title={REPORT_POLICY_META[(client.report_policy ?? "a_confirmer") as ReportPolicy].hint}
+                    >
+                      {REPORT_POLICY_META[(client.report_policy ?? "a_confirmer") as ReportPolicy].short}
+                    </Badge>
                   </div>
                 </div>
               </div>

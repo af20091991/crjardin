@@ -1,5 +1,29 @@
 import { supabase } from "@/integrations/supabase/client";
 
+/** Le client est-il concerné par l'envoi de comptes-rendus ? */
+export type ReportPolicy = "oui" | "non" | "a_confirmer";
+
+export const REPORT_POLICY_META: Record<ReportPolicy, { label: string; short: string; hint: string; badge: string }> = {
+  oui: {
+    label: "Oui — client suivi par compte-rendu",
+    short: "CR : oui",
+    hint: "Les interventions terminées génèrent une action compte-rendu.",
+    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
+  non: {
+    label: "Non — client non concerné",
+    short: "CR : non",
+    hint: "Aucune alerte ni action compte-rendu pour ce client.",
+    badge: "border-border bg-muted text-muted-foreground",
+  },
+  a_confirmer: {
+    label: "À confirmer",
+    short: "CR à qualifier",
+    hint: "À qualifier — jamais compté comme retard.",
+    badge: "border-orange-200 bg-orange-50 text-orange-700",
+  },
+};
+
 export interface Client {
   id: string;
   name: string;
@@ -11,6 +35,9 @@ export interface Client {
   contract_type: string | null;
   frequency: string | null;
   notes: string | null;
+  report_policy: ReportPolicy;
+  source: string | null;
+  source_confidence: string | null;
   created_at: string;
   updated_at: string;
   share_token: string;
@@ -26,6 +53,15 @@ export type ClientInput = {
   contract_type?: string | null;
   frequency?: string | null;
   notes?: string | null;
+  report_policy?: ReportPolicy;
+  source?: string | null;
+  source_confidence?: string | null;
+};
+
+/** Origine d'une fiche créée depuis l'historique CA. */
+export const CLIENT_SOURCE_CA = "ca_historique";
+export const CLIENT_SOURCE_LABEL: Record<string, string> = {
+  [CLIENT_SOURCE_CA]: "Création automatique depuis historique CA",
 };
 
 /** Toutes les adresses e-mail d'un client (nouvelle liste + ancien champ), dédupliquées. */

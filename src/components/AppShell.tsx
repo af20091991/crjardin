@@ -76,7 +76,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Pilot Pro",
       items: canEdit
         ? [
-            { to: "/pilot", label: "Vue d'ensemble", short: "Pilot", icon: Compass, exact: true, primary: true },
             { to: "/pilot/direction", label: "Direction", short: "Direction", icon: BarChart3, exact: false, primary: false },
             { to: "/pilot/ca", label: "CA", short: "CA", icon: Euro, exact: false, primary: false },
             { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
