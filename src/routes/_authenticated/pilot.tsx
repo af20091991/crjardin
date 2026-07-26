@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-r
 import { AppShell } from "@/components/AppShell";
 import {
   LayoutDashboard, Euro, Users, Target, Calculator, CalendarRange,
-  SlidersHorizontal, HeartPulse, FileBarChart, Settings2, Clock, BarChart3, Link2, Receipt,
+  HeartPulse, FileBarChart, Settings2, Clock, BarChart3, Link2, Receipt,
 } from "lucide-react";
 import { currentYear } from "@/lib/date-utils";
 
@@ -21,7 +21,6 @@ const TABS = [
   { to: "/pilot/finance", label: "Finance", icon: Calculator, exact: false },
   { to: "/pilot/charges", label: "Charges", icon: Receipt, exact: false },
   { to: "/pilot/saison", label: "Saisonnalité", icon: CalendarRange, exact: false },
-  { to: "/pilot/simulateur", label: "Simulateur", icon: SlidersHorizontal, exact: false },
   { to: "/pilot/sante", label: "Santé", icon: HeartPulse, exact: false },
   { to: "/pilot/benchmark", label: "Benchmark & SMART", icon: BarChart3, exact: false },
   { to: "/pilot/rapports", label: "Rapports", icon: FileBarChart, exact: false },
