@@ -117,6 +117,9 @@ export interface Intervention {
   report_sections?: ReportSections | null;
   ai_metadata?: Record<string, unknown> | null;
   hours_spent?: number | null;
+  /** Dispense exceptionnelle de compte-rendu (renseignée = plus aucune action CR). */
+  report_waived_at?: string | null;
+  report_waived_reason?: string | null;
 }
 
 export interface InterventionTask {
