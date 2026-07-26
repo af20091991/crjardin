@@ -1461,6 +1461,7 @@ export type Database = {
           id: string
           jours_travailles: number | null
           month: number
+          temps_gestion: number | null
           temps_terrain: number | null
           updated_at: string
           user_id: string
@@ -1471,6 +1472,7 @@ export type Database = {
           id?: string
           jours_travailles?: number | null
           month: number
+          temps_gestion?: number | null
           temps_terrain?: number | null
           updated_at?: string
           user_id: string
@@ -1481,6 +1483,7 @@ export type Database = {
           id?: string
           jours_travailles?: number | null
           month?: number
+          temps_gestion?: number | null
           temps_terrain?: number | null
           updated_at?: string
           user_id?: string
