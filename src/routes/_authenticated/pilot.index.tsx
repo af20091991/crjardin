@@ -16,6 +16,7 @@ import { realHourlyRate, marginPct, periodComparison } from "@/lib/pilot-reliabi
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
+import { listHistoricHours } from "@/lib/pilot-historic-hours";
 import {
   Euro, Wallet, Sparkles, AlertTriangle,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
@@ -69,6 +70,7 @@ function TodayPage() {
   const recos = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
   const goals = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
   const orphanCount = useQuery({ queryKey: ["pilot-ca-orphan-count"], queryFn: countOrphanEntries });
+  const historicHours = useQuery({ queryKey: ["pilot-historic-hours"], queryFn: listHistoricHours });
   const clientActivity = useQuery({
     queryKey: ["client-activity-rows"],
     queryFn: fetchClientActivityRows,
@@ -398,6 +400,7 @@ function TodayPage() {
     { key: "d", label: "Dépassements de temps", count: timeOverruns.length, icon: TrendingDown, topic: "depassements-temps" as FocusTopic, tone: "urgent" as Priority },
     { key: "g", label: "Objectifs en retard", count: goalsLate.length, icon: Flag, to: "/pilot/objectifs", tone: "urgent" as Priority },
     { key: "ca", label: "Rapprochements CA à valider", count: orphanCount.data ?? 0, icon: Link2, to: "/pilot/rapprochement", tone: "important" as Priority },
+    { key: "hh", label: "Heures historiques à rattacher", count: (historicHours.data ?? []).filter((h) => h.status === "a_valider").length, icon: Clock, to: "/pilot/rapprochement", tone: "important" as Priority },
   ].filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
 
   // Risques — condensés, seuls les non-vides.
