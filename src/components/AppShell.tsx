@@ -83,7 +83,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/charges", label: "Charges", short: "Charges", icon: Receipt, exact: false, primary: false },
             { to: "/pilot/clients", label: "Rentabilité", short: "Rentab.", icon: Users, exact: false, primary: false },
             { to: "/pilot/saison", label: "Prévisions", short: "Prévis.", icon: CalendarRange, exact: false, primary: false },
-            { to: "/pilot/rapports", label: "Rapports", short: "Rapports", icon: FileBarChart, exact: false, primary: false },
             { to: "/pilot/rapprochement", label: "Rapprochement CA", short: "Rappr.", icon: Link2, exact: false, primary: false },
           ]
         : [],

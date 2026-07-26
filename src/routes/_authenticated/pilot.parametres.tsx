@@ -6,6 +6,7 @@ import { saveSettings, DEFAULT_SETTINGS, type PilotSettings } from "@/lib/pilot"
 import { getTjmSettings, saveTjmSettings, computeTjm, type TjmSettings } from "@/lib/pilot-hours";
 import { formatEuro } from "@/lib/pilot";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ReportsCard } from "@/components/pilot/ReportsCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -136,6 +137,7 @@ function ParamsPage() {
       <TjmSettingsCard />
       <ThresholdsCard />
       <ExcelImportCard />
+      <ReportsCard />
     </div>
   );
 }

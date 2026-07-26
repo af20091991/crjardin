@@ -8,7 +8,6 @@ import {
   Calculator,
   CalendarRange,
   HeartPulse,
-  FileBarChart,
   Settings2,
   Clock,
   BarChart3,
@@ -37,7 +36,6 @@ const TABS = [
   { to: "/pilot/saison", label: "Saisonnalité", icon: CalendarRange, exact: false },
   { to: "/pilot/sante", label: "Santé", icon: HeartPulse, exact: false },
   { to: "/pilot/benchmark", label: "Benchmark & SMART", icon: BarChart3, exact: false },
-  { to: "/pilot/rapports", label: "Rapports", icon: FileBarChart, exact: false },
   { to: "/pilot/rapprochement", label: "Rapprochement CA", icon: Link2, exact: false },
   { to: "/pilot/parametres", label: "Paramètres", icon: Settings2, exact: false },
 ] as const;
