@@ -380,23 +380,11 @@ function TodayPage() {
   const caComparison = periodComparison({ current: k.caMonth, previous: objectifMois });
   // Marge : non calculable sans CA sur l'année.
   const margin = marginPct({ ca: k.caMonth, marge: k.marge });
-  // Taux horaire réel : heures confirmées uniquement, aucune estimation.
-  const terminatedThisYear = allI.filter(
-    (i) => i.status === "terminee" && new Date(i.intervention_date).getFullYear() === year,
-  );
-  const confirmedThisYear = terminatedThisYear.filter((i) => {
-    const estimated =
-      i.ai_metadata && typeof i.ai_metadata === "object" &&
-      (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
-    return i.hours_spent != null && Number(i.hours_spent) > 0 && !estimated;
-  });
-  const realRate = realHourlyRate({
-    ca: k.caYear,
-    confirmedHours: k.totalConfirmedHours ?? 0,
-    terminatedCount: terminatedThisYear.length,
-    confirmedCount: confirmedThisYear.length,
-    targetRate: targetHR,
-  });
+  // Taux horaire réel : exploite les heures déjà présentes dans PP selon la
+  // cascade interventions confirmées → historique validé → ledger heures.
+  const realRate = hoursResolution
+    ? realHourlyRateFromResolution({ ca: k.caYear, resolution: hoursResolution, targetRate: targetHR })
+    : ({ available: false, label: "Taux horaire réel", detail: "Chargement des heures…" } as const);
   const tauxEcartPct =
     realRate.available && targetHR > 0 ? ((realRate.value - targetHR) / targetHR) * 100 : 0;
 
