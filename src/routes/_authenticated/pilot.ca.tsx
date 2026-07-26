@@ -349,6 +349,29 @@ function CaPage() {
   );
 }
 
+/** Décomposition net / cotisations / coût total d'une rémunération mensuelle. */
+function RemunerationBreakdown({ net }: { net: number }) {
+  const b = remunerationBreakdown(net);
+  return (
+    <div className="space-y-1 rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground">Net</span>
+        <span>{formatEuro(b.net)}</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground">
+          Cotisations sociales ({Math.round(SOCIAL_CONTRIBUTION_RATE * 100)} %)
+        </span>
+        <span>{formatEuro(b.social)}</span>
+      </div>
+      <div className="flex items-center justify-between border-t pt-1 font-semibold">
+        <span>Coût total</span>
+        <span className="text-rose-600">{formatEuro(b.total)}</span>
+      </div>
+    </div>
+  );
+}
+
 function OriginDialog({
   entry, onClose, onLinked,
 }: {
