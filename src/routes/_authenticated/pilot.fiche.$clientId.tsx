@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getClient } from "@/lib/clients";
+import { getClient, REPORT_POLICY_META, type ReportPolicy } from "@/lib/clients";
 import { getClientEconomicScore, SCORE_META } from "@/lib/client-score";
 import { computeScoreBreakdown } from "@/lib/client-score-breakdown";
 import { listNextBestOffers, explainOffer, reasonLabel, formatSeason } from "@/lib/next-best-offers";
