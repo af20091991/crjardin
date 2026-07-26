@@ -1,20 +1,21 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { listAllInterventions } from "@/lib/interventions";
+import { listAllInterventions, waiveInterventionReport } from "@/lib/interventions";
 import { listAllRecommendations } from "@/lib/garden";
 import { clientStatsWithHours, fetchConfirmedHoursByClient, formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import { FOCUS_META, isFocusTopic, type FocusTopic } from "@/lib/pilot-focus";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { interventionsNeedingHours } from "@/lib/pilot-real-hours";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, BellOff } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/focus/$topic")({
   head: ({ params }) => ({
@@ -39,12 +40,15 @@ type Row = {
   interventionId?: string;
   columns: { label: string; value: string }[];
   reason: string;
+  /** Action « dispense de compte-rendu » disponible sur cette ligne. */
+  canWaiveReport?: boolean;
 };
 
 function FocusPage() {
   const { topic } = Route.useParams() as { topic: FocusTopic };
   const meta = FOCUS_META[topic];
   const { entries, settings } = usePilotData();
+  const qc = useQueryClient();
   const now = new Date();
   const year = now.getFullYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
@@ -86,6 +90,15 @@ function FocusPage() {
     },
   });
 
+  const waiveMut = useMutation({
+    mutationFn: (id: string) => waiveInterventionReport(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["interventions-all"] });
+      toast.success("Compte-rendu dispensé pour cette intervention");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const loading =
     entries.isLoading || settings.isLoading || interventions.isLoading ||
     recos.isLoading || confirmedHours.isLoading ||
@@ -108,7 +121,7 @@ function FocusPage() {
 
     if (topic === "cr-non-envoyes") {
       return allI
-        .filter((i) => i.status === "terminee" && !i.sent_to_client_at)
+        .filter((i) => i.status === "terminee" && !i.sent_to_client_at && !i.report_waived_at)
         .slice(0, 100)
         .map((i) => ({
           key: i.id,
@@ -121,6 +134,7 @@ function FocusPage() {
             { label: "Heures", value: i.hours_spent != null ? `${i.hours_spent.toFixed(1)} h` : "—" },
           ],
           reason: "Intervention terminée, aucun CR envoyé au client.",
+          canWaiveReport: true,
         }));
     }
 
@@ -394,6 +408,16 @@ function FocusPage() {
                       <p className="mt-1 text-xs text-muted-foreground">{r.reason}</p>
                     </div>
                     <div className="flex shrink-0 gap-2">
+                      {r.canWaiveReport && r.interventionId && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={waiveMut.isPending}
+                          onClick={() => waiveMut.mutate(r.interventionId!)}
+                        >
+                          <BellOff className="mr-1 h-3 w-3" /> Pas de CR exceptionnellement
+                        </Button>
+                      )}
                       {r.interventionId && (
                         <Link to="/interventions/$interventionId" params={{ interventionId: r.interventionId }}>
                           <Button size="sm" variant="outline">Ouvrir <ArrowRight className="ml-1 h-3 w-3" /></Button>

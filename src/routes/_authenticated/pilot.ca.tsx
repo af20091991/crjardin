@@ -24,6 +24,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
+import { FixedChargesPanel } from "@/components/pilot/FixedChargesPanel";
+import { remunerationBreakdown, SOCIAL_CONTRIBUTION_RATE } from "@/lib/pilot-fixed-charges";
 
 export const Route = createFileRoute("/_authenticated/pilot/ca")({
   component: CaPage,
@@ -138,8 +140,8 @@ function CaPage() {
         <StatBox label="Taux horaire" value={mt.hours ? `${formatEuro(mt.tauxHoraire)}/h` : "—"} icon={TrendingUp} />
       </div>
 
-      {/* Corps : tableaux + calculateurs */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
+      {/* Corps : Charges à gauche · Ventes à droite (disposition Excel) */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="space-y-4">
           {/* Charges */}
           <Card>
@@ -200,21 +202,39 @@ function CaPage() {
                 <span className="font-semibold text-rose-600">{formatEuro(mt.chargesHt)}</span>
               </div>
               {/* Rémunération */}
-              <div className="flex items-center justify-between gap-2 border-t bg-muted/30 px-4 py-2">
-                <span className="text-sm font-medium">Rémunération</span>
-                <div className="flex items-center gap-1.5">
-                  {remus.length === 0 ? (
-                    <Button size="sm" variant="ghost" className="h-7" onClick={() => addRow("remuneration")}><Plus className="mr-1 h-3.5 w-3.5" />Définir</Button>
-                  ) : (
-                    <>
-                      <Input defaultValue={remus[0].amount_ht || ""} type="number" inputMode="decimal" className="h-8 w-32 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== remus[0].amount_ht) save(remus[0].id, { amount_ht: v }); }} />
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(remus[0].id)}><Trash2 className="h-4 w-4" /></Button>
-                    </>
-                  )}
-                </div>
-              </div>
             </CardContent>
           </Card>
+
+          {/* Rémunération — séparée des charges d'exploitation */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
+              <CardTitle className="text-base">Rémunération {MONTH_NAMES[month - 1]}</CardTitle>
+              {remus.length === 0 && (
+                <Button size="sm" variant="outline" onClick={() => addRow("remuneration")}>
+                  <Plus className="mr-1 h-4 w-4" />Définir
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {remus.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune rémunération saisie pour ce mois.</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 text-sm">Rémunération nette</span>
+                    <Input defaultValue={remus[0].amount_ht || ""} type="number" inputMode="decimal" className="h-8 w-32 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== remus[0].amount_ht) save(remus[0].id, { amount_ht: v }); }} />
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(remus[0].id)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                  <RemunerationBreakdown net={remus[0].amount_ht} />
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <FixedChargesPanel year={year} />
+        </div>
+
+        <div className="space-y-4">
 
           {/* Ventes */}
           <Card>
@@ -310,9 +330,9 @@ function CaPage() {
               )}
             </CardContent>
           </Card>
-        </div>
 
-        <Calculators onUse={(v) => { setPending(v); toast.success(`Résultat prêt : ${formatEuro(v)}`); }} />
+          <Calculators onUse={(v) => { setPending(v); toast.success(`Résultat prêt : ${formatEuro(v)}`); }} />
+        </div>
       </div>
 
       <OriginDialog
@@ -325,6 +345,29 @@ function CaPage() {
           setOriginFor(null);
         }}
       />
+    </div>
+  );
+}
+
+/** Décomposition net / cotisations / coût total d'une rémunération mensuelle. */
+function RemunerationBreakdown({ net }: { net: number }) {
+  const b = remunerationBreakdown(net);
+  return (
+    <div className="space-y-1 rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground">Net</span>
+        <span>{formatEuro(b.net)}</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground">
+          Cotisations sociales ({Math.round(SOCIAL_CONTRIBUTION_RATE * 100)} %)
+        </span>
+        <span>{formatEuro(b.social)}</span>
+      </div>
+      <div className="flex items-center justify-between border-t pt-1 font-semibold">
+        <span>Coût total</span>
+        <span className="text-rose-600">{formatEuro(b.total)}</span>
+      </div>
     </div>
   );
 }

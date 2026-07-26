@@ -117,6 +117,9 @@ export interface Intervention {
   report_sections?: ReportSections | null;
   ai_metadata?: Record<string, unknown> | null;
   hours_spent?: number | null;
+  /** Dispense exceptionnelle de compte-rendu (renseignée = plus aucune action CR). */
+  report_waived_at?: string | null;
+  report_waived_reason?: string | null;
 }
 
 export interface InterventionTask {
@@ -367,6 +370,34 @@ export async function confirmHoursSpent(
     hours_spent: hours,
     ai_metadata: prev,
   });
+}
+
+/**
+ * Dispense exceptionnelle de compte-rendu pour UNE intervention.
+ * L'intervention sort immédiatement des actions « CR à générer / à envoyer »
+ * sans modifier la politique CR du client.
+ */
+export async function waiveInterventionReport(
+  id: string,
+  reason?: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("interventions")
+    .update({
+      report_waived_at: new Date().toISOString(),
+      report_waived_reason: reason?.trim() || "Dispense exceptionnelle",
+    } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Annule une dispense de compte-rendu. */
+export async function cancelReportWaiver(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("interventions")
+    .update({ report_waived_at: null, report_waived_reason: null } as never)
+    .eq("id", id);
+  if (error) throw error;
 }
 
 export async function deleteIntervention(id: string): Promise<void> {

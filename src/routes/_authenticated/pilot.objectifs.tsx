@@ -26,6 +26,9 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pilot/objectifs")({
   head: () => ({ meta: [{ title: "Objectifs stratégiques — Pilot Pro" }] }),
+  validateSearch: (search: Record<string, unknown>): { filter?: "retard" } => ({
+    filter: search.filter === "retard" ? "retard" : undefined,
+  }),
   component: GoalsPage,
 });
 
@@ -52,9 +55,19 @@ const emptyDraft = (theme: GoalTheme): Draft => ({
 
 function GoalsPage() {
   const qc = useQueryClient();
+  const { filter } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const goalsQ = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
-  const goals = goalsQ.data ?? [];
-  const stats = useMemo(() => computeGoalStats(goals), [goals]);
+  const allGoals = goalsQ.data ?? [];
+  // Filtre « en retard » : objectif en cours dont l'échéance est dépassée.
+  const lateGoals = useMemo(() => {
+    const today = new Date().setHours(0, 0, 0, 0);
+    return allGoals.filter(
+      (g) => g.status === "en_cours" && g.deadline && new Date(g.deadline).getTime() < today,
+    );
+  }, [allGoals]);
+  const goals = filter === "retard" ? lateGoals : allGoals;
+  const stats = useMemo(() => computeGoalStats(allGoals), [allGoals]);
 
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft("commercial"));
@@ -131,6 +144,25 @@ function GoalsPage() {
           <Plus className="mr-1.5 h-4 w-4" /> Nouvel objectif
         </Button>
       </div>
+
+      {filter === "retard" && (
+        <Card className="border-orange-200 bg-orange-50/50">
+          <CardContent className="flex flex-wrap items-center gap-3 p-4">
+            <Clock className="h-4 w-4 text-orange-700" />
+            <p className="text-sm text-foreground">
+              {lateGoals.length} objectif{lateGoals.length > 1 ? "s" : ""} en retard (échéance dépassée, statut « en cours »).
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto"
+              onClick={() => navigate({ search: {} })}
+            >
+              Voir tous les objectifs
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPI */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
