@@ -15,11 +15,18 @@ export const SERVICE_CLASS_META: Record<ServiceClass, { label: string; badge: st
   rentable: { label: "Rentable", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
   strategique: { label: "Stratégique", badge: "border-sky-200 bg-sky-50 text-sky-700" },
   faible: { label: "Rentabilité faible", badge: "border-amber-200 bg-amber-50 text-amber-700" },
-  non_classe: { label: "Données insuffisantes", badge: "border-border bg-muted text-muted-foreground" },
+  non_classe: {
+    label: "Données insuffisantes",
+    badge: "border-border bg-muted text-muted-foreground",
+  },
 };
 
 /** Clé prestation unique, commune au CA et au ledger d'heures. */
-export function prestationKey(designation: string | null, category: string | null, family?: string): string {
+export function prestationKey(
+  designation: string | null,
+  category: string | null,
+  family?: string,
+): string {
   const label = parseDesignation(designation).serviceLabel;
   if (label) return label;
   const cat = (category ?? "").trim();
@@ -58,11 +65,25 @@ export function analyzeServices(params: {
 
   const acc = new Map<
     string,
-    { caTotal: number; caYear: number; caPrev: number; lignes: number; clients: Set<string>; hv: number }
+    {
+      caTotal: number;
+      caYear: number;
+      caPrev: number;
+      lignes: number;
+      clients: Set<string>;
+      hv: number;
+    }
   >();
   for (const e of entries) {
     const key = prestationKey(e.client_name, e.nature, e.family);
-    const cur = acc.get(key) ?? { caTotal: 0, caYear: 0, caPrev: 0, lignes: 0, clients: new Set<string>(), hv: 0 };
+    const cur = acc.get(key) ?? {
+      caTotal: 0,
+      caYear: 0,
+      caPrev: 0,
+      lignes: 0,
+      clients: new Set<string>(),
+      hv: 0,
+    };
     const amount = Number(e.amount_ht) || 0;
     const y = new Date(e.entry_date).getFullYear();
     cur.caTotal += amount;
@@ -86,7 +107,8 @@ export function analyzeServices(params: {
   const rows: ServiceProfitability[] = [];
   for (const [prestation, v] of acc) {
     const hr = reelles.get(prestation) ?? 0;
-    const basis: ServiceProfitability["hoursBasis"] = hr > 0 ? "reelles" : v.hv > 0 ? "vendues" : "aucune";
+    const basis: ServiceProfitability["hoursBasis"] =
+      hr > 0 ? "reelles" : v.hv > 0 ? "vendues" : "aucune";
     const hours = basis === "reelles" ? hr : basis === "vendues" ? v.hv : 0;
     const taux = hours > 0 && v.caTotal > 0 ? v.caTotal / hours : null;
     const share = caTotalAll > 0 ? v.caTotal / caTotalAll : 0;

@@ -36,7 +36,12 @@ function buildServiceStats(entries: PilotEntry[]): Map<string, ServiceStat> {
   const map = new Map<string, ServiceStat>();
   for (const e of entries) {
     const key = prestationKey(e.client_name, e.nature, e.family);
-    const cur = map.get(key) ?? { lignes: 0, ca: 0, clients: new Set<string>(), months: new Array(12).fill(0) };
+    const cur = map.get(key) ?? {
+      lignes: 0,
+      ca: 0,
+      clients: new Set<string>(),
+      months: new Array(12).fill(0),
+    };
     cur.lignes += 1;
     cur.ca += Number(e.amount_ht) || 0;
     if (e.client_id) cur.clients.add(e.client_id);
@@ -51,10 +56,26 @@ function topMonths(months: number[]): number[] {
   const total = months.reduce((s, v) => s + v, 0);
   if (total === 0) return [];
   const avg = total / 12;
-  return months.map((v, i) => ({ v, m: i + 1 })).filter((x) => x.v > avg).map((x) => x.m);
+  return months
+    .map((v, i) => ({ v, m: i + 1 }))
+    .filter((x) => x.v > avg)
+    .map((x) => x.m);
 }
 
-const MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+const MONTHS_FR = [
+  "janv.",
+  "févr.",
+  "mars",
+  "avr.",
+  "mai",
+  "juin",
+  "juil.",
+  "août",
+  "sept.",
+  "oct.",
+  "nov.",
+  "déc.",
+];
 
 export function formatMonths(months: number[]): string {
   if (months.length === 0 || months.length === 12) return "toute l'année";

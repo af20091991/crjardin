@@ -20,11 +20,27 @@ export const PROFIT_CLASS_META: Record<
   ClientProfitClass,
   { label: string; tone: string; badge: string }
 > = {
-  tres_rentable: { label: "Très rentable", tone: "positive", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  tres_rentable: {
+    label: "Très rentable",
+    tone: "positive",
+    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
   rentable: { label: "Rentable", tone: "positive", badge: "border-sky-200 bg-sky-50 text-sky-700" },
-  a_surveiller: { label: "À surveiller", tone: "warning", badge: "border-amber-200 bg-amber-50 text-amber-700" },
-  chronophage: { label: "Chronophage", tone: "warning", badge: "border-red-200 bg-red-50 text-red-700" },
-  non_classe: { label: "Données insuffisantes", tone: "default", badge: "border-border bg-muted text-muted-foreground" },
+  a_surveiller: {
+    label: "À surveiller",
+    tone: "warning",
+    badge: "border-amber-200 bg-amber-50 text-amber-700",
+  },
+  chronophage: {
+    label: "Chronophage",
+    tone: "warning",
+    badge: "border-red-200 bg-red-50 text-red-700",
+  },
+  non_classe: {
+    label: "Données insuffisantes",
+    tone: "default",
+    badge: "border-border bg-muted text-muted-foreground",
+  },
 };
 
 export interface ClientProfitability {
@@ -61,7 +77,12 @@ export function classifyClients(params: {
   for (const e of entries) {
     if (!e.client_id) continue;
     const yy = new Date(e.entry_date).getFullYear();
-    const cur = agg.get(e.client_id) ?? { name: e.client_name ?? "Client", total: 0, y: 0, prev: 0 };
+    const cur = agg.get(e.client_id) ?? {
+      name: e.client_name ?? "Client",
+      total: 0,
+      y: 0,
+      prev: 0,
+    };
     if (e.client_name) cur.name = e.client_name;
     const amount = Number(e.amount_ht) || 0;
     cur.total += amount;

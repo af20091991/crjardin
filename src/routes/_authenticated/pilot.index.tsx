@@ -27,9 +27,22 @@ import { useThresholds } from "@/lib/pilot-thresholds";
 import { classifyClients } from "@/lib/pilot-client-profitability";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
 import {
-  Euro, Wallet, Sparkles, AlertTriangle,
-  Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
-  TrendingDown, Gauge, Flame, Leaf, Flag, Link2,
+  Euro,
+  Wallet,
+  Sparkles,
+  AlertTriangle,
+  Clock,
+  Handshake,
+  Users,
+  CheckCircle2,
+  ArrowRight,
+  Send,
+  TrendingDown,
+  Gauge,
+  Flame,
+  Leaf,
+  Flag,
+  Link2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/")({
@@ -45,29 +58,27 @@ type NBOffer = {
 };
 
 type Priority = "urgent" | "important" | "opportunite";
-const PRIORITY_META: Record<
-  Priority,
-  { dot: string; label: string; badge: string; ring: string }
-> = {
-  urgent: {
-    dot: "bg-red-500",
-    label: "Urgent",
-    badge: "bg-red-50 text-red-700 border-red-200",
-    ring: "border-red-200 bg-red-50/50",
-  },
-  important: {
-    dot: "bg-orange-500",
-    label: "Important",
-    badge: "bg-orange-50 text-orange-700 border-orange-200",
-    ring: "border-orange-200 bg-orange-50/50",
-  },
-  opportunite: {
-    dot: "bg-emerald-500",
-    label: "Opportunité",
-    badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    ring: "border-emerald-200 bg-emerald-50/50",
-  },
-};
+const PRIORITY_META: Record<Priority, { dot: string; label: string; badge: string; ring: string }> =
+  {
+    urgent: {
+      dot: "bg-red-500",
+      label: "Urgent",
+      badge: "bg-red-50 text-red-700 border-red-200",
+      ring: "border-red-200 bg-red-50/50",
+    },
+    important: {
+      dot: "bg-orange-500",
+      label: "Important",
+      badge: "bg-orange-50 text-orange-700 border-orange-200",
+      ring: "border-orange-200 bg-orange-50/50",
+    },
+    opportunite: {
+      dot: "bg-emerald-500",
+      label: "Opportunité",
+      badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      ring: "border-emerald-200 bg-emerald-50/50",
+    },
+  };
 
 function TodayPage() {
   const { entries, charges, settings, clients } = usePilotData();
@@ -77,11 +88,20 @@ function TodayPage() {
   const year = now.getFullYear();
   const month = now.getMonth();
 
-  const interventions = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
+  const interventions = useQuery({
+    queryKey: ["interventions-all"],
+    queryFn: listAllInterventions,
+  });
   const recos = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
   const goals = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
-  const orphanCount = useQuery({ queryKey: ["pilot-ca-orphan-count"], queryFn: countOrphanEntries });
-  const historicHours = useQuery({ queryKey: ["pilot-historic-hours"], queryFn: listHistoricHours });
+  const orphanCount = useQuery({
+    queryKey: ["pilot-ca-orphan-count"],
+    queryFn: countOrphanEntries,
+  });
+  const historicHours = useQuery({
+    queryKey: ["pilot-historic-hours"],
+    queryFn: listHistoricHours,
+  });
   const chargeRows = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   // Ledger consolidé des heures de l'année : source unique pour le temps réel.
   const hoursLedger = useQuery({
@@ -107,9 +127,14 @@ function TodayPage() {
   });
 
   const loading =
-    entries.isLoading || charges.isLoading || settings.isLoading ||
-    interventions.isLoading || recos.isLoading || goals.isLoading ||
-    clientActivity.isLoading || hoursLedger.isLoading;
+    entries.isLoading ||
+    charges.isLoading ||
+    settings.isLoading ||
+    interventions.isLoading ||
+    recos.isLoading ||
+    goals.isLoading ||
+    clientActivity.isLoading ||
+    hoursLedger.isLoading;
 
   // Politique compte-rendu par client : seul un client « Oui » génère une action CR.
   const reportPolicyById = useMemo(() => {
@@ -181,13 +206,17 @@ function TodayPage() {
   // « À confirmer » est listé séparément comme élément à qualifier (jamais un retard).
   const reportsToGenerate = allI.filter(
     (i) =>
-      i.status === "terminee" && !i.report_generated_at && !i.sent_to_client_at &&
+      i.status === "terminee" &&
+      !i.report_generated_at &&
+      !i.sent_to_client_at &&
       !i.report_waived_at &&
       crPolicy(i.client_id) === "oui",
   );
   const reportsToSend = allI.filter(
     (i) =>
-      i.status === "terminee" && !!i.report_generated_at && !i.sent_to_client_at &&
+      i.status === "terminee" &&
+      !!i.report_generated_at &&
+      !i.sent_to_client_at &&
       !i.report_waived_at &&
       crPolicy(i.client_id) === "oui",
   );
@@ -300,7 +329,8 @@ function TodayPage() {
     for (const i of allI) {
       if (i.status !== "terminee" || i.hours_spent == null) continue;
       const estimated =
-        i.ai_metadata && typeof i.ai_metadata === "object" &&
+        i.ai_metadata &&
+        typeof i.ai_metadata === "object" &&
         (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
       if (estimated) continue;
       const key = i.intervention_type ?? "—";
@@ -344,7 +374,7 @@ function TodayPage() {
   const lowHourlyEntries = useMemo(() => {
     if (targetHR <= 0) return [];
     return (entries.data ?? []).filter((e) => {
-      const realHours = e.client_id ? confirmedHoursByClient.get(e.client_id) ?? 0 : 0;
+      const realHours = e.client_id ? (confirmedHoursByClient.get(e.client_id) ?? 0) : 0;
       if (realHours > 0 && e.client_id) {
         const clientCa = caByClient.get(e.client_id) ?? 0;
         if (clientCa <= 0) return false;
@@ -369,18 +399,20 @@ function TodayPage() {
   // Commercial : dernier passage par client — uniquement les lignes CA rattachées
   // à une fiche du référentiel (jamais de "client fantôme" issu d'une désignation).
   const lastByClientCa = useMemo(() => {
-    const map = new Map<string, { name: string; last: number; families: Set<string>; lastByFamily: Map<string, number> }>();
+    const map = new Map<
+      string,
+      { name: string; last: number; families: Set<string>; lastByFamily: Map<string, number> }
+    >();
     for (const e of entries.data ?? []) {
       if (!e.client_id) continue;
       const key = e.client_id;
       const t = new Date(e.entry_date).getTime();
-      const cur =
-        map.get(key) ?? {
-          name: e.client_name ?? "Sans nom",
-          last: 0,
-          families: new Set<string>(),
-          lastByFamily: new Map<string, number>(),
-        };
+      const cur = map.get(key) ?? {
+        name: e.client_name ?? "Sans nom",
+        last: 0,
+        families: new Set<string>(),
+        lastByFamily: new Map<string, number>(),
+      };
       if (t > cur.last) cur.last = t;
       cur.families.add(e.family);
       const prevF = cur.lastByFamily.get(e.family) ?? 0;
@@ -437,7 +469,9 @@ function TodayPage() {
   if (loading) {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-xl" />
+        ))}
       </div>
     );
   }
@@ -450,30 +484,103 @@ function TodayPage() {
   // Taux horaire réel : exploite les heures déjà présentes dans PP selon la
   // cascade interventions confirmées → historique validé → ledger heures.
   const realRate = hoursResolution
-    ? realHourlyRateFromResolution({ ca: k.caYear, resolution: hoursResolution, targetRate: targetHR })
+    ? realHourlyRateFromResolution({
+        ca: k.caYear,
+        resolution: hoursResolution,
+        targetRate: targetHR,
+      })
     : ({ available: false, label: "Taux horaire réel", detail: "Chargement des heures…" } as const);
   const tauxEcartPct =
     realRate.available && targetHR > 0 ? ((realRate.value - targetHR) / targetHR) * 100 : 0;
 
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
-    key: string; label: string; count: number; icon: typeof Handshake;
-    topic?: FocusTopic; to?: string; search?: Record<string, string>; tone: Priority;
+    key: string;
+    label: string;
+    count: number;
+    icon: typeof Handshake;
+    topic?: FocusTopic;
+    to?: string;
+    search?: Record<string, string>;
+    tone: Priority;
   }> = [
-    { key: "cr", label: "Comptes-rendus générés à envoyer", count: reportsToSend.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "urgent" as Priority },
-    { key: "crg", label: "Comptes-rendus à générer", count: reportsToGenerate.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "important" as Priority },
-    { key: "h", label: "Interventions sans aucune heure connue", count: missingHours.length, icon: Clock, topic: "heures-manquantes" as FocusTopic, tone: "urgent" as Priority },
-    { key: "r", label: "Recommandations à planifier", count: acceptedNotPlanned.length, icon: Handshake, topic: "recos-a-planifier" as FocusTopic, tone: "urgent" as Priority },
-    { key: "d", label: "Dépassements de temps", count: timeOverruns.length, icon: TrendingDown, topic: "depassements-temps" as FocusTopic, tone: "urgent" as Priority },
-    { key: "g", label: "Objectifs en retard", count: goalsLate.length, icon: Flag, to: "/pilot/objectifs", search: { filter: "retard" }, tone: "urgent" as Priority },
-    { key: "ca", label: "Rapprochements CA à valider", count: orphanCount.data ?? 0, icon: Link2, to: "/pilot/rapprochement", tone: "important" as Priority },
-    { key: "hh", label: "Heures historiques à rattacher", count: (historicHours.data ?? []).filter((h) => h.status === "a_valider").length, icon: Clock, to: "/pilot/rapprochement", tone: "important" as Priority },
-  ].filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
+    {
+      key: "cr",
+      label: "Comptes-rendus générés à envoyer",
+      count: reportsToSend.length,
+      icon: Send,
+      topic: "cr-non-envoyes" as FocusTopic,
+      tone: "urgent" as Priority,
+    },
+    {
+      key: "crg",
+      label: "Comptes-rendus à générer",
+      count: reportsToGenerate.length,
+      icon: Send,
+      topic: "cr-non-envoyes" as FocusTopic,
+      tone: "important" as Priority,
+    },
+    {
+      key: "h",
+      label: "Interventions sans aucune heure connue",
+      count: missingHours.length,
+      icon: Clock,
+      topic: "heures-manquantes" as FocusTopic,
+      tone: "urgent" as Priority,
+    },
+    {
+      key: "r",
+      label: "Recommandations à planifier",
+      count: acceptedNotPlanned.length,
+      icon: Handshake,
+      topic: "recos-a-planifier" as FocusTopic,
+      tone: "urgent" as Priority,
+    },
+    {
+      key: "d",
+      label: "Dépassements de temps",
+      count: timeOverruns.length,
+      icon: TrendingDown,
+      topic: "depassements-temps" as FocusTopic,
+      tone: "urgent" as Priority,
+    },
+    {
+      key: "g",
+      label: "Objectifs en retard",
+      count: goalsLate.length,
+      icon: Flag,
+      to: "/pilot/objectifs",
+      search: { filter: "retard" },
+      tone: "urgent" as Priority,
+    },
+    {
+      key: "ca",
+      label: "Rapprochements CA à valider",
+      count: orphanCount.data ?? 0,
+      icon: Link2,
+      to: "/pilot/rapprochement",
+      tone: "important" as Priority,
+    },
+    {
+      key: "hh",
+      label: "Heures historiques à rattacher",
+      count: (historicHours.data ?? []).filter((h) => h.status === "a_valider").length,
+      icon: Clock,
+      to: "/pilot/rapprochement",
+      tone: "important" as Priority,
+    },
+  ]
+    .filter((p) => p.count > 0)
+    .sort((a, b) => b.count - a.count);
 
   // Risques — condensés, seuls les non-vides.
   const risks: Array<{
-    key: string; label: string; count: number; hint: string;
-    icon: typeof AlertTriangle; topic: FocusTopic;
+    key: string;
+    label: string;
+    count: number;
+    hint: string;
+    icon: typeof AlertTriangle;
+    topic: FocusTopic;
   }> = [
     {
       key: "low",
@@ -505,7 +612,14 @@ function TodayPage() {
   ].filter((r) => r.count > 0);
 
   // ---- Points d'attention : uniquement des alertes fiables et expliquées ----
-  type Attention = { key: string; label: string; detail: string; why: string; to?: string; topic?: FocusTopic };
+  type Attention = {
+    key: string;
+    label: string;
+    detail: string;
+    why: string;
+    to?: string;
+    topic?: FocusTopic;
+  };
   const attentions: Attention[] = [];
 
   if (caComparison.available && caComparison.value <= -thresholds.baisseActivitePct) {
@@ -527,7 +641,8 @@ function TodayPage() {
     });
   }
   if (chargesPrevYearProrata > 0) {
-    const derive = ((projection.chargesReelles - chargesPrevYearProrata) / chargesPrevYearProrata) * 100;
+    const derive =
+      ((projection.chargesReelles - chargesPrevYearProrata) / chargesPrevYearProrata) * 100;
     if (derive >= thresholds.deriveChargesPct) {
       attentions.push({
         key: "charges",
@@ -570,11 +685,25 @@ function TodayPage() {
 
   // Signaux commerciaux annexes (chips)
   const secondarySignals: Array<{
-    label: string; count: number; topic: FocusTopic;
+    label: string;
+    count: number;
+    topic: FocusTopic;
   }> = [
-    { label: "Créations sans entretien", count: creationSansEntretien.length, topic: "creation-sans-entretien" as FocusTopic },
-    { label: "Entretien sans conseil récent", count: entretienSansConseil.length, topic: "entretien-sans-conseil" as FocusTopic },
-    { label: "Clients à relancer (> 6 mois)", count: clientsARelancer.length, topic: "dormants" as FocusTopic },
+    {
+      label: "Créations sans entretien",
+      count: creationSansEntretien.length,
+      topic: "creation-sans-entretien" as FocusTopic,
+    },
+    {
+      label: "Entretien sans conseil récent",
+      count: entretienSansConseil.length,
+      topic: "entretien-sans-conseil" as FocusTopic,
+    },
+    {
+      label: "Clients à relancer (> 6 mois)",
+      count: clientsARelancer.length,
+      topic: "dormants" as FocusTopic,
+    },
   ].filter((s) => s.count > 0);
 
   // Éléments à qualifier (jamais des retards) — clients dont la politique CR
@@ -588,18 +717,28 @@ function TodayPage() {
           Bonjour, voici votre journée
         </h2>
         <p className="text-sm text-muted-foreground">
-          {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          {new Date().toLocaleDateString("fr-FR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
         </p>
       </div>
 
-      <CaStatusCard year={year} caYear={k.caYear} caPrevYear={k.caPrevYear} projection={k.projection} />
+      <CaStatusCard
+        year={year}
+        caYear={k.caYear}
+        caPrevYear={k.caPrevYear}
+        projection={k.projection}
+      />
 
       {/* 1 — Où en est mon entreprise aujourd'hui ? */}
       <section className="space-y-2">
-      <SectionTitle
-        question="Situation actuelle"
-        label={isProjection ? `Projection ${year}` : `Réel ${year}`}
-      />
+        <SectionTitle
+          question="Situation actuelle"
+          label={isProjection ? `Projection ${year}` : `Réel ${year}`}
+        />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <KpiCard
             label={isProjection ? `CA projeté ${year}` : `CA réalisé ${year}`}
@@ -620,7 +759,9 @@ function TodayPage() {
             value={objectifAnnuel > 0 ? formatEuro(objectifAnnuel) : "—"}
             icon={Flag}
             to="/pilot/objectifs"
-            sub={objectifAnnuel > 0 ? `CA ${year - 1} pris comme référence` : "Pas d'historique N-1"}
+            sub={
+              objectifAnnuel > 0 ? `CA ${year - 1} pris comme référence` : "Pas d'historique N-1"
+            }
           />
           <KpiCard
             label="Progression"
@@ -628,16 +769,32 @@ function TodayPage() {
             icon={CheckCircle2}
             progress={progressionAnnuelle ?? undefined}
             tone={
-              progressionAnnuelle == null ? "default" : progressionAnnuelle >= 100 ? "positive" : progressionAnnuelle >= 60 ? "default" : "warning"
+              progressionAnnuelle == null
+                ? "default"
+                : progressionAnnuelle >= 100
+                  ? "positive"
+                  : progressionAnnuelle >= 60
+                    ? "default"
+                    : "warning"
             }
-            sub={objectifMois > 0 ? `Mois : ${avancement.toFixed(0)} % de ${formatEuro(objectifMois)}` : undefined}
+            sub={
+              objectifMois > 0
+                ? `Mois : ${avancement.toFixed(0)} % de ${formatEuro(objectifMois)}`
+                : undefined
+            }
           />
           <KpiCard
             label={isProjection ? "Résultat projeté" : "Résultat à date"}
             value={formatEuro(resultatLecture)}
             icon={Wallet}
             to="/pilot/finance"
-            tone={resultatLecture <= 0 ? "warning" : margeLecture != null && margeLecture >= thresholds.margeMin ? "positive" : "default"}
+            tone={
+              resultatLecture <= 0
+                ? "warning"
+                : margeLecture != null && margeLecture >= thresholds.margeMin
+                  ? "positive"
+                  : "default"
+            }
             sub={`CA ${formatEuro(caLecture)} − charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`}
           />
           <KpiCard
@@ -671,12 +828,14 @@ function TodayPage() {
       </section>
 
       <section className="space-y-2">
-      <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
+        <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
         {priorities.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex items-center gap-3 py-5">
               <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <p className="text-sm text-muted-foreground">Aucune action urgente. Concentrez-vous sur les opportunités.</p>
+              <p className="text-sm text-muted-foreground">
+                Aucune action urgente. Concentrez-vous sur les opportunités.
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -699,7 +858,7 @@ function TodayPage() {
 
       {/* 3 — Quels risques dois-je traiter ? */}
       <section className="space-y-2">
-      <SectionTitle question="Points d'attention" label="Alertes expliquées" />
+        <SectionTitle question="Points d'attention" label="Alertes expliquées" />
         {attentions.length > 0 && (
           <div className="grid gap-2 md:grid-cols-2">
             {attentions.map((a) => {
@@ -711,18 +870,24 @@ function TodayPage() {
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{a.detail}</p>
                   <p className="mt-2 rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">Pourquoi PP affiche cette information ? </span>
+                    <span className="font-medium text-foreground">
+                      Pourquoi PP affiche cette information ?{" "}
+                    </span>
                     {a.why}
                   </p>
                 </Card>
               );
               if (a.topic) {
                 return (
-                  <Link key={a.key} to="/pilot/focus/$topic" params={{ topic: a.topic }}>{body}</Link>
+                  <Link key={a.key} to="/pilot/focus/$topic" params={{ topic: a.topic }}>
+                    {body}
+                  </Link>
                 );
               }
               return (
-                <Link key={a.key} to={(a.to ?? "/pilot") as string}>{body}</Link>
+                <Link key={a.key} to={(a.to ?? "/pilot") as string}>
+                  {body}
+                </Link>
               );
             })}
           </div>
@@ -731,13 +896,22 @@ function TodayPage() {
           <Card className="border-dashed">
             <CardContent className="flex items-center gap-3 py-5">
               <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <p className="text-sm text-muted-foreground">Aucun risque détecté avec les seuils actuels.</p>
+              <p className="text-sm text-muted-foreground">
+                Aucun risque détecté avec les seuils actuels.
+              </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-3 md:grid-cols-3">
             {risks.map((r) => (
-              <RiskCard key={r.key} icon={r.icon} title={r.label} count={r.count} hint={r.hint} topic={r.topic} />
+              <RiskCard
+                key={r.key}
+                icon={r.icon}
+                title={r.label}
+                count={r.count}
+                hint={r.hint}
+                topic={r.topic}
+              />
             ))}
           </div>
         )}
@@ -746,8 +920,8 @@ function TodayPage() {
             <CardContent className="flex flex-wrap items-center gap-3 py-4">
               <Send className="h-4 w-4 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                {crToQualifyCount} client{crToQualifyCount > 1 ? "s" : ""} à qualifier : indiquez s'ils
-                sont concernés par l'envoi de comptes-rendus (aucun retard comptabilisé).
+                {crToQualifyCount} client{crToQualifyCount > 1 ? "s" : ""} à qualifier : indiquez
+                s'ils sont concernés par l'envoi de comptes-rendus (aucun retard comptabilisé).
               </p>
               <Link
                 to="/clients"
@@ -762,14 +936,19 @@ function TodayPage() {
 
       {/* 4 — Quelles opportunités puis-je saisir ? */}
       <section className="space-y-2">
-      <SectionTitle question="Opportunités" label="Relances, ventes additionnelles, prestations" />
+        <SectionTitle
+          question="Opportunités"
+          label="Relances, ventes additionnelles, prestations"
+        />
         <div className="grid gap-3 md:grid-cols-3">
           <Card className="md:col-span-2">
             <CardContent className="space-y-3 pt-6">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-emerald-600" />
                 <h4 className="font-medium">Top offres à proposer</h4>
-                <Badge variant="secondary" className="ml-auto">{priority.length}</Badge>
+                <Badge variant="secondary" className="ml-auto">
+                  {priority.length}
+                </Badge>
               </div>
               {topOffers.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Aucune opportunité à score ≥ 80.</p>
@@ -827,7 +1006,9 @@ function TodayPage() {
                         className="flex items-center justify-between gap-2 rounded-md px-2 py-1 text-sm hover:bg-accent/40"
                       >
                         <span className="truncate">{s.label}</span>
-                        <Badge variant="outline" className="shrink-0">{s.count}</Badge>
+                        <Badge variant="outline" className="shrink-0">
+                          {s.count}
+                        </Badge>
                       </Link>
                     </li>
                   ))}
@@ -845,7 +1026,8 @@ function TodayPage() {
             </div>
             {prestationsADevelopper.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Pas encore assez de lignes CA et d'heures pour classer une prestation comme rentable.
+                Pas encore assez de lignes CA et d'heures pour classer une prestation comme
+                rentable.
               </p>
             ) : (
               <ul className="grid gap-2 sm:grid-cols-2">
@@ -862,7 +1044,10 @@ function TodayPage() {
                 ))}
               </ul>
             )}
-            <Link to="/pilot/prestations" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+            <Link
+              to="/pilot/prestations"
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
               Voir la rentabilité par prestation <ArrowRight className="h-3 w-3" />
             </Link>
           </CardContent>
@@ -876,16 +1061,29 @@ function SectionTitle({ question, label }: { question: string; label: string }) 
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-2">
       <h3 className="font-serif text-lg font-semibold tracking-tight">{question}</h3>
-      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
     </div>
   );
 }
 
 function PriorityRow({
-  rank, icon: Icon, label, count, topic, to, search,
+  rank,
+  icon: Icon,
+  label,
+  count,
+  topic,
+  to,
+  search,
 }: {
-  rank: number; icon: typeof Handshake; label: string; count: number;
-  topic?: FocusTopic; to?: string; search?: Record<string, string>;
+  rank: number;
+  icon: typeof Handshake;
+  label: string;
+  count: number;
+  topic?: FocusTopic;
+  to?: string;
+  search?: Record<string, string>;
 }) {
   const inner = (
     <Card className="flex items-center gap-3 p-3 transition-all hover:-translate-y-0.5 hover:shadow-md">
@@ -899,7 +1097,11 @@ function PriorityRow({
     </Card>
   );
   if (topic) {
-    return <Link to="/pilot/focus/$topic" params={{ topic }}>{inner}</Link>;
+    return (
+      <Link to="/pilot/focus/$topic" params={{ topic }}>
+        {inner}
+      </Link>
+    );
   }
   return (
     <Link to={(to ?? "/pilot") as string} search={search as never}>
@@ -909,9 +1111,17 @@ function PriorityRow({
 }
 
 function RiskCard({
-  icon: Icon, title, count, hint, topic,
+  icon: Icon,
+  title,
+  count,
+  hint,
+  topic,
 }: {
-  icon: typeof AlertTriangle; title: string; count: number; hint: string; topic: FocusTopic;
+  icon: typeof AlertTriangle;
+  title: string;
+  count: number;
+  hint: string;
+  topic: FocusTopic;
 }) {
   return (
     <Link to="/pilot/focus/$topic" params={{ topic }}>

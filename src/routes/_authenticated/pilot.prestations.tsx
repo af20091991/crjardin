@@ -9,7 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, TrendingDown, TrendingUp } from "lucide-react";
 import { formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
 import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
-import { analyzeServices, SERVICE_CLASS_META, type ServiceClass } from "@/lib/pilot-service-profitability";
+import {
+  analyzeServices,
+  SERVICE_CLASS_META,
+  type ServiceClass,
+} from "@/lib/pilot-service-profitability";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { currentYear } from "@/lib/date-utils";
 
@@ -17,7 +21,10 @@ export const Route = createFileRoute("/_authenticated/pilot/prestations")({
   head: () => ({
     meta: [
       { title: "Rentabilité des prestations — Pilot Pro" },
-      { name: "description", content: "Analyse du CA, des heures et du taux horaire par prestation." },
+      {
+        name: "description",
+        content: "Analyse du CA, des heures et du taux horaire par prestation.",
+      },
     ],
   }),
   component: PrestationsPage,
@@ -35,7 +42,10 @@ function PrestationsPage() {
   const year = currentYear();
   const { entries, settings } = usePilotData();
   const thresholds = useThresholds();
-  const ledger = useQuery({ queryKey: ["pilot-hours-ledger-all"], queryFn: () => fetchHoursLedger() });
+  const ledger = useQuery({
+    queryKey: ["pilot-hours-ledger-all"],
+    queryFn: () => fetchHoursLedger(),
+  });
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<ServiceClass | "all">("all");
 
@@ -68,8 +78,8 @@ function PrestationsPage() {
           <BarChart3 className="h-6 w-6 text-primary" /> Rentabilité par prestation
         </h1>
         <p className="text-sm text-muted-foreground">
-          CA généré, heures consommées, taux horaire, évolution et nombre de clients — issus des lignes CA et du
-          ledger d'heures. Aucune saisie complémentaire n'est demandée.
+          CA généré, heures consommées, taux horaire, évolution et nombre de clients — issus des
+          lignes CA et du ledger d'heures. Aucune saisie complémentaire n'est demandée.
         </p>
       </div>
 
@@ -86,7 +96,9 @@ function PrestationsPage() {
             type="button"
             onClick={() => setFilter(f.key)}
             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-              filter === f.key ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground"
+              filter === f.key
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-muted-foreground hover:text-foreground"
             }`}
           >
             {f.label}
@@ -97,7 +109,11 @@ function PrestationsPage() {
       {loading ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : visible.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Aucune prestation ne correspond.</CardContent></Card>
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Aucune prestation ne correspond.
+          </CardContent>
+        </Card>
       ) : (
         <Card>
           <CardHeader className="pb-2">
@@ -130,16 +146,31 @@ function PrestationsPage() {
                       {r.evolutionPct == null ? (
                         <span className="text-muted-foreground">—</span>
                       ) : (
-                        <span className={`inline-flex items-center gap-1 ${r.evolutionPct >= 0 ? "text-emerald-600" : "text-orange-600"}`}>
-                          {r.evolutionPct >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                          {r.evolutionPct >= 0 ? "+" : ""}{r.evolutionPct.toFixed(0)} %
+                        <span
+                          className={`inline-flex items-center gap-1 ${r.evolutionPct >= 0 ? "text-emerald-600" : "text-orange-600"}`}
+                        >
+                          {r.evolutionPct >= 0 ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3" />
+                          )}
+                          {r.evolutionPct >= 0 ? "+" : ""}
+                          {r.evolutionPct.toFixed(0)} %
                         </span>
                       )}
                     </td>
                     <td className="py-2 text-right tabular-nums">
-                      {r.hoursBasis === "aucune" ? "—" : formatHours(r.hoursBasis === "reelles" ? r.heuresReelles : r.heuresVendues)}
+                      {r.hoursBasis === "aucune"
+                        ? "—"
+                        : formatHours(
+                            r.hoursBasis === "reelles" ? r.heuresReelles : r.heuresVendues,
+                          )}
                       <span className="ml-1 text-[10px] uppercase text-muted-foreground">
-                        {r.hoursBasis === "reelles" ? "réelles" : r.hoursBasis === "vendues" ? "vendues" : ""}
+                        {r.hoursBasis === "reelles"
+                          ? "réelles"
+                          : r.hoursBasis === "vendues"
+                            ? "vendues"
+                            : ""}
                       </span>
                     </td>
                     <td className="py-2 text-right tabular-nums">

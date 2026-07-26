@@ -62,7 +62,10 @@ export function buildDecisionBrief(params: {
       clientsAContacter.push({
         clientId: a.id,
         name: a.name,
-        raison: a.status === "dormant" ? "Aucune activité depuis plus de 12 mois." : "Aucune activité depuis plus de 6 mois.",
+        raison:
+          a.status === "dormant"
+            ? "Aucune activité depuis plus de 12 mois."
+            : "Aucune activité depuis plus de 6 mois.",
         caTotal: a.caTotal || (clients.find((c) => c.clientId === a.id)?.caTotal ?? 0),
       });
     }

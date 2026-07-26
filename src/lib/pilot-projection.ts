@@ -100,7 +100,8 @@ export function projectYear(params: {
   );
   const monthsObserved = Math.max(
     1,
-    params.currentMonth ?? (isCurrentYear ? Math.min(now.getMonth() + 1, 12) : Math.max(lastWithData, 1)),
+    params.currentMonth ??
+      (isCurrentYear ? Math.min(now.getMonth() + 1, 12) : Math.max(lastWithData, 1)),
   );
 
   const caReel = ca.reduce((s, v) => s + v, 0);
@@ -118,7 +119,8 @@ export function projectYear(params: {
 
   if (monthsObserved >= 12 || caReel <= 0) {
     method = caReel <= 0 ? "aucune" : "moyenne";
-    for (let i = 0; i < 12; i++) monthly.push({ month: i + 1, ca: ca[i], charges: ch[i], projected: false });
+    for (let i = 0; i < 12; i++)
+      monthly.push({ month: i + 1, ca: ca[i], charges: ch[i], projected: false });
   } else if (shares && cumShare > 0.05) {
     method = "saisonnalite";
     const annualEstimate = caReel / cumShare;

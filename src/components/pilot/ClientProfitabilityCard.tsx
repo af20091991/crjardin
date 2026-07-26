@@ -26,7 +26,10 @@ export function ClientProfitabilityCard({
   const year = currentYear();
   const thresholds = useThresholds();
   const entriesQ = useQuery({ queryKey: ["pilot-entries"], queryFn: listEntries });
-  const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger-all"], queryFn: () => fetchHoursLedger() });
+  const ledgerQ = useQuery({
+    queryKey: ["pilot-hours-ledger-all"],
+    queryFn: () => fetchHoursLedger(),
+  });
   const settingsQ = useQuery({ queryKey: ["pilot-settings"], queryFn: getSettings });
 
   const target = settingsQ.data?.target_hourly_rate ?? DEFAULT_SETTINGS.target_hourly_rate;
@@ -57,14 +60,17 @@ export function ClientProfitabilityCard({
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Gauge className="h-4 w-4 text-primary" />Rentabilité client
+            <Gauge className="h-4 w-4 text-primary" />
+            Rentabilité client
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {loading ? (
             <Skeleton className="h-32 w-full" />
           ) : !row ? (
-            <p className="text-sm text-muted-foreground">Aucune donnée économique exploitable pour ce client.</p>
+            <p className="text-sm text-muted-foreground">
+              Aucune donnée économique exploitable pour ce client.
+            </p>
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2">
@@ -80,8 +86,14 @@ export function ClientProfitabilityCard({
                 <Cell label={`CA ${year}`} value={formatEuro(row.caYear)} />
                 <Cell
                   label="Évolution"
-                  value={row.evolutionPct == null ? "—" : `${row.evolutionPct >= 0 ? "+" : ""}${row.evolutionPct.toFixed(0)} %`}
-                  icon={row.evolutionPct == null ? undefined : row.evolutionPct >= 0 ? "up" : "down"}
+                  value={
+                    row.evolutionPct == null
+                      ? "—"
+                      : `${row.evolutionPct >= 0 ? "+" : ""}${row.evolutionPct.toFixed(0)} %`
+                  }
+                  icon={
+                    row.evolutionPct == null ? undefined : row.evolutionPct >= 0 ? "up" : "down"
+                  }
                 />
                 <Cell
                   label="Heures consacrées"
@@ -106,7 +118,8 @@ export function ClientProfitabilityCard({
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-4 w-4 text-primary" />Ventes additionnelles à proposer
+            <Sparkles className="h-4 w-4 text-primary" />
+            Ventes additionnelles à proposer
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -131,7 +144,9 @@ export function ClientProfitabilityCard({
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{s.justification}</p>
                   {s.saison.length > 0 && (
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">Saison : {formatMonths(s.saison)}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      Saison : {formatMonths(s.saison)}
+                    </p>
                   )}
                 </li>
               ))}

@@ -42,14 +42,54 @@ export const THRESHOLD_FIELDS: {
   suffix: string;
   help: string;
 }[] = [
-  { key: "margeMin", label: "Marge minimale acceptable", suffix: "%", help: "Sous ce seuil, une alerte rentabilité est levée." },
-  { key: "ecartTauxMax", label: "Écart taux horaire toléré", suffix: "%", help: "Écart maximal entre taux réel et taux cible." },
-  { key: "deriveChargesPct", label: "Dérive charges", suffix: "%", help: "Hausse des charges vs exercice précédent déclenchant une alerte." },
-  { key: "baisseActivitePct", label: "Baisse d'activité", suffix: "%", help: "Recul de CA déclenchant une alerte d'activité." },
-  { key: "heuresMinClient", label: "Heures minimum / client", suffix: "h", help: "En dessous, la rentabilité client n'est pas jugée." },
-  { key: "lignesMinPrestation", label: "Lignes minimum / prestation", suffix: "lignes", help: "En dessous, la prestation n'est pas classée." },
-  { key: "clientTresRentableRatio", label: "Ratio « très rentable »", suffix: "× cible", help: "Taux horaire client ≥ ratio × cible." },
-  { key: "clientSurveillerRatio", label: "Ratio « à surveiller »", suffix: "× cible", help: "Taux horaire client < ratio × cible." },
+  {
+    key: "margeMin",
+    label: "Marge minimale acceptable",
+    suffix: "%",
+    help: "Sous ce seuil, une alerte rentabilité est levée.",
+  },
+  {
+    key: "ecartTauxMax",
+    label: "Écart taux horaire toléré",
+    suffix: "%",
+    help: "Écart maximal entre taux réel et taux cible.",
+  },
+  {
+    key: "deriveChargesPct",
+    label: "Dérive charges",
+    suffix: "%",
+    help: "Hausse des charges vs exercice précédent déclenchant une alerte.",
+  },
+  {
+    key: "baisseActivitePct",
+    label: "Baisse d'activité",
+    suffix: "%",
+    help: "Recul de CA déclenchant une alerte d'activité.",
+  },
+  {
+    key: "heuresMinClient",
+    label: "Heures minimum / client",
+    suffix: "h",
+    help: "En dessous, la rentabilité client n'est pas jugée.",
+  },
+  {
+    key: "lignesMinPrestation",
+    label: "Lignes minimum / prestation",
+    suffix: "lignes",
+    help: "En dessous, la prestation n'est pas classée.",
+  },
+  {
+    key: "clientTresRentableRatio",
+    label: "Ratio « très rentable »",
+    suffix: "× cible",
+    help: "Taux horaire client ≥ ratio × cible.",
+  },
+  {
+    key: "clientSurveillerRatio",
+    label: "Ratio « à surveiller »",
+    suffix: "× cible",
+    help: "Taux horaire client < ratio × cible.",
+  },
 ];
 
 const KEY = "pp.thresholds.v1";
@@ -61,7 +101,9 @@ export function getThresholds(): PilotThresholds {
   if (typeof window === "undefined") return DEFAULT_THRESHOLDS;
   try {
     const raw = window.localStorage.getItem(KEY);
-    cache = raw ? { ...DEFAULT_THRESHOLDS, ...(JSON.parse(raw) as Partial<PilotThresholds>) } : DEFAULT_THRESHOLDS;
+    cache = raw
+      ? { ...DEFAULT_THRESHOLDS, ...(JSON.parse(raw) as Partial<PilotThresholds>) }
+      : DEFAULT_THRESHOLDS;
   } catch {
     cache = DEFAULT_THRESHOLDS;
   }
