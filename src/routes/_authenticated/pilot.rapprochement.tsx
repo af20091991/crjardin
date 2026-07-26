@@ -404,6 +404,7 @@ function RapprochementPage() {
                 {/* Actions secondaires */}
                 <div className="flex flex-wrap gap-2 pt-2">
                   <ClientForm
+                    initial={{ name: parseDesignation(selected.designation).name }}
                     trigger={
                       <Button variant="outline" size="sm">
                         <UserPlus className="mr-1.5 h-4 w-4" /> Nouveau client
