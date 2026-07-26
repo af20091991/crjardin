@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { listClients } from "@/lib/clients";
 import { CATEGORY_LABELS, MONTH_NAMES, type CaEntry } from "@/lib/pilot-ca";
+import { CA_CODES, parseDesignation } from "@/lib/pilot-ca-designation";
 import { formatEuro } from "@/lib/pilot";
 import { ClientForm } from "@/components/ClientForm";
 import {
