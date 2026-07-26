@@ -174,6 +174,10 @@ function PilotClient360() {
   ).length;
   const crSent = (interventionsQ.data ?? []).filter((iv) => iv.sent_to_client_at).length;
   const crTotal = (interventionsQ.data ?? []).length;
+  // Badge « CR » : uniquement si au moins un compte-rendu a déjà été envoyé.
+  const hasCrHistory = crSent > 0;
+  const policy = (client.report_policy ?? "a_confirmer") as ReportPolicy;
+  const policyMeta = REPORT_POLICY_META[policy];
 
   return (
     <div className="space-y-4">
@@ -198,6 +202,14 @@ function PilotClient360() {
                 )}
                 <Badge variant="outline" className="gap-1" style={{ borderColor: activityMeta.color, color: activityMeta.color }}>
                   <Activity className="h-3 w-3" />{activityMeta.label}
+                </Badge>
+                {hasCrHistory && (
+                  <Badge variant="outline" className="gap-1 border-primary/40 text-primary" title={`${crSent} compte(s)-rendu(s) envoyé(s)`}>
+                    CR
+                  </Badge>
+                )}
+                <Badge variant="outline" className={`gap-1 ${policyMeta.badge}`} title={policyMeta.hint}>
+                  {policyMeta.short}
                 </Badge>
                 {confMeta && ConfIcon && (
                   <Badge variant="outline" className="gap-1" style={{ borderColor: confMeta.color, color: confMeta.color }}>
