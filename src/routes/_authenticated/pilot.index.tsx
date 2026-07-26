@@ -89,7 +89,8 @@ function TodayPage() {
 
   const loading =
     entries.isLoading || charges.isLoading || settings.isLoading ||
-    interventions.isLoading || recos.isLoading || goals.isLoading;
+    interventions.isLoading || recos.isLoading || goals.isLoading ||
+    clientActivity.isLoading;
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   // Heures confirmées (interventions.hours_spent, statut = termine) sur l'année en cours.
