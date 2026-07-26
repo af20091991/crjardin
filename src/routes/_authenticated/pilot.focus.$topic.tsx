@@ -12,6 +12,8 @@ import { listAllRecommendations } from "@/lib/garden";
 import { clientStatsWithHours, fetchConfirmedHoursByClient, formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import { FOCUS_META, isFocusTopic, type FocusTopic } from "@/lib/pilot-focus";
+import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
+import { interventionsNeedingHours } from "@/lib/pilot-real-hours";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/focus/$topic")({
@@ -53,6 +55,13 @@ function FocusPage() {
   const confirmedHours = useQuery({
     queryKey: ["confirmed-hours-by-client", year],
     queryFn: () => fetchConfirmedHoursByClient(year),
+  });
+  // Ledger consolidé : une intervention n'est listée que si aucune heure
+  // n'existe déjà dans Pilot Pro pour ce client sur l'année.
+  const hoursLedger = useQuery({
+    queryKey: ["pilot-hours-ledger", year],
+    queryFn: () => fetchHoursLedger(year),
+    enabled: topic === "heures-manquantes",
   });
   const priorityOffers = useQuery({
     queryKey: ["focus-nbo", topic],
@@ -116,14 +125,7 @@ function FocusPage() {
     }
 
     if (topic === "heures-manquantes") {
-      return allI
-        .filter((i) => {
-          if (i.status !== "terminee") return false;
-          const estimated =
-            i.ai_metadata && typeof i.ai_metadata === "object" &&
-            (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
-          return i.hours_spent == null || estimated;
-        })
+      return interventionsNeedingHours(allI, hoursLedger.data ?? [], year)
         .slice(0, 100)
         .map((i) => ({
           key: i.id,
@@ -132,10 +134,10 @@ function FocusPage() {
           interventionId: i.id,
           columns: [
             { label: "Date", value: new Date(i.intervention_date).toLocaleDateString("fr-FR") },
-            { label: "Type", value: i.intervention_type ?? "—" },
             { label: "Heures", value: i.hours_spent != null ? `${i.hours_spent.toFixed(1)} h (estimé)` : "—" },
           ],
-          reason: i.hours_spent == null ? "Heures non saisies." : "Heures estimées automatiquement à confirmer.",
+          reason:
+            "Aucune heure disponible dans Pilot Pro pour ce client sur l'année (ni suivi CA, ni historique).",
         }));
     }
 
