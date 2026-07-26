@@ -173,17 +173,19 @@ function TodayPage() {
   const reportsToGenerate = allI.filter(
     (i) =>
       i.status === "terminee" && !i.report_generated_at && !i.sent_to_client_at &&
+      !i.report_waived_at &&
       crPolicy(i.client_id) === "oui",
   );
   const reportsToSend = allI.filter(
     (i) =>
       i.status === "terminee" && !!i.report_generated_at && !i.sent_to_client_at &&
+      !i.report_waived_at &&
       crPolicy(i.client_id) === "oui",
   );
   const crToQualify = useMemo(() => {
     const ids = new Set<string>();
     for (const i of allI) {
-      if (i.status !== "terminee" || i.sent_to_client_at) continue;
+      if (i.status !== "terminee" || i.sent_to_client_at || i.report_waived_at) continue;
       if (crPolicy(i.client_id) !== "a_confirmer") continue;
       if (i.client_id) ids.add(i.client_id);
     }
