@@ -176,10 +176,22 @@ function RapprochementPage() {
             et chaque décision est journalisée.
           </p>
         </div>
-        <Badge variant="secondary" className="gap-1 text-sm">
-          <AlertTriangle className="h-3.5 w-3.5" />
-          {orphans.isLoading ? "…" : `${orphanCount} ligne${orphanCount > 1 ? "s" : ""} sans client`}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="gap-1 text-sm">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {orphans.isLoading ? "…" : `${orphanCount} ligne${orphanCount > 1 ? "s" : ""} sans client`}
+          </Badge>
+          <Button
+            size="sm"
+            disabled={autoReady.length === 0 || autoMut.isPending}
+            onClick={() => autoMut.mutate()}
+          >
+            <Sparkles className="mr-1.5 h-4 w-4" />
+            {autoMut.isPending
+              ? "Rapprochement…"
+              : `Rapprocher automatiquement (${autoReady.length})`}
+          </Button>
+        </div>
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -205,7 +217,21 @@ function RapprochementPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={confFilter} onValueChange={setConfFilter}>
+                <SelectTrigger className="w-[165px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes confiances</SelectItem>
+                  <SelectItem value="haute">Confiance haute</SelectItem>
+                  <SelectItem value="moyenne">Confiance moyenne</SelectItem>
+                  <SelectItem value="faible">Aucune suggestion</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Le rattachement automatique n'est autorisé qu'en confiance haute
+              (correspondance exacte ou désignation déjà validée). Une orthographe
+              proche reste une simple suggestion.
+            </p>
           </CardHeader>
           <CardContent className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-[520px]">
@@ -224,6 +250,7 @@ function RapprochementPage() {
                     <OrphanRow
                       key={e.id}
                       entry={e}
+                      confidence={confidenceOf(e.id)}
                       selected={e.id === selectedId}
                       onSelect={() => setSelectedId(e.id)}
                     />
@@ -284,10 +311,24 @@ function RapprochementPage() {
                             </div>
                             <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                               <Badge variant="outline" className="text-[10px]">
-                                {s.reason === "historique" ? "Historique" : "Similarité"}
+                                {s.reason === "historique"
+                                  ? "Historique validé"
+                                  : s.reason === "exact"
+                                    ? "Exact"
+                                    : s.reason === "renforce"
+                                      ? "Nom + données"
+                                      : "Similarité"}
+                              </Badge>
+                              <Badge variant="outline" className={`text-[10px] ${CONFIDENCE_META[s.confidence].badge}`}>
+                                {CONFIDENCE_META[s.confidence].label}
                               </Badge>
                               <span>Score {(s.score * 100).toFixed(0)}%</span>
                             </div>
+                            {s.evidence.length > 0 ? (
+                              <ul className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                                {s.evidence.map((ev) => <li key={ev}>· {ev}</li>)}
+                              </ul>
+                            ) : null}
                           </div>
                           <Button
                             size="sm"
@@ -359,6 +400,14 @@ function RapprochementPage() {
                       });
                     }}
                   />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={createMut.isPending || !selected.designation}
+                    onClick={() => createMut.mutate(selected)}
+                  >
+                    <UserPlus className="mr-1.5 h-4 w-4" /> Fiche minimale depuis la désignation
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -432,8 +481,8 @@ function RapprochementPage() {
 }
 
 function OrphanRow({
-  entry, selected, onSelect,
-}: { entry: CaEntry; selected: boolean; onSelect: () => void }) {
+  entry, selected, onSelect, confidence,
+}: { entry: CaEntry; selected: boolean; onSelect: () => void; confidence: ConfidenceLevel }) {
   return (
     <li>
       <button
@@ -450,6 +499,9 @@ function OrphanRow({
           <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
             <span>{MONTH_NAMES[entry.month - 1]} {entry.year}</span>
             {entry.category ? <span>{CATEGORY_LABELS[entry.category]}</span> : null}
+            <Badge variant="outline" className={`text-[10px] ${CONFIDENCE_META[confidence].badge}`}>
+              {confidence === "faible" ? "Aucune suggestion" : CONFIDENCE_META[confidence].label}
+            </Badge>
           </div>
         </div>
         <div className="whitespace-nowrap text-sm font-medium">{formatEuro(entry.amount_ht)}</div>
