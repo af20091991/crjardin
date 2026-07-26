@@ -10,7 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Settings2, Target, CalendarClock, FileSpreadsheet, Upload, Link2 } from "lucide-react";
+import { Settings2, Target, CalendarClock, FileSpreadsheet, Upload, Link2, SlidersHorizontal } from "lucide-react";
+import {
+  useThresholds,
+  saveThresholds,
+  THRESHOLD_FIELDS,
+  DEFAULT_THRESHOLDS,
+  type PilotThresholds,
+} from "@/lib/pilot-thresholds";
 import { Link } from "@tanstack/react-router";
 import { listOrphanEntries } from "@/lib/pilot-ca-matching";
 import { supabase } from "@/integrations/supabase/client";
