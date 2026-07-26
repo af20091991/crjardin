@@ -66,10 +66,12 @@ export function resolveRealHours(entries: HoursLedgerEntry[], year: number): Rea
   const historiques = sumBy(rows, (e) => e.type === "historique");
 
   let source: RealHoursSource = "aucune";
+  // En dessous du seuil de significativité, les heures confirmées ne peuvent
+  // pas porter un taux horaire : on descend d'un cran dans la cascade.
   if (realisees >= MIN_CONFIRMED_HOURS) source = "interventions";
   else if (historiques > 0) source = "historique";
-  else if (realisees > 0) source = "interventions";
   else if (vendues > 0) source = "ledger_vendu";
+  else if (realisees > 0) source = "interventions";
 
   const hours =
     source === "interventions" ? realisees : source === "historique" ? historiques : source === "ledger_vendu" ? vendues : 0;
