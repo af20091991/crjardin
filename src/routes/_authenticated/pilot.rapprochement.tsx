@@ -21,6 +21,10 @@ import { formatEuro } from "@/lib/pilot";
 import { ClientForm } from "@/components/ClientForm";
 import {
   buildDesignationIndex,
+  autoLinkHighConfidence,
+  createClientFromEntry,
+  CONFIDENCE_META,
+  type ConfidenceLevel,
   linkEntryToClient,
   listLinkedEntries,
   listOrphanEntries,
@@ -44,6 +48,7 @@ function RapprochementPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<string>("all");
+  const [confFilter, setConfFilter] = useState<string>("all");
   const [q, setQ] = useState("");
   const [manualClientId, setManualClientId] = useState<string>("");
 
@@ -66,15 +71,39 @@ function RapprochementPage() {
     return Array.from(set).sort((a, b) => b - a);
   }, [orphans.data]);
 
+  /** Évaluation (suggestions + confiance) de chaque ligne orpheline. */
+  const evalByEntry = useMemo(() => {
+    const map = new Map<string, Suggestion[]>();
+    const list = orphans.data ?? [];
+    const cl = clients.data ?? [];
+    if (cl.length === 0) return map;
+    for (const e of list) map.set(e.id, suggestClients(e, cl, designationIndex, { limit: 5 }));
+    return map;
+  }, [orphans.data, clients.data, designationIndex]);
+
+  const confidenceOf = (id: string): ConfidenceLevel =>
+    evalByEntry.get(id)?.[0]?.confidence ?? "faible";
+
+  const autoReady = useMemo(
+    () =>
+      (orphans.data ?? [])
+        .map((entry) => ({ entry, suggestion: evalByEntry.get(entry.id)?.[0] }))
+        .filter((r): r is { entry: CaEntry; suggestion: Suggestion } =>
+          !!r.suggestion && r.suggestion.confidence === "haute",
+        ),
+    [orphans.data, evalByEntry],
+  );
+
   const filtered = useMemo(() => {
     const list = orphans.data ?? [];
     const term = q.trim().toLowerCase();
     return list.filter((e) => {
       if (yearFilter !== "all" && String(e.year) !== yearFilter) return false;
+      if (confFilter !== "all" && confidenceOf(e.id) !== confFilter) return false;
       if (term && !(e.designation ?? "").toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [orphans.data, yearFilter, q]);
+  }, [orphans.data, yearFilter, q, confFilter, evalByEntry]);
 
   const selected = useMemo(
     () => (orphans.data ?? []).find((e) => e.id === selectedId) ?? null,
@@ -82,9 +111,9 @@ function RapprochementPage() {
   );
 
   const suggestions: Suggestion[] = useMemo(() => {
-    if (!selected || !clients.data) return [];
-    return suggestClients(selected, clients.data, designationIndex, { limit: 5 });
-  }, [selected, clients.data, designationIndex]);
+    if (!selected) return [];
+    return evalByEntry.get(selected.id) ?? [];
+  }, [selected, evalByEntry]);
 
   const linkMut = useMutation({
     mutationFn: (p: { entryId: string; clientId: string | null; method: Parameters<typeof linkEntryToClient>[0]["method"]; score?: number | null }) =>
@@ -102,6 +131,27 @@ function RapprochementPage() {
     mutationFn: (entryId: string) => revertLastDecision(entryId),
     onSuccess: () => {
       toast.success("Décision annulée");
+      invalidateAll();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const autoMut = useMutation({
+    mutationFn: () => autoLinkHighConfidence(autoReady),
+    onSuccess: (n) => {
+      toast.success(`${n} ligne(s) rattachée(s) automatiquement`);
+      setSelectedId(null);
+      invalidateAll();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const createMut = useMutation({
+    mutationFn: (entry: CaEntry) => createClientFromEntry(entry),
+    onSuccess: () => {
+      toast.success("Fiche client créée et ligne rattachée");
+      setSelectedId(null);
+      qc.invalidateQueries({ queryKey: ["clients"] });
       invalidateAll();
     },
     onError: (e: Error) => toast.error(e.message),
