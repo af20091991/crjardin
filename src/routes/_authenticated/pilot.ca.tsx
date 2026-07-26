@@ -24,6 +24,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
+import { FixedChargesPanel } from "@/components/pilot/FixedChargesPanel";
+import { remunerationBreakdown, SOCIAL_CONTRIBUTION_RATE } from "@/lib/pilot-fixed-charges";
 
 export const Route = createFileRoute("/_authenticated/pilot/ca")({
   component: CaPage,
@@ -138,8 +140,8 @@ function CaPage() {
         <StatBox label="Taux horaire" value={mt.hours ? `${formatEuro(mt.tauxHoraire)}/h` : "—"} icon={TrendingUp} />
       </div>
 
-      {/* Corps : tableaux + calculateurs */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
+      {/* Corps : Charges à gauche · Ventes à droite (disposition Excel) */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="space-y-4">
           {/* Charges */}
           <Card>
