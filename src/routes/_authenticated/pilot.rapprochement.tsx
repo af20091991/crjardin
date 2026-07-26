@@ -278,6 +278,22 @@ function RapprochementPage() {
                 {/* Détails lecture seule */}
                 <div className="rounded-md border bg-muted/30 p-3 text-sm">
                   <div className="font-medium">{selected.designation || "(sans désignation)"}</div>
+                  {(() => {
+                    const p = parseDesignation(selected.designation);
+                    if (p.codes.length === 0) return null;
+                    return (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className="text-muted-foreground">Lecture métier :</span>
+                        <Badge variant="outline" className="text-[10px]">Client : {p.name}</Badge>
+                        {p.codes.map((c) => (
+                          <Badge key={c} variant="outline" className="text-[10px]">
+                            {c} — {CA_CODES[c].label}
+                          </Badge>
+                        ))}
+                        {p.isPro && <Badge variant="outline" className="text-[10px]">Professionnel / résidence</Badge>}
+                      </div>
+                    );
+                  })()}
                   <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span>{MONTH_NAMES[selected.month - 1]} {selected.year}</span>
                     <span>{formatEuro(selected.amount_ht)} HT</span>
