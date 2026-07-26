@@ -20,6 +20,12 @@ import { CaStatusCard } from "@/components/pilot/CaStatusCard";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import { listHistoricHours } from "@/lib/pilot-historic-hours";
 import { HoursSummaryCards } from "@/components/pilot/HoursSummaryCards";
+import { listChargeRows } from "@/lib/pilot-charges";
+import { projectYear } from "@/lib/pilot-projection";
+import { usePilotMode } from "@/lib/pilot-mode";
+import { useThresholds } from "@/lib/pilot-thresholds";
+import { classifyClients } from "@/lib/pilot-client-profitability";
+import { analyzeServices } from "@/lib/pilot-service-profitability";
 import {
   Euro, Wallet, Sparkles, AlertTriangle,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
@@ -65,6 +71,8 @@ const PRIORITY_META: Record<
 
 function TodayPage() {
   const { entries, charges, settings, clients } = usePilotData();
+  const { mode } = usePilotMode();
+  const thresholds = useThresholds();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
@@ -74,6 +82,7 @@ function TodayPage() {
   const goals = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
   const orphanCount = useQuery({ queryKey: ["pilot-ca-orphan-count"], queryFn: countOrphanEntries });
   const historicHours = useQuery({ queryKey: ["pilot-historic-hours"], queryFn: listHistoricHours });
+  const chargeRows = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   // Ledger consolidé des heures de l'année : source unique pour le temps réel.
   const hoursLedger = useQuery({
     queryKey: ["pilot-hours-ledger", year],
@@ -216,6 +225,62 @@ function TodayPage() {
   });
 
   const priority = priorityOffers.data ?? [];
+
+  // ---- Mode Réel / Projection : une seule source, deux lectures séparées ----
+  const projection = useMemo(
+    () => projectYear({ entries: entries.data ?? [], charges: chargeRows.data ?? [], year }),
+    [entries.data, chargeRows.data, year],
+  );
+  const isProjection = mode === "projection";
+  const caLecture = isProjection ? projection.caProjete : projection.caReel;
+  const chargesLecture = isProjection ? projection.chargesProjetees : projection.chargesReelles;
+  const resultatLecture = caLecture - chargesLecture;
+  const margeLecture = caLecture > 0 ? (resultatLecture / caLecture) * 100 : null;
+
+  // Objectif annuel factuel : CA de l'exercice précédent (aucune saisie requise).
+  const objectifAnnuel = useMemo(
+    () =>
+      (entries.data ?? [])
+        .filter((e) => new Date(e.entry_date).getFullYear() === year - 1)
+        .reduce((s, e) => s + (Number(e.amount_ht) || 0), 0),
+    [entries.data, year],
+  );
+  const progressionAnnuelle = objectifAnnuel > 0 ? (caLecture / objectifAnnuel) * 100 : null;
+
+  // Classement rentabilité (clients / prestations) — sert aux points d'attention.
+  const clientsProfit = useMemo(
+    () =>
+      hoursLedger.data
+        ? classifyClients({
+            entries: entries.data ?? [],
+            ledger: hoursLedger.data,
+            year,
+            targetHourlyRate: set.target_hourly_rate || 0,
+            thresholds,
+          })
+        : [],
+    [entries.data, hoursLedger.data, year, set.target_hourly_rate, thresholds],
+  );
+  const services = useMemo(
+    () =>
+      hoursLedger.data
+        ? analyzeServices({
+            entries: entries.data ?? [],
+            ledger: hoursLedger.data,
+            year,
+            targetHourlyRate: set.target_hourly_rate || 0,
+            thresholds,
+          })
+        : [],
+    [entries.data, hoursLedger.data, year, set.target_hourly_rate, thresholds],
+  );
+
+  // Dérive des charges : charges à date vs même part d'exercice en N-1.
+  const chargesPrevYearProrata = useMemo(() => {
+    const prev = (chargeRows.data ?? []).filter((r) => r.year === year - 1);
+    const total = prev.reduce((s, r) => s + r.amount_ht, 0);
+    return total > 0 ? (total * projection.monthsObserved) / 12 : 0;
+  }, [chargeRows.data, year, projection.monthsObserved]);
 
   // Nom client par ID (pour opportunités et priorités affichées)
   const clientNameById = useMemo(() => {
