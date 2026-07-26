@@ -982,6 +982,7 @@ export type Database = {
           id: string
           intervention_id: string | null
           is_fixed: boolean
+          is_investment: boolean
           kind: string
           match_method: string | null
           match_score: number | null
@@ -1013,6 +1014,7 @@ export type Database = {
           id?: string
           intervention_id?: string | null
           is_fixed?: boolean
+          is_investment?: boolean
           kind: string
           match_method?: string | null
           match_score?: number | null
@@ -1044,6 +1046,7 @@ export type Database = {
           id?: string
           intervention_id?: string | null
           is_fixed?: boolean
+          is_investment?: boolean
           kind?: string
           match_method?: string | null
           match_score?: number | null
@@ -3471,6 +3474,7 @@ export type Database = {
           id: string
           intervention_id: string | null
           is_fixed: boolean
+          is_investment: boolean
           kind: string
           match_method: string | null
           match_score: number | null

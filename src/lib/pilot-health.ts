@@ -23,7 +23,7 @@ export interface ThemeScore {
   /** 0-100, ou null si données insuffisantes. */
   score: number | null;
   reason: string;
-  details: { label: string; value: string; ok: boolean | null }[];
+  details: { label: string; value: string; ok: boolean | null; origin: string; why: string }[];
 }
 
 export interface PragmaticHealth {
@@ -56,12 +56,12 @@ export function pragmaticHealth(params: {
     if (k.caYear > 0) {
       const margeScore = clamp((k.marge / 30) * 100);
       parts.push(margeScore);
-      details.push({ label: "Marge nette", value: pct(k.marge), ok: k.marge >= 20 });
-      details.push({ label: "Bénéfice brut", value: eur(k.benefice), ok: k.benefice > 0 });
+      details.push({ label: "Marge nette", value: pct(k.marge), ok: k.marge >= 20, origin: "CA facturé − charges enregistrées", why: "Indique si l'activité dégage de quoi vivre et investir." });
+      details.push({ label: "Bénéfice brut", value: eur(k.benefice), ok: k.benefice > 0, origin: "Suivi CA + module charges", why: "Montant réellement disponible avant investissement." });
       const poids = charges?.years.find((y) => y.year === new Date().getFullYear())?.weightPct ?? null;
       if (poids != null) {
         parts.push(clamp(100 - Math.max(0, poids - 30) * 2));
-        details.push({ label: "Poids des charges", value: pct(poids), ok: poids <= 40 });
+        details.push({ label: "Poids des charges", value: pct(poids), ok: poids <= 40, origin: "Charges de l'exercice / CA", why: "Au-delà de 40 %, la structure de coûts doit être arbitrée." });
       }
     }
     themes.push({
@@ -78,15 +78,15 @@ export function pragmaticHealth(params: {
     const parts: number[] = [];
     if (k.caPrevYTD > 0) {
       parts.push(clamp(50 + k.progression * 2));
-      details.push({ label: "Progression vs N-1", value: pct(k.progression), ok: k.progression >= 0 });
+      details.push({ label: "Progression vs N-1", value: pct(k.progression), ok: k.progression >= 0, origin: "CA cumulé à date, exercices N et N-1", why: "Décide s'il faut relancer la prospection." });
     }
     if (activeClients + dormantClients > 0) {
       const fidele = (activeClients / (activeClients + dormantClients)) * 100;
       parts.push(clamp(fidele));
-      details.push({ label: "Clients actifs", value: `${activeClients} / ${activeClients + dormantClients}`, ok: fidele >= 60 });
-      details.push({ label: "Clients dormants", value: String(dormantClients), ok: dormantClients === 0 });
+      details.push({ label: "Clients actifs", value: `${activeClients} / ${activeClients + dormantClients}`, ok: fidele >= 60, origin: "Référentiel clients + dernière facturation", why: "Mesure la vitalité du portefeuille." });
+      details.push({ label: "Clients dormants", value: String(dormantClients), ok: dormantClients === 0, origin: "Clients sans facturation récente", why: "CA le plus rapide à récupérer par relance." });
     }
-    if (k.panierMoyen > 0) details.push({ label: "Panier moyen", value: eur(k.panierMoyen), ok: null });
+    if (k.panierMoyen > 0) details.push({ label: "Panier moyen", value: eur(k.panierMoyen), ok: null, origin: "CA / nombre de prestations facturées", why: "Sert à fixer un montant minimum de déplacement." });
     themes.push({
       theme: "commerciale",
       score: parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length) : null,
@@ -102,13 +102,13 @@ export function pragmaticHealth(params: {
     const cible = settings.target_hourly_rate ?? 0;
     if (cible > 0 && k.tauxHoraireReel > 0) {
       parts.push(clamp((k.tauxHoraireReel / cible) * 100));
-      details.push({ label: "Taux horaire réel", value: `${k.tauxHoraireReel.toFixed(0)} €/h`, ok: k.tauxHoraireReel >= cible });
+      details.push({ label: "Taux horaire réel", value: `${k.tauxHoraireReel.toFixed(0)} €/h`, ok: k.tauxHoraireReel >= cible, origin: "CA / heures réellement consommées", why: "Vérifie que le prix couvre le temps passé." });
     }
     if (cible > 0 && k.tauxHoraireVendu > 0) {
-      details.push({ label: "Taux horaire vendu", value: `${k.tauxHoraireVendu.toFixed(0)} €/h`, ok: k.tauxHoraireVendu >= cible });
+      details.push({ label: "Taux horaire vendu", value: `${k.tauxHoraireVendu.toFixed(0)} €/h`, ok: k.tauxHoraireVendu >= cible, origin: "CA / heures facturées", why: "Base de la grille tarifaire des devis." });
       if (!(k.tauxHoraireReel > 0)) parts.push(clamp((k.tauxHoraireVendu / cible) * 100));
     }
-    if (k.nbEntries > 0) details.push({ label: "Lignes de vente", value: String(k.nbEntries), ok: null });
+    if (k.nbEntries > 0) details.push({ label: "Lignes de vente", value: String(k.nbEntries), ok: null, origin: "pilot_ca_entries", why: "Volume d'activité facturée sur l'exercice." });
     themes.push({
       theme: "activite",
       score: parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length) : null,
@@ -127,8 +127,8 @@ export function pragmaticHealth(params: {
     const retard = actifs.filter((g) => g.status === "en_cours" && g.deadline && g.deadline < today).length;
     const details: ThemeScore["details"] = actifs.length
       ? [
-          { label: "Objectifs atteints", value: `${done} / ${actifs.length}`, ok: done > 0 },
-          { label: "Objectifs en retard", value: String(retard), ok: retard === 0 },
+          { label: "Objectifs atteints", value: `${done} / ${actifs.length}`, ok: done > 0, origin: "pilot_goals", why: "Mesure l'avancement réel du plan." },
+          { label: "Objectifs en retard", value: String(retard), ok: retard === 0, origin: "pilot_goals — échéances dépassées", why: "Décide s'il faut replanifier ou abandonner." },
         ]
       : [];
     const base = actifs.length ? (done / actifs.length) * 100 - retard * 5 : null;

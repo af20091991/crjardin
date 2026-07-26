@@ -30,6 +30,8 @@ export interface ChargeRow {
   amount_ht: number;
   charge_class: ChargeClass;
   charge_category: string;
+  /** Qualifiée comme investissement : suivie à part, hors charges mensuelles. */
+  is_investment: boolean;
 }
 
 type RawRow = {
@@ -41,6 +43,7 @@ type RawRow = {
   amount_ht: number | null;
   charge_class: string | null;
   charge_category: string | null;
+  is_investment?: boolean | null;
 };
 
 async function fetchAll(kind: "charge" | "vente"): Promise<RawRow[]> {
@@ -50,7 +53,7 @@ async function fetchAll(kind: "charge" | "vente"): Promise<RawRow[]> {
   for (;;) {
     const { data, error } = await supabase
       .from("pilot_ca_entries")
-      .select("id,year,month,kind,designation,amount_ht,charge_class,charge_category")
+      .select("id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment")
       .eq("kind", kind)
       .range(from, from + pageSize - 1);
     if (error) throw error;
@@ -72,7 +75,27 @@ export async function listChargeRows(): Promise<ChargeRow[]> {
     amount_ht: Number(r.amount_ht) || 0,
     charge_class: (r.charge_class as ChargeClass) ?? "a_classer",
     charge_category: r.charge_category ?? "À classer",
+    is_investment: Boolean(r.is_investment),
   }));
+}
+
+/** Qualifie (ou déqualifie) une ligne de charge en investissement. */
+export async function setChargeInvestment(id: string, isInvestment: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("pilot_ca_entries")
+    .update({ is_investment: isInvestment } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Total des investissements par exercice (jamais compté dans les charges). */
+export function investmentsByYear(rows: ChargeRow[]): Map<number, number> {
+  const m = new Map<number, number>();
+  for (const r of rows) {
+    if (!r.is_investment) continue;
+    m.set(r.year, (m.get(r.year) ?? 0) + r.amount_ht);
+  }
+  return m;
 }
 
 /** CA HT (ventes) par année — sert au poids des charges dans le CA. */
@@ -128,6 +151,9 @@ export interface ChargesAnalysis {
   unclassifiedCount: number;
   unclassifiedAmount: number;
   totals: { fixe: number; variable: number; aClasser: number; total: number };
+  /** Investissements par exercice, suivis séparément des charges. */
+  investments: Map<number, number>;
+  investmentsTotal: number;
 }
 
 function monthsIn(rows: ChargeRow[]): number {
@@ -135,10 +161,12 @@ function monthsIn(rows: ChargeRow[]): number {
 }
 
 export function analyzeCharges(
-  rows: ChargeRow[],
+  allRows: ChargeRow[],
   salesByYear: Map<number, number>,
   categoryLabels: string[],
 ): ChargesAnalysis {
+  const rows = allRows.filter((r) => !r.is_investment);
+  const investments = investmentsByYear(allRows);
   const years = [...new Set(rows.map((r) => r.year))].sort((a, b) => a - b);
 
   const yearStats: YearCharges[] = years.map((year) => {
@@ -199,6 +227,8 @@ export function analyzeCharges(
       aClasser: yearStats.reduce((s, y) => s + y.aClasser, 0),
       total: yearStats.reduce((s, y) => s + y.total, 0),
     },
+    investments,
+    investmentsTotal: [...investments.values()].reduce((s, v) => s + v, 0),
   };
 }
 
@@ -215,14 +245,21 @@ export interface ProjectionBase {
   monthlyAverage: number;
   caToDate: number;
   margeDisponible: number;
+  /** Investissements de l'exercice, hors charges d'exploitation. */
+  investments: number;
+  /** Résultat après investissements = marge disponible − investissements. */
+  resultatApresInvestissements: number;
 }
 
 export function projectionBase(
-  rows: ChargeRow[],
+  allRows: ChargeRow[],
   year: number,
   salesByYear: Map<number, number>,
 ): ProjectionBase {
-  const yr = rows.filter((r) => r.year === year);
+  const yr = allRows.filter((r) => r.year === year && !r.is_investment);
+  const invest = allRows
+    .filter((r) => r.year === year && r.is_investment)
+    .reduce((s, r) => s + r.amount_ht, 0);
   const sum = (cls: ChargeClass) =>
     yr.filter((r) => r.charge_class === cls).reduce((s, r) => s + r.amount_ht, 0);
   const fixe = sum("fixe");
@@ -240,5 +277,7 @@ export function projectionBase(
     monthlyAverage: months > 0 ? total / months : 0,
     caToDate: ca,
     margeDisponible: ca - total,
+    investments: invest,
+    resultatApresInvestissements: ca - total - invest,
   };
 }

@@ -15,9 +15,14 @@ export interface AnnualRow {
   heuresVendues: number;
   tauxHoraireVendu: number | null;
   nbLignes: number;
+  /** Investissements qualifiés sur l'exercice (hors charges d'exploitation). */
+  investissements: number;
+  /** Bénéfice brut − investissements de l'exercice. */
+  resultatApresInvestissements: number;
 }
 
-export function annualSummary(entries: PilotEntry[], chargeRows: ChargeRow[]): AnnualRow[] {
+export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[]): AnnualRow[] {
+  const chargeRows = allChargeRows.filter((c) => !c.is_investment);
   const years = new Set<number>();
   const ca = new Map<number, number>();
   const hours = new Map<number, number>();
@@ -35,6 +40,12 @@ export function annualSummary(entries: PilotEntry[], chargeRows: ChargeRow[]): A
     years.add(c.year);
     charges.set(c.year, (charges.get(c.year) ?? 0) + c.amount_ht);
   }
+  const invest = new Map<number, number>();
+  for (const c of allChargeRows) {
+    if (!c.is_investment) continue;
+    years.add(c.year);
+    invest.set(c.year, (invest.get(c.year) ?? 0) + c.amount_ht);
+  }
 
   return [...years]
     .sort((a, b) => b - a)
@@ -43,6 +54,7 @@ export function annualSummary(entries: PilotEntry[], chargeRows: ChargeRow[]): A
       const ch = charges.get(year) ?? 0;
       const h = hours.get(year) ?? 0;
       const benefice = caHt - ch;
+      const inv = invest.get(year) ?? 0;
       return {
         year,
         caHt,
@@ -52,6 +64,8 @@ export function annualSummary(entries: PilotEntry[], chargeRows: ChargeRow[]): A
         heuresVendues: h,
         tauxHoraireVendu: h > 0 ? caHt / h : null,
         nbLignes: lines.get(year) ?? 0,
+        investissements: inv,
+        resultatApresInvestissements: benefice - inv,
       };
     });
 }

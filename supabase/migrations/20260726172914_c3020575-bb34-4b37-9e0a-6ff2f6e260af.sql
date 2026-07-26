@@ -1,0 +1,2 @@
+ALTER TABLE public.pilot_ca_entries ADD COLUMN IF NOT EXISTS is_investment boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_pilot_ca_entries_investment ON public.pilot_ca_entries (year) WHERE is_investment;

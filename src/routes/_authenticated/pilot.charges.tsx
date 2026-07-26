@@ -1,9 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { Landmark, Undo2 } from "lucide-react";
+import { FixedChargesPanel } from "@/components/pilot/FixedChargesPanel";
 import { formatEuro } from "@/lib/pilot";
 import { currentYear } from "@/lib/date-utils";
 import {
@@ -16,6 +21,8 @@ import {
   listChargeRows,
   listSalesByYear,
   projectionBase,
+  setChargeInvestment,
+  type ChargeRow,
   PRIORITY_VARIABLE_CATEGORIES,
 } from "@/lib/pilot-charges";
 
@@ -34,6 +41,7 @@ function pct(v: number | null) {
 }
 
 function ChargesPage() {
+  const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["pilot-charges-analysis"],
     queryFn: async () => {
@@ -45,6 +53,8 @@ function ChargesPage() {
       return { rows, sales, cats };
     },
   });
+  const [detailYear, setDetailYear] = useState<number>(currentYear());
+  const [search, setSearch] = useState("");
   const analysis = useMemo(
     () => (q.data ? analyzeCharges(q.data.rows, q.data.sales, q.data.cats.map((c) => c.label)) : null),
     [q.data],
@@ -99,7 +109,8 @@ function ChargesPage() {
         <Kpi label="Charges fixes" value={formatEuro(analysis.totals.fixe)} />
         <Kpi label="Charges variables" value={formatEuro(analysis.totals.variable)} />
         <Kpi label="Charges globales" value={formatEuro(analysis.totals.total)} />
-        <Kpi label="Poids dans le CA" value={weight == null ? "—" : `${weight.toFixed(1)} %`} />
+        <Kpi label="Investissements" value={formatEuro(analysis.investmentsTotal)} />
+        <Kpi label="Poids des charges dans le CA" value={weight == null ? "—" : `${weight.toFixed(1)} %`} />
       </div>
       {analysis.unclassifiedCount > 0 && (
         <Card className="border-amber-300/60">
@@ -274,14 +285,58 @@ function ChargesPage() {
             value={formatEuro(proj.margeDisponible)}
             tone={proj.margeDisponible >= 0 ? "text-emerald-600" : "text-rose-600"}
           />
+          <Kpi label="Investissements" value={formatEuro(proj.investments)} />
+          <Kpi
+            label="Résultat après investissements"
+            value={formatEuro(proj.resultatApresInvestissements)}
+            tone={proj.resultatApresInvestissements >= 0 ? "text-emerald-600" : "text-rose-600"}
+          />
           <Kpi
             label="Charges / mois observé"
             value={`${formatEuro(proj.monthlyAverage)} (${proj.monthsObserved} mois)`}
           />
           <p className="text-xs text-muted-foreground sm:col-span-4">
-            Base préparée pour le futur mode « Projection fin d'exercice » : seules les données réelles à date
-            sont affichées, aucune extrapolation n'est appliquée.
+            Lecture réelle : uniquement ce qui est facturé et constaté à date. Les investissements sont exclus
+            des charges d'exploitation et déduits seulement du résultat après investissements.
           </p>
+        </CardContent>
+      </Card>
+      <FixedChargesPanel year={detailYear} />
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
+            <span className="flex items-center gap-2">
+              <Landmark className="h-4 w-4 text-primary" />
+              Détail des charges {detailYear} — qualification investissement
+            </span>
+            <span className="flex items-center gap-2">
+              <select
+                className="h-9 rounded-md border border-border bg-background px-2 text-sm"
+                value={detailYear}
+                onChange={(e) => setDetailYear(Number(e.target.value))}
+              >
+                {[...new Set([currentYear(), ...analysis.years.map((y) => y.year)])]
+                  .sort((a, b) => b - a)
+                  .map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+              </select>
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher une charge…"
+                className="h-9 w-48"
+              />
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChargeDetailTable
+            rows={q.data.rows}
+            year={detailYear}
+            search={search}
+            onChanged={() => qc.invalidateQueries({ queryKey: ["pilot-charges-analysis"] })}
+          />
         </CardContent>
       </Card>
       <Card>
@@ -318,6 +373,70 @@ function Kpi({ label, value, tone }: { label: string; value: string; tone?: stri
     <div className="rounded-lg border border-border p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`mt-1 font-serif text-lg font-semibold ${tone ?? ""}`}>{value}</p>
+    </div>
+  );
+}
+
+/** Liste des lignes de charge d'un exercice : chaque ligne peut être qualifiée d'investissement. */
+function ChargeDetailTable({
+  rows,
+  year,
+  search,
+  onChanged,
+}: {
+  rows: ChargeRow[];
+  year: number;
+  search: string;
+  onChanged: () => void;
+}) {
+  const m = useMutation({
+    mutationFn: (p: { id: string; value: boolean }) => setChargeInvestment(p.id, p.value),
+    onSuccess: onChanged,
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const term = search.trim().toLowerCase();
+  const list = rows
+    .filter((r) => r.year === year)
+    .filter((r) => (term ? (r.designation ?? "").toLowerCase().includes(term) : true))
+    .sort((a, b) => a.month - b.month || b.amount_ht - a.amount_ht);
+  if (list.length === 0)
+    return <p className="py-6 text-center text-sm text-muted-foreground">Aucune charge sur cet exercice.</p>;
+  return (
+    <div className="max-h-[28rem] overflow-auto">
+      <table className="w-full min-w-max text-sm">
+        <thead className="sticky top-0 bg-card text-xs text-muted-foreground">
+          <tr>
+            <th className="py-1 text-left font-medium">Mois</th>
+            <th className="py-1 text-left font-medium">Désignation</th>
+            <th className="py-1 text-left font-medium">Catégorie</th>
+            <th className="py-1 text-right font-medium">Montant HT</th>
+            <th className="py-1 text-right font-medium">Nature</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((r) => (
+            <tr key={r.id} className="border-t border-border/50">
+              <td className="py-1.5">{String(r.month).padStart(2, "0")}</td>
+              <td className="py-1.5">{r.designation ?? "—"}</td>
+              <td className="py-1.5 text-muted-foreground">{r.charge_category}</td>
+              <td className="py-1.5 text-right tabular-nums">{formatEuro(r.amount_ht)}</td>
+              <td className="py-1.5 text-right">
+                {r.is_investment ? (
+                  <Button size="sm" variant="outline" disabled={m.isPending}
+                    onClick={() => m.mutate({ id: r.id, value: false })}>
+                    <Undo2 className="mr-1 h-3.5 w-3.5" />Investissement
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="ghost" disabled={m.isPending}
+                    onClick={() => m.mutate({ id: r.id, value: true })}>
+                    Marquer investissement
+                  </Button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
