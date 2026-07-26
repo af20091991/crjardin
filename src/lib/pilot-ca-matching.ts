@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { CaEntry } from "@/lib/pilot-ca";
-import { createClient, type Client } from "@/lib/clients";
+import { createClient, CLIENT_SOURCE_CA, type Client } from "@/lib/clients";
+import { clientNameFromDesignation, parseDesignation } from "@/lib/pilot-ca-designation";
 
 export type MatchMethod = "manual" | "suggestion" | "refused" | "reverted" | "new_client" | "bulk";
 
@@ -184,7 +185,9 @@ export function suggestClients(
 ): Suggestion[] {
   const limit = opts.limit ?? 5;
   const minScore = opts.minScore ?? MATCH_RULES.MIN_SUGGESTION;
-  const designation = entry.designation ?? "";
+  // Les codes prestation (REE / SAP / CEEV) ne font pas partie du nom client :
+  // on rapproche sur la désignation nettoyée.
+  const designation = clientNameFromDesignation(entry.designation);
   const key = normalize(designation);
   const scores = new Map<string, Suggestion>();
   if (!key) return [];
@@ -316,11 +319,17 @@ export const AUTO_CLIENT_MARKER = "Créé automatiquement depuis historique CA";
  * la ligne. La fiche est marquée pour rester identifiable et complétable.
  */
 export async function createClientFromEntry(entry: CaEntry): Promise<Client> {
-  const raw = (entry.designation ?? "").trim();
+  const parsed = parseDesignation(entry.designation);
+  const raw = parsed.name.trim();
   if (!raw) throw new Error("Désignation vide : impossible de créer une fiche client.");
   const client = await createClient({
     name: raw,
-    notes: `${AUTO_CLIENT_MARKER} (${entry.designation ?? ""} — ${entry.month}/${entry.year}). À compléter : adresse, téléphone, e-mail.`,
+    source: CLIENT_SOURCE_CA,
+    source_confidence: "faible",
+    report_policy: "a_confirmer",
+    notes: `${AUTO_CLIENT_MARKER} (${entry.designation ?? ""} — ${entry.month}/${entry.year}).${
+      parsed.codes.length ? ` Prestation détectée : ${parsed.codes.join(", ")}.` : ""
+    } À compléter : adresse, téléphone, e-mail.`,
   });
   await linkEntryToClient({
     entryId: entry.id,

@@ -19,7 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createClient, updateClient, type Client, type ClientInput } from "@/lib/clients";
+import {
+  createClient,
+  updateClient,
+  REPORT_POLICY_META,
+  CLIENT_SOURCE_LABEL,
+  type Client,
+  type ClientInput,
+  type ReportPolicy,
+} from "@/lib/clients";
 import { toast } from "sonner";
 import { Loader2, Plus, X } from "lucide-react";
 
@@ -68,6 +76,7 @@ export function ClientForm({
     contract_type: client?.contract_type ?? initial?.contract_type ?? "",
     frequency: client?.frequency ?? initial?.frequency ?? "",
     notes: client?.notes ?? initial?.notes ?? "",
+    report_policy: client?.report_policy ?? initial?.report_policy ?? "a_confirmer",
   });
 
   // Address autocomplete via the French Base Adresse Nationale (no key required)
@@ -243,6 +252,29 @@ export function ClientForm({
             <Label>Observations importantes</Label>
             <Textarea value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} rows={3} placeholder="Accès, animaux, particularités du jardin…" />
           </div>
+          <div className="space-y-1.5">
+            <Label>Client concerné par l'envoi de comptes-rendus</Label>
+            <Select
+              value={form.report_policy ?? "a_confirmer"}
+              onValueChange={(v) => setForm((f) => ({ ...f, report_policy: v as ReportPolicy }))}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(REPORT_POLICY_META) as ReportPolicy[]).map((p) => (
+                  <SelectItem key={p} value={p}>{REPORT_POLICY_META[p].label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {REPORT_POLICY_META[(form.report_policy ?? "a_confirmer") as ReportPolicy].hint}
+            </p>
+          </div>
+          {client?.source && CLIENT_SOURCE_LABEL[client.source] && (
+            <p className="text-xs text-muted-foreground">
+              Origine de la fiche : {CLIENT_SOURCE_LABEL[client.source]}
+              {client.source_confidence ? ` (confiance ${client.source_confidence})` : ""}
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="w-full sm:w-auto">
