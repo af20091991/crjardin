@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { HoursGapCard } from "@/components/pilot/HoursGapCard";
+import { ChargesSummaryCard } from "@/components/pilot/ChargesSummaryCard";
 import { KpiCard } from "@/components/pilot/KpiCard";
 import { RecommendationsFunnelWidget } from "@/components/RecommendationsFunnelWidget";
 import { Card, CardContent } from "@/components/ui/card";
@@ -223,6 +224,7 @@ function PilotDashboard() {
       </div>
 
       <HoursGapCard year={year} />
+      <ChargesSummaryCard year={year} />
 
       {/* Insights */}
       {insights.length > 0 && (
