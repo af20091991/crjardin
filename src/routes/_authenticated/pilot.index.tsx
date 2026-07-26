@@ -335,17 +335,38 @@ function TodayPage() {
     );
   }
 
-  // Delta CA mois vs N-1 (question "où en suis-je ?")
-  const deltaMoisPct = objectifMois > 0 ? ((k.caMonth - objectifMois) / objectifMois) * 100 : 0;
-  const tauxReel = k.tauxHoraireReel ?? 0;
-  const tauxEcartPct = targetHR > 0 && tauxReel > 0 ? ((tauxReel - targetHR) / targetHR) * 100 : 0;
+  // ---- Fiabilité des indicateurs stratégiques ----
+  // Comparaison CA mois vs même mois N-1 : uniquement si les deux périodes existent.
+  const caComparison = periodComparison({ current: k.caMonth, previous: objectifMois });
+  // Marge : non calculable sans CA sur l'année.
+  const margin = marginPct({ ca: k.caYear, marge: k.marge });
+  // Taux horaire réel : heures confirmées uniquement, aucune estimation.
+  const terminatedThisYear = allI.filter(
+    (i) => i.status === "terminee" && new Date(i.intervention_date).getFullYear() === year,
+  );
+  const confirmedThisYear = terminatedThisYear.filter((i) => {
+    const estimated =
+      i.ai_metadata && typeof i.ai_metadata === "object" &&
+      (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
+    return i.hours_spent != null && Number(i.hours_spent) > 0 && !estimated;
+  });
+  const realRate = realHourlyRate({
+    ca: k.caYear,
+    confirmedHours: k.totalConfirmedHours ?? 0,
+    terminatedCount: terminatedThisYear.length,
+    confirmedCount: confirmedThisYear.length,
+    targetRate: targetHR,
+  });
+  const tauxEcartPct =
+    realRate.available && targetHR > 0 ? ((realRate.value - targetHR) / targetHR) * 100 : 0;
 
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
     key: string; label: string; count: number; icon: typeof Handshake;
     topic?: FocusTopic; to?: string; tone: Priority;
   }> = [
-    { key: "cr", label: "Comptes-rendus à envoyer", count: terminatedNoReport.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "urgent" as Priority },
+    { key: "cr", label: "Comptes-rendus générés à envoyer", count: reportsToSend.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "urgent" as Priority },
+    { key: "crg", label: "Comptes-rendus à générer", count: reportsToGenerate.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "important" as Priority },
     { key: "h", label: "Heures à confirmer", count: missingHours.length, icon: Clock, topic: "heures-manquantes" as FocusTopic, tone: "urgent" as Priority },
     { key: "r", label: "Recommandations à planifier", count: acceptedNotPlanned.length, icon: Handshake, topic: "recos-a-planifier" as FocusTopic, tone: "urgent" as Priority },
     { key: "d", label: "Dépassements de temps", count: timeOverruns.length, icon: TrendingDown, topic: "depassements-temps" as FocusTopic, tone: "urgent" as Priority },
@@ -360,15 +381,18 @@ function TodayPage() {
   }> = [
     {
       key: "low",
-      label: "Rentabilité horaire sous cible",
+      label: "Prestations sous le seuil de rentabilité horaire",
       count: lowHourlyEntries.length,
-      hint: targetHR > 0 ? `Sous ${formatEuro(targetHR)}/h` : "Définir un taux cible",
+      hint:
+        targetHR > 0
+          ? `Lignes CA dont le taux horaire est inférieur à ${formatEuro(targetHR)}/h`
+          : "Définir un taux horaire cible dans les paramètres",
       icon: Gauge,
       topic: "rentabilite-faible" as FocusTopic,
     },
     {
       key: "chr",
-      label: "Clients chronophages",
+      label: "Clients chronophages à analyser",
       count: heavyLowMarginClients.length,
       hint: "≥ 20 h/an et taux < 85 % de la cible",
       icon: Flame,
@@ -377,8 +401,8 @@ function TodayPage() {
     {
       key: "sl",
       label: "Clients dormants (> 12 mois)",
-      count: sleeping12m.length,
-      hint: "Aucun CA depuis plus d'un an",
+      count: clientsDormants.length,
+      hint: `Clients du référentiel sans activité depuis plus d'un an (sur ${activityRows.length} clients)`,
       icon: Users,
       topic: "dormants" as FocusTopic,
     },
@@ -393,7 +417,7 @@ function TodayPage() {
   }> = [
     { label: "Créations sans entretien", count: creationSansEntretien.length, topic: "creation-sans-entretien" as FocusTopic },
     { label: "Entretien sans conseil récent", count: entretienSansConseil.length, topic: "entretien-sans-conseil" as FocusTopic },
-    { label: "Clients dormants (6 mois)", count: dormants.length, topic: "dormants" as FocusTopic },
+    { label: "Clients à relancer (> 6 mois)", count: clientsARelancer.length, topic: "dormants" as FocusTopic },
   ].filter((s) => s.count > 0);
 
   return (
