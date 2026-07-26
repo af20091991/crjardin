@@ -309,7 +309,10 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          report_policy: string
           share_token: string
+          source: string | null
+          source_confidence: string | null
           updated_at: string
           user_id: string
         }
@@ -325,7 +328,10 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          report_policy?: string
           share_token?: string
+          source?: string | null
+          source_confidence?: string | null
           updated_at?: string
           user_id: string
         }
@@ -341,7 +347,10 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          report_policy?: string
           share_token?: string
+          source?: string | null
+          source_confidence?: string | null
           updated_at?: string
           user_id?: string
         }
