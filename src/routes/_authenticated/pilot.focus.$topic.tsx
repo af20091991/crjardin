@@ -112,7 +112,7 @@ function FocusPage() {
         .slice(0, 100)
         .map((i) => ({
           key: i.id,
-          clientName: nameByClient.get(i.client_id) ?? "Client",
+          clientName: (i.client_id ? nameByClient.get(i.client_id) : null) ?? "Client",
           clientId: i.client_id,
           interventionId: i.id,
           columns: [
