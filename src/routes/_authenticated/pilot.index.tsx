@@ -12,9 +12,11 @@ import { listAllRecommendations } from "@/lib/garden";
 import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES, fetchClientActivityRows } from "@/lib/client-activity";
-import { realHourlyRate, marginPct, periodComparison } from "@/lib/pilot-reliability";
+import { realHourlyRateFromResolution, marginPct, periodComparison } from "@/lib/pilot-reliability";
+import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
+import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-hours";
 import type { FocusTopic } from "@/lib/pilot-focus";
-import { CoverageBanner } from "@/components/pilot/CoverageBanner";
+import { CaStatusCard } from "@/components/pilot/CaStatusCard";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import { listHistoricHours } from "@/lib/pilot-historic-hours";
 import { HoursSummaryCards } from "@/components/pilot/HoursSummaryCards";
@@ -72,6 +74,11 @@ function TodayPage() {
   const goals = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
   const orphanCount = useQuery({ queryKey: ["pilot-ca-orphan-count"], queryFn: countOrphanEntries });
   const historicHours = useQuery({ queryKey: ["pilot-historic-hours"], queryFn: listHistoricHours });
+  // Ledger consolidé des heures de l'année : source unique pour le temps réel.
+  const hoursLedger = useQuery({
+    queryKey: ["pilot-hours-ledger", year],
+    queryFn: () => fetchHoursLedger(year),
+  });
   const clientActivity = useQuery({
     queryKey: ["client-activity-rows"],
     queryFn: fetchClientActivityRows,
@@ -182,13 +189,17 @@ function TodayPage() {
     }
     return ids;
   }, [allI, reportPolicyById]);
-  const missingHours = allI.filter((i) => {
-    if (i.status !== "terminee") return false;
-    const estimated =
-      i.ai_metadata && typeof i.ai_metadata === "object" &&
-      (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
-    return i.hours_spent == null || estimated;
-  });
+  // Heures réelles disponibles dans PP (interventions > historique > ledger CA).
+  const hoursResolution = useMemo(
+    () => (hoursLedger.data ? resolveRealHours(hoursLedger.data, year) : undefined),
+    [hoursLedger.data, year],
+  );
+  // Une intervention n'est « à renseigner » que si AUCUNE heure n'existe dans PP
+  // pour ce client sur l'année : un défaut de liaison n'est jamais une tâche.
+  const missingHours = useMemo(
+    () => (hoursLedger.data ? interventionsNeedingHours(allI, hoursLedger.data, year) : []),
+    [allI, hoursLedger.data, year],
+  );
 
   // Clients dormants / à relancer — clients UNIQUES du référentiel `clients`.
   // Jamais de comptage de lignes CA ou d'historique non rattaché.
