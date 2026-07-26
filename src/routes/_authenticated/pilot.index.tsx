@@ -464,7 +464,7 @@ function TodayPage() {
         </p>
       </div>
 
-      <CoverageBanner year={year} />
+      <CaStatusCard year={year} caYear={k.caYear} caPrevYear={k.caPrevYear} projection={k.projection} />
 
       {/* 1 — Où en est mon entreprise aujourd'hui ? */}
       <section className="space-y-2">
@@ -527,8 +527,8 @@ function TodayPage() {
 
       {/* 2 — Quelles sont mes priorités ? */}
       <section className="space-y-2">
-        <SectionTitle question="Où passent mes heures ?" label="Heures consolidées" />
-        <HoursSummaryCards year={year} month={month + 1} />
+        <SectionTitle question="Répartition du temps" label="Heures consolidées" />
+        <HoursSummaryCards year={year} resolution={hoursResolution} toFill={missingHours.length} />
       </section>
 
       <section className="space-y-2">
