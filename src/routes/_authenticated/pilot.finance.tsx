@@ -5,6 +5,9 @@ import { usePilotData } from "@/components/pilot/usePilotData";
 import { computeKpis, fetchConfirmedHoursByClient, DEFAULT_SETTINGS, formatEuro, MONTHS } from "@/lib/pilot";
 import { annualSummary } from "@/lib/pilot-annual";
 import { listChargeRows, listSalesByYear, listChargeCategories, analyzeCharges } from "@/lib/pilot-charges";
+import { usePilotMode } from "@/lib/pilot-mode";
+import { projectYear } from "@/lib/pilot-projection";
+import { realizedChargeRows, realizedEntries } from "@/lib/pilot-realized";
 import { monthlyCa, monthlyFieldHours, listHours, computeMonths, getTjmSettings } from "@/lib/pilot-hours";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +27,8 @@ export const Route = createFileRoute("/_authenticated/pilot/finance")({
 function FinancePage() {
   const { entries, charges, settings } = usePilotData();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
+  const { mode } = usePilotMode();
+  const isProjection = mode === "projection";
 
   const confirmed = useQuery({ queryKey: ["confirmed-hours-by-client", YEAR], queryFn: () => fetchConfirmedHoursByClient(YEAR) });
   const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
@@ -52,6 +57,24 @@ function FinancePage() {
     return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label));
   }, [chargeRowsQ.data, salesQ.data, catsQ.data]);
 
+  // Projection fin d'exercice : CA extrapolé par saisonnalité + charges moyennes.
+  const proj = useMemo(
+    () =>
+      projectYear({
+        entries: realizedEntries(entries.data ?? []),
+        charges: realizedChargeRows((chargeRowsQ.data ?? []).filter((r) => !r.is_investment)),
+        year: YEAR,
+      }),
+    [entries.data, chargeRowsQ.data],
+  );
+  const investYear = useMemo(
+    () =>
+      (chargeRowsQ.data ?? [])
+        .filter((r) => r.year === YEAR && r.is_investment)
+        .reduce((s, r) => s + r.amount_ht, 0),
+    [chargeRowsQ.data],
+  );
+
   const gestionDefaut = tjmQ.data?.heures_gestion ?? 60;
   const months = useMemo(
     () => computeMonths(caMonthQ.data ?? Array(12).fill(0), hoursQ.data ?? [], gestionDefaut, caHoursQ.data ?? []),
@@ -69,17 +92,21 @@ function FinancePage() {
 
   const monthly = months.map((m, i) => ({
     mois: MONTHS[m.month - 1],
-    CA: Math.round(m.ca),
-    Charges: Math.round(chargesByMonth[i]),
-    Bénéfice: Math.round(m.ca - chargesByMonth[i]),
+    CA: Math.round(isProjection ? proj.monthly[i].ca : m.ca),
+    Charges: Math.round(isProjection ? proj.monthly[i].charges : chargesByMonth[i]),
+    Bénéfice: Math.round(
+      isProjection ? proj.monthly[i].ca - proj.monthly[i].charges : m.ca - chargesByMonth[i],
+    ),
+    projete: isProjection ? proj.monthly[i].projected : false,
     tauxNet: m.net,
   }));
 
   const currentYearRow = annual.find((a) => a.year === YEAR);
   const prevYearRow = annual.find((a) => a.year === YEAR - 1);
-  const chargesYear = currentYearRow?.charges ?? 0;
-  const benefice = (currentYearRow?.caHt ?? 0) - chargesYear;
-  const marge = currentYearRow && currentYearRow.caHt > 0 ? (benefice / currentYearRow.caHt) * 100 : 0;
+  const caYear = isProjection ? proj.caProjete : (currentYearRow?.caHt ?? 0);
+  const chargesYear = isProjection ? proj.chargesProjetees : (currentYearRow?.charges ?? 0);
+  const benefice = caYear - chargesYear;
+  const marge = caYear > 0 ? (benefice / caYear) * 100 : 0;
   const monthsObserved = analysis?.years.find((y) => y.year === YEAR)?.monthsObserved ?? 0;
   const chargesMensuelles = monthsObserved > 0 ? chargesYear / monthsObserved : 0;
   const seuilMensuel = chargesMensuelles;
@@ -107,23 +134,25 @@ function FinancePage() {
           <Calculator className="h-6 w-6 text-primary" /> Tableau financier
         </h1>
         <p className="text-sm text-muted-foreground">
-          CA, charges et temps de travail agrégés automatiquement — aucune saisie supplémentaire.
+          {isProjection
+            ? `Mode projection : ${proj.explanation}`
+            : "Mode réel : uniquement le CA facturé et les charges constatées à date."}
         </p>
       </div>
 
       {/* Synthèse */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label={`CA HT ${YEAR}`} value={formatEuro(currentYearRow?.caHt ?? 0)} sub={prevYearRow ? `${YEAR - 1} : ${formatEuro(prevYearRow.caHt)}` : undefined} accent />
+        <Kpi label={`CA HT ${YEAR}${isProjection ? " (projeté)" : ""}`} value={formatEuro(caYear)} sub={prevYearRow ? `${YEAR - 1} : ${formatEuro(prevYearRow.caHt)}` : undefined} accent />
         <Kpi label="Charges" value={formatEuro(chargesYear)} sub={monthsObserved > 0 ? `${formatEuro(chargesMensuelles)} / mois` : "Aucune charge saisie"} />
         <Kpi label="Bénéfice brut" value={formatEuro(benefice)} sub={`Marge ${marge.toFixed(0)} %`} tone={benefice >= 0 ? "text-emerald-600" : "text-rose-600"} />
-        <Kpi label="Coût horaire de structure" value={coutHoraire > 0 ? `${coutHoraire.toFixed(0)} €/h` : "—"} sub={totalHeures > 0 ? `${totalHeures.toFixed(0)} h travaillées` : "Heures inconnues"} />
+        <Kpi label="Résultat après investissements" value={formatEuro(benefice - investYear)} sub={`Investissements ${formatEuro(investYear)}`} tone={benefice - investYear >= 0 ? "text-emerald-600" : "text-rose-600"} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Taux horaire vendu" value={k.tauxHoraireVendu > 0 ? `${k.tauxHoraireVendu.toFixed(0)} €/h` : "—"} sub="CA ÷ heures facturées" />
         <Kpi label="Taux horaire réel" value={k.tauxHoraireReel > 0 ? `${k.tauxHoraireReel.toFixed(0)} €/h` : "—"} sub="CA ÷ heures confirmées" />
         <Kpi label="Seuil de rentabilité mensuel" value={seuilMensuel > 0 ? formatEuro(seuilMensuel) : "—"} sub="CA minimum à réaliser" />
-        <Kpi label="Projection fin d'exercice" value={formatEuro(k.projection)} sub="Rythme actuel" />
+        <Kpi label="Coût horaire de structure" value={coutHoraire > 0 ? `${coutHoraire.toFixed(0)} €/h` : "—"} sub={totalHeures > 0 ? `${totalHeures.toFixed(0)} h travaillées` : "Heures inconnues"} />
       </div>
 
       {/* Alertes */}
@@ -146,7 +175,7 @@ function FinancePage() {
 
       {/* Analyse mensuelle */}
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Analyse mensuelle {YEAR}</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Analyse mensuelle {YEAR}{isProjection ? " — projection" : ""}</CardTitle></CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart data={monthly} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
@@ -180,7 +209,10 @@ function FinancePage() {
             <tbody>
               {monthly.map((m) => (
                 <tr key={m.mois} className="border-b border-border/60 last:border-0">
-                  <td className="px-3 py-1.5 font-medium">{m.mois}</td>
+                  <td className="px-3 py-1.5 font-medium">
+                    {m.mois}
+                    {m.projete && <span className="ml-1.5 text-xs text-muted-foreground">projeté</span>}
+                  </td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(m.CA)}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(m.Charges)}</td>
                   <td className={`px-3 py-1.5 text-right tabular-nums font-medium ${m.Bénéfice >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{formatEuro(m.Bénéfice)}</td>
@@ -204,6 +236,8 @@ function FinancePage() {
                 <th className="px-3 py-2 text-right font-medium">CA HT</th>
                 <th className="px-3 py-2 text-right font-medium">Charges</th>
                 <th className="px-3 py-2 text-right font-medium">Bénéfice brut</th>
+                <th className="px-3 py-2 text-right font-medium">Investissements</th>
+                <th className="px-3 py-2 text-right font-medium">Après invest.</th>
                 <th className="px-3 py-2 text-right font-medium">Marge</th>
                 <th className="px-3 py-2 text-right font-medium">Taux horaire vendu</th>
               </tr>
@@ -215,6 +249,8 @@ function FinancePage() {
                   <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(a.caHt)}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(a.charges)}</td>
                   <td className={`px-3 py-1.5 text-right tabular-nums font-medium ${a.beneficeBrut >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{formatEuro(a.beneficeBrut)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{formatEuro(a.investissements)}</td>
+                  <td className={`px-3 py-1.5 text-right tabular-nums ${a.resultatApresInvestissements >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{formatEuro(a.resultatApresInvestissements)}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{a.margePct != null ? `${a.margePct.toFixed(0)} %` : "—"}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{a.tauxHoraireVendu != null ? `${a.tauxHoraireVendu.toFixed(0)} €/h` : "—"}</td>
                 </tr>
