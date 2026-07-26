@@ -111,8 +111,57 @@ function ParamsPage() {
       </Card>
 
       <TjmSettingsCard />
+      <ThresholdsCard />
       <ExcelImportCard />
     </div>
+  );
+}
+
+/** Seuils et règles de calcul utilisés par tous les modules d'analyse PP. */
+function ThresholdsCard() {
+  const current = useThresholds();
+  const [draft, setDraft] = useState<PilotThresholds>(current);
+
+  useEffect(() => setDraft(current), [current]);
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <SlidersHorizontal className="h-4 w-4 text-primary" /> Seuils & règles de calcul
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Ces seuils pilotent les alertes et les classements (clients, prestations, charges) dans
+          Aujourd'hui, Direction, Finance et les fiches client.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {THRESHOLD_FIELDS.map((f) => (
+            <div key={f.key} className="space-y-1">
+              <Label className="text-xs">{f.label}</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.05"
+                  value={draft[f.key]}
+                  onChange={(e) => setDraft({ ...draft, [f.key]: Number(e.target.value) || 0 })}
+                />
+                <span className="whitespace-nowrap text-xs text-muted-foreground">{f.suffix}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">{f.help}</p>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => { saveThresholds(DEFAULT_THRESHOLDS); toast.success("Seuils réinitialisés"); }}>
+            Réinitialiser
+          </Button>
+          <Button onClick={() => { saveThresholds(draft); toast.success("Seuils enregistrés"); }}>Enregistrer</Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
