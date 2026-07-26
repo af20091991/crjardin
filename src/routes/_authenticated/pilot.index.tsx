@@ -11,7 +11,8 @@ import { listAllInterventions } from "@/lib/interventions";
 import { listAllRecommendations } from "@/lib/garden";
 import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
-import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
+import { CLIENT_ACTIVITY_RULES, fetchClientActivityRows } from "@/lib/client-activity";
+import { realHourlyRate, marginPct, periodComparison } from "@/lib/pilot-reliability";
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
@@ -68,6 +69,10 @@ function TodayPage() {
   const recos = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
   const goals = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
   const orphanCount = useQuery({ queryKey: ["pilot-ca-orphan-count"], queryFn: countOrphanEntries });
+  const clientActivity = useQuery({
+    queryKey: ["client-activity-rows"],
+    queryFn: fetchClientActivityRows,
+  });
   const priorityOffers = useQuery({
     queryKey: ["nbo-priority"],
     queryFn: async (): Promise<NBOffer[]> => {
@@ -84,7 +89,8 @@ function TodayPage() {
 
   const loading =
     entries.isLoading || charges.isLoading || settings.isLoading ||
-    interventions.isLoading || recos.isLoading || goals.isLoading;
+    interventions.isLoading || recos.isLoading || goals.isLoading ||
+    clientActivity.isLoading;
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   // Heures confirmées (interventions.hours_spent, statut = termine) sur l'année en cours.
@@ -140,8 +146,14 @@ function TodayPage() {
   const acceptedNotPlanned = allR.filter(
     (r) => r.status === "acceptee" && !r.planned_intervention_id,
   );
-  const terminatedNoReport = allI.filter(
-    (i) => i.status === "terminee" && !i.sent_to_client_at,
+  // Distinction explicite du cycle de vie du compte-rendu :
+  // terminée → CR généré → CR envoyé. Une intervention terminée sans CR généré
+  // n'est PAS un « CR à envoyer ».
+  const reportsToGenerate = allI.filter(
+    (i) => i.status === "terminee" && !i.report_generated_at && !i.sent_to_client_at,
+  );
+  const reportsToSend = allI.filter(
+    (i) => i.status === "terminee" && !!i.report_generated_at && !i.sent_to_client_at,
   );
   const missingHours = allI.filter((i) => {
     if (i.status !== "terminee") return false;
@@ -151,17 +163,11 @@ function TodayPage() {
     return i.hours_spent == null || estimated;
   });
 
-  // Clients dormants — seuils centralisés (CLIENT_ACTIVITY_RULES)
-  const DAY = 24 * 60 * 60 * 1000;
-  const lastByClient = new Map<string, number>();
-  allI.forEach((i) => {
-    const t = new Date(i.intervention_date).getTime();
-    const prev = lastByClient.get(i.client_id) ?? 0;
-    if (t > prev) lastByClient.set(i.client_id, t);
-  });
-  const dormants = Array.from(lastByClient.entries()).filter(
-    ([, t]) => today.getTime() - t > CLIENT_ACTIVITY_RULES.WARNING_DAYS * DAY,
-  );
+  // Clients dormants / à relancer — clients UNIQUES du référentiel `clients`.
+  // Jamais de comptage de lignes CA ou d'historique non rattaché.
+  const activityRows = clientActivity.data ?? [];
+  const clientsARelancer = activityRows.filter((c) => c.status === "a_relancer");
+  const clientsDormants = activityRows.filter((c) => c.status === "dormant");
 
   // Objectifs mensuels en retard : status en_cours & deadline < aujourd'hui
   const goalsLate = allG.filter((g) => {
@@ -255,12 +261,13 @@ function TodayPage() {
     );
   }, [cstats, targetHR]);
 
-  // Commercial : dernier passage par client (via CA entries pour couvrir aussi les ventes sans intervention)
+  // Commercial : dernier passage par client — uniquement les lignes CA rattachées
+  // à une fiche du référentiel (jamais de "client fantôme" issu d'une désignation).
   const lastByClientCa = useMemo(() => {
     const map = new Map<string, { name: string; last: number; families: Set<string>; lastByFamily: Map<string, number> }>();
     for (const e of entries.data ?? []) {
-      const key = e.client_id ?? `name:${(e.client_name ?? "").toLowerCase()}`;
-      if (!key) continue;
+      if (!e.client_id) continue;
+      const key = e.client_id;
       const t = new Date(e.entry_date).getTime();
       const cur =
         map.get(key) ?? {
@@ -279,11 +286,6 @@ function TodayPage() {
     return map;
   }, [entries.data]);
 
-  const sleeping12m = useMemo(() => {
-    const cut = today.getTime() - CLIENT_ACTIVITY_RULES.DORMANT_DAYS * DAY;
-    return Array.from(lastByClientCa.entries()).filter(([, v]) => v.last < cut);
-  }, [lastByClientCa]);
-
   const creationSansEntretien = useMemo(
     () =>
       Array.from(lastByClientCa.entries()).filter(
@@ -293,6 +295,7 @@ function TodayPage() {
   );
 
   const entretienSansConseil = useMemo(() => {
+    const DAY = 24 * 60 * 60 * 1000;
     const cut = today.getTime() - CLIENT_ACTIVITY_RULES.DORMANT_DAYS * DAY;
     return Array.from(lastByClientCa.entries()).filter(([, v]) => {
       if (!v.families.has("sap")) return false;
@@ -311,12 +314,14 @@ function TodayPage() {
   const decisionCounts = {
     urgent:
       acceptedNotPlanned.length +
-      terminatedNoReport.length +
+      reportsToSend.length +
+      reportsToGenerate.length +
       missingHours.length +
       goalsLate.length +
       timeOverruns.length,
     important:
-      dormants.length +
+      clientsARelancer.length +
+      clientsDormants.length +
       heavyLowMarginClients.length +
       entretienSansConseil.length +
       creationSansEntretien.length +
@@ -332,17 +337,38 @@ function TodayPage() {
     );
   }
 
-  // Delta CA mois vs N-1 (question "où en suis-je ?")
-  const deltaMoisPct = objectifMois > 0 ? ((k.caMonth - objectifMois) / objectifMois) * 100 : 0;
-  const tauxReel = k.tauxHoraireReel ?? 0;
-  const tauxEcartPct = targetHR > 0 && tauxReel > 0 ? ((tauxReel - targetHR) / targetHR) * 100 : 0;
+  // ---- Fiabilité des indicateurs stratégiques ----
+  // Comparaison CA mois vs même mois N-1 : uniquement si les deux périodes existent.
+  const caComparison = periodComparison({ current: k.caMonth, previous: objectifMois });
+  // Marge : non calculable sans CA sur l'année.
+  const margin = marginPct({ ca: k.caMonth, marge: k.marge });
+  // Taux horaire réel : heures confirmées uniquement, aucune estimation.
+  const terminatedThisYear = allI.filter(
+    (i) => i.status === "terminee" && new Date(i.intervention_date).getFullYear() === year,
+  );
+  const confirmedThisYear = terminatedThisYear.filter((i) => {
+    const estimated =
+      i.ai_metadata && typeof i.ai_metadata === "object" &&
+      (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
+    return i.hours_spent != null && Number(i.hours_spent) > 0 && !estimated;
+  });
+  const realRate = realHourlyRate({
+    ca: k.caYear,
+    confirmedHours: k.totalConfirmedHours ?? 0,
+    terminatedCount: terminatedThisYear.length,
+    confirmedCount: confirmedThisYear.length,
+    targetRate: targetHR,
+  });
+  const tauxEcartPct =
+    realRate.available && targetHR > 0 ? ((realRate.value - targetHR) / targetHR) * 100 : 0;
 
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
     key: string; label: string; count: number; icon: typeof Handshake;
     topic?: FocusTopic; to?: string; tone: Priority;
   }> = [
-    { key: "cr", label: "Comptes-rendus à envoyer", count: terminatedNoReport.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "urgent" as Priority },
+    { key: "cr", label: "Comptes-rendus générés à envoyer", count: reportsToSend.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "urgent" as Priority },
+    { key: "crg", label: "Comptes-rendus à générer", count: reportsToGenerate.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "important" as Priority },
     { key: "h", label: "Heures à confirmer", count: missingHours.length, icon: Clock, topic: "heures-manquantes" as FocusTopic, tone: "urgent" as Priority },
     { key: "r", label: "Recommandations à planifier", count: acceptedNotPlanned.length, icon: Handshake, topic: "recos-a-planifier" as FocusTopic, tone: "urgent" as Priority },
     { key: "d", label: "Dépassements de temps", count: timeOverruns.length, icon: TrendingDown, topic: "depassements-temps" as FocusTopic, tone: "urgent" as Priority },
@@ -357,15 +383,18 @@ function TodayPage() {
   }> = [
     {
       key: "low",
-      label: "Rentabilité horaire sous cible",
+      label: "Prestations sous le seuil de rentabilité horaire",
       count: lowHourlyEntries.length,
-      hint: targetHR > 0 ? `Sous ${formatEuro(targetHR)}/h` : "Définir un taux cible",
+      hint:
+        targetHR > 0
+          ? `Lignes CA dont le taux horaire est inférieur à ${formatEuro(targetHR)}/h`
+          : "Définir un taux horaire cible dans les paramètres",
       icon: Gauge,
       topic: "rentabilite-faible" as FocusTopic,
     },
     {
       key: "chr",
-      label: "Clients chronophages",
+      label: "Clients chronophages à analyser",
       count: heavyLowMarginClients.length,
       hint: "≥ 20 h/an et taux < 85 % de la cible",
       icon: Flame,
@@ -374,8 +403,8 @@ function TodayPage() {
     {
       key: "sl",
       label: "Clients dormants (> 12 mois)",
-      count: sleeping12m.length,
-      hint: "Aucun CA depuis plus d'un an",
+      count: clientsDormants.length,
+      hint: `Clients du référentiel sans activité depuis plus d'un an (sur ${activityRows.length} clients)`,
       icon: Users,
       topic: "dormants" as FocusTopic,
     },
@@ -390,7 +419,7 @@ function TodayPage() {
   }> = [
     { label: "Créations sans entretien", count: creationSansEntretien.length, topic: "creation-sans-entretien" as FocusTopic },
     { label: "Entretien sans conseil récent", count: entretienSansConseil.length, topic: "entretien-sans-conseil" as FocusTopic },
-    { label: "Clients dormants (6 mois)", count: dormants.length, topic: "dormants" as FocusTopic },
+    { label: "Clients à relancer (> 6 mois)", count: clientsARelancer.length, topic: "dormants" as FocusTopic },
   ].filter((s) => s.count > 0);
 
   return (
@@ -416,11 +445,12 @@ function TodayPage() {
             icon={Euro}
             to="/pilot/ca"
             sub={
-              objectifMois > 0
-                ? `${deltaMoisPct >= 0 ? "+" : ""}${deltaMoisPct.toFixed(0)} % vs ${year - 1}`
-                : undefined
+              caComparison.available
+                ? `${caComparison.value >= 0 ? "+" : ""}${caComparison.value.toFixed(0)} % vs ${year - 1}`
+                : caComparison.detail
             }
-            tone={objectifMois > 0 ? (deltaMoisPct >= 0 ? "positive" : "warning") : "default"}
+            description={caComparison.available ? undefined : caComparison.detail}
+            tone={caComparison.available ? (caComparison.value >= 0 ? "positive" : "warning") : "default"}
           />
           <KpiCard
             label="Avancement mois"
@@ -432,23 +462,33 @@ function TodayPage() {
           />
           <KpiCard
             label="Marge estimée"
-            value={`${k.marge.toFixed(0)} %`}
+            value={margin.available ? `${margin.value.toFixed(0)} %` : "Non calculable"}
             icon={Wallet}
-            tone={k.marge >= 20 ? "positive" : k.marge >= 10 ? "default" : "warning"}
-            sub={`Bénéfice mois ${formatEuro(beneficeMois)}`}
+            tone={
+              !margin.available ? "default" : margin.value >= 20 ? "positive" : margin.value >= 10 ? "default" : "warning"
+            }
+            sub={margin.available ? `Bénéfice mois ${formatEuro(beneficeMois)}` : margin.detail}
+            description={margin.available ? undefined : margin.detail}
           />
           <KpiCard
             label="Taux horaire réel"
-            value={tauxReel > 0 ? `${formatEuro(tauxReel)}/h` : "—"}
+            value={realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible"}
             icon={Gauge}
             to="/pilot/taux"
-            tone={targetHR > 0 && tauxReel > 0 ? (tauxReel >= targetHR ? "positive" : "warning") : "default"}
+            description={realRate.available ? realRate.note : realRate.detail}
+            tone={
+              realRate.available && targetHR > 0
+                ? realRate.value >= targetHR
+                  ? "positive"
+                  : "warning"
+                : "default"
+            }
             sub={
-              targetHR > 0 && tauxReel > 0
+              realRate.available && targetHR > 0
                 ? `${tauxEcartPct >= 0 ? "+" : ""}${tauxEcartPct.toFixed(0)} % vs cible ${formatEuro(targetHR)}`
-                : targetHR > 0
-                  ? `Cible ${formatEuro(targetHR)}/h`
-                  : undefined
+                : realRate.available
+                  ? realRate.note
+                  : realRate.detail
             }
           />
         </div>

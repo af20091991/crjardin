@@ -36,6 +36,52 @@ export function isDormant(lastDate: string | null | undefined, now: number = Dat
   return getClientActivityStatus(lastDate, now) === "dormant";
 }
 
+/** Ligne d'activité consolidée pour UN client du référentiel (table clients). */
+export interface ClientActivityRow {
+  id: string;
+  name: string;
+  lastActivity: string | null;
+  status: ClientActivityStatus;
+  caTotal: number;
+}
+
+/**
+ * Activité par client, basée EXCLUSIVEMENT sur le référentiel `clients`
+ * (clients uniques). Les lignes CA non rattachées ne créent jamais de client
+ * fantôme : elles sont ignorées ici et restent visibles dans le rapprochement.
+ */
+export async function fetchClientActivityRows(): Promise<ClientActivityRow[]> {
+  const [{ data: clients, error }, lastMap] = await Promise.all([
+    supabase.from("clients").select("id,name"),
+    fetchLastActivityByClient(),
+  ]);
+  if (error) throw error;
+
+  const ca = await supabase
+    .from("pilot_ca_entries")
+    .select("client_id,amount_ht")
+    .eq("kind", "vente")
+    .not("client_id", "is", null);
+  if (ca.error) throw ca.error;
+  const caByClient = new Map<string, number>();
+  for (const r of ca.data ?? []) {
+    if (!r.client_id) continue;
+    caByClient.set(r.client_id, (caByClient.get(r.client_id) ?? 0) + Number(r.amount_ht ?? 0));
+  }
+
+  const now = Date.now();
+  return (clients ?? []).map((c) => {
+    const lastActivity = lastMap.get(c.id) ?? null;
+    return {
+      id: c.id,
+      name: c.name,
+      lastActivity,
+      status: getClientActivityStatus(lastActivity, now),
+      caTotal: caByClient.get(c.id) ?? 0,
+    };
+  });
+}
+
 /**
  * Dernière date d'activité par client.
  * Source principale : interventions.intervention_date.
