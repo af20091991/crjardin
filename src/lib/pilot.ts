@@ -299,10 +299,10 @@ export function computeKpis(params: {
   const benefice = caYear - chargesYear;
   const marge = caYear > 0 ? (benefice / caYear) * 100 : 0;
 
-  // Objectif annuel : dérivé de la cible taux horaire (pilot_settings.target_hourly_rate).
-  // Reste 0 tant que le paramètre n'est pas défini.
+  // Cible = taux horaire visé (pilot_settings.target_hourly_rate).
+  // L'atteinte se mesure donc sur le taux horaire vendu, jamais en divisant un
+  // CA annuel par un taux horaire (ce qui produisait des pourcentages absurdes).
   const target = settings.target_hourly_rate ?? 0;
-  const objectifPct = target > 0 ? (caYear / target) * 100 : 0;
 
   // Projection fin d'année selon jours écoulés
   const now = new Date();
