@@ -14,6 +14,7 @@ import {
   HOURS_SOURCE_META,
 } from "@/lib/pilot-historic-hours";
 import { ClientHoursCard } from "@/components/pilot/ClientHoursCard";
+import { ClientProfitabilityCard } from "@/components/pilot/ClientProfitabilityCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -285,6 +286,9 @@ function PilotClient360() {
 
       {/* 2 — Historique commercial */}
       <PendingCaNotice autoCreated={(clientQ.data?.notes ?? "").includes(AUTO_CLIENT_MARKER)} />
+
+      {/* Analyse économique 360° : classification + ventes additionnelles */}
+      <ClientProfitabilityCard clientId={clientId} interventions={(interventionsQ.data ?? []).length} />
 
       <Card>
         <CardHeader className="pb-3">

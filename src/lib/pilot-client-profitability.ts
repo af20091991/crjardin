@@ -1,0 +1,157 @@
+// Classification économique des clients (Pilot Pro v2).
+//
+// Aucune saisie n'est demandée : tout provient du CA (pilot_ca_entries),
+// du ledger d'heures consolidé et des interventions. Un client dont les
+// données sont insuffisantes n'est PAS classé (confiance = faible).
+
+import type { PilotEntry } from "@/lib/pilot";
+import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
+import { aggregateHoursByClient } from "@/lib/pilot-hours-ledger";
+import { getThresholds, type PilotThresholds } from "@/lib/pilot-thresholds";
+
+export type ClientProfitClass =
+  | "tres_rentable"
+  | "rentable"
+  | "a_surveiller"
+  | "chronophage"
+  | "non_classe";
+
+export const PROFIT_CLASS_META: Record<
+  ClientProfitClass,
+  { label: string; tone: string; badge: string }
+> = {
+  tres_rentable: {
+    label: "Très rentable",
+    tone: "positive",
+    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
+  rentable: { label: "Rentable", tone: "positive", badge: "border-sky-200 bg-sky-50 text-sky-700" },
+  a_surveiller: {
+    label: "À surveiller",
+    tone: "warning",
+    badge: "border-amber-200 bg-amber-50 text-amber-700",
+  },
+  chronophage: {
+    label: "Chronophage",
+    tone: "warning",
+    badge: "border-red-200 bg-red-50 text-red-700",
+  },
+  non_classe: {
+    label: "Données insuffisantes",
+    tone: "default",
+    badge: "border-border bg-muted text-muted-foreground",
+  },
+};
+
+export interface ClientProfitability {
+  clientId: string;
+  name: string;
+  caTotal: number;
+  caYear: number;
+  caPrevYear: number;
+  /** Évolution CA année vs N-1 en %, `null` si N-1 absent. */
+  evolutionPct: number | null;
+  hours: number;
+  hoursSource: "interventions" | "historique" | "aucune";
+  interventions: number;
+  /** CA cumulé / heures réelles retenues. */
+  tauxHoraire: number | null;
+  classe: ClientProfitClass;
+  confidence: "haute" | "moyenne" | "faible";
+  /** Pourquoi PP affiche ce classement. */
+  why: string;
+}
+
+export function classifyClients(params: {
+  entries: PilotEntry[];
+  ledger: HoursLedgerEntry[];
+  interventionsByClient?: Map<string, number>;
+  year: number;
+  targetHourlyRate: number;
+  thresholds?: PilotThresholds;
+}): ClientProfitability[] {
+  const t = params.thresholds ?? getThresholds();
+  const { entries, ledger, year, targetHourlyRate } = params;
+
+  const agg = new Map<string, { name: string; total: number; y: number; prev: number }>();
+  for (const e of entries) {
+    if (!e.client_id) continue;
+    const yy = new Date(e.entry_date).getFullYear();
+    const cur = agg.get(e.client_id) ?? {
+      name: e.client_name ?? "Client",
+      total: 0,
+      y: 0,
+      prev: 0,
+    };
+    if (e.client_name) cur.name = e.client_name;
+    const amount = Number(e.amount_ht) || 0;
+    cur.total += amount;
+    if (yy === year) cur.y += amount;
+    if (yy === year - 1) cur.prev += amount;
+    agg.set(e.client_id, cur);
+  }
+
+  const hours = aggregateHoursByClient(ledger);
+  const rows: ClientProfitability[] = [];
+
+  const ids = new Set<string>([...agg.keys(), ...hours.keys()]);
+  for (const clientId of ids) {
+    const a = agg.get(clientId);
+    const h = hours.get(clientId);
+    const caTotal = a?.total ?? 0;
+    const heures = h?.reelles ?? 0;
+    const source = h?.reellesSource ?? "aucune";
+    const taux = heures > 0 && caTotal > 0 ? caTotal / heures : null;
+
+    const enough = heures >= t.heuresMinClient && caTotal > 0 && targetHourlyRate > 0;
+    let classe: ClientProfitClass = "non_classe";
+    let why = "Heures ou CA insuffisants pour juger la rentabilité de ce client.";
+    if (enough && taux != null) {
+      if (taux >= targetHourlyRate * t.clientTresRentableRatio) {
+        classe = "tres_rentable";
+        why = `Taux horaire généré ${taux.toFixed(0)} €/h ≥ ${(t.clientTresRentableRatio * 100).toFixed(0)} % de la cible (${targetHourlyRate} €/h) sur ${heures.toFixed(1)} h.`;
+      } else if (taux >= targetHourlyRate) {
+        classe = "rentable";
+        why = `Taux horaire généré ${taux.toFixed(0)} €/h au-dessus de la cible (${targetHourlyRate} €/h).`;
+      } else if (taux >= targetHourlyRate * t.clientSurveillerRatio) {
+        classe = "a_surveiller";
+        why = `Taux horaire généré ${taux.toFixed(0)} €/h légèrement sous la cible (${targetHourlyRate} €/h).`;
+      } else {
+        classe = "chronophage";
+        why = `Taux horaire généré ${taux.toFixed(0)} €/h très en dessous de la cible sur ${heures.toFixed(1)} h consacrées.`;
+      }
+    }
+
+    const confidence: ClientProfitability["confidence"] =
+      source === "interventions" && heures >= t.heuresMinClient
+        ? "haute"
+        : heures > 0 && caTotal > 0
+          ? "moyenne"
+          : "faible";
+
+    rows.push({
+      clientId,
+      name: a?.name ?? h?.clientName ?? "Client",
+      caTotal,
+      caYear: a?.y ?? 0,
+      caPrevYear: a?.prev ?? 0,
+      evolutionPct: a && a.prev > 0 ? ((a.y - a.prev) / a.prev) * 100 : null,
+      hours: heures,
+      hoursSource: source,
+      interventions: params.interventionsByClient?.get(clientId) ?? 0,
+      tauxHoraire: taux,
+      classe,
+      confidence,
+      why,
+    });
+  }
+
+  return rows.sort((a, b) => b.caTotal - a.caTotal);
+}
+
+export function classifyClient(
+  clientId: string,
+  params: Parameters<typeof classifyClients>[0],
+): ClientProfitability | null {
+  return classifyClients(params).find((r) => r.clientId === clientId) ?? null;
+}

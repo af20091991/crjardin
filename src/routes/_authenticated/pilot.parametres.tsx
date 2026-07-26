@@ -10,7 +10,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Settings2, Target, CalendarClock, FileSpreadsheet, Upload, Link2 } from "lucide-react";
+import {
+  Settings2,
+  Target,
+  CalendarClock,
+  FileSpreadsheet,
+  Upload,
+  Link2,
+  SlidersHorizontal,
+} from "lucide-react";
+import {
+  useThresholds,
+  saveThresholds,
+  THRESHOLD_FIELDS,
+  DEFAULT_THRESHOLDS,
+  type PilotThresholds,
+} from "@/lib/pilot-thresholds";
 import { Link } from "@tanstack/react-router";
 import { listOrphanEntries } from "@/lib/pilot-ca-matching";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +52,10 @@ function ParamsPage() {
 
   const saveMut = useMutation({
     mutationFn: () => saveSettings(form),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["pilot-settings"] }); toast.success("Paramètres enregistrés"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pilot-settings"] });
+      toast.success("Paramètres enregistrés");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -56,7 +74,8 @@ function ParamsPage() {
           <Settings2 className="h-6 w-6 text-primary" /> Paramètres du pilotage
         </h1>
         <p className="text-sm text-muted-foreground">
-          Réglez ici toutes les valeurs de référence utilisées par les différents onglets (Direction, Taux horaire, Finance, Simulateur…).
+          Réglez ici toutes les valeurs de référence utilisées par les différents onglets
+          (Direction, Taux horaire, Finance, Simulateur…).
         </p>
       </div>
 
@@ -99,20 +118,86 @@ function ParamsPage() {
                     value={form[f.key] || ""}
                     onChange={(e) => setForm({ ...form, [f.key]: Number(e.target.value) || 0 })}
                   />
-                  <span className="whitespace-nowrap text-xs text-muted-foreground">{f.suffix}</span>
+                  <span className="whitespace-nowrap text-xs text-muted-foreground">
+                    {f.suffix}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
           <div className="flex justify-end">
-            <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>Enregistrer</Button>
+            <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+              Enregistrer
+            </Button>
           </div>
         </CardContent>
       </Card>
 
       <TjmSettingsCard />
+      <ThresholdsCard />
       <ExcelImportCard />
     </div>
+  );
+}
+
+/** Seuils et règles de calcul utilisés par tous les modules d'analyse PP. */
+function ThresholdsCard() {
+  const current = useThresholds();
+  const [draft, setDraft] = useState<PilotThresholds>(current);
+
+  useEffect(() => setDraft(current), [current]);
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <SlidersHorizontal className="h-4 w-4 text-primary" /> Seuils & règles de calcul
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Ces seuils pilotent les alertes et les classements (clients, prestations, charges) dans
+          Aujourd'hui, Direction, Finance et les fiches client.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {THRESHOLD_FIELDS.map((f) => (
+            <div key={f.key} className="space-y-1">
+              <Label className="text-xs">{f.label}</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.05"
+                  value={draft[f.key]}
+                  onChange={(e) => setDraft({ ...draft, [f.key]: Number(e.target.value) || 0 })}
+                />
+                <span className="whitespace-nowrap text-xs text-muted-foreground">{f.suffix}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">{f.help}</p>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              saveThresholds(DEFAULT_THRESHOLDS);
+              toast.success("Seuils réinitialisés");
+            }}
+          >
+            Réinitialiser
+          </Button>
+          <Button
+            onClick={() => {
+              saveThresholds(draft);
+              toast.success("Seuils enregistrés");
+            }}
+          >
+            Enregistrer
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -144,7 +229,9 @@ function TjmSettingsCard() {
         </CardHeader>
         <CardContent className="flex items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">Aucun paramètre TJM enregistré.</p>
-          <Button size="sm" onClick={() => mut.mutate({})}>Initialiser</Button>
+          <Button size="sm" onClick={() => mut.mutate({})}>
+            Initialiser
+          </Button>
         </CardContent>
       </Card>
     );
@@ -192,7 +279,9 @@ function TjmSettingsCard() {
         </div>
 
         <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Jours non facturables / an</p>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">
+            Jours non facturables / an
+          </p>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
             {offFields.map((f) => (
               <div key={f.k} className="space-y-1">
@@ -211,7 +300,9 @@ function TjmSettingsCard() {
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={() => mut.mutate(draft)} disabled={mut.isPending}>Enregistrer</Button>
+          <Button onClick={() => mut.mutate(draft)} disabled={mut.isPending}>
+            Enregistrer
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -239,7 +330,9 @@ type ImportRow = {
 };
 
 function normalizeKind(v: unknown): ImportRow["kind"] | null {
-  const s = String(v ?? "").trim().toLowerCase();
+  const s = String(v ?? "")
+    .trim()
+    .toLowerCase();
   if (["vente", "ventes", "v", "ca"].includes(s)) return "vente";
   if (["charge", "charges", "c"].includes(s)) return "charge";
   if (["remuneration", "rémunération", "remu", "salaire", "r"].includes(s)) return "remuneration";
@@ -267,8 +360,12 @@ function parseSheet(rows: Record<string, unknown>[], defaultYear: number): Impor
     const amount = Number(pickCol(r, ["montant ht", "montant", "amount", "ht"])) || 0;
     const hours = pickCol(r, ["heures", "hours", "h"]);
     out.push({
-      year, month, kind,
-      designation: (pickCol(r, ["désignation", "designation", "libellé", "libelle", "client"]) as string) ?? null,
+      year,
+      month,
+      kind,
+      designation:
+        (pickCol(r, ["désignation", "designation", "libellé", "libelle", "client"]) as string) ??
+        null,
       category: (pickCol(r, ["catégorie", "categorie", "category", "cat"]) as string) ?? null,
       amount_ht: amount,
       hours: hours == null || hours === "" ? null : Number(hours),
@@ -291,11 +388,15 @@ function ExcelImportCard() {
       const wb = XLSX.read(buf, { type: "array" });
       const rows: ImportRow[] = [];
       for (const name of wb.SheetNames) {
-        const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[name], { defval: "" });
+        const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[name], {
+          defval: "",
+        });
         rows.push(...parseSheet(json, year));
       }
       if (rows.length === 0) {
-        toast.error("Aucune ligne détectée. Attendu : Année, Mois, Type, Désignation, Catégorie, Montant HT, Heures.");
+        toast.error(
+          "Aucune ligne détectée. Attendu : Année, Mois, Type, Désignation, Catégorie, Montant HT, Heures.",
+        );
       } else {
         setPreview(rows);
         toast.success(`${rows.length} ligne(s) prêtes à importer`);
@@ -348,21 +449,33 @@ function ExcelImportCard() {
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">
           Importez le fichier Excel de pilotage pour rafraîchir les données. Colonnes attendues :{" "}
-          <code className="rounded bg-muted px-1 text-xs">Année, Mois, Type, Désignation, Catégorie, Montant HT, Heures</code>.
-          <br />Type = <em>vente</em>, <em>charge</em> ou <em>remuneration</em>. Les données de chaque année présente
-          dans le fichier remplacent celles déjà en base.
+          <code className="rounded bg-muted px-1 text-xs">
+            Année, Mois, Type, Désignation, Catégorie, Montant HT, Heures
+          </code>
+          .
+          <br />
+          Type = <em>vente</em>, <em>charge</em> ou <em>remuneration</em>. Les données de chaque
+          année présente dans le fichier remplacent celles déjà en base.
         </p>
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
             <Label className="text-xs">Année par défaut</Label>
-            <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value) || year)} className="w-28" />
+            <Input
+              type="number"
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value) || year)}
+              className="w-28"
+            />
           </div>
           <Input
             ref={inputRef}
             type="file"
             accept=".xlsx,.xls,.csv"
             className="max-w-sm"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+            }}
             disabled={busy}
           />
         </div>
@@ -373,11 +486,17 @@ function ExcelImportCard() {
               {["vente", "charge", "remuneration"].map((k) => {
                 const rows = preview.filter((r) => r.kind === k);
                 const total = rows.reduce((s, r) => s + r.amount_ht, 0);
-                return <li key={k}>{k} : {rows.length} lignes — {formatEuro(total)}</li>;
+                return (
+                  <li key={k}>
+                    {k} : {rows.length} lignes — {formatEuro(total)}
+                  </li>
+                );
               })}
             </ul>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setPreview(null)}>Annuler</Button>
+              <Button variant="ghost" size="sm" onClick={() => setPreview(null)}>
+                Annuler
+              </Button>
               <Button size="sm" onClick={commit} disabled={busy}>
                 <Upload className="mr-1.5 h-4 w-4" /> Importer et remplacer
               </Button>
