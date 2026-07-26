@@ -966,6 +966,8 @@ export type Database = {
         Row: {
           amount_ht: number
           category: string | null
+          charge_category: string | null
+          charge_class: string | null
           client_id: string | null
           created_at: string
           designation: string | null
@@ -995,6 +997,8 @@ export type Database = {
         Insert: {
           amount_ht?: number
           category?: string | null
+          charge_category?: string | null
+          charge_class?: string | null
           client_id?: string | null
           created_at?: string
           designation?: string | null
@@ -1024,6 +1028,8 @@ export type Database = {
         Update: {
           amount_ht?: number
           category?: string | null
+          charge_category?: string | null
+          charge_class?: string | null
           client_id?: string | null
           created_at?: string
           designation?: string | null
@@ -1180,6 +1186,42 @@ export type Database = {
             referencedColumns: ["client_id"]
           },
         ]
+      }
+      pilot_charge_categories: {
+        Row: {
+          charge_class: string
+          created_at: string
+          id: string
+          is_active: boolean
+          keywords: string[]
+          label: string
+          position: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          charge_class?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          label: string
+          position?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          charge_class?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          label?: string
+          position?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       pilot_charges: {
         Row: {
@@ -3374,6 +3416,8 @@ export type Database = {
         Returns: {
           amount_ht: number
           category: string | null
+          charge_category: string | null
+          charge_class: string | null
           client_id: string | null
           created_at: string
           designation: string | null
@@ -3434,6 +3478,7 @@ export type Database = {
         Returns: number
       }
       next_intervention_reference: { Args: never; Returns: string }
+      pilot_classify_charges: { Args: { _user_id?: string }; Returns: number }
       pilot_clean_designation: { Args: { p: string }; Returns: string }
       pilot_normalize_designation: { Args: { t: string }; Returns: string }
       read_email_batch: {
@@ -3469,6 +3514,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      unaccent_lite: { Args: { t: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user" | "prestataire" | "observateur"
