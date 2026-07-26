@@ -762,7 +762,7 @@ function TodayPage() {
 
       {/* 4 — Quelles opportunités puis-je saisir ? */}
       <section className="space-y-2">
-      <SectionTitle question="Quelles opportunités puis-je saisir ?" label="Opportunités commerciales" />
+      <SectionTitle question="Opportunités" label="Relances, ventes additionnelles, prestations" />
         <div className="grid gap-3 md:grid-cols-3">
           <Card className="md:col-span-2">
             <CardContent className="space-y-3 pt-6">
@@ -836,6 +836,37 @@ function TodayPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h4 className="font-medium">Prestations complémentaires à développer</h4>
+            </div>
+            {prestationsADevelopper.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Pas encore assez de lignes CA et d'heures pour classer une prestation comme rentable.
+              </p>
+            ) : (
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {prestationsADevelopper.map((p) => (
+                  <li key={p.prestation} className="rounded-lg border border-border/60 p-2.5">
+                    <div className="flex items-center gap-2">
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium">{p.prestation}</p>
+                      <Badge variant="secondary" className="tabular-nums">
+                        {p.tauxHoraire == null ? "—" : `${formatEuro(p.tauxHoraire)}/h`}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{p.why}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link to="/pilot/prestations" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+              Voir la rentabilité par prestation <ArrowRight className="h-3 w-3" />
+            </Link>
+          </CardContent>
+        </Card>
       </section>
     </div>
   );
