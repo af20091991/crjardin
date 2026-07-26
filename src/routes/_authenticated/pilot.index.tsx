@@ -11,7 +11,7 @@ import { listAllInterventions } from "@/lib/interventions";
 import { listAllRecommendations } from "@/lib/garden";
 import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchClientActivityRows } from "@/lib/client-activity";
+import { CLIENT_ACTIVITY_RULES, fetchClientActivityRows } from "@/lib/client-activity";
 import { realHourlyRate, marginPct, periodComparison } from "@/lib/pilot-reliability";
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
@@ -284,11 +284,6 @@ function TodayPage() {
     return map;
   }, [entries.data]);
 
-  const sleeping12m = useMemo(() => {
-    const cut = today.getTime() - CLIENT_ACTIVITY_RULES.DORMANT_DAYS * DAY;
-    return Array.from(lastByClientCa.entries()).filter(([, v]) => v.last < cut);
-  }, [lastByClientCa]);
-
   const creationSansEntretien = useMemo(
     () =>
       Array.from(lastByClientCa.entries()).filter(
@@ -298,6 +293,7 @@ function TodayPage() {
   );
 
   const entretienSansConseil = useMemo(() => {
+    const DAY = 24 * 60 * 60 * 1000;
     const cut = today.getTime() - CLIENT_ACTIVITY_RULES.DORMANT_DAYS * DAY;
     return Array.from(lastByClientCa.entries()).filter(([, v]) => {
       if (!v.families.has("sap")) return false;
@@ -316,12 +312,14 @@ function TodayPage() {
   const decisionCounts = {
     urgent:
       acceptedNotPlanned.length +
-      terminatedNoReport.length +
+      reportsToSend.length +
+      reportsToGenerate.length +
       missingHours.length +
       goalsLate.length +
       timeOverruns.length,
     important:
-      dormants.length +
+      clientsARelancer.length +
+      clientsDormants.length +
       heavyLowMarginClients.length +
       entretienSansConseil.length +
       creationSansEntretien.length +
