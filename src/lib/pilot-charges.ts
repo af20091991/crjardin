@@ -30,6 +30,8 @@ export interface ChargeRow {
   amount_ht: number;
   charge_class: ChargeClass;
   charge_category: string;
+  /** Qualifiée comme investissement : suivie à part, hors charges mensuelles. */
+  is_investment: boolean;
 }
 
 type RawRow = {
@@ -41,6 +43,7 @@ type RawRow = {
   amount_ht: number | null;
   charge_class: string | null;
   charge_category: string | null;
+  is_investment?: boolean | null;
 };
 
 async function fetchAll(kind: "charge" | "vente"): Promise<RawRow[]> {
@@ -50,7 +53,7 @@ async function fetchAll(kind: "charge" | "vente"): Promise<RawRow[]> {
   for (;;) {
     const { data, error } = await supabase
       .from("pilot_ca_entries")
-      .select("id,year,month,kind,designation,amount_ht,charge_class,charge_category")
+      .select("id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment")
       .eq("kind", kind)
       .range(from, from + pageSize - 1);
     if (error) throw error;
@@ -72,7 +75,27 @@ export async function listChargeRows(): Promise<ChargeRow[]> {
     amount_ht: Number(r.amount_ht) || 0,
     charge_class: (r.charge_class as ChargeClass) ?? "a_classer",
     charge_category: r.charge_category ?? "À classer",
+    is_investment: Boolean(r.is_investment),
   }));
+}
+
+/** Qualifie (ou déqualifie) une ligne de charge en investissement. */
+export async function setChargeInvestment(id: string, isInvestment: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("pilot_ca_entries")
+    .update({ is_investment: isInvestment } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Total des investissements par exercice (jamais compté dans les charges). */
+export function investmentsByYear(rows: ChargeRow[]): Map<number, number> {
+  const m = new Map<number, number>();
+  for (const r of rows) {
+    if (!r.is_investment) continue;
+    m.set(r.year, (m.get(r.year) ?? 0) + r.amount_ht);
+  }
+  return m;
 }
 
 /** CA HT (ventes) par année — sert au poids des charges dans le CA. */
