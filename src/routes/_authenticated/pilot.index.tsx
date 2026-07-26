@@ -446,6 +446,10 @@ function TodayPage() {
     { label: "Clients à relancer (> 6 mois)", count: clientsARelancer.length, topic: "dormants" as FocusTopic },
   ].filter((s) => s.count > 0);
 
+  // Éléments à qualifier (jamais des retards) — clients dont la politique CR
+  // n'est pas encore tranchée.
+  const crToQualifyCount = crToQualify.size;
+
   return (
     <div className="space-y-5">
       <div>
