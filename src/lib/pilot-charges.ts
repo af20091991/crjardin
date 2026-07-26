@@ -151,6 +151,9 @@ export interface ChargesAnalysis {
   unclassifiedCount: number;
   unclassifiedAmount: number;
   totals: { fixe: number; variable: number; aClasser: number; total: number };
+  /** Investissements par exercice, suivis séparément des charges. */
+  investments: Map<number, number>;
+  investmentsTotal: number;
 }
 
 function monthsIn(rows: ChargeRow[]): number {
@@ -158,10 +161,12 @@ function monthsIn(rows: ChargeRow[]): number {
 }
 
 export function analyzeCharges(
-  rows: ChargeRow[],
+  allRows: ChargeRow[],
   salesByYear: Map<number, number>,
   categoryLabels: string[],
 ): ChargesAnalysis {
+  const rows = allRows.filter((r) => !r.is_investment);
+  const investments = investmentsByYear(allRows);
   const years = [...new Set(rows.map((r) => r.year))].sort((a, b) => a - b);
 
   const yearStats: YearCharges[] = years.map((year) => {
@@ -222,6 +227,8 @@ export function analyzeCharges(
       aClasser: yearStats.reduce((s, y) => s + y.aClasser, 0),
       total: yearStats.reduce((s, y) => s + y.total, 0),
     },
+    investments,
+    investmentsTotal: [...investments.values()].reduce((s, v) => s + v, 0),
   };
 }
 
@@ -238,14 +245,21 @@ export interface ProjectionBase {
   monthlyAverage: number;
   caToDate: number;
   margeDisponible: number;
+  /** Investissements de l'exercice, hors charges d'exploitation. */
+  investments: number;
+  /** Résultat après investissements = marge disponible − investissements. */
+  resultatApresInvestissements: number;
 }
 
 export function projectionBase(
-  rows: ChargeRow[],
+  allRows: ChargeRow[],
   year: number,
   salesByYear: Map<number, number>,
 ): ProjectionBase {
-  const yr = rows.filter((r) => r.year === year);
+  const yr = allRows.filter((r) => r.year === year && !r.is_investment);
+  const invest = allRows
+    .filter((r) => r.year === year && r.is_investment)
+    .reduce((s, r) => s + r.amount_ht, 0);
   const sum = (cls: ChargeClass) =>
     yr.filter((r) => r.charge_class === cls).reduce((s, r) => s + r.amount_ht, 0);
   const fixe = sum("fixe");
@@ -263,5 +277,7 @@ export function projectionBase(
     monthlyAverage: months > 0 ? total / months : 0,
     caToDate: ca,
     margeDisponible: ca - total,
+    investments: invest,
+    resultatApresInvestissements: ca - total - invest,
   };
 }
