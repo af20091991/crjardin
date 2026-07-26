@@ -318,6 +318,8 @@ export function computeKpis(params: {
   const tjm = workedDays > 0 ? caYear / workedDays : 0;
   // Taux horaire vendu = CA HT / heures facturées (pilot_ca_entries.hours)
   const tauxHoraireVendu = totalHours > 0 ? caYear / totalHours : 0;
+  // Atteinte de la cible : taux horaire vendu / taux horaire cible.
+  const objectifPct = target > 0 && tauxHoraireVendu > 0 ? (tauxHoraireVendu / target) * 100 : 0;
   // Taux horaire réel = CA HT / heures confirmées (interventions.hours_spent)
   let totalConfirmedHours = 0;
   if (confirmedHoursByClient) {
