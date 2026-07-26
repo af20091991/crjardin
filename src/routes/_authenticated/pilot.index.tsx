@@ -17,6 +17,7 @@ import type { FocusTopic } from "@/lib/pilot-focus";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import { listHistoricHours } from "@/lib/pilot-historic-hours";
+import { HoursSummaryCards } from "@/components/pilot/HoursSummaryCards";
 import {
   Euro, Wallet, Sparkles, AlertTriangle,
   Clock, Handshake, Users, CheckCircle2, ArrowRight, Send,
@@ -526,6 +527,11 @@ function TodayPage() {
       </section>
 
       {/* 2 — Quelles sont mes priorités ? */}
+      <section className="space-y-2">
+        <SectionTitle question="Où passent mes heures ?" label="Heures consolidées" />
+        <HoursSummaryCards year={year} month={month + 1} />
+      </section>
+
       <section className="space-y-2">
       <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
         {priorities.length === 0 ? (

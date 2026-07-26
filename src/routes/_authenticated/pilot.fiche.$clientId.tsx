@@ -13,6 +13,7 @@ import {
   sumHistoricHours,
   HOURS_SOURCE_META,
 } from "@/lib/pilot-historic-hours";
+import { ClientHoursCard } from "@/components/pilot/ClientHoursCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -337,6 +338,8 @@ function PilotClient360() {
       </Card>
 
       {/* 3 — Rentabilité client — synthèse chiffrée */}
+      <ClientHoursCard clientId={client.id} caCumule={caCumule} />
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
+import { HoursGapCard } from "@/components/pilot/HoursGapCard";
 import { KpiCard } from "@/components/pilot/KpiCard";
 import { RecommendationsFunnelWidget } from "@/components/RecommendationsFunnelWidget";
 import { Card, CardContent } from "@/components/ui/card";
@@ -220,6 +221,8 @@ function PilotDashboard() {
           description="Valeur estimée des recommandations en attente et acceptées, et CA généré par les recommandations facturées."
         />
       </div>
+
+      <HoursGapCard year={year} />
 
       {/* Insights */}
       {insights.length > 0 && (
