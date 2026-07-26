@@ -311,6 +311,48 @@ export async function autoLinkHighConfidence(
 
 export const AUTO_CLIENT_MARKER = "Créé automatiquement depuis historique CA";
 
+/**
+ * Crée une fiche client minimale depuis la désignation d'une ligne CA et rattache
+ * la ligne. La fiche est marquée pour rester identifiable et complétable.
+ */
+export async function createClientFromEntry(entry: CaEntry): Promise<Client> {
+  const raw = (entry.designation ?? "").trim();
+  if (!raw) throw new Error("Désignation vide : impossible de créer une fiche client.");
+  const client = await createClient({
+    name: raw,
+    notes: `${AUTO_CLIENT_MARKER} (${entry.designation ?? ""} — ${entry.month}/${entry.year}). À compléter : adresse, téléphone, e-mail.`,
+  });
+  await linkEntryToClient({
+    entryId: entry.id,
+    clientId: client.id,
+    method: "new_client",
+    note: AUTO_CLIENT_MARKER,
+  });
+  return client;
+}
+
+/** Nombre de lignes CA vente non rattachées (indicateur de couverture). */
+export async function countOrphanEntries(): Promise<number> {
+  const { count, error } = await supabase
+    .from("pilot_ca_entries")
+    .select("id", { count: "exact", head: true })
+    .is("client_id", null)
+    .eq("kind", "vente");
+  if (error) throw error;
+  return count ?? 0;
+}
+
+/** Total HT des lignes CA non rattachées (jamais masqué dans les vues). */
+export async function sumOrphanAmount(): Promise<number> {
+  const { data, error } = await supabase
+    .from("pilot_ca_entries")
+    .select("amount_ht")
+    .is("client_id", null)
+    .eq("kind", "vente");
+  if (error) throw error;
+  return (data ?? []).reduce((s, r) => s + Number((r as { amount_ht: number }).amount_ht ?? 0), 0);
+}
+
 // ---- Accès base ----
 export async function listOrphanEntries(): Promise<CaEntry[]> {
   const { data, error } = await supabase
