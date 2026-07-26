@@ -1,76 +1,63 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
-import { useQuery } from "@tanstack/react-query";
-import { computeKpis, healthScore, HEALTH_META, generateThematicInsights, clientStatsWithHours, fetchConfirmedHoursByClient, DEFAULT_SETTINGS } from "@/lib/pilot";
+import { computeKpis, fetchConfirmedHoursByClient, DEFAULT_SETTINGS } from "@/lib/pilot";
+import { listGoals } from "@/lib/pilot-goals";
+import { fetchClientActivityRows } from "@/lib/client-activity";
+import { listChargeRows, listSalesByYear, listChargeCategories, analyzeCharges } from "@/lib/pilot-charges";
+import { pragmaticHealth, HEALTH_THEME_META, HEALTH_LEVEL_META } from "@/lib/pilot-health";
 import { askPilotAi } from "@/lib/pilot-ai.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Bot } from "lucide-react";
+import { Sparkles, Send, Bot, HeartPulse, CheckCircle2, AlertTriangle, MinusCircle } from "lucide-react";
 import { toast } from "sonner";
+import { currentYear } from "@/lib/date-utils";
 
 export const Route = createFileRoute("/_authenticated/pilot/sante")({
+  head: () => ({ meta: [{ title: "Santé de l'entreprise — Pilot Pro" }] }),
   component: SantePage,
 });
 
-const BREAKDOWN_DEFS: Record<string, string> = {
-  Marge: "Marge nette (bénéfice / CA). Objectif ≥ 30 % pour une note maximale.",
-  Croissance: "Progression du CA vs même période N-1. +25 % ≈ 100/100.",
-  Objectif: "Pourcentage de l'objectif annuel de CA atteint à date.",
-  Rentabilité: "Taux horaire réel comparé au taux horaire cible défini dans les paramètres.",
-  Activité: "Volume d'interventions annuelles (100 interventions = 100/100).",
-};
-
-const THEME_TONE: Record<string, string> = {
-  Croissance: "bg-emerald-100 text-emerald-700",
-  Rentabilité: "bg-blue-100 text-blue-700",
-  Activité: "bg-amber-100 text-amber-700",
-  Mix: "bg-purple-100 text-purple-700",
-  Clients: "bg-orange-100 text-orange-700",
-  Saisonnalité: "bg-cyan-100 text-cyan-700",
-  Charges: "bg-rose-100 text-rose-700",
-  Objectif: "bg-primary/10 text-primary",
-};
-
 function SantePage() {
   const { entries, charges, settings } = usePilotData();
-  const year = new Date().getFullYear();
+  const year = currentYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const confirmed = useQuery({
-    queryKey: ["confirmed-hours-by-client", year],
-    queryFn: () => fetchConfirmedHoursByClient(year),
-  });
+
+  const confirmed = useQuery({ queryKey: ["confirmed-hours-by-client", year], queryFn: () => fetchConfirmedHoursByClient(year) });
+  const goalsQ = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
+  const activityQ = useQuery({ queryKey: ["client-activity-rows"], queryFn: fetchClientActivityRows });
+  const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
+  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year"], queryFn: listSalesByYear });
+  const catsQ = useQuery({ queryKey: ["pilot-charge-categories"], queryFn: listChargeCategories });
+
   const k = useMemo(
     () => computeKpis({
       entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
-      year, month: new Date().getMonth(),
-      confirmedHoursByClient: confirmed.data,
+      year, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data,
     }),
     [entries.data, charges.data, set, year, confirmed.data],
   );
-  const health = useMemo(() => healthScore(k, set), [k, set]);
-  const insights = useMemo(
-    () => generateThematicInsights(k, set, clientStatsWithHours(entries.data ?? [], year, confirmed.data), charges.data ?? []),
-    [k, set, entries.data, charges.data, year, confirmed.data],
-  );
-  const meta = HEALTH_META[health.level];
 
-  // Groupe par thème
-  const insightsByTheme = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const i of insights) {
-      const arr = map.get(i.theme) ?? [];
-      arr.push(i.text);
-      map.set(i.theme, arr);
-    }
-    return [...map.entries()];
-  }, [insights]);
+  const chargesAnalysis = useMemo(() => {
+    if (!chargeRowsQ.data || !salesQ.data) return null;
+    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label));
+  }, [chargeRowsQ.data, salesQ.data, catsQ.data]);
 
-  // AI chat
+  const health = useMemo(() => {
+    const rows = activityQ.data ?? [];
+    return pragmaticHealth({
+      k,
+      settings: set,
+      goals: goalsQ.data ?? [],
+      charges: chargesAnalysis,
+      dormantClients: rows.filter((r) => r.status === "dormant").length,
+      activeClients: rows.filter((r) => r.status === "actif").length,
+    });
+  }, [k, set, goalsQ.data, chargesAnalysis, activityQ.data]);
+
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const askMut = useMutation({
@@ -81,93 +68,116 @@ function SantePage() {
 
   if (entries.isLoading) return <Skeleton className="h-64 rounded-xl" />;
 
+  const meta = HEALTH_LEVEL_META[health.level];
   const R = 54;
   const C = 2 * Math.PI * R;
+  const pctScore = health.score ?? 0;
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card><CardContent className="flex flex-col items-center gap-3 pt-8">
-          <div className="relative h-40 w-40">
-            <svg viewBox="0 0 128 128" className="h-full w-full -rotate-90">
-              <circle cx="64" cy="64" r={R} fill="none" stroke="hsl(var(--muted))" strokeWidth="12" />
-              <circle cx="64" cy="64" r={R} fill="none" stroke={meta.color} strokeWidth="12" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C - (C * health.score) / 100} />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-serif text-4xl font-semibold">{health.score}</span>
-              <span className="text-xs text-muted-foreground">/ 100</span>
-            </div>
-          </div>
-          <span className={`rounded-full px-3 py-1 text-sm font-medium ${meta.tone}`}>{meta.label}</span>
-        </CardContent></Card>
-        <Card><CardContent className="space-y-3 pt-6">
-          <h3 className="font-medium">Détail de la note</h3>
-          {health.breakdown.map((b) => (
-            <div key={b.label} className="space-y-1" title={BREAKDOWN_DEFS[b.label]}>
-              <div className="flex justify-between text-sm">
-                <span>{b.label}</span>
-                <span className="font-medium">{b.value == null ? "—" : `${b.value}/100`}</span>
-              </div>
-              {b.value == null ? (
-                <p className="text-[11px] text-muted-foreground">{b.note ?? "Données insuffisantes"}</p>
-              ) : (
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${b.value}%` }} />
-                </div>
-              )}
-            </div>
-          ))}
-        </CardContent></Card>
+      <div>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+          <HeartPulse className="h-6 w-6 text-primary" /> Santé de l'entreprise
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Quatre questions simples : est-ce que je gagne de l'argent, est-ce que je vends assez,
+          est-ce que mon temps est bien employé, est-ce que j'avance sur mes priorités ?
+        </p>
       </div>
 
-      {/* Explications automatiques par thématique */}
-      {insightsByTheme.length > 0 && (
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base"><Sparkles className="h-4 w-4 text-primary" />Explications automatiques</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            {insightsByTheme.map(([theme, texts]) => (
-              <div key={theme} className="space-y-2">
-                <Badge className={THEME_TONE[theme] ?? "bg-muted"}>{theme}</Badge>
-                <ul className="space-y-1.5">
-                  {texts.map((t, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-muted-foreground">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>{t}</span>
-                    </li>
-                  ))}
-                </ul>
+          <CardContent className="flex flex-col items-center gap-3 pt-8">
+            <div className="relative h-32 w-32">
+              <svg viewBox="0 0 120 120" className="h-32 w-32 -rotate-90">
+                <circle cx="60" cy="60" r={R} className="fill-none stroke-muted" strokeWidth="10" />
+                <circle
+                  cx="60" cy="60" r={R} fill="none" stroke={meta.color} strokeWidth="10" strokeLinecap="round"
+                  strokeDasharray={C} strokeDashoffset={C - (C * pctScore) / 100}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="font-serif text-3xl font-semibold">{health.score ?? "—"}</span>
+                <span className="text-xs text-muted-foreground">/ 100</span>
+              </div>
+            </div>
+            <span className={`rounded-full px-3 py-1 text-sm font-medium ${meta.tone}`}>{meta.label}</span>
+            <p className="max-w-sm text-center text-sm text-muted-foreground">{health.interpretation}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Ce qu'il faut faire</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {health.actions.map((a, i) => (
+              <div key={i} className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span>{a}</span>
               </div>
             ))}
           </CardContent>
         </Card>
-      )}
+      </div>
 
-      {/* Assistant IA */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {health.themes.map((t) => {
+          const tm = HEALTH_THEME_META[t.theme];
+          return (
+            <Card key={t.theme}>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center justify-between text-base">
+                  <span>{tm.label}</span>
+                  <span className="font-serif text-xl" style={{ color: t.score == null ? "#94A3B8" : tm.color }}>
+                    {t.score == null ? "—" : `${t.score}/100`}
+                  </span>
+                </CardTitle>
+                <p className="text-xs italic text-muted-foreground">{tm.question}</p>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full" style={{ width: `${t.score ?? 0}%`, background: tm.color }} />
+                </div>
+                {t.details.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t.reason}</p>
+                ) : (
+                  <ul className="space-y-1 text-sm">
+                    {t.details.map((d) => (
+                      <li key={d.label} className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5 text-muted-foreground">
+                          {d.ok == null ? <MinusCircle className="h-3.5 w-3.5" />
+                            : d.ok ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                              : <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />}
+                          {d.label}
+                        </span>
+                        <span className="font-medium tabular-nums">{d.value}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-xs text-muted-foreground">{t.reason}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base"><Bot className="h-4 w-4 text-primary" />Assistant IA CR Pro</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base"><Bot className="h-4 w-4 text-primary" /> Assistant de direction</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground">Posez une question sur votre activité (CA, marge, clients, saisonnalité, objectifs…). L'IA interroge les données de votre application.</p>
           <Textarea
+            rows={2}
+            placeholder="Ex : quelles prestations sont les plus rentables cette année ?"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Ex. : Sur quels clients dois-je concentrer mes efforts commerciaux au T3 ?"
-            className="min-h-[80px]"
           />
           <div className="flex justify-end">
-            <Button size="sm" onClick={() => askMut.mutate(question)} disabled={askMut.isPending || question.trim().length < 3}>
-              <Send className="mr-1.5 h-4 w-4" />{askMut.isPending ? "Analyse…" : "Interroger l'IA"}
+            <Button onClick={() => question.trim() && askMut.mutate(question.trim())} disabled={askMut.isPending} className="gap-2">
+              <Send className="h-4 w-4" /> {askMut.isPending ? "Analyse…" : "Poser la question"}
             </Button>
           </div>
-          {answer && (
-            <div className="rounded-lg border border-border bg-muted/20 p-4 text-sm">
-              <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-primary"><Sparkles className="h-3.5 w-3.5" />Réponse</div>
-              <div className="whitespace-pre-wrap leading-relaxed text-foreground">{answer}</div>
-            </div>
-          )}
+          {answer && <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/30 p-3 text-sm">{answer}</div>}
         </CardContent>
       </Card>
     </div>
