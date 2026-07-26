@@ -12,6 +12,8 @@ export interface HoursRow {
   year: number;
   month: number;
   temps_terrain: number | null;
+  /** Heures administratives / bureau / préparation / gestion d'entreprise. */
+  temps_gestion: number | null;
   jours_travailles: number | null;
   created_at: string;
   updated_at: string;
@@ -49,7 +51,7 @@ export async function listHours(year: number): Promise<HoursRow[]> {
 export async function upsertHours(
   year: number,
   month: number,
-  input: { temps_terrain?: number | null; jours_travailles?: number | null },
+  input: { temps_terrain?: number | null; temps_gestion?: number | null; jours_travailles?: number | null },
 ): Promise<void> {
   const user_id = await uid();
   const { error } = await supabase
@@ -87,34 +89,88 @@ export async function monthlyCa(year: number): Promise<number[]> {
   return totals;
 }
 
+/**
+ * Heures terrain mensuelles récupérées automatiquement depuis les lignes de
+ * vente du suivi CA. Jamais saisies manuellement : l'information existe déjà.
+ */
+export async function monthlyFieldHours(year: number): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("pilot_ca_entries")
+    .select("month, hours")
+    .eq("year", year)
+    .eq("kind", "vente");
+  if (error) throw error;
+  const totals = Array(12).fill(0) as number[];
+  for (const r of (data ?? []) as unknown as { month: number; hours: number | null }[]) {
+    if (r.month >= 1 && r.month <= 12) totals[r.month - 1] += Number(r.hours) || 0;
+  }
+  return totals;
+}
+
 // ---------- Calculs ----------
 export type MonthMetric = {
   month: number;
   temps_terrain: number | null;
+  /** Origine du temps terrain retenu. */
+  terrainSource: "ca" | "saisie" | "aucune";
+  temps_gestion: number | null;
   jours_travailles: number | null;
   ca: number;
   brut: number | null; // taux horaire terrain
   net: number | null; // terrain + gestion
   caJour: number | null;
+  /** Part du temps consacrée au terrain (0-1). */
+  partTerrain: number | null;
 };
 
 export function computeMonths(
   ca: number[],
   hours: HoursRow[],
-  gestion: number,
+  gestionDefaut: number,
+  /** Heures terrain issues du CA (source prioritaire). */
+  caHours: number[] = [],
 ): MonthMetric[] {
   const byMonth = new Map(hours.map((h) => [h.month, h]));
   return Array.from({ length: 12 }, (_, i) => {
     const m = i + 1;
     const h = byMonth.get(m);
-    const terrain = h?.temps_terrain ?? null;
+    const fromCa = Number(caHours[i]) || 0;
+    const saisi = h?.temps_terrain ?? null;
+    const terrain = fromCa > 0 ? fromCa : saisi && saisi > 0 ? saisi : null;
+    const terrainSource: MonthMetric["terrainSource"] =
+      fromCa > 0 ? "ca" : saisi && saisi > 0 ? "saisie" : "aucune";
+    const gestionSaisie = h?.temps_gestion == null ? null : Number(h.temps_gestion);
+    const gestion = gestionSaisie ?? gestionDefaut;
     const jours = h?.jours_travailles ?? null;
     const caM = ca[i] ?? 0;
     const brut = terrain && terrain > 0 ? caM / terrain : null;
     const net = terrain && terrain + gestion > 0 ? caM / (terrain + gestion) : null;
     const caJour = jours && jours > 0 ? caM / jours : null;
-    return { month: m, temps_terrain: terrain, jours_travailles: jours, ca: caM, brut, net, caJour };
+    const partTerrain = terrain && terrain + gestion > 0 ? terrain / (terrain + gestion) : null;
+    return {
+      month: m,
+      temps_terrain: terrain,
+      terrainSource,
+      temps_gestion: gestionSaisie,
+      jours_travailles: jours,
+      ca: caM,
+      brut,
+      net,
+      caJour,
+      partTerrain,
+    };
   });
+}
+
+/**
+ * Mois écoulés de l'année pour lesquels le temps de gestion n'a jamais été
+ * renseigné. Sert à demander la saisie — uniquement quand l'info manque.
+ */
+export function monthsMissingGestion(months: MonthMetric[], year: number, today = new Date()): number[] {
+  const lastClosed = year < today.getFullYear() ? 12 : today.getMonth(); // mois écoulés
+  return months
+    .filter((m) => m.month <= lastClosed && m.temps_gestion == null && (m.ca > 0 || (m.temps_terrain ?? 0) > 0))
+    .map((m) => m.month);
 }
 
 export type TjmResult = {

@@ -7,6 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatEuro } from "@/lib/pilot";
 import { currentYear } from "@/lib/date-utils";
 import {
+  ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from "recharts";
+import {
   analyzeCharges,
   listChargeCategories,
   listChargeRows,
@@ -55,6 +59,34 @@ function ChargesPage() {
   const priority = analysis.categories.filter((c) =>
     (PRIORITY_VARIABLE_CATEGORIES as readonly string[]).includes(c.label),
   );
+
+  // Évolution annuelle fixes / variables
+  const evolutionData = analysis.years.map((y) => ({
+    annee: String(y.year),
+    Fixes: Math.round(y.fixe),
+    Variables: Math.round(y.variable),
+    Total: Math.round(y.total),
+  }));
+
+  // Répartition des charges par catégorie (top 8 + autres)
+  const sorted = analysis.categories.filter((c) => c.total > 0);
+  const top = sorted.slice(0, 8);
+  const autres = sorted.slice(8).reduce((s, c) => s + c.total, 0);
+  const repartition = [
+    ...top.map((c) => ({ name: c.label, value: Math.round(c.total) })),
+    ...(autres > 0 ? [{ name: "Autres", value: Math.round(autres) }] : []),
+  ];
+  const PIE_COLORS = ["#4F8E33", "#EE8627", "#2E8CCC", "#9333EA", "#0891B2", "#DC2626", "#65A30D", "#D97706", "#94A3B8"];
+
+  // Suivi historique des 3 charges variables prioritaires
+  const priorityTrend = analysis.years.map((y) => {
+    const row: Record<string, string | number> = { annee: String(y.year) };
+    for (const c of priority) {
+      row[c.label] = Math.round(c.years.find((cy) => cy.year === y.year)?.total ?? 0);
+    }
+    return row;
+  });
+
   return (
     <div className="space-y-5">
       <div>
@@ -79,6 +111,67 @@ function ChargesPage() {
             <span className="text-muted-foreground">
               Comptées dans le total, exclues des catégories analysées.
             </span>
+          </CardContent>
+        </Card>
+      )}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Évolution des charges par exercice</CardTitle></CardHeader>
+          <CardContent>
+            {evolutionData.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Aucune charge enregistrée.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={evolutionData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="annee" fontSize={12} />
+                  <YAxis fontSize={12} unit="€" />
+                  <Tooltip formatter={(v: number) => formatEuro(v)} />
+                  <Legend />
+                  <Bar dataKey="Fixes" stackId="c" fill="#4F8E33" />
+                  <Bar dataKey="Variables" stackId="c" fill="#EE8627" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Répartition par catégorie</CardTitle></CardHeader>
+          <CardContent>
+            {repartition.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Aucune catégorie exploitable.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={repartition} dataKey="value" nameKey="name" innerRadius={55} outerRadius={95} paddingAngle={2}>
+                    {repartition.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: number) => formatEuro(v)} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      {priority.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Suivi historique : Alimentaire, Carburant, Déchèterie</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={priorityTrend} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="annee" fontSize={12} />
+                <YAxis fontSize={12} unit="€" />
+                <Tooltip formatter={(v: number) => formatEuro(v)} />
+                <Legend />
+                {priority.map((c, i) => (
+                  <Line key={c.label} type="monotone" dataKey={c.label} stroke={PIE_COLORS[i % PIE_COLORS.length]} strokeWidth={2} />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       )}

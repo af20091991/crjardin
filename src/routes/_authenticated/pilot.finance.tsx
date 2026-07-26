@@ -1,302 +1,249 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
+import { computeKpis, fetchConfirmedHoursByClient, DEFAULT_SETTINGS, formatEuro, MONTHS } from "@/lib/pilot";
+import { annualSummary } from "@/lib/pilot-annual";
+import { listChargeRows, listSalesByYear, listChargeCategories, analyzeCharges } from "@/lib/pilot-charges";
+import { monthlyCa, monthlyFieldHours, listHours, computeMonths, getTjmSettings } from "@/lib/pilot-hours";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Wallet, Clock } from "lucide-react";
 import {
-  createCharge, deleteCharge, formatEuro, computeKpis, breakEven, annualCharges,
-  fetchConfirmedHoursByClient, clientStatsWithHours, FAMILY_META, type PilotFamily,
-  DEFAULT_SETTINGS, type PilotChargeInput,
-} from "@/lib/pilot";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+  ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from "recharts";
+import { currentYear } from "@/lib/date-utils";
+
+const YEAR = currentYear();
 
 export const Route = createFileRoute("/_authenticated/pilot/finance")({
+  head: () => ({ meta: [{ title: "Tableau financier — Pilot Pro" }] }),
   component: FinancePage,
 });
 
-const emptyCharge = (): PilotChargeInput => ({ label: "", category: "", kind: "fixe", amount: 0, period: "mensuel", charge_date: null });
-
 function FinancePage() {
-  const qc = useQueryClient();
   const { entries, charges, settings } = usePilotData();
-  const year = new Date().getFullYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<PilotChargeInput>(emptyCharge());
 
-  const confirmed = useQuery({
-    queryKey: ["confirmed-hours-by-client", year],
-    queryFn: () => fetchConfirmedHoursByClient(year),
-  });
+  const confirmed = useQuery({ queryKey: ["confirmed-hours-by-client", YEAR], queryFn: () => fetchConfirmedHoursByClient(YEAR) });
+  const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
+  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year"], queryFn: listSalesByYear });
+  const catsQ = useQuery({ queryKey: ["pilot-charge-categories"], queryFn: listChargeCategories });
+  const caMonthQ = useQuery({ queryKey: ["pilot-hours-ca", YEAR], queryFn: () => monthlyCa(YEAR) });
+  const caHoursQ = useQuery({ queryKey: ["pilot-ca-field-hours", YEAR], queryFn: () => monthlyFieldHours(YEAR) });
+  const hoursQ = useQuery({ queryKey: ["pilot-hours", YEAR], queryFn: () => listHours(YEAR) });
+  const tjmQ = useQuery({ queryKey: ["pilot-tjm-settings"], queryFn: getTjmSettings });
 
   const k = useMemo(
     () => computeKpis({
       entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
-      year, month: new Date().getMonth(),
-      confirmedHoursByClient: confirmed.data,
+      year: YEAR, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data,
     }),
-    [entries.data, charges.data, set, year, confirmed.data],
+    [entries.data, charges.data, set, confirmed.data],
   );
-  const be = useMemo(() => breakEven(k), [k]);
 
-  const chargeList = charges.data ?? [];
-  const fixes = annualCharges(chargeList.filter((c) => c.kind === "fixe"), year);
-  const variables = annualCharges(chargeList.filter((c) => c.kind === "variable"), year);
-  const coutHoraire = k.totalHours > 0 ? k.chargesYear / k.totalHours : 0;
-  const caf = k.benefice; // simplifié : bénéfice (résultat) comme proxy de la CAF
-  const ecartTaux =
-    k.tauxHoraireReel > 0 && k.tauxHoraireVendu > 0
-      ? k.tauxHoraireReel - k.tauxHoraireVendu
-      : null;
-
-  // Analyse par client (top 20 CA de l'année, avec heures réelles)
-  const cstats = useMemo(
-    () => clientStatsWithHours(entries.data ?? [], year, confirmed.data),
-    [entries.data, year, confirmed.data],
+  const annual = useMemo(
+    () => annualSummary(entries.data ?? [], chargeRowsQ.data ?? []),
+    [entries.data, chargeRowsQ.data],
   );
-  const topClients = cstats.slice(0, 20);
 
-  // CA N-1 par client (pour évolution)
-  const caPrevByClient = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const e of entries.data ?? []) {
-      if (new Date(e.entry_date).getFullYear() !== year - 1) continue;
-      const key = e.client_id ?? `name:${(e.client_name ?? "").toLowerCase()}`;
-      map.set(key, (map.get(key) ?? 0) + e.amount_ht);
+  const analysis = useMemo(() => {
+    if (!chargeRowsQ.data || !salesQ.data) return null;
+    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label));
+  }, [chargeRowsQ.data, salesQ.data, catsQ.data]);
+
+  const gestionDefaut = tjmQ.data?.heures_gestion ?? 60;
+  const months = useMemo(
+    () => computeMonths(caMonthQ.data ?? Array(12).fill(0), hoursQ.data ?? [], gestionDefaut, caHoursQ.data ?? []),
+    [caMonthQ.data, hoursQ.data, gestionDefaut, caHoursQ.data],
+  );
+
+  // Charges mensuelles réelles de l'exercice
+  const chargesByMonth = useMemo(() => {
+    const arr = Array(12).fill(0) as number[];
+    for (const r of chargeRowsQ.data ?? []) {
+      if (r.year === YEAR && r.month >= 1 && r.month <= 12) arr[r.month - 1] += r.amount_ht;
     }
-    return map;
-  }, [entries.data, year]);
+    return arr;
+  }, [chargeRowsQ.data]);
 
-  // Analyse par famille de prestation
-  const byFamily = useMemo(() => {
-    const acc = new Map<PilotFamily, { ca: number; hours: number; count: number }>();
-    for (const e of entries.data ?? []) {
-      if (new Date(e.entry_date).getFullYear() !== year) continue;
-      const cur = acc.get(e.family) ?? { ca: 0, hours: 0, count: 0 };
-      cur.ca += e.amount_ht;
-      cur.hours += e.hours;
-      cur.count += 1;
-      acc.set(e.family, cur);
-    }
-    return Array.from(acc.entries()).map(([family, v]) => ({
-      family,
-      label: FAMILY_META[family].label,
-      color: FAMILY_META[family].color,
-      ca: v.ca,
-      hours: v.hours,
-      count: v.count,
-      hourlyRate: v.hours > 0 ? v.ca / v.hours : 0,
-    })).sort((a, b) => b.ca - a.ca);
-  }, [entries.data, year]);
+  const monthly = months.map((m, i) => ({
+    mois: MONTHS[m.month - 1],
+    CA: Math.round(m.ca),
+    Charges: Math.round(chargesByMonth[i]),
+    Bénéfice: Math.round(m.ca - chargesByMonth[i]),
+    tauxNet: m.net,
+  }));
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["pilot-charges"] });
-  const saveMut = useMutation({
-    mutationFn: () => createCharge(form),
-    onSuccess: () => { invalidate(); setOpen(false); setForm(emptyCharge()); toast.success("Charge ajoutée"); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const delMut = useMutation({
-    mutationFn: deleteCharge,
-    onSuccess: () => { invalidate(); toast.success("Charge supprimée"); },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const currentYearRow = annual.find((a) => a.year === YEAR);
+  const prevYearRow = annual.find((a) => a.year === YEAR - 1);
+  const chargesYear = currentYearRow?.charges ?? 0;
+  const benefice = (currentYearRow?.caHt ?? 0) - chargesYear;
+  const marge = currentYearRow && currentYearRow.caHt > 0 ? (benefice / currentYearRow.caHt) * 100 : 0;
+  const monthsObserved = analysis?.years.find((y) => y.year === YEAR)?.monthsObserved ?? 0;
+  const chargesMensuelles = monthsObserved > 0 ? chargesYear / monthsObserved : 0;
+  const seuilMensuel = chargesMensuelles;
+  const totalHeures = months.reduce((s, m) => s + (m.temps_terrain ?? 0) + (m.temps_gestion ?? gestionDefaut), 0);
+  const coutHoraire = totalHeures > 0 ? chargesYear / totalHeures : 0;
 
-  const cards = [
-    { label: "CA annuel HT", value: formatEuro(k.caYear) },
-    { label: "Charges totales", value: formatEuro(k.chargesYear) },
-    { label: "Charges fixes", value: formatEuro(fixes) },
-    { label: "Charges variables", value: formatEuro(variables) },
-    { label: "Bénéfice / Résultat", value: formatEuro(k.benefice) },
-    { label: "Marge nette", value: `${k.marge.toFixed(0)} %` },
-    { label: "Coût horaire", value: `${formatEuro(coutHoraire)}/h` },
-    { label: "Taux horaire vendu", value: k.tauxHoraireVendu > 0 ? `${formatEuro(k.tauxHoraireVendu)}/h` : "—" },
-    { label: "Taux horaire réel", value: k.tauxHoraireReel > 0 ? `${formatEuro(k.tauxHoraireReel)}/h` : "—" },
-    {
-      label: "Écart vendu / réel",
-      value:
-        ecartTaux === null
-          ? "—"
-          : `${ecartTaux >= 0 ? "+" : ""}${formatEuro(ecartTaux)}/h`,
-    },
-    { label: "CAF (approx.)", value: formatEuro(caf) },
-    { label: "Seuil de rentabilité", value: formatEuro(be.seuil) },
-    { label: "Point mort", value: `${be.pointMortJours.toFixed(0)} j` },
-    { label: "Besoin journalier", value: `${formatEuro(be.besoinJournalier)}/j` },
-  ];
+  // Alertes
+  const alerts: { tone: "danger" | "warn"; text: string }[] = [];
+  if (marge < 15 && (currentYearRow?.caHt ?? 0) > 0) alerts.push({ tone: "danger", text: `Marge de ${marge.toFixed(0)} % : en dessous du seuil de sécurité de 15 %.` });
+  if (prevYearRow && currentYearRow && prevYearRow.charges > 0) {
+    const evo = ((currentYearRow.charges - prevYearRow.charges) / prevYearRow.charges) * 100;
+    if (evo > 15) alerts.push({ tone: "warn", text: `Charges en hausse de ${evo.toFixed(0)} % vs ${YEAR - 1}.` });
+  }
+  const lastMonthsNeg = monthly.filter((m) => m.CA > 0 && m.Bénéfice < 0);
+  if (lastMonthsNeg.length > 0) alerts.push({ tone: "warn", text: `${lastMonthsNeg.length} mois à bénéfice négatif : ${lastMonthsNeg.map((m) => m.mois).join(", ")}.` });
+  if (analysis && analysis.unclassifiedCount > 0)
+    alerts.push({ tone: "warn", text: `${analysis.unclassifiedCount} charge(s) non classées (${formatEuro(analysis.unclassifiedAmount)}) faussent l'analyse.` });
+
+  if (entries.isLoading || chargeRowsQ.isLoading) return <Skeleton className="h-64 rounded-xl" />;
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {cards.map((c) => (
-          <Card key={c.label}><CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">{c.label}</p>
-            <p className="mt-1 font-serif text-xl font-semibold">{c.value}</p>
-          </CardContent></Card>
-        ))}
+    <div className="space-y-6">
+      <div>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+          <Calculator className="h-6 w-6 text-primary" /> Tableau financier
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          CA, charges et temps de travail agrégés automatiquement — aucune saisie supplémentaire.
+        </p>
       </div>
 
-      {ecartTaux !== null && (
-        <p className="text-xs text-muted-foreground">
-          {ecartTaux >= 0
-            ? "Écart positif : le taux horaire réel dépasse le taux vendu — temps consommé inférieur aux heures facturées."
-            : "Écart négatif : le taux horaire réel est inférieur au taux vendu — temps consommé supérieur aux heures facturées."}
-        </p>
+      {/* Synthèse */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi label={`CA HT ${YEAR}`} value={formatEuro(currentYearRow?.caHt ?? 0)} sub={prevYearRow ? `${YEAR - 1} : ${formatEuro(prevYearRow.caHt)}` : undefined} accent />
+        <Kpi label="Charges" value={formatEuro(chargesYear)} sub={monthsObserved > 0 ? `${formatEuro(chargesMensuelles)} / mois` : "Aucune charge saisie"} />
+        <Kpi label="Bénéfice brut" value={formatEuro(benefice)} sub={`Marge ${marge.toFixed(0)} %`} tone={benefice >= 0 ? "text-emerald-600" : "text-rose-600"} />
+        <Kpi label="Coût horaire de structure" value={coutHoraire > 0 ? `${coutHoraire.toFixed(0)} €/h` : "—"} sub={totalHeures > 0 ? `${totalHeures.toFixed(0)} h travaillées` : "Heures inconnues"} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi label="Taux horaire vendu" value={k.tauxHoraireVendu > 0 ? `${k.tauxHoraireVendu.toFixed(0)} €/h` : "—"} sub="CA ÷ heures facturées" />
+        <Kpi label="Taux horaire réel" value={k.tauxHoraireReel > 0 ? `${k.tauxHoraireReel.toFixed(0)} €/h` : "—"} sub="CA ÷ heures confirmées" />
+        <Kpi label="Seuil de rentabilité mensuel" value={seuilMensuel > 0 ? formatEuro(seuilMensuel) : "—"} sub="CA minimum à réaliser" />
+        <Kpi label="Projection fin d'exercice" value={formatEuro(k.projection)} sub="Rythme actuel" />
+      </div>
+
+      {/* Alertes */}
+      {alerts.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/60">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base text-amber-800">
+              <AlertTriangle className="h-4 w-4" /> Alertes financières
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5 text-sm text-amber-900">
+            {alerts.map((a, i) => (
+              <p key={i} className="flex items-start gap-2">
+                <span className={a.tone === "danger" ? "text-rose-600" : "text-amber-600"}>•</span> {a.text}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
+      {/* Analyse mensuelle */}
       <Card>
-        <CardContent className="p-0">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h3 className="font-medium">Charges</h3>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild><Button size="sm"><Plus className="mr-1.5 h-4 w-4" />Charge</Button></DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader><DialogTitle>Nouvelle charge</DialogTitle></DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1"><Label>Libellé</Label><Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Assurance, carburant…" /></div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1"><Label>Type</Label>
-                      <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v as "fixe" | "variable" })}><SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent><SelectItem value="fixe">Fixe</SelectItem><SelectItem value="variable">Variable</SelectItem></SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1"><Label>Périodicité</Label>
-                      <Select value={form.period} onValueChange={(v) => setForm({ ...form, period: v as PilotChargeInput["period"] })}><SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent><SelectItem value="mensuel">Mensuel</SelectItem><SelectItem value="annuel">Annuel</SelectItem><SelectItem value="ponctuel">Ponctuel</SelectItem></SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1"><Label>Montant (€)</Label><Input type="number" inputMode="decimal" value={form.amount || ""} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) || 0 })} /></div>
-                    {form.period === "ponctuel" && <div className="space-y-1"><Label>Date</Label><Input type="date" value={form.charge_date ?? ""} onChange={(e) => setForm({ ...form, charge_date: e.target.value })} /></div>}
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
-                  <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !form.label}>Enregistrer</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow>
-                <TableHead>Libellé</TableHead><TableHead>Type</TableHead><TableHead>Périodicité</TableHead>
-                <TableHead className="text-right">Montant</TableHead><TableHead className="text-right">Annualisé</TableHead><TableHead className="w-12" />
-              </TableRow></TableHeader>
-              <TableBody>
-                {chargeList.length === 0 && <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">Aucune charge</TableCell></TableRow>}
-                {chargeList.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="text-sm font-medium">{c.label}</TableCell>
-                    <TableCell><Badge variant={c.kind === "fixe" ? "secondary" : "outline"}>{c.kind}</Badge></TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{c.period}</TableCell>
-                    <TableCell className="text-right text-sm">{formatEuro(c.amount)}</TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground">{formatEuro(annualCharges([c], year))}</TableCell>
-                    <TableCell><Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => delMut.mutate(c.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Analyse mensuelle {YEAR}</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={monthly} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              <XAxis dataKey="mois" fontSize={12} />
+              <YAxis fontSize={12} unit="€" />
+              <Tooltip formatter={(v: number) => formatEuro(v)} />
+              <Legend />
+              <Bar dataKey="CA" fill="#4F8E33" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Charges" fill="#EE8627" radius={[4, 4, 0, 0]} />
+              <Line type="monotone" dataKey="Bénéfice" stroke="#2E8CCC" strokeWidth={2} />
+            </ComposedChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Analyse par famille de prestation */}
       <Card>
-        <CardContent className="p-0">
-          <div className="border-b border-border px-4 py-3">
-            <h3 className="font-medium">Analyse par prestation ({year})</h3>
-            <p className="text-xs text-muted-foreground">CA, heures et rentabilité horaire par famille — depuis les saisies CA.</p>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow>
-                <TableHead>Famille</TableHead>
-                <TableHead className="text-right">Lignes CA</TableHead>
-                <TableHead className="text-right">CA HT</TableHead>
-                <TableHead className="text-right">Heures</TableHead>
-                <TableHead className="text-right">€/h vendu</TableHead>
-              </TableRow></TableHeader>
-              <TableBody>
-                {byFamily.length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">Aucune donnée</TableCell></TableRow>
-                )}
-                {byFamily.map((f) => (
-                  <TableRow key={f.family}>
-                    <TableCell><Badge variant="outline" style={{ borderColor: f.color, color: f.color }}>{f.label}</Badge></TableCell>
-                    <TableCell className="text-right tabular-nums">{f.count}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatEuro(f.ca)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{f.hours.toFixed(1)} h</TableCell>
-                    <TableCell className="text-right tabular-nums">{f.hourlyRate > 0 ? `${formatEuro(f.hourlyRate)}/h` : "—"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Détail mensuel</CardTitle></CardHeader>
+        <CardContent className="overflow-x-auto p-0">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                <th className="px-3 py-2 font-medium">Mois</th>
+                <th className="px-3 py-2 text-right font-medium">CA HT</th>
+                <th className="px-3 py-2 text-right font-medium">Charges</th>
+                <th className="px-3 py-2 text-right font-medium">Bénéfice</th>
+                <th className="px-3 py-2 text-right font-medium">Marge</th>
+                <th className="px-3 py-2 text-right font-medium">Taux horaire net</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthly.map((m) => (
+                <tr key={m.mois} className="border-b border-border/60 last:border-0">
+                  <td className="px-3 py-1.5 font-medium">{m.mois}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(m.CA)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(m.Charges)}</td>
+                  <td className={`px-3 py-1.5 text-right tabular-nums font-medium ${m.Bénéfice >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{formatEuro(m.Bénéfice)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{m.CA > 0 ? `${((m.Bénéfice / m.CA) * 100).toFixed(0)} %` : "—"}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{m.tauxNet != null ? `${m.tauxNet.toFixed(0)} €/h` : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
 
-      {/* Analyse par client (top 20) */}
+      {/* Analyse annuelle */}
       <Card>
-        <CardContent className="p-0">
-          <div className="border-b border-border px-4 py-3">
-            <h3 className="font-medium">Top 20 clients ({year})</h3>
-            <p className="text-xs text-muted-foreground">CA, heures réelles, taux horaire et évolution N-1.</p>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead className="text-right">CA</TableHead>
-                <TableHead className="text-right">Heures</TableHead>
-                <TableHead className="text-right">€/h réel</TableHead>
-                <TableHead className="text-right">N vs N-1</TableHead>
-                <TableHead>Nature</TableHead>
-              </TableRow></TableHeader>
-              <TableBody>
-                {topClients.length === 0 && (
-                  <TableRow><TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">Aucun client sur l'année</TableCell></TableRow>
-                )}
-                {topClients.map((c) => {
-                  const prev = caPrevByClient.get(c.key) ?? 0;
-                  const evo = prev > 0 ? ((c.ca - prev) / prev) * 100 : c.ca > 0 ? 100 : 0;
-                  return (
-                    <TableRow key={c.key}>
-                      <TableCell className="font-medium">
-                        {c.clientId ? (
-                          <Link
-                            to="/pilot/fiche/$clientId"
-                            params={{ clientId: c.clientId }}
-                            className="hover:underline"
-                          >
-                            {c.name}
-                          </Link>
-                        ) : c.name}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatEuro(c.ca)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{c.hours.toFixed(1)} h</TableCell>
-                      <TableCell className="text-right tabular-nums">{c.hourlyRate > 0 ? `${formatEuro(c.hourlyRate)}/h` : "—"}</TableCell>
-                      <TableCell className={`text-right tabular-nums ${evo >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-                        {prev > 0 ? `${evo >= 0 ? "+" : ""}${evo.toFixed(0)} %` : "—"}
-                      </TableCell>
-                      <TableCell><Badge variant="secondary">{c.nature}</Badge></TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Analyse annuelle (tous exercices)</CardTitle></CardHeader>
+        <CardContent className="overflow-x-auto p-0">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                <th className="px-3 py-2 font-medium">Exercice</th>
+                <th className="px-3 py-2 text-right font-medium">CA HT</th>
+                <th className="px-3 py-2 text-right font-medium">Charges</th>
+                <th className="px-3 py-2 text-right font-medium">Bénéfice brut</th>
+                <th className="px-3 py-2 text-right font-medium">Marge</th>
+                <th className="px-3 py-2 text-right font-medium">Taux horaire vendu</th>
+              </tr>
+            </thead>
+            <tbody>
+              {annual.map((a) => (
+                <tr key={a.year} className="border-b border-border/60 last:border-0">
+                  <td className="px-3 py-1.5 font-medium">{a.year}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(a.caHt)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(a.charges)}</td>
+                  <td className={`px-3 py-1.5 text-right tabular-nums font-medium ${a.beneficeBrut >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{formatEuro(a.beneficeBrut)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{a.margePct != null ? `${a.margePct.toFixed(0)} %` : "—"}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums">{a.tauxHoraireVendu != null ? `${a.tauxHoraireVendu.toFixed(0)} €/h` : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
+
+      <div className="flex flex-wrap gap-3 text-sm">
+        <Link to="/pilot/charges" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 hover:bg-accent/40">
+          <Wallet className="h-4 w-4" /> Détail des charges
+        </Link>
+        <Link to="/pilot/taux" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 hover:bg-accent/40">
+          <Clock className="h-4 w-4" /> Taux horaire
+        </Link>
+      </div>
     </div>
+  );
+}
+
+function Kpi({ label, value, sub, tone, accent }: { label: string; value: string; sub?: string; tone?: string; accent?: boolean }) {
+  return (
+    <Card className={accent ? "border-primary/30 bg-primary/5" : ""}>
+      <CardContent className="p-4">
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className={`mt-1 font-serif text-2xl font-semibold ${tone ?? "text-foreground"}`}>{value}</p>
+        {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+      </CardContent>
+    </Card>
   );
 }
