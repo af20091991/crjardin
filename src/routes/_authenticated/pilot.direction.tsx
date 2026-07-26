@@ -88,6 +88,17 @@ function PilotDashboard() {
   const rateDelta = prevHourlyRate > 0 && k.tauxHoraireReel > 0 ? k.tauxHoraireReel - prevHourlyRate : null;
   const rateDeltaPct = rateDelta !== null && prevHourlyRate > 0 ? (rateDelta / prevHourlyRate) * 100 : null;
   const target = set.target_hourly_rate ?? 0;
+  // Plausibilité du taux horaire réel : jamais afficher une valeur calculée sur
+  // une poignée d'heures confirmées (valeurs aberrantes trompeuses).
+  const realRate: { available: true; value: number } | { available: false; detail: string } =
+    k.totalConfirmedHours < 20
+      ? {
+          available: false,
+          detail: `Heures confirmées insuffisantes (${k.totalConfirmedHours.toFixed(0)} h) — clôturez les interventions avec leurs heures réelles.`,
+        }
+      : k.tauxHoraireReel > (target > 0 ? target * 5 : 500)
+        ? { available: false, detail: "Valeur incohérente — vérifiez les heures réelles saisies." }
+        : { available: true, value: k.tauxHoraireReel };
   const rateGapToTarget = target > 0 && k.tauxHoraireReel > 0 ? k.tauxHoraireReel - target : null;
   const totalFamily = k.byFamily.reduce((s, f) => s + f.value, 0);
   const familiesRanked = [...k.byFamily].filter((f) => f.value > 0).sort((a, b) => b.value - a.value);
@@ -155,32 +166,34 @@ function PilotDashboard() {
         <KpiCard label="Marge" value={`${k.marge.toFixed(0)} %`} icon={Percent} to="/pilot/finance" description="Marge nette = bénéfice / CA HT. Indique la rentabilité globale de l'activité." />
         <KpiCard
           label="Objectif atteint"
-          value={k.target > 0 ? `${k.objectifPct.toFixed(0)} %` : "—"}
-          sub={k.target > 0 ? `Cible ${formatEuro(k.target)}` : "Définir un objectif"}
+          value={k.target > 0 && k.objectifPct > 0 ? `${k.objectifPct.toFixed(0)} %` : "—"}
+          sub={
+            k.target > 0
+              ? `Taux horaire vendu vs cible ${formatEuro(k.target)}/h`
+              : "Définir une cible de taux horaire"
+          }
           icon={Target}
           to="/pilot/objectifs"
-          progress={k.target > 0 ? k.objectifPct : undefined}
-          description="Pourcentage de l'objectif annuel de chiffre d'affaires atteint à ce jour."
+          progress={k.target > 0 && k.objectifPct > 0 ? Math.min(100, k.objectifPct) : undefined}
+          description="Atteinte de la cible de taux horaire : taux horaire vendu (CA HT / heures facturées) rapporté au taux horaire cible."
         />
         <KpiCard label="Projection fin d'année" value={formatEuro(k.projection)} icon={LineChart} to="/pilot/saison" description="Estimation du CA HT au 31 décembre en extrapolant le rythme de facturation actuel." />
         <KpiCard label="Panier moyen" value={formatEuro(k.panierMoyen)} icon={ShoppingCart} to="/pilot/ca" description="CA HT moyen par intervention facturée sur l'année." />
         <KpiCard label="TJM réel" value={formatEuro(k.tjm)} icon={Clock} to="/pilot/finance" description="Taux journalier moyen = CA HT annuel / nombre de jours travaillés distincts." />
         <KpiCard
           label="Taux horaire réel"
-          value={k.tauxHoraireReel > 0 ? `${formatEuro(k.tauxHoraireReel)}/h` : "—"}
+          value={realRate.available ? `${formatEuro(realRate.value)}/h` : "—"}
           icon={Gauge}
           to="/pilot/finance"
           sub={
-            k.tauxHoraireReel > 0
+            realRate.available
               ? set.target_hourly_rate > 0
                 ? `Cible ${formatEuro(set.target_hourly_rate)}/h · ${k.totalConfirmedHours.toFixed(0)} h confirmées`
                 : `${k.totalConfirmedHours.toFixed(0)} h confirmées`
-              : "Aucune heure confirmée sur l'année"
+              : realRate.detail
           }
           tone={
-            k.tauxHoraireReel > 0 && k.tauxHoraireReel >= set.target_hourly_rate
-              ? "positive"
-              : "warning"
+            realRate.available && realRate.value >= set.target_hourly_rate ? "positive" : "warning"
           }
           description="Taux horaire réel = CA HT annuel / heures réellement consommées (interventions terminées avec heures confirmées). À comparer au taux cible."
         />

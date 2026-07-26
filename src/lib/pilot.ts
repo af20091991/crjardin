@@ -88,13 +88,45 @@ function categoryToFamily(cat: string | null): PilotFamily {
   }
 }
 
+/**
+ * Lecture paginée de pilot_ca_entries : au-delà de 1 000 lignes, l'API tronque
+ * silencieusement le résultat et fausse tous les KPI (CA annuel, CA du mois).
+ */
+async function fetchCaRows<T>(columns: string, kind: "vente" | "charge"): Promise<T[]> {
+  const out: T[] = [];
+  const pageSize = 1000;
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("pilot_ca_entries")
+      .select(columns)
+      .eq("kind", kind)
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const chunk = (data ?? []) as unknown as T[];
+    out.push(...chunk);
+    if (chunk.length < pageSize) break;
+    from += pageSize;
+  }
+  return out;
+}
+
+type CaVenteRow = {
+  id: string; user_id: string; year: number; month: number; designation: string | null;
+  category: string | null; amount_ht: number | null; hours: number | null;
+  client_id: string | null; created_at: string; updated_at: string;
+};
+
+type CaChargeRow = {
+  id: string; user_id: string; year: number; month: number; designation: string | null;
+  category: string | null; amount_ht: number | null; created_at: string; updated_at: string;
+};
+
 async function bridgeCaEntries(): Promise<PilotEntry[]> {
-  const { data, error } = await supabase
-    .from("pilot_ca_entries")
-    .select("id,user_id,year,month,kind,designation,category,amount_ht,hours,client_id,created_at,updated_at")
-    .eq("kind", "vente");
-  if (error) throw error;
-  const rows = data ?? [];
+  const rows = await fetchCaRows<CaVenteRow>(
+    "id,user_id,year,month,kind,designation,category,amount_ht,hours,client_id,created_at,updated_at",
+    "vente",
+  );
   return rows.map((r) => {
     const mm = String(r.month).padStart(2, "0");
     const ht = Number(r.amount_ht) || 0;
@@ -104,7 +136,7 @@ async function bridgeCaEntries(): Promise<PilotEntry[]> {
       entry_date: `${r.year}-${mm}-15`,
       client_id: r.client_id ?? null,
       client_name: r.designation,
-      family: categoryToFamily(r.category),
+      family: categoryToFamily(r.category as never),
       nature: r.category,
       amount_ht: ht,
       amount_ttc: ht * 1.2,
@@ -129,19 +161,17 @@ export async function listCharges(): Promise<PilotCharge[]> {
 }
 
 async function bridgeCaCharges(): Promise<PilotCharge[]> {
-  const { data, error } = await supabase
-    .from("pilot_ca_entries")
-    .select("id,user_id,year,month,kind,designation,category,amount_ht,created_at,updated_at")
-    .eq("kind", "charge");
-  if (error) throw error;
-  const rows = data ?? [];
+  const rows = await fetchCaRows<CaChargeRow>(
+    "id,user_id,year,month,kind,designation,category,amount_ht,created_at,updated_at",
+    "charge",
+  );
   return rows.map((r) => {
     const mm = String(r.month).padStart(2, "0");
     return {
       id: r.id,
       user_id: r.user_id,
       label: r.designation ?? "Charge",
-      category: r.category,
+      category: r.category as never,
       kind: "variable" as const,
       amount: Number(r.amount_ht) || 0,
       period: "ponctuel" as const,
@@ -269,10 +299,10 @@ export function computeKpis(params: {
   const benefice = caYear - chargesYear;
   const marge = caYear > 0 ? (benefice / caYear) * 100 : 0;
 
-  // Objectif annuel : dérivé de la cible taux horaire (pilot_settings.target_hourly_rate).
-  // Reste 0 tant que le paramètre n'est pas défini.
+  // Cible = taux horaire visé (pilot_settings.target_hourly_rate).
+  // L'atteinte se mesure donc sur le taux horaire vendu, jamais en divisant un
+  // CA annuel par un taux horaire (ce qui produisait des pourcentages absurdes).
   const target = settings.target_hourly_rate ?? 0;
-  const objectifPct = target > 0 ? (caYear / target) * 100 : 0;
 
   // Projection fin d'année selon jours écoulés
   const now = new Date();
@@ -288,6 +318,8 @@ export function computeKpis(params: {
   const tjm = workedDays > 0 ? caYear / workedDays : 0;
   // Taux horaire vendu = CA HT / heures facturées (pilot_ca_entries.hours)
   const tauxHoraireVendu = totalHours > 0 ? caYear / totalHours : 0;
+  // Atteinte de la cible : taux horaire vendu / taux horaire cible.
+  const objectifPct = target > 0 && tauxHoraireVendu > 0 ? (tauxHoraireVendu / target) * 100 : 0;
   // Taux horaire réel = CA HT / heures confirmées (interventions.hours_spent)
   let totalConfirmedHours = 0;
   if (confirmedHoursByClient) {
@@ -295,7 +327,11 @@ export function computeKpis(params: {
       if (Number.isFinite(h) && h > 0) totalConfirmedHours += h;
     });
   }
-  const tauxHoraireReel = totalConfirmedHours > 0 ? caYear / totalConfirmedHours : 0;
+  // Seuil de plausibilité : en dessous de 20 h confirmées sur l'année, le taux
+  // horaire réel n'est pas significatif — il reste à 0 (affiché « — »).
+  const MIN_CONFIRMED_HOURS = 20;
+  const tauxHoraireReel =
+    totalConfirmedHours >= MIN_CONFIRMED_HOURS ? caYear / totalConfirmedHours : 0;
   // Rétrocompatibilité : `tauxHoraire` = taux horaire vendu (comportement d'origine).
   const tauxHoraire = tauxHoraireVendu;
 

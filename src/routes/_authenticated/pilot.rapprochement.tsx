@@ -21,6 +21,7 @@ import { CA_CODES, parseDesignation } from "@/lib/pilot-ca-designation";
 import { formatEuro } from "@/lib/pilot";
 import { ClientForm } from "@/components/ClientForm";
 import { HistoricHoursPanel } from "@/components/pilot/HistoricHoursPanel";
+import { ReconstructionPanel } from "@/components/pilot/ReconstructionPanel";
 import {
   buildDesignationIndex,
   autoLinkHighConfidence,
@@ -60,6 +61,7 @@ function RapprochementPage() {
     qc.invalidateQueries({ queryKey: ["pilot-ca-decisions"] });
     qc.invalidateQueries({ queryKey: ["pilot-ca-entries"] });
     qc.invalidateQueries({ queryKey: ["client-scores"] });
+    qc.invalidateQueries({ queryKey: ["pilot-reconstruction"] });
   };
 
   const designationIndex = useMemo(
@@ -195,6 +197,8 @@ function RapprochementPage() {
           </Button>
         </div>
       </header>
+
+      <ReconstructionPanel />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {/* Colonne gauche — liste orphelines */}

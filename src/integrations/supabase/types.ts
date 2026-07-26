@@ -975,6 +975,10 @@ export type Database = {
           intervention_id: string | null
           is_fixed: boolean
           kind: string
+          match_method: string | null
+          match_score: number | null
+          match_status: string
+          matched_at: string | null
           month: number
           note: string | null
           position: number
@@ -1000,6 +1004,10 @@ export type Database = {
           intervention_id?: string | null
           is_fixed?: boolean
           kind: string
+          match_method?: string | null
+          match_score?: number | null
+          match_status?: string
+          matched_at?: string | null
           month: number
           note?: string | null
           position?: number
@@ -1025,6 +1033,10 @@ export type Database = {
           intervention_id?: string | null
           is_fixed?: boolean
           kind?: string
+          match_method?: string | null
+          match_score?: number | null
+          match_status?: string
+          matched_at?: string | null
           month?: number
           note?: string | null
           position?: number
@@ -3371,6 +3383,10 @@ export type Database = {
           intervention_id: string | null
           is_fixed: boolean
           kind: string
+          match_method: string | null
+          match_score: number | null
+          match_status: string
+          matched_at: string | null
           month: number
           note: string | null
           position: number
@@ -3418,6 +3434,7 @@ export type Database = {
         Returns: number
       }
       next_intervention_reference: { Args: never; Returns: string }
+      pilot_clean_designation: { Args: { p: string }; Returns: string }
       pilot_normalize_designation: { Args: { t: string }; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
