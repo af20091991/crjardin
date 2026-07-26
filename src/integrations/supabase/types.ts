@@ -804,6 +804,8 @@ export type Database = {
           reference: string | null
           report_generated_at: string | null
           report_sections: Json
+          report_waived_at: string | null
+          report_waived_reason: string | null
           sent_pdf_storage_path: string | null
           sent_to_client_at: string | null
           status: string
@@ -834,6 +836,8 @@ export type Database = {
           reference?: string | null
           report_generated_at?: string | null
           report_sections?: Json
+          report_waived_at?: string | null
+          report_waived_reason?: string | null
           sent_pdf_storage_path?: string | null
           sent_to_client_at?: string | null
           status?: string
@@ -864,6 +868,8 @@ export type Database = {
           reference?: string | null
           report_generated_at?: string | null
           report_sections?: Json
+          report_waived_at?: string | null
+          report_waived_reason?: string | null
           sent_pdf_storage_path?: string | null
           sent_to_client_at?: string | null
           status?: string
@@ -1286,6 +1292,42 @@ export type Database = {
           note?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      pilot_fixed_charges: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          monthly_amount: number
+          position: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          monthly_amount?: number
+          position?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          monthly_amount?: number
+          position?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
         }
         Relationships: []
       }

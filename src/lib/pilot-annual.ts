@@ -1,0 +1,57 @@
+import type { PilotEntry } from "@/lib/pilot";
+import type { ChargeRow } from "@/lib/pilot-charges";
+
+/**
+ * Synthèse annuelle multi-exercices : une ligne par année réellement présente
+ * dans les données PP. Aucune année n'est inventée, aucune valeur extrapolée.
+ */
+export interface AnnualRow {
+  year: number;
+  caHt: number;
+  charges: number;
+  /** Bénéfice brut = CA HT − charges enregistrées sur l'exercice. */
+  beneficeBrut: number;
+  margePct: number | null;
+  heuresVendues: number;
+  tauxHoraireVendu: number | null;
+  nbLignes: number;
+}
+
+export function annualSummary(entries: PilotEntry[], chargeRows: ChargeRow[]): AnnualRow[] {
+  const years = new Set<number>();
+  const ca = new Map<number, number>();
+  const hours = new Map<number, number>();
+  const lines = new Map<number, number>();
+  for (const e of entries) {
+    const y = new Date(e.entry_date).getFullYear();
+    if (!Number.isFinite(y)) continue;
+    years.add(y);
+    ca.set(y, (ca.get(y) ?? 0) + (Number(e.amount_ht) || 0));
+    hours.set(y, (hours.get(y) ?? 0) + (Number(e.hours) || 0));
+    lines.set(y, (lines.get(y) ?? 0) + 1);
+  }
+  const charges = new Map<number, number>();
+  for (const c of chargeRows) {
+    years.add(c.year);
+    charges.set(c.year, (charges.get(c.year) ?? 0) + c.amount_ht);
+  }
+
+  return [...years]
+    .sort((a, b) => b - a)
+    .map((year) => {
+      const caHt = ca.get(year) ?? 0;
+      const ch = charges.get(year) ?? 0;
+      const h = hours.get(year) ?? 0;
+      const benefice = caHt - ch;
+      return {
+        year,
+        caHt,
+        charges: ch,
+        beneficeBrut: benefice,
+        margePct: caHt > 0 ? (benefice / caHt) * 100 : null,
+        heuresVendues: h,
+        tauxHoraireVendu: h > 0 ? caHt / h : null,
+        nbLignes: lines.get(year) ?? 0,
+      };
+    });
+}

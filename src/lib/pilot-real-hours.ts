@@ -13,12 +13,22 @@
 
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 
-export type RealHoursSource = "interventions" | "historique" | "ledger_vendu" | "aucune";
+export type RealHoursSource =
+  | "consolidee"
+  | "interventions"
+  | "historique"
+  | "ledger_vendu"
+  | "aucune";
 
 export const REAL_HOURS_SOURCE_META: Record<
   Exclude<RealHoursSource, "aucune">,
   { label: string; detail: string; confidence: "haute" | "moyenne" }
 > = {
+  consolidee: {
+    label: "Heures réalisées consolidées",
+    detail: "meilleure source par client : interventions confirmées, historique Excel ou heures CA identifiées",
+    confidence: "haute",
+  },
   interventions: {
     label: "Heures réalisées confirmées",
     detail: "interventions terminées avec heures confirmées",
@@ -44,6 +54,14 @@ export interface RealHoursResolution {
   vendues: number;
   realisees: number;
   historiques: number;
+  /** Heures vendues effectivement rattachées à un client (période + client identifiés). */
+  venduesIdentifiees: number;
+  /**
+   * Heures réalisées consolidées : pour chaque client, la meilleure source
+   * disponible (interventions confirmées > historique > heures CA identifiées).
+   * Aucun double comptage entre sources.
+   */
+  realiseesConsolidees: number;
   /** Heures retenues comme « réelles » selon la cascade de priorité. */
   hours: number;
   source: RealHoursSource;
@@ -64,27 +82,46 @@ export function resolveRealHours(entries: HoursLedgerEntry[], year: number): Rea
   const vendues = sumBy(rows, (e) => e.type === "vendue");
   const realisees = sumBy(rows, (e) => e.type === "realisee" && !e.estimated);
   const historiques = sumBy(rows, (e) => e.type === "historique");
+  const venduesIdentifiees = sumBy(rows, (e) => e.type === "vendue" && !!e.clientId);
+
+  // Consolidation par client : une heure de travail n'est comptée qu'une fois.
+  // On retient, client par client, la source la plus fiable disponible.
+  const perClient = new Map<string, { r: number; h: number; v: number }>();
+  for (const e of rows) {
+    if (!e.clientId || e.hours <= 0) continue;
+    const cur = perClient.get(e.clientId) ?? { r: 0, h: 0, v: 0 };
+    if (e.type === "realisee") {
+      if (!e.estimated) cur.r += e.hours;
+    } else if (e.type === "historique") cur.h += e.hours;
+    else cur.v += e.hours;
+    perClient.set(e.clientId, cur);
+  }
+  const byClient = new Map<string, number>();
+  let realiseesConsolidees = 0;
+  for (const [clientId, s] of perClient) {
+    const retained = s.r > 0 ? s.r : s.h > 0 ? s.h : s.v;
+    if (retained <= 0) continue;
+    byClient.set(clientId, retained);
+    realiseesConsolidees += retained;
+  }
 
   let source: RealHoursSource = "aucune";
-  // En dessous du seuil de significativité, les heures confirmées ne peuvent
-  // pas porter un taux horaire : on descend d'un cran dans la cascade.
-  if (realisees >= MIN_CONFIRMED_HOURS) source = "interventions";
+  if (realiseesConsolidees > 0) source = "consolidee";
+  else if (realisees >= MIN_CONFIRMED_HOURS) source = "interventions";
   else if (historiques > 0) source = "historique";
   else if (vendues > 0) source = "ledger_vendu";
   else if (realisees > 0) source = "interventions";
 
   const hours =
-    source === "interventions" ? realisees : source === "historique" ? historiques : source === "ledger_vendu" ? vendues : 0;
-
-  const byClient = new Map<string, number>();
-  if (source !== "aucune") {
-    const type = source === "interventions" ? "realisee" : source === "historique" ? "historique" : "vendue";
-    for (const e of rows) {
-      if (e.type !== type || !e.clientId) continue;
-      if (e.type === "realisee" && e.estimated) continue;
-      byClient.set(e.clientId, (byClient.get(e.clientId) ?? 0) + e.hours);
-    }
-  }
+    source === "consolidee"
+      ? realiseesConsolidees
+      : source === "interventions"
+        ? realisees
+        : source === "historique"
+          ? historiques
+          : source === "ledger_vendu"
+            ? vendues
+            : 0;
 
   const meta = source === "aucune" ? null : REAL_HOURS_SOURCE_META[source];
   return {
@@ -92,6 +129,8 @@ export function resolveRealHours(entries: HoursLedgerEntry[], year: number): Rea
     vendues,
     realisees,
     historiques,
+    venduesIdentifiees,
+    realiseesConsolidees,
     hours,
     source,
     sourceLabel: meta?.label ?? "Aucune heure réelle disponible",
