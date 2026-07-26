@@ -228,57 +228,31 @@ function PilotDashboard() {
       <HoursGapCard year={year} />
       <ChargesSummaryCard year={year} />
 
-      {/* Insights */}
-      {insights.length > 0 && (
-        <>
-        <RentabilitySection
-          taux={k.tauxHoraireReel}
-          target={target}
-          prevTaux={prevHourlyRate}
-          rateDelta={rateDelta}
-          rateDeltaPct={rateDeltaPct}
-          rateGapToTarget={rateGapToTarget}
-          hoursConfirmed={k.totalConfirmedHours}
-          hoursPrev={prevHoursTotal}
-          familiesRanked={familiesRanked}
-          familyConcentration={familyConcentration}
-          confidence={{ label: confidenceMeta.label, color: confidenceMeta.color, Icon: ConfIcon }}
-          year={year}
-        />
-        <Card>
-          <CardContent className="space-y-2 pt-6">
-            <div className="flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-primary" />
-              <h3 className="font-medium">Analyses automatiques</h3>
-            </div>
-            <ul className="space-y-1.5">
-              {insights.map((t, i) => (
-                <li key={i} className="flex gap-2 text-sm text-muted-foreground">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                  {t}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-        </>
-      )}
-      {insights.length === 0 && (
-        <RentabilitySection
-          taux={k.tauxHoraireReel}
-          target={target}
-          prevTaux={prevHourlyRate}
-          rateDelta={rateDelta}
-          rateDeltaPct={rateDeltaPct}
-          rateGapToTarget={rateGapToTarget}
-          hoursConfirmed={k.totalConfirmedHours}
-          hoursPrev={prevHoursTotal}
-          familiesRanked={familiesRanked}
-          familyConcentration={familyConcentration}
-          confidence={{ label: confidenceMeta.label, color: confidenceMeta.color, Icon: ConfIcon }}
-          year={year}
-        />
-      )}
+      {/* Vue annuelle multi-exercices */}
+      <AnnualPerformanceCard entries={entries.data ?? []} targetHourlyRate={target} />
+
+      <RentabilitySection
+        taux={k.tauxHoraireReel}
+        target={target}
+        prevTaux={prevHourlyRate}
+        rateDelta={rateDelta}
+        rateDeltaPct={rateDeltaPct}
+        rateGapToTarget={rateGapToTarget}
+        hoursConfirmed={k.totalConfirmedHours}
+        hoursPrev={prevHoursTotal}
+        familiesRanked={familiesRanked}
+        familyConcentration={familyConcentration}
+        confidence={{ label: confidenceMeta.label, color: confidenceMeta.color, Icon: ConfIcon }}
+        year={year}
+      />
+
+      <DirectorInsightsCard
+        k={k}
+        settings={set}
+        entries={entries.data ?? []}
+        year={year}
+        opportunities={opps.data ?? null}
+      />
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-3">
@@ -322,6 +296,7 @@ function PilotDashboard() {
         </Card>
       </div>
       <RecommendationsFunnelWidget />
+      <PortfolioExplorer entries={entries.data ?? []} year={year} />
       <ClientPortfolioSection />
     </div>
   );
