@@ -105,7 +105,7 @@ export interface InterventionHoursInput {
   client_id: string | null;
   intervention_date: string;
   status: string;
-  hours_spent: number | null;
+  hours_spent?: number | null;
   ai_metadata: unknown;
 }
 
