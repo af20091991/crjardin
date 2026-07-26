@@ -60,7 +60,7 @@ const PRIORITY_META: Record<
 };
 
 function TodayPage() {
-  const { entries, charges, settings } = usePilotData();
+  const { entries, charges, settings, clients } = usePilotData();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
@@ -91,6 +91,15 @@ function TodayPage() {
     entries.isLoading || charges.isLoading || settings.isLoading ||
     interventions.isLoading || recos.isLoading || goals.isLoading ||
     clientActivity.isLoading;
+
+  // Politique compte-rendu par client : seul un client « Oui » génère une action CR.
+  const reportPolicyById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of clients.data ?? []) map.set(c.id, c.report_policy ?? "a_confirmer");
+    return map;
+  }, [clients.data]);
+  const crPolicy = (clientId: string | null | undefined) =>
+    (clientId ? reportPolicyById.get(clientId) : undefined) ?? "a_confirmer";
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   // Heures confirmées (interventions.hours_spent, statut = termine) sur l'année en cours.
@@ -149,12 +158,27 @@ function TodayPage() {
   // Distinction explicite du cycle de vie du compte-rendu :
   // terminée → CR généré → CR envoyé. Une intervention terminée sans CR généré
   // n'est PAS un « CR à envoyer ».
+  // Un client marqué « Non » n'apparaît jamais dans les actions CR ; un client
+  // « À confirmer » est listé séparément comme élément à qualifier (jamais un retard).
   const reportsToGenerate = allI.filter(
-    (i) => i.status === "terminee" && !i.report_generated_at && !i.sent_to_client_at,
+    (i) =>
+      i.status === "terminee" && !i.report_generated_at && !i.sent_to_client_at &&
+      crPolicy(i.client_id) === "oui",
   );
   const reportsToSend = allI.filter(
-    (i) => i.status === "terminee" && !!i.report_generated_at && !i.sent_to_client_at,
+    (i) =>
+      i.status === "terminee" && !!i.report_generated_at && !i.sent_to_client_at &&
+      crPolicy(i.client_id) === "oui",
   );
+  const crToQualify = useMemo(() => {
+    const ids = new Set<string>();
+    for (const i of allI) {
+      if (i.status !== "terminee" || i.sent_to_client_at) continue;
+      if (crPolicy(i.client_id) !== "a_confirmer") continue;
+      if (i.client_id) ids.add(i.client_id);
+    }
+    return ids;
+  }, [allI, reportPolicyById]);
   const missingHours = allI.filter((i) => {
     if (i.status !== "terminee") return false;
     const estimated =
