@@ -535,38 +535,49 @@ function TodayPage() {
 
       {/* 1 — Où en est mon entreprise aujourd'hui ? */}
       <section className="space-y-2">
-      <SectionTitle question="Où en est mon entreprise ?" label="Synthèse dirigeant" />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <SectionTitle
+        question="Situation actuelle"
+        label={isProjection ? `Projection ${year}` : `Réel ${year}`}
+      />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <KpiCard
-            label="CA du mois"
-            value={formatEuro(k.caMonth)}
+            label={isProjection ? `CA projeté ${year}` : `CA réalisé ${year}`}
+            value={formatEuro(caLecture)}
             icon={Euro}
             to="/pilot/ca"
             sub={
-              caComparison.available
-                ? `${caComparison.value >= 0 ? "+" : ""}${caComparison.value.toFixed(0)} % vs ${year - 1}`
-                : caComparison.detail
+              isProjection
+                ? `Réel à date ${formatEuro(projection.caReel)}`
+                : caComparison.available
+                  ? `${caComparison.value >= 0 ? "+" : ""}${caComparison.value.toFixed(0)} % vs ${year - 1} (mois)`
+                  : caComparison.detail
             }
-            description={caComparison.available ? undefined : caComparison.detail}
-            tone={caComparison.available ? (caComparison.value >= 0 ? "positive" : "warning") : "default"}
+            description={isProjection ? projection.explanation : undefined}
           />
           <KpiCard
-            label="Avancement mois"
-            value={objectifMois > 0 ? `${avancement.toFixed(0)} %` : "—"}
+            label={`Objectif ${year}`}
+            value={objectifAnnuel > 0 ? formatEuro(objectifAnnuel) : "—"}
+            icon={Flag}
+            to="/pilot/objectifs"
+            sub={objectifAnnuel > 0 ? `CA ${year - 1} pris comme référence` : "Pas d'historique N-1"}
+          />
+          <KpiCard
+            label="Progression"
+            value={progressionAnnuelle == null ? "—" : `${progressionAnnuelle.toFixed(0)} %`}
             icon={CheckCircle2}
-            progress={objectifMois > 0 ? avancement : undefined}
-            tone={avancement >= 100 ? "positive" : avancement >= 60 ? "default" : "warning"}
-            sub={objectifMois > 0 ? `Objectif ${formatEuro(objectifMois)}` : "Pas d'historique N-1"}
+            progress={progressionAnnuelle ?? undefined}
+            tone={
+              progressionAnnuelle == null ? "default" : progressionAnnuelle >= 100 ? "positive" : progressionAnnuelle >= 60 ? "default" : "warning"
+            }
+            sub={objectifMois > 0 ? `Mois : ${avancement.toFixed(0)} % de ${formatEuro(objectifMois)}` : undefined}
           />
           <KpiCard
-            label="Marge estimée"
-            value={margin.available ? `${margin.value.toFixed(0)} %` : "Non calculable"}
+            label={isProjection ? "Résultat projeté" : "Résultat à date"}
+            value={formatEuro(resultatLecture)}
             icon={Wallet}
-            tone={
-              !margin.available ? "default" : margin.value >= 20 ? "positive" : margin.value >= 10 ? "default" : "warning"
-            }
-            sub={margin.available ? `Bénéfice mois ${formatEuro(beneficeMois)}` : margin.detail}
-            description={margin.available ? undefined : margin.detail}
+            to="/pilot/finance"
+            tone={resultatLecture <= 0 ? "warning" : margeLecture != null && margeLecture >= thresholds.margeMin ? "positive" : "default"}
+            sub={`CA ${formatEuro(caLecture)} − charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`}
           />
           <KpiCard
             label="Taux horaire réel"
