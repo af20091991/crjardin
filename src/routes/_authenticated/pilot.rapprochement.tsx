@@ -20,6 +20,7 @@ import { CATEGORY_LABELS, MONTH_NAMES, type CaEntry } from "@/lib/pilot-ca";
 import { CA_CODES, parseDesignation } from "@/lib/pilot-ca-designation";
 import { formatEuro } from "@/lib/pilot";
 import { ClientForm } from "@/components/ClientForm";
+import { HistoricHoursPanel } from "@/components/pilot/HistoricHoursPanel";
 import {
   buildDesignationIndex,
   autoLinkHighConfidence,
@@ -446,6 +447,8 @@ function RapprochementPage() {
           )}
         </Card>
       </div>
+
+      <HistoricHoursPanel />
 
       {/* Journal des décisions */}
       <Card>
