@@ -132,7 +132,50 @@ export function buildDesignationIndex(
   return out;
 }
 
-/** Retourne les meilleures suggestions (top N) pour une ligne CA. */
+/** Distance de Levenshtein (garde-fou "faux amis" : Mauric ≠ Maurice). */
+export function levenshtein(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(
+        prev[j] + 1,
+        cur[j - 1] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
+function tokens(s: string): string[] {
+  return normalize(s).split(" ").filter((t) => t.length > 1);
+}
+
+/** Signaux "niveau 2" trouvés dans la désignation : commune, téléphone, email, prénom. */
+function reinforcement(designation: string, client: Client): string[] {
+  const d = normalize(designation);
+  const found: string[] = [];
+  const addressTokens = tokens(client.address ?? "").filter((t) => t.length > 3 && !/^\d+$/.test(t));
+  if (addressTokens.some((t) => d.includes(t))) found.push("adresse / commune");
+  const digits = (client.phone ?? "").replace(/\D/g, "");
+  if (digits.length >= 6 && designation.replace(/\D/g, "").includes(digits.slice(-6))) found.push("téléphone");
+  const mails = [client.email, ...(client.emails ?? [])].filter(Boolean) as string[];
+  const local = mails.map((m) => normalize(m.split("@")[0])).filter((t) => t.length > 3);
+  if (local.some((t) => d.includes(t))) found.push("e-mail");
+  if (client.civility && d.includes(normalize(client.civility))) found.push("civilité / prénom");
+  return found;
+}
+
+/**
+ * Retourne les meilleures suggestions (top N) pour une ligne CA, avec niveau de
+ * confiance. Seule la confiance « haute » autorise un rattachement automatique.
+ */
 export function suggestClients(
   entry: Pick<CaEntry, "designation">,
   clients: Client[],
@@ -140,48 +183,133 @@ export function suggestClients(
   opts: { limit?: number; minScore?: number } = {},
 ): Suggestion[] {
   const limit = opts.limit ?? 5;
-  const minScore = opts.minScore ?? 0.35;
+  const minScore = opts.minScore ?? MATCH_RULES.MIN_SUGGESTION;
   const designation = entry.designation ?? "";
   const key = normalize(designation);
   const scores = new Map<string, Suggestion>();
+  if (!key) return [];
 
-  // 1) Historique désignation -> client
-  if (key) {
-    const hit = designationIndex.get(key);
-    if (hit) {
-      const client = clients.find((c) => c.id === hit.clientId);
-      if (client) {
-        scores.set(client.id, {
-          client,
-          score: Math.min(1, 0.9 + Math.log10(hit.count + 1) * 0.05),
-          reason: "historique",
-        });
-      }
+  // Niveau 1 — historique validé sur désignation identique
+  const hit = designationIndex.get(key);
+  if (hit) {
+    const client = clients.find((c) => c.id === hit.clientId);
+    if (client) {
+      scores.set(client.id, {
+        client,
+        score: Math.min(1, 0.9 + Math.log10(hit.count + 1) * 0.05),
+        reason: "historique",
+        confidence: "haute",
+        evidence: [`${hit.count} ligne(s) déjà validée(s) avec cette désignation`],
+      });
     }
   }
 
-  // 2) Similarité fuzzy nom / civilité + nom
   for (const client of clients) {
-    const candidates = [
-      client.name,
-      client.civility ? `${client.civility} ${client.name}` : "",
-    ].filter(Boolean);
+    const names = [client.name, client.civility ? `${client.civility} ${client.name}` : ""].filter(Boolean);
+    const exact = names.some((n) => normalize(n) === key);
+    const nameTokens = tokens(client.name);
+    const dTokens = tokens(designation);
+    const allTokensPresent =
+      nameTokens.length > 0 && nameTokens.every((t) => dTokens.includes(t));
+    const near = nameTokens.some((t) =>
+      dTokens.some((u) => u !== t && levenshtein(t, u) <= MATCH_RULES.NEAR_MISS_MAX),
+    );
+    const boosts = reinforcement(designation, client);
+
     let best = 0;
-    for (const c of candidates) {
-      const s = similarity(designation, c);
-      if (s > best) best = s;
+    for (const n of names) best = Math.max(best, similarity(designation, n));
+
+    let candidate: Suggestion | null = null;
+    if (exact) {
+      candidate = {
+        client,
+        score: 1,
+        reason: "exact",
+        confidence: "haute",
+        evidence: ["Correspondance exacte après normalisation"],
+      };
+    } else if (allTokensPresent && boosts.length > 0) {
+      candidate = {
+        client,
+        score: Math.max(best, 0.9),
+        reason: "renforce",
+        confidence: "haute",
+        evidence: ["Nom complet retrouvé", ...boosts.map((b) => `Confirmé par ${b}`)],
+      };
+    } else if (allTokensPresent) {
+      candidate = {
+        client,
+        score: Math.max(best, 0.8),
+        reason: "renforce",
+        confidence: "moyenne",
+        evidence: ["Nom complet retrouvé, sans autre donnée de confirmation"],
+      };
+    } else if (best >= minScore) {
+      candidate = {
+        client,
+        score: best,
+        reason: "similarite",
+        confidence: "moyenne",
+        evidence: [
+          "Similarité orthographique uniquement",
+          ...(near ? ["Orthographe proche mais différente — vérification requise"] : []),
+          ...boosts.map((b) => `Confirmé par ${b}`),
+        ],
+      };
     }
-    if (best < minScore) continue;
+    if (!candidate) continue;
+    // Garde-fou faux amis : une orthographe proche mais non identique ne peut
+    // jamais autoriser un rattachement automatique.
+    if (candidate.confidence === "haute" && !exact && candidate.reason !== "historique" && near) {
+      candidate = { ...candidate, confidence: "moyenne" };
+    }
     const existing = scores.get(client.id);
-    if (!existing || best > existing.score) {
-      scores.set(client.id, { client, score: best, reason: "similarite" });
-    }
+    if (!existing || candidate.score > existing.score) scores.set(client.id, candidate);
   }
 
-  return Array.from(scores.values())
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+  const out = Array.from(scores.values()).sort((a, b) => b.score - a.score);
+
+  // Ambiguïté : deux candidats trop proches → aucune confiance haute.
+  if (
+    out.length > 1 &&
+    out[0].confidence === "haute" &&
+    out[0].score - out[1].score < MATCH_RULES.AMBIGUITY_GAP
+  ) {
+    out[0] = {
+      ...out[0],
+      confidence: "moyenne",
+      evidence: [...out[0].evidence, "Plusieurs clients possibles — validation requise"],
+    };
+  }
+  return out.slice(0, limit);
 }
+
+/** Confiance globale d'une ligne CA orpheline. */
+export function entryConfidence(suggestions: Suggestion[]): ConfidenceLevel {
+  if (suggestions.length === 0) return "faible";
+  return suggestions[0].confidence;
+}
+
+/** Rattachement automatique — uniquement les lignes en confiance haute. */
+export async function autoLinkHighConfidence(
+  rows: Array<{ entry: CaEntry; suggestion: Suggestion }>,
+): Promise<number> {
+  let done = 0;
+  for (const r of rows) {
+    if (r.suggestion.confidence !== "haute") continue;
+    await linkEntryToClient({
+      entryId: r.entry.id,
+      clientId: r.suggestion.client.id,
+      method: "bulk",
+      score: r.suggestion.score,
+      note: `Rapprochement automatique (${r.suggestion.reason}) — ${r.suggestion.evidence.join(" ; ")}`,
+    });
+    done += 1;
+  }
+  return done;
+}
+
+export const AUTO_CLIENT_MARKER = "Créé automatiquement depuis historique CA";
 
 // ---- Accès base ----
 export async function listOrphanEntries(): Promise<CaEntry[]> {
