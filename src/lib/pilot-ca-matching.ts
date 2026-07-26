@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { CaEntry } from "@/lib/pilot-ca";
-import type { Client } from "@/lib/clients";
+import { createClient, type Client } from "@/lib/clients";
 
 export type MatchMethod = "manual" | "suggestion" | "refused" | "reverted" | "new_client" | "bulk";
 
