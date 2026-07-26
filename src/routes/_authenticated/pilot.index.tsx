@@ -699,7 +699,34 @@ function TodayPage() {
 
       {/* 3 — Quels risques dois-je traiter ? */}
       <section className="space-y-2">
-      <SectionTitle question="Quelles alertes dois-je traiter ?" label="Alertes" />
+      <SectionTitle question="Points d'attention" label="Alertes expliquées" />
+        {attentions.length > 0 && (
+          <div className="grid gap-2 md:grid-cols-2">
+            {attentions.map((a) => {
+              const body = (
+                <Card className="h-full border-orange-200 bg-orange-50/40 p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-orange-700" />
+                    <p className="text-sm font-medium">{a.label}</p>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{a.detail}</p>
+                  <p className="mt-2 rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Pourquoi PP affiche cette information ? </span>
+                    {a.why}
+                  </p>
+                </Card>
+              );
+              if (a.topic) {
+                return (
+                  <Link key={a.key} to="/pilot/focus/$topic" params={{ topic: a.topic }}>{body}</Link>
+                );
+              }
+              return (
+                <Link key={a.key} to={(a.to ?? "/pilot") as string}>{body}</Link>
+              );
+            })}
+          </div>
+        )}
         {risks.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex items-center gap-3 py-5">
