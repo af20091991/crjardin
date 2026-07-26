@@ -1,16 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  listHours, upsertHours, getTjmSettings, saveTjmSettings, monthlyCa,
-  computeMonths, computeTjm, type TjmSettings, type TjmSettingsInput,
+  listHours, upsertHours, getTjmSettings, monthlyCa, monthlyFieldHours,
+  computeMonths, computeTjm, monthsMissingGestion,
 } from "@/lib/pilot-hours";
 import { MONTHS, formatEuro } from "@/lib/pilot";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Clock, Timer, CalendarDays, Target } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Clock, Timer, CalendarDays, Target, SlidersHorizontal, Info, Settings2 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
@@ -24,33 +25,70 @@ export const Route = createFileRoute("/_authenticated/pilot/taux")({
   component: TauxPage,
 });
 
+type ColKey = "terrain" | "gestion" | "total" | "jours" | "ca" | "brut" | "net" | "caJour" | "part";
+
+const COLUMNS: { key: ColKey; label: string; always?: boolean }[] = [
+  { key: "terrain", label: "Temps terrain (h)", always: true },
+  { key: "gestion", label: "Temps gestion (h)", always: true },
+  { key: "total", label: "Temps total (h)" },
+  { key: "jours", label: "Jours travaillés" },
+  { key: "ca", label: "CA HT" },
+  { key: "brut", label: "Taux horaire brut" },
+  { key: "net", label: "Taux horaire net" },
+  { key: "caJour", label: "CA / jour" },
+  { key: "part", label: "% terrain" },
+];
+
+const STORAGE_KEY = "pilot-taux-columns";
+const DEFAULT_COLS: ColKey[] = ["terrain", "gestion", "total", "jours", "ca", "brut", "net", "caJour"];
+
 function TauxPage() {
   const qc = useQueryClient();
   const hoursQ = useQuery({ queryKey: ["pilot-hours", YEAR], queryFn: () => listHours(YEAR) });
   const caQ = useQuery({ queryKey: ["pilot-hours-ca", YEAR], queryFn: () => monthlyCa(YEAR) });
+  const caHoursQ = useQuery({ queryKey: ["pilot-ca-field-hours", YEAR], queryFn: () => monthlyFieldHours(YEAR) });
   const setQ = useQuery({ queryKey: ["pilot-tjm-settings"], queryFn: getTjmSettings });
 
   const settings = setQ.data;
-  const gestion = settings?.heures_gestion ?? 60;
+  const gestionDefaut = settings?.heures_gestion ?? 60;
+
+  const [cols, setCols] = useState<ColKey[]>(() => {
+    if (typeof window === "undefined") return DEFAULT_COLS;
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as ColKey[]) : DEFAULT_COLS;
+    } catch { return DEFAULT_COLS; }
+  });
+  const toggleCol = (k: ColKey) => {
+    setCols((prev) => {
+      const next = prev.includes(k) ? prev.filter((c) => c !== k) : [...prev, k];
+      try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const show = (k: ColKey) => COLUMNS.find((c) => c.key === k)?.always || cols.includes(k);
 
   const months = useMemo(
-    () => computeMonths(caQ.data ?? Array(12).fill(0), hoursQ.data ?? [], gestion),
-    [caQ.data, hoursQ.data, gestion],
+    () => computeMonths(caQ.data ?? Array(12).fill(0), hoursQ.data ?? [], gestionDefaut, caHoursQ.data ?? []),
+    [caQ.data, hoursQ.data, gestionDefaut, caHoursQ.data],
   );
 
   const hoursMut = useMutation({
-    mutationFn: (p: { month: number; field: "temps_terrain" | "jours_travailles"; value: number | null }) =>
+    mutationFn: (p: { month: number; field: "temps_terrain" | "temps_gestion" | "jours_travailles"; value: number | null }) =>
       upsertHours(YEAR, p.month, { [p.field]: p.value }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["pilot-hours", YEAR] }),
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Moyennes annuelles (mois avec temps terrain saisi)
+  const missing = monthsMissingGestion(months, YEAR);
+
+  // Moyennes annuelles (mois avec temps terrain connu)
   const withTerrain = months.filter((m) => m.temps_terrain && m.temps_terrain > 0);
   const totalCa = withTerrain.reduce((s, m) => s + m.ca, 0);
   const totalTerrain = withTerrain.reduce((s, m) => s + (m.temps_terrain ?? 0), 0);
+  const totalGestion = withTerrain.reduce((s, m) => s + (m.temps_gestion ?? gestionDefaut), 0);
   const avgBrut = totalTerrain > 0 ? totalCa / totalTerrain : 0;
-  const avgNet = totalTerrain > 0 ? totalCa / (totalTerrain + gestion * withTerrain.length) : 0;
+  const avgNet = totalTerrain + totalGestion > 0 ? totalCa / (totalTerrain + totalGestion) : 0;
   const totalJours = months.reduce((s, m) => s + (m.jours_travailles ?? 0), 0);
   const avgCaJour = totalJours > 0 ? months.reduce((s, m) => s + m.ca, 0) / totalJours : 0;
 
@@ -62,29 +100,62 @@ function TauxPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
-          <Clock className="h-6 w-6 text-primary" /> Taux horaire &amp; TJM
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Temps de travail terrain rapporté au chiffre d'affaires mensuel, et taux journalier moyen à facturer.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+            <Clock className="h-6 w-6 text-primary" /> Taux horaire &amp; TJM
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Temps terrain récupéré automatiquement depuis le suivi CA, temps de gestion saisi mois par mois.
+          </p>
+        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <SlidersHorizontal className="h-4 w-4" /> Modifier l'affichage
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-64 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Colonnes affichées</p>
+            {COLUMNS.map((c) => (
+              <label key={c.key} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={!!show(c.key)}
+                  disabled={c.always}
+                  onCheckedChange={() => toggleCol(c.key)}
+                />
+                {c.label}
+                {c.always && <span className="text-xs text-muted-foreground">(fixe)</span>}
+              </label>
+            ))}
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* KPI */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi icon={<Timer className="h-4 w-4" />} label="Taux horaire brut moyen" value={`${avgBrut.toFixed(0)} €/h`} sub="Terrain uniquement" accent />
-        <Kpi icon={<Clock className="h-4 w-4" />} label="Taux horaire net moyen" value={`${avgNet.toFixed(0)} €/h`} sub={`+ ${gestion} h gestion/mois`} />
+        <Kpi icon={<Timer className="h-4 w-4" />} label="Taux horaire brut" value={`${avgBrut.toFixed(0)} €/h`} sub="CA ÷ heures terrain" accent />
+        <Kpi icon={<Clock className="h-4 w-4" />} label="Taux horaire net" value={`${avgNet.toFixed(0)} €/h`} sub="CA ÷ (terrain + gestion)" />
         <Kpi icon={<CalendarDays className="h-4 w-4" />} label="CA / jour moyen" value={formatEuro(avgCaJour)} sub={`${totalJours} jours travaillés`} />
         <Kpi icon={<Target className="h-4 w-4" />} label="TJM cible" value={tjm ? formatEuro(tjm.tauxJournalier) : "—"} sub="Seuil de rentabilité" />
       </div>
+
+      {missing.length > 0 && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            Temps de gestion non renseigné pour&nbsp;: {missing.map((m) => MONTHS[m - 1]).join(", ")}. Sans cette
+            saisie, le taux horaire net utilise la valeur par défaut ({gestionDefaut} h/mois).
+          </p>
+        </div>
+      )}
 
       {/* Graphique */}
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Évolution du taux horaire</CardTitle></CardHeader>
         <CardContent>
           {chartData.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Saisissez le temps terrain pour afficher le graphique.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">Aucune heure terrain connue pour {YEAR}.</p>
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
@@ -109,142 +180,80 @@ function TauxPage() {
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="px-3 py-2 font-medium">Mois</th>
-                <th className="px-3 py-2 font-medium">Temps terrain (h)</th>
-                <th className="px-3 py-2 font-medium">Jours travaillés</th>
-                <th className="px-3 py-2 text-right font-medium">CA HT</th>
-                <th className="px-3 py-2 text-right font-medium">Taux brut</th>
-                <th className="px-3 py-2 text-right font-medium">Taux net</th>
-                <th className="px-3 py-2 text-right font-medium">CA / jour</th>
+                {COLUMNS.filter((c) => show(c.key)).map((c) => (
+                  <th key={c.key} className={`px-3 py-2 font-medium ${["ca", "brut", "net", "caJour", "part", "total"].includes(c.key) ? "text-right" : ""}`}>
+                    {c.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {months.map((m) => (
-                <tr key={m.month} className="border-b border-border/60 last:border-0">
-                  <td className="px-3 py-1.5 font-medium">{MONTHS[m.month - 1]}</td>
-                  <td className="px-3 py-1.5">
-                    <NumCell
-                      value={m.temps_terrain}
-                      onCommit={(v) => hoursMut.mutate({ month: m.month, field: "temps_terrain", value: v })}
-                    />
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <NumCell
-                      value={m.jours_travailles}
-                      onCommit={(v) => hoursMut.mutate({ month: m.month, field: "jours_travailles", value: v })}
-                    />
-                  </td>
-                  <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(m.ca)}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums font-medium text-primary">{m.brut != null ? `${m.brut.toFixed(0)} €/h` : "—"}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-accent-foreground">{m.net != null ? `${m.net.toFixed(0)} €/h` : "—"}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums">{m.caJour != null ? formatEuro(m.caJour) : "—"}</td>
-                </tr>
-              ))}
+              {months.map((m) => {
+                const gestionVal = m.temps_gestion;
+                const total = (m.temps_terrain ?? 0) + (gestionVal ?? gestionDefaut);
+                return (
+                  <tr key={m.month} className="border-b border-border/60 last:border-0">
+                    <td className="px-3 py-1.5 font-medium">{MONTHS[m.month - 1]}</td>
+                    {show("terrain") && (
+                      <td className="px-3 py-1.5">
+                        {m.terrainSource === "ca" ? (
+                          <span className="inline-flex items-center gap-1.5 tabular-nums">
+                            {(m.temps_terrain ?? 0).toFixed(1)}
+                            <span className="rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] text-sky-700">auto CA</span>
+                          </span>
+                        ) : (
+                          <NumCell
+                            key={`t-${m.month}-${m.temps_terrain}`}
+                            value={m.temps_terrain}
+                            onCommit={(v) => hoursMut.mutate({ month: m.month, field: "temps_terrain", value: v })}
+                          />
+                        )}
+                      </td>
+                    )}
+                    {show("gestion") && (
+                      <td className="px-3 py-1.5">
+                        <NumCell
+                          key={`g-${m.month}-${gestionVal}`}
+                          value={gestionVal}
+                          placeholder={String(gestionDefaut)}
+                          onCommit={(v) => hoursMut.mutate({ month: m.month, field: "temps_gestion", value: v })}
+                        />
+                      </td>
+                    )}
+                    {show("total") && <td className="px-3 py-1.5 text-right tabular-nums">{total > 0 ? total.toFixed(1) : "—"}</td>}
+                    {show("jours") && (
+                      <td className="px-3 py-1.5">
+                        <NumCell
+                          key={`j-${m.month}-${m.jours_travailles}`}
+                          value={m.jours_travailles}
+                          onCommit={(v) => hoursMut.mutate({ month: m.month, field: "jours_travailles", value: v })}
+                        />
+                      </td>
+                    )}
+                    {show("ca") && <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(m.ca)}</td>}
+                    {show("brut") && <td className="px-3 py-1.5 text-right font-medium tabular-nums text-primary">{m.brut != null ? `${m.brut.toFixed(0)} €/h` : "—"}</td>}
+                    {show("net") && <td className="px-3 py-1.5 text-right tabular-nums text-accent-foreground">{m.net != null ? `${m.net.toFixed(0)} €/h` : "—"}</td>}
+                    {show("caJour") && <td className="px-3 py-1.5 text-right tabular-nums">{m.caJour != null ? formatEuro(m.caJour) : "—"}</td>}
+                    {show("part") && <td className="px-3 py-1.5 text-right tabular-nums">{m.partTerrain != null ? `${(m.partTerrain * 100).toFixed(0)} %` : "—"}</td>}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </CardContent>
       </Card>
 
-      <p className="text-xs text-muted-foreground">
-        <strong>Brut</strong> : CA rapporté aux seules heures terrain. <strong>Net</strong> : CA rapporté aux heures terrain + heures de gestion
-        (devis, fournisseurs, administratif), paramétrables ci-dessous.
-      </p>
-
-      {/* Paramètres TJM */}
-      {settings && <TjmPanel settings={settings} tjm={tjm!} onSaved={() => qc.invalidateQueries({ queryKey: ["pilot-tjm-settings"] })} />}
-      {setQ.isFetched && !settings && (
-        <Card>
-          <CardContent className="flex items-center justify-between gap-3 p-4">
-            <p className="text-sm text-muted-foreground">Aucun paramètre TJM enregistré.</p>
-            <InitTjmButton onDone={() => qc.invalidateQueries({ queryKey: ["pilot-tjm-settings"] })} />
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-function InitTjmButton({ onDone }: { onDone: () => void }) {
-  const mut = useMutation({
-    mutationFn: () => saveTjmSettings({}),
-    onSuccess: () => { toast.success("Paramètres initialisés"); onDone(); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  return <Button size="sm" onClick={() => mut.mutate()} disabled={mut.isPending}>Initialiser les paramètres TJM</Button>;
-}
-
-function TjmPanel({ settings, tjm, onSaved }: { settings: TjmSettings; tjm: ReturnType<typeof computeTjm>; onSaved: () => void }) {
-  const [draft, setDraft] = useState<TjmSettings>(settings);
-  const live = computeTjm(draft);
-  const mut = useMutation({
-    mutationFn: (input: TjmSettingsInput) => saveTjmSettings(input),
-    onSuccess: () => { toast.success("Paramètres enregistrés"); onSaved(); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const set = (k: keyof TjmSettings) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setDraft((d) => ({ ...d, [k]: e.target.value === "" ? 0 : Number(e.target.value) }));
-
-  const fields: { k: keyof TjmSettings; label: string }[] = [
-    { k: "heures_gestion", label: "Heures gestion / mois" },
-    { k: "objectif_remuneration", label: "Objectif rému. nette / mois (€)" },
-    { k: "revenus_bruts", label: "Revenus bruts an (€)" },
-    { k: "charges_fixes", label: "Charges fixes / mois (€)" },
-    { k: "charges_variables", label: "Charges variables / mois (€)" },
-    { k: "heures_jour", label: "Heures / jour" },
-  ];
-  const offFields: { k: keyof TjmSettings; label: string }[] = [
-    { k: "conges", label: "Congés" },
-    { k: "jours_off", label: "Jours off" },
-    { k: "weekend", label: "Week-ends" },
-    { k: "feries", label: "Fériés" },
-    { k: "meteo", label: "Météo" },
-    { k: "bureau", label: "Bureau" },
-  ];
-
-  return (
-    <Card>
-      <CardHeader className="pb-2"><CardTitle className="text-base">Paramètres taux journalier moyen (TJM)</CardTitle></CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {fields.map((f) => (
-            <div key={f.k} className="space-y-1">
-              <Label className="text-xs">{f.label}</Label>
-              <Input type="number" value={String(draft[f.k])} onChange={set(f.k)} />
-            </div>
-          ))}
-        </div>
-        <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Jours non facturables / an</p>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-            {offFields.map((f) => (
-              <div key={f.k} className="space-y-1">
-                <Label className="text-xs">{f.label}</Label>
-                <Input type="number" value={String(draft[f.k])} onChange={set(f.k)} />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-muted/30 p-3 sm:grid-cols-4">
-          <Result label="Jours facturables" value={`${live.joursFacturables.toFixed(0)} j`} />
-          <Result label="Taux journalier" value={formatEuro(live.tauxJournalier)} />
-          <Result label="Taux horaire moyen" value={`${live.tauxHoraire.toFixed(0)} €/h`} />
-          <Result label="TJM avec objectif" value={formatEuro(live.tjmObjectif)} />
-        </div>
-
-        <div className="flex justify-end">
-          <Button onClick={() => mut.mutate(draft)} disabled={mut.isPending}>Enregistrer</Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Result({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-serif text-lg font-semibold text-foreground">{value}</p>
+      <div className="space-y-1 text-xs text-muted-foreground">
+        <p><strong>Taux horaire brut</strong> : CA rapporté aux seules heures terrain (temps productif facturable).</p>
+        <p><strong>Taux horaire net</strong> : CA rapporté au temps réellement mobilisé, terrain + gestion (devis, administratif, fournisseurs, bureau).</p>
+        <p className="flex items-center gap-1.5">
+          <Settings2 className="h-3.5 w-3.5" />
+          Les paramètres TJM se règlent dans{" "}
+          <Link to="/pilot/parametres" className="font-medium text-primary underline-offset-2 hover:underline">
+            Paramètres &gt; Pilot Pro
+          </Link>.
+        </p>
+      </div>
     </div>
   );
 }
@@ -263,12 +272,13 @@ function Kpi({ icon, label, value, sub, accent }: {
   );
 }
 
-function NumCell({ value, onCommit }: { value: number | null; onCommit: (v: number | null) => void }) {
+function NumCell({ value, onCommit, placeholder }: { value: number | null; onCommit: (v: number | null) => void; placeholder?: string }) {
   const [v, setV] = useState(value == null ? "" : String(value));
   return (
     <Input
       className="h-8 w-24"
       type="number"
+      placeholder={placeholder}
       value={v}
       onChange={(e) => setV(e.target.value)}
       onBlur={() => {
