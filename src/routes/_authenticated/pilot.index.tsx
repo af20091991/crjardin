@@ -261,12 +261,13 @@ function TodayPage() {
     );
   }, [cstats, targetHR]);
 
-  // Commercial : dernier passage par client (via CA entries pour couvrir aussi les ventes sans intervention)
+  // Commercial : dernier passage par client — uniquement les lignes CA rattachées
+  // à une fiche du référentiel (jamais de "client fantôme" issu d'une désignation).
   const lastByClientCa = useMemo(() => {
     const map = new Map<string, { name: string; last: number; families: Set<string>; lastByFamily: Map<string, number> }>();
     for (const e of entries.data ?? []) {
-      const key = e.client_id ?? `name:${(e.client_name ?? "").toLowerCase()}`;
-      if (!key) continue;
+      if (!e.client_id) continue;
+      const key = e.client_id;
       const t = new Date(e.entry_date).getTime();
       const cur =
         map.get(key) ?? {
@@ -340,7 +341,7 @@ function TodayPage() {
   // Comparaison CA mois vs même mois N-1 : uniquement si les deux périodes existent.
   const caComparison = periodComparison({ current: k.caMonth, previous: objectifMois });
   // Marge : non calculable sans CA sur l'année.
-  const margin = marginPct({ ca: k.caYear, marge: k.marge });
+  const margin = marginPct({ ca: k.caMonth, marge: k.marge });
   // Taux horaire réel : heures confirmées uniquement, aucune estimation.
   const terminatedThisYear = allI.filter(
     (i) => i.status === "terminee" && new Date(i.intervention_date).getFullYear() === year,
