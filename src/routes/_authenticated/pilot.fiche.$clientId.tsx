@@ -7,6 +7,7 @@ import { computeScoreBreakdown } from "@/lib/client-score-breakdown";
 import { listNextBestOffers, explainOffer, reasonLabel, formatSeason } from "@/lib/next-best-offers";
 import { formatEuro } from "@/lib/pilot";
 import { getClientActivityStatus } from "@/lib/client-activity";
+import { AUTO_CLIENT_MARKER, countOrphanEntries, sumOrphanAmount } from "@/lib/pilot-ca-matching";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft, MapPin, Phone, Mail, TrendingUp, Clock, Activity, Sparkles,
   Target, FileText, Compass, ShieldCheck, AlertCircle, ThumbsUp, ThumbsDown, Gauge,
-  Wallet, CalendarClock, Lightbulb,
+  Wallet, CalendarClock, Lightbulb, Link2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/fiche/$clientId")({
@@ -258,6 +259,8 @@ function PilotClient360() {
       )}
 
       {/* 2 — Historique commercial */}
+      <PendingCaNotice autoCreated={(clientQ.data?.notes ?? "").includes(AUTO_CLIENT_MARKER)} />
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
