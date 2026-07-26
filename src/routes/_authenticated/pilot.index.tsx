@@ -504,6 +504,67 @@ function TodayPage() {
     },
   ].filter((r) => r.count > 0);
 
+  // ---- Points d'attention : uniquement des alertes fiables et expliquées ----
+  type Attention = { key: string; label: string; detail: string; why: string; to?: string; topic?: FocusTopic };
+  const attentions: Attention[] = [];
+
+  if (caComparison.available && caComparison.value <= -thresholds.baisseActivitePct) {
+    attentions.push({
+      key: "activite",
+      label: "Baisse d'activité",
+      detail: `CA du mois en recul de ${Math.abs(caComparison.value).toFixed(0)} % vs ${year - 1}.`,
+      why: `PP compare le CA du mois en cours au même mois de ${year - 1} ; le recul dépasse le seuil de ${thresholds.baisseActivitePct} % défini dans les paramètres.`,
+      to: "/pilot/ca",
+    });
+  }
+  if (goalsLate.length > 0) {
+    attentions.push({
+      key: "objectifs",
+      label: "Objectif en retard",
+      detail: `${goalsLate.length} objectif(s) dont l'échéance est dépassée.`,
+      why: "Objectifs encore « en cours » dans pilot_goals avec une échéance antérieure à aujourd'hui.",
+      to: "/pilot/objectifs",
+    });
+  }
+  if (chargesPrevYearProrata > 0) {
+    const derive = ((projection.chargesReelles - chargesPrevYearProrata) / chargesPrevYearProrata) * 100;
+    if (derive >= thresholds.deriveChargesPct) {
+      attentions.push({
+        key: "charges",
+        label: "Dérive des charges",
+        detail: `Charges à date ${formatEuro(projection.chargesReelles)} soit +${derive.toFixed(0)} % vs même période ${year - 1}.`,
+        why: `PP compare les charges enregistrées sur ${projection.monthsObserved} mois à la même fraction de l'exercice ${year - 1} ; le seuil de dérive est de ${thresholds.deriveChargesPct} %.`,
+        to: "/pilot/charges",
+      });
+    }
+  }
+  const clientsChronophages = clientsProfit.filter((c) => c.classe === "chronophage");
+  if (clientsChronophages.length > 0) {
+    attentions.push({
+      key: "clients",
+      label: "Client à surveiller",
+      detail: `${clientsChronophages.length} client(s) chronophages — ex. ${clientsChronophages[0].name}.`,
+      why: clientsChronophages[0].why,
+      topic: "chronophages" as FocusTopic,
+    });
+  }
+  const servicesFaibles = services.filter((s) => s.classe === "faible");
+  if (servicesFaibles.length > 0) {
+    attentions.push({
+      key: "prestations",
+      label: "Prestation peu rentable",
+      detail: `${servicesFaibles.length} prestation(s) sous la cible — ex. ${servicesFaibles[0].prestation}.`,
+      why: servicesFaibles[0].why,
+      to: "/pilot/prestations",
+    });
+  }
+
+  // ---- Opportunités préparées ----
+  const prestationsADevelopper = services
+    .filter((s) => s.classe === "rentable" || s.classe === "strategique")
+    .sort((a, b) => (b.tauxHoraire ?? 0) - (a.tauxHoraire ?? 0))
+    .slice(0, 4);
+
   // Opportunités — Top 3 NBO déjà scorées ≥ 80.
   const topOffers = priority.slice(0, 3);
 
