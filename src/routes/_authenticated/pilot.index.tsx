@@ -393,14 +393,14 @@ function TodayPage() {
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
     key: string; label: string; count: number; icon: typeof Handshake;
-    topic?: FocusTopic; to?: string; tone: Priority;
+    topic?: FocusTopic; to?: string; search?: Record<string, string>; tone: Priority;
   }> = [
     { key: "cr", label: "Comptes-rendus générés à envoyer", count: reportsToSend.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "urgent" as Priority },
     { key: "crg", label: "Comptes-rendus à générer", count: reportsToGenerate.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "important" as Priority },
     { key: "h", label: "Interventions sans aucune heure connue", count: missingHours.length, icon: Clock, topic: "heures-manquantes" as FocusTopic, tone: "urgent" as Priority },
     { key: "r", label: "Recommandations à planifier", count: acceptedNotPlanned.length, icon: Handshake, topic: "recos-a-planifier" as FocusTopic, tone: "urgent" as Priority },
     { key: "d", label: "Dépassements de temps", count: timeOverruns.length, icon: TrendingDown, topic: "depassements-temps" as FocusTopic, tone: "urgent" as Priority },
-    { key: "g", label: "Objectifs en retard", count: goalsLate.length, icon: Flag, to: "/pilot/objectifs", tone: "urgent" as Priority },
+    { key: "g", label: "Objectifs en retard", count: goalsLate.length, icon: Flag, to: "/pilot/objectifs", search: { filter: "retard" }, tone: "urgent" as Priority },
     { key: "ca", label: "Rapprochements CA à valider", count: orphanCount.data ?? 0, icon: Link2, to: "/pilot/rapprochement", tone: "important" as Priority },
     { key: "hh", label: "Heures historiques à rattacher", count: (historicHours.data ?? []).filter((h) => h.status === "a_valider").length, icon: Clock, to: "/pilot/rapprochement", tone: "important" as Priority },
   ].filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
@@ -553,6 +553,7 @@ function TodayPage() {
                 count={p.count}
                 topic={p.topic}
                 to={p.to}
+                search={p.search}
               />
             ))}
           </div>
@@ -686,10 +687,10 @@ function SectionTitle({ question, label }: { question: string; label: string }) 
 }
 
 function PriorityRow({
-  rank, icon: Icon, label, count, topic, to,
+  rank, icon: Icon, label, count, topic, to, search,
 }: {
   rank: number; icon: typeof Handshake; label: string; count: number;
-  topic?: FocusTopic; to?: string;
+  topic?: FocusTopic; to?: string; search?: Record<string, string>;
 }) {
   const inner = (
     <Card className="flex items-center gap-3 p-3 transition-all hover:-translate-y-0.5 hover:shadow-md">
@@ -705,7 +706,11 @@ function PriorityRow({
   if (topic) {
     return <Link to="/pilot/focus/$topic" params={{ topic }}>{inner}</Link>;
   }
-  return <Link to={to ?? "/pilot"}>{inner}</Link>;
+  return (
+    <Link to={(to ?? "/pilot") as string} search={search as never}>
+      {inner}
+    </Link>
+  );
 }
 
 function RiskCard({
