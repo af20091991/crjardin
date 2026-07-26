@@ -4,6 +4,8 @@
 // explicite ("Non disponible", "Données insuffisantes", "Non calculable")
 // accompagné d'une explication actionnable.
 
+import type { RealHoursResolution } from "@/lib/pilot-real-hours";
+
 export type Reliable<T> =
   | { available: true; value: T; note?: string }
   | { available: false; label: string; detail: string };
@@ -75,6 +77,49 @@ export function realHourlyRate(params: {
 }
 
 /** Marge : non calculable sans CA sur la période. */
+
+/**
+ * Taux horaire réel calculé à partir des heures RÉELLEMENT disponibles dans PP
+ * (cascade : interventions confirmées → historique validé → ledger heures).
+ * Aucune saisie n'est exigée tant qu'une source existe.
+ */
+export function realHourlyRateFromResolution(params: {
+  ca: number;
+  resolution: RealHoursResolution;
+  targetRate?: number;
+}): Reliable<number> {
+  const { ca, resolution, targetRate = 0 } = params;
+  if (resolution.hours <= 0) {
+    return {
+      available: false,
+      label: "Taux horaire réel indisponible",
+      detail: "Aucune heure exploitable dans Pilot Pro sur la période.",
+    };
+  }
+  if (!(ca > 0)) {
+    return {
+      available: false,
+      label: "Taux horaire réel indisponible",
+      detail: "Aucun CA enregistré sur la période.",
+    };
+  }
+  const value = ca / resolution.hours;
+  const cap =
+    targetRate > 0 ? targetRate * RELIABILITY_RULES.MAX_RATE_FACTOR : RELIABILITY_RULES.ABSOLUTE_RATE_CAP;
+  if (!Number.isFinite(value) || value <= 0 || value > cap) {
+    return {
+      available: false,
+      label: "Taux horaire réel indisponible",
+      detail: "Valeur incohérente au regard des heures disponibles.",
+    };
+  }
+  return {
+    available: true,
+    value,
+    note: `${resolution.year} · ${resolution.hours.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} h · ${resolution.sourceLabel}`,
+  };
+}
+
 export function marginPct(params: { ca: number; marge: number }): Reliable<number> {
   if (!(params.ca > 0)) {
     return {

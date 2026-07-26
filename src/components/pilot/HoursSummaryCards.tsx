@@ -1,64 +1,70 @@
-import { useQuery } from "@tanstack/react-query";
-import { Clock, Gauge, Timer } from "lucide-react";
+import { Clock, Gauge, Scale, Timer, History } from "lucide-react";
 import { KpiCard } from "@/components/pilot/KpiCard";
-import {
-  countInterventionsToConfirm,
-  fetchHoursLedger,
-  formatHours,
-} from "@/lib/pilot-hours-ledger";
+import { formatHours } from "@/lib/pilot-hours-ledger";
+import type { RealHoursResolution } from "@/lib/pilot-real-hours";
 
 /**
- * Bloc « Heures » du cockpit : vendues / réalisées sur la période, et heures
- * restant à confirmer. Aucune estimation n'entre dans ces totaux.
+ * Bloc « Répartition du temps » du cockpit : heures vendues, réalisées,
+ * historiques et écart. Les heures proviennent du ledger consolidé ; aucune
+ * estimation n'entre dans ces totaux et aucune saisie n'est demandée quand
+ * l'information existe déjà.
  */
-export function HoursSummaryCards({ year, month }: { year: number; month?: number }) {
-  const q = useQuery({
-    queryKey: ["pilot-hours-summary", year, month ?? null],
-    queryFn: async () => {
-      const [entries, toConfirm] = await Promise.all([
-        fetchHoursLedger(year),
-        countInterventionsToConfirm(year),
-      ]);
-      const inPeriod = month == null ? entries : entries.filter((e) => e.month == null || e.month === month);
-      const vendues = inPeriod.filter((e) => e.type === "vendue").reduce((s, e) => s + e.hours, 0);
-      const realisees = inPeriod
-        .filter((e) => e.type === "realisee" && !e.estimated)
-        .reduce((s, e) => s + e.hours, 0);
-      const venduesAn = entries.filter((e) => e.type === "vendue").reduce((s, e) => s + e.hours, 0);
-      return { vendues, realisees, venduesAn, toConfirm };
-    },
-  });
-
-  const d = q.data;
-  const ecart = d ? d.vendues - d.realisees : 0;
+export function HoursSummaryCards({
+  year,
+  resolution,
+  toFill,
+}: {
+  year: number;
+  resolution?: RealHoursResolution;
+  /** Interventions terminées dont les heures n'existent nulle part dans PP. */
+  toFill: number;
+}) {
+  const d = resolution;
+  const ecart = d ? d.ecart : 0;
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <KpiCard
-        label="Heures vendues (période)"
+        label={`Heures vendues ${year}`}
         value={d ? formatHours(d.vendues) : "—"}
         icon={Timer}
         to="/pilot/ca"
         description="Heures déclarées sur les lignes de vente du suivi CA."
-        sub={d ? `${formatHours(d.venduesAn)} sur ${year}` : undefined}
       />
       <KpiCard
-        label="Heures réalisées (période)"
+        label="Heures réalisées"
         value={d ? formatHours(d.realisees) : "—"}
         icon={Gauge}
         to="/pilot/rapprochement"
         description="Interventions terminées avec heures confirmées. Estimations exclues."
-        sub={d && d.realisees > 0 ? `Écart ${ecart >= 0 ? "+" : ""}${formatHours(ecart)} vs vendues` : "Aucune heure confirmée"}
-        tone={d && d.realisees > 0 && ecart < 0 ? "warning" : "default"}
+        sub={d && d.realisees > 0 ? "Interventions confirmées" : "Aucune heure confirmée"}
       />
       <KpiCard
-        label="Heures à confirmer"
-        value={d ? String(d.toConfirm) : "—"}
-        icon={Clock}
-        to="/pilot/focus/heures-manquantes"
-        description="Interventions terminées sans heures réelles confirmées (ou estimées)."
-        tone={d && d.toConfirm > 0 ? "warning" : "positive"}
+        label="Heures historiques"
+        value={d ? formatHours(d.historiques) : "—"}
+        icon={History}
+        to="/pilot/rapprochement"
+        description="Import Excel validé et rattaché au référentiel client."
       />
+      <KpiCard
+        label="Écart vendu / réel"
+        value={d && d.hours > 0 ? `${ecart >= 0 ? "+" : ""}${formatHours(ecart)}` : "—"}
+        icon={Scale}
+        to="/pilot/direction"
+        description={d ? `Heures réelles retenues : ${d.sourceLabel} (${d.sourceDetail}).` : undefined}
+        sub={d && d.hours > 0 ? d.sourceLabel : "Aucune heure réelle disponible"}
+        tone={d && d.hours > 0 && ecart < 0 ? "warning" : "default"}
+      />
+      {toFill > 0 && (
+        <KpiCard
+          label="Interventions sans aucune heure connue"
+          value={String(toFill)}
+          icon={Clock}
+          to="/pilot/focus/heures-manquantes"
+          description="Aucune heure disponible dans PP pour ces interventions (ni CA, ni historique)."
+          tone="warning"
+        />
+      )}
     </div>
   );
 }

@@ -12,9 +12,11 @@ import { listAllRecommendations } from "@/lib/garden";
 import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES, fetchClientActivityRows } from "@/lib/client-activity";
-import { realHourlyRate, marginPct, periodComparison } from "@/lib/pilot-reliability";
+import { realHourlyRateFromResolution, marginPct, periodComparison } from "@/lib/pilot-reliability";
+import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
+import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-hours";
 import type { FocusTopic } from "@/lib/pilot-focus";
-import { CoverageBanner } from "@/components/pilot/CoverageBanner";
+import { CaStatusCard } from "@/components/pilot/CaStatusCard";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import { listHistoricHours } from "@/lib/pilot-historic-hours";
 import { HoursSummaryCards } from "@/components/pilot/HoursSummaryCards";
@@ -72,6 +74,11 @@ function TodayPage() {
   const goals = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
   const orphanCount = useQuery({ queryKey: ["pilot-ca-orphan-count"], queryFn: countOrphanEntries });
   const historicHours = useQuery({ queryKey: ["pilot-historic-hours"], queryFn: listHistoricHours });
+  // Ledger consolidé des heures de l'année : source unique pour le temps réel.
+  const hoursLedger = useQuery({
+    queryKey: ["pilot-hours-ledger", year],
+    queryFn: () => fetchHoursLedger(year),
+  });
   const clientActivity = useQuery({
     queryKey: ["client-activity-rows"],
     queryFn: fetchClientActivityRows,
@@ -93,7 +100,7 @@ function TodayPage() {
   const loading =
     entries.isLoading || charges.isLoading || settings.isLoading ||
     interventions.isLoading || recos.isLoading || goals.isLoading ||
-    clientActivity.isLoading;
+    clientActivity.isLoading || hoursLedger.isLoading;
 
   // Politique compte-rendu par client : seul un client « Oui » génère une action CR.
   const reportPolicyById = useMemo(() => {
@@ -182,13 +189,17 @@ function TodayPage() {
     }
     return ids;
   }, [allI, reportPolicyById]);
-  const missingHours = allI.filter((i) => {
-    if (i.status !== "terminee") return false;
-    const estimated =
-      i.ai_metadata && typeof i.ai_metadata === "object" &&
-      (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
-    return i.hours_spent == null || estimated;
-  });
+  // Heures réelles disponibles dans PP (interventions > historique > ledger CA).
+  const hoursResolution = useMemo(
+    () => (hoursLedger.data ? resolveRealHours(hoursLedger.data, year) : undefined),
+    [hoursLedger.data, year],
+  );
+  // Une intervention n'est « à renseigner » que si AUCUNE heure n'existe dans PP
+  // pour ce client sur l'année : un défaut de liaison n'est jamais une tâche.
+  const missingHours = useMemo(
+    () => (hoursLedger.data ? interventionsNeedingHours(allI, hoursLedger.data, year) : []),
+    [allI, hoursLedger.data, year],
+  );
 
   // Clients dormants / à relancer — clients UNIQUES du référentiel `clients`.
   // Jamais de comptage de lignes CA ou d'historique non rattaché.
@@ -369,23 +380,11 @@ function TodayPage() {
   const caComparison = periodComparison({ current: k.caMonth, previous: objectifMois });
   // Marge : non calculable sans CA sur l'année.
   const margin = marginPct({ ca: k.caMonth, marge: k.marge });
-  // Taux horaire réel : heures confirmées uniquement, aucune estimation.
-  const terminatedThisYear = allI.filter(
-    (i) => i.status === "terminee" && new Date(i.intervention_date).getFullYear() === year,
-  );
-  const confirmedThisYear = terminatedThisYear.filter((i) => {
-    const estimated =
-      i.ai_metadata && typeof i.ai_metadata === "object" &&
-      (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
-    return i.hours_spent != null && Number(i.hours_spent) > 0 && !estimated;
-  });
-  const realRate = realHourlyRate({
-    ca: k.caYear,
-    confirmedHours: k.totalConfirmedHours ?? 0,
-    terminatedCount: terminatedThisYear.length,
-    confirmedCount: confirmedThisYear.length,
-    targetRate: targetHR,
-  });
+  // Taux horaire réel : exploite les heures déjà présentes dans PP selon la
+  // cascade interventions confirmées → historique validé → ledger heures.
+  const realRate = hoursResolution
+    ? realHourlyRateFromResolution({ ca: k.caYear, resolution: hoursResolution, targetRate: targetHR })
+    : ({ available: false, label: "Taux horaire réel", detail: "Chargement des heures…" } as const);
   const tauxEcartPct =
     realRate.available && targetHR > 0 ? ((realRate.value - targetHR) / targetHR) * 100 : 0;
 
@@ -396,7 +395,7 @@ function TodayPage() {
   }> = [
     { key: "cr", label: "Comptes-rendus générés à envoyer", count: reportsToSend.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "urgent" as Priority },
     { key: "crg", label: "Comptes-rendus à générer", count: reportsToGenerate.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "important" as Priority },
-    { key: "h", label: "Heures à confirmer", count: missingHours.length, icon: Clock, topic: "heures-manquantes" as FocusTopic, tone: "urgent" as Priority },
+    { key: "h", label: "Interventions sans aucune heure connue", count: missingHours.length, icon: Clock, topic: "heures-manquantes" as FocusTopic, tone: "urgent" as Priority },
     { key: "r", label: "Recommandations à planifier", count: acceptedNotPlanned.length, icon: Handshake, topic: "recos-a-planifier" as FocusTopic, tone: "urgent" as Priority },
     { key: "d", label: "Dépassements de temps", count: timeOverruns.length, icon: TrendingDown, topic: "depassements-temps" as FocusTopic, tone: "urgent" as Priority },
     { key: "g", label: "Objectifs en retard", count: goalsLate.length, icon: Flag, to: "/pilot/objectifs", tone: "urgent" as Priority },
@@ -465,7 +464,7 @@ function TodayPage() {
         </p>
       </div>
 
-      <CoverageBanner year={year} />
+      <CaStatusCard year={year} caYear={k.caYear} caPrevYear={k.caPrevYear} projection={k.projection} />
 
       {/* 1 — Où en est mon entreprise aujourd'hui ? */}
       <section className="space-y-2">
@@ -528,8 +527,8 @@ function TodayPage() {
 
       {/* 2 — Quelles sont mes priorités ? */}
       <section className="space-y-2">
-        <SectionTitle question="Où passent mes heures ?" label="Heures consolidées" />
-        <HoursSummaryCards year={year} month={month + 1} />
+        <SectionTitle question="Répartition du temps" label="Heures consolidées" />
+        <HoursSummaryCards year={year} resolution={hoursResolution} toFill={missingHours.length} />
       </section>
 
       <section className="space-y-2">
