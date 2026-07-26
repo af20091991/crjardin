@@ -12,7 +12,10 @@ function norm(s: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
-type ImportField = Exclude<keyof ClientInput, "emails"> | "first_name" | "last_name";
+type ImportField =
+  | Exclude<keyof ClientInput, "emails" | "report_policy" | "source" | "source_confidence">
+  | "first_name"
+  | "last_name";
 
 // Map of normalised header aliases → import field. First/last name are kept
 // separate so Excel files with "Prénom" + "Nom" are combined reliably.
