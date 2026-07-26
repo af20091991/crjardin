@@ -51,19 +51,32 @@ export interface HoursLedgerEntry {
   estimated: boolean;
 }
 
-async function fetchAll<T>(
-  table: "pilot_ca_entries",
-  columns: string,
-  apply: (q: ReturnType<typeof supabase.from>) => unknown,
-): Promise<T[]> {
-  const rows: T[] = [];
+type CaRow = {
+  id: string;
+  year: number;
+  month: number;
+  hours: number | null;
+  designation: string | null;
+  category: string | null;
+  client_id: string | null;
+  raw_client_text: string | null;
+  match_status: string | null;
+};
+
+/** Lecture paginée des lignes CA porteuses d'heures (limite PostgREST = 1000). */
+async function fetchCaHoursRows(year?: number): Promise<CaRow[]> {
+  const rows: CaRow[] = [];
   const pageSize = 1000;
   for (let from = 0; ; from += pageSize) {
-    let q = supabase.from(table).select(columns).range(from, from + pageSize - 1);
-    q = apply(q as never) as never;
-    const { data, error } = await q;
+    let q = supabase
+      .from("pilot_ca_entries")
+      .select("id,year,month,hours,designation,category,client_id,raw_client_text,match_status")
+      .eq("kind", "vente")
+      .gt("hours", 0);
+    if (year != null) q = q.eq("year", year);
+    const { data, error } = await q.range(from, from + pageSize - 1);
     if (error) throw error;
-    const chunk = (data ?? []) as unknown as T[];
+    const chunk = (data ?? []) as unknown as CaRow[];
     rows.push(...chunk);
     if (chunk.length < pageSize) break;
   }
@@ -77,29 +90,8 @@ function prestationFromCa(designation: string | null, category: string | null): 
 
 /** Charge l'intégralité des heures connues, toutes sources confondues. */
 export async function fetchHoursLedger(year?: number): Promise<HoursLedgerEntry[]> {
-  type CaRow = {
-    id: string;
-    year: number;
-    month: number;
-    hours: number | null;
-    designation: string | null;
-    category: string | null;
-    client_id: string | null;
-    raw_client_text: string | null;
-    match_status: string | null;
-  };
-
   const [caRows, interventionsRes, historicRes, clientsRes] = await Promise.all([
-    fetchAll<CaRow>(
-      "pilot_ca_entries",
-      "id,year,month,hours,designation,category,client_id,raw_client_text,match_status",
-      (q) => {
-        let b = (q as never as ReturnType<typeof supabase.from>)
-          .select("id,year,month,hours,designation,category,client_id,raw_client_text,match_status") as never as ReturnType<typeof supabase.from>;
-        b = b as never;
-        return b;
-      },
-    ).catch(() => [] as CaRow[]),
+    fetchCaHoursRows(year),
     supabase
       .from("interventions")
       .select("id,client_id,intervention_date,hours_spent,status,intervention_type,title,ai_metadata"),
