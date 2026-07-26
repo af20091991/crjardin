@@ -8,6 +8,11 @@ import { listNextBestOffers, explainOffer, reasonLabel, formatSeason } from "@/l
 import { formatEuro } from "@/lib/pilot";
 import { getClientActivityStatus } from "@/lib/client-activity";
 import { AUTO_CLIENT_MARKER, countOrphanEntries, sumOrphanAmount } from "@/lib/pilot-ca-matching";
+import {
+  listHistoricHoursForClient,
+  sumHistoricHours,
+  HOURS_SOURCE_META,
+} from "@/lib/pilot-historic-hours";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -88,6 +93,11 @@ function PilotClient360() {
   const offersQ = useQuery({
     queryKey: ["fiche-nbo", clientId],
     queryFn: () => listNextBestOffers(clientId),
+  });
+
+  const historicHoursQ = useQuery({
+    queryKey: ["fiche-historic-hours", clientId],
+    queryFn: () => listHistoricHoursForClient(clientId),
   });
 
   const recosQ = useQuery({
@@ -173,6 +183,8 @@ function PilotClient360() {
     (iv) => iv.status === "terminee" && iv.hours_spent == null,
   ).length;
   const crSent = (interventionsQ.data ?? []).filter((iv) => iv.sent_to_client_at).length;
+  const historicRows = historicHoursQ.data ?? [];
+  const historicHours = sumHistoricHours(historicRows);
   const crTotal = (interventionsQ.data ?? []).length;
   // Badge « CR » : uniquement si au moins un compte-rendu a déjà été envoyé.
   const hasCrHistory = crSent > 0;
@@ -452,6 +464,24 @@ function PilotClient360() {
                 value={String(missingHours)}
                 sub={missingHours > 0 ? "À confirmer" : undefined}
               />
+            </div>
+          )}
+          {historicRows.length > 0 && (
+            <div className="mb-3 rounded-lg border border-dashed border-border p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Clock className="h-4 w-4 text-amber-600" />
+                <span className="text-sm font-medium">
+                  {HOURS_SOURCE_META.historiques.label} : {historicHours.toFixed(2)} h
+                </span>
+                <Badge variant="outline" className={`text-[10px] ${HOURS_SOURCE_META.historiques.badge}`}>
+                  {HOURS_SOURCE_META.historiques.origin}
+                </Badge>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Source distincte des heures réelles d'intervention : {historicRows
+                  .map((r) => `${r.year} — ${Number(r.hours).toFixed(2)} h`)
+                  .join(" · ")}
+              </p>
             </div>
           )}
           {interventionsQ.isLoading ? <Skeleton className="h-24" /> : (interventionsQ.data ?? []).length === 0 ? (

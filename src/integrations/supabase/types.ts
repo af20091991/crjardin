@@ -1280,6 +1280,85 @@ export type Database = {
         }
         Relationships: []
       }
+      pilot_historic_hours: {
+        Row: {
+          amount_ht: number | null
+          client_id: string | null
+          confidence: string
+          created_at: string
+          hours: number
+          id: string
+          margin_net: number | null
+          note: string | null
+          raw_client_text: string
+          source_file: string | null
+          source_row: number | null
+          source_sheet: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          amount_ht?: number | null
+          client_id?: string | null
+          confidence?: string
+          created_at?: string
+          hours: number
+          id?: string
+          margin_net?: number | null
+          note?: string | null
+          raw_client_text: string
+          source_file?: string | null
+          source_row?: number | null
+          source_sheet?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          amount_ht?: number | null
+          client_id?: string | null
+          confidence?: string
+          created_at?: string
+          hours?: number
+          id?: string
+          margin_net?: number | null
+          note?: string | null
+          raw_client_text?: string
+          source_file?: string | null
+          source_row?: number | null
+          source_sheet?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilot_historic_hours_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_historic_hours_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "pilot_historic_hours_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+        ]
+      }
       pilot_hours: {
         Row: {
           created_at: string
@@ -1312,6 +1391,47 @@ export type Database = {
           year?: number
         }
         Relationships: []
+      }
+      pilot_hours_match_log: {
+        Row: {
+          decided_at: string
+          hours_id: string
+          id: string
+          method: string
+          new_client_id: string | null
+          note: string | null
+          previous_client_id: string | null
+          user_id: string
+        }
+        Insert: {
+          decided_at?: string
+          hours_id: string
+          id?: string
+          method: string
+          new_client_id?: string | null
+          note?: string | null
+          previous_client_id?: string | null
+          user_id: string
+        }
+        Update: {
+          decided_at?: string
+          hours_id?: string
+          id?: string
+          method?: string
+          new_client_id?: string | null
+          note?: string | null
+          previous_client_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilot_hours_match_log_hours_id_fkey"
+            columns: ["hours_id"]
+            isOneToOne: false
+            referencedRelation: "pilot_historic_hours"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pilot_migration_log: {
         Row: {
