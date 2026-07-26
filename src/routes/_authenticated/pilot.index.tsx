@@ -100,7 +100,7 @@ function TodayPage() {
   const loading =
     entries.isLoading || charges.isLoading || settings.isLoading ||
     interventions.isLoading || recos.isLoading || goals.isLoading ||
-    clientActivity.isLoading;
+    clientActivity.isLoading || hoursLedger.isLoading;
 
   // Politique compte-rendu par client : seul un client « Oui » génère une action CR.
   const reportPolicyById = useMemo(() => {
@@ -395,7 +395,7 @@ function TodayPage() {
   }> = [
     { key: "cr", label: "Comptes-rendus générés à envoyer", count: reportsToSend.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "urgent" as Priority },
     { key: "crg", label: "Comptes-rendus à générer", count: reportsToGenerate.length, icon: Send, topic: "cr-non-envoyes" as FocusTopic, tone: "important" as Priority },
-    { key: "h", label: "Heures à confirmer", count: missingHours.length, icon: Clock, topic: "heures-manquantes" as FocusTopic, tone: "urgent" as Priority },
+    { key: "h", label: "Interventions sans aucune heure connue", count: missingHours.length, icon: Clock, topic: "heures-manquantes" as FocusTopic, tone: "urgent" as Priority },
     { key: "r", label: "Recommandations à planifier", count: acceptedNotPlanned.length, icon: Handshake, topic: "recos-a-planifier" as FocusTopic, tone: "urgent" as Priority },
     { key: "d", label: "Dépassements de temps", count: timeOverruns.length, icon: TrendingDown, topic: "depassements-temps" as FocusTopic, tone: "urgent" as Priority },
     { key: "g", label: "Objectifs en retard", count: goalsLate.length, icon: Flag, to: "/pilot/objectifs", tone: "urgent" as Priority },
