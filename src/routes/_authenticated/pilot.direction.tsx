@@ -4,6 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { HoursGapCard } from "@/components/pilot/HoursGapCard";
 import { ChargesSummaryCard } from "@/components/pilot/ChargesSummaryCard";
+import { AnnualPerformanceCard } from "@/components/pilot/AnnualPerformanceCard";
+import { DirectorInsightsCard } from "@/components/pilot/DirectorInsightsCard";
+import { PortfolioExplorer } from "@/components/pilot/PortfolioExplorer";
 import { KpiCard } from "@/components/pilot/KpiCard";
 import { RecommendationsFunnelWidget } from "@/components/RecommendationsFunnelWidget";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +15,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import {
   computeKpis, monthlySeries, clientStatsWithHours, fetchConfirmedHoursByClient,
-  generateInsights, healthScore, HEALTH_META,
+  healthScore, HEALTH_META,
   formatEuro, formatPct, DEFAULT_SETTINGS,
 } from "@/lib/pilot";
 import { getOpportunitiesValue } from "@/lib/garden";
@@ -60,7 +63,6 @@ function PilotDashboard() {
     [entries.data, year, confirmedHours.data],
   );
   const health = useMemo(() => healthScore(k, set), [k, set]);
-  const insights = useMemo(() => generateInsights(k, set, cstats), [k, set, cstats]);
   const series = useMemo(() => monthlySeries(entries.data ?? [], year), [entries.data, year]);
   const familyData = k.byFamily.filter((f) => f.value > 0);
 
