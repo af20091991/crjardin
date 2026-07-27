@@ -1,11 +1,13 @@
 // Contexte de lecture Réel / Projection partagé par tous les modules PP.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { PilotMode } from "@/lib/pilot-projection";
+import type { RealProjectionMode } from "@/lib/pilot-realized";
+
+export type PilotMode = RealProjectionMode;
 
 const KEY = "pp.mode.v1";
 
-const Ctx = createContext<{ mode: PilotMode; setMode: (m: PilotMode) => void }>({
+export const RealProjectionContext = createContext<{ mode: PilotMode; setMode: (m: PilotMode) => void }>({
   mode: "reel",
   setMode: () => {},
 });
@@ -32,9 +34,9 @@ export function PilotModeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(() => ({ mode, setMode }), [mode, setMode]);
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return <RealProjectionContext.Provider value={value}>{children}</RealProjectionContext.Provider>;
 }
 
 export function usePilotMode() {
-  return useContext(Ctx);
+  return useContext(RealProjectionContext);
 }
