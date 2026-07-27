@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isRealizedMonth } from "@/lib/pilot-realized";
 
 /** Nature d'une charge. `a_classer` = non reconnue automatiquement, jamais devinée. */
 export type ChargeClass = "fixe" | "variable" | "a_classer";
@@ -99,10 +100,13 @@ export function investmentsByYear(rows: ChargeRow[]): Map<number, number> {
 }
 
 /** CA HT (ventes) par année — sert au poids des charges dans le CA. */
-export async function listSalesByYear(): Promise<Map<number, number>> {
+export async function listSalesByYear(options?: { mode?: "reel" | "projection" }): Promise<Map<number, number>> {
   const raw = await fetchAll("vente");
   const m = new Map<number, number>();
-  for (const r of raw) m.set(r.year, (m.get(r.year) ?? 0) + (Number(r.amount_ht) || 0));
+  for (const r of raw) {
+    if (options?.mode !== "projection" && !isRealizedMonth(r.year, r.month)) continue;
+    m.set(r.year, (m.get(r.year) ?? 0) + (Number(r.amount_ht) || 0));
+  }
   return m;
 }
 
@@ -164,9 +168,11 @@ export function analyzeCharges(
   allRows: ChargeRow[],
   salesByYear: Map<number, number>,
   categoryLabels: string[],
+  options?: { mode?: "reel" | "projection" },
 ): ChargesAnalysis {
-  const rows = allRows.filter((r) => !r.is_investment);
-  const investments = investmentsByYear(allRows);
+  const scopedRows = options?.mode === "projection" ? allRows : allRows.filter((r) => isRealizedMonth(r.year, r.month));
+  const rows = scopedRows.filter((r) => !r.is_investment);
+  const investments = investmentsByYear(scopedRows);
   const years = [...new Set(rows.map((r) => r.year))].sort((a, b) => a - b);
 
   const yearStats: YearCharges[] = years.map((year) => {
@@ -256,9 +262,10 @@ export function projectionBase(
   year: number,
   salesByYear: Map<number, number>,
 ): ProjectionBase {
-  const yr = allRows.filter((r) => r.year === year && !r.is_investment);
+  const scopedRows = allRows.filter((r) => isRealizedMonth(r.year, r.month));
+  const yr = scopedRows.filter((r) => r.year === year && !r.is_investment);
   const invest = allRows
-    .filter((r) => r.year === year && r.is_investment)
+    .filter((r) => r.year === year && r.is_investment && isRealizedMonth(r.year, r.month))
     .reduce((s, r) => s + r.amount_ht, 0);
   const sum = (cls: ChargeClass) =>
     yr.filter((r) => r.charge_class === cls).reduce((s, r) => s + r.amount_ht, 0);

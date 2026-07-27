@@ -1,5 +1,6 @@
 import type { PilotEntry } from "@/lib/pilot";
 import type { ChargeRow } from "@/lib/pilot-charges";
+import { isRealizedMonth, realizedEntries } from "@/lib/pilot-realized";
 
 /**
  * Synthèse annuelle multi-exercices : une ligne par année réellement présente
@@ -21,13 +22,15 @@ export interface AnnualRow {
   resultatApresInvestissements: number;
 }
 
-export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[]): AnnualRow[] {
-  const chargeRows = allChargeRows.filter((c) => !c.is_investment);
+export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[], options?: { mode?: "reel" | "projection" }): AnnualRow[] {
+  const scopedEntries = options?.mode === "projection" ? entries : realizedEntries(entries);
+  const scopedCharges = options?.mode === "projection" ? allChargeRows : allChargeRows.filter((c) => isRealizedMonth(c.year, c.month));
+  const chargeRows = scopedCharges.filter((c) => !c.is_investment);
   const years = new Set<number>();
   const ca = new Map<number, number>();
   const hours = new Map<number, number>();
   const lines = new Map<number, number>();
-  for (const e of entries) {
+  for (const e of scopedEntries) {
     const y = new Date(e.entry_date).getFullYear();
     if (!Number.isFinite(y)) continue;
     years.add(y);
@@ -41,7 +44,7 @@ export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[])
     charges.set(c.year, (charges.get(c.year) ?? 0) + c.amount_ht);
   }
   const invest = new Map<number, number>();
-  for (const c of allChargeRows) {
+  for (const c of scopedCharges) {
     if (!c.is_investment) continue;
     years.add(c.year);
     invest.set(c.year, (invest.get(c.year) ?? 0) + c.amount_ht);

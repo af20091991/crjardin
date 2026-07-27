@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
+import { realizedEntries, realizedMonthLimit } from "@/lib/pilot-realized";
 
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser();
@@ -248,13 +249,17 @@ export function sum(list: number[]): number {
 }
 
 /** Charges annuelles pour une année donnée (fixe/variable récurrentes + ponctuelles de l'année). */
-export function annualCharges(charges: PilotCharge[], year: number): number {
+export function annualCharges(charges: PilotCharge[], year: number, options?: { realizedOnly?: boolean; now?: Date }): number {
+  const months = options?.realizedOnly ? realizedMonthLimit(year, options.now) : 12;
   return sum(
     charges.map((c) => {
-      if (c.period === "mensuel") return c.amount * 12;
+      if (c.period === "mensuel") return c.amount * months;
       if (c.period === "annuel") return c.amount;
       // ponctuel
-      if (c.charge_date && y(c.charge_date) === year) return c.amount;
+      if (c.charge_date && y(c.charge_date) === year) {
+        if (options?.realizedOnly && c.charge_date.slice(0, 10) > (options.now ?? new Date()).toISOString().slice(0, 10)) return 0;
+        return c.amount;
+      }
       return 0;
     }),
   );
@@ -280,8 +285,13 @@ export function computeKpis(params: {
    * Si absent, `tauxHoraireReel` vaut 0 (pas de fallback silencieux).
    */
   confirmedHoursByClient?: Map<string, number>;
+  mode?: "reel" | "projection";
+  now?: Date;
 }) {
-  const { entries, charges, settings, year, month, confirmedHoursByClient } = params;
+  const { charges, settings, year, month, confirmedHoursByClient } = params;
+  const now = params.now ?? new Date();
+  const realMode = params.mode !== "projection";
+  const entries = realMode ? realizedEntries(params.entries, now) : params.entries;
 
   const yearEntries = entries.filter((e) => y(e.entry_date) === year);
   const prevYearEntries = entries.filter((e) => y(e.entry_date) === year - 1);
@@ -295,7 +305,7 @@ export function computeKpis(params: {
   const caYTD = sum(yearEntries.filter((e) => m(e.entry_date) <= month).map((e) => e.amount_ht));
   const progression = caPrevYTD > 0 ? ((caYTD - caPrevYTD) / caPrevYTD) * 100 : caYTD > 0 ? 100 : 0;
 
-  const chargesYear = annualCharges(charges, year);
+  const chargesYear = annualCharges(charges, year, { realizedOnly: realMode, now });
   const benefice = caYear - chargesYear;
   const marge = caYear > 0 ? (benefice / caYear) * 100 : 0;
 
@@ -305,7 +315,6 @@ export function computeKpis(params: {
   const target = settings.target_hourly_rate ?? 0;
 
   // Projection fin d'année selon jours écoulés
-  const now = new Date();
   const isCurrentYear = now.getFullYear() === year;
   const dayOfYear = Math.floor((now.getTime() - new Date(year, 0, 0).getTime()) / 86400000);
   const fraction = isCurrentYear ? Math.max(dayOfYear / 365, 0.02) : 1;
@@ -374,12 +383,13 @@ export function computeKpis(params: {
 }
 
 /** Série mensuelle du CA HT pour une année (comparée à N-1). */
-export function monthlySeries(entries: PilotEntry[], year: number) {
+export function monthlySeries(entries: PilotEntry[], year: number, options?: { mode?: "reel" | "projection"; now?: Date }) {
+  const scoped = options?.mode === "projection" ? entries : realizedEntries(entries, options?.now);
   return MONTHS.map((label, i) => ({
     month: label,
-    current: sum(entries.filter((e) => y(e.entry_date) === year && m(e.entry_date) === i).map((e) => e.amount_ht)),
+    current: sum(scoped.filter((e) => y(e.entry_date) === year && m(e.entry_date) === i).map((e) => e.amount_ht)),
     previous: sum(
-      entries.filter((e) => y(e.entry_date) === year - 1 && m(e.entry_date) === i).map((e) => e.amount_ht),
+      scoped.filter((e) => y(e.entry_date) === year - 1 && m(e.entry_date) === i).map((e) => e.amount_ht),
     ),
   }));
 }
@@ -498,11 +508,13 @@ export function clientStatsWithHours(
 export async function fetchConfirmedHoursByClient(
   yearFilter?: number,
 ): Promise<Map<string, number>> {
+  const today = new Date().toISOString().slice(0, 10);
   let q = supabase
     .from("interventions")
     .select("client_id,hours_spent,intervention_date")
     .eq("status", "terminee")
-    .not("hours_spent", "is", null);
+    .not("hours_spent", "is", null)
+    .lte("intervention_date", today);
   if (yearFilter != null) {
     q = q
       .gte("intervention_date", `${yearFilter}-01-01`)
