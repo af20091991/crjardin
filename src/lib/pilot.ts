@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
-import { entriesForMode, realizedEntries, realizedMonthLimit } from "@/lib/pilot-realized";
+import { entriesForMode, isRealizedMonth, realizedEntries } from "@/lib/pilot-realized";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
 
@@ -252,10 +252,14 @@ export function sum(list: number[]): number {
 
 /** Charges annuelles pour une année donnée (fixe/variable récurrentes + ponctuelles de l'année). */
 export function annualCharges(charges: PilotCharge[], year: number, options?: { realizedOnly?: boolean; now?: Date }): number {
-  const months = options?.realizedOnly ? realizedMonthLimit(year, options.now) : 12;
   return sum(
     charges.map((c) => {
-      if (c.period === "mensuel") return c.amount * months;
+      if (c.period === "mensuel") {
+        const months = Array.from({ length: 12 }, (_, i) => i + 1).filter(
+          (month) => !options?.realizedOnly || isRealizedMonth(year, month, options.now),
+        ).length;
+        return c.amount * months;
+      }
       if (c.period === "annuel") return c.amount;
       // ponctuel
       if (c.charge_date && y(c.charge_date) === year) {

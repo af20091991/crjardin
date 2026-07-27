@@ -12,6 +12,7 @@ import type { PilotEntry } from "@/lib/pilot";
 import { getClientEconomicScores, SCORE_META, type ClientScoreLabel } from "@/lib/client-score";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { buildPortfolio, searchPortfolio, sortByProfitability } from "@/lib/pilot-portfolio";
+import { usePilotMode } from "@/lib/pilot-mode";
 
 const HOURS_SOURCE_LABEL: Record<string, string> = {
   interventions: "interventions confirmées",
@@ -28,8 +29,9 @@ type Mode = "top100" | "tous";
  * automatiquement par les données existantes ; rien n'est demandé à l'utilisateur.
  */
 export function PortfolioExplorer({ entries, year }: { entries: PilotEntry[]; year: number }) {
+  const { mode: pilotMode } = usePilotMode();
   const scoresQ = useQuery({ queryKey: ["client-economic-scores"], queryFn: getClientEconomicScores });
-  const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year], queryFn: () => fetchHoursLedger(year) });
+  const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year, pilotMode], queryFn: () => fetchHoursLedger(year, { mode: pilotMode }) });
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("top100");
 
