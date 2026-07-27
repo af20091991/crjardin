@@ -315,7 +315,11 @@ export function hoursQuality(entries: HoursLedgerEntry[], interventionsToConfirm
 
 /** Nombre d'interventions terminées dont les heures restent à confirmer. */
 export async function countInterventionsToConfirm(year?: number): Promise<number> {
-  let q = supabase.from("interventions").select("id,hours_spent,ai_metadata,intervention_date").eq("status", "terminee");
+  let q = supabase
+    .from("interventions")
+    .select("id,hours_spent,ai_metadata,intervention_date")
+    .eq("status", "terminee")
+    .lte("intervention_date", todayIso());
   if (year != null) {
     q = q.gte("intervention_date", `${year}-01-01`).lte("intervention_date", `${year}-12-31`);
   }

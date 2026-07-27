@@ -18,7 +18,6 @@ import {
   healthScore, HEALTH_META,
   formatEuro, formatPct, DEFAULT_SETTINGS,
 } from "@/lib/pilot";
-import { usePilotMode } from "@/lib/pilot-mode";
 import { realizedEntries } from "@/lib/pilot-realized";
 import { getOpportunitiesValue } from "@/lib/garden";
 import { getClientEconomicScores, SCORE_META, type ClientScoreLabel, type ClientScore } from "@/lib/client-score";
@@ -37,7 +36,6 @@ export const Route = createFileRoute("/_authenticated/pilot/direction")({
 
 function PilotDashboard() {
   const { entries, charges, settings } = usePilotData();
-  const { mode } = usePilotMode();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();

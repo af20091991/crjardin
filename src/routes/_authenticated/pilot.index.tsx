@@ -185,7 +185,7 @@ function TodayPage() {
       return d.getFullYear() === year - 1 && d.getMonth() === month;
     });
     return rows.reduce((s, e) => s + e.amount_ht, 0);
-  }, [entries.data, year, month]);
+  }, [realEntries, year, month]);
   const avancement = objectifMois > 0 ? (k.caMonth / objectifMois) * 100 : 0;
 
   const beneficeMois = useMemo(() => {
@@ -241,7 +241,7 @@ function TodayPage() {
   // Une intervention n'est « à renseigner » que si AUCUNE heure n'existe dans PP
   // pour ce client sur l'année : un défaut de liaison n'est jamais une tâche.
   const missingHours = useMemo(
-    () => (hoursLedger.data ? interventionsNeedingHours(allI, hoursLedger.data, year) : []),
+    () => (hoursLedger.data ? interventionsNeedingHours(allI, realizedHoursLedger(hoursLedger.data), year) : []),
     [allI, hoursLedger.data, year],
   );
 
@@ -276,7 +276,7 @@ function TodayPage() {
       realEntries
         .filter((e) => new Date(e.entry_date).getFullYear() === year - 1)
         .reduce((s, e) => s + (Number(e.amount_ht) || 0), 0),
-    [entries.data, year],
+    [realEntries, year],
   );
   const progressionAnnuelle = objectifAnnuel > 0 ? (caLecture / objectifAnnuel) * 100 : null;
 
@@ -292,7 +292,7 @@ function TodayPage() {
             thresholds,
           })
         : [],
-    [entries.data, hoursLedger.data, year, set.target_hourly_rate, thresholds],
+    [realEntries, hoursLedger.data, year, set.target_hourly_rate, thresholds],
   );
   const services = useMemo(
     () =>
@@ -305,7 +305,7 @@ function TodayPage() {
             thresholds,
           })
         : [],
-    [entries.data, hoursLedger.data, year, set.target_hourly_rate, thresholds],
+    [realEntries, hoursLedger.data, year, set.target_hourly_rate, thresholds],
   );
 
   // Dérive des charges : charges à date vs même part d'exercice en N-1.

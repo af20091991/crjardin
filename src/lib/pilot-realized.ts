@@ -32,8 +32,12 @@ export function realizedEntries<T extends Pick<PilotEntry, "entry_date">>(
   entries: T[],
   now = new Date(),
 ): T[] {
-  const today = todayIso(now);
-  return entries.filter((e) => String(e.entry_date).slice(0, 10) <= today);
+  return entries.filter((e) => {
+    const d = new Date(e.entry_date);
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    return isRealizedMonth(year, month, now);
+  });
 }
 
 /** Lignes de charges réellement constatées à date (exclut les mois futurs). */
