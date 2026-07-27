@@ -41,7 +41,7 @@ export function DirectorInsightsCard({
   const [expanded, setExpanded] = useState(false);
 
   const chargesQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year"], queryFn: listSalesByYear });
+  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year"], queryFn: () => listSalesByYear() });
   const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year], queryFn: () => fetchHoursLedger(year) });
   const scoresQ = useQuery({ queryKey: ["client-economic-scores"], queryFn: getClientEconomicScores });
 
