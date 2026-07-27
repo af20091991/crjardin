@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Send, Bot, HeartPulse, CheckCircle2, AlertTriangle, MinusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
+import { realizedGoals } from "@/lib/pilot-realized";
 
 export const Route = createFileRoute("/_authenticated/pilot/sante")({
   head: () => ({ meta: [{ title: "Santé de l'entreprise — Pilot Pro" }] }),
@@ -36,14 +37,14 @@ function SantePage() {
   const k = useMemo(
     () => computeKpis({
       entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
-      year, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data,
+      year, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data, mode: "reel",
     }),
     [entries.data, charges.data, set, year, confirmed.data],
   );
 
   const chargesAnalysis = useMemo(() => {
     if (!chargeRowsQ.data || !salesQ.data) return null;
-    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label));
+    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label), { mode: "reel" });
   }, [chargeRowsQ.data, salesQ.data, catsQ.data]);
 
   const health = useMemo(() => {
@@ -51,7 +52,7 @@ function SantePage() {
     return pragmaticHealth({
       k,
       settings: set,
-      goals: goalsQ.data ?? [],
+      goals: realizedGoals(goalsQ.data ?? []),
       charges: chargesAnalysis,
       dormantClients: rows.filter((r) => r.status === "dormant").length,
       activeClients: rows.filter((r) => r.status === "actif").length,

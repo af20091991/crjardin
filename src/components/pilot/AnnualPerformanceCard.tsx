@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { CalendarRange } from "lucide-react";
+import { CalendarRange, ChevronDown, ChevronUp } from "lucide-react";
 import { formatEuro } from "@/lib/pilot";
 import type { PilotEntry } from "@/lib/pilot";
 import { listChargeRows } from "@/lib/pilot-charges";
@@ -21,6 +22,7 @@ export function AnnualPerformanceCard({
   entries: PilotEntry[];
   targetHourlyRate: number;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const chargesQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   const rows = useMemo(
     () => annualSummary(entries, chargesQ.data ?? []),
@@ -28,6 +30,7 @@ export function AnnualPerformanceCard({
   );
   const currentYear = new Date().getFullYear();
   const current = rows.find((r) => r.year === currentYear) ?? null;
+  const visibleRows = expanded ? rows : current ? [current] : rows.slice(0, 1);
 
   return (
     <Card>
@@ -39,6 +42,12 @@ export function AnnualPerformanceCard({
             — bénéfice brut = CA HT − charges enregistrées sur l'exercice
           </span>
           <Badge variant="outline" className="ml-auto">{rows.length} exercices</Badge>
+          {rows.length > 1 && (
+            <Button type="button" variant="outline" size="sm" onClick={() => setExpanded((v) => !v)}>
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {expanded ? "Réduire" : "Tout afficher"}
+            </Button>
+          )}
         </div>
 
         {chargesQ.isLoading ? (
@@ -55,12 +64,14 @@ export function AnnualPerformanceCard({
                   <th className="px-3 py-2 text-right font-medium">Charges</th>
                   <th className="px-3 py-2 text-right font-medium">Bénéfice brut</th>
                   <th className="px-3 py-2 text-right font-medium">Marge</th>
+                  <th className="px-3 py-2 text-right font-medium">Invest.</th>
+                  <th className="px-3 py-2 text-right font-medium">Après invest.</th>
                   <th className="px-3 py-2 text-right font-medium">Heures vendues</th>
                   <th className="px-3 py-2 text-right font-medium">€/h vendu</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {visibleRows.map((r) => (
                   <tr key={r.year} className={r.year === currentYear ? "border-t bg-primary/5" : "border-t"}>
                     <td className="px-3 py-2 font-medium">{r.year}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatEuro(r.caHt)}</td>
@@ -74,6 +85,10 @@ export function AnnualPerformanceCard({
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {r.charges > 0 && r.margePct != null ? `${r.margePct.toFixed(0)} %` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatEuro(r.investissements)}</td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${r.resultatApresInvestissements >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                      {formatEuro(r.resultatApresInvestissements)}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {r.heuresVendues > 0 ? `${r.heuresVendues.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} h` : "—"}
