@@ -291,7 +291,7 @@ export function computeKpis(params: {
   const { charges, settings, year, month, confirmedHoursByClient } = params;
   const now = params.now ?? new Date();
   const realMode = params.mode !== "projection";
-  const entries = realMode ? realizedEntries(params.entries, now) : params.entries;
+  const entries = realizedEntries(params.entries, now);
 
   const yearEntries = entries.filter((e) => y(e.entry_date) === year);
   const prevYearEntries = entries.filter((e) => y(e.entry_date) === year - 1);
@@ -384,7 +384,7 @@ export function computeKpis(params: {
 
 /** Série mensuelle du CA HT pour une année (comparée à N-1). */
 export function monthlySeries(entries: PilotEntry[], year: number, options?: { mode?: "reel" | "projection"; now?: Date }) {
-  const scoped = options?.mode === "projection" ? entries : realizedEntries(entries, options?.now);
+  const scoped = realizedEntries(entries, options?.now);
   return MONTHS.map((label, i) => ({
     month: label,
     current: sum(scoped.filter((e) => y(e.entry_date) === year && m(e.entry_date) === i).map((e) => e.amount_ht)),
