@@ -16,7 +16,8 @@ import {
 } from "@/lib/pilot-service-profitability";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { currentYear } from "@/lib/date-utils";
-import { realizedEntries, realizedHoursLedger } from "@/lib/pilot-realized";
+import { entriesForMode, hoursLedgerForMode } from "@/lib/pilot-realized";
+import { usePilotMode } from "@/lib/pilot-mode";
 
 export const Route = createFileRoute("/_authenticated/pilot/prestations")({
   head: () => ({
@@ -41,16 +42,17 @@ const FILTERS: { key: ServiceClass | "all"; label: string }[] = [
 
 function PrestationsPage() {
   const year = currentYear();
+  const { mode } = usePilotMode();
   const { entries, settings } = usePilotData();
   const thresholds = useThresholds();
   const ledger = useQuery({
-    queryKey: ["pilot-hours-ledger-all"],
-    queryFn: () => fetchHoursLedger(),
+    queryKey: ["pilot-hours-ledger-all", mode],
+    queryFn: () => fetchHoursLedger(undefined, { mode }),
   });
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<ServiceClass | "all">("all");
-  const realEntries = useMemo(() => realizedEntries(entries.data ?? []), [entries.data]);
-  const realLedger = useMemo(() => realizedHoursLedger(ledger.data ?? []), [ledger.data]);
+  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode]);
+  const realLedger = useMemo(() => hoursLedgerForMode(ledger.data ?? [], mode), [ledger.data, mode]);
 
   const target = settings.data?.target_hourly_rate ?? DEFAULT_SETTINGS.target_hourly_rate;
 
