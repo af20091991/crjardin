@@ -15,6 +15,7 @@ import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import { FOCUS_META, isFocusTopic, type FocusTopic } from "@/lib/pilot-focus";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { interventionsNeedingHours } from "@/lib/pilot-real-hours";
+import { realizedEntries, realizedHoursLedger, todayIso } from "@/lib/pilot-realized";
 import { ArrowLeft, ArrowRight, BellOff } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/focus/$topic")({
@@ -106,9 +107,9 @@ function FocusPage() {
 
   const rows: Row[] = useMemo(() => {
     if (loading) return [];
-    const allI = interventions.data ?? [];
+    const allI = (interventions.data ?? []).filter((i) => !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso());
     const allR = recos.data ?? [];
-    const allE = entries.data ?? [];
+    const allE = realizedEntries(entries.data ?? []);
     const confirmedMap = confirmedHours.data ?? new Map<string, number>();
 
     // Résolveur nom client depuis intervention (via CA entries)
@@ -139,7 +140,7 @@ function FocusPage() {
     }
 
     if (topic === "heures-manquantes") {
-      return interventionsNeedingHours(allI, hoursLedger.data ?? [], year)
+      return interventionsNeedingHours(allI, realizedHoursLedger(hoursLedger.data ?? []), year)
         .slice(0, 100)
         .map((i) => ({
           key: i.id,

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { parseDesignation } from "@/lib/pilot-ca-designation";
+import { isRealizedMonth, todayIso } from "@/lib/pilot-realized";
 
 /**
  * Couche unique d'analyse des heures (Pilot Pro v2).
@@ -64,7 +65,7 @@ type CaRow = {
 };
 
 /** Lecture paginée des lignes CA porteuses d'heures (limite PostgREST = 1000). */
-async function fetchCaHoursRows(year?: number): Promise<CaRow[]> {
+async function fetchCaHoursRows(year?: number, options?: { mode?: "reel" | "projection" }): Promise<CaRow[]> {
   const rows: CaRow[] = [];
   const pageSize = 1000;
   for (let from = 0; ; from += pageSize) {
@@ -77,7 +78,7 @@ async function fetchCaHoursRows(year?: number): Promise<CaRow[]> {
     const { data, error } = await q.range(from, from + pageSize - 1);
     if (error) throw error;
     const chunk = (data ?? []) as unknown as CaRow[];
-    rows.push(...chunk);
+    rows.push(...chunk.filter((r) => options?.mode === "projection" || isRealizedMonth(r.year, r.month)));
     if (chunk.length < pageSize) break;
   }
   return rows;
@@ -89,12 +90,14 @@ function prestationFromCa(designation: string | null, category: string | null): 
 }
 
 /** Charge l'intégralité des heures connues, toutes sources confondues. */
-export async function fetchHoursLedger(year?: number): Promise<HoursLedgerEntry[]> {
+export async function fetchHoursLedger(year?: number, options?: { mode?: "reel" | "projection" }): Promise<HoursLedgerEntry[]> {
+  const today = todayIso();
   const [caRows, interventionsRes, historicRes, clientsRes] = await Promise.all([
-    fetchCaHoursRows(year),
+    fetchCaHoursRows(year, options),
     supabase
       .from("interventions")
-      .select("id,client_id,intervention_date,hours_spent,status,intervention_type,title,ai_metadata"),
+      .select("id,client_id,intervention_date,hours_spent,status,intervention_type,title,ai_metadata")
+      .lte("intervention_date", today),
     supabase.from("pilot_historic_hours").select("id,year,hours,client_id,raw_client_text,confidence,status"),
     supabase.from("clients").select("id,name"),
   ]);
@@ -312,7 +315,11 @@ export function hoursQuality(entries: HoursLedgerEntry[], interventionsToConfirm
 
 /** Nombre d'interventions terminées dont les heures restent à confirmer. */
 export async function countInterventionsToConfirm(year?: number): Promise<number> {
-  let q = supabase.from("interventions").select("id,hours_spent,ai_metadata,intervention_date").eq("status", "terminee");
+  let q = supabase
+    .from("interventions")
+    .select("id,hours_spent,ai_metadata,intervention_date")
+    .eq("status", "terminee")
+    .lte("intervention_date", todayIso());
   if (year != null) {
     q = q.gte("intervention_date", `${year}-01-01`).lte("intervention_date", `${year}-12-31`);
   }

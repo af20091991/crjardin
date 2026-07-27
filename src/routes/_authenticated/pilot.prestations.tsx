@@ -16,6 +16,7 @@ import {
 } from "@/lib/pilot-service-profitability";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { currentYear } from "@/lib/date-utils";
+import { realizedEntries, realizedHoursLedger } from "@/lib/pilot-realized";
 
 export const Route = createFileRoute("/_authenticated/pilot/prestations")({
   head: () => ({
@@ -48,19 +49,21 @@ function PrestationsPage() {
   });
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<ServiceClass | "all">("all");
+  const realEntries = useMemo(() => realizedEntries(entries.data ?? []), [entries.data]);
+  const realLedger = useMemo(() => realizedHoursLedger(ledger.data ?? []), [ledger.data]);
 
   const target = settings.data?.target_hourly_rate ?? DEFAULT_SETTINGS.target_hourly_rate;
 
   const rows = useMemo(
     () =>
       analyzeServices({
-        entries: entries.data ?? [],
-        ledger: ledger.data ?? [],
+        entries: realEntries,
+        ledger: realLedger,
         year,
         targetHourlyRate: target,
         thresholds,
       }),
-    [entries.data, ledger.data, year, target, thresholds],
+    [realEntries, realLedger, year, target, thresholds],
   );
 
   const visible = rows.filter(

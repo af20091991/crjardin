@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isRealizedMonth } from "@/lib/pilot-realized";
 
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser();
@@ -75,7 +76,7 @@ export async function saveTjmSettings(input: TjmSettingsInput): Promise<void> {
 }
 
 /** CA HT mensuel réel agrégé depuis les ventes saisies (pilot_ca_entries). */
-export async function monthlyCa(year: number): Promise<number[]> {
+export async function monthlyCa(year: number, options?: { mode?: "reel" | "projection" }): Promise<number[]> {
   const { data, error } = await supabase
     .from("pilot_ca_entries")
     .select("month, amount_ht, kind")
@@ -84,6 +85,7 @@ export async function monthlyCa(year: number): Promise<number[]> {
   if (error) throw error;
   const totals = Array(12).fill(0) as number[];
   for (const r of (data ?? []) as unknown as { month: number; amount_ht: number }[]) {
+    if (options?.mode !== "projection" && !isRealizedMonth(year, r.month)) continue;
     if (r.month >= 1 && r.month <= 12) totals[r.month - 1] += Number(r.amount_ht) || 0;
   }
   return totals;
@@ -93,7 +95,7 @@ export async function monthlyCa(year: number): Promise<number[]> {
  * Heures terrain mensuelles récupérées automatiquement depuis les lignes de
  * vente du suivi CA. Jamais saisies manuellement : l'information existe déjà.
  */
-export async function monthlyFieldHours(year: number): Promise<number[]> {
+export async function monthlyFieldHours(year: number, options?: { mode?: "reel" | "projection" }): Promise<number[]> {
   const { data, error } = await supabase
     .from("pilot_ca_entries")
     .select("month, hours")
@@ -102,6 +104,7 @@ export async function monthlyFieldHours(year: number): Promise<number[]> {
   if (error) throw error;
   const totals = Array(12).fill(0) as number[];
   for (const r of (data ?? []) as unknown as { month: number; hours: number | null }[]) {
+    if (options?.mode !== "projection" && !isRealizedMonth(year, r.month)) continue;
     if (r.month >= 1 && r.month <= 12) totals[r.month - 1] += Number(r.hours) || 0;
   }
   return totals;

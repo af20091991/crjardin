@@ -8,12 +8,14 @@ import { FileDown, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
+import { realizedEntries } from "@/lib/pilot-realized";
 
 /** Exports dirigeant (PDF / Excel) — intégrés aux Paramètres PP. */
 export function ReportsCard() {
   const { entries, charges, settings } = usePilotData();
   const year = new Date().getFullYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
+  const realEntries = useMemo(() => realizedEntries(entries.data ?? []), [entries.data]);
   const confirmed = useQuery({
     queryKey: ["confirmed-hours-by-client", year],
     queryFn: () => fetchConfirmedHoursByClient(year),
@@ -23,13 +25,14 @@ export function ReportsCard() {
       entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
       year, month: new Date().getMonth(),
       confirmedHoursByClient: confirmed.data,
+      mode: "reel",
     }),
     [entries.data, charges.data, set, year, confirmed.data],
   );
-  const series = useMemo(() => monthlySeries(entries.data ?? [], year), [entries.data, year]);
+  const series = useMemo(() => monthlySeries(realEntries, year), [realEntries, year]);
   const cstats = useMemo(
-    () => clientStatsWithHours(entries.data ?? [], year, confirmed.data),
-    [entries.data, year, confirmed.data],
+    () => clientStatsWithHours(realEntries, year, confirmed.data),
+    [realEntries, year, confirmed.data],
   );
 
   function exportPdf() {

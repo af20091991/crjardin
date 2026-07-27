@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, AlertTriangle, UserX, TrendingUp } from "lucide-react";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
+import { realizedEntries } from "@/lib/pilot-realized";
 
 export const Route = createFileRoute("/_authenticated/pilot/clients")({
   component: PilotClientsPage,
@@ -35,6 +36,7 @@ function PilotClientsPage() {
   const [scope, setScope] = useState<string>(String(year));
 
   const yearFilter = scope === "all" ? undefined : Number(scope);
+  const realEntries = useMemo(() => realizedEntries(entries.data ?? []), [entries.data]);
   const confirmed = useQuery({
     queryKey: ["confirmed-hours-by-client", yearFilter ?? "all"],
     queryFn: () => fetchConfirmedHoursByClient(yearFilter),
@@ -45,12 +47,12 @@ function PilotClientsPage() {
   });
 
   const stats = useMemo(
-    () => clientStatsWithHours(entries.data ?? [], yearFilter, confirmed.data),
-    [entries.data, yearFilter, confirmed.data],
+    () => clientStatsWithHours(realEntries, yearFilter, confirmed.data),
+    [realEntries, yearFilter, confirmed.data],
   );
   const allTime = useMemo(
-    () => clientStatsWithHours(entries.data ?? [], undefined, allConfirmed.data),
-    [entries.data, allConfirmed.data],
+    () => clientStatsWithHours(realEntries, undefined, allConfirmed.data),
+    [realEntries, allConfirmed.data],
   );
 
   const now = Date.now();
@@ -66,7 +68,7 @@ function PilotClientsPage() {
   );
   const top = stats.slice(0, 3);
 
-  const years = Array.from(new Set((entries.data ?? []).map((e) => new Date(e.entry_date).getFullYear()))).sort((a, b) => b - a);
+  const years = Array.from(new Set(realEntries.map((e) => new Date(e.entry_date).getFullYear()))).sort((a, b) => b - a);
 
   return (
     <div className="space-y-4">

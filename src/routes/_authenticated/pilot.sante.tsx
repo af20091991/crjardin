@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Send, Bot, HeartPulse, CheckCircle2, AlertTriangle, MinusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
+import { realizedGoals } from "@/lib/pilot-realized";
 
 export const Route = createFileRoute("/_authenticated/pilot/sante")({
   head: () => ({ meta: [{ title: "Santé de l'entreprise — Pilot Pro" }] }),
@@ -30,20 +31,20 @@ function SantePage() {
   const goalsQ = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
   const activityQ = useQuery({ queryKey: ["client-activity-rows"], queryFn: fetchClientActivityRows });
   const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year"], queryFn: listSalesByYear });
+  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year"], queryFn: () => listSalesByYear() });
   const catsQ = useQuery({ queryKey: ["pilot-charge-categories"], queryFn: listChargeCategories });
 
   const k = useMemo(
     () => computeKpis({
       entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
-      year, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data,
+      year, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data, mode: "reel",
     }),
     [entries.data, charges.data, set, year, confirmed.data],
   );
 
   const chargesAnalysis = useMemo(() => {
     if (!chargeRowsQ.data || !salesQ.data) return null;
-    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label));
+    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label), { mode: "reel" });
   }, [chargeRowsQ.data, salesQ.data, catsQ.data]);
 
   const health = useMemo(() => {
@@ -51,7 +52,7 @@ function SantePage() {
     return pragmaticHealth({
       k,
       settings: set,
-      goals: goalsQ.data ?? [],
+      goals: realizedGoals(goalsQ.data ?? []),
       charges: chargesAnalysis,
       dormantClients: rows.filter((r) => r.status === "dormant").length,
       activeClients: rows.filter((r) => r.status === "actif").length,
@@ -160,6 +161,9 @@ function SantePage() {
                   </ul>
                 )}
                 <p className="text-xs text-muted-foreground">{t.reason}</p>
+                <p className="rounded-md bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground">
+                  Action recommandée : {themeAction(t.theme, t.score)}
+                </p>
               </CardContent>
             </Card>
           );
@@ -187,4 +191,13 @@ function SantePage() {
       </Card>
     </div>
   );
+}
+
+function themeAction(theme: keyof typeof HEALTH_THEME_META, score: number | null): string {
+  if (score == null) return "compléter les données sources avant de conclure.";
+  if (score >= 75) return "maintenir le suivi mensuel, aucune correction urgente.";
+  if (theme === "financiere") return "arbitrer les charges et revoir les prix des prestations sous marge.";
+  if (theme === "commerciale") return "relancer les clients dormants et sécuriser le CA récurrent.";
+  if (theme === "activite") return "comparer le temps réel au temps vendu et ajuster les devis.";
+  return "prioriser les objectifs en retard ou les replanifier.";
 }

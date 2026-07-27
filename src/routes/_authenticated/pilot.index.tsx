@@ -26,6 +26,7 @@ import { usePilotMode } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { classifyClients } from "@/lib/pilot-client-profitability";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
+import { realizedEntries, realizedGoals, realizedHoursLedger, todayIso } from "@/lib/pilot-realized";
 import {
   Euro,
   Wallet,
@@ -146,6 +147,7 @@ function TodayPage() {
     (clientId ? reportPolicyById.get(clientId) : undefined) ?? "a_confirmer";
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
+  const realEntries = useMemo(() => realizedEntries(entries.data ?? []), [entries.data]);
   // Heures confirmées (interventions.hours_spent, statut = termine) sur l'année en cours.
   // Calculé avant `computeKpis` pour alimenter `tauxHoraireReel`.
   const confirmedHoursByClient = useMemo(() => {
@@ -154,6 +156,7 @@ function TodayPage() {
       if (i.status !== "terminee" || i.hours_spent == null) continue;
       const d = new Date(i.intervention_date);
       if (d.getFullYear() !== year) continue;
+      if (i.intervention_date.slice(0, 10) > todayIso()) continue;
       const h = Number(i.hours_spent);
       if (!Number.isFinite(h) || h <= 0) continue;
       map.set(i.client_id, (map.get(i.client_id) ?? 0) + h);
@@ -170,18 +173,19 @@ function TodayPage() {
         year,
         month,
         confirmedHoursByClient,
+        mode: "reel",
       }),
     [entries.data, charges.data, set, year, month, confirmedHoursByClient],
   );
 
   // Objectif du mois = CA du même mois N-1 (référentiel factuel, aucune nouvelle donnée)
   const objectifMois = useMemo(() => {
-    const rows = (entries.data ?? []).filter((e) => {
+    const rows = realEntries.filter((e) => {
       const d = new Date(e.entry_date);
       return d.getFullYear() === year - 1 && d.getMonth() === month;
     });
     return rows.reduce((s, e) => s + e.amount_ht, 0);
-  }, [entries.data, year, month]);
+  }, [realEntries, year, month]);
   const avancement = objectifMois > 0 ? (k.caMonth / objectifMois) * 100 : 0;
 
   const beneficeMois = useMemo(() => {
@@ -190,9 +194,9 @@ function TodayPage() {
     return k.caMonth * marge;
   }, [k]);
 
-  const allI = interventions.data ?? [];
+  const allI = (interventions.data ?? []).filter((i) => !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso());
   const allR = recos.data ?? [];
-  const allG = goals.data ?? [];
+  const allG = realizedGoals(goals.data ?? []);
 
   const today = new Date();
 
@@ -231,13 +235,13 @@ function TodayPage() {
   }, [allI, reportPolicyById]);
   // Heures réelles disponibles dans PP (interventions > historique > ledger CA).
   const hoursResolution = useMemo(
-    () => (hoursLedger.data ? resolveRealHours(hoursLedger.data, year) : undefined),
+    () => (hoursLedger.data ? resolveRealHours(realizedHoursLedger(hoursLedger.data), year) : undefined),
     [hoursLedger.data, year],
   );
   // Une intervention n'est « à renseigner » que si AUCUNE heure n'existe dans PP
   // pour ce client sur l'année : un défaut de liaison n'est jamais une tâche.
   const missingHours = useMemo(
-    () => (hoursLedger.data ? interventionsNeedingHours(allI, hoursLedger.data, year) : []),
+    () => (hoursLedger.data ? interventionsNeedingHours(allI, realizedHoursLedger(hoursLedger.data), year) : []),
     [allI, hoursLedger.data, year],
   );
 
@@ -269,10 +273,10 @@ function TodayPage() {
   // Objectif annuel factuel : CA de l'exercice précédent (aucune saisie requise).
   const objectifAnnuel = useMemo(
     () =>
-      (entries.data ?? [])
+      realEntries
         .filter((e) => new Date(e.entry_date).getFullYear() === year - 1)
         .reduce((s, e) => s + (Number(e.amount_ht) || 0), 0),
-    [entries.data, year],
+    [realEntries, year],
   );
   const progressionAnnuelle = objectifAnnuel > 0 ? (caLecture / objectifAnnuel) * 100 : null;
 
@@ -281,27 +285,27 @@ function TodayPage() {
     () =>
       hoursLedger.data
         ? classifyClients({
-            entries: entries.data ?? [],
-            ledger: hoursLedger.data,
+            entries: realEntries,
+            ledger: realizedHoursLedger(hoursLedger.data),
             year,
             targetHourlyRate: set.target_hourly_rate || 0,
             thresholds,
           })
         : [],
-    [entries.data, hoursLedger.data, year, set.target_hourly_rate, thresholds],
+    [realEntries, hoursLedger.data, year, set.target_hourly_rate, thresholds],
   );
   const services = useMemo(
     () =>
       hoursLedger.data
         ? analyzeServices({
-            entries: entries.data ?? [],
-            ledger: hoursLedger.data,
+            entries: realEntries,
+            ledger: realizedHoursLedger(hoursLedger.data),
             year,
             targetHourlyRate: set.target_hourly_rate || 0,
             thresholds,
           })
         : [],
-    [entries.data, hoursLedger.data, year, set.target_hourly_rate, thresholds],
+    [realEntries, hoursLedger.data, year, set.target_hourly_rate, thresholds],
   );
 
   // Dérive des charges : charges à date vs même part d'exercice en N-1.
@@ -314,11 +318,11 @@ function TodayPage() {
   // Nom client par ID (pour opportunités et priorités affichées)
   const clientNameById = useMemo(() => {
     const map = new Map<string, string>();
-    for (const e of entries.data ?? []) {
+    for (const e of realEntries) {
       if (e.client_id && e.client_name) map.set(e.client_id, e.client_name);
     }
     return map;
-  }, [entries.data]);
+  }, [realEntries]);
 
   // ------- Nouvelles analyses (aucune nouvelle donnée) -------
   const targetHR = set.target_hourly_rate || 0;
@@ -360,20 +364,20 @@ function TodayPage() {
   // CA agrégé par client sur l'année (pour taux horaire réel par client)
   const caByClient = useMemo(() => {
     const map = new Map<string, number>();
-    for (const e of entries.data ?? []) {
+    for (const e of realEntries) {
       if (!e.client_id) continue;
       if (new Date(e.entry_date).getFullYear() !== year) continue;
       map.set(e.client_id, (map.get(e.client_id) ?? 0) + e.amount_ht);
     }
     return map;
-  }, [entries.data, year]);
+  }, [realEntries, year]);
 
   // Lignes CA dont la rentabilité horaire est sous la cible.
   // Priorité : taux horaire réel du client (CA client / heures confirmées) quand disponible ;
   // à défaut, ratio de la ligne (amount_ht / hours vendues).
   const lowHourlyEntries = useMemo(() => {
     if (targetHR <= 0) return [];
-    return (entries.data ?? []).filter((e) => {
+    return realEntries.filter((e) => {
       const realHours = e.client_id ? (confirmedHoursByClient.get(e.client_id) ?? 0) : 0;
       if (realHours > 0 && e.client_id) {
         const clientCa = caByClient.get(e.client_id) ?? 0;
@@ -382,12 +386,12 @@ function TodayPage() {
       }
       return e.hours > 0 && e.amount_ht / e.hours < targetHR;
     });
-  }, [entries.data, targetHR, confirmedHoursByClient, caByClient]);
+  }, [realEntries, targetHR, confirmedHoursByClient, caByClient]);
 
   // Clients A/B avec ratio horaire dégradé (basé sur heures réellement passées)
   const cstats = useMemo(
-    () => clientStatsWithHours(entries.data ?? [], year, confirmedHoursByClient),
-    [entries.data, year, confirmedHoursByClient],
+    () => clientStatsWithHours(realEntries, year, confirmedHoursByClient),
+    [realEntries, year, confirmedHoursByClient],
   );
   const heavyLowMarginClients = useMemo(() => {
     if (targetHR <= 0) return cstats.filter(() => false);
@@ -403,7 +407,7 @@ function TodayPage() {
       string,
       { name: string; last: number; families: Set<string>; lastByFamily: Map<string, number> }
     >();
-    for (const e of entries.data ?? []) {
+    for (const e of realEntries) {
       if (!e.client_id) continue;
       const key = e.client_id;
       const t = new Date(e.entry_date).getTime();
@@ -421,7 +425,7 @@ function TodayPage() {
       map.set(key, cur);
     }
     return map;
-  }, [entries.data]);
+  }, [realEntries]);
 
   const creationSansEntretien = useMemo(
     () =>

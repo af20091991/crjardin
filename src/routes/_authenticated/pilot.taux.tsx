@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
+import { usePilotMode } from "@/lib/pilot-mode";
 
 const YEAR = currentYear();
 
@@ -44,9 +45,10 @@ const DEFAULT_COLS: ColKey[] = ["terrain", "gestion", "total", "jours", "ca", "b
 
 function TauxPage() {
   const qc = useQueryClient();
+  const { mode } = usePilotMode();
   const hoursQ = useQuery({ queryKey: ["pilot-hours", YEAR], queryFn: () => listHours(YEAR) });
-  const caQ = useQuery({ queryKey: ["pilot-hours-ca", YEAR], queryFn: () => monthlyCa(YEAR) });
-  const caHoursQ = useQuery({ queryKey: ["pilot-ca-field-hours", YEAR], queryFn: () => monthlyFieldHours(YEAR) });
+  const caQ = useQuery({ queryKey: ["pilot-hours-ca", YEAR, mode], queryFn: () => monthlyCa(YEAR, { mode }) });
+  const caHoursQ = useQuery({ queryKey: ["pilot-ca-field-hours", YEAR, mode], queryFn: () => monthlyFieldHours(YEAR, { mode }) });
   const setQ = useQuery({ queryKey: ["pilot-tjm-settings"], queryFn: getTjmSettings });
 
   const settings = setQ.data;
@@ -201,12 +203,10 @@ function TauxPage() {
                             {(m.temps_terrain ?? 0).toFixed(1)}
                             <span className="rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] text-sky-700">auto CA</span>
                           </span>
+                        ) : m.temps_terrain && m.temps_terrain > 0 ? (
+                          <span className="tabular-nums">{m.temps_terrain.toFixed(1)}</span>
                         ) : (
-                          <NumCell
-                            key={`t-${m.month}-${m.temps_terrain}`}
-                            value={m.temps_terrain}
-                            onCommit={(v) => hoursMut.mutate({ month: m.month, field: "temps_terrain", value: v })}
-                          />
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </td>
                     )}
