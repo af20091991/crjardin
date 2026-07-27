@@ -22,9 +22,31 @@ export function rowDateFromYearMonth(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}-15`;
 }
 
+export type RealProjectionMode = "reel" | "projection";
+
+/** Date comptable unique pour toutes les lignes mensuelles PP. */
+export function accountingDateFromYearMonth(year: number, month: number): string {
+  return rowDateFromYearMonth(year, month);
+}
+
+/** Règle unique Réel / Projection : Réel = date comptable <= aujourd'hui. */
+export function isRealizedAccountingDate(iso: string | null | undefined, now = new Date()): boolean {
+  if (!iso) return false;
+  return iso.slice(0, 10) <= todayIso(now);
+}
+
+export function isVisibleInMode(params: {
+  date: string | null | undefined;
+  mode?: RealProjectionMode;
+  now?: Date;
+}): boolean {
+  if (params.mode === "projection") return true;
+  return isRealizedAccountingDate(params.date, params.now);
+}
+
 /** Vrai si le couple année/mois est déjà réalisé à la date du jour. */
 export function isRealizedMonth(year: number, month: number, now = new Date()): boolean {
-  return month >= 1 && month <= realizedMonthLimit(year, now);
+  return month >= 1 && month <= 12 && isRealizedAccountingDate(accountingDateFromYearMonth(year, month), now);
 }
 
 /** Lignes de CA réellement facturées à date (exclut toute date future). */
@@ -32,17 +54,28 @@ export function realizedEntries<T extends Pick<PilotEntry, "entry_date">>(
   entries: T[],
   now = new Date(),
 ): T[] {
-  return entries.filter((e) => {
-    const d = new Date(e.entry_date);
-    const year = d.getFullYear();
-    const month = d.getMonth() + 1;
-    return isRealizedMonth(year, month, now);
-  });
+  return entries.filter((e) => isRealizedAccountingDate(e.entry_date, now));
+}
+
+export function entriesForMode<T extends Pick<PilotEntry, "entry_date">>(
+  entries: T[],
+  mode: RealProjectionMode = "reel",
+  now = new Date(),
+): T[] {
+  return mode === "projection" ? entries : realizedEntries(entries, now);
 }
 
 /** Lignes de charges réellement constatées à date (exclut les mois futurs). */
 export function realizedChargeRows(rows: ChargeRow[], now = new Date()): ChargeRow[] {
   return rows.filter((r) => isRealizedMonth(r.year, r.month, now));
+}
+
+export function chargeRowsForMode(
+  rows: ChargeRow[],
+  mode: RealProjectionMode = "reel",
+  now = new Date(),
+): ChargeRow[] {
+  return mode === "projection" ? rows : realizedChargeRows(rows, now);
 }
 
 /** Heures réellement exploitables à date : aucune ligne CA/intervention future. */
@@ -56,6 +89,14 @@ export function realizedHoursLedger(rows: HoursLedgerEntry[], now = new Date()):
   });
 }
 
+export function hoursLedgerForMode(
+  rows: HoursLedgerEntry[],
+  mode: RealProjectionMode = "reel",
+  now = new Date(),
+): HoursLedgerEntry[] {
+  return mode === "projection" ? rows : realizedHoursLedger(rows, now);
+}
+
 /** Objectifs visibles dans le réel : aucun objectif futur ne pénalise le score. */
 export function realizedGoals(goals: Goal[], now = new Date()): Goal[] {
   const today = todayIso(now);
@@ -64,4 +105,8 @@ export function realizedGoals(goals: Goal[], now = new Date()): Goal[] {
     if (!g.deadline) return true;
     return g.deadline.slice(0, 10) <= today;
   });
+}
+
+export function goalsForMode(goals: Goal[], mode: RealProjectionMode = "reel", now = new Date()): Goal[] {
+  return mode === "projection" ? goals : realizedGoals(goals, now);
 }
