@@ -95,7 +95,7 @@ export function KpiCard({
 
   const body = (
     <>
-      <div className="flex items-start justify-between gap-2 pr-16">
+      <div className="flex items-start justify-between gap-2 px-10">
         <p className="text-xs font-medium text-muted-foreground">{views?.length ? active.label : label}</p>
         {Icon && <Icon className="h-4 w-4 shrink-0 text-primary/70" />}
       </div>
@@ -120,15 +120,15 @@ export function KpiCard({
         to && "cursor-pointer hover:-translate-y-0.5 hover:shadow-md",
       )}
     >
-      <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
-        {views && views.length > 1 && (
+      {views && views.length > 1 && (
+        <div className="absolute left-2 top-2 z-10">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button type="button" variant="ghost" size="icon" title="Changer la vue du KPI">
                 <BarChart3 className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="start">
               {views.map((v) => (
                 <DropdownMenuItem key={v.key} onSelect={() => chooseView(v.key)}>
                   {v.label}
@@ -136,7 +136,9 @@ export function KpiCard({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
+        </div>
+      )}
+      <div className="absolute right-2 top-2 z-10">
         <Button type="button" variant="ghost" size="icon" onClick={persistHidden} title="Masquer ce KPI">
           <EyeOff className="h-4 w-4" />
         </Button>

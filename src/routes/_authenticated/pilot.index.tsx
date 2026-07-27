@@ -322,7 +322,7 @@ function TodayPage() {
       if (e.client_id && e.client_name) map.set(e.client_id, e.client_name);
     }
     return map;
-  }, [entries.data]);
+  }, [realEntries]);
 
   // ------- Nouvelles analyses (aucune nouvelle donnée) -------
   const targetHR = set.target_hourly_rate || 0;
@@ -364,13 +364,13 @@ function TodayPage() {
   // CA agrégé par client sur l'année (pour taux horaire réel par client)
   const caByClient = useMemo(() => {
     const map = new Map<string, number>();
-    for (const e of entries.data ?? []) {
+    for (const e of realEntries) {
       if (!e.client_id) continue;
       if (new Date(e.entry_date).getFullYear() !== year) continue;
       map.set(e.client_id, (map.get(e.client_id) ?? 0) + e.amount_ht);
     }
     return map;
-  }, [entries.data, year]);
+  }, [realEntries, year]);
 
   // Lignes CA dont la rentabilité horaire est sous la cible.
   // Priorité : taux horaire réel du client (CA client / heures confirmées) quand disponible ;
@@ -386,7 +386,7 @@ function TodayPage() {
       }
       return e.hours > 0 && e.amount_ht / e.hours < targetHR;
     });
-  }, [entries.data, targetHR, confirmedHoursByClient, caByClient]);
+  }, [realEntries, targetHR, confirmedHoursByClient, caByClient]);
 
   // Clients A/B avec ratio horaire dégradé (basé sur heures réellement passées)
   const cstats = useMemo(
@@ -425,7 +425,7 @@ function TodayPage() {
       map.set(key, cur);
     }
     return map;
-  }, [entries.data]);
+  }, [realEntries]);
 
   const creationSansEntretien = useMemo(
     () =>

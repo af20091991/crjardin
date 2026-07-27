@@ -88,7 +88,7 @@ function FinancePage() {
       if (r.year === YEAR && r.month >= 1 && r.month <= 12 && (isProjection || realizedChargeRows([r]).length > 0)) arr[r.month - 1] += r.amount_ht;
     }
     return arr;
-  }, [chargeRowsQ.data]);
+  }, [chargeRowsQ.data, isProjection]);
 
   const monthly = months.map((m, i) => ({
     mois: MONTHS[m.month - 1],

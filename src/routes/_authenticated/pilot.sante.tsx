@@ -161,6 +161,9 @@ function SantePage() {
                   </ul>
                 )}
                 <p className="text-xs text-muted-foreground">{t.reason}</p>
+                <p className="rounded-md bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground">
+                  Action recommandée : {themeAction(t.theme, t.score)}
+                </p>
               </CardContent>
             </Card>
           );
@@ -188,4 +191,13 @@ function SantePage() {
       </Card>
     </div>
   );
+}
+
+function themeAction(theme: keyof typeof HEALTH_THEME_META, score: number | null): string {
+  if (score == null) return "compléter les données sources avant de conclure.";
+  if (score >= 75) return "maintenir le suivi mensuel, aucune correction urgente.";
+  if (theme === "financiere") return "arbitrer les charges et revoir les prix des prestations sous marge.";
+  if (theme === "commerciale") return "relancer les clients dormants et sécuriser le CA récurrent.";
+  if (theme === "activite") return "comparer le temps réel au temps vendu et ajuster les devis.";
+  return "prioriser les objectifs en retard ou les replanifier.";
 }
