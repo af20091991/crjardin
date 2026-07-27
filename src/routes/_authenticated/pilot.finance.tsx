@@ -32,7 +32,7 @@ function FinancePage() {
 
   const confirmed = useQuery({ queryKey: ["confirmed-hours-by-client", YEAR], queryFn: () => fetchConfirmedHoursByClient(YEAR) });
   const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year"], queryFn: () => listSalesByYear() });
+  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year", mode], queryFn: () => listSalesByYear({ mode }) });
   const catsQ = useQuery({ queryKey: ["pilot-charge-categories"], queryFn: listChargeCategories });
   const caMonthQ = useQuery({ queryKey: ["pilot-hours-ca", YEAR, mode], queryFn: () => monthlyCa(YEAR, { mode }) });
   const caHoursQ = useQuery({ queryKey: ["pilot-ca-field-hours", YEAR, mode], queryFn: () => monthlyFieldHours(YEAR, { mode }) });

@@ -15,7 +15,8 @@ import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import { FOCUS_META, isFocusTopic, type FocusTopic } from "@/lib/pilot-focus";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { interventionsNeedingHours } from "@/lib/pilot-real-hours";
-import { realizedEntries, realizedHoursLedger, todayIso } from "@/lib/pilot-realized";
+import { entriesForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
+import { usePilotMode } from "@/lib/pilot-mode";
 import { ArrowLeft, ArrowRight, BellOff } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/focus/$topic")({
@@ -49,6 +50,7 @@ function FocusPage() {
   const { topic } = Route.useParams() as { topic: FocusTopic };
   const meta = FOCUS_META[topic];
   const { entries, settings } = usePilotData();
+  const { mode } = usePilotMode();
   const qc = useQueryClient();
   const now = new Date();
   const year = now.getFullYear();
@@ -64,8 +66,8 @@ function FocusPage() {
   // Ledger consolidé : une intervention n'est listée que si aucune heure
   // n'existe déjà dans Pilot Pro pour ce client sur l'année.
   const hoursLedger = useQuery({
-    queryKey: ["pilot-hours-ledger", year],
-    queryFn: () => fetchHoursLedger(year),
+    queryKey: ["pilot-hours-ledger", year, mode],
+    queryFn: () => fetchHoursLedger(year, { mode }),
     enabled: topic === "heures-manquantes",
   });
   const priorityOffers = useQuery({
@@ -107,9 +109,11 @@ function FocusPage() {
 
   const rows: Row[] = useMemo(() => {
     if (loading) return [];
-    const allI = (interventions.data ?? []).filter((i) => !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso());
+    const allI = (interventions.data ?? []).filter(
+      (i) => mode === "projection" || !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso(),
+    );
     const allR = recos.data ?? [];
-    const allE = realizedEntries(entries.data ?? []);
+    const allE = entriesForMode(entries.data ?? [], mode);
     const confirmedMap = confirmedHours.data ?? new Map<string, number>();
 
     // Résolveur nom client depuis intervention (via CA entries)
@@ -140,7 +144,7 @@ function FocusPage() {
     }
 
     if (topic === "heures-manquantes") {
-      return interventionsNeedingHours(allI, realizedHoursLedger(hoursLedger.data ?? []), year)
+      return interventionsNeedingHours(allI, hoursLedgerForMode(hoursLedger.data ?? [], mode), year)
         .slice(0, 100)
         .map((i) => ({
           key: i.id,
@@ -359,7 +363,7 @@ function FocusPage() {
     }
 
     return [];
-  }, [topic, loading, entries.data, interventions.data, recos.data, confirmedHours.data, priorityOffers.data, targetHR, year]);
+  }, [topic, loading, entries.data, interventions.data, recos.data, confirmedHours.data, hoursLedger.data, priorityOffers.data, targetHR, year, mode]);
 
   return (
     <div className="space-y-4">

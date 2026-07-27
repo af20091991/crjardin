@@ -33,7 +33,7 @@ function SantePage() {
   const goalsQ = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
   const activityQ = useQuery({ queryKey: ["client-activity-rows"], queryFn: fetchClientActivityRows });
   const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year"], queryFn: () => listSalesByYear() });
+  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year", mode], queryFn: () => listSalesByYear({ mode }) });
   const catsQ = useQuery({ queryKey: ["pilot-charge-categories"], queryFn: listChargeCategories });
 
   const k = useMemo(
