@@ -18,6 +18,8 @@ import {
   healthScore, HEALTH_META,
   formatEuro, formatPct, DEFAULT_SETTINGS,
 } from "@/lib/pilot";
+import { usePilotMode } from "@/lib/pilot-mode";
+import { realizedEntries } from "@/lib/pilot-realized";
 import { getOpportunitiesValue } from "@/lib/garden";
 import { getClientEconomicScores, SCORE_META, type ClientScoreLabel, type ClientScore } from "@/lib/client-score";
 import { Link } from "@tanstack/react-router";
@@ -35,6 +37,7 @@ export const Route = createFileRoute("/_authenticated/pilot/direction")({
 
 function PilotDashboard() {
   const { entries, charges, settings } = usePilotData();
+  const { mode } = usePilotMode();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
@@ -42,6 +45,7 @@ function PilotDashboard() {
   const loading = entries.isLoading || charges.isLoading || settings.isLoading;
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
+  const realEntries = useMemo(() => realizedEntries(entries.data ?? [], now), [entries.data, now]);
   const confirmedHours = useQuery({
     queryKey: ["confirmed-hours-by-client", year],
     queryFn: () => fetchConfirmedHoursByClient(year),
@@ -55,11 +59,12 @@ function PilotDashboard() {
         year,
         month,
         confirmedHoursByClient: confirmedHours.data,
+        mode: "reel",
       }),
     [entries.data, charges.data, set, year, month, confirmedHours.data],
   );
   const health = useMemo(() => healthScore(k, set), [k, set]);
-  const series = useMemo(() => monthlySeries(entries.data ?? [], year), [entries.data, year]);
+  const series = useMemo(() => monthlySeries(entries.data ?? [], year, { mode: "reel" }), [entries.data, year]);
   const familyData = k.byFamily.filter((f) => f.value > 0);
 
   const opps = useQuery({
@@ -154,6 +159,12 @@ function PilotDashboard() {
           sub={k.caPrevYTD > 0 ? `${formatPct(k.progression)} vs N-1` : undefined}
           tone={k.progression >= 0 ? "positive" : "negative"}
           description="Chiffre d'affaires HT cumulé depuis le 1er janvier de l'année en cours."
+          views={[
+            { key: "annuel", label: "CA annuel", value: formatEuro(k.caYear), sub: k.caPrevYTD > 0 ? `${formatPct(k.progression)} vs N-1` : undefined, tone: k.progression >= 0 ? "positive" : "negative" },
+            { key: "mensuel", label: "CA du mois", value: formatEuro(k.caMonth), sub: `Mois courant ${year}` },
+            { key: "moyen", label: "Panier moyen", value: formatEuro(k.panierMoyen), sub: `${k.nbEntries} lignes` },
+            { key: "evolution", label: "Évolution", value: k.caPrevYTD > 0 ? formatPct(k.progression) : "—", sub: `vs ${year - 1}`, tone: k.progression >= 0 ? "positive" : "negative" },
+          ]}
         />
         <KpiCard
           label="Bénéfice estimé"
@@ -225,7 +236,7 @@ function PilotDashboard() {
       <ChargesSummaryCard year={year} />
 
       {/* Vue annuelle multi-exercices */}
-      <AnnualPerformanceCard entries={entries.data ?? []} targetHourlyRate={target} />
+      <AnnualPerformanceCard entries={realEntries} targetHourlyRate={target} />
 
       <RentabilitySection
         taux={k.tauxHoraireReel}
@@ -245,7 +256,7 @@ function PilotDashboard() {
       <DirectorInsightsCard
         k={k}
         settings={set}
-        entries={entries.data ?? []}
+        entries={realEntries}
         year={year}
         opportunities={opps.data ?? null}
       />
@@ -292,7 +303,7 @@ function PilotDashboard() {
         </Card>
       </div>
       <RecommendationsFunnelWidget />
-      <PortfolioExplorer entries={entries.data ?? []} year={year} />
+      <PortfolioExplorer entries={realEntries} year={year} />
       <ClientPortfolioSection />
     </div>
   );
