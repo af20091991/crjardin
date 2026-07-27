@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, AlertTriangle, UserX, TrendingUp } from "lucide-react";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
-import { realizedEntries } from "@/lib/pilot-realized";
+import { entriesForMode } from "@/lib/pilot-realized";
+import { usePilotMode } from "@/lib/pilot-mode";
 
 export const Route = createFileRoute("/_authenticated/pilot/clients")({
   component: PilotClientsPage,
@@ -32,18 +33,19 @@ const NATURE_TONE: Record<string, string> = {
 
 function PilotClientsPage() {
   const { entries } = usePilotData();
+  const { mode } = usePilotMode();
   const year = new Date().getFullYear();
   const [scope, setScope] = useState<string>(String(year));
 
   const yearFilter = scope === "all" ? undefined : Number(scope);
-  const realEntries = useMemo(() => realizedEntries(entries.data ?? []), [entries.data]);
+  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode]);
   const confirmed = useQuery({
-    queryKey: ["confirmed-hours-by-client", yearFilter ?? "all"],
-    queryFn: () => fetchConfirmedHoursByClient(yearFilter),
+    queryKey: ["confirmed-hours-by-client", yearFilter ?? "all", mode],
+    queryFn: () => fetchConfirmedHoursByClient(yearFilter, { mode }),
   });
   const allConfirmed = useQuery({
-    queryKey: ["confirmed-hours-by-client", "all"],
-    queryFn: () => fetchConfirmedHoursByClient(undefined),
+    queryKey: ["confirmed-hours-by-client", "all", mode],
+    queryFn: () => fetchConfirmedHoursByClient(undefined, { mode }),
   });
 
   const stats = useMemo(

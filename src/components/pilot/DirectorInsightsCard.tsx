@@ -13,6 +13,7 @@ import { annualSummary } from "@/lib/pilot-annual";
 import { buildPortfolio } from "@/lib/pilot-portfolio";
 import { getClientEconomicScores } from "@/lib/client-score";
 import { buildDirectorInsights, type InsightTone } from "@/lib/pilot-director-insights";
+import { usePilotMode } from "@/lib/pilot-mode";
 
 const TONE_STYLE: Record<InsightTone, string> = {
   positive: "bg-emerald-500",
@@ -38,11 +39,12 @@ export function DirectorInsightsCard({
   year: number;
   opportunities?: { pendingValue: number; acceptedValue: number; invoicedCa: number } | null;
 }) {
+  const { mode } = usePilotMode();
   const [expanded, setExpanded] = useState(false);
 
   const chargesQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year"], queryFn: () => listSalesByYear() });
-  const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year], queryFn: () => fetchHoursLedger(year) });
+  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year", mode], queryFn: () => listSalesByYear({ mode }) });
+  const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year, mode], queryFn: () => fetchHoursLedger(year, { mode }) });
   const scoresQ = useQuery({ queryKey: ["client-economic-scores"], queryFn: getClientEconomicScores });
 
   const loading = chargesQ.isLoading || salesQ.isLoading || ledgerQ.isLoading || scoresQ.isLoading;
@@ -54,15 +56,15 @@ export function DirectorInsightsCard({
     return buildDirectorInsights({
       k,
       settings,
-      annual: annualSummary(entries, chargeRows),
-      charges: chargeRows.length > 0 ? analyzeCharges(chargeRows, sales, []) : null,
+      annual: annualSummary(entries, chargeRows, { mode }),
+      charges: chargeRows.length > 0 ? analyzeCharges(chargeRows, sales, [], { mode }) : null,
       projection: chargeRows.length > 0 ? projectionBase(chargeRows, year, sales) : null,
       portfolio: buildPortfolio({ entries, ledger, scores: scoresQ.data ?? [], year }),
       hours: ledger.length > 0 ? resolveRealHours(ledger, year) : null,
       opportunities: opportunities ?? null,
       year,
     });
-  }, [k, settings, entries, year, opportunities, chargesQ.data, salesQ.data, ledgerQ.data, scoresQ.data]);
+  }, [k, settings, entries, year, opportunities, chargesQ.data, salesQ.data, ledgerQ.data, scoresQ.data, mode]);
 
   const visible = expanded ? insights : insights.slice(0, 10);
 

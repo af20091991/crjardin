@@ -7,7 +7,7 @@ import { annualSummary } from "@/lib/pilot-annual";
 import { listChargeRows, listSalesByYear, listChargeCategories, analyzeCharges } from "@/lib/pilot-charges";
 import { usePilotMode } from "@/lib/pilot-mode";
 import { projectYear } from "@/lib/pilot-projection";
-import { realizedChargeRows, realizedEntries } from "@/lib/pilot-realized";
+import { chargeRowsForMode } from "@/lib/pilot-realized";
 import { monthlyCa, monthlyFieldHours, listHours, computeMonths, getTjmSettings } from "@/lib/pilot-hours";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,9 +30,9 @@ function FinancePage() {
   const { mode } = usePilotMode();
   const isProjection = mode === "projection";
 
-  const confirmed = useQuery({ queryKey: ["confirmed-hours-by-client", YEAR], queryFn: () => fetchConfirmedHoursByClient(YEAR) });
+  const confirmed = useQuery({ queryKey: ["confirmed-hours-by-client", YEAR, mode], queryFn: () => fetchConfirmedHoursByClient(YEAR, { mode }) });
   const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year"], queryFn: () => listSalesByYear() });
+  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year", mode], queryFn: () => listSalesByYear({ mode }) });
   const catsQ = useQuery({ queryKey: ["pilot-charge-categories"], queryFn: listChargeCategories });
   const caMonthQ = useQuery({ queryKey: ["pilot-hours-ca", YEAR, mode], queryFn: () => monthlyCa(YEAR, { mode }) });
   const caHoursQ = useQuery({ queryKey: ["pilot-ca-field-hours", YEAR, mode], queryFn: () => monthlyFieldHours(YEAR, { mode }) });
@@ -42,27 +42,27 @@ function FinancePage() {
   const k = useMemo(
     () => computeKpis({
       entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
-      year: YEAR, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data, mode: "reel",
+      year: YEAR, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data, mode,
     }),
-    [entries.data, charges.data, set, confirmed.data],
+    [entries.data, charges.data, set, confirmed.data, mode],
   );
 
   const annual = useMemo(
-    () => annualSummary(entries.data ?? [], chargeRowsQ.data ?? [], { mode: "reel" }),
-    [entries.data, chargeRowsQ.data],
+    () => annualSummary(entries.data ?? [], chargeRowsQ.data ?? [], { mode }),
+    [entries.data, chargeRowsQ.data, mode],
   );
 
   const analysis = useMemo(() => {
     if (!chargeRowsQ.data || !salesQ.data) return null;
-    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label), { mode: "reel" });
-  }, [chargeRowsQ.data, salesQ.data, catsQ.data]);
+    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label), { mode });
+  }, [chargeRowsQ.data, salesQ.data, catsQ.data, mode]);
 
   // Projection fin d'exercice : CA extrapolé par saisonnalité + charges moyennes.
   const proj = useMemo(
     () =>
       projectYear({
-        entries: realizedEntries(entries.data ?? []),
-        charges: realizedChargeRows((chargeRowsQ.data ?? []).filter((r) => !r.is_investment)),
+        entries: entries.data ?? [],
+        charges: (chargeRowsQ.data ?? []).filter((r) => !r.is_investment),
         year: YEAR,
       }),
     [entries.data, chargeRowsQ.data],
@@ -70,9 +70,9 @@ function FinancePage() {
   const investYear = useMemo(
     () =>
       (chargeRowsQ.data ?? [])
-        .filter((r) => r.year === YEAR && r.is_investment && realizedChargeRows([r]).length > 0)
+        .filter((r) => r.year === YEAR && r.is_investment && chargeRowsForMode([r], mode).length > 0)
         .reduce((s, r) => s + r.amount_ht, 0),
-    [chargeRowsQ.data],
+    [chargeRowsQ.data, mode],
   );
 
   const gestionDefaut = tjmQ.data?.heures_gestion ?? 60;
@@ -85,10 +85,10 @@ function FinancePage() {
   const chargesByMonth = useMemo(() => {
     const arr = Array(12).fill(0) as number[];
     for (const r of chargeRowsQ.data ?? []) {
-      if (r.year === YEAR && r.month >= 1 && r.month <= 12 && (isProjection || realizedChargeRows([r]).length > 0)) arr[r.month - 1] += r.amount_ht;
+      if (r.year === YEAR && r.month >= 1 && r.month <= 12 && chargeRowsForMode([r], mode).length > 0) arr[r.month - 1] += r.amount_ht;
     }
     return arr;
-  }, [chargeRowsQ.data, isProjection]);
+  }, [chargeRowsQ.data, mode]);
 
   const monthly = months.map((m, i) => ({
     mois: MONTHS[m.month - 1],

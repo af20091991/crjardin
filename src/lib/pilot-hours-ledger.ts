@@ -92,12 +92,13 @@ function prestationFromCa(designation: string | null, category: string | null): 
 /** Charge l'intégralité des heures connues, toutes sources confondues. */
 export async function fetchHoursLedger(year?: number, options?: { mode?: "reel" | "projection" }): Promise<HoursLedgerEntry[]> {
   const today = todayIso();
+  let interventionsQuery = supabase
+    .from("interventions")
+    .select("id,client_id,intervention_date,hours_spent,status,intervention_type,title,ai_metadata");
+  if (options?.mode !== "projection") interventionsQuery = interventionsQuery.lte("intervention_date", today);
   const [caRows, interventionsRes, historicRes, clientsRes] = await Promise.all([
     fetchCaHoursRows(year, options),
-    supabase
-      .from("interventions")
-      .select("id,client_id,intervention_date,hours_spent,status,intervention_type,title,ai_metadata")
-      .lte("intervention_date", today),
+    interventionsQuery,
     supabase.from("pilot_historic_hours").select("id,year,hours,client_id,raw_client_text,confidence,status"),
     supabase.from("clients").select("id,name"),
   ]);

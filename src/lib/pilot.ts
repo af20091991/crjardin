@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
-import { realizedEntries, realizedMonthLimit } from "@/lib/pilot-realized";
+import { entriesForMode, isRealizedMonth, realizedEntries } from "@/lib/pilot-realized";
+import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
+import { resolveRealHours } from "@/lib/pilot-real-hours";
 
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser();
@@ -250,10 +252,14 @@ export function sum(list: number[]): number {
 
 /** Charges annuelles pour une année donnée (fixe/variable récurrentes + ponctuelles de l'année). */
 export function annualCharges(charges: PilotCharge[], year: number, options?: { realizedOnly?: boolean; now?: Date }): number {
-  const months = options?.realizedOnly ? realizedMonthLimit(year, options.now) : 12;
   return sum(
     charges.map((c) => {
-      if (c.period === "mensuel") return c.amount * months;
+      if (c.period === "mensuel") {
+        const months = Array.from({ length: 12 }, (_, i) => i + 1).filter(
+          (month) => !options?.realizedOnly || isRealizedMonth(year, month, options.now),
+        ).length;
+        return c.amount * months;
+      }
       if (c.period === "annuel") return c.amount;
       // ponctuel
       if (c.charge_date && y(c.charge_date) === year) {
@@ -291,7 +297,7 @@ export function computeKpis(params: {
   const { charges, settings, year, month, confirmedHoursByClient } = params;
   const now = params.now ?? new Date();
   const realMode = params.mode !== "projection";
-  const entries = realizedEntries(params.entries, now);
+  const entries = entriesForMode(params.entries, params.mode ?? "reel", now);
 
   const yearEntries = entries.filter((e) => y(e.entry_date) === year);
   const prevYearEntries = entries.filter((e) => y(e.entry_date) === year - 1);
@@ -384,7 +390,7 @@ export function computeKpis(params: {
 
 /** Série mensuelle du CA HT pour une année (comparée à N-1). */
 export function monthlySeries(entries: PilotEntry[], year: number, options?: { mode?: "reel" | "projection"; now?: Date }) {
-  const scoped = realizedEntries(entries, options?.now);
+  const scoped = entriesForMode(entries, options?.mode ?? "reel", options?.now);
   return MONTHS.map((label, i) => ({
     month: label,
     current: sum(scoped.filter((e) => y(e.entry_date) === year && m(e.entry_date) === i).map((e) => e.amount_ht)),
@@ -507,14 +513,20 @@ export function clientStatsWithHours(
  */
 export async function fetchConfirmedHoursByClient(
   yearFilter?: number,
+  options?: { mode?: "reel" | "projection" },
 ): Promise<Map<string, number>> {
+  const mode = options?.mode ?? "reel";
+  const ledger = await fetchHoursLedger(yearFilter, { mode });
+  const resolved = resolveRealHours(ledger, yearFilter ?? new Date().getFullYear());
+  if (resolved.byClient.size > 0) return resolved.byClient;
+
   const today = new Date().toISOString().slice(0, 10);
   let q = supabase
     .from("interventions")
     .select("client_id,hours_spent,intervention_date")
     .eq("status", "terminee")
-    .not("hours_spent", "is", null)
-    .lte("intervention_date", today);
+    .not("hours_spent", "is", null);
+  if (mode !== "projection") q = q.lte("intervention_date", today);
   if (yearFilter != null) {
     q = q
       .gte("intervention_date", `${yearFilter}-01-01`)

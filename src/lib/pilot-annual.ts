@@ -1,6 +1,6 @@
 import type { PilotEntry } from "@/lib/pilot";
 import type { ChargeRow } from "@/lib/pilot-charges";
-import { isRealizedMonth, realizedEntries } from "@/lib/pilot-realized";
+import { chargeRowsForMode, entriesForMode } from "@/lib/pilot-realized";
 
 /**
  * Synthèse annuelle multi-exercices : une ligne par année réellement présente
@@ -23,8 +23,8 @@ export interface AnnualRow {
 }
 
 export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[], options?: { mode?: "reel" | "projection" }): AnnualRow[] {
-  const scopedEntries = options?.mode === "projection" ? entries : realizedEntries(entries);
-  const scopedCharges = options?.mode === "projection" ? allChargeRows : allChargeRows.filter((c) => isRealizedMonth(c.year, c.month));
+  const scopedEntries = entriesForMode(entries, options?.mode ?? "reel");
+  const scopedCharges = chargeRowsForMode(allChargeRows, options?.mode ?? "reel");
   const chargeRows = scopedCharges.filter((c) => !c.is_investment);
   const years = new Set<number>();
   const ca = new Map<number, number>();

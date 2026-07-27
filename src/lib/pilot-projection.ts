@@ -8,7 +8,7 @@
 
 import type { PilotEntry } from "@/lib/pilot";
 import type { ChargeRow } from "@/lib/pilot-charges";
-import { realizedChargeRows, realizedEntries } from "@/lib/pilot-realized";
+import { chargeRowsForMode, entriesForMode } from "@/lib/pilot-realized";
 
 export type PilotMode = "reel" | "projection";
 
@@ -89,8 +89,8 @@ export function projectYear(params: {
   currentMonth?: number;
 }): ProjectionResult {
   const { year } = params;
-  const entries = realizedEntries(params.entries);
-  const charges = realizedChargeRows(params.charges);
+  const entries = entriesForMode(params.entries, "reel");
+  const charges = chargeRowsForMode(params.charges, "reel");
   const now = new Date();
   const isCurrentYear = now.getFullYear() === year;
   const ca = monthlyCa(entries, year);

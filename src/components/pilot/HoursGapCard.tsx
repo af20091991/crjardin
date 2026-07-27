@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
 import { Scale } from "lucide-react";
+import { usePilotMode } from "@/lib/pilot-mode";
 import {
   aggregateHoursByClient,
   aggregateHoursByPrestation,
@@ -12,10 +13,11 @@ import {
 
 /** Écarts heures vendues / réalisées, par prestation et par client. */
 export function HoursGapCard({ year }: { year: number }) {
+  const { mode } = usePilotMode();
   const q = useQuery({
-    queryKey: ["pilot-hours-gap", year],
+    queryKey: ["pilot-hours-gap", year, mode],
     queryFn: async () => {
-      const entries = await fetchHoursLedger(year);
+      const entries = await fetchHoursLedger(year, { mode });
       const prestations = aggregateHoursByPrestation(entries).slice(0, 6);
       const clients = [...aggregateHoursByClient(entries).values()]
         .filter((c) => c.reelles > 0 && c.vendues > 0)

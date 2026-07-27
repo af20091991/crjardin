@@ -25,6 +25,7 @@ import {
   type ChargeRow,
   PRIORITY_VARIABLE_CATEGORIES,
 } from "@/lib/pilot-charges";
+import { usePilotMode } from "@/lib/pilot-mode";
 
 export const Route = createFileRoute("/_authenticated/pilot/charges")({
   head: () => ({
@@ -42,12 +43,13 @@ function pct(v: number | null) {
 
 function ChargesPage() {
   const qc = useQueryClient();
+  const { mode } = usePilotMode();
   const q = useQuery({
-    queryKey: ["pilot-charges-analysis"],
+    queryKey: ["pilot-charges-analysis", mode],
     queryFn: async () => {
       const [rows, sales, cats] = await Promise.all([
         listChargeRows(),
-        listSalesByYear(),
+        listSalesByYear({ mode }),
         listChargeCategories(),
       ]);
       return { rows, sales, cats };
@@ -56,8 +58,8 @@ function ChargesPage() {
   const [detailYear, setDetailYear] = useState<number>(currentYear());
   const [search, setSearch] = useState("");
   const analysis = useMemo(
-    () => (q.data ? analyzeCharges(q.data.rows, q.data.sales, q.data.cats.map((c) => c.label)) : null),
-    [q.data],
+    () => (q.data ? analyzeCharges(q.data.rows, q.data.sales, q.data.cats.map((c) => c.label), { mode }) : null),
+    [q.data, mode],
   );
   const proj = useMemo(
     () => (q.data ? projectionBase(q.data.rows, currentYear(), q.data.sales) : null),

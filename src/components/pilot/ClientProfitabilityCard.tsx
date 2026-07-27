@@ -10,6 +10,7 @@ import { classifyClients, PROFIT_CLASS_META } from "@/lib/pilot-client-profitabi
 import { suggestCrossSell, formatMonths } from "@/lib/pilot-cross-sell";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { currentYear } from "@/lib/date-utils";
+import { usePilotMode } from "@/lib/pilot-mode";
 
 /**
  * Analyse 360° d'un client : rentabilité classée + ventes additionnelles
@@ -24,11 +25,12 @@ export function ClientProfitabilityCard({
   interventions: number;
 }) {
   const year = currentYear();
+  const { mode } = usePilotMode();
   const thresholds = useThresholds();
   const entriesQ = useQuery({ queryKey: ["pilot-entries"], queryFn: listEntries });
   const ledgerQ = useQuery({
-    queryKey: ["pilot-hours-ledger-all"],
-    queryFn: () => fetchHoursLedger(),
+    queryKey: ["pilot-hours-ledger-all", mode],
+    queryFn: () => fetchHoursLedger(undefined, { mode }),
   });
   const settingsQ = useQuery({ queryKey: ["pilot-settings"], queryFn: getSettings });
 

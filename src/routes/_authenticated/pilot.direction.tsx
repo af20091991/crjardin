@@ -18,7 +18,8 @@ import {
   healthScore, HEALTH_META,
   formatEuro, formatPct, DEFAULT_SETTINGS,
 } from "@/lib/pilot";
-import { realizedEntries } from "@/lib/pilot-realized";
+import { entriesForMode } from "@/lib/pilot-realized";
+import { usePilotMode } from "@/lib/pilot-mode";
 import { getOpportunitiesValue } from "@/lib/garden";
 import { getClientEconomicScores, SCORE_META, type ClientScoreLabel, type ClientScore } from "@/lib/client-score";
 import { Link } from "@tanstack/react-router";
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/_authenticated/pilot/direction")({
 
 function PilotDashboard() {
   const { entries, charges, settings } = usePilotData();
+  const { mode } = usePilotMode();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
@@ -43,10 +45,10 @@ function PilotDashboard() {
   const loading = entries.isLoading || charges.isLoading || settings.isLoading;
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const realEntries = useMemo(() => realizedEntries(entries.data ?? [], now), [entries.data, now]);
+  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode, now), [entries.data, mode, now]);
   const confirmedHours = useQuery({
-    queryKey: ["confirmed-hours-by-client", year],
-    queryFn: () => fetchConfirmedHoursByClient(year),
+    queryKey: ["confirmed-hours-by-client", year, mode],
+    queryFn: () => fetchConfirmedHoursByClient(year, { mode }),
   });
   const k = useMemo(
     () =>
@@ -57,12 +59,12 @@ function PilotDashboard() {
         year,
         month,
         confirmedHoursByClient: confirmedHours.data,
-        mode: "reel",
+        mode,
       }),
-    [entries.data, charges.data, set, year, month, confirmedHours.data],
+    [entries.data, charges.data, set, year, month, confirmedHours.data, mode],
   );
   const health = useMemo(() => healthScore(k, set), [k, set]);
-  const series = useMemo(() => monthlySeries(entries.data ?? [], year, { mode: "reel" }), [entries.data, year]);
+  const series = useMemo(() => monthlySeries(entries.data ?? [], year, { mode }), [entries.data, year, mode]);
   const familyData = k.byFamily.filter((f) => f.value > 0);
 
   const opps = useQuery({
@@ -73,7 +75,7 @@ function PilotDashboard() {
   // Rentabilité N-1 (heures confirmées année précédente)
   const prevConfirmedHours = useQuery({
     queryKey: ["confirmed-hours-by-client", year - 1],
-    queryFn: () => fetchConfirmedHoursByClient(year - 1),
+    queryFn: () => fetchConfirmedHoursByClient(year - 1, { mode: "reel" }),
   });
   const prevHoursTotal = useMemo(() => {
     const m = prevConfirmedHours.data;
