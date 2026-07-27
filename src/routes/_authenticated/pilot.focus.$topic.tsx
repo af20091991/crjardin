@@ -60,8 +60,8 @@ function FocusPage() {
   const interventions = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
   const recos = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
   const confirmedHours = useQuery({
-    queryKey: ["confirmed-hours-by-client", year],
-    queryFn: () => fetchConfirmedHoursByClient(year),
+    queryKey: ["confirmed-hours-by-client", year, mode],
+    queryFn: () => fetchConfirmedHoursByClient(year, { mode }),
   });
   // Ledger consolidé : une intervention n'est listée que si aucune heure
   // n'existe déjà dans Pilot Pro pour ce client sur l'année.
@@ -418,7 +418,9 @@ function FocusPage() {
                           size="sm"
                           variant="ghost"
                           disabled={waiveMut.isPending}
-                          onClick={() => waiveMut.mutate(r.interventionId!)}
+                          onClick={() => {
+                            if (r.interventionId) waiveMut.mutate(r.interventionId);
+                          }}
                         >
                           <BellOff className="mr-1 h-3 w-3" /> Pas de CR exceptionnellement
                         </Button>

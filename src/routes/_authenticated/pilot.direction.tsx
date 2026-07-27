@@ -47,8 +47,8 @@ function PilotDashboard() {
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode, now), [entries.data, mode, now]);
   const confirmedHours = useQuery({
-    queryKey: ["confirmed-hours-by-client", year],
-    queryFn: () => fetchConfirmedHoursByClient(year),
+    queryKey: ["confirmed-hours-by-client", year, mode],
+    queryFn: () => fetchConfirmedHoursByClient(year, { mode }),
   });
   const k = useMemo(
     () =>
@@ -75,7 +75,7 @@ function PilotDashboard() {
   // Rentabilité N-1 (heures confirmées année précédente)
   const prevConfirmedHours = useQuery({
     queryKey: ["confirmed-hours-by-client", year - 1],
-    queryFn: () => fetchConfirmedHoursByClient(year - 1),
+    queryFn: () => fetchConfirmedHoursByClient(year - 1, { mode: "reel" }),
   });
   const prevHoursTotal = useMemo(() => {
     const m = prevConfirmedHours.data;

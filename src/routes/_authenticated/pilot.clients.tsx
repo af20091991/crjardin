@@ -40,12 +40,12 @@ function PilotClientsPage() {
   const yearFilter = scope === "all" ? undefined : Number(scope);
   const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode]);
   const confirmed = useQuery({
-    queryKey: ["confirmed-hours-by-client", yearFilter ?? "all"],
-    queryFn: () => fetchConfirmedHoursByClient(yearFilter),
+    queryKey: ["confirmed-hours-by-client", yearFilter ?? "all", mode],
+    queryFn: () => fetchConfirmedHoursByClient(yearFilter, { mode }),
   });
   const allConfirmed = useQuery({
-    queryKey: ["confirmed-hours-by-client", "all"],
-    queryFn: () => fetchConfirmedHoursByClient(undefined),
+    queryKey: ["confirmed-hours-by-client", "all", mode],
+    queryFn: () => fetchConfirmedHoursByClient(undefined, { mode }),
   });
 
   const stats = useMemo(

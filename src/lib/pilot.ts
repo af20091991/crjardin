@@ -513,8 +513,10 @@ export function clientStatsWithHours(
  */
 export async function fetchConfirmedHoursByClient(
   yearFilter?: number,
+  options?: { mode?: "reel" | "projection" },
 ): Promise<Map<string, number>> {
-  const ledger = await fetchHoursLedger(yearFilter, { mode: "reel" });
+  const mode = options?.mode ?? "reel";
+  const ledger = await fetchHoursLedger(yearFilter, { mode });
   const resolved = resolveRealHours(ledger, yearFilter ?? new Date().getFullYear());
   if (resolved.byClient.size > 0) return resolved.byClient;
 
@@ -523,8 +525,8 @@ export async function fetchConfirmedHoursByClient(
     .from("interventions")
     .select("client_id,hours_spent,intervention_date")
     .eq("status", "terminee")
-    .not("hours_spent", "is", null)
-    .lte("intervention_date", today);
+    .not("hours_spent", "is", null);
+  if (mode !== "projection") q = q.lte("intervention_date", today);
   if (yearFilter != null) {
     q = q
       .gte("intervention_date", `${yearFilter}-01-01`)

@@ -29,7 +29,7 @@ function SantePage() {
   const year = currentYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
 
-  const confirmed = useQuery({ queryKey: ["confirmed-hours-by-client", year], queryFn: () => fetchConfirmedHoursByClient(year) });
+  const confirmed = useQuery({ queryKey: ["confirmed-hours-by-client", year, mode], queryFn: () => fetchConfirmedHoursByClient(year, { mode }) });
   const goalsQ = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
   const activityQ = useQuery({ queryKey: ["client-activity-rows"], queryFn: fetchClientActivityRows });
   const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
