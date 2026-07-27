@@ -26,7 +26,7 @@ import { usePilotMode } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { classifyClients } from "@/lib/pilot-client-profitability";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
-import { realizedEntries, realizedGoals, realizedHoursLedger, todayIso } from "@/lib/pilot-realized";
+import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
 import {
   Euro,
   Wallet,
@@ -147,22 +147,19 @@ function TodayPage() {
     (clientId ? reportPolicyById.get(clientId) : undefined) ?? "a_confirmer";
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const realEntries = useMemo(() => realizedEntries(entries.data ?? []), [entries.data]);
-  // Heures confirmées (interventions.hours_spent, statut = termine) sur l'année en cours.
-  // Calculé avant `computeKpis` pour alimenter `tauxHoraireReel`.
-  const confirmedHoursByClient = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const i of interventions.data ?? []) {
-      if (i.status !== "terminee" || i.hours_spent == null) continue;
-      const d = new Date(i.intervention_date);
-      if (d.getFullYear() !== year) continue;
-      if (i.intervention_date.slice(0, 10) > todayIso()) continue;
-      const h = Number(i.hours_spent);
-      if (!Number.isFinite(h) || h <= 0) continue;
-      map.set(i.client_id, (map.get(i.client_id) ?? 0) + h);
-    }
-    return map;
-  }, [interventions.data, year]);
+  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode]);
+  const ledgerRows = useMemo(
+    () => (hoursLedger.data ? hoursLedgerForMode(hoursLedger.data, mode) : []),
+    [hoursLedger.data, mode],
+  );
+  const hoursResolution = useMemo(
+    () => (hoursLedger.data ? resolveRealHours(ledgerRows, year) : undefined),
+    [hoursLedger.data, ledgerRows, year],
+  );
+  const confirmedHoursByClient = useMemo(
+    () => hoursResolution?.byClient ?? new Map<string, number>(),
+    [hoursResolution],
+  );
 
   const k = useMemo(
     () =>
@@ -173,9 +170,9 @@ function TodayPage() {
         year,
         month,
         confirmedHoursByClient,
-        mode: "reel",
+        mode,
       }),
-    [entries.data, charges.data, set, year, month, confirmedHoursByClient],
+    [entries.data, charges.data, set, year, month, confirmedHoursByClient, mode],
   );
 
   // Objectif du mois = CA du même mois N-1 (référentiel factuel, aucune nouvelle donnée)
@@ -194,9 +191,11 @@ function TodayPage() {
     return k.caMonth * marge;
   }, [k]);
 
-  const allI = (interventions.data ?? []).filter((i) => !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso());
+  const allI = (interventions.data ?? []).filter(
+    (i) => mode === "projection" || !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso(),
+  );
   const allR = recos.data ?? [];
-  const allG = realizedGoals(goals.data ?? []);
+  const allG = goalsForMode(goals.data ?? [], mode);
 
   const today = new Date();
 
@@ -233,16 +232,11 @@ function TodayPage() {
     }
     return ids;
   }, [allI, reportPolicyById]);
-  // Heures réelles disponibles dans PP (interventions > historique > ledger CA).
-  const hoursResolution = useMemo(
-    () => (hoursLedger.data ? resolveRealHours(realizedHoursLedger(hoursLedger.data), year) : undefined),
-    [hoursLedger.data, year],
-  );
   // Une intervention n'est « à renseigner » que si AUCUNE heure n'existe dans PP
   // pour ce client sur l'année : un défaut de liaison n'est jamais une tâche.
   const missingHours = useMemo(
-    () => (hoursLedger.data ? interventionsNeedingHours(allI, realizedHoursLedger(hoursLedger.data), year) : []),
-    [allI, hoursLedger.data, year],
+    () => (hoursLedger.data ? interventionsNeedingHours(allI, ledgerRows, year) : []),
+    [allI, hoursLedger.data, ledgerRows, year],
   );
 
   // Clients dormants / à relancer — clients UNIQUES du référentiel `clients`.
@@ -286,26 +280,26 @@ function TodayPage() {
       hoursLedger.data
         ? classifyClients({
             entries: realEntries,
-            ledger: realizedHoursLedger(hoursLedger.data),
+            ledger: ledgerRows,
             year,
             targetHourlyRate: set.target_hourly_rate || 0,
             thresholds,
           })
         : [],
-    [realEntries, hoursLedger.data, year, set.target_hourly_rate, thresholds],
+    [realEntries, hoursLedger.data, ledgerRows, year, set.target_hourly_rate, thresholds],
   );
   const services = useMemo(
     () =>
       hoursLedger.data
         ? analyzeServices({
             entries: realEntries,
-            ledger: realizedHoursLedger(hoursLedger.data),
+            ledger: ledgerRows,
             year,
             targetHourlyRate: set.target_hourly_rate || 0,
             thresholds,
           })
         : [],
-    [realEntries, hoursLedger.data, year, set.target_hourly_rate, thresholds],
+    [realEntries, hoursLedger.data, ledgerRows, year, set.target_hourly_rate, thresholds],
   );
 
   // Dérive des charges : charges à date vs même part d'exercice en N-1.
