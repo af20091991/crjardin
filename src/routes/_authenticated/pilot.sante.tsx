@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Send, Bot, HeartPulse, CheckCircle2, AlertTriangle, MinusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
-import { realizedGoals } from "@/lib/pilot-realized";
+import { goalsForMode } from "@/lib/pilot-realized";
+import { usePilotMode } from "@/lib/pilot-mode";
 
 export const Route = createFileRoute("/_authenticated/pilot/sante")({
   head: () => ({ meta: [{ title: "Santé de l'entreprise — Pilot Pro" }] }),
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/_authenticated/pilot/sante")({
 
 function SantePage() {
   const { entries, charges, settings } = usePilotData();
+  const { mode } = usePilotMode();
   const year = currentYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
 
@@ -37,27 +39,27 @@ function SantePage() {
   const k = useMemo(
     () => computeKpis({
       entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
-      year, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data, mode: "reel",
+      year, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data, mode,
     }),
-    [entries.data, charges.data, set, year, confirmed.data],
+    [entries.data, charges.data, set, year, confirmed.data, mode],
   );
 
   const chargesAnalysis = useMemo(() => {
     if (!chargeRowsQ.data || !salesQ.data) return null;
-    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label), { mode: "reel" });
-  }, [chargeRowsQ.data, salesQ.data, catsQ.data]);
+    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label), { mode });
+  }, [chargeRowsQ.data, salesQ.data, catsQ.data, mode]);
 
   const health = useMemo(() => {
     const rows = activityQ.data ?? [];
     return pragmaticHealth({
       k,
       settings: set,
-      goals: realizedGoals(goalsQ.data ?? []),
+      goals: goalsForMode(goalsQ.data ?? [], mode),
       charges: chargesAnalysis,
       dormantClients: rows.filter((r) => r.status === "dormant").length,
       activeClients: rows.filter((r) => r.status === "actif").length,
     });
-  }, [k, set, goalsQ.data, chargesAnalysis, activityQ.data]);
+  }, [k, set, goalsQ.data, chargesAnalysis, activityQ.data, mode]);
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
