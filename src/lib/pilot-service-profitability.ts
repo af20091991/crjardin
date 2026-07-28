@@ -105,7 +105,7 @@ export function analyzeServices(params: {
   const reelles = new Map<string, number>();
   for (const l of ledger) {
     if (l.type !== "realisee" || l.estimated || l.hours <= 0) continue;
-    const key = (l.prestation ?? "").trim() || "Non catégorisé";
+    const key = normalizePrestation(l.prestation);
     reelles.set(key, (reelles.get(key) ?? 0) + l.hours);
   }
 

@@ -13,11 +13,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Clock, Timer, CalendarDays, Target, SlidersHorizontal, Info, Settings2 } from "lucide-react";
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
 import { usePilotMode } from "@/lib/pilot-mode";
+import { PP_COLORS } from "@/lib/pilot-colors";
 
 const YEAR = currentYear();
 
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/_authenticated/pilot/taux")({
 });
 
 type ColKey = "terrain" | "gestion" | "total" | "jours" | "ca" | "brut" | "net" | "caJour" | "part";
+type GraphKey = "brut" | "net" | "cible" | "heures";
 
 const COLUMNS: { key: ColKey; label: string; always?: boolean }[] = [
   { key: "terrain", label: "Temps terrain (h)", always: true },
@@ -40,8 +42,17 @@ const COLUMNS: { key: ColKey; label: string; always?: boolean }[] = [
   { key: "part", label: "% terrain" },
 ];
 
+const GRAPH_OPTIONS: { key: GraphKey; label: string }[] = [
+  { key: "brut", label: "Courbe taux horaire brut" },
+  { key: "net", label: "Courbe taux horaire net" },
+  { key: "cible", label: "Courbe taux horaire cible (TJM)" },
+  { key: "heures", label: "Histogramme heures terrain / gestion" },
+];
+
 const STORAGE_KEY = "pilot-taux-columns";
 const DEFAULT_COLS: ColKey[] = ["terrain", "gestion", "total", "jours", "ca", "brut", "net", "caJour"];
+const GRAPH_STORAGE_KEY = "pilot-taux-graphs";
+const DEFAULT_GRAPHS: GraphKey[] = ["brut", "net", "cible"];
 
 function TauxPage() {
   const qc = useQueryClient();
@@ -69,6 +80,22 @@ function TauxPage() {
     });
   };
   const show = (k: ColKey) => COLUMNS.find((c) => c.key === k)?.always || cols.includes(k);
+
+  const [graphs, setGraphs] = useState<GraphKey[]>(() => {
+    if (typeof window === "undefined") return DEFAULT_GRAPHS;
+    try {
+      const raw = window.localStorage.getItem(GRAPH_STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as GraphKey[]) : DEFAULT_GRAPHS;
+    } catch { return DEFAULT_GRAPHS; }
+  });
+  const toggleGraph = (k: GraphKey) => {
+    setGraphs((prev) => {
+      const next = prev.includes(k) ? prev.filter((g) => g !== k) : [...prev, k];
+      try { window.localStorage.setItem(GRAPH_STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const showGraph = (k: GraphKey) => graphs.includes(k);
 
   const months = useMemo(
     () => computeMonths(caQ.data ?? Array(12).fill(0), hoursQ.data ?? [], gestionDefaut, caHoursQ.data ?? []),
