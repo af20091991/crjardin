@@ -35,6 +35,7 @@ import {
   listRecentDecisions,
   revertLastDecision,
   suggestClients,
+  getNonApplicableSummary,
   type Suggestion,
 } from "@/lib/pilot-ca-matching";
 
@@ -49,6 +50,7 @@ function RapprochementPage() {
   const linked = useQuery({ queryKey: ["pilot-ca-linked-desig"], queryFn: listLinkedEntries });
   const clients = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const decisions = useQuery({ queryKey: ["pilot-ca-decisions"], queryFn: () => listRecentDecisions(20) });
+  const nonApplicable = useQuery({ queryKey: ["pilot-ca-non-applicable"], queryFn: getNonApplicableSummary });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<string>("all");

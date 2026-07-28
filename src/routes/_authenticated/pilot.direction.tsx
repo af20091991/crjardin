@@ -12,13 +12,16 @@ import { RecommendationsFunnelWidget } from "@/components/RecommendationsFunnelW
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, Legend, ComposedChart, Line } from "recharts";
 import {
   computeKpis, monthlySeries, clientStatsWithHours, fetchConfirmedHoursByClient,
   healthScore, HEALTH_META,
   formatEuro, formatPct, DEFAULT_SETTINGS,
 } from "@/lib/pilot";
 import { entriesForMode } from "@/lib/pilot-realized";
+import { annualSummary } from "@/lib/pilot-annual";
+import { listChargeRows } from "@/lib/pilot-charges";
+import { PP_COLORS } from "@/lib/pilot-colors";
 import { usePilotMode } from "@/lib/pilot-mode";
 import { getOpportunitiesValue } from "@/lib/garden";
 import { getClientEconomicScores, SCORE_META, type ClientScoreLabel, type ClientScore } from "@/lib/client-score";
@@ -71,6 +74,21 @@ function PilotDashboard() {
     queryKey: ["opportunities-value"],
     queryFn: getOpportunitiesValue,
   });
+
+  const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
+  const annualRows = useMemo(
+    () => annualSummary(realEntries, chargeRowsQ.data ?? []),
+    [realEntries, chargeRowsQ.data],
+  );
+  const evolutionData = useMemo(
+    () => [...annualRows].sort((a, b) => a.year - b.year).map((r) => ({
+      year: String(r.year),
+      ca: r.caHt,
+      charges: r.charges,
+      benefice: r.beneficeBrut,
+    })),
+    [annualRows],
+  );
 
   // Rentabilité N-1 (heures confirmées année précédente)
   const prevConfirmedHours = useQuery({
