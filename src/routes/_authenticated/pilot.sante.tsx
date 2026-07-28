@@ -2,11 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
-import { computeKpis, fetchConfirmedHoursByClient, DEFAULT_SETTINGS } from "@/lib/pilot";
+import { computeKpis, fetchConfirmedHoursByClient, clientStats, DEFAULT_SETTINGS, formatEuro } from "@/lib/pilot";
 import { listGoals } from "@/lib/pilot-goals";
 import { fetchClientActivityRows } from "@/lib/client-activity";
 import { listChargeRows, listSalesByYear, listChargeCategories, analyzeCharges } from "@/lib/pilot-charges";
-import { pragmaticHealth, HEALTH_THEME_META, HEALTH_LEVEL_META } from "@/lib/pilot-health";
+import { annualSummary } from "@/lib/pilot-annual";
+import { pragmaticHealth, margeHealthScore, HEALTH_THEME_META, HEALTH_LEVEL_META } from "@/lib/pilot-health";
+import { useThresholds } from "@/lib/pilot-thresholds";
 import { askPilotAi } from "@/lib/pilot-ai.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +19,9 @@ import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
 import { goalsForMode } from "@/lib/pilot-realized";
 import { usePilotMode } from "@/lib/pilot-mode";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, ReferenceLine } from "recharts";
+import { PP_COLORS } from "@/lib/pilot-colors";
 
 export const Route = createFileRoute("/_authenticated/pilot/sante")({
   head: () => ({ meta: [{ title: "Santé de l'entreprise — Pilot Pro" }] }),
@@ -26,6 +31,7 @@ export const Route = createFileRoute("/_authenticated/pilot/sante")({
 function SantePage() {
   const { entries, charges, settings } = usePilotData();
   const { mode } = usePilotMode();
+  const thresholds = useThresholds();
   const year = currentYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
 
@@ -44,22 +50,63 @@ function SantePage() {
     [entries.data, charges.data, set, year, confirmed.data, mode],
   );
 
+  // Source unique du bénéfice/de la marge : annualSummary().
+  const annualRows = useMemo(
+    () => annualSummary(entries.data ?? [], chargeRowsQ.data ?? [], { mode }),
+    [entries.data, chargeRowsQ.data, mode],
+  );
+  const currentAnnual = useMemo(() => annualRows.find((r) => r.year === year) ?? null, [annualRows, year]);
+
   const chargesAnalysis = useMemo(() => {
     if (!chargeRowsQ.data || !salesQ.data) return null;
     return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label), { mode });
   }, [chargeRowsQ.data, salesQ.data, catsQ.data, mode]);
 
+  const topClientSharePct = useMemo(() => {
+    const stats = clientStats(entries.data ?? [], year);
+    return stats.length ? stats[0].share : null;
+  }, [entries.data, year]);
+
   const health = useMemo(() => {
     const rows = activityQ.data ?? [];
     return pragmaticHealth({
       k,
+      annual: currentAnnual,
       settings: set,
       goals: goalsForMode(goalsQ.data ?? [], mode),
       charges: chargesAnalysis,
       dormantClients: rows.filter((r) => r.status === "dormant").length,
       activeClients: rows.filter((r) => r.status === "actif").length,
+      topClientSharePct,
+      thresholds,
     });
-  }, [k, set, goalsQ.data, chargesAnalysis, activityQ.data, mode]);
+  }, [k, currentAnnual, set, goalsQ.data, chargesAnalysis, activityQ.data, mode, topClientSharePct, thresholds]);
+
+  // Graphique 1 : scores par thématique (histogramme horizontal).
+  const themeChartData = useMemo(
+    () =>
+      health.themes.map((t) => ({
+        label: HEALTH_THEME_META[t.theme].label,
+        score: t.score ?? 0,
+        hasData: t.score != null,
+        fill: HEALTH_THEME_META[t.theme].color,
+      })),
+    [health.themes],
+  );
+
+  // Graphique 2 : évolution du score de marge par exercice (annualSummary).
+  const margeEvolutionData = useMemo(
+    () =>
+      [...annualRows]
+        .sort((a, b) => a.year - b.year)
+        .map((r) => ({
+          year: String(r.year),
+          margePct: r.margePct != null ? Math.round(r.margePct) : null,
+          score: margeHealthScore(r.margePct, thresholds),
+        }))
+        .filter((r) => r.score != null),
+    [annualRows, thresholds],
+  );
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
@@ -118,6 +165,63 @@ function SantePage() {
                 <span>{a}</span>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Scores par thématique</CardTitle></CardHeader>
+          <CardContent>
+            <ChartContainer config={{ score: { label: "Score", color: PP_COLORS.primary } }} className="h-[220px] w-full">
+              <BarChart data={themeChartData} layout="vertical" margin={{ left: 8, right: 12 }}>
+                <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                <XAxis type="number" domain={[0, 100]} tickLine={false} axisLine={false} fontSize={11} />
+                <YAxis type="category" dataKey="label" tickLine={false} axisLine={false} fontSize={11} width={110} />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      formatter={(value, _name, item) =>
+                        item?.payload?.hasData ? `${value} / 100` : "Données insuffisantes"
+                      }
+                    />
+                  }
+                />
+                <Bar dataKey="score" radius={[0, 4, 4, 0]}>
+                  {themeChartData.map((d, i) => (
+                    <Bar key={i} dataKey="score" fill={d.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Évolution du score de marge par exercice</CardTitle></CardHeader>
+          <CardContent>
+            {margeEvolutionData.length ? (
+              <ChartContainer config={{ score: { label: "Score de marge", color: PP_COLORS.sales } }} className="h-[220px] w-full">
+                <LineChart data={margeEvolutionData} margin={{ left: 4, right: 12 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="year" tickLine={false} axisLine={false} fontSize={11} />
+                  <YAxis domain={[0, 100]} tickLine={false} axisLine={false} fontSize={11} width={32} />
+                  <ReferenceLine y={75} stroke={PP_COLORS.neutral} strokeDasharray="3 3" />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value, _name, item) =>
+                          `${value} / 100${item?.payload?.margePct != null ? ` (marge ${item.payload.margePct} %)` : ""}`
+                        }
+                      />
+                    }
+                  />
+                  <Line type="monotone" dataKey="score" stroke="var(--color-score)" strokeWidth={2} dot />
+                </LineChart>
+              </ChartContainer>
+            ) : (
+              <p className="py-12 text-center text-sm text-muted-foreground">Aucun exercice avec CA exploitable.</p>
+            )}
           </CardContent>
         </Card>
       </div>
