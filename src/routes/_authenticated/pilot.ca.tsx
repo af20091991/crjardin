@@ -26,6 +26,11 @@ import { toast } from "sonner";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import { FixedChargesPanel } from "@/components/pilot/FixedChargesPanel";
 import { remunerationBreakdown, SOCIAL_CONTRIBUTION_RATE } from "@/lib/pilot-fixed-charges";
+import { updateSaleStatus } from "@/lib/pilot";
+import { SALE_STATUS, SALE_STATUS_ORDER, type SaleStatus } from "@/lib/pilot-colors";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/_authenticated/pilot/ca")({
   component: CaPage,

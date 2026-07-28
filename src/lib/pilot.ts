@@ -33,6 +33,7 @@ export interface PilotEntry {
   amount_ttc: number;
   hours: number;
   observation: string | null;
+  sale_status?: string;
   created_at: string;
   updated_at: string;
 }
@@ -117,7 +118,7 @@ async function fetchCaRows<T>(columns: string, kind: "vente" | "charge"): Promis
 type CaVenteRow = {
   id: string; user_id: string; year: number; month: number; designation: string | null;
   category: string | null; amount_ht: number | null; hours: number | null;
-  client_id: string | null; created_at: string; updated_at: string;
+  client_id: string | null; sale_status?: string | null; created_at: string; updated_at: string;
 };
 
 type CaChargeRow = {
@@ -127,7 +128,7 @@ type CaChargeRow = {
 
 async function bridgeCaEntries(): Promise<PilotEntry[]> {
   const rows = await fetchCaRows<CaVenteRow>(
-    "id,user_id,year,month,kind,designation,category,amount_ht,hours,client_id,created_at,updated_at",
+    "id,user_id,year,month,kind,designation,category,amount_ht,hours,client_id,sale_status,created_at,updated_at",
     "vente",
   );
   return rows.map((r) => {
@@ -145,6 +146,7 @@ async function bridgeCaEntries(): Promise<PilotEntry[]> {
       amount_ttc: ht * 1.2,
       hours: Number(r.hours) || 0,
       observation: null,
+      sale_status: r.sale_status ?? "realise",
       created_at: r.created_at,
       updated_at: r.updated_at,
     } as PilotEntry;
@@ -203,6 +205,18 @@ export async function updateCharge(id: string, input: Partial<PilotChargeInput>)
 
 export async function deleteCharge(id: string): Promise<void> {
   const { error } = await supabase.from("pilot_charges").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * Met à jour le statut visuel d'une vente (pilot_ca_entries.sale_status).
+ * Suivi purement visuel : ne modifie aucun calcul de CA.
+ */
+export async function updateSaleStatus(id: string, status: string): Promise<void> {
+  const { error } = await supabase
+    .from("pilot_ca_entries")
+    .update({ sale_status: status } as never)
+    .eq("id", id);
   if (error) throw error;
 }
 
