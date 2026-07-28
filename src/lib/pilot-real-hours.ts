@@ -172,8 +172,9 @@ export function interventionsNeedingHours(
     if (Number(i.intervention_date.slice(0, 4)) !== year) return false;
     const meta = i.ai_metadata && typeof i.ai_metadata === "object" ? (i.ai_metadata as Record<string, unknown>) : null;
     const estimated = Boolean(meta?.["hours_estimated"] || meta?.["hours_spent_estimated"]);
-    const h = Number(i.hours_spent) || 0;
-    const missing = h <= 0 || estimated;
+    // 0 h saisi volontairement (chantier sous-traité) est une information
+    // complète : seule l'absence de valeur constitue une tâche de saisie.
+    const missing = i.hours_spent == null || estimated;
     if (!missing) return false;
     return !(i.client_id && covered.has(i.client_id));
   });
