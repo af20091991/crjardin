@@ -13,9 +13,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Wallet, Clock } from "lucide-react";
 import {
-  ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, LineChart, BarChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { currentYear } from "@/lib/date-utils";
+import { PP_COLORS } from "@/lib/pilot-colors";
 
 const YEAR = currentYear();
 
@@ -101,11 +102,25 @@ function FinancePage() {
     tauxNet: m.net,
   }));
 
+  // Séries CA/Charges scindées réel vs projeté (segment de jonction inclus pour continuité visuelle).
+  const lineData = monthly.map((m, i) => {
+    const prevReal = i > 0 && !monthly[i - 1].projete;
+    return {
+      mois: m.mois,
+      CA: !m.projete ? m.CA : null,
+      "CA (projeté)": m.projete ? m.CA : (prevReal && monthly[i + 1]?.projete ? m.CA : null),
+      Charges: !m.projete ? m.Charges : null,
+      "Charges (projeté)": m.projete ? m.Charges : (prevReal && monthly[i + 1]?.projete ? m.Charges : null),
+    };
+  });
+
   const currentYearRow = annual.find((a) => a.year === YEAR);
   const prevYearRow = annual.find((a) => a.year === YEAR - 1);
   const caYear = isProjection ? proj.caProjete : (currentYearRow?.caHt ?? 0);
   const chargesYear = isProjection ? proj.chargesProjetees : (currentYearRow?.charges ?? 0);
-  const benefice = caYear - chargesYear;
+  // Bénéfice = uniquement issu de annualSummary() en mode réel (source unique) ;
+  // en mode projection, dérivé des mêmes valeurs projetées CA/charges.
+  const benefice = isProjection ? caYear - chargesYear : (currentYearRow?.beneficeBrut ?? 0);
   const marge = caYear > 0 ? (benefice / caYear) * 100 : 0;
   const monthsObserved = analysis?.years.find((y) => y.year === YEAR)?.monthsObserved ?? 0;
   const chargesMensuelles = monthsObserved > 0 ? chargesYear / monthsObserved : 0;
@@ -173,24 +188,46 @@ function FinancePage() {
         </Card>
       )}
 
-      {/* Analyse mensuelle */}
-      <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Analyse mensuelle {YEAR}{isProjection ? " — projection" : ""}</CardTitle></CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={monthly} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="mois" fontSize={12} />
-              <YAxis fontSize={12} unit="€" />
-              <Tooltip formatter={(v: number) => formatEuro(v)} />
-              <Legend />
-              <Bar dataKey="CA" fill="#4F8E33" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Charges" fill="#EE8627" radius={[4, 4, 0, 0]} />
-              <Line type="monotone" dataKey="Bénéfice" stroke="#2E8CCC" strokeWidth={2} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Analyse mensuelle : CA vs charges, et bénéfice mensuel */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">CA vs charges {YEAR}{isProjection ? " — projection" : ""}</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={lineData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="mois" fontSize={12} />
+                <YAxis fontSize={12} unit="€" />
+                <Tooltip formatter={(v: number) => formatEuro(v)} />
+                <Legend />
+                <Line type="monotone" dataKey="CA" name="CA" stroke={PP_COLORS.sales} strokeWidth={2} connectNulls dot={false} />
+                <Line type="monotone" dataKey="CA (projeté)" stroke={PP_COLORS.sales} strokeWidth={2} strokeDasharray="5 4" connectNulls dot={false} />
+                <Line type="monotone" dataKey="Charges" name="Charges" stroke={PP_COLORS.charges} strokeWidth={2} connectNulls dot={false} />
+                <Line type="monotone" dataKey="Charges (projeté)" stroke={PP_COLORS.charges} strokeWidth={2} strokeDasharray="5 4" connectNulls dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Bénéfice mensuel {YEAR}{isProjection ? " — projection" : ""}</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={monthly} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="mois" fontSize={12} />
+                <YAxis fontSize={12} unit="€" />
+                <Tooltip formatter={(v: number) => formatEuro(v)} />
+                <Legend />
+                <Bar dataKey="Bénéfice" radius={[4, 4, 0, 0]}>
+                  {monthly.map((m, i) => (
+                    <Cell key={i} fill={PP_COLORS.primary} fillOpacity={m.projete ? 0.45 : 1} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Détail mensuel</CardTitle></CardHeader>

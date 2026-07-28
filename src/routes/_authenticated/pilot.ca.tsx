@@ -66,6 +66,11 @@ function CaPage() {
   const createMut = useMutation({ mutationFn: createCaEntry, onSuccess: invalidate, onError: (e: Error) => toast.error(e.message) });
   const updateMut = useMutation({ mutationFn: (p: { id: string; input: Partial<CaEntry> }) => updateCaEntry(p.id, p.input), onSuccess: invalidate, onError: (e: Error) => toast.error(e.message) });
   const deleteMut = useMutation({ mutationFn: deleteCaEntry, onSuccess: invalidate, onError: (e: Error) => toast.error(e.message) });
+  const statusMut = useMutation({
+    mutationFn: (p: { id: string; status: SaleStatus }) => updateSaleStatus(p.id, p.status),
+    onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const yt = useMemo(() => yearTotals(entries), [entries]);
   const mt = useMemo(() => monthTotals(entries, month), [entries, month]);
@@ -149,7 +154,7 @@ function CaPage() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="space-y-4">
           {/* Charges */}
-          <Card>
+          <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-charges) 7%, transparent)" }}>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
               <CardTitle className="text-base">Détails des charges</CardTitle>
               <Button size="sm" variant="outline" onClick={() => addRow("charge")}><Plus className="mr-1 h-4 w-4" />Ligne</Button>
@@ -242,7 +247,7 @@ function CaPage() {
         <div className="space-y-4">
 
           {/* Ventes */}
-          <Card>
+          <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-sales) 7%, transparent)" }}>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
               <CardTitle className="text-base">Détails des ventes</CardTitle>
               <Button size="sm" variant="outline" onClick={() => addRow("vente")}><Plus className="mr-1 h-4 w-4" />Ligne</Button>
