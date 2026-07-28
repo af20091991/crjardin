@@ -18,6 +18,16 @@ export const CATEGORY_LABELS: Record<CaCategory, string> = {
   Autre: "Autre",
 };
 
+export type MatchStatusValue =
+  | "en_attente"
+  | "validation"
+  | "rattachee"
+  | "creee"
+  | "non_identifie"
+  | "non_applicable";
+
+export type SaleStatusValue = "planifie" | "realise" | "regle" | "particulier";
+
 export interface CaEntry {
   id: string;
   user_id: string;
@@ -32,6 +42,8 @@ export interface CaEntry {
   position: number;
   note: string | null;
   client_id: string | null;
+  match_status?: MatchStatusValue | null;
+  sale_status?: SaleStatusValue;
   created_at: string;
   updated_at: string;
 }
