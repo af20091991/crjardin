@@ -256,6 +256,7 @@ function CaPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8" />
                     <TableHead>Désignation</TableHead>
                     <TableHead className="w-32">Type</TableHead>
                     <TableHead className="w-36 text-right">Montant HT</TableHead>
@@ -264,13 +265,37 @@ function CaPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ventes.length === 0 && <TableRow><TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">Aucune vente — ajoutez une ligne</TableCell></TableRow>}
+                  {ventes.length === 0 && <TableRow><TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">Aucune vente — ajoutez une ligne</TableCell></TableRow>}
                   {ventes.map((row) => {
                     const hasNote = !!row.note;
                     const opened = openNote[row.id] || hasNote;
+                    const status = ((row.sale_status as SaleStatus | undefined) ?? "realise") as SaleStatus;
                     return (
                     <Fragment key={row.id}>
-                    <TableRow>
+                    <TableRow className={SALE_STATUS[status].row}>
+                      <TableCell className="pr-0">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              title={SALE_STATUS[status].label}
+                              className={`h-3.5 w-3.5 rounded-full ${SALE_STATUS[status].dot}`}
+                            />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            {SALE_STATUS_ORDER.map((s) => (
+                              <DropdownMenuItem
+                                key={s}
+                                onClick={() => statusMut.mutate({ id: row.id, status: s })}
+                                className="gap-2"
+                              >
+                                <span className={`h-2.5 w-2.5 rounded-full ${SALE_STATUS[s].dot}`} />
+                                {SALE_STATUS[s].label}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                       <TableCell>
                         <Input defaultValue={row.designation ?? ""} placeholder="Désignation" className="h-8 border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
                       </TableCell>
@@ -304,7 +329,7 @@ function CaPage() {
                     </TableRow>
                     {opened && (
                       <TableRow>
-                        <TableCell colSpan={5} className="bg-muted/20 py-2">
+                        <TableCell colSpan={6} className="bg-muted/20 py-2">
                           <Textarea
                             defaultValue={row.note ?? ""}
                             placeholder="Commentaire (optionnel)…"
@@ -322,6 +347,17 @@ function CaPage() {
                   })}
                 </TableBody>
               </Table>
+              {ventes.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3 border-t px-4 py-2 text-[11px] text-muted-foreground">
+                  <span className="uppercase tracking-wide">Statut :</span>
+                  {SALE_STATUS_ORDER.map((s) => (
+                    <span key={s} className="flex items-center gap-1.5">
+                      <span className={`h-2.5 w-2.5 rounded-full ${SALE_STATUS[s].dot}`} />
+                      {SALE_STATUS[s].label}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
                 <span className="font-medium">Total CA HT {MONTH_NAMES[month - 1]}</span>
                 <div className="flex gap-4">
