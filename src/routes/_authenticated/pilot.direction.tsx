@@ -286,8 +286,8 @@ function PilotDashboard() {
             <h3 className="mb-3 font-medium">CA mensuel {year} vs {year - 1}</h3>
             <ChartContainer
               config={{
-                current: { label: `${year}`, color: "var(--primary)" },
-                previous: { label: `${year - 1}`, color: "#cbd5e1" },
+                current: { label: `${year}`, color: PP_COLORS.primary },
+                previous: { label: `${year - 1}`, color: PP_COLORS.neutral },
               }}
               className="h-[280px] w-full"
             >
@@ -303,15 +303,16 @@ function PilotDashboard() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <h3 className="mb-3 font-medium">Répartition par activité</h3>
+          <CardContent className="flex flex-col items-center pt-6">
+            <h3 className="mb-3 self-start font-medium">Répartition par activité</h3>
             {familyData.length > 0 ? (
-              <ChartContainer config={{}} className="mx-auto h-[280px]">
-                <PieChart>
-                  <Pie data={familyData} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={2}>
+              <ChartContainer config={{}} className="mx-auto aspect-square h-[280px] w-full">
+                <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                  <Pie data={familyData} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={2}>
                     {familyData.map((f) => <Cell key={f.family} fill={f.color} />)}
                   </Pie>
                   <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: 11 }} />
                 </PieChart>
               </ChartContainer>
             ) : (
@@ -320,6 +321,36 @@ function PilotDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Évolution CA / charges / bénéfice par exercice */}
+      <Card>
+        <CardContent className="pt-6">
+          <h3 className="mb-3 font-medium">Évolution CA, charges et bénéfice par exercice</h3>
+          {evolutionData.length > 0 ? (
+            <ChartContainer
+              config={{
+                ca: { label: "CA HT", color: PP_COLORS.sales },
+                charges: { label: "Charges", color: PP_COLORS.charges },
+                benefice: { label: "Bénéfice brut", color: PP_COLORS.primary },
+              }}
+              className="h-[280px] w-full"
+            >
+              <ComposedChart data={evolutionData}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis dataKey="year" tickLine={false} axisLine={false} fontSize={11} />
+                <YAxis tickLine={false} axisLine={false} fontSize={11} width={50} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="ca" fill="var(--color-ca)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="charges" fill="var(--color-charges)" radius={[3, 3, 0, 0]} />
+                <Line type="monotone" dataKey="benefice" stroke="var(--color-benefice)" strokeWidth={2} dot={{ r: 3 }} />
+              </ComposedChart>
+            </ChartContainer>
+          ) : (
+            <p className="py-12 text-center text-sm text-muted-foreground">Aucune donnée</p>
+          )}
+        </CardContent>
+      </Card>
       <RecommendationsFunnelWidget />
       <PortfolioExplorer entries={realEntries} year={year} />
       <ClientPortfolioSection />

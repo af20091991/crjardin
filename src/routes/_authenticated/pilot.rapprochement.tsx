@@ -209,6 +209,23 @@ function RapprochementPage() {
       <ReconstructionPanel />
       <HoursQualityPanel />
 
+      {/* Tableau de contrôle : rien n'est masqué, y compris ce qui est hors périmètre */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <CheckCircle2 className="h-4 w-4 text-primary/60" />
+            <span>
+              Hors rapprochement (agrégats mensuels 2020, remise commerciale)
+            </span>
+          </div>
+          <Badge variant="outline" className="gap-1">
+            {nonApplicable.isLoading
+              ? "…"
+              : `${nonApplicable.data?.count ?? 0} ligne${(nonApplicable.data?.count ?? 0) > 1 ? "s" : ""} · ${formatEuro(nonApplicable.data?.amount ?? 0)}`}
+          </Badge>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {/* Colonne gauche — liste orphelines */}
         <Card className="flex min-h-[500px] flex-col">
@@ -257,7 +274,9 @@ function RapprochementPage() {
               ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 p-10 text-center text-sm text-muted-foreground">
                   <CheckCircle2 className="h-8 w-8 text-primary/60" />
-                  {orphanCount === 0 ? "Toutes les lignes sont rattachées." : "Aucune ligne ne correspond aux filtres."}
+                  {orphanCount === 0
+                    ? "Rapprochement CA : 0 ligne restante — toutes les lignes sont rattachées."
+                    : "Aucune ligne ne correspond aux filtres."}
                 </div>
               ) : (
                 <ul className="divide-y">
