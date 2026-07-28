@@ -65,6 +65,7 @@ function RapprochementPage() {
     qc.invalidateQueries({ queryKey: ["pilot-ca-entries"] });
     qc.invalidateQueries({ queryKey: ["client-scores"] });
     qc.invalidateQueries({ queryKey: ["pilot-reconstruction"] });
+    qc.invalidateQueries({ queryKey: ["pilot-ca-non-applicable"] });
   };
 
   const designationIndex = useMemo(
@@ -186,7 +187,11 @@ function RapprochementPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary" className="gap-1 text-sm">
             <AlertTriangle className="h-3.5 w-3.5" />
-            {orphans.isLoading ? "…" : `${orphanCount} ligne${orphanCount > 1 ? "s" : ""} sans client`}
+            {orphans.isLoading
+              ? "…"
+              : orphanCount === 0
+                ? "Rapprochement CA : 0 ligne restante"
+                : `${orphanCount} ligne${orphanCount > 1 ? "s" : ""} sans client`}
           </Badge>
           <Button
             size="sm"
