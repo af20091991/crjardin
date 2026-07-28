@@ -343,7 +343,9 @@ export async function estimateHoursSpent(interventionId: string): Promise<number
 export async function completeInterventionWithHoursAutofill(
   intervention: Intervention,
 ): Promise<Intervention> {
-  if (intervention.hours_spent != null && intervention.hours_spent > 0) {
+  // 0 h est une valeur légitime (chantier entièrement sous-traité) : seule
+  // l'absence de saisie (null) déclenche l'estimation automatique.
+  if (intervention.hours_spent != null) {
     return updateIntervention(intervention.id, { status: "terminee" });
   }
   const estimated = await estimateHoursSpent(intervention.id);
@@ -363,6 +365,7 @@ export async function confirmHoursSpent(
   intervention: Intervention,
   hours: number,
 ): Promise<Intervention> {
+  if (!Number.isFinite(hours) || hours < 0) throw new Error("Heures invalides");
   const prev = { ...(intervention.ai_metadata ?? {}) } as Record<string, unknown>;
   delete prev.hours_spent_estimated;
   delete prev.hours_spent_estimated_at;

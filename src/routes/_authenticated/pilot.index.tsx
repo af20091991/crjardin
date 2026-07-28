@@ -272,9 +272,16 @@ function TodayPage() {
   );
   const isProjection = mode === "projection";
   const caLecture = isProjection ? projection.caProjete : projection.caReel;
-  const chargesLecture = isProjection ? projection.chargesProjetees : projection.chargesReelles;
-  const resultatLecture = caLecture - chargesLecture;
-  const margeLecture = caLecture > 0 ? (resultatLecture / caLecture) * 100 : null;
+  // Bénéfice = CA − charges d'exploitation hors investissements, via le moteur
+  // annualSummary (référentiel unique du bénéfice dans tout Pilot Pro).
+  const annualRows = useMemo(
+    () => annualSummary(entries.data ?? [], chargeRows.data ?? [], { mode }),
+    [entries.data, chargeRows.data, mode],
+  );
+  const annualCurrent = annualRows.find((r) => r.year === year);
+  const chargesLecture = annualCurrent?.charges ?? 0;
+  const resultatLecture = annualCurrent?.beneficeBrut ?? 0;
+  const margeLecture = annualCurrent?.margePct ?? null;
 
   // Objectif annuel factuel : CA de l'exercice précédent (aucune saisie requise).
   const objectifAnnuel = useMemo(
@@ -320,6 +327,24 @@ function TodayPage() {
     const total = prev.reduce((s, r) => s + r.amount_ht, 0);
     return total > 0 ? (total * projection.monthsObserved) / 12 : 0;
   }, [chargeRows.data, year, projection.monthsObserved]);
+
+  // Données graphiques « Aujourd'hui » : CA mensuel (réel/projeté) et CA cumulé
+  // vs objectif annuel (CA N-1), à partir du moteur de projection existant.
+  const monthlyChartData = useMemo(() => {
+    let cumule = 0;
+    const objectifCumulMensuel = objectifAnnuel > 0 ? objectifAnnuel / 12 : 0;
+    return projection.monthly.map((m) => {
+      cumule += m.ca;
+      return {
+        mois: new Date(year, m.month - 1, 1).toLocaleDateString("fr-FR", { month: "short" }),
+        ca: Math.round(m.ca),
+        charges: Math.round(m.charges),
+        cumule: Math.round(cumule),
+        objectifCumule: Math.round(objectifCumulMensuel * m.month),
+        projected: m.projected,
+      };
+    });
+  }, [projection.monthly, objectifAnnuel, year]);
 
   // Nom client par ID (pour opportunités et priorités affichées)
   const clientNameById = useMemo(() => {
