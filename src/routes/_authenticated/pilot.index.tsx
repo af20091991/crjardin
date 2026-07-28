@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
-import { KpiCard } from "@/components/pilot/KpiCard";
+import { PilotCard } from "@/components/pilot/PilotCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,6 +27,18 @@ import { useThresholds } from "@/lib/pilot-thresholds";
 import { classifyClients } from "@/lib/pilot-client-profitability";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
+import { annualSummary } from "@/lib/pilot-annual";
+import { PP_COLORS } from "@/lib/pilot-colors";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import {
   Euro,
   Wallet,
@@ -260,9 +272,16 @@ function TodayPage() {
   );
   const isProjection = mode === "projection";
   const caLecture = isProjection ? projection.caProjete : projection.caReel;
-  const chargesLecture = isProjection ? projection.chargesProjetees : projection.chargesReelles;
-  const resultatLecture = caLecture - chargesLecture;
-  const margeLecture = caLecture > 0 ? (resultatLecture / caLecture) * 100 : null;
+  // Bénéfice = CA − charges d'exploitation hors investissements, via le moteur
+  // annualSummary (référentiel unique du bénéfice dans tout Pilot Pro).
+  const annualRows = useMemo(
+    () => annualSummary(entries.data ?? [], chargeRows.data ?? [], { mode }),
+    [entries.data, chargeRows.data, mode],
+  );
+  const annualCurrent = annualRows.find((r) => r.year === year);
+  const chargesLecture = annualCurrent?.charges ?? 0;
+  const resultatLecture = annualCurrent?.beneficeBrut ?? 0;
+  const margeLecture = annualCurrent?.margePct ?? null;
 
   // Objectif annuel factuel : CA de l'exercice précédent (aucune saisie requise).
   const objectifAnnuel = useMemo(
@@ -308,6 +327,24 @@ function TodayPage() {
     const total = prev.reduce((s, r) => s + r.amount_ht, 0);
     return total > 0 ? (total * projection.monthsObserved) / 12 : 0;
   }, [chargeRows.data, year, projection.monthsObserved]);
+
+  // Données graphiques « Aujourd'hui » : CA mensuel (réel/projeté) et CA cumulé
+  // vs objectif annuel (CA N-1), à partir du moteur de projection existant.
+  const monthlyChartData = useMemo(() => {
+    let cumule = 0;
+    const objectifCumulMensuel = objectifAnnuel > 0 ? objectifAnnuel / 12 : 0;
+    return projection.monthly.map((m) => {
+      cumule += m.ca;
+      return {
+        mois: new Date(year, m.month - 1, 1).toLocaleDateString("fr-FR", { month: "short" }),
+        ca: Math.round(m.ca),
+        charges: Math.round(m.charges),
+        cumule: Math.round(cumule),
+        objectifCumule: Math.round(objectifCumulMensuel * m.month),
+        projected: m.projected,
+      };
+    });
+  }, [projection.monthly, objectifAnnuel, year]);
 
   // Nom client par ID (pour opportunités et priorités affichées)
   const clientNameById = useMemo(() => {
@@ -737,12 +774,17 @@ function TodayPage() {
           question="Situation actuelle"
           label={isProjection ? `Projection ${year}` : `Réel ${year}`}
         />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <KpiCard
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <PilotCard
             label={isProjection ? `CA projeté ${year}` : `CA réalisé ${year}`}
             value={formatEuro(caLecture)}
             icon={Euro}
             to="/pilot/ca"
+            help={
+              isProjection
+                ? `Projection à partir des lignes CA de l'exercice. ${projection.explanation} Décision : ajuster l'effort commercial si l'écart à l'objectif se creuse.`
+                : "Somme des lignes CA facturées à date (mode Réel). Sert de base à toute décision commerciale ou de trésorerie."
+            }
             sub={
               isProjection
                 ? `Réel à date ${formatEuro(projection.caReel)}`
@@ -750,21 +792,27 @@ function TodayPage() {
                   ? `${caComparison.value >= 0 ? "+" : ""}${caComparison.value.toFixed(0)} % vs ${year - 1} (mois)`
                   : caComparison.detail
             }
-            description={isProjection ? projection.explanation : undefined}
           />
-          <KpiCard
-            label={`Objectif ${year}`}
-            value={objectifAnnuel > 0 ? formatEuro(objectifAnnuel) : "—"}
-            icon={Flag}
-            to="/pilot/objectifs"
-            sub={
-              objectifAnnuel > 0 ? `CA ${year - 1} pris comme référence` : "Pas d'historique N-1"
+          <PilotCard
+            label="Bénéfice"
+            value={formatEuro(resultatLecture)}
+            icon={Wallet}
+            to="/pilot/finance"
+            help="Bénéfice = CA − charges d'exploitation hors investissements (moteur annualSummary, identique aux autres pages Pilot Pro). Décision : arbitrer les charges ou l'activité si le bénéfice se dégrade."
+            tone={
+              resultatLecture <= 0
+                ? "warning"
+                : margeLecture != null && margeLecture >= thresholds.margeMin
+                  ? "positive"
+                  : "default"
             }
+            sub={`CA ${formatEuro(caLecture)} − charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`}
           />
-          <KpiCard
-            label="Progression"
+          <PilotCard
+            label="Progression annuelle"
             value={progressionAnnuelle == null ? "—" : `${progressionAnnuelle.toFixed(0)} %`}
             icon={CheckCircle2}
+            to="/pilot/objectifs"
             progress={progressionAnnuelle ?? undefined}
             tone={
               progressionAnnuelle == null
@@ -775,32 +823,23 @@ function TodayPage() {
                     ? "default"
                     : "warning"
             }
+            help={`Objectif annuel = CA de ${year - 1} (référentiel factuel, aucune saisie). Décision : renforcer la prospection si la progression décroche de l'avancement du calendrier.`}
             sub={
-              objectifMois > 0
-                ? `Mois : ${avancement.toFixed(0)} % de ${formatEuro(objectifMois)}`
-                : undefined
+              objectifAnnuel > 0
+                ? `Objectif ${formatEuro(objectifAnnuel)}${objectifMois > 0 ? ` · mois : ${avancement.toFixed(0)} % de ${formatEuro(objectifMois)}` : ""}`
+                : "Pas d'historique N-1"
             }
           />
-          <KpiCard
-            label={isProjection ? "Résultat projeté" : "Résultat à date"}
-            value={formatEuro(resultatLecture)}
-            icon={Wallet}
-            to="/pilot/finance"
-            tone={
-              resultatLecture <= 0
-                ? "warning"
-                : margeLecture != null && margeLecture >= thresholds.margeMin
-                  ? "positive"
-                  : "default"
-            }
-            sub={`CA ${formatEuro(caLecture)} − charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`}
-          />
-          <KpiCard
+          <PilotCard
             label="Taux horaire réel"
             value={realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible"}
             icon={Gauge}
             to="/pilot/taux"
-            description={realRate.available ? realRate.note : realRate.detail}
+            help={
+              realRate.available
+                ? `${realRate.note} Décision : revoir les devis ou le temps passé si le taux réel reste sous la cible.`
+                : realRate.detail
+            }
             tone={
               realRate.available && targetHR > 0
                 ? realRate.value >= targetHR
@@ -817,6 +856,49 @@ function TodayPage() {
             }
           />
         </div>
+      </section>
+
+      {/* Graphiques — évolution de l'exercice en cours */}
+      <section className="grid gap-3 md:grid-cols-2">
+        <PilotCard
+          label={`CA mensuel ${year}${isProjection ? " (réel + projeté)" : ""}`}
+          icon={Euro}
+          help="Histogramme du CA par mois (lignes CA facturées) et des charges d'exploitation du mois. En mode Projection, les mois futurs sont estimés par saisonnalité ou moyenne. Décision : repérer les mois faibles à anticiper."
+          content={
+            <ChartContainer config={{}} className="mt-3 h-[220px] w-full">
+              <ResponsiveContainer>
+                <ComposedChart data={monthlyChartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="mois" tickLine={false} axisLine={false} fontSize={11} />
+                  <YAxis tickLine={false} axisLine={false} fontSize={11} width={40} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="ca" name="CA" fill={PP_COLORS.sales} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="charges" name="Charges" fill={PP_COLORS.charges} radius={[3, 3, 0, 0]} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          }
+        />
+        <PilotCard
+          label={`CA cumulé ${year} vs objectif`}
+          icon={Flag}
+          to="/pilot/objectifs"
+          help={`Cumul du CA mois après mois comparé à la trajectoire de l'objectif annuel (CA ${year - 1} réparti linéairement). Décision : agir sur le trimestre en cours si la courbe décroche de l'objectif.`}
+          content={
+            <ChartContainer config={{}} className="mt-3 h-[220px] w-full">
+              <ResponsiveContainer>
+                <ComposedChart data={monthlyChartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="mois" tickLine={false} axisLine={false} fontSize={11} />
+                  <YAxis tickLine={false} axisLine={false} fontSize={11} width={40} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line type="monotone" dataKey="cumule" name="CA cumulé" stroke={PP_COLORS.primary} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="objectifCumule" name="Objectif cumulé" stroke={PP_COLORS.sales} strokeWidth={2} strokeDasharray="4 4" dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          }
+        />
       </section>
 
       {/* 2 — Quelles sont mes priorités ? */}

@@ -1,9 +1,9 @@
 import { Clock, Gauge, Scale, Timer, History } from "lucide-react";
-import { KpiCard } from "@/components/pilot/KpiCard";
-import { Card, CardContent } from "@/components/ui/card";
+import { PilotCard } from "@/components/pilot/PilotCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell } from "recharts";
 import { formatHours } from "@/lib/pilot-hours-ledger";
+import { PP_COLORS } from "@/lib/pilot-colors";
 import type { RealHoursResolution } from "@/lib/pilot-real-hours";
 
 /**
@@ -26,61 +26,62 @@ export function HoursSummaryCards({
   const ecart = d ? d.ecart : 0;
   const pie = d
     ? [
-        { key: "vendues", label: "Heures vendues", value: Math.max(0, d.vendues), color: "#4F8E33" },
-        { key: "realisees", label: "Heures réalisées", value: Math.max(0, d.hours), color: "#EE8627" },
+        { key: "vendues", label: "Heures vendues", value: Math.max(0, d.vendues), color: PP_COLORS.sales },
+        { key: "realisees", label: "Heures réalisées", value: Math.max(0, d.hours), color: PP_COLORS.mid },
       ].filter((s) => s.value > 0)
     : [];
 
   return (
     <div className="grid gap-3 lg:grid-cols-[1fr_300px]">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-2">
-      <KpiCard
-        label={`Heures vendues ${year}`}
-        value={d ? formatHours(d.vendues) : "—"}
-        icon={Timer}
-        to="/pilot/ca"
-        description="Heures déclarées sur les lignes de vente du suivi CA."
-      />
-      <KpiCard
-        label="Heures réalisées"
-        value={d ? formatHours(d.hours) : "—"}
-        icon={Gauge}
-        to="/pilot/rapprochement"
-        description="Consolidation par client : interventions confirmées, sinon historique Excel, sinon heures CA identifiées. Aucun double comptage, aucune estimation."
-        sub={d && d.hours > 0 ? d.sourceLabel : "Aucune heure exploitable"}
-      />
-      <KpiCard
-        label="Heures historiques"
-        value={d ? formatHours(d.historiques) : "—"}
-        icon={History}
-        to="/pilot/rapprochement"
-        description="Import Excel validé et rattaché au référentiel client."
-      />
-      <KpiCard
-        label="Écart vendu / réel"
-        value={d && d.hours > 0 ? `${ecart >= 0 ? "+" : ""}${formatHours(ecart)}` : "—"}
-        icon={Scale}
-        to="/pilot/direction"
-        description={d ? `Heures réelles retenues : ${d.sourceLabel} (${d.sourceDetail}).` : undefined}
-        sub={d && d.hours > 0 ? d.sourceLabel : "Aucune heure réelle disponible"}
-        tone={d && d.hours > 0 && ecart < 0 ? "warning" : "default"}
-      />
-      {toFill > 0 && (
-        <KpiCard
-          label="Interventions sans aucune heure connue"
-          value={String(toFill)}
-          icon={Clock}
-          to="/pilot/focus/heures-manquantes"
-          description="Aucune heure disponible dans PP pour ces interventions (ni CA, ni historique)."
-          tone="warning"
+        <PilotCard
+          label={`Heures vendues ${year}`}
+          value={d ? formatHours(d.vendues) : "—"}
+          icon={Timer}
+          to="/pilot/ca"
+          help="Somme des heures déclarées sur les lignes de vente du suivi CA. Permet de vérifier la cohérence entre ce qui est vendu et ce qui est réalisé."
         />
-      )}
+        <PilotCard
+          label="Heures réalisées"
+          value={d ? formatHours(d.hours) : "—"}
+          icon={Gauge}
+          to="/pilot/rapprochement"
+          help="Consolidation par client : interventions confirmées, sinon historique Excel, sinon heures CA identifiées. Aucun double comptage, aucune estimation. Sert à trancher un éventuel écart de facturation."
+          sub={d && d.hours > 0 ? d.sourceLabel : "Aucune heure exploitable"}
+        />
+        <PilotCard
+          label="Heures historiques"
+          value={d ? formatHours(d.historiques) : "—"}
+          icon={History}
+          to="/pilot/rapprochement"
+          help="Import Excel validé et rattaché au référentiel client. Permet de compléter les périodes sans intervention PP."
+        />
+        <PilotCard
+          label="Écart vendu / réel"
+          value={d && d.hours > 0 ? `${ecart >= 0 ? "+" : ""}${formatHours(ecart)}` : "—"}
+          icon={Scale}
+          to="/pilot/direction"
+          help={d ? `Heures réelles retenues : ${d.sourceLabel} (${d.sourceDetail}). Un écart négatif signale un temps réel supérieur au vendu : décision de revoir le devis ou le taux horaire.` : "Nécessite des heures réelles confirmées."}
+          sub={d && d.hours > 0 ? d.sourceLabel : "Aucune heure réelle disponible"}
+          tone={d && d.hours > 0 && ecart < 0 ? "warning" : "default"}
+        />
+        {toFill > 0 && (
+          <PilotCard
+            label="Interventions sans aucune heure connue"
+            value={String(toFill)}
+            icon={Clock}
+            to="/pilot/focus/heures-manquantes"
+            help="Aucune heure disponible dans PP pour ces interventions (ni CA, ni historique). Décision : saisir les heures pour fiabiliser la rentabilité."
+            tone="warning"
+          />
+        )}
       </div>
 
-      <Card>
-        <CardContent className="pt-5">
-          <h4 className="text-sm font-medium">Vendu vs réalisé</h4>
-          {pie.length === 0 ? (
+      <PilotCard
+        label="Vendu vs réalisé"
+        help="Comparaison des heures vendues (CA) et des heures réalisées (ledger consolidé) sur l'année. Un déséquilibre visuel indique où prioriser la vérification des heures."
+        content={
+          pie.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">Aucune heure exploitable</p>
           ) : (
             <>
@@ -102,9 +103,9 @@ export function HoursSummaryCards({
                 ))}
               </ul>
             </>
-          )}
-        </CardContent>
-      </Card>
+          )
+        }
+      />
     </div>
   );
 }

@@ -1368,10 +1368,11 @@ function _renderHoursSpentBlock({
 }) {
   const meta = (iv.ai_metadata ?? {}) as Record<string, unknown>;
   const isEstimated = meta.hours_spent_estimated === true;
-  const missing = done && (iv.hours_spent == null || iv.hours_spent <= 0);
+  // 0 h est une valeur valide (chantier entièrement sous-traité).
+  const missing = done && iv.hours_spent == null;
   const current = iv.hours_spent ?? null;
   const parsed = Number.parseFloat(hoursInput.replace(",", "."));
-  const dirty = Number.isFinite(parsed) && parsed > 0 && parsed !== current;
+  const dirty = Number.isFinite(parsed) && parsed >= 0 && parsed !== current;
 
   return (
     <div className="mt-4 rounded-lg border bg-muted/30 p-3">
@@ -1391,6 +1392,9 @@ function _renderHoursSpentBlock({
             placeholder="0.00"
           />
           <span className="text-xs text-muted-foreground">h</span>
+          {current === 0 && (
+            <span className="text-xs text-muted-foreground">Chantier sans heures internes (sous-traité)</span>
+          )}
           <Button
             size="sm"
             variant={dirty || isEstimated ? "default" : "outline"}
@@ -1410,7 +1414,7 @@ function _renderHoursSpentBlock({
       {missing && (
         <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>Cette intervention est terminée mais aucune heure passée n'est renseignée. La rentabilité ne pourra pas être calculée tant que cette valeur est vide.</span>
+          <span>Cette intervention est terminée mais aucune heure passée n'est renseignée. Saisissez 0 h si le chantier a été entièrement sous-traité.</span>
         </div>
       )}
     </div>

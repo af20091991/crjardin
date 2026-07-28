@@ -994,6 +994,7 @@ export type Database = {
           raw_category: string | null
           raw_client_text: string | null
           raw_designation: string | null
+          sale_status: string
           source_file: string | null
           source_row: number | null
           source_sheet: string | null
@@ -1026,6 +1027,7 @@ export type Database = {
           raw_category?: string | null
           raw_client_text?: string | null
           raw_designation?: string | null
+          sale_status?: string
           source_file?: string | null
           source_row?: number | null
           source_sheet?: string | null
@@ -1058,6 +1060,7 @@ export type Database = {
           raw_category?: string | null
           raw_client_text?: string | null
           raw_designation?: string | null
+          sale_status?: string
           source_file?: string | null
           source_row?: number | null
           source_sheet?: string | null
@@ -3486,6 +3489,7 @@ export type Database = {
           raw_category: string | null
           raw_client_text: string | null
           raw_designation: string | null
+          sale_status: string
           source_file: string | null
           source_row: number | null
           source_sheet: string | null

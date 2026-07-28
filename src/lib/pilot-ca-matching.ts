@@ -346,7 +346,8 @@ export async function countOrphanEntries(): Promise<number> {
     .from("pilot_ca_entries")
     .select("id", { count: "exact", head: true })
     .is("client_id", null)
-    .eq("kind", "vente");
+    .eq("kind", "vente")
+    .neq("match_status", "non_applicable");
   if (error) throw error;
   return count ?? 0;
 }
@@ -357,9 +358,33 @@ export async function sumOrphanAmount(): Promise<number> {
     .from("pilot_ca_entries")
     .select("amount_ht")
     .is("client_id", null)
-    .eq("kind", "vente");
+    .eq("kind", "vente")
+    .neq("match_status", "non_applicable");
   if (error) throw error;
   return (data ?? []).reduce((s, r) => s + Number((r as { amount_ht: number }).amount_ht ?? 0), 0);
+}
+
+/**
+ * Lignes explicitement hors périmètre de rapprochement (agrégats mensuels 2020,
+ * remise commerciale...) : jamais masquées, affichées à part dans le tableau de
+ * contrôle pour que rien ne disparaisse silencieusement.
+ */
+export interface NonApplicableSummary {
+  count: number;
+  amount: number;
+}
+
+export async function getNonApplicableSummary(): Promise<NonApplicableSummary> {
+  const { data, error } = await supabase
+    .from("pilot_ca_entries")
+    .select("amount_ht")
+    .eq("match_status", "non_applicable");
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as { amount_ht: number }[];
+  return {
+    count: rows.length,
+    amount: rows.reduce((s, r) => s + Number(r.amount_ht ?? 0), 0),
+  };
 }
 
 // ---- Accès base ----
@@ -369,6 +394,7 @@ export async function listOrphanEntries(): Promise<CaEntry[]> {
     .select("*")
     .is("client_id", null)
     .eq("kind", "vente")
+    .neq("match_status", "non_applicable")
     .order("year", { ascending: false })
     .order("month", { ascending: true });
   if (error) throw error;

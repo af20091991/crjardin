@@ -23,6 +23,28 @@ export interface PilotThresholds {
   clientTresRentableRatio: number;
   /** Multiplicateur « à surveiller » appliqué au taux horaire cible. */
   clientSurveillerRatio: number;
+
+  // ---- Seuils du score de Santé (pilot-health.ts) ----
+  // Profil de référence : TPE paysagiste solo (un seul actif, clientèle
+  // particuliers/collectivités, activité saisonnière avec creux hivernal).
+  /** Marge nette (bénéfice / CA HT) considérée comme saine, plancher (%). Repère métier : 20–30 %. */
+  margeSaineMin: number;
+  /** Marge nette haute du plage saine (%), au-delà le score reste plafonné à 100. */
+  margeSaineMax: number;
+  /** Poids des charges d'exploitation / CA considéré comme sain, plafond (%). Au-delà, la structure de coûts doit être surveillée. */
+  poidsChargesSain: number;
+  /** Poids des charges / CA déclenchant une alerte franche (%). Au-delà, situation critique. */
+  poidsChargesAlerte: number;
+  /** Taux horaire facturé cible bas de la plage saine (€/h). Repère métier paysage : 45–60 €/h. */
+  tauxHoraireCibleMin: number;
+  /** Taux horaire facturé cible haut de la plage saine (€/h). */
+  tauxHoraireCibleMax: number;
+  /** Taux horaire facturé sous ce seuil : alerte (prix ou temps passé à revoir). */
+  tauxHoraireAlerte: number;
+  /** Part du 1er client dans le CA considérée comme saine (%), plafond. Au-delà, dépendance à surveiller. */
+  concentrationClientSaine: number;
+  /** Part du 1er client dans le CA déclenchant une alerte de dépendance (%). */
+  concentrationClientAlerte: number;
 }
 
 export const DEFAULT_THRESHOLDS: PilotThresholds = {
@@ -34,6 +56,17 @@ export const DEFAULT_THRESHOLDS: PilotThresholds = {
   lignesMinPrestation: 3,
   clientTresRentableRatio: 1.2,
   clientSurveillerRatio: 0.85,
+
+  // TPE paysagiste solo : voir commentaires de l'interface ci-dessus.
+  margeSaineMin: 20,
+  margeSaineMax: 30,
+  poidsChargesSain: 70,
+  poidsChargesAlerte: 80,
+  tauxHoraireCibleMin: 45,
+  tauxHoraireCibleMax: 60,
+  tauxHoraireAlerte: 40,
+  concentrationClientSaine: 20,
+  concentrationClientAlerte: 30,
 };
 
 export const THRESHOLD_FIELDS: {
@@ -89,6 +122,60 @@ export const THRESHOLD_FIELDS: {
     label: "Ratio « à surveiller »",
     suffix: "× cible",
     help: "Taux horaire client < ratio × cible.",
+  },
+  {
+    key: "margeSaineMin",
+    label: "Marge nette saine (plancher)",
+    suffix: "%",
+    help: "Repère TPE paysage : marge saine 20–30 % du CA.",
+  },
+  {
+    key: "margeSaineMax",
+    label: "Marge nette saine (plafond)",
+    suffix: "%",
+    help: "Au-delà, le score de marge reste plafonné à 100.",
+  },
+  {
+    key: "poidsChargesSain",
+    label: "Poids des charges sain (plafond)",
+    suffix: "% du CA",
+    help: "Sous ce seuil, la structure de coûts est saine.",
+  },
+  {
+    key: "poidsChargesAlerte",
+    label: "Poids des charges — alerte",
+    suffix: "% du CA",
+    help: "Au-delà, alerte sur le poids des charges d'exploitation.",
+  },
+  {
+    key: "tauxHoraireCibleMin",
+    label: "Taux horaire cible (bas)",
+    suffix: "€/h",
+    help: "Repère TPE paysage : taux horaire facturé cible 45–60 €/h.",
+  },
+  {
+    key: "tauxHoraireCibleMax",
+    label: "Taux horaire cible (haut)",
+    suffix: "€/h",
+    help: "Haut de la plage de taux horaire cible.",
+  },
+  {
+    key: "tauxHoraireAlerte",
+    label: "Taux horaire — alerte",
+    suffix: "€/h",
+    help: "Sous ce seuil, le prix ou le temps passé doit être revu.",
+  },
+  {
+    key: "concentrationClientSaine",
+    label: "Concentration 1er client saine",
+    suffix: "% du CA",
+    help: "Sous ce seuil, la dépendance à un client est maîtrisée.",
+  },
+  {
+    key: "concentrationClientAlerte",
+    label: "Concentration 1er client — alerte",
+    suffix: "% du CA",
+    help: "Au-delà, la dépendance à un client est un risque.",
   },
 ];
 

@@ -13,11 +13,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Clock, Timer, CalendarDays, Target, SlidersHorizontal, Info, Settings2 } from "lucide-react";
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
 import { usePilotMode } from "@/lib/pilot-mode";
+import { PP_COLORS } from "@/lib/pilot-colors";
 
 const YEAR = currentYear();
 
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/_authenticated/pilot/taux")({
 });
 
 type ColKey = "terrain" | "gestion" | "total" | "jours" | "ca" | "brut" | "net" | "caJour" | "part";
+type GraphKey = "brut" | "net" | "cible" | "heures";
 
 const COLUMNS: { key: ColKey; label: string; always?: boolean }[] = [
   { key: "terrain", label: "Temps terrain (h)", always: true },
@@ -40,8 +42,17 @@ const COLUMNS: { key: ColKey; label: string; always?: boolean }[] = [
   { key: "part", label: "% terrain" },
 ];
 
+const GRAPH_OPTIONS: { key: GraphKey; label: string }[] = [
+  { key: "brut", label: "Courbe taux horaire brut" },
+  { key: "net", label: "Courbe taux horaire net" },
+  { key: "cible", label: "Courbe taux horaire cible (TJM)" },
+  { key: "heures", label: "Histogramme heures terrain / gestion" },
+];
+
 const STORAGE_KEY = "pilot-taux-columns";
 const DEFAULT_COLS: ColKey[] = ["terrain", "gestion", "total", "jours", "ca", "brut", "net", "caJour"];
+const GRAPH_STORAGE_KEY = "pilot-taux-graphs";
+const DEFAULT_GRAPHS: GraphKey[] = ["brut", "net", "cible"];
 
 function TauxPage() {
   const qc = useQueryClient();
@@ -70,6 +81,22 @@ function TauxPage() {
   };
   const show = (k: ColKey) => COLUMNS.find((c) => c.key === k)?.always || cols.includes(k);
 
+  const [graphs, setGraphs] = useState<GraphKey[]>(() => {
+    if (typeof window === "undefined") return DEFAULT_GRAPHS;
+    try {
+      const raw = window.localStorage.getItem(GRAPH_STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as GraphKey[]) : DEFAULT_GRAPHS;
+    } catch { return DEFAULT_GRAPHS; }
+  });
+  const toggleGraph = (k: GraphKey) => {
+    setGraphs((prev) => {
+      const next = prev.includes(k) ? prev.filter((g) => g !== k) : [...prev, k];
+      try { window.localStorage.setItem(GRAPH_STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const showGraph = (k: GraphKey) => graphs.includes(k);
+
   const months = useMemo(
     () => computeMonths(caQ.data ?? Array(12).fill(0), hoursQ.data ?? [], gestionDefaut, caHoursQ.data ?? []),
     [caQ.data, hoursQ.data, gestionDefaut, caHoursQ.data],
@@ -94,11 +121,23 @@ function TauxPage() {
   const totalJours = months.reduce((s, m) => s + (m.jours_travailles ?? 0), 0);
   const avgCaJour = totalJours > 0 ? months.reduce((s, m) => s + m.ca, 0) / totalJours : 0;
 
+  const tjm = settings ? computeTjm(settings) : null;
+  const tauxCible = tjm ? Number(tjm.tauxHoraire.toFixed(1)) : null;
+
   const chartData = months
     .filter((m) => m.brut != null)
-    .map((m) => ({ mois: MONTHS[m.month - 1], Brut: Number(m.brut?.toFixed(1)), Net: Number(m.net?.toFixed(1)) }));
+    .map((m) => ({
+      mois: MONTHS[m.month - 1],
+      Brut: Number(m.brut?.toFixed(1)),
+      Net: Number(m.net?.toFixed(1)),
+      Cible: tauxCible,
+    }));
 
-  const tjm = settings ? computeTjm(settings) : null;
+  const heuresData = months.map((m) => ({
+    mois: MONTHS[m.month - 1],
+    Terrain: Number((m.temps_terrain ?? 0).toFixed(1)),
+    Gestion: Number((m.temps_gestion ?? gestionDefaut).toFixed(1)),
+  }));
 
   return (
     <div className="space-y-6">
@@ -117,19 +156,33 @@ function TauxPage() {
               <SlidersHorizontal className="h-4 w-4" /> Modifier l'affichage
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-64 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Colonnes affichées</p>
-            {COLUMNS.map((c) => (
-              <label key={c.key} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={!!show(c.key)}
-                  disabled={c.always}
-                  onCheckedChange={() => toggleCol(c.key)}
-                />
-                {c.label}
-                {c.always && <span className="text-xs text-muted-foreground">(fixe)</span>}
-              </label>
-            ))}
+          <PopoverContent align="end" className="w-64 space-y-3">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Graphiques affichés</p>
+              {GRAPH_OPTIONS.map((g) => (
+                <label key={g.key} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={showGraph(g.key)}
+                    onCheckedChange={() => toggleGraph(g.key)}
+                  />
+                  {g.label}
+                </label>
+              ))}
+            </div>
+            <div className="space-y-2 border-t border-border pt-2">
+              <p className="text-xs font-medium text-muted-foreground">Colonnes affichées</p>
+              {COLUMNS.map((c) => (
+                <label key={c.key} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={!!show(c.key)}
+                    disabled={c.always}
+                    onCheckedChange={() => toggleCol(c.key)}
+                  />
+                  {c.label}
+                  {c.always && <span className="text-xs text-muted-foreground">(fixe)</span>}
+                </label>
+              ))}
+            </div>
           </PopoverContent>
         </Popover>
       </div>
@@ -152,27 +205,52 @@ function TauxPage() {
         </div>
       )}
 
-      {/* Graphique */}
-      <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Évolution du taux horaire</CardTitle></CardHeader>
-        <CardContent>
-          {chartData.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Aucune heure terrain connue pour {YEAR}.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="mois" fontSize={12} />
-                <YAxis fontSize={12} unit="€" />
-                <Tooltip formatter={(v: number) => `${v} €/h`} />
-                <Legend />
-                <Line type="monotone" dataKey="Brut" stroke="#4F8E33" strokeWidth={2} />
-                <Line type="monotone" dataKey="Net" stroke="#EE8627" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+      {/* Graphiques */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Évolution du taux horaire</CardTitle></CardHeader>
+          <CardContent>
+            {chartData.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Aucune heure terrain connue pour {YEAR}.</p>
+            ) : !showGraph("brut") && !showGraph("net") && !showGraph("cible") ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Aucune courbe sélectionnée. Utilisez « Modifier l'affichage ».</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="mois" fontSize={12} />
+                  <YAxis fontSize={12} unit="€" />
+                  <Tooltip formatter={(v: number) => `${v} €/h`} />
+                  <Legend />
+                  {showGraph("brut") && <Line type="monotone" dataKey="Brut" stroke={PP_COLORS.primary} strokeWidth={2} />}
+                  {showGraph("net") && <Line type="monotone" dataKey="Net" stroke={PP_COLORS.sales} strokeWidth={2} />}
+                  {showGraph("cible") && <Line type="monotone" dataKey="Cible" name="Cible (TJM)" stroke={PP_COLORS.charges} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Heures terrain / gestion</CardTitle></CardHeader>
+          <CardContent>
+            {!showGraph("heures") ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Histogramme masqué. Utilisez « Modifier l'affichage ».</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={heuresData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="mois" fontSize={12} />
+                  <YAxis fontSize={12} unit="h" />
+                  <Tooltip formatter={(v: number) => `${v} h`} />
+                  <Legend />
+                  <Bar dataKey="Terrain" fill={PP_COLORS.primary} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Gestion" fill={PP_COLORS.mid} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Tableau mensuel */}
       <Card>

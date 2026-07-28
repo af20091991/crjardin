@@ -145,8 +145,11 @@ export async function fetchHoursLedger(year?: number, options?: { mode?: "reel" 
     ai_metadata: Record<string, unknown> | null;
   };
   for (const r of (interventionsRes.data ?? []) as unknown as ItvRow[]) {
+    // 0 h est une saisie valide (chantier sous-traité) : seule l'absence de
+    // valeur (null) exclut l'intervention du référentiel des heures.
+    if (r.status !== "terminee" || r.hours_spent == null) continue;
     const h = Number(r.hours_spent) || 0;
-    if (r.status !== "terminee" || h <= 0) continue;
+    if (h < 0) continue;
     const y = Number(r.intervention_date.slice(0, 4));
     if (year != null && y !== year) continue;
     const estimated = Boolean(r.ai_metadata?.["hours_spent_estimated"]);
@@ -327,9 +330,10 @@ export async function countInterventionsToConfirm(year?: number): Promise<number
   const { data, error } = await q;
   if (error) throw error;
   return (data ?? []).filter((r) => {
-    const h = Number((r as { hours_spent: number | null }).hours_spent) || 0;
+    const raw = (r as { hours_spent: number | null }).hours_spent;
     const meta = (r as { ai_metadata: Record<string, unknown> | null }).ai_metadata;
-    return h <= 0 || Boolean(meta?.["hours_spent_estimated"]);
+    // 0 h saisi volontairement = heures connues, pas une tâche de confirmation.
+    return raw == null || Boolean(meta?.["hours_spent_estimated"]);
   }).length;
 }
 

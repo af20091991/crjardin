@@ -9,6 +9,8 @@ import { formatEuro } from "@/lib/pilot";
 import type { PilotEntry } from "@/lib/pilot";
 import { listChargeRows } from "@/lib/pilot-charges";
 import { annualSummary } from "@/lib/pilot-annual";
+import { margeHealthScore, HEALTH_LEVEL_META, type PragmaticHealth } from "@/lib/pilot-health";
+import { useThresholds } from "@/lib/pilot-thresholds";
 
 /**
  * Vue annuelle multi-exercices : CA, charges, bénéfice brut et taux horaire
@@ -24,10 +26,18 @@ export function AnnualPerformanceCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const chargesQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
+  const thresholds = useThresholds();
   const rows = useMemo(
     () => annualSummary(entries, chargesQ.data ?? []),
     [entries, chargesQ.data],
   );
+  /**
+   * Score de marge (0-100) par exercice, calculé avec le moteur unique
+   * `margeHealthScore()` (src/lib/pilot-health.ts) — même seuils et même
+   * fonction que la page Santé, pour éviter toute divergence de score.
+   */
+  const margeScoreLevel = (score: number | null): PragmaticHealth["level"] =>
+    score == null ? "inconnu" : score >= 75 ? "solide" : score >= 55 ? "correct" : score >= 35 ? "fragile" : "critique";
   const currentYear = new Date().getFullYear();
   const current = rows.find((r) => r.year === currentYear) ?? null;
   const visibleRows = expanded ? rows : current ? [current] : rows.slice(0, 1);
@@ -64,6 +74,7 @@ export function AnnualPerformanceCard({
                   <th className="px-3 py-2 text-right font-medium">Charges</th>
                   <th className="px-3 py-2 text-right font-medium">Bénéfice brut</th>
                   <th className="px-3 py-2 text-right font-medium">Marge</th>
+                  <th className="px-3 py-2 text-right font-medium">Score marge</th>
                   <th className="px-3 py-2 text-right font-medium">Invest.</th>
                   <th className="px-3 py-2 text-right font-medium">Après invest.</th>
                   <th className="px-3 py-2 text-right font-medium">Heures vendues</th>
@@ -85,6 +96,17 @@ export function AnnualPerformanceCard({
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {r.charges > 0 && r.margePct != null ? `${r.margePct.toFixed(0)} %` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {(() => {
+                        const score = r.charges > 0 ? margeHealthScore(r.margePct, thresholds) : null;
+                        const lvlMeta = HEALTH_LEVEL_META[margeScoreLevel(score)];
+                        return (
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${lvlMeta.tone}`}>
+                            {score == null ? "—" : `${score}/100`}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatEuro(r.investissements)}</td>
                     <td className={`px-3 py-2 text-right tabular-nums ${r.resultatApresInvestissements >= 0 ? "text-emerald-700" : "text-rose-700"}`}>

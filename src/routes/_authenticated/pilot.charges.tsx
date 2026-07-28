@@ -26,6 +26,7 @@ import {
   PRIORITY_VARIABLE_CATEGORIES,
 } from "@/lib/pilot-charges";
 import { usePilotMode } from "@/lib/pilot-mode";
+import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 
 export const Route = createFileRoute("/_authenticated/pilot/charges")({
   head: () => ({
@@ -88,7 +89,7 @@ function ChargesPage() {
     ...top.map((c) => ({ name: c.label, value: Math.round(c.total) })),
     ...(autres > 0 ? [{ name: "Autres", value: Math.round(autres) }] : []),
   ];
-  const PIE_COLORS = ["#4F8E33", "#EE8627", "#2E8CCC", "#9333EA", "#0891B2", "#DC2626", "#65A30D", "#D97706", "#94A3B8"];
+  const PIE_COLORS = PP_SERIES;
 
   // Suivi historique des 3 charges variables prioritaires
   const priorityTrend = analysis.years.map((y) => {
@@ -141,8 +142,8 @@ function ChargesPage() {
                   <YAxis fontSize={12} unit="€" />
                   <Tooltip formatter={(v: number) => formatEuro(v)} />
                   <Legend />
-                  <Bar dataKey="Fixes" stackId="c" fill="#4F8E33" />
-                  <Bar dataKey="Variables" stackId="c" fill="#EE8627" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Fixes" stackId="c" fill={PP_COLORS.primary} />
+                  <Bar dataKey="Variables" stackId="c" fill={PP_COLORS.charges} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

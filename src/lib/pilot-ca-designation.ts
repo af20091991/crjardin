@@ -64,3 +64,52 @@ export function parseDesignation(raw: string | null | undefined): {
 export function clientNameFromDesignation(raw: string | null | undefined): string {
   return parseDesignation(raw).name;
 }
+
+// ---------------------------------------------------------------------------
+// Référentiel prestations unique (Pilot Pro v2).
+// Liste finale fermée : aucun doublon, aucune variante libre.
+// ---------------------------------------------------------------------------
+
+export const PRESTATIONS = ["SAP", "AP", "CEEV", "Conseil", "Remise en état", "Autre"] as const;
+export type Prestation = (typeof PRESTATIONS)[number];
+
+export const PRESTATION_META: Record<Prestation, { label: string; description: string }> = {
+  SAP: { label: "SAP", description: "Service à la personne — entretien chez le particulier" },
+  AP: { label: "AP", description: "Aménagement paysager — création, plantation, travaux" },
+  CEEV: { label: "CEEV", description: "Contrat d'entretien des espaces verts" },
+  Conseil: { label: "Conseil", description: "Conseil, diagnostic, accompagnement" },
+  "Remise en état": { label: "Remise en état", description: "Remise en état d'un jardin (REE)" },
+  Autre: { label: "Autre", description: "Prestations non rattachables aux familles ci-dessus" },
+};
+
+const AP_HINTS = [
+  "amenagement", "aménagement", "creation", "création", "plantation", "planter",
+  "massif", "terrasse", "cloture", "clôture", "engazonnement", "gazon", "pose",
+  "terrassement", "maconnerie", "maçonnerie", "arrosage", "paysag",
+];
+const CEEV_HINTS = ["ceev", "contrat", "espaces verts", "espace vert", "entretien annuel"];
+const SAP_HINTS = ["sap", "tonte", "taille", "entretien", "haie", "desherbage", "désherbage"];
+const CONSEIL_HINTS = ["conseil", "diagnostic", "expertise", "etude", "étude", "visite conseil", "audit"];
+const REE_HINTS = ["remise en etat", "remise en état", "ree", "nettoyage", "debroussaill", "débroussaill"];
+
+/**
+ * Prestation canonique d'une ligne CA. Fusionne toutes les variantes
+ * historiques dans les 6 familles retenues, sans jamais inventer de donnée.
+ */
+export function canonicalPrestation(
+  designation: string | null | undefined,
+  category?: string | null,
+): Prestation {
+  const parsed = parseDesignation(designation);
+  if (parsed.codes.includes("CEEV")) return "CEEV";
+  if (parsed.codes.includes("SAP")) return "SAP";
+  if (parsed.codes.includes("REE")) return parsed.isPro ? "AP" : "Remise en état";
+
+  const hay = `${designation ?? ""} ${category ?? ""}`.toLowerCase();
+  if (CONSEIL_HINTS.some((h) => hay.includes(h))) return "Conseil";
+  if (CEEV_HINTS.some((h) => hay.includes(h))) return "CEEV";
+  if (REE_HINTS.some((h) => hay.includes(h))) return "Remise en état";
+  if (AP_HINTS.some((h) => hay.includes(h))) return "AP";
+  if (SAP_HINTS.some((h) => hay.includes(h))) return "SAP";
+  return "Autre";
+}

@@ -35,6 +35,7 @@ import {
   listRecentDecisions,
   revertLastDecision,
   suggestClients,
+  getNonApplicableSummary,
   type Suggestion,
 } from "@/lib/pilot-ca-matching";
 
@@ -49,6 +50,7 @@ function RapprochementPage() {
   const linked = useQuery({ queryKey: ["pilot-ca-linked-desig"], queryFn: listLinkedEntries });
   const clients = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const decisions = useQuery({ queryKey: ["pilot-ca-decisions"], queryFn: () => listRecentDecisions(20) });
+  const nonApplicable = useQuery({ queryKey: ["pilot-ca-non-applicable"], queryFn: getNonApplicableSummary });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<string>("all");
@@ -63,6 +65,7 @@ function RapprochementPage() {
     qc.invalidateQueries({ queryKey: ["pilot-ca-entries"] });
     qc.invalidateQueries({ queryKey: ["client-scores"] });
     qc.invalidateQueries({ queryKey: ["pilot-reconstruction"] });
+    qc.invalidateQueries({ queryKey: ["pilot-ca-non-applicable"] });
   };
 
   const designationIndex = useMemo(
@@ -184,7 +187,11 @@ function RapprochementPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary" className="gap-1 text-sm">
             <AlertTriangle className="h-3.5 w-3.5" />
-            {orphans.isLoading ? "…" : `${orphanCount} ligne${orphanCount > 1 ? "s" : ""} sans client`}
+            {orphans.isLoading
+              ? "…"
+              : orphanCount === 0
+                ? "Rapprochement CA : 0 ligne restante"
+                : `${orphanCount} ligne${orphanCount > 1 ? "s" : ""} sans client`}
           </Badge>
           <Button
             size="sm"
@@ -201,6 +208,23 @@ function RapprochementPage() {
 
       <ReconstructionPanel />
       <HoursQualityPanel />
+
+      {/* Tableau de contrôle : rien n'est masqué, y compris ce qui est hors périmètre */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <CheckCircle2 className="h-4 w-4 text-primary/60" />
+            <span>
+              Hors rapprochement (agrégats mensuels 2020, remise commerciale)
+            </span>
+          </div>
+          <Badge variant="outline" className="gap-1">
+            {nonApplicable.isLoading
+              ? "…"
+              : `${nonApplicable.data?.count ?? 0} ligne${(nonApplicable.data?.count ?? 0) > 1 ? "s" : ""} · ${formatEuro(nonApplicable.data?.amount ?? 0)}`}
+          </Badge>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {/* Colonne gauche — liste orphelines */}
@@ -250,7 +274,9 @@ function RapprochementPage() {
               ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 p-10 text-center text-sm text-muted-foreground">
                   <CheckCircle2 className="h-8 w-8 text-primary/60" />
-                  {orphanCount === 0 ? "Toutes les lignes sont rattachées." : "Aucune ligne ne correspond aux filtres."}
+                  {orphanCount === 0
+                    ? "Rapprochement CA : 0 ligne restante — toutes les lignes sont rattachées."
+                    : "Aucune ligne ne correspond aux filtres."}
                 </div>
               ) : (
                 <ul className="divide-y">

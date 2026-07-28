@@ -4,8 +4,8 @@
 // pour le chiffre d'affaires et les heures vendues, ledger d'heures pour les
 // heures réalisées. Aucune donnée n'est créée ni estimée.
 
-import { FAMILY_META, type PilotEntry } from "@/lib/pilot";
-import { parseDesignation } from "@/lib/pilot-ca-designation";
+import type { PilotEntry } from "@/lib/pilot";
+import { canonicalPrestation, PRESTATIONS } from "@/lib/pilot-ca-designation";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 import { getThresholds, type PilotThresholds } from "@/lib/pilot-thresholds";
 
@@ -21,18 +21,25 @@ export const SERVICE_CLASS_META: Record<ServiceClass, { label: string; badge: st
   },
 };
 
-/** Clé prestation unique, commune au CA et au ledger d'heures. */
+/**
+ * Clé prestation unique, commune au CA et au ledger d'heures.
+ * Référentiel fermé : SAP, AP, CEEV, Conseil, Remise en état, Autre.
+ */
 export function prestationKey(
   designation: string | null,
   category: string | null,
-  family?: string,
+  _family?: string,
 ): string {
-  const label = parseDesignation(designation).serviceLabel;
-  if (label) return label;
-  const cat = (category ?? "").trim();
-  if (cat) return cat;
-  if (family && family in FAMILY_META) return FAMILY_META[family as keyof typeof FAMILY_META].label;
-  return "Non catégorisé";
+  return canonicalPrestation(designation, category);
+}
+
+/** Normalise un libellé de prestation déjà stocké (ledger d'heures, imports…). */
+export function normalizePrestation(label: string | null | undefined): string {
+  const raw = (label ?? "").trim();
+  if (!raw) return "Autre";
+  const exact = PRESTATIONS.find((p) => p.toLowerCase() === raw.toLowerCase());
+  if (exact) return exact;
+  return canonicalPrestation(raw, null);
 }
 
 export interface ServiceProfitability {
@@ -98,7 +105,7 @@ export function analyzeServices(params: {
   const reelles = new Map<string, number>();
   for (const l of ledger) {
     if (l.type !== "realisee" || l.estimated || l.hours <= 0) continue;
-    const key = (l.prestation ?? "").trim() || "Non catégorisé";
+    const key = normalizePrestation(l.prestation);
     reelles.set(key, (reelles.get(key) ?? 0) + l.hours);
   }
 
