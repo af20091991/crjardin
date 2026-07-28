@@ -85,8 +85,13 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
             { to: "/pilot/charges", label: "Charges", short: "Charges", icon: Receipt, exact: false, primary: false },
             { to: "/pilot/clients", label: "Rentabilité", short: "Rentab.", icon: Users, exact: false, primary: false },
+            { to: "/pilot/prestations", label: "Prestations", short: "Prestat.", icon: BarChart3, exact: false, primary: false },
+            { to: "/pilot/taux", label: "Taux horaire", short: "Taux", icon: Clock, exact: false, primary: false },
+            { to: "/pilot/sante", label: "Santé", short: "Santé", icon: HeartPulse, exact: false, primary: false },
             { to: "/pilot/saison", label: "Prévisions", short: "Prévis.", icon: CalendarRange, exact: false, primary: false },
+            { to: "/pilot/benchmark", label: "Benchmark & SMART", short: "Bench.", icon: Target, exact: false, primary: false },
             { to: "/pilot/rapprochement", label: "Rapprochement CA", short: "Rappr.", icon: Link2, exact: false, primary: false },
+            { to: "/pilot/parametres", label: "Paramètres PP", short: "Param.", icon: Settings2, exact: false, primary: false },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Réservé",
