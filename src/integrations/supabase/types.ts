@@ -1428,6 +1428,48 @@ export type Database = {
         }
         Relationships: []
       }
+      pilot_edit_log: {
+        Row: {
+          after_value: Json | null
+          before_value: Json | null
+          created_at: string
+          entity: string
+          entity_id: string | null
+          field: string
+          id: string
+          label: string | null
+          reason: string | null
+          undone_at: string | null
+          user_id: string
+        }
+        Insert: {
+          after_value?: Json | null
+          before_value?: Json | null
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          field: string
+          id?: string
+          label?: string | null
+          reason?: string | null
+          undone_at?: string | null
+          user_id?: string
+        }
+        Update: {
+          after_value?: Json | null
+          before_value?: Json | null
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          field?: string
+          id?: string
+          label?: string | null
+          reason?: string | null
+          undone_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pilot_fixed_charges: {
         Row: {
           created_at: string
@@ -1664,6 +1706,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pilot_metric_snapshots: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          id: string
+          metrics: Json
+          note: string | null
+          user_id: string
+          year: number
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          id?: string
+          metrics?: Json
+          note?: string | null
+          user_id?: string
+          year: number
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          id?: string
+          metrics?: Json
+          note?: string | null
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
       }
       pilot_migration_log: {
         Row: {

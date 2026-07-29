@@ -94,6 +94,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/benchmark", label: "Benchmark & SMART", short: "Bench.", icon: Target, exact: false, primary: false },
             { to: "/pilot/rapprochement", label: "Rapprochement CA", short: "Rappr.", icon: Link2, exact: false, primary: false },
             { to: "/pilot/validation", label: "Validation analytique", short: "Valid.", icon: CheckCircle2, exact: false, primary: false },
+            { to: "/pilot/donnees", label: "Classeur des données", short: "Classeur", icon: ClipboardList, exact: false, primary: false },
             { to: "/pilot/parametres", label: "Paramètres PP", short: "Param.", icon: Settings2, exact: false, primary: false },
           ]
         : [],
