@@ -153,16 +153,15 @@ async function bridgeCaEntries(): Promise<PilotEntry[]> {
   });
 }
 
-// ---------- CRUD: charges ----------
+// ---------- Lecture des charges ----------
+// SOURCE UNIQUE : pilot_ca_entries (kind = 'charge').
+// La table `pilot_charges` est LEGACY : elle n'est plus lue nulle part, car
+// ses lignes (loyer, expert-comptable…) faisaient double emploi avec, d'une
+// part les charges de pilot_ca_entries, d'autre part pilot_fixed_charges
+// (référentiel des charges fixes). La cumuler provoquait un double comptage
+// du total de charges et donc un bénéfice sous-évalué.
 export async function listCharges(): Promise<PilotCharge[]> {
-  const { data, error } = await supabase
-    .from("pilot_charges")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  const native = (data ?? []) as unknown as PilotCharge[];
-  const bridged = await bridgeCaCharges();
-  return [...bridged, ...native];
+  return bridgeCaCharges();
 }
 
 async function bridgeCaCharges(): Promise<PilotCharge[]> {
@@ -185,27 +184,6 @@ async function bridgeCaCharges(): Promise<PilotCharge[]> {
       updated_at: r.updated_at,
     };
   });
-}
-
-export async function createCharge(input: PilotChargeInput): Promise<PilotCharge> {
-  const user_id = await uid();
-  const { data, error } = await supabase
-    .from("pilot_charges")
-    .insert({ ...input, user_id })
-    .select()
-    .single();
-  if (error) throw error;
-  return data as unknown as PilotCharge;
-}
-
-export async function updateCharge(id: string, input: Partial<PilotChargeInput>): Promise<void> {
-  const { error } = await supabase.from("pilot_charges").update(input).eq("id", id);
-  if (error) throw error;
-}
-
-export async function deleteCharge(id: string): Promise<void> {
-  const { error } = await supabase.from("pilot_charges").delete().eq("id", id);
-  if (error) throw error;
 }
 
 /**
