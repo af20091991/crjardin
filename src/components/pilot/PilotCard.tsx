@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, Eye, EyeOff, HelpCircle } from "lucide-react";
+import { BarChart3, Eye, EyeOff, HelpCircle, ScanSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { KpiAudit } from "@/lib/pilot-kpi-audit";
 
 export type PilotTone = "default" | "positive" | "negative" | "warning";
 
@@ -42,6 +43,8 @@ export type PilotCardProps = {
   help?: string;
   /** Alias historique de `help`. */
   description?: string;
+  /** Mode audit : source, calcul et période de l'indicateur. */
+  audit?: KpiAudit;
   views?: PilotCardView[];
   content?: ReactNode;
   action?: ReactNode;
@@ -69,6 +72,7 @@ export function PilotCard({
   progress,
   help,
   description,
+  audit,
   views,
   content,
   action,
@@ -187,11 +191,43 @@ export function PilotCard({
             </PopoverContent>
           </Popover>
         )}
+        {audit && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Mode audit : d'où vient ce chiffre ?">
+                <ScanSearch className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 space-y-2 text-xs leading-relaxed">
+              <p className="font-medium text-foreground">D'où vient ce chiffre ?</p>
+              <p>
+                <span className="font-medium">Sources : </span>
+                {audit.sources.join(" · ")}
+              </p>
+              <p>
+                <span className="font-medium">Calcul : </span>
+                {audit.calcul}
+              </p>
+              {audit.periode && (
+                <p>
+                  <span className="font-medium">Période : </span>
+                  {audit.periode}
+                </p>
+              )}
+              {audit.fiabilite && (
+                <p>
+                  <span className="font-medium">Fiabilité : </span>
+                  {audit.fiabilite}
+                </p>
+              )}
+            </PopoverContent>
+          </Popover>
+        )}
         <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={toggleHidden} title="Masquer">
           <EyeOff className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <div className={cn(hasMenu || helpText ? "pr-16" : "pr-8")}>
+      <div className={cn(hasMenu || helpText || audit ? "pr-20" : "pr-8")}>
         {to ? (
           <Link to={to} className="block focus:outline-none focus-visible:ring-1 focus-visible:ring-ring">
             {body}
