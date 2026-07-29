@@ -481,18 +481,47 @@ export function SstProfitabilityTab() {
                     <TableRow>
                       <TableHead>Période</TableHead>
                       <TableHead>Libellé d'origine</TableHead>
+                      <TableHead>Prestataire réel</TableHead>
                       <TableHead>Client</TableHead>
                       <TableHead className="text-right">Montant</TableHead>
                       <TableHead />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {chargeLines.map((l) => (
+                    {mappedLines.map((l) => (
                       <TableRow key={l.id} className={l.duplicateOfMission ? "opacity-50" : undefined}>
                         <TableCell className="whitespace-nowrap">
                           {String(l.month).padStart(2, "0")}/{l.year}
                         </TableCell>
                         <TableCell>{l.designation}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={l.mappedSubcontractorId ?? "none"}
+                            onValueChange={(v) =>
+                              mapMutation.mutate({
+                                raw_label: l.designation,
+                                subcontractor_id: v === "none" ? null : v,
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-48">
+                              <SelectValue placeholder="À rattacher" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">À rattacher</SelectItem>
+                              {ssts.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {s.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {!l.confirmed && (
+                            <span className="block pt-1 text-[11px] text-muted-foreground">
+                              Détection auto : {l.provider}
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell>{l.clientName ?? "—"}</TableCell>
                         <TableCell className="text-right">{formatEuro(l.amount)}</TableCell>
                         <TableCell className="text-right">
