@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isRealizedMonth } from "@/lib/pilot-realized";
+import { employerCost, splitRemuneration } from "@/lib/pilot-remuneration";
 
 /** Nature d'une charge. `a_classer` = non reconnue automatiquement, jamais devinée. */
 export type ChargeClass = "fixe" | "variable" | "a_classer";
@@ -158,6 +159,14 @@ export interface ChargesAnalysis {
   /** Investissements par exercice, suivis séparément des charges. */
   investments: Map<number, number>;
   investmentsTotal: number;
+  /** Rémunération dirigeant repérée dans les charges — suivie à part. */
+  remuneration: {
+    lines: number;
+    net: number;
+    /** Coût entreprise = net + cotisations (règle +45 %). */
+    employerCost: number;
+    byYear: Map<number, { net: number; employerCost: number }>;
+  };
 }
 
 function monthsIn(rows: ChargeRow[]): number {
@@ -171,7 +180,9 @@ export function analyzeCharges(
   options?: { mode?: "reel" | "projection" },
 ): ChargesAnalysis {
   const scopedRows = options?.mode === "projection" ? allRows : allRows.filter((r) => isRealizedMonth(r.year, r.month));
-  const rows = scopedRows.filter((r) => !r.is_investment);
+  const nonInvest = scopedRows.filter((r) => !r.is_investment);
+  // La rémunération dirigeant sort du classement charges fixes / variables.
+  const { charges: rows, remuneration: remuRows } = splitRemuneration(nonInvest);
   const investments = investmentsByYear(scopedRows);
   const years = [...new Set(rows.map((r) => r.year))].sort((a, b) => a - b);
 
@@ -222,6 +233,14 @@ export function analyzeCharges(
 
   const unclassified = rows.filter((r) => r.charge_class === "a_classer");
 
+  const remuByYear = new Map<number, { net: number; employerCost: number }>();
+  for (const r of remuRows) {
+    const cur = remuByYear.get(r.year) ?? { net: 0, employerCost: 0 };
+    cur.net += r.amount_ht;
+    cur.employerCost += employerCost(r.amount_ht);
+    remuByYear.set(r.year, cur);
+  }
+
   return {
     years: yearStats,
     categories: categories.sort((a, b) => b.total - a.total),
@@ -235,6 +254,12 @@ export function analyzeCharges(
     },
     investments,
     investmentsTotal: [...investments.values()].reduce((s, v) => s + v, 0),
+    remuneration: {
+      lines: remuRows.length,
+      net: remuRows.reduce((s, r) => s + r.amount_ht, 0),
+      employerCost: remuRows.reduce((s, r) => s + employerCost(r.amount_ht), 0),
+      byYear: remuByYear,
+    },
   };
 }
 
@@ -263,7 +288,9 @@ export function projectionBase(
   salesByYear: Map<number, number>,
 ): ProjectionBase {
   const scopedRows = allRows.filter((r) => isRealizedMonth(r.year, r.month));
-  const yr = scopedRows.filter((r) => r.year === year && !r.is_investment);
+  const yr = splitRemuneration(
+    scopedRows.filter((r) => r.year === year && !r.is_investment),
+  ).charges;
   const invest = allRows
     .filter((r) => r.year === year && r.is_investment && isRealizedMonth(r.year, r.month))
     .reduce((s, r) => s + r.amount_ht, 0);

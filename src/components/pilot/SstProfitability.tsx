@@ -51,6 +51,13 @@ import { listClients } from "@/lib/clients";
 import { listChargeRows, listSalesByYear } from "@/lib/pilot-charges";
 import { sstByProvider, sstChargeLines, sstChargeTotals } from "@/lib/sst-charges";
 import {
+  applySstLabelMap,
+  deleteSstLabelMapping,
+  listSstLabelMap,
+  upsertSstLabelMapping,
+} from "@/lib/sst-provider-map";
+import { sstDuplicateReport, sstDuplicateTotal } from "@/lib/sst-duplicates";
+import {
   byMonth,
   byPrestation,
   bySubcontractor,
@@ -98,6 +105,7 @@ export function SstProfitabilityTab() {
   });
   const { data: audit = [] } = useQuery({ queryKey: ["sst-audit"], queryFn: () => listSstAudit(80) });
   const { data: chargeRows = [] } = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
+  const { data: labelMap = [] } = useQuery({ queryKey: ["sst-label-map"], queryFn: listSstLabelMap });
   const { data: salesByYear } = useQuery({
     queryKey: ["pilot-sales-by-year", mode],
     queryFn: () => listSalesByYear({ mode }),
@@ -138,6 +146,33 @@ export function SstProfitabilityTab() {
     [chargeRows, missions, clients, year],
   );
   const chargeProviders = useMemo(() => sstByProvider(chargeLines), [chargeLines]);
+  const mappedLines = useMemo(
+    () => applySstLabelMap(chargeLines, labelMap, ssts),
+    [chargeLines, labelMap, ssts],
+  );
+  // Rapport de doublons : toutes années confondues, signalement seul.
+  const duplicateGroups = useMemo(
+    () => sstDuplicateReport(sstChargeLines({ chargeRows, missions, clients, year: "all" })),
+    [chargeRows, missions, clients],
+  );
+  const duplicateTotal = useMemo(() => sstDuplicateTotal(duplicateGroups), [duplicateGroups]);
+
+  const mapMutation = useMutation({
+    mutationFn: async (v: { raw_label: string; subcontractor_id: string | null }) => {
+      if (!v.subcontractor_id) return deleteSstLabelMapping(v.raw_label);
+      const name = ssts.find((s) => s.id === v.subcontractor_id)?.name ?? null;
+      return upsertSstLabelMapping({
+        raw_label: v.raw_label,
+        subcontractor_id: v.subcontractor_id,
+        provider_name: name,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sst-label-map"] });
+      toast.success("Correspondance enregistrée");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const caPeriod = useMemo(() => {
     if (!salesByYear) return null;
     if (year === "all") return [...salesByYear.values()].reduce((s, v) => s + v, 0);
@@ -446,18 +481,47 @@ export function SstProfitabilityTab() {
                     <TableRow>
                       <TableHead>Période</TableHead>
                       <TableHead>Libellé d'origine</TableHead>
+                      <TableHead>Prestataire réel</TableHead>
                       <TableHead>Client</TableHead>
                       <TableHead className="text-right">Montant</TableHead>
                       <TableHead />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {chargeLines.map((l) => (
+                    {mappedLines.map((l) => (
                       <TableRow key={l.id} className={l.duplicateOfMission ? "opacity-50" : undefined}>
                         <TableCell className="whitespace-nowrap">
                           {String(l.month).padStart(2, "0")}/{l.year}
                         </TableCell>
                         <TableCell>{l.designation}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={l.mappedSubcontractorId ?? "none"}
+                            onValueChange={(v) =>
+                              mapMutation.mutate({
+                                raw_label: l.designation,
+                                subcontractor_id: v === "none" ? null : v,
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-48">
+                              <SelectValue placeholder="À rattacher" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">À rattacher</SelectItem>
+                              {ssts.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {s.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {!l.confirmed && (
+                            <span className="block pt-1 text-[11px] text-muted-foreground">
+                              Détection auto : {l.provider}
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell>{l.clientName ?? "—"}</TableCell>
                         <TableCell className="text-right">{formatEuro(l.amount)}</TableCell>
                         <TableCell className="text-right">
@@ -469,6 +533,60 @@ export function SstProfitabilityTab() {
                 </Table>
               </div>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Doublons potentiels de sous-traitance (rapport)</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Lignes identiques (même libellé, même mois, même montant) présentes sur plusieurs
+            exercices — typiquement une recopie d'année lors des imports. Signalement uniquement :
+            aucune ligne n'est supprimée ni modifiée.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {duplicateGroups.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Aucun doublon potentiel détecté.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm">
+                <strong>{duplicateGroups.length}</strong> groupe(s) suspect(s) — montant
+                potentiellement compté en double :{" "}
+                <strong style={{ color: PP_COLORS.charges }}>{formatEuro(duplicateTotal)}</strong>
+              </p>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Libellé</TableHead>
+                      <TableHead>Mois</TableHead>
+                      <TableHead>Exercices concernés</TableHead>
+                      <TableHead className="text-right">Montant unitaire</TableHead>
+                      <TableHead className="text-right">Écart potentiel</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {duplicateGroups.map((g) => (
+                      <TableRow key={g.key}>
+                        <TableCell>{g.designation}</TableCell>
+                        <TableCell>{String(g.month).padStart(2, "0")}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{g.years.join(" / ")}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{formatEuro(g.amount)}</TableCell>
+                        <TableCell className="text-right" style={{ color: PP_COLORS.charges }}>
+                          {formatEuro(g.suspectedAmount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

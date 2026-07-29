@@ -3,6 +3,7 @@
 // donnée historique n'est modifiée. L'utilisateur validera plus tard depuis
 // l'interface les lignes « à classer » ou de catégorie incertaine.
 import { supabase } from "@/integrations/supabase/client";
+import { isRemunerationLabel } from "@/lib/pilot-remuneration";
 
 export type ValidationStatus = "a_valider" | "valide" | "a_revoir";
 
@@ -13,12 +14,17 @@ export const VALIDATION_LABELS: Record<ValidationStatus, string> = {
 };
 
 /** Motifs pour lesquels une ligne appelle une décision métier. */
-export type ValidationReason = "charge_a_classer" | "categorie_incertaine" | "client_non_identifie";
+export type ValidationReason =
+  | "charge_a_classer"
+  | "categorie_incertaine"
+  | "client_non_identifie"
+  | "remuneration_dirigeant";
 
 export const VALIDATION_REASON_LABELS: Record<ValidationReason, string> = {
   charge_a_classer: "Charge à classer (fixe / variable)",
   categorie_incertaine: "Catégorie incertaine",
   client_non_identifie: "Client non rattaché",
+  remuneration_dirigeant: "Rémunération (hors charges d'exploitation)",
 };
 
 export interface PendingValidationLine {
@@ -40,6 +46,9 @@ type Raw = Omit<PendingValidationLine, "reasons" | "amount_ht"> & { amount_ht: n
 
 function reasonsFor(r: Raw): ValidationReason[] {
   const out: ValidationReason[] = [];
+  if (r.kind === "remuneration" || isRemunerationLabel(r.designation) || isRemunerationLabel(r.charge_category)) {
+    return ["remuneration_dirigeant"];
+  }
   if (r.kind === "charge" && (!r.charge_class || r.charge_class === "a_classer")) {
     out.push("charge_a_classer");
   }
@@ -57,6 +66,7 @@ export async function listPendingValidation(limit = 500): Promise<PendingValidat
     )
     .neq("validation_status", "valide")
     .order("year", { ascending: false })
+    .order("month", { ascending: false })
     .limit(limit);
   if (error) throw error;
   return ((data ?? []) as unknown as Raw[])
@@ -77,6 +87,31 @@ export async function setValidation(
       validation_note: note ?? null,
       validated_at: status === "valide" ? new Date().toISOString() : null,
     } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Note libre, sans changer le statut. */
+export async function setValidationNote(id: string, note: string): Promise<void> {
+  const { error } = await supabase
+    .from("pilot_ca_entries")
+    .update({ validation_note: note.trim() || null } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * Reclasse manuellement une ligne (décision utilisateur uniquement).
+ * Le montant, la date et le libellé d'origine ne sont jamais modifiés.
+ */
+export async function setLineCategory(
+  id: string,
+  chargeClass: "fixe" | "variable" | "a_classer",
+  category: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("pilot_ca_entries")
+    .update({ charge_class: chargeClass, charge_category: category } as never)
     .eq("id", id);
   if (error) throw error;
 }
