@@ -27,6 +27,20 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-07-29",
+    version: "1.16.0",
+    theme: "Général",
+    title: "Pilot Pro V1.1 — centre de validation, score de confiance et recherche globale",
+    details: [
+      "Nouveau « Centre de validation » unique : lignes financières, contrats CEEV et sous-traitance regroupés sur un seul écran, avec montant concerné et part de données fiables.",
+      "Score de confiance commun à toute l'application : fiable (95-100 %), à vérifier (70-94 %), incertain (moins de 70 %), avec le détail de ce qui manque.",
+      "Mémoire des validations : lorsqu'un libellé identique a déjà été classé, Pilot Pro le rappelle sans jamais décider à votre place.",
+      "Recherche globale (Ctrl+K) depuis n'importe quelle page : client, contrat d'entretien, sous-traitant ou écran.",
+      "Mode audit sur les indicateurs : chaque chiffre peut afficher sa source, sa méthode de calcul et sa période.",
+      "Recommandations « Aujourd'hui » : suivi de l'état (en cours, réalisée, ignorée) et ordre ajusté selon vos retours.",
+    ],
+  },
+  {
+    date: "2026-07-29",
     version: "1.15.0",
     theme: "Général",
     title: "Journal SST, contrats CEEV, page Aujourd'hui & validation analytique",
