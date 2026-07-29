@@ -1,5 +1,6 @@
-// Onglet « Rentabilité SST » — remplace l'onglet SST du fichier Excel.
-// Source unique : missions de sous-traitance + vue v_sst_mission_pnl.
+// Module « Journal SST » — journal détaillé des missions de sous-traitance.
+// Source unique de vérité : subcontractor_missions (import Excel + saisies manuelles).
+// Marge nette HT calculée exclusivement via computeMissionFinancials (src/lib/sst-analytics.ts).
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -273,22 +274,27 @@ export function SstProfitabilityTab() {
   const exportCsv = () => {
     const data = rows.map((r) => ({
       Date: r.mission.mission_date,
+      Chantier: r.mission.service_requested,
       "Sous-traitant": r.sstName,
       Client: r.clientName,
       Prestation: r.mission.prestation ?? r.mission.service_requested,
       Catégorie: r.mission.category ?? "",
+      Autonomie: r.mission.autonomy ?? "",
+      "Chantier parallèle": r.mission.parallel_worksite ?? "",
       Statut: MISSION_STATUS_META[r.mission.status]?.label ?? r.mission.status,
       "Heures SST": r.hours ?? "",
       "Temps économisé": r.mission.hours_saved ?? "",
-      "Coût SST (€)": r.cost,
-      "CA client (€)": r.revenue,
-      "Marge (€)": r.margin,
+      "Prix SST (€)": r.cost,
+      "Prix HT vente (€)": r.revenue,
+      "Marge nette HT (€)": r.margin,
       "Marge (%)": r.marginPct != null ? r.marginPct.toFixed(1) : "",
       "Coût horaire (€/h)": r.hourlyCost != null ? r.hourlyCost.toFixed(2) : "",
+      "Difficulté /5": r.mission.internal_rating ?? "",
+      Détails: r.mission.report_notes ?? "",
       Règlement: r.mission.payment_method ?? "",
       Facture: r.mission.invoice_ref ?? "",
     }));
-    downloadCsv(`rentabilite-sst-${year}.csv`, toCsv(data));
+    downloadCsv(`journal-sst-${year}.csv`, toCsv(data));
   };
 
   return (
@@ -945,7 +951,7 @@ function SstRowDialog({
   return (
     <DialogContent className="max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Rentabilité — {mission.service_requested}</DialogTitle>
+        <DialogTitle>Journal SST — {mission.service_requested}</DialogTitle>
       </DialogHeader>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {field("Date", "mission_date", "date")}
@@ -1003,7 +1009,7 @@ function SstSettingsDialog({
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Paramètres Rentabilité SST</DialogTitle>
+          <DialogTitle>Paramètres Journal SST</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">

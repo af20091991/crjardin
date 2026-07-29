@@ -26,6 +26,7 @@ import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPilotRouteImport } from './routes/_authenticated/pilot'
 import { Route as AuthenticatedPersonnalisationRouteImport } from './routes/_authenticated/personnalisation'
 import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
+import { Route as AuthenticatedJournalSstRouteImport } from './routes/_authenticated/journal-sst'
 import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
 import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -146,6 +147,11 @@ const AuthenticatedPersonnalisationRoute =
 const AuthenticatedModelesRoute = AuthenticatedModelesRouteImport.update({
   id: '/modeles',
   path: '/modeles',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedJournalSstRoute = AuthenticatedJournalSstRouteImport.update({
+  id: '/journal-sst',
+  path: '/journal-sst',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedEmailsRoute = AuthenticatedEmailsRouteImport.update({
@@ -359,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/backend': typeof AuthenticatedBackendRoute
   '/emails': typeof AuthenticatedEmailsRoute
+  '/journal-sst': typeof AuthenticatedJournalSstRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/pilot': typeof AuthenticatedPilotRouteWithChildren
@@ -411,6 +418,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/backend': typeof AuthenticatedBackendRoute
   '/emails': typeof AuthenticatedEmailsRoute
+  '/journal-sst': typeof AuthenticatedJournalSstRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/planning': typeof AuthenticatedPlanningRoute
@@ -465,6 +473,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/backend': typeof AuthenticatedBackendRoute
   '/_authenticated/emails': typeof AuthenticatedEmailsRoute
+  '/_authenticated/journal-sst': typeof AuthenticatedJournalSstRoute
   '/_authenticated/modeles': typeof AuthenticatedModelesRoute
   '/_authenticated/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/_authenticated/pilot': typeof AuthenticatedPilotRouteWithChildren
@@ -521,6 +530,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/backend'
     | '/emails'
+    | '/journal-sst'
     | '/modeles'
     | '/personnalisation'
     | '/pilot'
@@ -573,6 +583,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/backend'
     | '/emails'
+    | '/journal-sst'
     | '/modeles'
     | '/personnalisation'
     | '/planning'
@@ -626,6 +637,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/backend'
     | '/_authenticated/emails'
+    | '/_authenticated/journal-sst'
     | '/_authenticated/modeles'
     | '/_authenticated/personnalisation'
     | '/_authenticated/pilot'
@@ -806,6 +818,13 @@ declare module '@tanstack/react-router' {
       path: '/modeles'
       fullPath: '/modeles'
       preLoaderRoute: typeof AuthenticatedModelesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/journal-sst': {
+      id: '/_authenticated/journal-sst'
+      path: '/journal-sst'
+      fullPath: '/journal-sst'
+      preLoaderRoute: typeof AuthenticatedJournalSstRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/emails': {
@@ -1120,6 +1139,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBackendRoute: typeof AuthenticatedBackendRoute
   AuthenticatedEmailsRoute: typeof AuthenticatedEmailsRoute
+  AuthenticatedJournalSstRoute: typeof AuthenticatedJournalSstRoute
   AuthenticatedModelesRoute: typeof AuthenticatedModelesRoute
   AuthenticatedPersonnalisationRoute: typeof AuthenticatedPersonnalisationRoute
   AuthenticatedPilotRoute: typeof AuthenticatedPilotRouteWithChildren
@@ -1143,6 +1163,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedBackendRoute: AuthenticatedBackendRoute,
   AuthenticatedEmailsRoute: AuthenticatedEmailsRoute,
+  AuthenticatedJournalSstRoute: AuthenticatedJournalSstRoute,
   AuthenticatedModelesRoute: AuthenticatedModelesRoute,
   AuthenticatedPersonnalisationRoute: AuthenticatedPersonnalisationRoute,
   AuthenticatedPilotRoute: AuthenticatedPilotRouteWithChildren,
