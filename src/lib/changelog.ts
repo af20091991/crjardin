@@ -27,6 +27,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-07-29",
+    version: "1.17.0",
+    theme: "Général",
+    title: "Pilot Pro V1.1 — classeur des données, historique des corrections et contrôle anti-régression",
+    details: [
+      "Nouveau « Classeur des données » : CA et charges, clients, contrats CEEV, missions de sous-traitance, catégories et rapprochements se corrigent directement comme dans un tableur.",
+      "Chaque correction manuelle conserve la valeur précédente, la date et le motif : le journal permet d'annuler n'importe quelle modification.",
+      "Chaque classeur rappelle la question métier à laquelle il répond et les écrans impactés par une correction.",
+      "Contrôle anti-régression : enregistrez une photo des grands indicateurs (CA, charges, résultat, marge, heures, clients) et repérez toute variation de plus de 5 % après une évolution.",
+    ],
+  },
+  {
+    date: "2026-07-29",
     version: "1.16.0",
     theme: "Général",
     title: "Pilot Pro V1.1 — centre de validation, score de confiance et recherche globale",
