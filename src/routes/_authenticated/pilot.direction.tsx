@@ -28,6 +28,8 @@ import { getClientEconomicScores, SCORE_META, type ClientScoreLabel, type Client
 import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { CoverageHistoryCard } from "@/components/pilot/CoverageBanner";
+import { DirectorProjectionCard } from "@/components/pilot/DirectorProjectionCard";
+import { projectYear } from "@/lib/pilot-projection";
 import {
   Euro, TrendingUp, Wallet, Percent, Target, LineChart, ShoppingCart,
   Clock, Sparkles, Users, Gauge, Handshake, Briefcase,
@@ -108,6 +110,10 @@ function PilotDashboard() {
       .reduce((s, e) => s + (Number(e.amount_ht) || 0), 0);
   }, [entries.data, year]);
   const prevHourlyRate = prevHoursTotal > 0 ? caPrevFull / prevHoursTotal : 0;
+  const yearProjection = useMemo(
+    () => projectYear({ entries: entries.data ?? [], charges: chargeRowsQ.data ?? [], year }),
+    [entries.data, chargeRowsQ.data, year],
+  );
   const rateDelta = prevHourlyRate > 0 && k.tauxHoraireReel > 0 ? k.tauxHoraireReel - prevHourlyRate : null;
   const rateDeltaPct = rateDelta !== null && prevHourlyRate > 0 ? (rateDelta / prevHourlyRate) * 100 : null;
   const target = set.target_hourly_rate ?? 0;
@@ -165,6 +171,9 @@ function PilotDashboard() {
       )}
 
       <CoverageHistoryCard />
+
+      {/* Où vais-je si je continue ainsi ? */}
+      <DirectorProjectionCard projection={yearProjection} caPrevYear={caPrevFull} />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">

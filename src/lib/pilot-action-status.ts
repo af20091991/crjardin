@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 export type ActionStatus = "nouvelle" | "en_cours" | "realisee" | "ignoree";
 
 export const ACTION_STATUS_LABELS: Record<ActionStatus, string> = {
-  nouvelle: "Nouvelle",
+  nouvelle: "À faire",
   en_cours: "En cours",
   realisee: "Réalisée",
   ignoree: "Ignorée",
