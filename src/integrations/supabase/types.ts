@@ -1000,6 +1000,9 @@ export type Database = {
           source_sheet: string | null
           updated_at: string
           user_id: string
+          validated_at: string | null
+          validation_note: string | null
+          validation_status: string
           year: number
         }
         Insert: {
@@ -1033,6 +1036,9 @@ export type Database = {
           source_sheet?: string | null
           updated_at?: string
           user_id: string
+          validated_at?: string | null
+          validation_note?: string | null
+          validation_status?: string
           year: number
         }
         Update: {
@@ -1066,6 +1072,9 @@ export type Database = {
           source_sheet?: string | null
           updated_at?: string
           user_id?: string
+          validated_at?: string | null
+          validation_note?: string | null
+          validation_status?: string
           year?: number
         }
         Relationships: [
@@ -3588,6 +3597,9 @@ export type Database = {
           source_sheet: string | null
           updated_at: string
           user_id: string
+          validated_at: string | null
+          validation_note: string | null
+          validation_status: string
           year: number
         }
         SetofOptions: {

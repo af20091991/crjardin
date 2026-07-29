@@ -23,16 +23,16 @@ export const askPilotAi = createServerFn({ method: "POST" })
     const year = new Date().getFullYear();
 
     // --- Chargement du contexte ---
-    const [caRes, chargesRes, settingsRes, clientsRes, intRes, fichesRes, healthRes] = await Promise.all([
+    // Charges : lues uniquement depuis pilot_ca_entries (source unique).
+    // La table legacy `pilot_charges` n'est plus interrogée.
+    const [caRes, settingsRes, clientsRes, intRes, fichesRes, healthRes] = await Promise.all([
       supabase.from("pilot_ca_entries").select("year,month,kind,designation,category,amount_ht,hours,note").gte("year", year - 1),
-      supabase.from("pilot_charges").select("label,category,kind,amount,period,charge_date"),
       supabase.from("pilot_settings").select("*").maybeSingle(),
       supabase.from("clients").select("name,civility,contract_type,frequency,notes,address"),
       supabase.from("interventions").select("intervention_date,intervention_type,client_id,summary").gte("intervention_date", `${year - 1}-01-01`).order("intervention_date", { ascending: false }).limit(80),
       supabase.from("worksite_sheets").select("client_name,intervention_date,intervenant").order("intervention_date", { ascending: false }).limit(40),
       supabase.from("garden_health").select("client_id,rating,zone,assessed_on").order("assessed_on", { ascending: false }).limit(30),
     ]);
-    void chargesRes;
 
     type CaRow = { year: number; month: number; kind: string; designation: string | null; category: string | null; amount_ht: number; hours: number | null; note: string | null };
     const ca = (caRes.data ?? []) as unknown as CaRow[];
