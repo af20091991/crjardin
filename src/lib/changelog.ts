@@ -26,6 +26,19 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-07-29",
+    version: "1.15.0",
+    theme: "Général",
+    title: "Journal SST, contrats CEEV, page Aujourd'hui & validation analytique",
+    details: [
+      "Import du fichier Excel de référence : journal SST 2026 (12 missions, 4 sous-traitants) et 22 contrats CEEV 2023-2025.",
+      "Nouvelle page « Journal SST » et réorganisation du menu SST Pro (Sous-traitants / Journal SST).",
+      "Nouvelle page « CEEV — contrats d'entretien » avec rapprochement client et suivi des renouvellements.",
+      "Page « Aujourd'hui » : suppression du CA vs Objectif, ajout de nouveaux indicateurs de temps, priorités cliquables, alertes marquables « Vu » et notables de 1 à 5.",
+      "Validation analytique : classement rapide en « Autre charge variable », action groupée par sélection multiple et compteur de lignes restantes.",
+    ],
+  },
+  {
     date: "2026-07-07",
     version: "1.14.0",
     theme: "Général",

@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { PilotCard } from "@/components/pilot/PilotCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { computeKpis, clientStatsWithHours, formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
 import { listAllInterventions } from "@/lib/interventions";
 import { listAllRecommendations } from "@/lib/garden";
@@ -13,7 +15,7 @@ import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES, fetchClientActivityRows } from "@/lib/client-activity";
 import { realHourlyRateFromResolution, marginPct, periodComparison } from "@/lib/pilot-reliability";
-import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
+import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-hours";
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { CaStatusCard } from "@/components/pilot/CaStatusCard";
@@ -28,6 +30,15 @@ import { classifyClients } from "@/lib/pilot-client-profitability";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
 import { annualSummary } from "@/lib/pilot-annual";
+import {
+  listAlertFeedback,
+  markAlertSeen,
+  rateAlert,
+  alertKeyFrom,
+  averageRating,
+  type AlertFeedback,
+} from "@/lib/pilot-alert-feedback";
+import { toast } from "sonner";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import {
   ResponsiveContainer,
@@ -56,6 +67,10 @@ import {
   Leaf,
   Flag,
   Link2,
+  Star,
+  Eye,
+  Timer,
+  Scale,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/")({
@@ -137,6 +152,30 @@ function TodayPage() {
       if (error) throw error;
       return (data ?? []) as unknown as NBOffer[];
     },
+  });
+
+  const alertFeedback = useQuery({
+    queryKey: ["pilot-alert-feedback"],
+    queryFn: listAlertFeedback,
+  });
+  const queryClient = useQueryClient();
+  const seenMutation = useMutation({
+    mutationFn: ({ alertKey, seen }: { alertKey: string; seen: boolean }) =>
+      markAlertSeen(alertKey, seen),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["pilot-alert-feedback"] });
+      toast.success(vars.seen ? "Alerte marquée comme vue" : "Alerte remise en attention");
+    },
+    onError: () => toast.error("Impossible d'enregistrer ce retour"),
+  });
+  const rateMutation = useMutation({
+    mutationFn: ({ alertKey, rating }: { alertKey: string; rating: number }) =>
+      rateAlert(alertKey, rating),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pilot-alert-feedback"] });
+      toast.success("Merci pour votre retour");
+    },
+    onError: () => toast.error("Impossible d'enregistrer la note"),
   });
 
   const loading =
@@ -528,6 +567,17 @@ function TodayPage() {
   const tauxEcartPct =
     realRate.available && targetHR > 0 ? ((realRate.value - targetHR) / targetHR) * 100 : 0;
 
+  // Heures vendues du mois en cours (ledger consolidé, mode Réel/Projection).
+  const heuresVenduesMois = useMemo(
+    () =>
+      ledgerRows
+        .filter((e) => e.type === "vendue" && e.year === year && e.month === month + 1)
+        .reduce((s, e) => s + e.hours, 0),
+    [ledgerRows, year, month],
+  );
+  const heuresVenduesAnnee = hoursResolution?.vendues ?? 0;
+  const ecartHeures = hoursResolution && hoursResolution.hours > 0 ? hoursResolution.ecart : null;
+
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
     key: string;
@@ -655,10 +705,11 @@ function TodayPage() {
     to?: string;
     topic?: FocusTopic;
   };
-  const attentions: Attention[] = [];
+  const attentionsRaw: Attention[] = [];
+  const attentions = attentionsRaw;
 
   if (caComparison.available && caComparison.value <= -thresholds.baisseActivitePct) {
-    attentions.push({
+    attentionsRaw.push({
       key: "activite",
       label: "Baisse d'activité",
       detail: `CA du mois en recul de ${Math.abs(caComparison.value).toFixed(0)} % vs ${year - 1}.`,
@@ -667,7 +718,7 @@ function TodayPage() {
     });
   }
   if (goalsLate.length > 0) {
-    attentions.push({
+    attentionsRaw.push({
       key: "objectifs",
       label: "Objectif en retard",
       detail: `${goalsLate.length} objectif(s) dont l'échéance est dépassée.`,
@@ -679,7 +730,7 @@ function TodayPage() {
     const derive =
       ((projection.chargesReelles - chargesPrevYearProrata) / chargesPrevYearProrata) * 100;
     if (derive >= thresholds.deriveChargesPct) {
-      attentions.push({
+      attentionsRaw.push({
         key: "charges",
         label: "Dérive des charges",
         detail: `Charges à date ${formatEuro(projection.chargesReelles)} soit +${derive.toFixed(0)} % vs même période ${year - 1}.`,
@@ -690,7 +741,7 @@ function TodayPage() {
   }
   const clientsChronophages = clientsProfit.filter((c) => c.classe === "chronophage");
   if (clientsChronophages.length > 0) {
-    attentions.push({
+    attentionsRaw.push({
       key: "clients",
       label: "Client à surveiller",
       detail: `${clientsChronophages.length} client(s) chronophages — ex. ${clientsChronophages[0].name}.`,
@@ -700,7 +751,7 @@ function TodayPage() {
   }
   const servicesFaibles = services.filter((s) => s.classe === "faible");
   if (servicesFaibles.length > 0) {
-    attentions.push({
+    attentionsRaw.push({
       key: "prestations",
       label: "Prestation peu rentable",
       detail: `${servicesFaibles.length} prestation(s) sous la cible — ex. ${servicesFaibles[0].prestation}.`,
@@ -708,6 +759,26 @@ function TodayPage() {
       to: "/pilot/prestations",
     });
   }
+
+  // Enrichissement des alertes avec le retour utilisateur persisté :
+  // clé stable dérivée du contenu, jamais recalculée localement au-delà du tri/affichage.
+  const feedbackByKey = useMemo(() => {
+    const map = new Map<string, AlertFeedback>();
+    for (const f of alertFeedback.data ?? []) map.set(f.alert_key, f);
+    return map;
+  }, [alertFeedback.data]);
+  const attentionsWithFeedback = useMemo(
+    () =>
+      attentionsRaw
+        .map((a) => {
+          const alertKey = alertKeyFrom(a);
+          const feedback = feedbackByKey.get(alertKey);
+          return { ...a, alertKey, seen: Boolean(feedback?.seen_at), rating: feedback?.rating ?? null };
+        })
+        .sort((a, b) => Number(a.seen) - Number(b.seen)),
+    [attentionsRaw, feedbackByKey],
+  );
+  const alertsAvgRating = useMemo(() => averageRating(alertFeedback.data ?? []), [alertFeedback.data]);
 
   // ---- Opportunités préparées ----
   const prestationsADevelopper = services
@@ -809,26 +880,18 @@ function TodayPage() {
             sub={`CA ${formatEuro(caLecture)} − charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`}
           />
           <PilotCard
-            label="Progression annuelle"
-            value={progressionAnnuelle == null ? "—" : `${progressionAnnuelle.toFixed(0)} %`}
-            icon={CheckCircle2}
-            to="/pilot/objectifs"
-            progress={progressionAnnuelle ?? undefined}
-            tone={
-              progressionAnnuelle == null
-                ? "default"
-                : progressionAnnuelle >= 100
-                  ? "positive"
-                  : progressionAnnuelle >= 60
-                    ? "default"
-                    : "warning"
-            }
-            help={`Objectif annuel = CA de ${year - 1} (référentiel factuel, aucune saisie). Décision : renforcer la prospection si la progression décroche de l'avancement du calendrier.`}
-            sub={
-              objectifAnnuel > 0
-                ? `Objectif ${formatEuro(objectifAnnuel)}${objectifMois > 0 ? ` · mois : ${avancement.toFixed(0)} % de ${formatEuro(objectifMois)}` : ""}`
-                : "Pas d'historique N-1"
-            }
+            label={`Heures vendues ${year}`}
+            value={hoursLedger.data ? formatHours(heuresVenduesAnnee) : "—"}
+            icon={Timer}
+            to="/pilot/ca"
+            help="Somme des heures déclarées sur les lignes de vente du suivi CA sur l'exercice en cours (mode Réel/Projection). Source unique : ledger consolidé des heures."
+          />
+          <PilotCard
+            label="Heures vendues ce mois"
+            value={hoursLedger.data ? formatHours(heuresVenduesMois) : "—"}
+            icon={Clock}
+            to="/pilot/ca"
+            help="Somme des heures déclarées sur les lignes de vente du mois en cours. Permet de suivre le rythme de vente du mois."
           />
           <PilotCard
             label="Taux horaire réel"
@@ -855,11 +918,22 @@ function TodayPage() {
                   : realRate.detail
             }
           />
+          {ecartHeures != null && (
+            <PilotCard
+              label="Écart heures vendues / réelles"
+              value={`${ecartHeures >= 0 ? "+" : ""}${formatHours(ecartHeures)}`}
+              icon={Scale}
+              to="/pilot/direction"
+              help={`Heures réelles retenues : ${hoursResolution?.sourceLabel} (${hoursResolution?.sourceDetail}). Un écart négatif signale un temps réel supérieur au vendu.`}
+              sub={hoursResolution?.sourceLabel}
+              tone={ecartHeures < 0 ? "warning" : "default"}
+            />
+          )}
         </div>
       </section>
 
-      {/* Graphiques — évolution de l'exercice en cours */}
-      <section className="grid gap-3 md:grid-cols-2">
+      {/* Graphique — évolution de l'exercice en cours */}
+      <section className="grid gap-3">
         <PilotCard
           label={`CA mensuel ${year}${isProjection ? " (réel + projeté)" : ""}`}
           icon={Euro}
@@ -874,26 +948,6 @@ function TodayPage() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="ca" name="CA" fill={PP_COLORS.sales} radius={[3, 3, 0, 0]} />
                   <Bar dataKey="charges" name="Charges" fill={PP_COLORS.charges} radius={[3, 3, 0, 0]} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          }
-        />
-        <PilotCard
-          label={`CA cumulé ${year} vs objectif`}
-          icon={Flag}
-          to="/pilot/objectifs"
-          help={`Cumul du CA mois après mois comparé à la trajectoire de l'objectif annuel (CA ${year - 1} réparti linéairement). Décision : agir sur le trimestre en cours si la courbe décroche de l'objectif.`}
-          content={
-            <ChartContainer config={{}} className="mt-3 h-[220px] w-full">
-              <ResponsiveContainer>
-                <ComposedChart data={monthlyChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="mois" tickLine={false} axisLine={false} fontSize={11} />
-                  <YAxis tickLine={false} axisLine={false} fontSize={11} width={40} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line type="monotone" dataKey="cumule" name="CA cumulé" stroke={PP_COLORS.primary} strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="objectifCumule" name="Objectif cumulé" stroke={PP_COLORS.sales} strokeWidth={2} strokeDasharray="4 4" dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -938,36 +992,77 @@ function TodayPage() {
 
       {/* 3 — Quels risques dois-je traiter ? */}
       <section className="space-y-2">
-        <SectionTitle question="Points d'attention" label="Alertes expliquées" />
-        {attentions.length > 0 && (
+        <SectionTitle
+          question="Points d'attention"
+          label={
+            alertsAvgRating != null
+              ? `Alertes expliquées · pertinence moyenne ${alertsAvgRating.toFixed(1)}/5`
+              : "Alertes expliquées"
+          }
+        />
+        {attentionsWithFeedback.length > 0 && (
           <div className="grid gap-2 md:grid-cols-2">
-            {attentions.map((a) => {
-              const body = (
-                <Card className="h-full border-orange-200 bg-orange-50/40 p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 shrink-0 text-orange-700" />
-                    <p className="text-sm font-medium">{a.label}</p>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{a.detail}</p>
-                  <p className="mt-2 rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                      Pourquoi PP affiche cette information ?{" "}
-                    </span>
-                    {a.why}
-                  </p>
-                </Card>
-              );
-              if (a.topic) {
-                return (
-                  <Link key={a.key} to="/pilot/focus/$topic" params={{ topic: a.topic }}>
-                    {body}
-                  </Link>
-                );
-              }
+            {attentionsWithFeedback.map((a) => {
+              const destination = a.topic
+                ? ({ to: "/pilot/focus/$topic", params: { topic: a.topic } } as const)
+                : ({ to: (a.to ?? "/pilot") as string } as const);
               return (
-                <Link key={a.key} to={(a.to ?? "/pilot") as string}>
-                  {body}
-                </Link>
+                <Card
+                  key={a.key}
+                  className={cn(
+                    "h-full border-orange-200 bg-orange-50/40 p-4 transition-all",
+                    a.seen && "border-border bg-muted/30 opacity-60",
+                  )}
+                >
+                  <Link
+                    {...destination}
+                    className="block cursor-pointer rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:-translate-y-0.5"
+                  >
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className={cn("h-4 w-4 shrink-0", a.seen ? "text-muted-foreground" : "text-orange-700")} />
+                      <p className="text-sm font-medium">{a.label}</p>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{a.detail}</p>
+                    <p className="mt-2 rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        Pourquoi PP affiche cette information ?{" "}
+                      </span>
+                      {a.why}
+                    </p>
+                  </Link>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/60 pt-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={a.seen ? "secondary" : "outline"}
+                      className="h-7 gap-1 text-xs"
+                      onClick={() => seenMutation.mutate({ alertKey: a.alertKey, seen: !a.seen })}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      {a.seen ? "Vue" : "Marquer vue"}
+                    </Button>
+                    <div className="ml-auto flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          title={`Noter ${n}/5`}
+                          className="rounded p-0.5 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          onClick={() => rateMutation.mutate({ alertKey: a.alertKey, rating: n })}
+                        >
+                          <Star
+                            className={cn(
+                              "h-3.5 w-3.5",
+                              a.rating != null && n <= a.rating
+                                ? "fill-primary text-primary"
+                                : "text-muted-foreground",
+                            )}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
               );
             })}
           </div>
@@ -1166,7 +1261,7 @@ function PriorityRow({
   search?: Record<string, string>;
 }) {
   const inner = (
-    <Card className="flex items-center gap-3 p-3 transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <Card className="flex cursor-pointer items-center gap-3 p-3 transition-all hover:-translate-y-0.5 hover:shadow-md focus-within:ring-2 focus-within:ring-ring">
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 font-serif text-sm font-semibold text-primary">
         {rank}
       </span>
@@ -1205,7 +1300,7 @@ function RiskCard({
 }) {
   return (
     <Link to="/pilot/focus/$topic" params={{ topic }}>
-      <Card className="h-full border-orange-200 bg-orange-50/40 p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
+      <Card className="h-full cursor-pointer border-orange-200 bg-orange-50/40 p-4 transition-all hover:-translate-y-0.5 hover:shadow-md focus-within:ring-2 focus-within:ring-ring">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
             <Icon className="h-4 w-4 text-orange-700" />

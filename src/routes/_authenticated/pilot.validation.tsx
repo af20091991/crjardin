@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, RotateCcw, StickyNote } from "lucide-react";
+import { Check, Layers, RotateCcw, StickyNote } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -18,6 +19,8 @@ import { toast } from "sonner";
 import { PilotCard } from "@/components/pilot/PilotCard";
 import { CHARGE_CLASS_LABELS, listChargeCategories, type ChargeClass } from "@/lib/pilot-charges";
 import {
+  classifyAsOtherVariable,
+  classifyManyAsOtherVariable,
   listPendingValidation,
   setLineCategory,
   setValidation,
@@ -56,6 +59,7 @@ function ValidationPage() {
   const [reasonFilter, setReasonFilter] = useState<ValidationReason | "all">("all");
   const [search, setSearch] = useState("");
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data: lines = [], isLoading } = useQuery({
     queryKey: ["pilot-validation"],
@@ -97,6 +101,25 @@ function ValidationPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const quickOtherVariable = useMutation({
+    mutationFn: (id: string) => classifyAsOtherVariable(id),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Classée en « Autre charge variable »");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const bulkOtherVariable = useMutation({
+    mutationFn: (ids: string[]) => classifyManyAsOtherVariable(ids),
+    onSuccess: (_d, ids) => {
+      invalidate();
+      setSelected(new Set());
+      toast.success(`${ids.length} ligne(s) classée(s) en « Autre charge variable »`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return lines.filter((l) => {
@@ -118,6 +141,26 @@ function ValidationPage() {
     };
   }, [filtered, lines]);
 
+  const visibleRows = filtered.slice(0, 300);
+  const selectableIds = visibleRows.filter((l) => l.kind === "charge").map((l) => l.id);
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
+
+  const toggleAll = () => {
+    setSelected((prev) => {
+      if (allSelected) return new Set();
+      return new Set(selectableIds);
+    });
+  };
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-6">
       <header className="space-y-1">
@@ -129,7 +172,7 @@ function ValidationPage() {
       </header>
 
       <div className="grid gap-3 sm:grid-cols-4">
-        <PilotCard storageId="valid-count" label="Lignes à traiter" value={String(totals.count)} sub="selon le filtre actif" />
+        <PilotCard storageId="valid-count" label="Lignes restantes" value={String(totals.count)} sub="selon le filtre actif" />
         <PilotCard storageId="valid-amount" label="Montant concerné" value={euro(totals.amount)} sub="valeur absolue" />
         <PilotCard storageId="valid-review" label="Marquées à revoir" value={String(totals.toReview)} tone="negative" />
         <PilotCard
@@ -143,8 +186,11 @@ function ValidationPage() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Lignes en attente</CardTitle>
-          <div className="flex flex-wrap gap-2 pt-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">Lignes en attente</CardTitle>
+            <span className="text-sm text-muted-foreground">{totals.count} restante(s)</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pt-2">
             <Select value={reasonFilter} onValueChange={(v) => setReasonFilter(v as ValidationReason | "all")}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="Motif" />
@@ -164,6 +210,18 @@ function ValidationPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            {selected.size > 0 && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="gap-1"
+                onClick={() => bulkOtherVariable.mutate([...selected])}
+                disabled={bulkOtherVariable.isPending}
+              >
+                <Layers className="h-4 w-4" />
+                Classer la sélection ({selected.size}) en « Autre charge variable »
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -178,6 +236,14 @@ function ValidationPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={toggleAll}
+                        disabled={selectableIds.length === 0}
+                        aria-label="Sélectionner toutes les charges affichées"
+                      />
+                    </TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Libellé d'origine</TableHead>
                     <TableHead className="text-right">Montant</TableHead>
@@ -187,17 +253,20 @@ function ValidationPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.slice(0, 300).map((l) => (
+                  {visibleRows.map((l) => (
                     <ValidationRow
                       key={l.id}
                       line={l}
                       categories={categories}
+                      selected={selected.has(l.id)}
+                      onToggleSelect={() => toggleOne(l.id)}
                       noteDraft={noteDraft[l.id] ?? l.validation_note ?? ""}
                       onNoteChange={(v) => setNoteDraft((s) => ({ ...s, [l.id]: v }))}
                       onValidate={() => validate.mutate({ id: l.id, status: "valide", note: noteDraft[l.id] ?? l.validation_note })}
                       onReview={() => validate.mutate({ id: l.id, status: "a_revoir", note: noteDraft[l.id] ?? l.validation_note })}
                       onSaveNote={() => saveNote.mutate({ id: l.id, note: noteDraft[l.id] ?? "" })}
                       onRecategorize={(cls, label) => recategorize.mutate({ id: l.id, cls, label })}
+                      onQuickOtherVariable={() => quickOtherVariable.mutate(l.id)}
                     />
                   ))}
                 </TableBody>
@@ -218,28 +287,40 @@ function ValidationPage() {
 function ValidationRow({
   line,
   categories,
+  selected,
+  onToggleSelect,
   noteDraft,
   onNoteChange,
   onValidate,
   onReview,
   onSaveNote,
   onRecategorize,
+  onQuickOtherVariable,
 }: {
   line: PendingValidationLine;
   categories: { label: string; charge_class: ChargeClass }[];
+  selected: boolean;
+  onToggleSelect: () => void;
   noteDraft: string;
   onNoteChange: (v: string) => void;
   onValidate: () => void;
   onReview: () => void;
   onSaveNote: () => void;
   onRecategorize: (cls: ChargeClass, label: string) => void;
+  onQuickOtherVariable: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const isRemu = line.reasons.includes("remuneration_dirigeant");
+  const isCharge = line.kind === "charge";
 
   return (
     <>
       <TableRow className={line.validation_status === "a_revoir" ? "bg-destructive/5" : undefined}>
+        <TableCell>
+          {isCharge && (
+            <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label="Sélectionner cette ligne" />
+          )}
+        </TableCell>
         <TableCell className="whitespace-nowrap text-sm">
           {String(line.month).padStart(2, "0")}/{line.year}
         </TableCell>
@@ -267,7 +348,7 @@ function ValidationRow({
           ))}
         </TableCell>
         <TableCell className="whitespace-nowrap">
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             <Button size="sm" variant="outline" onClick={onValidate} title="Valider">
               <Check className="h-4 w-4" />
             </Button>
@@ -277,12 +358,17 @@ function ValidationRow({
             <Button size="sm" variant="ghost" onClick={() => setOpen((o) => !o)} title="Note / catégorie">
               <StickyNote className="h-4 w-4" />
             </Button>
+            {isCharge && !isRemu && (
+              <Button size="sm" variant="outline" onClick={onQuickOtherVariable} title="Classer en « Autre charge variable »">
+                Autre charge variable
+              </Button>
+            )}
           </div>
         </TableCell>
       </TableRow>
       {open && (
         <TableRow>
-          <TableCell colSpan={6} className="bg-muted/40">
+          <TableCell colSpan={7} className="bg-muted/40">
             <div className="flex flex-wrap items-center gap-2 py-2">
               <Input
                 className="w-72"

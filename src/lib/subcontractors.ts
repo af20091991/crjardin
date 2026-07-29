@@ -64,6 +64,9 @@ export interface SubcontractorMission {
   prestation: string | null;
   invoice_ref: string | null;
   hours_saved: number | null;
+  autonomy: string | null;
+  parallel_worksite: string | null;
+  import_source: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -74,7 +77,10 @@ type MissionOptionalKeys =
   | "category"
   | "prestation"
   | "invoice_ref"
-  | "hours_saved";
+  | "hours_saved"
+  | "autonomy"
+  | "parallel_worksite"
+  | "import_source";
 
 export type MissionInput = Omit<
   SubcontractorMission,
