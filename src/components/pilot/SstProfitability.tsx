@@ -51,6 +51,13 @@ import { listClients } from "@/lib/clients";
 import { listChargeRows, listSalesByYear } from "@/lib/pilot-charges";
 import { sstByProvider, sstChargeLines, sstChargeTotals } from "@/lib/sst-charges";
 import {
+  applySstLabelMap,
+  deleteSstLabelMapping,
+  listSstLabelMap,
+  upsertSstLabelMapping,
+} from "@/lib/sst-provider-map";
+import { sstDuplicateReport, sstDuplicateTotal } from "@/lib/sst-duplicates";
+import {
   byMonth,
   byPrestation,
   bySubcontractor,
@@ -98,6 +105,7 @@ export function SstProfitabilityTab() {
   });
   const { data: audit = [] } = useQuery({ queryKey: ["sst-audit"], queryFn: () => listSstAudit(80) });
   const { data: chargeRows = [] } = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
+  const { data: labelMap = [] } = useQuery({ queryKey: ["sst-label-map"], queryFn: listSstLabelMap });
   const { data: salesByYear } = useQuery({
     queryKey: ["pilot-sales-by-year", mode],
     queryFn: () => listSalesByYear({ mode }),
@@ -138,6 +146,33 @@ export function SstProfitabilityTab() {
     [chargeRows, missions, clients, year],
   );
   const chargeProviders = useMemo(() => sstByProvider(chargeLines), [chargeLines]);
+  const mappedLines = useMemo(
+    () => applySstLabelMap(chargeLines, labelMap, ssts),
+    [chargeLines, labelMap, ssts],
+  );
+  // Rapport de doublons : toutes années confondues, signalement seul.
+  const duplicateGroups = useMemo(
+    () => sstDuplicateReport(sstChargeLines({ chargeRows, missions, clients, year: "all" })),
+    [chargeRows, missions, clients],
+  );
+  const duplicateTotal = useMemo(() => sstDuplicateTotal(duplicateGroups), [duplicateGroups]);
+
+  const mapMutation = useMutation({
+    mutationFn: async (v: { raw_label: string; subcontractor_id: string | null }) => {
+      if (!v.subcontractor_id) return deleteSstLabelMapping(v.raw_label);
+      const name = ssts.find((s) => s.id === v.subcontractor_id)?.name ?? null;
+      return upsertSstLabelMapping({
+        raw_label: v.raw_label,
+        subcontractor_id: v.subcontractor_id,
+        provider_name: name,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sst-label-map"] });
+      toast.success("Correspondance enregistrée");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const caPeriod = useMemo(() => {
     if (!salesByYear) return null;
     if (year === "all") return [...salesByYear.values()].reduce((s, v) => s + v, 0);
