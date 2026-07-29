@@ -58,6 +58,12 @@ export interface SubcontractorMission {
   agreed_price: number | null;
   invoiced_amount: number | null;
   client_price: number | null;
+  archived_at: string | null;
+  payment_method: string | null;
+  category: string | null;
+  prestation: string | null;
+  invoice_ref: string | null;
+  hours_saved: number | null;
   created_at: string;
   updated_at: string;
 }
