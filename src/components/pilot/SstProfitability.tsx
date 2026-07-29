@@ -539,6 +539,60 @@ export function SstProfitabilityTab() {
 
       <Card>
         <CardHeader className="pb-2">
+          <CardTitle className="text-base">Doublons potentiels de sous-traitance (rapport)</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Lignes identiques (même libellé, même mois, même montant) présentes sur plusieurs
+            exercices — typiquement une recopie d'année lors des imports. Signalement uniquement :
+            aucune ligne n'est supprimée ni modifiée.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {duplicateGroups.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Aucun doublon potentiel détecté.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm">
+                <strong>{duplicateGroups.length}</strong> groupe(s) suspect(s) — montant
+                potentiellement compté en double :{" "}
+                <strong style={{ color: PP_COLORS.charges }}>{formatEuro(duplicateTotal)}</strong>
+              </p>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Libellé</TableHead>
+                      <TableHead>Mois</TableHead>
+                      <TableHead>Exercices concernés</TableHead>
+                      <TableHead className="text-right">Montant unitaire</TableHead>
+                      <TableHead className="text-right">Écart potentiel</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {duplicateGroups.map((g) => (
+                      <TableRow key={g.key}>
+                        <TableCell>{g.designation}</TableCell>
+                        <TableCell>{String(g.month).padStart(2, "0")}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{g.years.join(" / ")}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{formatEuro(g.amount)}</TableCell>
+                        <TableCell className="text-right" style={{ color: PP_COLORS.charges }}>
+                          {formatEuro(g.suspectedAmount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">Détail des missions sous-traitées</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
