@@ -30,8 +30,6 @@ import {
   type SubcontractorSummary,
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
-import { SstProfitabilityTab } from "@/components/pilot/SstProfitability";
-import { PilotModeProvider } from "@/lib/pilot-mode";
 import { HardHat, Plus, Pencil, Trash2, Phone, Mail, MapPin, Euro, ClipboardList, Star, TrendingUp, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 
@@ -57,18 +55,12 @@ function SstPage() {
           <TabsList>
             <TabsTrigger value="missions">Missions</TabsTrigger>
             <TabsTrigger value="carnet">Carnet SST</TabsTrigger>
-            <TabsTrigger value="rentabilite">Rentabilité SST</TabsTrigger>
           </TabsList>
           <TabsContent value="missions">
             <MissionsTab />
           </TabsContent>
           <TabsContent value="carnet">
             <CarnetTab />
-          </TabsContent>
-          <TabsContent value="rentabilite">
-            <PilotModeProvider>
-              <SstProfitabilityTab />
-            </PilotModeProvider>
           </TabsContent>
         </Tabs>
       </div>
