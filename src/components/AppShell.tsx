@@ -86,6 +86,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/charges", label: "Charges", short: "Charges", icon: Receipt, exact: false, primary: false },
             { to: "/pilot/clients", label: "Rentabilité", short: "Rentab.", icon: Users, exact: false, primary: false },
             { to: "/pilot/prestations", label: "Prestations", short: "Prestat.", icon: BarChart3, exact: false, primary: false },
+            { to: "/pilot/ceev", label: "CEEV", short: "CEEV", icon: ClipboardList, exact: false, primary: false },
             { to: "/pilot/taux", label: "Taux horaire", short: "Taux", icon: Clock, exact: false, primary: false },
             { to: "/pilot/sante", label: "Santé", short: "Santé", icon: HeartPulse, exact: false, primary: false },
             { to: "/pilot/saison", label: "Prévisions", short: "Prévis.", icon: CalendarRange, exact: false, primary: false },
@@ -102,6 +103,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       items: canEdit
         ? [
             { to: "/interventions", label: "Comptes-rendus", short: "CR", icon: FileText, exact: false, primary: false },
+            { to: "/fiches", label: "Fiches chantier", short: "Fiches", icon: ClipboardList, exact: false, primary: false },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Réservé",
@@ -111,7 +113,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       items: canEdit
         ? [
             { to: "/sst", label: "Sous-traitants", short: "SST", icon: HardHat, exact: false, primary: false },
-            { to: "/fiches", label: "Fiches SST", short: "Fiches", icon: ClipboardList, exact: false, primary: false },
+            { to: "/journal-sst", label: "Journal SST", short: "Journal", icon: ClipboardList, exact: false, primary: false },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Bientôt disponible",
