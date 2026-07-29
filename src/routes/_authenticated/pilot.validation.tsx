@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Layers, RotateCcw, StickyNote } from "lucide-react";
+import { ArrowRight, Check, Layers, RotateCcw, StickyNote } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -29,6 +31,22 @@ import {
   type PendingValidationLine,
   type ValidationReason,
 } from "@/lib/pilot-validation";
+import { listCeevContracts } from "@/lib/ceev";
+import { listChargeRows } from "@/lib/pilot-charges";
+import { listMissions } from "@/lib/subcontractors";
+import { listClients } from "@/lib/clients";
+import { sstChargeLines } from "@/lib/sst-charges";
+import { applySstLabelMap, listSstLabelMap } from "@/lib/sst-provider-map";
+import { CONFIDENCE_META } from "@/lib/pilot-confidence";
+import {
+  buildValidationItems,
+  DOMAIN_LABELS,
+  loadCategoryMemory,
+  memorySuggestion,
+  validationSummary,
+  type ValidationDomain,
+  type ValidationItem,
+} from "@/lib/pilot-validation-center";
 
 export const Route = createFileRoute("/_authenticated/pilot/validation")({
   head: () => ({
@@ -60,6 +78,7 @@ function ValidationPage() {
   const [search, setSearch] = useState("");
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [domain, setDomain] = useState<ValidationDomain>("ca");
 
   const { data: lines = [], isLoading } = useQuery({
     queryKey: ["pilot-validation"],
@@ -69,6 +88,32 @@ function ValidationPage() {
     queryKey: ["pilot-charge-categories"],
     queryFn: listChargeCategories,
   });
+  const { data: contracts = [] } = useQuery({ queryKey: ["ceev-contracts"], queryFn: listCeevContracts });
+  const { data: chargeRows = [] } = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
+  const { data: missions = [] } = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
+  const { data: clientList = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const { data: sstMap = [] } = useQuery({ queryKey: ["sst-label-map"], queryFn: listSstLabelMap });
+  const { data: memory } = useQuery({ queryKey: ["pilot-category-memory"], queryFn: loadCategoryMemory });
+
+  const sstLines = useMemo(
+    () =>
+      applySstLabelMap(
+        sstChargeLines({
+          chargeRows,
+          missions,
+          clients: clientList.map((c) => ({ id: c.id, name: c.name })),
+        }),
+        sstMap,
+      ),
+    [chargeRows, missions, clientList, sstMap],
+  );
+
+  const items = useMemo(
+    () => buildValidationItems({ caLines: lines, contracts, sstLines, memory }),
+    [lines, contracts, sstLines, memory],
+  );
+  const analysed = chargeRows.length + contracts.length + sstLines.length;
+  const summary = useMemo(() => validationSummary(items, Math.max(analysed, items.length)), [items, analysed]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["pilot-validation"] });
 
@@ -164,30 +209,76 @@ function ValidationPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="font-display text-2xl font-semibold">Validation analytique</h1>
+        <h1 className="font-display text-2xl font-semibold">Centre de validation</h1>
         <p className="text-sm text-muted-foreground">
-          Lignes financières en attente d'une décision humaine. Aucune donnée n'est classée
-          automatiquement : montants, dates et libellés d'origine restent intacts.
+          Un seul écran pour tout ce qui attend une décision : lignes financières, contrats
+          d'entretien et sous-traitance. Aucune donnée n'est classée automatiquement — montants,
+          dates et libellés d'origine restent intacts.
         </p>
       </header>
 
       <div className="grid gap-3 sm:grid-cols-4">
-        <PilotCard storageId="valid-count" label="Lignes restantes" value={String(totals.count)} sub="selon le filtre actif" />
-        <PilotCard storageId="valid-amount" label="Montant concerné" value={euro(totals.amount)} sub="valeur absolue" />
-        <PilotCard storageId="valid-review" label="Marquées à revoir" value={String(totals.toReview)} tone="negative" />
         <PilotCard
-          storageId="valid-remu"
-          label="Rémunération"
-          value={euro(totals.remuAmount)}
-          sub={`${totals.remuCount} ligne(s) — hors charges d'exploitation`}
-          help="Les lignes de rémunération sont exclues du classement charges fixes / variables. Le coût entreprise se calcule sur le net saisi + 45 % de cotisations."
+          storageId="valid-count"
+          label="Éléments à traiter"
+          value={String(summary.total)}
+          sub={`${summary.byDomain.ca} financiers · ${summary.byDomain.ceev} CEEV · ${summary.byDomain.sst} SST`}
+          audit={{
+            sources: ["Lignes financières", "Contrats CEEV", "Charges de sous-traitance"],
+            calcul: "Somme des éléments dont la confiance est inférieure à 100 %.",
+          }}
         />
+        <PilotCard
+          storageId="valid-amount"
+          label="Montant concerné"
+          value={euro(summary.montant)}
+          sub="valeur absolue des éléments en attente"
+        />
+        <PilotCard
+          storageId="valid-confidence"
+          label="Données fiables"
+          value={`${Math.round(summary.coveragePct)} %`}
+          sub={`${summary.incertain} incertain(s) · ${summary.aVerifier} à vérifier`}
+          tone={summary.coveragePct >= 95 ? "positive" : summary.coveragePct >= 70 ? "warning" : "negative"}
+          audit={{
+            sources: ["Moteur de confiance Pilot Pro"],
+            calcul:
+              "Part des éléments analysés ne nécessitant aucune décision. Fiable ≥ 95 %, à vérifier 70-94 %, incertain < 70 %.",
+          }}
+        />
+        <PilotCard storageId="valid-review" label="Marquées à revoir" value={String(totals.toReview)} tone="negative" />
       </div>
 
+      <Tabs value={domain} onValueChange={(v) => setDomain(v as ValidationDomain)}>
+        <TabsList>
+          {(Object.keys(DOMAIN_LABELS) as ValidationDomain[]).map((d) => (
+            <TabsTrigger key={d} value={d}>
+              {DOMAIN_LABELS[d]} ({summary.byDomain[d]})
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        <TabsContent value="ceev" className="pt-4">
+          <PendingList
+            items={items.filter((i) => i.domain === "ceev")}
+            empty="Tous les contrats d'entretien sont rattachés et validés."
+            cta="Ouvrir la page CEEV"
+          />
+        </TabsContent>
+
+        <TabsContent value="sst" className="pt-4">
+          <PendingList
+            items={items.filter((i) => i.domain === "sst")}
+            empty="Aucun libellé de sous-traitance en attente de confirmation."
+            cta="Ouvrir le journal SST"
+          />
+        </TabsContent>
+
+        <TabsContent value="ca" className="pt-4">
       <Card>
         <CardHeader className="pb-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle className="text-base">Lignes en attente</CardTitle>
+            <CardTitle className="text-base">Lignes financières en attente</CardTitle>
             <span className="text-sm text-muted-foreground">{totals.count} restante(s)</span>
           </div>
           <div className="flex flex-wrap items-center gap-2 pt-2">
@@ -258,6 +349,7 @@ function ValidationPage() {
                       key={l.id}
                       line={l}
                       categories={categories}
+                      suggestion={memory ? memorySuggestion(l.designation, memory) : null}
                       selected={selected.has(l.id)}
                       onToggleSelect={() => toggleOne(l.id)}
                       noteDraft={noteDraft[l.id] ?? l.validation_note ?? ""}
@@ -280,6 +372,50 @@ function ValidationPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function PendingList({ items, empty, cta }: { items: ValidationItem[]; empty: string; cta: string }) {
+  if (items.length === 0) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="py-8 text-center text-sm text-muted-foreground">{empty}</CardContent>
+      </Card>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {items.slice(0, 200).map((i) => (
+        <Card key={i.id}>
+          <CardContent className="flex flex-wrap items-center gap-3 py-4">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{i.title}</p>
+              <p className="truncate text-xs text-muted-foreground">{i.detail}</p>
+              {i.confidence.reasons.length > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">{i.confidence.reasons.join(" · ")}</p>
+              )}
+            </div>
+            {i.amount != null && (
+              <span className="tabular-nums text-sm">{euro(i.amount)}</span>
+            )}
+            <Badge variant="outline" className={CONFIDENCE_META[i.confidence.level].badge}>
+              {CONFIDENCE_META[i.confidence.level].label} · {i.confidence.score} %
+            </Badge>
+            <Link
+              to={i.to}
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              {cta} <ArrowRight className="h-3 w-3" />
+            </Link>
+          </CardContent>
+        </Card>
+      ))}
+      {items.length > 200 && (
+        <p className="text-xs text-muted-foreground">Affichage limité à 200 éléments ({items.length} au total).</p>
+      )}
     </div>
   );
 }
@@ -287,6 +423,7 @@ function ValidationPage() {
 function ValidationRow({
   line,
   categories,
+  suggestion,
   selected,
   onToggleSelect,
   noteDraft,
@@ -299,6 +436,7 @@ function ValidationRow({
 }: {
   line: PendingValidationLine;
   categories: { label: string; charge_class: ChargeClass }[];
+  suggestion: string | null;
   selected: boolean;
   onToggleSelect: () => void;
   noteDraft: string;
@@ -325,6 +463,9 @@ function ValidationRow({
           {String(line.month).padStart(2, "0")}/{line.year}
         </TableCell>
         <TableCell className="max-w-[280px] text-sm">{line.designation || "—"}</TableCell>
+        <TableCell className="max-w-[200px] text-xs text-muted-foreground">
+          {suggestion ?? "—"}
+        </TableCell>
         <TableCell className="text-right tabular-nums">{euro(line.amount_ht)}</TableCell>
         <TableCell className="text-sm">
           {isRemu ? (
