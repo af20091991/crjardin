@@ -29,6 +29,13 @@ import { useThresholds } from "@/lib/pilot-thresholds";
 import { classifyClients } from "@/lib/pilot-client-profitability";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { buildRecommendations } from "@/lib/pilot-recommendations";
+import { rankItems } from "@/lib/pilot-learning";
+import {
+  ACTION_STATUS_BADGE,
+  ACTION_STATUS_LABELS,
+  useActionStatuses,
+  type ActionStatus,
+} from "@/lib/pilot-action-status";
 import { listCeevContracts } from "@/lib/ceev";
 import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
 import { annualSummary } from "@/lib/pilot-annual";

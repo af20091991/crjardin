@@ -337,6 +337,7 @@ function ValidationPage() {
                     </TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Libellé d'origine</TableHead>
+                    <TableHead>Mémoire des validations</TableHead>
                     <TableHead className="text-right">Montant</TableHead>
                     <TableHead>Catégorie actuelle</TableHead>
                     <TableHead>Motif</TableHead>
@@ -509,7 +510,7 @@ function ValidationRow({
       </TableRow>
       {open && (
         <TableRow>
-          <TableCell colSpan={7} className="bg-muted/40">
+          <TableCell colSpan={8} className="bg-muted/40">
             <div className="flex flex-wrap items-center gap-2 py-2">
               <Input
                 className="w-72"
