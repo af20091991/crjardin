@@ -68,7 +68,19 @@ export interface SubcontractorMission {
   updated_at: string;
 }
 
-export type MissionInput = Omit<SubcontractorMission, "id" | "user_id" | "created_at" | "updated_at">;
+type MissionOptionalKeys =
+  | "archived_at"
+  | "payment_method"
+  | "category"
+  | "prestation"
+  | "invoice_ref"
+  | "hours_saved";
+
+export type MissionInput = Omit<
+  SubcontractorMission,
+  "id" | "user_id" | "created_at" | "updated_at" | MissionOptionalKeys
+> &
+  Partial<Pick<SubcontractorMission, MissionOptionalKeys>>;
 
 export interface MissionPnl {
   mission_id: string;
