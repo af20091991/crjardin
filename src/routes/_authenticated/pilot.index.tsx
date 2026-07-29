@@ -29,6 +29,13 @@ import { useThresholds } from "@/lib/pilot-thresholds";
 import { classifyClients } from "@/lib/pilot-client-profitability";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { buildRecommendations } from "@/lib/pilot-recommendations";
+import { rankItems } from "@/lib/pilot-learning";
+import {
+  ACTION_STATUS_BADGE,
+  ACTION_STATUS_LABELS,
+  useActionStatuses,
+  type ActionStatus,
+} from "@/lib/pilot-action-status";
 import { listCeevContracts } from "@/lib/ceev";
 import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
 import { annualSummary } from "@/lib/pilot-annual";
@@ -806,7 +813,8 @@ function TodayPage() {
     for (const v of byClient.values()) total += v;
     return total / byClient.size;
   })();
-  const recommendations = buildRecommendations({
+  const { statusOf, setStatus } = useActionStatuses();
+  const recommendationsRaw = buildRecommendations({
     year,
     targetHourlyRate: targetHR,
     clients: clientsProfit,
@@ -817,6 +825,9 @@ function TodayPage() {
     clientsDormants: clientsDormants.length,
     caMoyenParClient,
   });
+  // Apprentissage : les recommandations déjà traitées ou notées faiblement
+  // descendent, celles jugées utiles remontent. Rien n'est supprimé.
+  const recommendations = rankItems(recommendationsRaw, { feedbackByKey, statusOf });
 
   // Signaux commerciaux annexes (chips)
   const secondarySignals: Array<{
@@ -1157,11 +1168,19 @@ function TodayPage() {
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {recommendations.map((r) => (
-              <Card key={r.key} className="h-full border-primary/20 bg-primary/[0.03]">
+              <Card
+                key={r.key}
+                className={`h-full border-primary/20 bg-primary/[0.03] ${
+                  statusOf(r.key) === "realisee" || statusOf(r.key) === "ignoree" ? "opacity-60" : ""
+                }`}
+              >
                 <CardContent className="space-y-2 pt-5">
                   <div className="flex items-start gap-2">
                     <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     <p className="flex-1 text-sm font-medium">{r.title}</p>
+                    <Badge variant="outline" className={`shrink-0 text-[10px] ${ACTION_STATUS_BADGE[statusOf(r.key)]}`}>
+                      {ACTION_STATUS_LABELS[statusOf(r.key)]}
+                    </Badge>
                     <Badge variant="outline" className="shrink-0 text-[10px]">
                       {r.theme}
                     </Badge>
@@ -1180,12 +1199,28 @@ function TodayPage() {
                     <span className="font-medium">Action : </span>
                     {r.action}
                   </p>
-                  <Link
-                    to={r.to}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                  >
-                    Traiter <ArrowRight className="h-3 w-3" />
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Link
+                      to={r.to}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      Traiter <ArrowRight className="h-3 w-3" />
+                    </Link>
+                    {(["en_cours", "realisee", "ignoree"] as ActionStatus[]).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setStatus(r.key, statusOf(r.key) === s ? "nouvelle" : s)}
+                        className={`rounded-md border px-2 py-0.5 text-[11px] transition-colors ${
+                          statusOf(r.key) === s
+                            ? ACTION_STATUS_BADGE[s]
+                            : "border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {ACTION_STATUS_LABELS[s]}
+                      </button>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             ))}
