@@ -756,6 +756,26 @@ function TodayPage() {
     });
   }
 
+  // Enrichissement des alertes avec le retour utilisateur persisté :
+  // clé stable dérivée du contenu, jamais recalculée localement au-delà du tri/affichage.
+  const feedbackByKey = useMemo(() => {
+    const map = new Map<string, AlertFeedback>();
+    for (const f of alertFeedback.data ?? []) map.set(f.alert_key, f);
+    return map;
+  }, [alertFeedback.data]);
+  const attentionsWithFeedback = useMemo(
+    () =>
+      attentionsRaw
+        .map((a) => {
+          const alertKey = alertKeyFrom(a);
+          const feedback = feedbackByKey.get(alertKey);
+          return { ...a, alertKey, seen: Boolean(feedback?.seen_at), rating: feedback?.rating ?? null };
+        })
+        .sort((a, b) => Number(a.seen) - Number(b.seen)),
+    [attentionsRaw, feedbackByKey],
+  );
+  const alertsAvgRating = useMemo(() => averageRating(alertFeedback.data ?? []), [alertFeedback.data]);
+
   // ---- Opportunités préparées ----
   const prestationsADevelopper = services
     .filter((s) => s.classe === "rentable" || s.classe === "strategique")
