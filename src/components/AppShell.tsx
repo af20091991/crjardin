@@ -6,6 +6,7 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { GlobalSearch } from "@/components/pilot/GlobalSearch";
 import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat, Home, Euro, Target, Calculator, CalendarRange, Link2, Receipt, Activity, LineChart, Clock, HeartPulse, Settings2, CheckCircle2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -176,6 +177,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </div>
           {!collapsed && <NotificationBell />}
         </div>
+        <div className={collapsed ? "px-2 pb-2" : "px-3 pb-2"}>
+          <GlobalSearch collapsed={collapsed} />
+        </div>
         <nav className={`flex-1 space-y-4 overflow-y-auto pb-3 ${collapsed ? "px-2" : "px-3"}`}>
           {groups.map((group) => (
             <div key={group.label} className="space-y-1">
@@ -281,6 +285,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             <span className="truncate font-serif text-base font-semibold text-primary">{title ?? `${APP_NAME} v${APP_VERSION}`}</span>
           </div>
           <div className="flex items-center gap-4">
+            <GlobalSearch collapsed />
             {isPilot && <PilotModeToggle compact />}
             <NotificationBell />
             <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
