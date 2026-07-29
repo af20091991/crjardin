@@ -47,6 +47,94 @@ export type Database = {
         }
         Relationships: []
       }
+      ceev_contracts: {
+        Row: {
+          charges: number
+          client_id: string | null
+          created_at: string
+          hours: number | null
+          id: string
+          import_source: string | null
+          label: string
+          margin_net: number
+          match_method: string | null
+          match_score: number | null
+          match_status: string
+          notes: string | null
+          pv_ht: number
+          raw_label: string
+          status: string
+          updated_at: string
+          user_id: string
+          validation_status: string
+          year: number
+        }
+        Insert: {
+          charges?: number
+          client_id?: string | null
+          created_at?: string
+          hours?: number | null
+          id?: string
+          import_source?: string | null
+          label: string
+          margin_net?: number
+          match_method?: string | null
+          match_score?: number | null
+          match_status?: string
+          notes?: string | null
+          pv_ht?: number
+          raw_label: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          validation_status?: string
+          year: number
+        }
+        Update: {
+          charges?: number
+          client_id?: string | null
+          created_at?: string
+          hours?: number | null
+          id?: string
+          import_source?: string | null
+          label?: string
+          margin_net?: number
+          match_method?: string | null
+          match_score?: number | null
+          match_status?: string
+          notes?: string | null
+          pv_ht?: number
+          raw_label?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          validation_status?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ceev_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ceev_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "ceev_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+        ]
+      }
       charge_categories: {
         Row: {
           code: string
@@ -964,6 +1052,36 @@ export type Database = {
           is_read?: boolean
           title?: string
           type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pilot_alert_feedback: {
+        Row: {
+          alert_key: string
+          created_at: string
+          id: string
+          rating: number | null
+          seen_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_key: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          seen_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_key?: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          seen_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -2627,6 +2745,7 @@ export type Database = {
           agreed_price: number | null
           anomalies: string | null
           archived_at: string | null
+          autonomy: string | null
           category: string | null
           client_id: string | null
           client_price: number | null
@@ -2635,6 +2754,7 @@ export type Database = {
           hours_saved: number | null
           hours_spent: number | null
           id: string
+          import_source: string | null
           instructions: string | null
           internal_rating: number | null
           intervention_id: string | null
@@ -2642,6 +2762,7 @@ export type Database = {
           invoiced_amount: number | null
           mission_date: string
           objective: string | null
+          parallel_worksite: string | null
           payment_method: string | null
           prestation: string | null
           recommendations: string | null
@@ -2658,6 +2779,7 @@ export type Database = {
           agreed_price?: number | null
           anomalies?: string | null
           archived_at?: string | null
+          autonomy?: string | null
           category?: string | null
           client_id?: string | null
           client_price?: number | null
@@ -2666,6 +2788,7 @@ export type Database = {
           hours_saved?: number | null
           hours_spent?: number | null
           id?: string
+          import_source?: string | null
           instructions?: string | null
           internal_rating?: number | null
           intervention_id?: string | null
@@ -2673,6 +2796,7 @@ export type Database = {
           invoiced_amount?: number | null
           mission_date: string
           objective?: string | null
+          parallel_worksite?: string | null
           payment_method?: string | null
           prestation?: string | null
           recommendations?: string | null
@@ -2689,6 +2813,7 @@ export type Database = {
           agreed_price?: number | null
           anomalies?: string | null
           archived_at?: string | null
+          autonomy?: string | null
           category?: string | null
           client_id?: string | null
           client_price?: number | null
@@ -2697,6 +2822,7 @@ export type Database = {
           hours_saved?: number | null
           hours_spent?: number | null
           id?: string
+          import_source?: string | null
           instructions?: string | null
           internal_rating?: number | null
           intervention_id?: string | null
@@ -2704,6 +2830,7 @@ export type Database = {
           invoiced_amount?: number | null
           mission_date?: string
           objective?: string | null
+          parallel_worksite?: string | null
           payment_method?: string | null
           prestation?: string | null
           recommendations?: string | null
