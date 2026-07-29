@@ -36,6 +36,7 @@ export const CHANGELOG: ChangeEntry[] = [
       "Nouvelle page « CEEV — contrats d'entretien » avec rapprochement client et suivi des renouvellements.",
       "Page « Aujourd'hui » : suppression du CA vs Objectif, ajout de nouveaux indicateurs de temps, priorités cliquables, alertes marquables « Vu » et notables de 1 à 5.",
       "Validation analytique : classement rapide en « Autre charge variable », action groupée par sélection multiple et compteur de lignes restantes.",
+      "Nouveau bloc « Recommandations Pilot Pro » sur la page Aujourd'hui : chaque conseil indique le constat chiffré, les données utilisées, l'impact estimé et l'action à réaliser.",
     ],
   },
   {

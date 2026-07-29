@@ -28,6 +28,8 @@ import { usePilotMode } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { classifyClients } from "@/lib/pilot-client-profitability";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
+import { buildRecommendations } from "@/lib/pilot-recommendations";
+import { listCeevContracts } from "@/lib/ceev";
 import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
 import { annualSummary } from "@/lib/pilot-annual";
 import {
@@ -71,6 +73,7 @@ import {
   Eye,
   Timer,
   Scale,
+  Lightbulb,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/")({
@@ -158,6 +161,7 @@ function TodayPage() {
     queryKey: ["pilot-alert-feedback"],
     queryFn: listAlertFeedback,
   });
+  const ceevContracts = useQuery({ queryKey: ["ceev-contracts"], queryFn: listCeevContracts });
   const queryClient = useQueryClient();
   const seenMutation = useMutation({
     mutationFn: ({ alertKey, seen }: { alertKey: string; seen: boolean }) =>
@@ -789,6 +793,31 @@ function TodayPage() {
   // Opportunités — Top 3 NBO déjà scorées ≥ 80.
   const topOffers = priority.slice(0, 3);
 
+  // ---- Recommandations Pilot Pro (moteur dédié, sources tracées) ----
+  const caMoyenParClient = (() => {
+    const byClient = new Map<string, number>();
+    for (const e of realEntries) {
+      if (!e.client_id) continue;
+      if (new Date(e.entry_date).getFullYear() !== year) continue;
+      byClient.set(e.client_id, (byClient.get(e.client_id) ?? 0) + (Number(e.amount_ht) || 0));
+    }
+    if (byClient.size === 0) return 0;
+    let total = 0;
+    for (const v of byClient.values()) total += v;
+    return total / byClient.size;
+  })();
+  const recommendations = buildRecommendations({
+    year,
+    targetHourlyRate: targetHR,
+    clients: clientsProfit,
+    services,
+    ceevContracts: ceevContracts.data ?? [],
+    acceptedNotPlanned: acceptedNotPlanned.map((r) => ({ id: r.id, unit_price: r.unit_price })),
+    clientsARelancer: clientsARelancer.length,
+    clientsDormants: clientsDormants.length,
+    caMoyenParClient,
+  });
+
   // Signaux commerciaux annexes (chips)
   const secondarySignals: Array<{
     label: string;
@@ -1106,6 +1135,61 @@ function TodayPage() {
               </Link>
             </CardContent>
           </Card>
+        )}
+      </section>
+
+      {/* 3bis — Recommandations Pilot Pro */}
+      <section className="space-y-2">
+        <SectionTitle
+          question="Recommandations Pilot Pro"
+          label={`${recommendations.length} action${recommendations.length > 1 ? "s" : ""} proposée${recommendations.length > 1 ? "s" : ""}`}
+        />
+        {recommendations.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex items-center gap-3 py-5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <p className="text-sm text-muted-foreground">
+                Aucune recommandation : les données disponibles ne font ressortir aucune action
+                prioritaire.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {recommendations.map((r) => (
+              <Card key={r.key} className="h-full border-primary/20 bg-primary/[0.03]">
+                <CardContent className="space-y-2 pt-5">
+                  <div className="flex items-start gap-2">
+                    <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <p className="flex-1 text-sm font-medium">{r.title}</p>
+                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                      {r.theme}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{r.why}</p>
+                  <div className="rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Impact estimé : </span>
+                    {r.impactEuro != null ? formatEuro(r.impactEuro) : "non chiffrable"} —{" "}
+                    {r.impactLabel}
+                  </div>
+                  <div className="rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Données utilisées : </span>
+                    {r.sources.join(" · ")}
+                  </div>
+                  <p className="text-xs text-foreground">
+                    <span className="font-medium">Action : </span>
+                    {r.action}
+                  </p>
+                  <Link
+                    to={r.to}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    Traiter <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </section>
 
