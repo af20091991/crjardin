@@ -1673,6 +1673,54 @@ export type Database = {
         }
         Relationships: []
       }
+      pilot_sst_label_map: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          provider_name: string | null
+          raw_label: string
+          subcontractor_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          provider_name?: string | null
+          raw_label: string
+          subcontractor_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          provider_name?: string | null
+          raw_label?: string
+          subcontractor_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilot_sst_label_map_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_sst_label_map_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "v_sst_summary"
+            referencedColumns: ["subcontractor_id"]
+          },
+        ]
+      }
       pilot_tjm_settings: {
         Row: {
           bureau: number
