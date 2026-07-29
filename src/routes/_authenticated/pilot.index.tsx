@@ -28,6 +28,8 @@ import { usePilotMode } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { classifyClients } from "@/lib/pilot-client-profitability";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
+import { buildRecommendations } from "@/lib/pilot-recommendations";
+import { listCeevContracts } from "@/lib/ceev";
 import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
 import { annualSummary } from "@/lib/pilot-annual";
 import {
@@ -71,6 +73,7 @@ import {
   Eye,
   Timer,
   Scale,
+  Lightbulb,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/")({
@@ -158,6 +161,7 @@ function TodayPage() {
     queryKey: ["pilot-alert-feedback"],
     queryFn: listAlertFeedback,
   });
+  const ceevContracts = useQuery({ queryKey: ["ceev-contracts"], queryFn: listCeevContracts });
   const queryClient = useQueryClient();
   const seenMutation = useMutation({
     mutationFn: ({ alertKey, seen }: { alertKey: string; seen: boolean }) =>
