@@ -27,6 +27,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-07-29",
+    version: "1.18.0",
+    theme: "Général",
+    title: "Pilot Pro V1.18 — centre de décision dirigeant",
+    details: [
+      "Priorités du jour repensées : chaque priorité explique pourquoi elle remonte, sur quelles données elle s'appuie et quelle action est attendue, avec un suivi À faire / En cours / Réalisé / Ignoré.",
+      "Nouveau bloc « Opportunités commerciales » : relances de clients sans activité, contrats d'entretien non reconduits et prestations complémentaires à proposer.",
+      "Fiche client 360° : bloc « Ce que Pilot Pro comprend » qui résume la situation en langage clair et indique ce qui manque pour être plus précis.",
+      "Page Direction : lecture « Où vais-je si je continue ainsi ? » avec CA projeté, charges projetées, résultat attendu et niveau de fiabilité.",
+    ],
+  },
+  {
+    date: "2026-07-29",
     version: "1.17.0",
     theme: "Général",
     title: "Pilot Pro V1.1 — classeur des données, historique des corrections et contrôle anti-régression",

@@ -15,6 +15,7 @@ import {
 } from "@/lib/pilot-historic-hours";
 import { ClientHoursCard } from "@/components/pilot/ClientHoursCard";
 import { ClientProfitabilityCard } from "@/components/pilot/ClientProfitabilityCard";
+import { ClientUnderstandingCard } from "@/components/pilot/ClientUnderstandingCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,20 @@ function PilotClient360() {
   const historicHoursQ = useQuery({
     queryKey: ["fiche-historic-hours", clientId],
     queryFn: () => listHistoricHoursForClient(clientId),
+  });
+
+  // Contrats d'entretien rattachés à ce client (source : ceev_contracts).
+  const ceevQ = useQuery({
+    queryKey: ["fiche-ceev", clientId],
+    queryFn: async (): Promise<Array<{ id: string; label: string; year: number; pv_ht: number }>> => {
+      const { data, error } = await supabase
+        .from("ceev_contracts")
+        .select("id, label, year, pv_ht")
+        .eq("client_id", clientId)
+        .order("year", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; label: string; year: number; pv_ht: number }>;
+    },
   });
 
   const recosQ = useQuery({
@@ -192,6 +207,8 @@ function PilotClient360() {
   const hasCrHistory = crSent > 0;
   const policy = (client.report_policy ?? "a_confirmer") as ReportPolicy;
   const policyMeta = REPORT_POLICY_META[policy];
+  const ceevRows = ceevQ.data ?? [];
+  const ceevValue = ceevRows.reduce((s, c) => s + (Number(c.pv_ht) || 0), 0);
 
   return (
     <div className="space-y-4">
@@ -283,6 +300,16 @@ function PilotClient360() {
           </CardContent>
         </Card>
       )}
+
+      {/* Ce que Pilot Pro comprend */}
+      <ClientUnderstandingCard
+        score={score}
+        activityStatus={activityStatus}
+        lastActivity={lastActivity}
+        ceevCount={ceevRows.length}
+        ceevValue={ceevValue}
+        missingHours={missingHours}
+      />
 
       {/* 2 — Historique commercial */}
       <PendingCaNotice autoCreated={(clientQ.data?.notes ?? "").includes(AUTO_CLIENT_MARKER)} />

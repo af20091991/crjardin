@@ -29,6 +29,9 @@ import { useThresholds } from "@/lib/pilot-thresholds";
 import { classifyClients } from "@/lib/pilot-client-profitability";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { buildRecommendations } from "@/lib/pilot-recommendations";
+import { priorityStatusKey } from "@/lib/pilot-priorities";
+import { PriorityCard } from "@/components/pilot/PriorityCard";
+import { OpportunitiesBoard } from "@/components/pilot/OpportunitiesBoard";
 import { rankItems } from "@/lib/pilot-learning";
 import {
   ACTION_STATUS_BADGE,
@@ -551,16 +554,6 @@ function TodayPage() {
     opportunite: nboClients.size + acceptedNotPlanned.length,
   };
 
-  if (loading) {
-    return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
-        ))}
-      </div>
-    );
-  }
-
   // ---- Fiabilité des indicateurs stratégiques ----
   // Comparaison CA mois vs même mois N-1 : uniquement si les deux périodes existent.
   const caComparison = periodComparison({ current: k.caMonth, previous: objectifMois });
@@ -856,6 +849,17 @@ function TodayPage() {
   // n'est pas encore tranchée.
   const crToQualifyCount = crToQualify.size;
 
+  // Écran de chargement : placé après tous les hooks (ordre des hooks stable).
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <div>
@@ -1014,16 +1018,22 @@ function TodayPage() {
           </Card>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
-            {priorities.map((p, idx) => (
-              <PriorityRow
+            {rankItems(
+              priorities.map((p) => ({ ...p, key: priorityStatusKey(p.key), rawKey: p.key, weight: p.count })),
+              { statusOf },
+            ).map((p, idx) => (
+              <PriorityCard
                 key={p.key}
                 rank={idx + 1}
+                itemKey={p.rawKey}
                 icon={p.icon}
                 label={p.label}
                 count={p.count}
                 topic={p.topic}
                 to={p.to}
                 search={p.search}
+                status={statusOf(p.key)}
+                onStatus={(s: ActionStatus) => setStatus(p.key, s)}
               />
             ))}
           </div>
@@ -1031,6 +1041,11 @@ function TodayPage() {
       </section>
 
       {/* 3 — Quels risques dois-je traiter ? */}
+      <section className="space-y-2">
+        <SectionTitle question="Où puis-je gagner du chiffre d'affaires ?" label="Opportunités commerciales" />
+        <OpportunitiesBoard year={year} offers={priority} clientNameById={clientNameById} />
+      </section>
+
       <section className="space-y-2">
         <SectionTitle
           question="Points d'attention"
