@@ -58,11 +58,29 @@ export interface SubcontractorMission {
   agreed_price: number | null;
   invoiced_amount: number | null;
   client_price: number | null;
+  archived_at: string | null;
+  payment_method: string | null;
+  category: string | null;
+  prestation: string | null;
+  invoice_ref: string | null;
+  hours_saved: number | null;
   created_at: string;
   updated_at: string;
 }
 
-export type MissionInput = Omit<SubcontractorMission, "id" | "user_id" | "created_at" | "updated_at">;
+type MissionOptionalKeys =
+  | "archived_at"
+  | "payment_method"
+  | "category"
+  | "prestation"
+  | "invoice_ref"
+  | "hours_saved";
+
+export type MissionInput = Omit<
+  SubcontractorMission,
+  "id" | "user_id" | "created_at" | "updated_at" | MissionOptionalKeys
+> &
+  Partial<Pick<SubcontractorMission, MissionOptionalKeys>>;
 
 export interface MissionPnl {
   mission_id: string;

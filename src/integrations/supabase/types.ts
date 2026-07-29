@@ -2442,6 +2442,81 @@ export type Database = {
           },
         ]
       }
+      sst_audit_log: {
+        Row: {
+          action: string
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          entity: string
+          entity_id: string | null
+          id: string
+          label: string | null
+          undone_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+          label?: string | null
+          undone_at?: string | null
+          user_id?: string
+        }
+        Update: {
+          action?: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          label?: string | null
+          undone_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sst_lists: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          kind: string
+          position: number
+          updated_at: string
+          user_id: string
+          value: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind: string
+          position?: number
+          updated_at?: string
+          user_id?: string
+          value: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          position?: number
+          updated_at?: string
+          user_id?: string
+          value?: string
+        }
+        Relationships: []
+      }
       subcontractor_mission_photos: {
         Row: {
           caption: string | null
@@ -2494,18 +2569,24 @@ export type Database = {
         Row: {
           agreed_price: number | null
           anomalies: string | null
+          archived_at: string | null
+          category: string | null
           client_id: string | null
           client_price: number | null
           context_notes: string | null
           created_at: string
+          hours_saved: number | null
           hours_spent: number | null
           id: string
           instructions: string | null
           internal_rating: number | null
           intervention_id: string | null
+          invoice_ref: string | null
           invoiced_amount: number | null
           mission_date: string
           objective: string | null
+          payment_method: string | null
+          prestation: string | null
           recommendations: string | null
           report_notes: string | null
           service_id: string | null
@@ -2519,18 +2600,24 @@ export type Database = {
         Insert: {
           agreed_price?: number | null
           anomalies?: string | null
+          archived_at?: string | null
+          category?: string | null
           client_id?: string | null
           client_price?: number | null
           context_notes?: string | null
           created_at?: string
+          hours_saved?: number | null
           hours_spent?: number | null
           id?: string
           instructions?: string | null
           internal_rating?: number | null
           intervention_id?: string | null
+          invoice_ref?: string | null
           invoiced_amount?: number | null
           mission_date: string
           objective?: string | null
+          payment_method?: string | null
+          prestation?: string | null
           recommendations?: string | null
           report_notes?: string | null
           service_id?: string | null
@@ -2544,18 +2631,24 @@ export type Database = {
         Update: {
           agreed_price?: number | null
           anomalies?: string | null
+          archived_at?: string | null
+          category?: string | null
           client_id?: string | null
           client_price?: number | null
           context_notes?: string | null
           created_at?: string
+          hours_saved?: number | null
           hours_spent?: number | null
           id?: string
           instructions?: string | null
           internal_rating?: number | null
           intervention_id?: string | null
+          invoice_ref?: string | null
           invoiced_amount?: number | null
           mission_date?: string
           objective?: string | null
+          payment_method?: string | null
+          prestation?: string | null
           recommendations?: string | null
           report_notes?: string | null
           service_id?: string | null
