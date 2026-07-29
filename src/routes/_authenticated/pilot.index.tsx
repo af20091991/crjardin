@@ -813,7 +813,8 @@ function TodayPage() {
     for (const v of byClient.values()) total += v;
     return total / byClient.size;
   })();
-  const recommendations = buildRecommendations({
+  const { statusOf, setStatus } = useActionStatuses();
+  const recommendationsRaw = buildRecommendations({
     year,
     targetHourlyRate: targetHR,
     clients: clientsProfit,
@@ -824,6 +825,9 @@ function TodayPage() {
     clientsDormants: clientsDormants.length,
     caMoyenParClient,
   });
+  // Apprentissage : les recommandations déjà traitées ou notées faiblement
+  // descendent, celles jugées utiles remontent. Rien n'est supprimé.
+  const recommendations = rankItems(recommendationsRaw, { feedbackByKey, statusOf });
 
   // Signaux commerciaux annexes (chips)
   const secondarySignals: Array<{
