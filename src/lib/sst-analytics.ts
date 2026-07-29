@@ -29,17 +29,43 @@ export interface SstTotals {
   missionsWithoutPrice: number;
 }
 
+/**
+ * Source unique de calcul de la marge d'une mission SST.
+ * Marge nette HT = prix HT vente (client_price) − coût SST (invoiced_amount, sinon agreed_price).
+ * Ne pas dupliquer cette logique ailleurs dans l'application.
+ */
+export function computeMissionFinancials(mission: SubcontractorMission): {
+  cost: number;
+  revenue: number;
+  margin: number;
+  marginPct: number | null;
+  hours: number | null;
+  hourlyCost: number | null;
+} {
+  const cost = Number(mission.invoiced_amount ?? mission.agreed_price ?? 0);
+  const revenue = Number(mission.client_price ?? 0);
+  const margin = revenue - cost;
+  const hours = mission.hours_spent != null ? Number(mission.hours_spent) : null;
+  return {
+    cost,
+    revenue,
+    margin,
+    marginPct: revenue > 0 ? (margin / revenue) * 100 : null,
+    hours,
+    hourlyCost: hours && hours > 0 ? cost / hours : null,
+  };
+}
+
 export function sstRows(params: {
   missions: SubcontractorMission[];
-  pnl: MissionPnl[];
+  pnl?: MissionPnl[];
   ssts: Subcontractor[];
   clients: { id: string; name: string }[];
   mode?: RealProjectionMode;
   includeArchived?: boolean;
   year?: number | "all";
 }): SstRow[] {
-  const { missions, pnl, ssts, clients, mode = "reel", includeArchived = false, year = "all" } = params;
-  const pnlById = new Map(pnl.map((p) => [p.mission_id, p]));
+  const { missions, ssts, clients, mode = "reel", includeArchived = false, year = "all" } = params;
   const sstById = new Map(ssts.map((s) => [s.id, s]));
   const clientById = new Map(clients.map((c) => [c.id, c]));
   const today = todayIso();
@@ -49,21 +75,12 @@ export function sstRows(params: {
     .filter((m) => (year === "all" ? true : new Date(m.mission_date).getFullYear() === year))
     .filter((m) => (mode === "reel" ? m.mission_date <= today : true))
     .map((m) => {
-      const p = pnlById.get(m.id);
-      const cost = p?.sst_cost ?? Number(m.invoiced_amount ?? m.agreed_price ?? 0);
-      const revenue = p?.client_revenue ?? Number(m.client_price ?? 0);
-      const margin = p?.gross_margin ?? revenue - cost;
-      const hours = m.hours_spent != null ? Number(m.hours_spent) : null;
+      const fin = computeMissionFinancials(m);
       return {
         mission: m,
         sstName: sstById.get(m.subcontractor_id)?.name ?? "—",
         clientName: m.client_id ? (clientById.get(m.client_id)?.name ?? "—") : "—",
-        cost,
-        revenue,
-        margin,
-        marginPct: revenue > 0 ? (margin / revenue) * 100 : null,
-        hours,
-        hourlyCost: hours && hours > 0 ? cost / hours : null,
+        ...fin,
       };
     })
     .sort((a, b) => b.mission.mission_date.localeCompare(a.mission.mission_date));
