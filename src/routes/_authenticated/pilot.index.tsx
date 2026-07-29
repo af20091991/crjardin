@@ -793,6 +793,31 @@ function TodayPage() {
   // Opportunités — Top 3 NBO déjà scorées ≥ 80.
   const topOffers = priority.slice(0, 3);
 
+  // ---- Recommandations Pilot Pro (moteur dédié, sources tracées) ----
+  const caMoyenParClient = (() => {
+    const byClient = new Map<string, number>();
+    for (const e of realEntries) {
+      if (!e.client_id) continue;
+      if (new Date(e.entry_date).getFullYear() !== year) continue;
+      byClient.set(e.client_id, (byClient.get(e.client_id) ?? 0) + (Number(e.amount_ht) || 0));
+    }
+    if (byClient.size === 0) return 0;
+    let total = 0;
+    for (const v of byClient.values()) total += v;
+    return total / byClient.size;
+  })();
+  const recommendations = buildRecommendations({
+    year,
+    targetHourlyRate: targetHR,
+    clients: clientsProfit,
+    services,
+    ceevContracts: ceevContracts.data ?? [],
+    acceptedNotPlanned: acceptedNotPlanned.map((r) => ({ id: r.id, unit_price: r.unit_price })),
+    clientsARelancer: clientsARelancer.length,
+    clientsDormants: clientsDormants.length,
+    caMoyenParClient,
+  });
+
   // Signaux commerciaux annexes (chips)
   const secondarySignals: Array<{
     label: string;
