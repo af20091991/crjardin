@@ -48,6 +48,8 @@ import {
   type SubcontractorMission,
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
+import { listChargeRows, listSalesByYear } from "@/lib/pilot-charges";
+import { sstByProvider, sstChargeLines, sstChargeTotals } from "@/lib/sst-charges";
 import {
   byMonth,
   byPrestation,
@@ -95,6 +97,11 @@ export function SstProfitabilityTab() {
     },
   });
   const { data: audit = [] } = useQuery({ queryKey: ["sst-audit"], queryFn: () => listSstAudit(80) });
+  const { data: chargeRows = [] } = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
+  const { data: salesByYear } = useQuery({
+    queryKey: ["pilot-sales-by-year", mode],
+    queryFn: () => listSalesByYear({ mode }),
+  });
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["sst-missions"] });
@@ -124,6 +131,19 @@ export function SstProfitabilityTab() {
   const perSst = useMemo(() => bySubcontractor(rows), [rows]);
   const perPresta = useMemo(() => byPrestation(rows), [rows]);
   const insights = useMemo(() => sstInsights(rows, totals, marginTarget), [rows, totals, marginTarget]);
+
+  // Sous-traitance déjà enregistrée en charges (aucune saisie supplémentaire demandée).
+  const chargeLines = useMemo(
+    () => sstChargeLines({ chargeRows, missions, clients, year }),
+    [chargeRows, missions, clients, year],
+  );
+  const chargeProviders = useMemo(() => sstByProvider(chargeLines), [chargeLines]);
+  const caPeriod = useMemo(() => {
+    if (!salesByYear) return null;
+    if (year === "all") return [...salesByYear.values()].reduce((s, v) => s + v, 0);
+    return salesByYear.get(year) ?? 0;
+  }, [salesByYear, year]);
+  const chargeTotals = useMemo(() => sstChargeTotals(chargeLines, caPeriod), [chargeLines, caPeriod]);
 
   const archive = useMutation({
     mutationFn: async (row: SstRow) => {
@@ -343,6 +363,116 @@ export function SstProfitabilityTab() {
       </div>
 
       {/* B — Tableau détaillé */}
+      {/* A bis — Sous-traitance repérée dans les charges existantes (lecture seule) */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Sous-traitance repérée dans les charges</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Lignes déjà enregistrées dans le suivi CA (charges). Lecture seule : aucune ressaisie n'est
+            nécessaire. Une ligne couverte par une mission SST du même mois et du même montant est
+            exclue des totaux pour éviter tout double comptage.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {chargeLines.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Aucune charge de sous-traitance sur cette période.
+            </p>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <PilotCard
+                  storageId="sst-charges-total"
+                  label="Coût sous-traitance (charges)"
+                  value={formatEuro(chargeTotals.amount)}
+                  sub={`${chargeTotals.lines} ligne(s)`}
+                  tone="negative"
+                  help="Somme des charges dont le libellé mentionne la sous-traitance."
+                />
+                <PilotCard
+                  storageId="sst-charges-part"
+                  label="Part du CA"
+                  value={chargeTotals.shareOfCaPct != null ? pct(chargeTotals.shareOfCaPct) : "—"}
+                  sub={caPeriod != null ? `CA de référence ${formatEuro(caPeriod)}` : "CA non disponible"}
+                  help="Poids de la sous-traitance dans le chiffre d'affaires de la période."
+                />
+                <PilotCard
+                  storageId="sst-charges-dup"
+                  label="Lignes déjà en mission"
+                  value={String(chargeTotals.duplicates)}
+                  sub={formatEuro(chargeTotals.duplicatesAmount)}
+                  help="Charges neutralisées car déjà suivies via une mission SST (protection anti double comptage)."
+                />
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Prestataire (déduit)</TableHead>
+                      <TableHead>Années</TableHead>
+                      <TableHead>Client(s) reconnu(s)</TableHead>
+                      <TableHead className="text-right">Lignes</TableHead>
+                      <TableHead className="text-right">Montant</TableHead>
+                      <TableHead className="text-right">Impact / CA</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {chargeProviders.map((p) => (
+                      <TableRow key={p.provider}>
+                        <TableCell className="font-medium">{p.provider}</TableCell>
+                        <TableCell>{[...p.years].sort((a, b) => a - b).join(", ")}</TableCell>
+                        <TableCell>
+                          {p.clients.length > 0 ? (
+                            p.clients.join(", ")
+                          ) : (
+                            <Badge variant="outline">À rattacher</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">{p.lines}</TableCell>
+                        <TableCell className="text-right" style={{ color: PP_COLORS.charges }}>
+                          {formatEuro(p.amount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {caPeriod && caPeriod > 0 ? pct((p.amount / caPeriod) * 100) : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Période</TableHead>
+                      <TableHead>Libellé d'origine</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead className="text-right">Montant</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {chargeLines.map((l) => (
+                      <TableRow key={l.id} className={l.duplicateOfMission ? "opacity-50" : undefined}>
+                        <TableCell className="whitespace-nowrap">
+                          {String(l.month).padStart(2, "0")}/{l.year}
+                        </TableCell>
+                        <TableCell>{l.designation}</TableCell>
+                        <TableCell>{l.clientName ?? "—"}</TableCell>
+                        <TableCell className="text-right">{formatEuro(l.amount)}</TableCell>
+                        <TableCell className="text-right">
+                          {l.duplicateOfMission && <Badge variant="outline">Déjà en mission</Badge>}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Détail des missions sous-traitées</CardTitle>
