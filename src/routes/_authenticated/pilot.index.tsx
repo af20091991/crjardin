@@ -1138,6 +1138,61 @@ function TodayPage() {
         )}
       </section>
 
+      {/* 3bis — Recommandations Pilot Pro */}
+      <section className="space-y-2">
+        <SectionTitle
+          question="Recommandations Pilot Pro"
+          label={`${recommendations.length} action${recommendations.length > 1 ? "s" : ""} proposée${recommendations.length > 1 ? "s" : ""}`}
+        />
+        {recommendations.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex items-center gap-3 py-5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <p className="text-sm text-muted-foreground">
+                Aucune recommandation : les données disponibles ne font ressortir aucune action
+                prioritaire.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {recommendations.map((r) => (
+              <Card key={r.key} className="h-full border-primary/20 bg-primary/[0.03]">
+                <CardContent className="space-y-2 pt-5">
+                  <div className="flex items-start gap-2">
+                    <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <p className="flex-1 text-sm font-medium">{r.title}</p>
+                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                      {r.theme}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{r.why}</p>
+                  <div className="rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Impact estimé : </span>
+                    {r.impactEuro != null ? formatEuro(r.impactEuro) : "non chiffrable"} —{" "}
+                    {r.impactLabel}
+                  </div>
+                  <div className="rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Données utilisées : </span>
+                    {r.sources.join(" · ")}
+                  </div>
+                  <p className="text-xs text-foreground">
+                    <span className="font-medium">Action : </span>
+                    {r.action}
+                  </p>
+                  <Link
+                    to={r.to}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    Traiter <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* 4 — Quelles opportunités puis-je saisir ? */}
       <section className="space-y-2">
         <SectionTitle
