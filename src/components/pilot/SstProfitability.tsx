@@ -599,7 +599,7 @@ export function SstProfitabilityTab() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Détail des missions sous-traitées</CardTitle>
+          <CardTitle className="text-base">Journal des missions sous-traitées</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {rows.length === 0 ? (
@@ -611,15 +611,17 @@ export function SstProfitabilityTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
+                  <TableHead>Chantier</TableHead>
                   <TableHead>Sous-traitant</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Prestation</TableHead>
-                  <TableHead className="text-right">Heures</TableHead>
-                  <TableHead className="text-right">Coût</TableHead>
-                  <TableHead className="text-right">CA client</TableHead>
-                  <TableHead className="text-right">Marge</TableHead>
+                  <TableHead>Autonomie</TableHead>
+                  <TableHead>Chantier parallèle</TableHead>
+                  <TableHead className="text-right">Temps</TableHead>
+                  <TableHead className="text-right">Prix SST</TableHead>
+                  <TableHead className="text-right">Prix HT vente</TableHead>
+                  <TableHead className="text-right">Marge nette HT</TableHead>
                   <TableHead className="text-right">%</TableHead>
-                  <TableHead className="text-right">€/h</TableHead>
+                  <TableHead className="text-right">Difficulté</TableHead>
+                  <TableHead>Détails</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -629,14 +631,15 @@ export function SstProfitabilityTab() {
                     <TableCell className="whitespace-nowrap">
                       {new Date(r.mission.mission_date).toLocaleDateString("fr-FR")}
                     </TableCell>
-                    <TableCell className="font-medium">{r.sstName}</TableCell>
-                    <TableCell>{r.clientName}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span>{r.mission.prestation ?? r.mission.service_requested}</span>
+                        <span>{r.mission.service_requested}</span>
                         {r.mission.archived_at && <Badge variant="outline">Archivée</Badge>}
                       </div>
                     </TableCell>
+                    <TableCell className="font-medium">{r.sstName}</TableCell>
+                    <TableCell>{r.mission.autonomy ?? "—"}</TableCell>
+                    <TableCell>{r.mission.parallel_worksite ?? "—"}</TableCell>
                     <TableCell className="text-right">{r.hours != null ? r.hours.toFixed(1) : "—"}</TableCell>
                     <TableCell className="text-right">{formatEuro(r.cost)}</TableCell>
                     <TableCell className="text-right">{formatEuro(r.revenue)}</TableCell>
@@ -648,7 +651,10 @@ export function SstProfitabilityTab() {
                     </TableCell>
                     <TableCell className="text-right">{pct(r.marginPct)}</TableCell>
                     <TableCell className="text-right">
-                      {r.hourlyCost != null ? `${r.hourlyCost.toFixed(0)} €` : "—"}
+                      {r.mission.internal_rating != null ? `${r.mission.internal_rating}/5` : "—"}
+                    </TableCell>
+                    <TableCell className="max-w-[220px] truncate" title={r.mission.report_notes ?? undefined}>
+                      {r.mission.report_notes ?? "—"}
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
@@ -681,15 +687,13 @@ export function SstProfitabilityTab() {
                   </TableRow>
                 ))}
                 <TableRow className="border-t-2 font-semibold">
-                  <TableCell colSpan={4}>Total</TableCell>
+                  <TableCell colSpan={5}>Total</TableCell>
                   <TableCell className="text-right">{totals.hours.toFixed(1)}</TableCell>
                   <TableCell className="text-right">{formatEuro(totals.cost)}</TableCell>
                   <TableCell className="text-right">{formatEuro(totals.revenue)}</TableCell>
                   <TableCell className="text-right">{formatEuro(totals.margin)}</TableCell>
                   <TableCell className="text-right">{pct(totals.marginPct)}</TableCell>
-                  <TableCell className="text-right">
-                    {totals.avgHourlyCost != null ? `${totals.avgHourlyCost.toFixed(0)} €` : "—"}
-                  </TableCell>
+                  <TableCell colSpan={2} />
                   <TableCell />
                 </TableRow>
               </TableBody>
@@ -866,6 +870,10 @@ function SstRowDialog({
     invoiced_amount: mission.invoiced_amount?.toString() ?? "",
     agreed_price: mission.agreed_price?.toString() ?? "",
     client_price: mission.client_price?.toString() ?? "",
+    autonomy: mission.autonomy ?? "",
+    parallel_worksite: mission.parallel_worksite ?? "",
+    internal_rating: mission.internal_rating?.toString() ?? "",
+    report_notes: mission.report_notes ?? "",
   });
   const [saving, setSaving] = useState(false);
   const opts = (kind: SstListKind) =>
@@ -887,6 +895,10 @@ function SstRowDialog({
         invoiced_amount: num(form.invoiced_amount),
         agreed_price: num(form.agreed_price),
         client_price: num(form.client_price),
+        autonomy: form.autonomy || null,
+        parallel_worksite: form.parallel_worksite || null,
+        internal_rating: num(form.internal_rating),
+        report_notes: form.report_notes || null,
       };
       await updateMission(mission.id, patch);
       await logSst({
@@ -905,6 +917,10 @@ function SstRowDialog({
           invoiced_amount: mission.invoiced_amount,
           agreed_price: mission.agreed_price,
           client_price: mission.client_price,
+          autonomy: mission.autonomy,
+          parallel_worksite: mission.parallel_worksite,
+          internal_rating: mission.internal_rating,
+          report_notes: mission.report_notes,
         },
         after_data: patch,
       });
@@ -962,8 +978,18 @@ function SstRowDialog({
         {field("Prix convenu (€)", "agreed_price", "number")}
         {field("Facturé par le SST (€)", "invoiced_amount", "number")}
         {field("Prix client (€)", "client_price", "number")}
+        {field("Autonomie", "autonomy")}
+        {field("Chantier parallèle", "parallel_worksite")}
+        {field("Difficulté (/5)", "internal_rating", "number")}
         {selectField("Règlement", "payment_method", "payment_method")}
         {field("N° de facture", "invoice_ref")}
+      </div>
+      <div className="space-y-1.5">
+        <Label>Détails</Label>
+        <Input
+          value={form.report_notes}
+          onChange={(e) => setForm((f) => ({ ...f, report_notes: e.target.value }))}
+        />
       </div>
       <DialogFooter>
         <Button onClick={save} disabled={saving}>

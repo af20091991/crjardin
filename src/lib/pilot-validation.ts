@@ -115,3 +115,42 @@ export async function setLineCategory(
     .eq("id", id);
   if (error) throw error;
 }
+/** Catégories de charges proposées pour un classement rapide. */
+export const QUICK_CHARGE_CATEGORIES = [
+  "Autre charge variable",
+  "Alimentaire",
+  "Carburant",
+  "Déchèterie",
+] as const;
+
+/**
+ * Classement rapide d'une charge en « Autre charge variable » et validation associée.
+ * Le montant, la date et le libellé d'origine ne sont jamais modifiés.
+ */
+export async function classifyAsOtherVariable(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("pilot_ca_entries")
+    .update({
+      charge_class: "variable",
+      charge_category: "Autre charge variable",
+      validation_status: "valide",
+      validated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+/** Classement groupé en « Autre charge variable » pour une sélection de lignes. */
+export async function classifyManyAsOtherVariable(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase
+    .from("pilot_ca_entries")
+    .update({
+      charge_class: "variable",
+      charge_category: "Autre charge variable",
+      validation_status: "valide",
+      validated_at: new Date().toISOString(),
+    } as never)
+    .in("id", ids);
+  if (error) throw error;
+}
