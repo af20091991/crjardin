@@ -42,7 +42,6 @@ import {
   buildQualificationImpact,
   impactLines,
   loadValidationMemory,
-  memoryKey,
   propagateValidatedMatch,
   type QualificationImpact,
 } from "@/lib/pilot-qualification";
