@@ -53,7 +53,6 @@ interface CaEntryRow {
   month: number;
   amount_ht: number;
   designation: string | null;
-  family: string | null;
   kind: string;
 }
 
@@ -139,7 +138,7 @@ function PilotClient360() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pilot_ca_entries")
-        .select("id,year,month,amount_ht,designation,family,kind")
+        .select("id,year,month,amount_ht,designation,kind")
         .eq("client_id", clientId)
         .eq("kind", "vente")
         .order("year", { ascending: false })
