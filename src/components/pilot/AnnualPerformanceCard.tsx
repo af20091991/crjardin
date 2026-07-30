@@ -10,6 +10,8 @@ import type { PilotEntry } from "@/lib/pilot";
 import { listChargeRows } from "@/lib/pilot-charges";
 import { annualSummary } from "@/lib/pilot-annual";
 import { margeHealthScore, HEALTH_LEVEL_META, type PragmaticHealth } from "@/lib/pilot-health";
+import { ProfitSignal } from "@/components/pilot/ProfitSignal";
+import { signalFromMarginPct } from "@/lib/pilot-profit-signal";
 import { useThresholds } from "@/lib/pilot-thresholds";
 
 /**
@@ -74,6 +76,7 @@ export function AnnualPerformanceCard({
                   <th className="px-3 py-2 text-right font-medium">Charges</th>
                   <th className="px-3 py-2 text-right font-medium">Bénéfice brut</th>
                   <th className="px-3 py-2 text-right font-medium">Marge</th>
+                  <th className="px-3 py-2 text-center font-medium">Lecture</th>
                   <th className="px-3 py-2 text-right font-medium">Score marge</th>
                   <th className="px-3 py-2 text-right font-medium">Invest.</th>
                   <th className="px-3 py-2 text-right font-medium">Après invest.</th>
@@ -96,6 +99,11 @@ export function AnnualPerformanceCard({
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {r.charges > 0 && r.margePct != null ? `${r.margePct.toFixed(0)} %` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <ProfitSignal
+                        level={signalFromMarginPct(r.charges > 0 ? r.margePct : null, thresholds)}
+                      />
                     </td>
                     <td className="px-3 py-2 text-right">
                       {(() => {

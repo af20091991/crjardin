@@ -26,6 +26,19 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-07-30",
+    version: "1.19.0",
+    theme: "Général",
+    title: "Pilot Pro V1.19 — centre de décision, rentabilité visuelle et simulations",
+    details: [
+      "Page « Aujourd'hui » : les décisions les plus importantes du jour sont réunies en tête, classées par impact, avec le montant en jeu et un lien direct vers l'écran concerné.",
+      "Rentabilité visuelle : une pastille 🟢 🟡 🟠 🔴 identique sur les clients, les prestations, la sous-traitance et les exercices de la page Direction.",
+      "Fiche client 360° : chronologie automatique du client (création, interventions, ventes, contrats d'entretien, sous-traitance, recommandations).",
+      "Nouvelle page « Simulations » : tester l'effet d'une hausse de tarif, d'un volume d'heures, d'une évolution des charges ou d'un recours à la sous-traitance sans modifier aucune donnée réelle.",
+      "Tableau de bord personnalisable : masquer, réordonner et épingler les blocs de la page « Aujourd'hui ».",
+    ],
+  },
+  {
     date: "2026-07-29",
     version: "1.18.0",
     theme: "Général",
