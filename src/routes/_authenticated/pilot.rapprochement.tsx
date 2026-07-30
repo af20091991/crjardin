@@ -38,6 +38,14 @@ import {
   getNonApplicableSummary,
   type Suggestion,
 } from "@/lib/pilot-ca-matching";
+import {
+  buildQualificationImpact,
+  impactLines,
+  loadValidationMemory,
+  memoryKey,
+  propagateValidatedMatch,
+  type QualificationImpact,
+} from "@/lib/pilot-qualification";
 
 export const Route = createFileRoute("/_authenticated/pilot/rapprochement")({
   head: () => ({ meta: [{ title: "Rapprochement CA — Pilot Pro" }] }),
@@ -57,6 +65,10 @@ function RapprochementPage() {
   const [confFilter, setConfFilter] = useState<string>("all");
   const [q, setQ] = useState("");
   const [manualClientId, setManualClientId] = useState<string>("");
+  const [impact, setImpact] = useState<QualificationImpact | null>(null);
+
+  // Mémoire des correspondances déjà validées à la main.
+  const memory = useQuery({ queryKey: ["pilot-match-memory"], queryFn: loadValidationMemory });
 
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ["pilot-ca-orphans"] });
@@ -66,11 +78,27 @@ function RapprochementPage() {
     qc.invalidateQueries({ queryKey: ["client-scores"] });
     qc.invalidateQueries({ queryKey: ["pilot-reconstruction"] });
     qc.invalidateQueries({ queryKey: ["pilot-ca-non-applicable"] });
+    qc.invalidateQueries({ queryKey: ["pilot-match-memory"] });
+    qc.invalidateQueries({ queryKey: ["fiche-score"] });
+    qc.invalidateQueries({ queryKey: ["fiche-ca"] });
+    qc.invalidateQueries({ queryKey: ["client-profitability"] });
+    qc.invalidateQueries({ queryKey: ["pilot-opportunities"] });
+    qc.invalidateQueries({ queryKey: ["pilot-recommendations"] });
+    qc.invalidateQueries({ queryKey: ["pilot-portfolio"] });
   };
 
   const designationIndex = useMemo(
-    () => buildDesignationIndex(linked.data ?? []),
-    [linked.data],
+    () => {
+      // L'historique validé (lignes rattachées) est complété par la mémoire des
+      // validations manuelles : une correspondance validée n'est plus redemandée.
+      const idx = buildDesignationIndex(linked.data ?? []);
+      memory.data?.forEach((m, key) => {
+        const cur = idx.get(key);
+        if (!cur) idx.set(key, { clientId: m.clientId, count: m.count });
+      });
+      return idx;
+    },
+    [linked.data, memory.data],
   );
 
   const years = useMemo(() => {
@@ -124,10 +152,30 @@ function RapprochementPage() {
   }, [selected, evalByEntry]);
 
   const linkMut = useMutation({
-    mutationFn: (p: { entryId: string; clientId: string | null; method: Parameters<typeof linkEntryToClient>[0]["method"]; score?: number | null }) =>
-      linkEntryToClient(p),
-    onSuccess: (_data, vars) => {
+    mutationFn: async (p: {
+      entryId: string;
+      clientId: string | null;
+      method: Parameters<typeof linkEntryToClient>[0]["method"];
+      score?: number | null;
+      designation?: string | null;
+    }) => {
+      await linkEntryToClient(p);
+      if (!p.clientId) return null;
+      // Apprentissage : la correspondance validée est rejouée sur les lignes
+      // restantes portant exactement la même désignation.
+      const propagation =
+        p.method === "manual" || p.method === "suggestion" || p.method === "new_client"
+          ? await propagateValidatedMatch({
+              clientId: p.clientId,
+              designation: p.designation ?? null,
+              excludeEntryId: p.entryId,
+            })
+          : { propagated: 0, amount: 0 };
+      return buildQualificationImpact(p.clientId, propagation);
+    },
+    onSuccess: (res, vars) => {
       toast.success(vars.clientId ? "Ligne rattachée" : "Décision enregistrée");
+      setImpact(res);
       setSelectedId(null);
       setManualClientId("");
       invalidateAll();
@@ -388,6 +436,7 @@ function RapprochementPage() {
                                 clientId: s.client.id,
                                 method: "suggestion",
                                 score: s.score,
+                                designation: selected.designation,
                               })
                             }
                           >
@@ -425,6 +474,7 @@ function RapprochementPage() {
                           entryId: selected.id,
                           clientId: manualClientId,
                           method: "manual",
+                          designation: selected.designation,
                         })
                       }
                     >
@@ -447,6 +497,7 @@ function RapprochementPage() {
                         entryId: selected.id,
                         clientId: c.id,
                         method: "new_client",
+                        designation: selected.designation,
                       });
                     }}
                   />
