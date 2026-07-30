@@ -229,6 +229,46 @@ function PilotClient360() {
   const policyMeta = REPORT_POLICY_META[policy];
   const ceevRows = ceevQ.data ?? [];
   const ceevValue = ceevRows.reduce((s, c) => s + (Number(c.pv_ht) || 0), 0);
+  const sstRows = (missionsQ.data ?? []).filter((m) => m.client_id === clientId);
+  const recoRows = recosQ.data ?? [];
+  const interventionsWithHours = (interventionsQ.data ?? []).filter(
+    (iv) => iv.hours_spent != null,
+  ).length;
+
+  const qualityInput = {
+    hasAddress: !!client.address,
+    hasPhone: !!client.phone,
+    hasEmail: !!client.email || (client.emails ?? []).length > 0,
+    caLines: (caQ.data ?? []).length,
+    caAmount: caCumule,
+    interventions: crTotal,
+    interventionsWithHours,
+    ceev: ceevRows.length,
+    sst: sstRows.length,
+    historicHours,
+    recommendations: recoRows.length,
+    confidenceLevel: score?.confidenceLevel ?? null,
+    lastQualifiedAt: lastQualifQ.data ?? null,
+  };
+
+  // « Données insuffisantes » n'apparaît que si AUCUNE source exploitable
+  // n'existe (CA, interventions, CEEV, SST, heures historiques, recommandations).
+  const anyDataLoading =
+    scoreQ.isLoading ||
+    caQ.isLoading ||
+    interventionsQ.isLoading ||
+    ceevQ.isLoading ||
+    missionsQ.isLoading ||
+    historicHoursQ.isLoading ||
+    recosQ.isLoading;
+  const hasAnyData =
+    qualityInput.caLines > 0 ||
+    qualityInput.interventions > 0 ||
+    qualityInput.ceev > 0 ||
+    qualityInput.sst > 0 ||
+    historicHours > 0 ||
+    recoRows.length > 0;
+  const noEconomicData = !anyDataLoading && !hasAnyData;
 
   return (
     <div className="space-y-4">
