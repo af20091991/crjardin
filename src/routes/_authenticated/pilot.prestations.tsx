@@ -18,6 +18,8 @@ import { useThresholds } from "@/lib/pilot-thresholds";
 import { currentYear } from "@/lib/date-utils";
 import { entriesForMode, hoursLedgerForMode } from "@/lib/pilot-realized";
 import { usePilotMode } from "@/lib/pilot-mode";
+import { ProfitSignal } from "@/components/pilot/ProfitSignal";
+import { signalFromServiceClass } from "@/lib/pilot-profit-signal";
 
 export const Route = createFileRoute("/_authenticated/pilot/prestations")({
   head: () => ({
@@ -135,6 +137,7 @@ function PrestationsPage() {
                   <th className="py-2 text-right font-medium">Heures</th>
                   <th className="py-2 text-right font-medium">Taux horaire</th>
                   <th className="py-2 text-right font-medium">Clients</th>
+                  <th className="py-2 text-center font-medium">Rentabilité</th>
                   <th className="py-2 text-left font-medium">Classement</th>
                 </tr>
               </thead>
@@ -182,6 +185,9 @@ function PrestationsPage() {
                       {r.tauxHoraire == null ? "—" : `${formatEuro(r.tauxHoraire)}/h`}
                     </td>
                     <td className="py-2 text-right tabular-nums">{r.clients}</td>
+                    <td className="py-2 text-center">
+                      <ProfitSignal level={signalFromServiceClass(r.classe)} compact />
+                    </td>
                     <td className="py-2">
                       <Badge variant="outline" className={SERVICE_CLASS_META[r.classe].badge}>
                         {SERVICE_CLASS_META[r.classe].label}

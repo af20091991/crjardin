@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ProfitSignal } from "@/components/pilot/ProfitSignal";
+import { signalFromMarginPct } from "@/lib/pilot-profit-signal";
 import { PilotCard } from "@/components/pilot/PilotCard";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 import { formatEuro, formatHours } from "@/lib/format-utils";
@@ -620,6 +622,7 @@ export function SstProfitabilityTab() {
                   <TableHead className="text-right">Prix HT vente</TableHead>
                   <TableHead className="text-right">Marge nette HT</TableHead>
                   <TableHead className="text-right">%</TableHead>
+                  <TableHead className="text-center">Rentabilité</TableHead>
                   <TableHead className="text-right">Difficulté</TableHead>
                   <TableHead>Détails</TableHead>
                   <TableHead />
@@ -650,6 +653,9 @@ export function SstProfitabilityTab() {
                       {formatEuro(r.margin)}
                     </TableCell>
                     <TableCell className="text-right">{pct(r.marginPct)}</TableCell>
+                    <TableCell className="text-center">
+                      <ProfitSignal level={signalFromMarginPct(r.marginPct)} compact />
+                    </TableCell>
                     <TableCell className="text-right">
                       {r.mission.internal_rating != null ? `${r.mission.internal_rating}/5` : "—"}
                     </TableCell>
