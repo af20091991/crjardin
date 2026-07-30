@@ -139,13 +139,19 @@ function PilotClient360() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pilot_ca_entries")
-        .select("id,entry_date,year,month,amount_ht,designation,family,kind")
+        .select("id,year,month,amount_ht,designation,family,kind")
         .eq("client_id", clientId)
         .eq("kind", "vente")
-        .order("entry_date", { ascending: false })
+        .order("year", { ascending: false })
+        .order("month", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data ?? []) as unknown as CaEntryRow[];
+      // pilot_ca_entries stocke année + mois : la date de référence est
+      // reconstituée (1er du mois) sans créer de nouvelle donnée.
+      return ((data ?? []) as unknown as Omit<CaEntryRow, "entry_date">[]).map((r) => ({
+        ...r,
+        entry_date: `${r.year}-${String(r.month).padStart(2, "0")}-01`,
+      })) as CaEntryRow[];
     },
   });
 
