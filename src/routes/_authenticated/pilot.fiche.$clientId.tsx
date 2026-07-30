@@ -17,6 +17,7 @@ import { ClientHoursCard } from "@/components/pilot/ClientHoursCard";
 import { ClientProfitabilityCard } from "@/components/pilot/ClientProfitabilityCard";
 import { ClientUnderstandingCard } from "@/components/pilot/ClientUnderstandingCard";
 import { ClientTimeline } from "@/components/pilot/ClientTimeline";
+import { ClientQualityCard } from "@/components/pilot/ClientQualityCard";
 import { listMissions } from "@/lib/subcontractors";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -151,6 +152,21 @@ function PilotClient360() {
   // Missions de sous-traitance rattachées à ce client (source existante).
   const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
 
+  // Dernière qualification manuelle enregistrée (source : journal de rapprochement).
+  const lastQualifQ = useQuery({
+    queryKey: ["fiche-last-qualif", clientId],
+    queryFn: async (): Promise<string | null> => {
+      const { data, error } = await supabase
+        .from("pilot_ca_match_log")
+        .select("decided_at")
+        .eq("new_client_id", clientId)
+        .order("decided_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return ((data ?? [])[0] as { decided_at?: string } | undefined)?.decided_at ?? null;
+    },
+  });
+
   if (clientQ.isLoading) {
     return <Skeleton className="h-96 rounded-xl" />;
   }
@@ -165,7 +181,6 @@ function PilotClient360() {
 
   const client = clientQ.data;
   const score = scoreQ.data ?? null;
-  const noEconomicData = !scoreQ.isLoading && score === null;
   const scoreMeta = score ? SCORE_META[score.score] : null;
   const confMeta = score ? CONFIDENCE_META[score.confidenceLevel] : null;
   const ConfIcon = confMeta?.icon;
