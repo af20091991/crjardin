@@ -865,6 +865,7 @@ function TodayPage() {
   const dashboardDefs: DashboardBlockDef[] = [
     { id: "decisions", label: "Décisions du jour" },
     { id: "situation", label: "Situation actuelle" },
+    { id: "graphique", label: "Graphique CA mensuel" },
     { id: "heures", label: "Répartition du temps" },
     { id: "priorites", label: "Priorités du jour" },
     { id: "opportunites", label: "Opportunités commerciales" },
@@ -1041,10 +1042,10 @@ function TodayPage() {
             />
           )}
         </div>
-      </section>
+      </DashboardBlock>
 
       {/* Graphique — évolution de l'exercice en cours */}
-      <section className="grid gap-3">
+      <DashboardBlock id="graphique" layout={layout}>
         <PilotCard
           label={`CA mensuel ${year}${isProjection ? " (réel + projeté)" : ""}`}
           icon={Euro}
