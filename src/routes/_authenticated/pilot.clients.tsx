@@ -12,6 +12,9 @@ import { Trophy, AlertTriangle, UserX, TrendingUp } from "lucide-react";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import { entriesForMode } from "@/lib/pilot-realized";
 import { usePilotMode } from "@/lib/pilot-mode";
+import { ProfitSignal } from "@/components/pilot/ProfitSignal";
+import { signalFromHourlyRate } from "@/lib/pilot-profit-signal";
+import { useThresholds } from "@/lib/pilot-thresholds";
 
 export const Route = createFileRoute("/_authenticated/pilot/clients")({
   component: PilotClientsPage,
@@ -34,6 +37,8 @@ const NATURE_TONE: Record<string, string> = {
 function PilotClientsPage() {
   const { entries } = usePilotData();
   const { mode } = usePilotMode();
+  const thresholds = useThresholds();
+  const targetHourlyRate = thresholds.tauxHoraireCibleMin;
   const year = new Date().getFullYear();
   const [scope, setScope] = useState<string>(String(year));
 
@@ -97,6 +102,12 @@ function PilotClientsPage() {
               </div>
               <p className="mt-1 truncate font-medium">{c.name}</p>
               <p className="font-serif text-xl font-semibold">{formatEuro(c.ca)}</p>
+              <div className="mt-1">
+                <ProfitSignal
+                  level={signalFromHourlyRate(c.hourlyRate, targetHourlyRate, thresholds)}
+                  title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
+                />
+              </div>
               <p className="text-xs text-muted-foreground">{c.share.toFixed(0)} % du CA · {formatEuro(c.hourlyRate)}/h</p>
             </CardContent>
           </Card>
@@ -124,6 +135,7 @@ function PilotClientsPage() {
                   <TableHead className="text-right" title="CA HT moyen par intervention pour ce client.">CA moy.</TableHead>
                   <TableHead className="text-right" title="Temps moyen (en heures) par intervention pour ce client.">Temps moy.</TableHead>
                   <TableHead className="text-right">Taux/h</TableHead>
+                  <TableHead className="text-center" title="Lecture immédiate de la rentabilité : taux horaire généré comparé à la cible des Paramètres PP.">Rentabilité</TableHead>
                   <TableHead className="text-center">Cat.</TableHead>
                 </TableRow>
               </TableHeader>
@@ -147,6 +159,12 @@ function PilotClientsPage() {
                     <TableCell className="text-right text-sm text-muted-foreground">{formatEuro(c.avgCa)}</TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">{c.avgTime.toFixed(1)} h</TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">{formatEuro(c.hourlyRate)}</TableCell>
+                    <TableCell className="text-center">
+                      <ProfitSignal
+                        level={signalFromHourlyRate(c.hourlyRate, targetHourlyRate, thresholds)}
+                        title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
+                      />
+                    </TableCell>
                     <TableCell className="text-center"><Badge className={ABC_TONE[c.abc]}>{c.abc}</Badge></TableCell>
                   </TableRow>
                 ))}

@@ -16,6 +16,8 @@ import {
 import { ClientHoursCard } from "@/components/pilot/ClientHoursCard";
 import { ClientProfitabilityCard } from "@/components/pilot/ClientProfitabilityCard";
 import { ClientUnderstandingCard } from "@/components/pilot/ClientUnderstandingCard";
+import { ClientTimeline } from "@/components/pilot/ClientTimeline";
+import { listMissions } from "@/lib/subcontractors";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -145,6 +147,9 @@ function PilotClient360() {
       return (data ?? []) as unknown as CaEntryRow[];
     },
   });
+
+  // Missions de sous-traitance rattachées à ce client (source existante).
+  const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
 
   if (clientQ.isLoading) {
     return <Skeleton className="h-96 rounded-xl" />;
@@ -309,6 +314,39 @@ function PilotClient360() {
         ceevCount={ceevRows.length}
         ceevValue={ceevValue}
         missingHours={missingHours}
+      />
+
+      {/* Chronologie complète du client (données déjà enregistrées) */}
+      <ClientTimeline
+        createdAt={(client as { created_at?: string | null }).created_at ?? null}
+        interventions={(interventionsQ.data ?? []).map((iv) => ({
+          id: iv.id,
+          intervention_date: iv.intervention_date,
+          title: iv.title,
+          intervention_type: iv.intervention_type,
+          status: iv.status,
+          hours_spent: iv.hours_spent,
+        }))}
+        ceev={ceevRows}
+        sstMissions={(missionsQ.data ?? [])
+          .filter((m) => m.client_id === clientId)
+          .map((m) => ({
+            id: m.id,
+            mission_date: m.mission_date,
+            service_requested: m.service_requested,
+          }))}
+        caEntries={(caQ.data ?? []).map((e) => ({
+          id: e.id,
+          entry_date: e.entry_date,
+          amount_ht: Number(e.amount_ht) || 0,
+        }))}
+        recommendations={(recosQ.data ?? []).map((r) => ({
+          id: r.id as string,
+          title: (r.title as string) ?? "Recommandation",
+          status: (r.status as string) ?? "",
+          created_at: r.created_at as string,
+        }))}
+        nextAction={nextAction ? `${nextAction.title}${nextAction.detail ? ` — ${nextAction.detail}` : ""}` : null}
       />
 
       {/* 2 — Historique commercial */}

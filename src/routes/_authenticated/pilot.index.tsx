@@ -33,6 +33,12 @@ import { priorityStatusKey } from "@/lib/pilot-priorities";
 import { PriorityCard } from "@/components/pilot/PriorityCard";
 import { OpportunitiesBoard } from "@/components/pilot/OpportunitiesBoard";
 import { rankItems } from "@/lib/pilot-learning";
+import { buildDecisions } from "@/lib/pilot-decisions";
+import { DecisionCenter } from "@/components/pilot/DecisionCenter";
+import { buildCommercialOpportunities } from "@/lib/pilot-opportunities";
+import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
+import { DashboardCustomizer, DashboardBlock } from "@/components/pilot/DashboardCustomizer";
+import { explainPriority } from "@/lib/pilot-priorities";
 import {
   ACTION_STATUS_BADGE,
   ACTION_STATUS_LABELS,
@@ -822,6 +828,50 @@ function TodayPage() {
   // descendent, celles jugées utiles remontent. Rien n'est supprimé.
   const recommendations = rankItems(recommendationsRaw, { feedbackByKey, statusOf });
 
+  // ---- Centre de décision : agrégation des moteurs existants uniquement ----
+  const activityRowsQ = useQuery({ queryKey: ["client-activity-rows"], queryFn: fetchClientActivityRows });
+  const commercialOpportunities = buildCommercialOpportunities({
+    activity: activityRowsQ.data ?? [],
+    ceev: ceevContracts.data ?? [],
+    offers: priority,
+    clientNameById,
+    year,
+  });
+  const decisions = buildDecisions({
+    recommendations,
+    opportunities: commercialOpportunities,
+    priorities: priorities
+      .filter((p) => p.count > 0)
+      .map((p) => {
+        const info = explainPriority(p.key);
+        return {
+          key: p.key,
+          label: p.label,
+          count: p.count,
+          why: info.why,
+          source: info.source,
+          action: info.action,
+          to: p.topic ? "/pilot/focus/$topic" : (p.to ?? "/pilot"),
+          params: p.topic ? { topic: p.topic } : undefined,
+          weight: 50 + Math.min(40, p.count * 5),
+        };
+      }),
+    isHandled: (key) => {
+      const s = statusOf(key);
+      return s === "realisee" || s === "ignoree";
+    },
+  });
+
+  const dashboardDefs: DashboardBlockDef[] = [
+    { id: "decisions", label: "Décisions du jour" },
+    { id: "situation", label: "Situation actuelle" },
+    { id: "heures", label: "Répartition du temps" },
+    { id: "priorites", label: "Priorités du jour" },
+    { id: "opportunites", label: "Opportunités commerciales" },
+    { id: "recommandations", label: "Recommandations Pilot Pro" },
+  ];
+  const layout = useDashboardLayout(dashboardDefs);
+
   // Signaux commerciaux annexes (chips)
   const secondarySignals: Array<{
     label: string;
@@ -862,19 +912,36 @@ function TodayPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="font-serif text-2xl font-semibold tracking-tight">
-          Bonjour, voici votre journée
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {new Date().toLocaleDateString("fr-FR", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-serif text-2xl font-semibold tracking-tight">
+            Bonjour, voici votre journée
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {new Date().toLocaleDateString("fr-FR", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+        <DashboardCustomizer defs={dashboardDefs} layout={layout} />
       </div>
+
+      {/* 0 — Centre de décision dirigeant : les 5 décisions les plus importantes */}
+      <DashboardBlock id="decisions" layout={layout}>
+        <SectionTitle
+          question="Quelles décisions prendre aujourd'hui ?"
+          label={`${decisions.active.length} décision${decisions.active.length > 1 ? "s" : ""}`}
+        />
+        <DecisionCenter
+          decisions={decisions.active}
+          handledCount={decisions.handled.length}
+          statusOf={(key) => statusOf(key)}
+          onStatus={(key, s) => setStatus(key, s)}
+        />
+      </DashboardBlock>
 
       <CaStatusCard
         year={year}
