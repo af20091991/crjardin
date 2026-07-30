@@ -17,6 +17,7 @@ import { ClientHoursCard } from "@/components/pilot/ClientHoursCard";
 import { ClientProfitabilityCard } from "@/components/pilot/ClientProfitabilityCard";
 import { ClientUnderstandingCard } from "@/components/pilot/ClientUnderstandingCard";
 import { ClientTimeline } from "@/components/pilot/ClientTimeline";
+import { ClientQualityCard } from "@/components/pilot/ClientQualityCard";
 import { listMissions } from "@/lib/subcontractors";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,7 +53,6 @@ interface CaEntryRow {
   month: number;
   amount_ht: number;
   designation: string | null;
-  family: string | null;
   kind: string;
 }
 
@@ -138,18 +138,39 @@ function PilotClient360() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pilot_ca_entries")
-        .select("id,entry_date,year,month,amount_ht,designation,family,kind")
+        .select("id,year,month,amount_ht,designation,kind")
         .eq("client_id", clientId)
         .eq("kind", "vente")
-        .order("entry_date", { ascending: false })
+        .order("year", { ascending: false })
+        .order("month", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data ?? []) as unknown as CaEntryRow[];
+      // pilot_ca_entries stocke année + mois : la date de référence est
+      // reconstituée (1er du mois) sans créer de nouvelle donnée.
+      return ((data ?? []) as unknown as Omit<CaEntryRow, "entry_date">[]).map((r) => ({
+        ...r,
+        entry_date: `${r.year}-${String(r.month).padStart(2, "0")}-01`,
+      })) as CaEntryRow[];
     },
   });
 
   // Missions de sous-traitance rattachées à ce client (source existante).
   const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
+
+  // Dernière qualification manuelle enregistrée (source : journal de rapprochement).
+  const lastQualifQ = useQuery({
+    queryKey: ["fiche-last-qualif", clientId],
+    queryFn: async (): Promise<string | null> => {
+      const { data, error } = await supabase
+        .from("pilot_ca_match_log")
+        .select("decided_at")
+        .eq("new_client_id", clientId)
+        .order("decided_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return ((data ?? [])[0] as { decided_at?: string } | undefined)?.decided_at ?? null;
+    },
+  });
 
   if (clientQ.isLoading) {
     return <Skeleton className="h-96 rounded-xl" />;
@@ -165,7 +186,6 @@ function PilotClient360() {
 
   const client = clientQ.data;
   const score = scoreQ.data ?? null;
-  const noEconomicData = !scoreQ.isLoading && score === null;
   const scoreMeta = score ? SCORE_META[score.score] : null;
   const confMeta = score ? CONFIDENCE_META[score.confidenceLevel] : null;
   const ConfIcon = confMeta?.icon;
@@ -214,6 +234,46 @@ function PilotClient360() {
   const policyMeta = REPORT_POLICY_META[policy];
   const ceevRows = ceevQ.data ?? [];
   const ceevValue = ceevRows.reduce((s, c) => s + (Number(c.pv_ht) || 0), 0);
+  const sstRows = (missionsQ.data ?? []).filter((m) => m.client_id === clientId);
+  const recoRows = recosQ.data ?? [];
+  const interventionsWithHours = (interventionsQ.data ?? []).filter(
+    (iv) => iv.hours_spent != null,
+  ).length;
+
+  const qualityInput = {
+    hasAddress: !!client.address,
+    hasPhone: !!client.phone,
+    hasEmail: !!client.email || (client.emails ?? []).length > 0,
+    caLines: (caQ.data ?? []).length,
+    caAmount: caCumule,
+    interventions: crTotal,
+    interventionsWithHours,
+    ceev: ceevRows.length,
+    sst: sstRows.length,
+    historicHours,
+    recommendations: recoRows.length,
+    confidenceLevel: score?.confidenceLevel ?? null,
+    lastQualifiedAt: lastQualifQ.data ?? null,
+  };
+
+  // « Données insuffisantes » n'apparaît que si AUCUNE source exploitable
+  // n'existe (CA, interventions, CEEV, SST, heures historiques, recommandations).
+  const anyDataLoading =
+    scoreQ.isLoading ||
+    caQ.isLoading ||
+    interventionsQ.isLoading ||
+    ceevQ.isLoading ||
+    missionsQ.isLoading ||
+    historicHoursQ.isLoading ||
+    recosQ.isLoading;
+  const hasAnyData =
+    qualityInput.caLines > 0 ||
+    qualityInput.interventions > 0 ||
+    qualityInput.ceev > 0 ||
+    qualityInput.sst > 0 ||
+    historicHours > 0 ||
+    recoRows.length > 0;
+  const noEconomicData = !anyDataLoading && !hasAnyData;
 
   return (
     <div className="space-y-4">
@@ -314,6 +374,23 @@ function PilotClient360() {
         ceevCount={ceevRows.length}
         ceevValue={ceevValue}
         missingHours={missingHours}
+      />
+
+      {/* Qualité de la fiche + assistant de qualification */}
+      <ClientQualityCard
+        clientId={clientId}
+        input={qualityInput}
+        details={[
+          { label: "CA associé", value: formatEuro(caCumule) },
+          { label: "Interventions", value: String(crTotal) },
+          { label: "Contrats CEEV", value: String(ceevRows.length) },
+          { label: "Missions SST", value: String(sstRows.length) },
+          {
+            label: "Rentabilité",
+            value: score?.realHourlyRate != null ? `${formatEuro(score.realHourlyRate)}/h` : "indisponible",
+          },
+          { label: "Recommandations", value: String(recoRows.length) },
+        ]}
       />
 
       {/* Chronologie complète du client (données déjà enregistrées) */}

@@ -70,6 +70,11 @@ function normalize(s: string): string {
     .trim();
 }
 
+/** Normalisation partagée (mémoire de rapprochement, propagation). */
+export function normalizeLabel(s: string): string {
+  return normalize(s);
+}
+
 function bigrams(s: string): Map<string, number> {
   const map = new Map<string, number>();
   const t = ` ${s} `;
