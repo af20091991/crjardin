@@ -371,6 +371,23 @@ function PilotClient360() {
         missingHours={missingHours}
       />
 
+      {/* Qualité de la fiche + assistant de qualification */}
+      <ClientQualityCard
+        clientId={clientId}
+        input={qualityInput}
+        details={[
+          { label: "CA associé", value: formatEuro(caCumule) },
+          { label: "Interventions", value: String(crTotal) },
+          { label: "Contrats CEEV", value: String(ceevRows.length) },
+          { label: "Missions SST", value: String(sstRows.length) },
+          {
+            label: "Rentabilité",
+            value: score?.realHourlyRate != null ? `${formatEuro(score.realHourlyRate)}/h` : "indisponible",
+          },
+          { label: "Recommandations", value: String(recoRows.length) },
+        ]}
+      />
+
       {/* Chronologie complète du client (données déjà enregistrées) */}
       <ClientTimeline
         createdAt={(client as { created_at?: string | null }).created_at ?? null}
