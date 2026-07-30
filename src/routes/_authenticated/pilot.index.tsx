@@ -911,7 +911,7 @@ function TodayPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-serif text-2xl font-semibold tracking-tight">
@@ -951,7 +951,7 @@ function TodayPage() {
       />
 
       {/* 1 — Où en est mon entreprise aujourd'hui ? */}
-      <section className="space-y-2">
+      <DashboardBlock id="situation" layout={layout}>
         <SectionTitle
           question="Situation actuelle"
           label={isProjection ? `Projection ${year}` : `Réel ${year}`}
@@ -1064,15 +1064,15 @@ function TodayPage() {
             </ChartContainer>
           }
         />
-      </section>
+      </DashboardBlock>
 
       {/* 2 — Quelles sont mes priorités ? */}
-      <section className="space-y-2">
+      <DashboardBlock id="heures" layout={layout}>
         <SectionTitle question="Répartition du temps" label="Heures consolidées" />
         <HoursSummaryCards year={year} resolution={hoursResolution} toFill={missingHours.length} />
-      </section>
+      </DashboardBlock>
 
-      <section className="space-y-2">
+      <DashboardBlock id="priorites" layout={layout}>
         <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
         {priorities.length === 0 ? (
           <Card className="border-dashed">
@@ -1105,13 +1105,13 @@ function TodayPage() {
             ))}
           </div>
         )}
-      </section>
+      </DashboardBlock>
 
       {/* 3 — Quels risques dois-je traiter ? */}
-      <section className="space-y-2">
+      <DashboardBlock id="opportunites" layout={layout}>
         <SectionTitle question="Où puis-je gagner du chiffre d'affaires ?" label="Opportunités commerciales" />
         <OpportunitiesBoard year={year} offers={priority} clientNameById={clientNameById} />
-      </section>
+      </DashboardBlock>
 
       <section className="space-y-2">
         <SectionTitle
@@ -1232,7 +1232,7 @@ function TodayPage() {
       </section>
 
       {/* 3bis — Recommandations Pilot Pro */}
-      <section className="space-y-2">
+      <DashboardBlock id="recommandations" layout={layout}>
         <SectionTitle
           question="Recommandations Pilot Pro"
           label={`${recommendations.length} action${recommendations.length > 1 ? "s" : ""} proposée${recommendations.length > 1 ? "s" : ""}`}
@@ -1308,7 +1308,7 @@ function TodayPage() {
             ))}
           </div>
         )}
-      </section>
+      </DashboardBlock>
 
       {/* 4 — Quelles opportunités puis-je saisir ? */}
       <section className="space-y-2">
