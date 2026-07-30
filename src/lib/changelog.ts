@@ -27,6 +27,20 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-07-30",
+    version: "1.20.0",
+    theme: "Clients",
+    title: "Rapprochement intelligent et apprentissage métier",
+    details: [
+      "Chaque correspondance validée à la main est mémorisée et rejouée automatiquement sur les lignes CA identiques.",
+      "Résumé d'impact après chaque qualification : lignes rapprochées, rentabilité, opportunités, recommandations.",
+      "Nouveau bloc « Qualité de la fiche » avec complétude, confiance, dernière qualification et éléments associés.",
+      "Assistant de qualification : liste des informations manquantes avec accès direct à l'action.",
+      "« Données insuffisantes » n'apparaît plus que si aucune source (CA, interventions, CEEV, SST, heures) n'existe.",
+      "Correction : l'historique commercial de la fiche client ne se chargeait pas (colonnes inexistantes).",
+    ],
+  },
+  {
+    date: "2026-07-30",
     version: "1.19.0",
     theme: "Général",
     title: "Pilot Pro V1.19 — centre de décision, rentabilité visuelle et simulations",
