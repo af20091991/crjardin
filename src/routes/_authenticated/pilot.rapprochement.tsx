@@ -255,6 +255,28 @@ function RapprochementPage() {
       </header>
 
       <ReconstructionPanel />
+      {impact && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              Cette qualification a permis
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => setImpact(null)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            {impactLines(impact).map((l) => (
+              <p key={l}>· {l}</p>
+            ))}
+            <p className="pt-1 text-xs text-muted-foreground">
+              Cette correspondance est mémorisée : elle sera proposée automatiquement
+              lors des prochains rapprochements et ne sera plus redemandée.
+            </p>
+          </CardContent>
+        </Card>
+      )}
       <HoursQualityPanel />
 
       {/* Tableau de contrôle : rien n'est masqué, y compris ce qui est hors périmètre */}
