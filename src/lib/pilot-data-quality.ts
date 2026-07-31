@@ -46,7 +46,7 @@ export interface DataQualityReport {
 
 type Row = Record<string, unknown>;
 
-async function fetchAll(): Promise<{
+interface QualityDataset {
   clients: Array<{ id: string; name: string; address: string | null; phone: string | null; email: string | null }>;
   ca: Array<{ id: string; client_id: string | null; kind: string; match_status: string; amount_ht: number; designation: string | null }>;
   ceev: Array<{ id: string; client_id: string | null; label: string; pv_ht: number; year: number }>;
@@ -54,7 +54,9 @@ async function fetchAll(): Promise<{
   interventions: Array<{ id: string; client_id: string; hours_spent: number | null }>;
   recos: Array<{ id: string; client_id: string }>;
   histo: Array<{ client_id: string | null; hours: number }>;
-}> {
+}
+
+async function fetchAll(): Promise<QualityDataset> {
   const [c, ca, ceev, sst, iv, reco, histo] = await Promise.all([
     supabase.from("clients").select("id,name,address,phone,email"),
     supabase.from("pilot_ca_entries").select("id,client_id,kind,match_status,amount_ht,designation").limit(20000),
@@ -68,14 +70,14 @@ async function fetchAll(): Promise<{
     if (r.error) throw r.error;
   }
   return {
-    clients: (c.data ?? []) as unknown as never,
-    ca: (ca.data ?? []) as unknown as never,
-    ceev: (ceev.data ?? []) as unknown as never,
-    sst: (sst.data ?? []) as unknown as never,
-    interventions: (iv.data ?? []) as unknown as never,
-    recos: (reco.data ?? []) as unknown as never,
-    histo: (histo.data ?? []) as unknown as never,
-  } as never as Awaited<ReturnType<typeof fetchAll>>;
+    clients: (c.data ?? []) as unknown as QualityDataset["clients"],
+    ca: (ca.data ?? []) as unknown as QualityDataset["ca"],
+    ceev: (ceev.data ?? []) as unknown as QualityDataset["ceev"],
+    sst: (sst.data ?? []) as unknown as QualityDataset["sst"],
+    interventions: (iv.data ?? []) as unknown as QualityDataset["interventions"],
+    recos: (reco.data ?? []) as unknown as QualityDataset["recos"],
+    histo: (histo.data ?? []) as unknown as QualityDataset["histo"],
+  };
 }
 
 function pct(done: number, total: number) {
