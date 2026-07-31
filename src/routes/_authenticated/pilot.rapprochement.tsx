@@ -84,6 +84,7 @@ function RapprochementPage() {
     qc.invalidateQueries({ queryKey: ["pilot-opportunities"] });
     qc.invalidateQueries({ queryKey: ["pilot-recommendations"] });
     qc.invalidateQueries({ queryKey: ["pilot-portfolio"] });
+    qc.invalidateQueries({ queryKey: ["pilot-data-quality"] });
   };
 
   const designationIndex = useMemo(
