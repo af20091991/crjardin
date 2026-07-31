@@ -58,26 +58,39 @@ interface QualityDataset {
 
 async function fetchAll(): Promise<QualityDataset> {
   const [c, ca, ceev, sst, iv, reco, histo] = await Promise.all([
-    supabase.from("clients").select("id,name,address,phone,email"),
-    supabase.from("pilot_ca_entries").select("id,client_id,kind,match_status,amount_ht,designation").limit(20000),
-    supabase.from("ceev_contracts").select("id,client_id,label,pv_ht,year").limit(5000),
-    supabase.from("subcontractor_missions").select("id,client_id,service_requested,mission_date").limit(5000),
-    supabase.from("interventions").select("id,client_id,hours_spent").limit(20000),
-    supabase.from("recommendations").select("id,client_id").limit(20000),
-    supabase.from("pilot_historic_hours").select("client_id,hours").limit(20000),
+    paged("clients", "id,name,address,phone,email"),
+    paged("pilot_ca_entries", "id,client_id,kind,match_status,amount_ht,designation"),
+    paged("ceev_contracts", "id,client_id,label,pv_ht,year"),
+    paged("subcontractor_missions", "id,client_id,service_requested,mission_date"),
+    paged("interventions", "id,client_id,hours_spent"),
+    paged("recommendations", "id,client_id"),
+    paged("pilot_historic_hours", "client_id,hours"),
   ]);
-  for (const r of [c, ca, ceev, sst, iv, reco, histo]) {
-    if (r.error) throw r.error;
-  }
   return {
-    clients: (c.data ?? []) as unknown as QualityDataset["clients"],
-    ca: (ca.data ?? []) as unknown as QualityDataset["ca"],
-    ceev: (ceev.data ?? []) as unknown as QualityDataset["ceev"],
-    sst: (sst.data ?? []) as unknown as QualityDataset["sst"],
-    interventions: (iv.data ?? []) as unknown as QualityDataset["interventions"],
-    recos: (reco.data ?? []) as unknown as QualityDataset["recos"],
-    histo: (histo.data ?? []) as unknown as QualityDataset["histo"],
+    clients: c as unknown as QualityDataset["clients"],
+    ca: ca as unknown as QualityDataset["ca"],
+    ceev: ceev as unknown as QualityDataset["ceev"],
+    sst: sst as unknown as QualityDataset["sst"],
+    interventions: iv as unknown as QualityDataset["interventions"],
+    recos: reco as unknown as QualityDataset["recos"],
+    histo: histo as unknown as QualityDataset["histo"],
   };
+}
+
+/** Lecture complète par pages de 1000 lignes (limite du service de données). */
+async function paged(table: string, columns: string): Promise<Row[]> {
+  const size = 1000;
+  const out: Row[] = [];
+  for (let from = 0; ; from += size) {
+    const { data, error } = await supabase
+      .from(table as never)
+      .select(columns)
+      .range(from, from + size - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as unknown as Row[];
+    out.push(...rows);
+    if (rows.length < size) return out;
+  }
 }
 
 function pct(done: number, total: number) {
