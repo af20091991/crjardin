@@ -45,6 +45,11 @@ import {
   propagateValidatedMatch,
   type QualificationImpact,
 } from "@/lib/pilot-qualification";
+import {
+  buildDataQualityReport,
+  readQualitySnapshot,
+  writeQualitySnapshot,
+} from "@/lib/pilot-data-quality";
 
 export const Route = createFileRoute("/_authenticated/pilot/rapprochement")({
   head: () => ({ meta: [{ title: "Rapprochement CA — Pilot Pro" }] }),
