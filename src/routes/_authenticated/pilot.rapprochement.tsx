@@ -45,6 +45,11 @@ import {
   propagateValidatedMatch,
   type QualificationImpact,
 } from "@/lib/pilot-qualification";
+import {
+  buildDataQualityReport,
+  readQualitySnapshot,
+  writeQualitySnapshot,
+} from "@/lib/pilot-data-quality";
 
 export const Route = createFileRoute("/_authenticated/pilot/rapprochement")({
   head: () => ({ meta: [{ title: "Rapprochement CA — Pilot Pro" }] }),
@@ -65,6 +70,8 @@ function RapprochementPage() {
   const [q, setQ] = useState("");
   const [manualClientId, setManualClientId] = useState<string>("");
   const [impact, setImpact] = useState<QualificationImpact | null>(null);
+  /** Score global de qualité avant / après la dernière qualification. */
+  const [qualityShift, setQualityShift] = useState<{ before: number | null; after: number } | null>(null);
 
   // Mémoire des correspondances déjà validées à la main.
   const memory = useQuery({ queryKey: ["pilot-match-memory"], queryFn: loadValidationMemory });
@@ -84,6 +91,7 @@ function RapprochementPage() {
     qc.invalidateQueries({ queryKey: ["pilot-opportunities"] });
     qc.invalidateQueries({ queryKey: ["pilot-recommendations"] });
     qc.invalidateQueries({ queryKey: ["pilot-portfolio"] });
+    qc.invalidateQueries({ queryKey: ["pilot-data-quality"] });
   };
 
   const designationIndex = useMemo(
@@ -170,7 +178,14 @@ function RapprochementPage() {
               excludeEntryId: p.entryId,
             })
           : { propagated: 0, amount: 0 };
-      return buildQualificationImpact(p.clientId, propagation);
+      const impactData = await buildQualificationImpact(p.clientId, propagation);
+      const before = readQualitySnapshot()?.globalScore ?? null;
+      const report = await buildDataQualityReport().catch(() => null);
+      if (report) {
+        writeQualitySnapshot(report);
+        setQualityShift({ before, after: report.globalScore });
+      }
+      return impactData;
     },
     onSuccess: (res, vars) => {
       toast.success(vars.clientId ? "Ligne rattachée" : "Décision enregistrée");
@@ -269,6 +284,13 @@ function RapprochementPage() {
             {impactLines(impact).map((l) => (
               <p key={l}>· {l}</p>
             ))}
+            {qualityShift && (
+              <p>
+                · Qualité globale de la base :{" "}
+                <span className="font-medium">{qualityShift.after} %</span>
+                {qualityShift.before != null && ` (avant ${qualityShift.before} %)`}
+              </p>
+            )}
             <p className="pt-1 text-xs text-muted-foreground">
               Cette correspondance est mémorisée : elle sera proposée automatiquement
               lors des prochains rapprochements et ne sera plus redemandée.

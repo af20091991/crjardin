@@ -7,7 +7,7 @@ import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { GlobalSearch } from "@/components/pilot/GlobalSearch";
-import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat, Home, Euro, Target, Calculator, CalendarRange, Link2, Receipt, Activity, LineChart, Clock, HeartPulse, Settings2, CheckCircle2 } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat, Home, Euro, Target, Calculator, CalendarRange, Link2, Receipt, Activity, LineChart, Clock, HeartPulse, Settings2, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
@@ -95,6 +95,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/benchmark", label: "Benchmark & SMART", short: "Bench.", icon: Target, exact: false, primary: false },
             { to: "/pilot/rapprochement", label: "Rapprochement CA", short: "Rappr.", icon: Link2, exact: false, primary: false },
             { to: "/pilot/validation", label: "Validation analytique", short: "Valid.", icon: CheckCircle2, exact: false, primary: false },
+            { to: "/pilot/qualite", label: "Qualité des données", short: "Qualité", icon: ShieldCheck, exact: false, primary: false },
             { to: "/pilot/donnees", label: "Classeur des données", short: "Classeur", icon: ClipboardList, exact: false, primary: false },
             { to: "/pilot/parametres", label: "Paramètres PP", short: "Param.", icon: Settings2, exact: false, primary: false },
           ]

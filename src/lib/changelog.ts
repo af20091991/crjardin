@@ -26,6 +26,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-07-31",
+    version: "1.21.0",
+    theme: "Général",
+    title: "Pilot Pro — Centre de qualité des données",
+    details: [
+      "Nouvelle page « Qualité des données » : score global, progression depuis la dernière consultation et taux de qualification par domaine (clients, CA, CEEV, sous-traitance, rentabilité).",
+      "Les 10 actions à plus fort impact sont classées par gain métier (CA orphelin, contrats non reliés, heures manquantes) avec accès direct à l'écran concerné.",
+      "Après chaque qualification, le rapprochement affiche l'évolution du score de qualité global de la base.",
+      "Aucune nouvelle source de vérité : tous les indicateurs proviennent des données déjà enregistrées.",
+    ],
+  },
+  {
     date: "2026-07-30",
     version: "1.20.0",
     theme: "Clients",
