@@ -839,7 +839,7 @@ function TodayPage() {
     year,
   });
   // Risques détectés automatiquement à partir des moteurs existants.
-  const risks = useMemo(
+  const autoRisks = useMemo(
     () =>
       buildRisks({
         year,
@@ -857,7 +857,7 @@ function TodayPage() {
   const decisions = buildDecisions({
     recommendations,
     opportunities: commercialOpportunities,
-    risks,
+    risks: autoRisks,
     priorities: priorities
       .filter((p) => p.count > 0)
       .map((p) => {
@@ -953,7 +953,7 @@ function TodayPage() {
       <DashboardBlock id="decisions" layout={layout}>
         <SectionTitle
           question="Quelles décisions prendre aujourd'hui ?"
-          label={`${risks.length} risque${risks.length > 1 ? "s" : ""} détecté${risks.length > 1 ? "s" : ""}`}
+          label={`${autoRisks.length} risque${autoRisks.length > 1 ? "s" : ""} détecté${autoRisks.length > 1 ? "s" : ""}`}
         />
         <DecisionCenter
           decisions={decisions.active}
