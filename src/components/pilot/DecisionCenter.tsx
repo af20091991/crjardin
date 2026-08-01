@@ -1,30 +1,47 @@
-// Centre de décision dirigeant : les 5 décisions les plus importantes du jour.
-// Les décisions traitées disparaissent de la liste active (état local partagé
-// avec le suivi d'actions Pilot Pro).
+// Centre de décision dirigeant V2 : quatre familles (priorités, opportunités,
+// risques, corrections de données), 5 décisions maximum par famille.
+// Chaque décision est explicable : pourquoi, données utilisées, mode de calcul,
+// limites. Les décisions traitées ou reportées quittent la liste active.
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle2, Target } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronDown, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatEuro } from "@/lib/pilot";
-import { DECISION_PRIORITY_META, type PilotDecision } from "@/lib/pilot-decisions";
+import {
+  DECISION_CATEGORY_META,
+  DECISION_PRIORITY_META,
+  type DecisionCategory,
+  type PilotDecision,
+} from "@/lib/pilot-decisions";
 import { ACTION_STATUS_LABELS, type ActionStatus } from "@/lib/pilot-action-status";
 
 const CHOICES: ActionStatus[] = ["en_cours", "realisee", "ignoree"];
+const CATEGORIES: DecisionCategory[] = ["action", "opportunite", "risque", "donnee"];
 
 export function DecisionCenter({
   decisions,
+  groups,
   handledCount,
   statusOf,
   onStatus,
+  onSnooze,
 }: {
   decisions: PilotDecision[];
+  /** Décisions réparties par famille (Pilot Pro V2). */
+  groups?: Record<DecisionCategory, PilotDecision[]>;
   handledCount: number;
   statusOf: (key: string) => ActionStatus;
   onStatus: (key: string, status: ActionStatus) => void;
+  onSnooze?: (key: string, days: number) => void;
 }) {
-  if (decisions.length === 0) {
+  const total = groups
+    ? CATEGORIES.reduce((s, c) => s + groups[c].length, 0)
+    : decisions.length;
+
+  if (total === 0) {
     return (
       <Card className="border-dashed">
         <CardContent className="flex items-center gap-3 py-5">
@@ -37,6 +54,46 @@ export function DecisionCenter({
     );
   }
 
+  if (groups) {
+    return (
+      <div className="space-y-5">
+        {CATEGORIES.filter((c) => groups[c].length > 0).map((c) => (
+          <div key={c} className="space-y-2">
+            <div className="flex items-baseline gap-2">
+              <h3 className="font-serif text-base font-semibold">{DECISION_CATEGORY_META[c].label}</h3>
+              <p className="text-xs text-muted-foreground">{DECISION_CATEGORY_META[c].question}</p>
+              <Badge variant="outline" className="ml-auto text-[10px]">
+                {groups[c].length}
+              </Badge>
+            </div>
+            <DecisionGrid
+              decisions={groups[c]}
+              statusOf={statusOf}
+              onStatus={onStatus}
+              onSnooze={onSnooze}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <DecisionGrid decisions={decisions} statusOf={statusOf} onStatus={onStatus} onSnooze={onSnooze} />
+  );
+}
+
+function DecisionGrid({
+  decisions,
+  statusOf,
+  onStatus,
+  onSnooze,
+}: {
+  decisions: PilotDecision[];
+  statusOf: (key: string) => ActionStatus;
+  onStatus: (key: string, status: ActionStatus) => void;
+  onSnooze?: (key: string, days: number) => void;
+}) {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {decisions.map((d, i) => {
@@ -62,14 +119,12 @@ export function DecisionCenter({
                 <span className="font-medium text-foreground">Impact estimé : </span>
                 {d.impactEuro != null ? formatEuro(d.impactEuro) : "non chiffrable"} — {d.impactLabel}
               </div>
-              <div className="rounded-md bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">Données utilisées : </span>
-                {d.sources.join(" · ")}
-              </div>
               <p className="text-xs text-foreground">
                 <span className="font-medium">Action : </span>
                 {d.action}
               </p>
+
+              <Explain decision={d} />
 
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
                 {CHOICES.map((s) => (
@@ -84,6 +139,17 @@ export function DecisionCenter({
                     {ACTION_STATUS_LABELS[s]}
                   </Button>
                 ))}
+                {onSnooze && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-[11px]"
+                    onClick={() => onSnooze(d.key, 7)}
+                  >
+                    Reporter 7 j
+                  </Button>
+                )}
                 <Link
                   to={d.to}
                   params={d.params as never}
@@ -96,6 +162,39 @@ export function DecisionCenter({
           </Card>
         );
       })}
+    </div>
+  );
+}
+
+/** Explicabilité totale : sources, calcul et limites de la décision. */
+function Explain({ decision }: { decision: PilotDecision }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-md bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-1 text-left font-medium text-foreground"
+      >
+        D'où vient cette décision ?
+        <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-1">
+          <p>
+            <span className="font-medium text-foreground">Données utilisées : </span>
+            {decision.sources.join(" · ")}
+          </p>
+          <p>
+            <span className="font-medium text-foreground">Calcul : </span>
+            {decision.calc}
+          </p>
+          <p>
+            <span className="font-medium text-foreground">Limites : </span>
+            {decision.limits}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
