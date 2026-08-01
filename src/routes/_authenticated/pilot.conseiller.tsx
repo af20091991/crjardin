@@ -8,9 +8,9 @@ import { usePilotData } from "@/components/pilot/usePilotData";
 import { DEFAULT_SETTINGS, computeKpis, fetchConfirmedHoursByClient, formatEuro } from "@/lib/pilot";
 import { annualSummary } from "@/lib/pilot-annual";
 import { analyzeCharges, listChargeRows, listSalesByYear } from "@/lib/pilot-charges";
-import { listHoursLedger, aggregateHoursByClient } from "@/lib/pilot-hours-ledger";
+import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { classifyClients } from "@/lib/pilot-client-profitability";
-import { serviceProfitability } from "@/lib/pilot-service-profitability";
+import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { buildAdvisorAnswers, buildHistoryTrend, ADVISOR_VERDICT_META } from "@/lib/pilot-advisor";
 import { usePilotMode } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
@@ -55,7 +55,10 @@ function ConseillerPage() {
     queryKey: ["pilot-sales-by-year", mode],
     queryFn: () => listSalesByYear({ mode }),
   });
-  const ledger = useQuery({ queryKey: ["pilot-hours-ledger"], queryFn: listHoursLedger });
+  const ledger = useQuery({
+    queryKey: ["pilot-hours-ledger", mode],
+    queryFn: () => fetchHoursLedger(undefined, { mode }),
+  });
   const confirmed = useQuery({
     queryKey: ["confirmed-hours-by-client", year, mode],
     queryFn: () => fetchConfirmedHoursByClient(year, { mode }),
@@ -75,20 +78,20 @@ function ConseillerPage() {
     () =>
       classifyClients({
         entries: realEntries,
-        hoursByClient: aggregateHoursByClient(ledgerRows, year),
+        ledger: ledgerRows,
         year,
-        targetHourlyRate: set.target_hourly_rate,
+        targetHourlyRate: set.target_hourly_rate || 0,
         thresholds,
       }),
     [realEntries, ledgerRows, year, set.target_hourly_rate, thresholds],
   );
   const services = useMemo(
     () =>
-      serviceProfitability({
+      analyzeServices({
         entries: realEntries,
         ledger: ledgerRows,
         year,
-        targetHourlyRate: set.target_hourly_rate,
+        targetHourlyRate: set.target_hourly_rate || 0,
         thresholds,
       }),
     [realEntries, ledgerRows, year, set.target_hourly_rate, thresholds],
@@ -99,6 +102,7 @@ function ConseillerPage() {
         entries: entries.data ?? [],
         charges: [],
         year,
+        month: new Date().getMonth() + 1,
         settings: set,
         confirmedHoursByClient: confirmed.data,
         mode,
