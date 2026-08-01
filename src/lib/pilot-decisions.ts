@@ -1,14 +1,29 @@
-// Centre de décision dirigeant (Pilot Pro v1.19).
+// Centre de décision dirigeant (Pilot Pro V2.0).
 //
 // Ce module n'introduit AUCUN calcul nouveau : il agrège et hiérarchise ce que
 // les moteurs existants produisent déjà (recommandations Pilot Pro, opportunités
-// commerciales, priorités du jour) pour ne présenter que les décisions les plus
-// importantes du moment. Aucune donnée n'est inventée.
+// commerciales, risques détectés, priorités du jour) pour ne présenter que les
+// décisions les plus importantes du moment, réparties en quatre familles :
+// actions, opportunités, risques et corrections de données. Aucune donnée
+// n'est inventée : chaque décision porte ses sources, son calcul et ses limites.
 
 import type { PilotRecommendation } from "@/lib/pilot-recommendations";
 import type { CommercialOpportunity } from "@/lib/pilot-opportunities";
+import type { PilotRisk } from "@/lib/pilot-risks";
 
 export type DecisionPriority = "critique" | "elevee" | "moyenne" | "faible";
+
+export type DecisionCategory = "action" | "opportunite" | "risque" | "donnee";
+
+export const DECISION_CATEGORY_META: Record<
+  DecisionCategory,
+  { label: string; question: string }
+> = {
+  action: { label: "Priorités", question: "Que dois-je faire aujourd'hui ?" },
+  opportunite: { label: "Opportunités", question: "Où puis-je gagner du chiffre d'affaires ?" },
+  risque: { label: "Risques", question: "Qu'est-ce qui menace mon entreprise ?" },
+  donnee: { label: "Corrections", question: "Quelles données dois-je fiabiliser ?" },
+};
 
 export const DECISION_PRIORITY_META: Record<
   DecisionPriority,
@@ -26,10 +41,15 @@ export interface PilotDecision {
   title: string;
   why: string;
   sources: string[];
+  /** Mode de calcul lisible (explicabilité totale). */
+  calc: string;
+  /** Ce que la décision ne dit pas (données manquantes, périmètre). */
+  limits: string;
   impactEuro: number | null;
   impactLabel: string;
   action: string;
   priority: DecisionPriority;
+  category: DecisionCategory;
   weight: number;
   to: string;
   params?: Record<string, string>;
@@ -53,16 +73,23 @@ export interface DecisionPriorityInput {
   to: string;
   params?: Record<string, string>;
   weight: number;
+  /** Priorité de fiabilisation des données plutôt que d'exploitation. */
+  isDataFix?: boolean;
 }
 
 export function buildDecisions(input: {
   recommendations: PilotRecommendation[];
   opportunities: CommercialOpportunity[];
   priorities: DecisionPriorityInput[];
+  risks?: PilotRisk[];
   /** Décisions déjà traitées (réalisée / ignorée) : elles sortent de la liste active. */
   isHandled?: (key: string) => boolean;
   limit?: number;
-}): { active: PilotDecision[]; handled: PilotDecision[] } {
+}): {
+  active: PilotDecision[];
+  handled: PilotDecision[];
+  groups: Record<DecisionCategory, PilotDecision[]>;
+} {
   const all: PilotDecision[] = [];
 
   // 1 — Recommandations Pilot Pro (moteur existant, impact déjà chiffré).
@@ -72,10 +99,13 @@ export function buildDecisions(input: {
       title: r.title,
       why: r.why,
       sources: r.sources,
+      calc: "Recommandation issue des moteurs de rentabilité et de charges Pilot Pro.",
+      limits: "L'impact affiché est un ordre de grandeur calculé à données constantes.",
       impactEuro: r.impactEuro,
       impactLabel: r.impactLabel,
       action: r.action,
       priority: priorityFromWeight(r.weight),
+      category: "action",
       weight: r.weight,
       to: r.to,
     });
@@ -95,6 +125,11 @@ export function buildDecisions(input: {
             : `Proposer une prestation — ${o.title}`,
       why: o.why,
       sources: [o.source],
+      calc:
+        o.category === "developpement"
+          ? "Score d'opportunité du moteur de prestations recommandées (0-100)."
+          : "Comparaison des exercices et de la dernière activité enregistrée du client.",
+      limits: "Le montant affiché est une référence passée, pas un engagement du client.",
       impactEuro: o.amount,
       impactLabel:
         o.category === "renouvellement"
@@ -104,23 +139,46 @@ export function buildDecisions(input: {
             : "Valeur estimée de la prestation proposée",
       action: o.action,
       priority: priorityFromWeight(weight),
+      category: "opportunite",
       weight,
       to: o.clientId ? "/pilot/fiche/$clientId" : "/pilot/clients",
       params: o.clientId ? { clientId: o.clientId } : undefined,
     });
   }
 
-  // 3 — Priorités opérationnelles du jour (comptes-rendus, heures, validations…).
+  // 3 — Risques détectés automatiquement (moteur pilot-risks).
+  for (const r of input.risks ?? []) {
+    all.push({
+      key: `decision:${r.key}`,
+      title: r.title,
+      why: r.why,
+      sources: r.sources,
+      calc: r.calc,
+      limits: r.limits,
+      impactEuro: r.impactEuro,
+      impactLabel: r.impactLabel,
+      action: r.action,
+      priority: priorityFromWeight(r.weight),
+      category: "risque",
+      weight: r.weight,
+      to: r.to,
+    });
+  }
+
+  // 4 — Priorités opérationnelles du jour (comptes-rendus, heures, validations…).
   for (const p of input.priorities) {
     all.push({
       key: `decision:${p.key}`,
       title: `${p.label} (${p.count})`,
       why: p.why,
       sources: [p.source],
+      calc: "Comptage direct des éléments concernés dans les données enregistrées.",
+      limits: "Le comptage ne préjuge pas de l'urgence commerciale de chaque élément.",
       impactEuro: null,
       impactLabel: "Impact non chiffrable : fiabilité des données et suivi client",
       action: p.action,
       priority: priorityFromWeight(p.weight),
+      category: p.isDataFix ? "donnee" : "action",
       weight: p.weight,
       to: p.to,
       params: p.params,
@@ -135,9 +193,13 @@ export function buildDecisions(input: {
   });
 
   const handled = input.isHandled ? sorted.filter((d) => input.isHandled!(d.key)) : [];
-  const active = (input.isHandled ? sorted.filter((d) => !input.isHandled!(d.key)) : sorted).slice(
-    0,
-    input.limit ?? 5,
-  );
-  return { active, handled };
+  const remaining = input.isHandled ? sorted.filter((d) => !input.isHandled!(d.key)) : sorted;
+  const limit = input.limit ?? 5;
+  const groups: Record<DecisionCategory, PilotDecision[]> = {
+    action: remaining.filter((d) => d.category === "action").slice(0, limit),
+    opportunite: remaining.filter((d) => d.category === "opportunite").slice(0, limit),
+    risque: remaining.filter((d) => d.category === "risque").slice(0, limit),
+    donnee: remaining.filter((d) => d.category === "donnee").slice(0, limit),
+  };
+  return { active: remaining.slice(0, limit), handled, groups };
 }
