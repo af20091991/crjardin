@@ -34,6 +34,7 @@ import { PriorityCard } from "@/components/pilot/PriorityCard";
 import { OpportunitiesBoard } from "@/components/pilot/OpportunitiesBoard";
 import { rankItems } from "@/lib/pilot-learning";
 import { buildDecisions } from "@/lib/pilot-decisions";
+import { buildRisks } from "@/lib/pilot-risks";
 import { DecisionCenter } from "@/components/pilot/DecisionCenter";
 import { buildCommercialOpportunities } from "@/lib/pilot-opportunities";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
@@ -812,7 +813,7 @@ function TodayPage() {
     for (const v of byClient.values()) total += v;
     return total / byClient.size;
   })();
-  const { statusOf, setStatus } = useActionStatuses();
+  const { statusOf, setStatus, snoozeAction } = useActionStatuses();
   const recommendationsRaw = buildRecommendations({
     year,
     targetHourlyRate: targetHR,
@@ -837,9 +838,26 @@ function TodayPage() {
     clientNameById,
     year,
   });
+  // Risques détectés automatiquement à partir des moteurs existants.
+  const autoRisks = useMemo(
+    () =>
+      buildRisks({
+        year,
+        annual: annualRows,
+        clients: clientsProfit,
+        services,
+        ceev: ceevContracts.data ?? [],
+        caYear: k.caYear,
+        caPrevYear: k.caPrevYear,
+        tauxHoraireReel: k.tauxHoraireReel,
+        targetHourlyRate: targetHR,
+      }),
+    [year, annualRows, clientsProfit, services, ceevContracts.data, k.caYear, k.caPrevYear, k.tauxHoraireReel, targetHR],
+  );
   const decisions = buildDecisions({
     recommendations,
     opportunities: commercialOpportunities,
+    risks: autoRisks,
     priorities: priorities
       .filter((p) => p.count > 0)
       .map((p) => {
@@ -854,11 +872,12 @@ function TodayPage() {
           to: p.topic ? "/pilot/focus/$topic" : (p.to ?? "/pilot"),
           params: p.topic ? { topic: p.topic } : undefined,
           weight: 50 + Math.min(40, p.count * 5),
+          isDataFix: p.key === "ca" || p.key === "hh" || p.key === "h",
         };
       }),
     isHandled: (key) => {
       const s = statusOf(key);
-      return s === "realisee" || s === "ignoree";
+      return s === "realisee" || s === "ignoree" || s === "reportee";
     },
   });
 
@@ -934,13 +953,15 @@ function TodayPage() {
       <DashboardBlock id="decisions" layout={layout}>
         <SectionTitle
           question="Quelles décisions prendre aujourd'hui ?"
-          label={`${decisions.active.length} décision${decisions.active.length > 1 ? "s" : ""}`}
+          label={`${autoRisks.length} risque${autoRisks.length > 1 ? "s" : ""} détecté${autoRisks.length > 1 ? "s" : ""}`}
         />
         <DecisionCenter
           decisions={decisions.active}
+          groups={decisions.groups}
           handledCount={decisions.handled.length}
           statusOf={(key) => statusOf(key)}
           onStatus={(key, s) => setStatus(key, s)}
+          onSnooze={(key, days) => snoozeAction(key, days)}
         />
       </DashboardBlock>
 
