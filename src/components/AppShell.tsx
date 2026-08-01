@@ -90,6 +90,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/ceev", label: "CEEV", short: "CEEV", icon: ClipboardList, exact: false, primary: false },
             { to: "/pilot/taux", label: "Taux horaire", short: "Taux", icon: Clock, exact: false, primary: false },
             { to: "/pilot/simulations", label: "Simulations", short: "Simul.", icon: Calculator, exact: false, primary: false },
+            { to: "/pilot/conseiller", label: "Conseiller de gestion", short: "Conseil", icon: Compass, exact: false, primary: false },
             { to: "/pilot/sante", label: "Santé", short: "Santé", icon: HeartPulse, exact: false, primary: false },
             { to: "/pilot/saison", label: "Prévisions", short: "Prévis.", icon: CalendarRange, exact: false, primary: false },
             { to: "/pilot/benchmark", label: "Benchmark & SMART", short: "Bench.", icon: Target, exact: false, primary: false },

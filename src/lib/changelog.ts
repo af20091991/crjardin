@@ -26,6 +26,20 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-08-01",
+    version: "2.0.0",
+    theme: "Général",
+    title: "Pilot Pro — Copilote de direction",
+    details: [
+      "Centre de décision V2 : les décisions du jour sont réparties en quatre familles — priorités, opportunités, risques et corrections de données — avec 5 éléments maximum par famille.",
+      "Détection automatique des risques : dépendance à un client, marge en recul, charges qui progressent plus vite que le chiffre d'affaires, activité en repli, contrats d'entretien non reconduits, taux horaire sous la cible, dérives de temps et clients chronophages.",
+      "Explicabilité totale : chaque décision indique les données utilisées, le mode de calcul et les limites du chiffre affiché.",
+      "Nouvelle page « Conseiller de gestion » : réponses chiffrées aux questions de direction (embauche, prix, clients, charges, investissement, progression) et lecture historique multi-exercices.",
+      "Report d'une décision à 7 jours : elle quitte la liste active et réapparaît automatiquement à l'échéance.",
+      "Aucune nouvelle source de vérité : tous les indicateurs proviennent des moteurs et des données déjà enregistrées.",
+    ],
+  },
+  {
     date: "2026-07-31",
     version: "1.21.0",
     theme: "Général",
