@@ -1167,41 +1167,6 @@ function TodayPage() {
         <HoursSummaryCards year={year} resolution={hoursResolution} toFill={missingHours.length} />
       </DashboardBlock>
 
-      <DashboardBlock id="priorites" layout={layout}>
-        <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
-        {priorities.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex items-center gap-3 py-5">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <p className="text-sm text-muted-foreground">
-                Aucune action urgente. Concentrez-vous sur les opportunités.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {rankItems(
-              priorities.map((p) => ({ ...p, key: priorityStatusKey(p.key), rawKey: p.key, weight: p.count })),
-              { statusOf },
-            ).map((p, idx) => (
-              <PriorityCard
-                key={p.key}
-                rank={idx + 1}
-                itemKey={p.rawKey}
-                icon={p.icon}
-                label={p.label}
-                count={p.count}
-                topic={p.topic}
-                to={p.to}
-                search={p.search}
-                status={statusOf(p.key)}
-                onStatus={(s: ActionStatus) => setStatus(p.key, s)}
-              />
-            ))}
-          </div>
-        )}
-      </DashboardBlock>
-
       {/* 3 — Quels risques dois-je traiter ? */}
       <DashboardBlock id="opportunites" layout={layout}>
         <SectionTitle question="Où puis-je gagner du chiffre d'affaires ?" label="Opportunités commerciales" />
