@@ -64,6 +64,27 @@ function DonneesPage() {
         </p>
       </header>
 
+      {/* Bandeau explicatif : à quoi sert le classeur, et ce qu'il ne fait pas. */}
+      <Card className="border-primary/25 bg-primary/[0.03]">
+        <CardContent className="space-y-1.5 pt-5 text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">À quoi sert cette page ?</p>
+          <p>
+            Le classeur est la copie de travail de vos données de base : chiffre d'affaires, clients,
+            contrats CEEV et sous-traitance. Vous y corrigez une valeur fausse ou manquante, exactement
+            comme dans un tableur, sans passer par un import.
+          </p>
+          <p>
+            Chaque correction est enregistrée dans le journal avec sa date, son ancienne valeur et son
+            motif : elle est annulable à tout moment, et le contrôle anti-régression vérifie que les
+            grands indicateurs n'ont pas bougé de façon anormale.
+          </p>
+          <p>
+            Ce que le classeur ne fait pas : il ne calcule rien et n'invente aucune donnée. Les analyses
+            (rentabilité, heures, décisions) sont recalculées ailleurs à partir des valeurs corrigées ici.
+          </p>
+        </CardContent>
+      </Card>
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex-wrap">
           {DATASETS.map((d) => (
