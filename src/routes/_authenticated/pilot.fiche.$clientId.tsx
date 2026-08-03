@@ -40,10 +40,14 @@ const CONFIDENCE_META: Record<"HIGH" | "MEDIUM" | "LOW", { label: string; color:
   LOW: { label: "Fiabilité faible", color: "#8896A0", icon: AlertCircle },
 };
 
-const ACTIVITY_META: Record<"actif" | "a_relancer" | "dormant", { label: string; color: string }> = {
+const ACTIVITY_META: Record<
+  "actif" | "a_relancer" | "dormant" | "perdu",
+  { label: string; color: string }
+> = {
   actif: { label: "Client actif", color: "#4F8E33" },
   a_relancer: { label: "À relancer", color: "#EE8627" },
   dormant: { label: "Dormant", color: "#8896A0" },
+  perdu: { label: "Client perdu", color: "#B3261E" },
 };
 
 interface CaEntryRow {
@@ -254,6 +258,9 @@ function PilotClient360() {
     recommendations: recoRows.length,
     confidenceLevel: score?.confidenceLevel ?? null,
     lastQualifiedAt: lastQualifQ.data ?? null,
+    // Un client « non concerné » par les comptes-rendus n'est jamais pénalisé
+    // pour son absence d'intervention.
+    reportPolicy: policy,
   };
 
   // « Données insuffisantes » n'apparaît que si AUCUNE source exploitable

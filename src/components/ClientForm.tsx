@@ -23,10 +23,12 @@ import {
   createClient,
   updateClient,
   REPORT_POLICY_META,
+  LIFECYCLE_META,
   CLIENT_SOURCE_LABEL,
   type Client,
   type ClientInput,
   type ReportPolicy,
+  type ClientLifecycle,
 } from "@/lib/clients";
 import { toast } from "sonner";
 import { Loader2, Plus, X } from "lucide-react";
@@ -77,6 +79,7 @@ export function ClientForm({
     frequency: client?.frequency ?? initial?.frequency ?? "",
     notes: client?.notes ?? initial?.notes ?? "",
     report_policy: client?.report_policy ?? initial?.report_policy ?? "a_confirmer",
+    lifecycle_status: client?.lifecycle_status ?? "actif",
   });
 
   // Address autocomplete via the French Base Adresse Nationale (no key required)
@@ -267,6 +270,29 @@ export function ClientForm({
             </Select>
             <p className="text-xs text-muted-foreground">
               {REPORT_POLICY_META[(form.report_policy ?? "a_confirmer") as ReportPolicy].hint}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>État commercial du client</Label>
+            <Select
+              value={form.lifecycle_status ?? "actif"}
+              onValueChange={(v) =>
+                setForm((f) => ({
+                  ...f,
+                  lifecycle_status: v as ClientLifecycle,
+                  lost_at: v === "perdu" ? new Date().toISOString() : null,
+                }))
+              }
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(LIFECYCLE_META) as ClientLifecycle[]).map((p) => (
+                  <SelectItem key={p} value={p}>{LIFECYCLE_META[p].label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {LIFECYCLE_META[(form.lifecycle_status ?? "actif") as ClientLifecycle].hint}
             </p>
           </div>
           {client?.source && CLIENT_SOURCE_LABEL[client.source] && (

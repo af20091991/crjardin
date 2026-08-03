@@ -394,6 +394,8 @@ export type Database = {
           emails: string[]
           frequency: string | null
           id: string
+          lifecycle_status: string
+          lost_at: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -413,6 +415,8 @@ export type Database = {
           emails?: string[]
           frequency?: string | null
           id?: string
+          lifecycle_status?: string
+          lost_at?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -432,6 +436,8 @@ export type Database = {
           emails?: string[]
           frequency?: string | null
           id?: string
+          lifecycle_status?: string
+          lost_at?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
