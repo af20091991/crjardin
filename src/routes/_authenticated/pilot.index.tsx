@@ -906,6 +906,20 @@ function TodayPage() {
   ];
   const layout = useDashboardLayout(dashboardDefs);
 
+  // Priorités classées (moteur d'apprentissage existant). Seules les deux
+  // premières sont visibles par défaut : l'écran reste lisible, le reste est
+  // accessible par « Afficher tout ».
+  const rankedPriorities = rankItems(
+    priorities.map((p) => ({
+      ...p,
+      key: priorityStatusKey(p.key),
+      rawKey: p.key,
+      weight: p.count,
+    })),
+    { statusOf },
+  );
+  const [showAllPriorities, setShowAllPriorities] = useState(false);
+
   // Signaux commerciaux annexes (chips)
   const secondarySignals: Array<{
     label: string;
