@@ -899,13 +899,12 @@ function TodayPage() {
   });
 
   const dashboardDefs: DashboardBlockDef[] = [
+    { id: "priorites", label: "Priorités du jour" },
     { id: "decisions", label: "Décisions du jour" },
     { id: "situation", label: "Situation actuelle" },
     { id: "graphique", label: "Graphique CA mensuel" },
     { id: "heures", label: "Répartition du temps" },
-    { id: "priorites", label: "Priorités du jour" },
     { id: "opportunites", label: "Opportunités commerciales" },
-    { id: "recommandations", label: "Recommandations Pilot Pro" },
   ];
   const layout = useDashboardLayout(dashboardDefs);
 
