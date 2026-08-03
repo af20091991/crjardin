@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { PilotCard } from "@/components/pilot/PilotCard";
@@ -15,6 +15,7 @@ import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES, fetchClientActivityRows } from "@/lib/client-activity";
 import { realHourlyRateFromResolution, marginPct, periodComparison } from "@/lib/pilot-reliability";
+import { monthVsSameMonthLastYear, toDateVsSameDateLastYear } from "@/lib/pilot-compare";
 import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-hours";
 import type { FocusTopic } from "@/lib/pilot-focus";
@@ -256,6 +257,19 @@ function TodayPage() {
     return rows.reduce((s, e) => s + e.amount_ht, 0);
   }, [realEntries, year, month]);
   const avancement = objectifMois > 0 ? (k.caMonth / objectifMois) * 100 : 0;
+
+  // Comparatifs V2.2 : uniquement à périmètre égal (mois N vs même mois N-1,
+  // cumul au jour J vs même date N-1). La comparaison à la fin de l'exercice
+  // précédent est supprimée : elle opposait un exercice incomplet à un
+  // exercice complet et faussait la lecture.
+  const monthCompare = useMemo(
+    () => monthVsSameMonthLastYear(entries.data ?? [], year, month),
+    [entries.data, year, month],
+  );
+  const toDateCompare = useMemo(
+    () => toDateVsSameDateLastYear(entries.data ?? []),
+    [entries.data],
+  );
 
   const beneficeMois = useMemo(() => {
     // approximation : marge annuelle appliquée au CA du mois
