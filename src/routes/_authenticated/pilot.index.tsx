@@ -963,7 +963,57 @@ function TodayPage() {
         <DashboardCustomizer defs={dashboardDefs} layout={layout} />
       </div>
 
-      {/* 0 — Centre de décision dirigeant : les 5 décisions les plus importantes */}
+      {/* 1 — Mes priorités du jour : premier bloc de l'écran (V2.2) */}
+      <DashboardBlock id="priorites" layout={layout}>
+        <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
+        {priorities.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex items-center gap-3 py-5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <p className="text-sm text-muted-foreground">
+                Aucune action urgente. Concentrez-vous sur les opportunités.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {rankedPriorities
+                .slice(0, showAllPriorities ? rankedPriorities.length : 2)
+                .map((p, idx) => (
+                  <PriorityCard
+                    key={p.key}
+                    rank={idx + 1}
+                    itemKey={p.rawKey}
+                    icon={p.icon}
+                    label={p.label}
+                    count={p.count}
+                    topic={p.topic}
+                    to={p.to}
+                    search={p.search}
+                    status={statusOf(p.key)}
+                    onStatus={(s: ActionStatus) => setStatus(p.key, s)}
+                  />
+                ))}
+            </div>
+            {rankedPriorities.length > 2 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setShowAllPriorities((v) => !v)}
+              >
+                {showAllPriorities
+                  ? "Réduire aux 2 priorités principales"
+                  : `Afficher tout (${rankedPriorities.length} priorités)`}
+              </Button>
+            )}
+          </>
+        )}
+      </DashboardBlock>
+
+      {/* 2 — Centre de décision dirigeant : les 5 décisions les plus importantes */}
       <DashboardBlock id="decisions" layout={layout}>
         <SectionTitle
           question="Quelles décisions prendre aujourd'hui ?"
@@ -979,12 +1029,7 @@ function TodayPage() {
         />
       </DashboardBlock>
 
-      <CaStatusCard
-        year={year}
-        caYear={k.caYear}
-        caPrevYear={k.caPrevYear}
-        projection={k.projection}
-      />
+      <CaStatusCard year={year} caYear={k.caYear} comparison={toDateCompare} />
 
       {/* 1 — Où en est mon entreprise aujourd'hui ? */}
       <DashboardBlock id="situation" layout={layout}>
@@ -1006,9 +1051,9 @@ function TodayPage() {
             sub={
               isProjection
                 ? `Réel à date ${formatEuro(projection.caReel)}`
-                : caComparison.available
-                  ? `${caComparison.value >= 0 ? "+" : ""}${caComparison.value.toFixed(0)} % vs ${year - 1} (mois)`
-                  : caComparison.detail
+                : monthCompare.deltaPct != null
+                  ? `${monthCompare.deltaPct >= 0 ? "+" : ""}${monthCompare.deltaPct.toFixed(0)} % — ${monthCompare.label}`
+                  : monthCompare.label
             }
           />
           <PilotCard
