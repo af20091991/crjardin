@@ -12,6 +12,7 @@ const ACTIVITY_TEXT: Record<ClientActivityStatus, string> = {
   actif: "la relation est active",
   a_relancer: "la relation s'essouffle et mérite une relance",
   dormant: "la relation est en sommeil",
+  perdu: "le client est marqué perdu : il ne génère plus d'action commerciale",
 };
 
 export function ClientUnderstandingCard({

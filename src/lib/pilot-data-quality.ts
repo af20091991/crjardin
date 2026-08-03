@@ -47,7 +47,14 @@ export interface DataQualityReport {
 type Row = Record<string, unknown>;
 
 interface QualityDataset {
-  clients: Array<{ id: string; name: string; address: string | null; phone: string | null; email: string | null }>;
+  clients: Array<{
+    id: string;
+    name: string;
+    address: string | null;
+    phone: string | null;
+    email: string | null;
+    report_policy?: string | null;
+  }>;
   ca: Array<{ id: string; client_id: string | null; kind: string; match_status: string; amount_ht: number; designation: string | null }>;
   ceev: Array<{ id: string; client_id: string | null; label: string; pv_ht: number; year: number }>;
   sst: Array<{ id: string; client_id: string | null; service_requested: string | null; mission_date: string }>;
@@ -58,7 +65,7 @@ interface QualityDataset {
 
 async function fetchAll(): Promise<QualityDataset> {
   const [c, ca, ceev, sst, iv, reco, histo] = await Promise.all([
-    paged("clients", "id,name,address,phone,email"),
+    paged("clients", "id,name,address,phone,email,report_policy"),
     paged("pilot_ca_entries", "id,client_id,kind,match_status,amount_ht,designation"),
     paged("ceev_contracts", "id,client_id,label,pv_ht,year"),
     paged("subcontractor_missions", "id,client_id,service_requested,mission_date"),
@@ -151,6 +158,7 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
         recommendations: recoByClient.get(cl.id) ?? 0,
         confidenceLevel: null,
         lastQualifiedAt: null,
+        reportPolicy: (cl.report_policy ?? "a_confirmer") as "oui" | "non" | "a_confirmer",
       },
       cl.id,
     );

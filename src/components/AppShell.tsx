@@ -74,6 +74,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Clients",
       items: [
         { to: "/clients", label: "Clients", short: "Clients", icon: Users, exact: false, primary: true },
+        // Accès direct aux fiches client 360° (une entrée par client depuis la liste).
+        { to: "/pilot/clients", label: "Fiches client 360", short: "Fiches 360", icon: Users, exact: false, primary: false },
       ],
     },
     {

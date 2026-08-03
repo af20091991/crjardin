@@ -12,7 +12,10 @@ export const CLIENT_ACTIVITY_RULES = {
 
 const DAY_MS = 86_400_000;
 
-export type ClientActivityStatus = "actif" | "a_relancer" | "dormant";
+// « perdu » est un état décidé par le dirigeant sur la fiche client : il sort
+// définitivement le client des dormants et des relances commerciales, sans
+// jamais toucher à son historique.
+export type ClientActivityStatus = "actif" | "a_relancer" | "dormant" | "perdu";
 
 /** Statut d'activité à partir d'une date ISO (dernière intervention/vente). */
 export function getClientActivityStatus(
@@ -43,6 +46,8 @@ export interface ClientActivityRow {
   lastActivity: string | null;
   status: ClientActivityStatus;
   caTotal: number;
+  /** Vrai si la fiche est marquée « client perdu ». */
+  lost: boolean;
 }
 
 /**
@@ -52,7 +57,7 @@ export interface ClientActivityRow {
  */
 export async function fetchClientActivityRows(): Promise<ClientActivityRow[]> {
   const [{ data: clients, error }, lastMap] = await Promise.all([
-    supabase.from("clients").select("id,name"),
+    supabase.from("clients").select("id,name,lifecycle_status"),
     fetchLastActivityByClient(),
   ]);
   if (error) throw error;
@@ -72,12 +77,14 @@ export async function fetchClientActivityRows(): Promise<ClientActivityRow[]> {
   const now = Date.now();
   return (clients ?? []).map((c) => {
     const lastActivity = lastMap.get(c.id) ?? null;
+    const lost = (c as { lifecycle_status?: string }).lifecycle_status === "perdu";
     return {
       id: c.id,
       name: c.name,
       lastActivity,
-      status: getClientActivityStatus(lastActivity, now),
+      status: lost ? ("perdu" as const) : getClientActivityStatus(lastActivity, now),
       caTotal: caByClient.get(c.id) ?? 0,
+      lost,
     };
   });
 }

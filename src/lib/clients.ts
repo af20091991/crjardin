@@ -3,6 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 /** Le client est-il concerné par l'envoi de comptes-rendus ? */
 export type ReportPolicy = "oui" | "non" | "a_confirmer";
 
+/** Cycle de vie commercial d'une fiche client. */
+export type ClientLifecycle = "actif" | "perdu";
+
+export const LIFECYCLE_META: Record<ClientLifecycle, { label: string; hint: string; badge: string }> = {
+  actif: {
+    label: "Client suivi",
+    hint: "Le client reste suivi : il peut apparaître en dormant ou en relance.",
+    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
+  perdu: {
+    label: "Client perdu",
+    hint: "Retiré des clients dormants et des relances commerciales. Historique et fiche restent consultables.",
+    badge: "border-rose-200 bg-rose-50 text-rose-700",
+  },
+};
+
 export const REPORT_POLICY_META: Record<ReportPolicy, { label: string; short: string; hint: string; badge: string }> = {
   oui: {
     label: "Oui — client suivi par compte-rendu",
@@ -36,6 +52,8 @@ export interface Client {
   frequency: string | null;
   notes: string | null;
   report_policy: ReportPolicy;
+  lifecycle_status: ClientLifecycle;
+  lost_at: string | null;
   source: string | null;
   source_confidence: string | null;
   created_at: string;
@@ -54,6 +72,8 @@ export type ClientInput = {
   frequency?: string | null;
   notes?: string | null;
   report_policy?: ReportPolicy;
+  lifecycle_status?: ClientLifecycle;
+  lost_at?: string | null;
   source?: string | null;
   source_confidence?: string | null;
 };

@@ -13,7 +13,10 @@ function norm(s: string): string {
 }
 
 type ImportField =
-  | Exclude<keyof ClientInput, "emails" | "report_policy" | "source" | "source_confidence">
+  | Exclude<
+      keyof ClientInput,
+      "emails" | "report_policy" | "source" | "source_confidence" | "lifecycle_status" | "lost_at"
+    >
   | "first_name"
   | "last_name";
 

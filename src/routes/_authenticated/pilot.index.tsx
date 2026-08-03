@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { PilotCard } from "@/components/pilot/PilotCard";
@@ -15,6 +15,7 @@ import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES, fetchClientActivityRows } from "@/lib/client-activity";
 import { realHourlyRateFromResolution, marginPct, periodComparison } from "@/lib/pilot-reliability";
+import { monthVsSameMonthLastYear, toDateVsSameDateLastYear } from "@/lib/pilot-compare";
 import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-hours";
 import type { FocusTopic } from "@/lib/pilot-focus";
@@ -257,6 +258,19 @@ function TodayPage() {
   }, [realEntries, year, month]);
   const avancement = objectifMois > 0 ? (k.caMonth / objectifMois) * 100 : 0;
 
+  // Comparatifs V2.2 : uniquement à périmètre égal (mois N vs même mois N-1,
+  // cumul au jour J vs même date N-1). La comparaison à la fin de l'exercice
+  // précédent est supprimée : elle opposait un exercice incomplet à un
+  // exercice complet et faussait la lecture.
+  const monthCompare = useMemo(
+    () => monthVsSameMonthLastYear(entries.data ?? [], year, month),
+    [entries.data, year, month],
+  );
+  const toDateCompare = useMemo(
+    () => toDateVsSameDateLastYear(entries.data ?? []),
+    [entries.data],
+  );
+
   const beneficeMois = useMemo(() => {
     // approximation : marge annuelle appliquée au CA du mois
     const marge = k.marge / 100;
@@ -393,7 +407,10 @@ function TodayPage() {
   const monthlyChartData = useMemo(() => {
     let cumule = 0;
     const objectifCumulMensuel = objectifAnnuel > 0 ? objectifAnnuel / 12 : 0;
-    return projection.monthly.map((m) => {
+    // Mode Réel : les mois à venir n'existent pas encore, on ne les dessine pas
+    // (aucune barre vide, aucune valeur estimée présentée comme réelle).
+    const source = mode === "projection" ? projection.monthly : projection.monthly.filter((m) => !m.projected);
+    return source.map((m) => {
       cumule += m.ca;
       return {
         mois: new Date(year, m.month - 1, 1).toLocaleDateString("fr-FR", { month: "short" }),
@@ -404,7 +421,7 @@ function TodayPage() {
         projected: m.projected,
       };
     });
-  }, [projection.monthly, objectifAnnuel, year]);
+  }, [projection.monthly, objectifAnnuel, year, mode]);
 
   // Nom client par ID (pour opportunités et priorités affichées)
   const clientNameById = useMemo(() => {
@@ -882,15 +899,28 @@ function TodayPage() {
   });
 
   const dashboardDefs: DashboardBlockDef[] = [
+    { id: "priorites", label: "Priorités du jour" },
     { id: "decisions", label: "Décisions du jour" },
     { id: "situation", label: "Situation actuelle" },
     { id: "graphique", label: "Graphique CA mensuel" },
     { id: "heures", label: "Répartition du temps" },
-    { id: "priorites", label: "Priorités du jour" },
     { id: "opportunites", label: "Opportunités commerciales" },
-    { id: "recommandations", label: "Recommandations Pilot Pro" },
   ];
   const layout = useDashboardLayout(dashboardDefs);
+
+  // Priorités classées (moteur d'apprentissage existant). Seules les deux
+  // premières sont visibles par défaut : l'écran reste lisible, le reste est
+  // accessible par « Afficher tout ».
+  const rankedPriorities = rankItems(
+    priorities.map((p) => ({
+      ...p,
+      key: priorityStatusKey(p.key),
+      rawKey: p.key,
+      weight: p.count,
+    })),
+    { statusOf },
+  );
+  const [showAllPriorities, setShowAllPriorities] = useState(false);
 
   // Signaux commerciaux annexes (chips)
   const secondarySignals: Array<{
@@ -949,7 +979,57 @@ function TodayPage() {
         <DashboardCustomizer defs={dashboardDefs} layout={layout} />
       </div>
 
-      {/* 0 — Centre de décision dirigeant : les 5 décisions les plus importantes */}
+      {/* 1 — Mes priorités du jour : premier bloc de l'écran (V2.2) */}
+      <DashboardBlock id="priorites" layout={layout}>
+        <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
+        {priorities.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex items-center gap-3 py-5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <p className="text-sm text-muted-foreground">
+                Aucune action urgente. Concentrez-vous sur les opportunités.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {rankedPriorities
+                .slice(0, showAllPriorities ? rankedPriorities.length : 2)
+                .map((p, idx) => (
+                  <PriorityCard
+                    key={p.key}
+                    rank={idx + 1}
+                    itemKey={p.rawKey}
+                    icon={p.icon}
+                    label={p.label}
+                    count={p.count}
+                    topic={p.topic}
+                    to={p.to}
+                    search={p.search}
+                    status={statusOf(p.key)}
+                    onStatus={(s: ActionStatus) => setStatus(p.key, s)}
+                  />
+                ))}
+            </div>
+            {rankedPriorities.length > 2 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setShowAllPriorities((v) => !v)}
+              >
+                {showAllPriorities
+                  ? "Réduire aux 2 priorités principales"
+                  : `Afficher tout (${rankedPriorities.length} priorités)`}
+              </Button>
+            )}
+          </>
+        )}
+      </DashboardBlock>
+
+      {/* 2 — Centre de décision dirigeant : les 5 décisions les plus importantes */}
       <DashboardBlock id="decisions" layout={layout}>
         <SectionTitle
           question="Quelles décisions prendre aujourd'hui ?"
@@ -965,12 +1045,7 @@ function TodayPage() {
         />
       </DashboardBlock>
 
-      <CaStatusCard
-        year={year}
-        caYear={k.caYear}
-        caPrevYear={k.caPrevYear}
-        projection={k.projection}
-      />
+      <CaStatusCard year={year} caYear={k.caYear} comparison={toDateCompare} />
 
       {/* 1 — Où en est mon entreprise aujourd'hui ? */}
       <DashboardBlock id="situation" layout={layout}>
@@ -992,9 +1067,9 @@ function TodayPage() {
             sub={
               isProjection
                 ? `Réel à date ${formatEuro(projection.caReel)}`
-                : caComparison.available
-                  ? `${caComparison.value >= 0 ? "+" : ""}${caComparison.value.toFixed(0)} % vs ${year - 1} (mois)`
-                  : caComparison.detail
+                : monthCompare.deltaPct != null
+                  ? `${monthCompare.deltaPct >= 0 ? "+" : ""}${monthCompare.deltaPct.toFixed(0)} % — ${monthCompare.label}`
+                  : monthCompare.label
             }
           />
           <PilotCard
@@ -1088,45 +1163,10 @@ function TodayPage() {
         />
       </DashboardBlock>
 
-      {/* 2 — Quelles sont mes priorités ? */}
+      {/* Répartition du temps */}
       <DashboardBlock id="heures" layout={layout}>
         <SectionTitle question="Répartition du temps" label="Heures consolidées" />
         <HoursSummaryCards year={year} resolution={hoursResolution} toFill={missingHours.length} />
-      </DashboardBlock>
-
-      <DashboardBlock id="priorites" layout={layout}>
-        <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
-        {priorities.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex items-center gap-3 py-5">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <p className="text-sm text-muted-foreground">
-                Aucune action urgente. Concentrez-vous sur les opportunités.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {rankItems(
-              priorities.map((p) => ({ ...p, key: priorityStatusKey(p.key), rawKey: p.key, weight: p.count })),
-              { statusOf },
-            ).map((p, idx) => (
-              <PriorityCard
-                key={p.key}
-                rank={idx + 1}
-                itemKey={p.rawKey}
-                icon={p.icon}
-                label={p.label}
-                count={p.count}
-                topic={p.topic}
-                to={p.to}
-                search={p.search}
-                status={statusOf(p.key)}
-                onStatus={(s: ActionStatus) => setStatus(p.key, s)}
-              />
-            ))}
-          </div>
-        )}
       </DashboardBlock>
 
       {/* 3 — Quels risques dois-je traiter ? */}
@@ -1252,85 +1292,6 @@ function TodayPage() {
           </Card>
         )}
       </section>
-
-      {/* 3bis — Recommandations Pilot Pro */}
-      <DashboardBlock id="recommandations" layout={layout}>
-        <SectionTitle
-          question="Recommandations Pilot Pro"
-          label={`${recommendations.length} action${recommendations.length > 1 ? "s" : ""} proposée${recommendations.length > 1 ? "s" : ""}`}
-        />
-        {recommendations.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex items-center gap-3 py-5">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <p className="text-sm text-muted-foreground">
-                Aucune recommandation : les données disponibles ne font ressortir aucune action
-                prioritaire.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            {recommendations.map((r) => (
-              <Card
-                key={r.key}
-                className={`h-full border-primary/20 bg-primary/[0.03] ${
-                  statusOf(r.key) === "realisee" || statusOf(r.key) === "ignoree" ? "opacity-60" : ""
-                }`}
-              >
-                <CardContent className="space-y-2 pt-5">
-                  <div className="flex items-start gap-2">
-                    <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <p className="flex-1 text-sm font-medium">{r.title}</p>
-                    <Badge variant="outline" className={`shrink-0 text-[10px] ${ACTION_STATUS_BADGE[statusOf(r.key)]}`}>
-                      {ACTION_STATUS_LABELS[statusOf(r.key)]}
-                    </Badge>
-                    <Badge variant="outline" className="shrink-0 text-[10px]">
-                      {r.theme}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{r.why}</p>
-                  <div className="rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">Impact estimé : </span>
-                    {r.impactEuro != null ? formatEuro(r.impactEuro) : "non chiffrable"} —{" "}
-                    {r.impactLabel}
-                  </div>
-                  <div className="rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">Données utilisées : </span>
-                    {r.sources.join(" · ")}
-                  </div>
-                  <p className="text-xs text-foreground">
-                    <span className="font-medium">Action : </span>
-                    {r.action}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <Link
-                      to={r.to}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                    >
-                      Traiter <ArrowRight className="h-3 w-3" />
-                    </Link>
-                    {(["en_cours", "realisee", "ignoree"] as ActionStatus[]).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setStatus(r.key, statusOf(r.key) === s ? "nouvelle" : s)}
-                        className={`rounded-md border px-2 py-0.5 text-[11px] transition-colors ${
-                          statusOf(r.key) === s
-                            ? ACTION_STATUS_BADGE[s]
-                            : "border-border text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {ACTION_STATUS_LABELS[s]}
-                      </button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </DashboardBlock>
 
       {/* 4 — Quelles opportunités puis-je saisir ? */}
       <section className="space-y-2">

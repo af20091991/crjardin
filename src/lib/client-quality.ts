@@ -15,6 +15,12 @@ export interface ClientQualityInput {
   recommendations: number;
   confidenceLevel: "HIGH" | "MEDIUM" | "LOW" | null;
   lastQualifiedAt: string | null;
+  /**
+   * Politique compte-rendu du client. « non » signifie que l'absence
+   * d'intervention n'est PAS un défaut de qualité : le client n'est pas suivi
+   * par intervention/compte-rendu.
+   */
+  reportPolicy?: "oui" | "non" | "a_confirmer";
 }
 
 export interface QualityGap {
@@ -40,12 +46,16 @@ const CONFIDENCE_LABEL: Record<"HIGH" | "MEDIUM" | "LOW", string> = {
 };
 
 export function computeClientQuality(i: ClientQualityInput, clientId: string): ClientQuality {
+  // Client non concerné par les comptes-rendus : les interventions ne sont pas
+  // attendues, on ne pénalise donc ni la complétude ni la liste des manques.
+  const interventionsExpected = i.reportPolicy !== "non";
+  const hoursKnown = i.interventionsWithHours > 0 || i.historicHours > 0;
   const criteria: Array<{ ok: boolean; weight: number }> = [
     { ok: i.hasAddress, weight: 1 },
     { ok: i.hasPhone || i.hasEmail, weight: 1 },
     { ok: i.caLines > 0, weight: 2 },
-    { ok: i.interventions > 0, weight: 2 },
-    { ok: i.interventionsWithHours > 0 || i.historicHours > 0, weight: 2 },
+    { ok: interventionsExpected ? i.interventions > 0 : true, weight: 2 },
+    { ok: hoursKnown, weight: 2 },
     { ok: i.ceev > 0 || i.sst > 0, weight: 1 },
     { ok: i.recommendations > 0, weight: 1 },
   ];
@@ -59,10 +69,10 @@ export function computeClientQuality(i: ClientQualityInput, clientId: string): C
   if (i.ceev === 0) {
     gaps.push({ key: "ceev", label: "Ajouter un contrat CEEV", to: "/pilot/ceev" });
   }
-  if (i.interventions === 0) {
+  if (interventionsExpected && i.interventions === 0) {
     gaps.push({ key: "interv", label: "Associer une intervention", to: "/interventions" });
   }
-  if (i.interventions > 0 && i.interventionsWithHours === 0 && i.historicHours === 0) {
+  if (i.interventions > 0 && !hoursKnown) {
     gaps.push({ key: "hours", label: "Renseigner les heures réalisées", to: "/pilot/rapprochement" });
   }
   if (!i.hasAddress || (!i.hasPhone && !i.hasEmail)) {
