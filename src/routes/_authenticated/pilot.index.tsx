@@ -1161,7 +1161,7 @@ function TodayPage() {
         />
       </DashboardBlock>
 
-      {/* 2 — Quelles sont mes priorités ? */}
+      {/* Répartition du temps */}
       <DashboardBlock id="heures" layout={layout}>
         <SectionTitle question="Répartition du temps" label="Heures consolidées" />
         <HoursSummaryCards year={year} resolution={hoursResolution} toFill={missingHours.length} />
