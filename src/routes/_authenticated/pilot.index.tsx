@@ -407,7 +407,10 @@ function TodayPage() {
   const monthlyChartData = useMemo(() => {
     let cumule = 0;
     const objectifCumulMensuel = objectifAnnuel > 0 ? objectifAnnuel / 12 : 0;
-    return projection.monthly.map((m) => {
+    // Mode Réel : les mois à venir n'existent pas encore, on ne les dessine pas
+    // (aucune barre vide, aucune valeur estimée présentée comme réelle).
+    const source = mode === "projection" ? projection.monthly : projection.monthly.filter((m) => !m.projected);
+    return source.map((m) => {
       cumule += m.ca;
       return {
         mois: new Date(year, m.month - 1, 1).toLocaleDateString("fr-FR", { month: "short" }),
@@ -418,7 +421,7 @@ function TodayPage() {
         projected: m.projected,
       };
     });
-  }, [projection.monthly, objectifAnnuel, year]);
+  }, [projection.monthly, objectifAnnuel, year, mode]);
 
   // Nom client par ID (pour opportunités et priorités affichées)
   const clientNameById = useMemo(() => {
