@@ -417,3 +417,57 @@ function PilotModeToggle({ compact = false }: { compact?: boolean }) {
     </div>
   );
 }
+
+/** Exercice partagé : tous les écrans Pilot Pro suivent cette sélection. */
+function PilotYearSwitcher({ compact = false }: { compact?: boolean }) {
+  const { year, setYear } = usePilotYear();
+  const now = new Date().getFullYear();
+  const years = Array.from({ length: now - 2019 + 1 }, (_, i) => now + 1 - i);
+  return (
+    <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+      <SelectTrigger
+        className={compact ? "h-8 w-[76px] text-xs" : "h-9 w-[104px]"}
+        title="Exercice affiché dans tout Pilot Pro"
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {years.map((y) => (
+          <SelectItem key={y} value={String(y)}>
+            {y}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function PilotModeToggleLegacy({ compact = false }: { compact?: boolean }) {
+  const { mode, setMode } = usePilotMode();
+  return (
+    <div className="inline-flex shrink-0 rounded-lg border border-border bg-card p-1 shadow-sm">
+      <Button
+        type="button"
+        variant={mode === "reel" ? "default" : "ghost"}
+        size={compact ? "icon" : "sm"}
+        onClick={() => setMode("reel")}
+        title="Mode réel"
+        className={compact ? "h-8 w-8" : "h-8 gap-1.5 px-2.5"}
+      >
+        <Activity className="h-3.5 w-3.5" />
+        {!compact && <span>Réel</span>}
+      </Button>
+      <Button
+        type="button"
+        variant={mode === "projection" ? "default" : "ghost"}
+        size={compact ? "icon" : "sm"}
+        onClick={() => setMode("projection")}
+        title="Mode projection"
+        className={compact ? "h-8 w-8" : "h-8 gap-1.5 px-2.5"}
+      >
+        <LineChart className="h-3.5 w-3.5" />
+        {!compact && <span>Projection</span>}
+      </Button>
+    </div>
+  );
+}
