@@ -39,8 +39,10 @@ function PilotClientsPage() {
   const { mode } = usePilotMode();
   const thresholds = useThresholds();
   const targetHourlyRate = thresholds.tauxHoraireCibleMin;
-  const year = new Date().getFullYear();
-  const [scope, setScope] = useState<string>(String(year));
+  const { year } = usePilotYear();
+  // « Depuis le début » reste un choix local ; sinon l'écran suit l'exercice global.
+  const [allTimeScope, setAllTimeScope] = useState(false);
+  const scope = allTimeScope ? "all" : String(year);
 
   const yearFilter = scope === "all" ? undefined : Number(scope);
   const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode]);
@@ -81,11 +83,11 @@ function PilotClientsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-serif text-lg font-semibold">Rentabilité clients</h3>
-        <Select value={scope} onValueChange={setScope}>
-          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+        <Select value={allTimeScope ? "all" : "year"} onValueChange={(v) => setAllTimeScope(v === "all")}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="year">Exercice {year}</SelectItem>
             <SelectItem value="all">Depuis le début</SelectItem>
-            {(years.length ? years : [year]).map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
