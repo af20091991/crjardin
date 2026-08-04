@@ -393,6 +393,12 @@ export type Database = {
           default_contact_id: string | null
           email: string | null
           emails: string[]
+          entity_certified_at: string | null
+          entity_certified_by: string | null
+          entity_confidence: number | null
+          entity_notes: string | null
+          entity_status: string
+          entity_status_source: string
           frequency: string | null
           id: string
           lifecycle_status: string
@@ -407,6 +413,7 @@ export type Database = {
           share_token: string
           source: string | null
           source_confidence: string | null
+          suggested_entity_name: string | null
           updated_at: string
           user_id: string
         }
@@ -418,6 +425,12 @@ export type Database = {
           default_contact_id?: string | null
           email?: string | null
           emails?: string[]
+          entity_certified_at?: string | null
+          entity_certified_by?: string | null
+          entity_confidence?: number | null
+          entity_notes?: string | null
+          entity_status?: string
+          entity_status_source?: string
           frequency?: string | null
           id?: string
           lifecycle_status?: string
@@ -432,6 +445,7 @@ export type Database = {
           share_token?: string
           source?: string | null
           source_confidence?: string | null
+          suggested_entity_name?: string | null
           updated_at?: string
           user_id: string
         }
@@ -443,6 +457,12 @@ export type Database = {
           default_contact_id?: string | null
           email?: string | null
           emails?: string[]
+          entity_certified_at?: string | null
+          entity_certified_by?: string | null
+          entity_confidence?: number | null
+          entity_notes?: string | null
+          entity_status?: string
+          entity_status_source?: string
           frequency?: string | null
           id?: string
           lifecycle_status?: string
@@ -457,6 +477,7 @@ export type Database = {
           share_token?: string
           source?: string | null
           source_confidence?: string | null
+          suggested_entity_name?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2428,6 +2449,70 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_intervention_pnl"
             referencedColumns: ["intervention_id"]
+          },
+        ]
+      }
+      referential_audit_log: {
+        Row: {
+          action: string
+          after_value: Json | null
+          before_value: Json | null
+          ca_impacted: number | null
+          client_id: string | null
+          client_name: string | null
+          created_at: string
+          hours_impacted: number | null
+          id: string
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          after_value?: Json | null
+          before_value?: Json | null
+          ca_impacted?: number | null
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          hours_impacted?: number | null
+          id?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          after_value?: Json | null
+          before_value?: Json | null
+          ca_impacted?: number | null
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          hours_impacted?: number | null
+          id?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referential_audit_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referential_audit_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "referential_audit_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
           },
         ]
       }
