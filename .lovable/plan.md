@@ -1,80 +1,78 @@
-# Pilot Pro v2 — Étape 1.1 : Rapprochement CA ↔ clients
+# Pilot Pro V2.3+ — Audit global et plan de correction
 
-## 1. Fichiers créés / modifiés
+Audit réalisé en lecture seule sur la base réelle. Aucune donnée modifiée, aucune fusion, aucune suppression.
 
-**Créés**
-- `src/lib/pilot-ca-matching.ts` — logique de suggestion (similarité nom, historique désignation→client), acceptation/refus, journalisation.
-- `src/routes/_authenticated/pilot.rapprochement.tsx` — interface de rapprochement assisté (liste orphelines + panneau suggestions).
-- Migration SQL : nouvelle table `pilot_ca_match_log` (journal des décisions) + fonction RPC `link_ca_entry_to_client(entry_id, client_id, method, note)` en `security definer` qui **n'écrit que `client_id`** et insère le log.
+## 1. Photographie des données (état réel)
 
-**Modifiés**
-- `src/routes/_authenticated/pilot.parametres.tsx` — carte "Rapprochement CA" avec compteur d'orphelines + lien vers l'écran.
-- `src/components/AppShell.tsx` — entrée menu sous Pilotage (visible admin uniquement).
+| Domaine | Volume | Observation |
+|---|---|---|
+| Clients | 264 | 0 doublon de nom, 0 fiche fusionnée, 0 client sans activité |
+| Sites | 22 (53 alias) | issus des 22 validations manuelles déjà tracées |
+| Contacts | 0 | aucun contact créé à ce jour |
+| Lignes CA/charges | 2 042 (2020→2026) | 959 sans client (47 %), 1 906 sans site (93 %) |
+| Interventions | 16 dont 15 terminées | 15 terminées sans heures saisies |
+| Heures historiques | 22 lignes | toutes rattachées à un client, 4 à un site |
+| Ledger heures | 10 lignes | usage marginal |
+| Charges (nouvelles tables) | 0 ligne | charges_recurring / one_off / variable_rates vides |
+| Charges legacy `pilot_fixed_charges` | 12 lignes (2026) | table encore lue par l'UI |
+| SST | 12 missions, 4 prestataires | 7 missions sans client |
+| CEEV | 22 contrats | — |
+| Journal rapprochement | 1 031 entrées | traçabilité correcte |
 
-Aucun changement sur `pilot_ca_entries` en dehors de `client_id`. `pilot.ts` (calcul) reste intact.
+Ventes/charges par exercice : 2020 = 27 669 € de ventes **et 0 charge** ; 2021→2026 renseignés des deux côtés ; `remuneration` présente uniquement en 2026 (45 000 €).
 
-## 2. Schéma technique
+## 2. Anomalies détectées
 
-**Table `pilot_ca_match_log`**
-```
-id uuid pk
-entry_id uuid → pilot_ca_entries(id)
-previous_client_id uuid null
-new_client_id uuid null
-method text  -- 'manual' | 'suggestion' | 'refused' | 'reverted' | 'new_client'
-score numeric null
-decided_by uuid → auth.users(id)
-decided_at timestamptz default now()
-note text null
-```
-RLS : lecture/écriture réservées à l'utilisateur propriétaire des entrées ; GRANT authenticated + service_role.
+### 🔴 Critique — peut fausser les décisions
 
-**RPC `link_ca_entry_to_client`**
-- Vérifie que l'entrée appartient à `auth.uid()`.
-- Vérifie que `client_id` cible appartient au même user (ou NULL pour "refusé").
-- UPDATE `pilot_ca_entries SET client_id = $2` (jamais amount/date/category/designation).
-- INSERT dans `pilot_ca_match_log`.
-- Retourne la ligne mise à jour.
+1. **Bénéfice 2020 structurellement faux.** 12 lignes de ventes, aucune charge → `annualSummary()` affiche un bénéfice = CA (100 % de marge) et ce chiffre alimente le Conseiller (CAGR), la Direction et les projections.
+   Fichier : `src/lib/pilot-annual.ts`, `src/lib/pilot-advisor.ts` — table `pilot_ca_entries`.
+2. **511 lignes de charges `a_classer` (109 747 €).** Elles entrent dans le total des charges mais ne sont ni fixes ni variables → le split fixe/variable, le seuil de rentabilité et le TJM reposent sur une base incomplète.
+   Fichier : `src/lib/pilot-charges.ts`, page `/pilot/charges`.
+3. **Double source de charges fixes.** `pilot_fixed_charges` (12 lignes 2026, mensuelles) est toujours affichée dans `/pilot/ca` et `/pilot/charges` alors que les mêmes charges existent dans `pilot_ca_entries`. Risque de double comptage à la lecture humaine et de divergence entre deux écrans.
+   Fichiers : `src/components/pilot/FixedChargesPanel.tsx`, `src/lib/pilot-fixed-charges.ts`.
+4. **Rémunération comptée deux fois selon le chemin.** `kind='remuneration'` (45 000 € en 2026) est exclu par `pilot-ca.ts` mais `splitRemuneration()` re-détecte aussi des libellés de rémunération dans les charges : selon l'écran, la rémunération peut être comptée une fois, deux fois, ou majorée de 45 % de cotisations.
+   Fichiers : `src/lib/pilot-remuneration.ts`, `src/lib/pilot-charges.ts`.
 
-**Suggestions (côté client, sans SQL lourd)**
-1. Cache des désignations déjà rattachées : `designation → client_id` fréquent → suggestion "historique" (score 0.9+).
-2. Similarité fuzzy (Dice / trigram JS) entre `designation` et `client.name` (+ `civility`) → score 0..1.
-3. Tri décroissant, top 5, seuil affichage ≥ 0.35.
+### 🟠 Important — dégrade la qualité des données
 
-## 3. Fonctionnement de validation
+5. **945 lignes `non_identifie` (472 846 €)** côté rapprochement, dont 959 sans `client_id` → rentabilité client calculée sur une fraction du CA. Aucune correction automatique possible : nécessite le centre de rapprochement.
+6. **15 interventions terminées sur 15 sans `hours_spent`** → « taux horaire réel » indisponible partout (comportement voulu par `pilot-reliability.ts`, mais l'utilisateur n'a aucune alerte d'action claire).
+7. **7 missions SST sans client** → module Rentabilité SST partiellement aveugle sur la marge par client.
+8. **Les nouvelles tables de charges (`charges_recurring`, `charges_one_off`, `charges_variable_rates`) sont vides** : structures créées mais jamais alimentées → code mort, source de confusion sur « quelle est la vraie table ».
 
-Écran `/pilot/rapprochement` :
-- Liste paginée des lignes CA avec `client_id IS NULL` (filtres : année, catégorie, montant min, recherche texte).
-- Ligne sélectionnée → panneau latéral :
-  - Détails **en lecture seule** : désignation, montant HT, mois/année, catégorie, heures, note.
-  - Suggestions (top 5) avec score et raison ("historique désignation", "similarité nom").
-  - Actions :
-    - **Associer** → appelle RPC (`method='suggestion'` ou `'manual'`).
-    - **Refuser / Ignorer** → RPC avec `new_client_id=null, method='refused'` (marque décidé sans muter la ligne).
-    - **Rechercher un client** (combobox sur `clients`).
-    - **Créer un client** (ouvre `ClientForm` existant ; à la création, propose association immédiate).
-  - **Annuler la dernière décision** : nouveau log `reverted` + restauration `previous_client_id`.
-- Historique des 20 dernières décisions consultable en bas d'écran.
-- Aucune action en masse « auto ». Un bouton « Appliquer toutes les suggestions ≥ 0.9 » **désactivé par défaut**, verrou explicite + confirmation, chaque application génère un log individuel.
+### 🟡 Amélioration
 
-## 4. Risques identifiés
+9. **1 doublon exact** (même année/mois/désignation/montant) — 2 lignes concernées, à confirmer manuellement (peut être légitime).
+10. **0 contact en base** alors que le CR s'appuie sur `report-recipient.ts` : tous les comptes-rendus retombent sur le fallback client → risque de civilité incorrecte non détectée.
+11. **1 840 lignes sans catégorie métier** (vs 93 SAP / 81 CEEV / 23 AP) : les analyses par catégorie ne couvrent que 10 % des lignes.
+12. **`pilot_metric_snapshots` et `pilot_edit_log` vides** : anti-régression et journal d'édition en place mais jamais utilisés → aucun point de comparaison historique.
 
-| Risque | Mitigation |
-|---|---|
-| Faux positif de similarité rattache la mauvaise ligne | Validation unitaire obligatoire ; bulk verrouillé ; annulation par log. |
-| Perte d'historique / audit | Table `pilot_ca_match_log` insert-only ; jamais de DELETE. |
-| Mutation involontaire d'`amount`/`date`/`category` | RPC dédiée qui n'update **que** `client_id` ; pas d'UPDATE côté client. |
-| Rattachement à un client d'un autre user | RPC vérifie ownership des deux côtés. |
-| Recalculs (Fiche 360, portefeuille) faussés pendant l'opération | Invalidation React Query ciblée (`pilot-ca-entries`, `client-scores`) après chaque décision. |
-| Charge cognitive sur 330 lignes | Filtres + tri par score ; possibilité de traiter par lots (par année/catégorie). |
+### 🟢 Cosmétique
 
-## 5. Ce qui ne change pas
+13. Modèle Client/Site : 93 % du CA n'a pas de `site_id`. C'est conforme à la décision de ne pas migrer, mais les écrans ne l'indiquent pas → un utilisateur peut croire que l'analyse par site est complète.
 
-- Aucun recalcul rétroactif de CA/marge.
-- Aucune modification de `pilot.ts`, `pilot.index.tsx`, fiches 360.
-- Aucune suppression de ligne.
-- Les lignes refusées restent visibles (filtrables) ; elles peuvent être ré-ouvertes plus tard.
+## 3. Plan de correction proposé
 
----
+### Priorité 1 — fiabilité des décisions (lot A)
+- **A1** — Exclure des synthèses/CAGR tout exercice dont les charges sont absentes ; l'afficher comme « exercice incomplet » plutôt qu'avec 100 % de marge. `src/lib/pilot-annual.ts`, `src/lib/pilot-advisor.ts`. Risque : nul (affichage). Aucune donnée touchée.
+- **A2** — Unifier la rémunération sur une seule règle : `kind='remuneration'` = source unique, `splitRemuneration()` ne re-détecte plus les libellés déjà typés. `src/lib/pilot-remuneration.ts`, `src/lib/pilot-charges.ts`. Risque : variation attendue des totaux de charges → snapshot anti-régression avant/après.
+- **A3** — Retirer `FixedChargesPanel` (legacy) de `/pilot/ca` et `/pilot/charges`, avec bandeau « source unique : Classeur CA/charges ». Table `pilot_fixed_charges` **conservée** (aucune suppression).
+- **A4** — Rendre visible l'impact des 511 lignes `a_classer` : bandeau chiffré + accès direct au classement, et affichage du total de charges comme « au moins X € » tant que le classement est incomplet.
 
-En attente de validation avant implémentation.
+### Priorité 2 — qualité des données (lot B)
+- **B1** — Alerte actionnable « 15 interventions terminées sans heures » sur Aujourd'hui, avec lien direct vers la saisie.
+- **B2** — Bloc « 7 missions SST sans client » dans le module SST, rattachement manuel uniquement.
+- **B3** — Marquer explicitement `charges_recurring` / `charges_one_off` / `charges_variable_rates` comme non utilisées (ou les retirer du code de lecture) pour supprimer l'ambiguïté de source.
+- **B4** — Signaler le doublon exact détecté dans le Centre de validation, sans suppression automatique.
+- **B5** — Créer un premier snapshot anti-régression (`pilot_metric_snapshots`) avant le lot A afin d'avoir une référence chiffrée.
+
+### Priorité 3 — ergonomie (lot C)
+- **C1** — Indicateur de couverture « analyse par site » sur les écrans concernés (X % du CA rattaché à un site).
+- **C2** — Rappel de complétude des catégories métier dans le Centre de qualité.
+
+## 4. Garanties
+
+- Aucune donnée supprimée, aucune fusion appliquée pendant l'audit.
+- Toute correction du lot A est encadrée par un snapshot de référence avant/après.
+- Les tables legacy sont neutralisées côté lecture, jamais supprimées.
