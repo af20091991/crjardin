@@ -301,6 +301,17 @@ export function SstProfitabilityTab() {
 
   return (
     <div className="space-y-6">
+      {/* Audit V2.3+ : missions non rattachées à un client → marge client aveugle. */}
+      {missions.filter((m) => !m.client_id && !m.archived_at).length > 0 && (
+        <Card className="border-amber-300/70 bg-amber-50/40">
+          <CardContent className="py-3 text-sm">
+            <strong>{missions.filter((m) => !m.client_id && !m.archived_at).length}</strong> mission
+            {missions.filter((m) => !m.client_id && !m.archived_at).length > 1 ? "s" : ""} de sous-traitance sans
+            client rattaché : la marge par client reste incomplète. Le rattachement se fait ligne par ligne dans
+            le tableau ci-dessous — aucun rapprochement automatique n'est effectué.
+          </CardContent>
+        </Card>
+      )}
       {/* Barre d'outils */}
       <div className="flex flex-wrap items-center gap-2">
         <Select value={String(year)} onValueChange={(v) => setYear(v === "all" ? "all" : Number(v))}>
