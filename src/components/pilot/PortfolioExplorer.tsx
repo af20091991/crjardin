@@ -13,6 +13,8 @@ import { getClientEconomicScores, SCORE_META, type ClientScoreLabel } from "@/li
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { buildPortfolio, searchPortfolio, sortByProfitability } from "@/lib/pilot-portfolio";
 import { usePilotMode } from "@/lib/pilot-mode";
+import { useEntityStatuses } from "@/lib/pilot-entity-rules";
+import { EntityStatusBadge, ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
 
 const HOURS_SOURCE_LABEL: Record<string, string> = {
   interventions: "interventions confirmées",
@@ -32,6 +34,7 @@ export function PortfolioExplorer({ entries, year }: { entries: PilotEntry[]; ye
   const { mode: pilotMode } = usePilotMode();
   const scoresQ = useQuery({ queryKey: ["client-economic-scores"], queryFn: getClientEconomicScores });
   const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year, pilotMode], queryFn: () => fetchHoursLedger(year, { mode: pilotMode }) });
+  const statusesQ = useEntityStatuses();
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("top100");
 
@@ -42,8 +45,9 @@ export function PortfolioExplorer({ entries, year }: { entries: PilotEntry[]; ye
         ledger: ledgerQ.data ?? [],
         scores: scoresQ.data ?? [],
         year,
+        statuses: statusesQ.data,
       }),
-    [entries, ledgerQ.data, scoresQ.data, year],
+    [entries, ledgerQ.data, scoresQ.data, statusesQ.data, year],
   );
 
   const visible = useMemo(() => {
