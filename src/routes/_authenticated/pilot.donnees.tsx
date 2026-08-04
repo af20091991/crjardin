@@ -82,6 +82,11 @@ function DonneesPage() {
             Ce que le classeur ne fait pas : il ne calcule rien et n'invente aucune donnée. Les analyses
             (rentabilité, heures, décisions) sont recalculées ailleurs à partir des valeurs corrigées ici.
           </p>
+          <p>
+            Heures : les trois sources restent séparées et ne sont jamais additionnées — heures vendues
+            (lignes CA), heures réalisées (interventions, source officielle) et heures historiques
+            importées d'Excel.
+          </p>
         </CardContent>
       </Card>
 
