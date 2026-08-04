@@ -87,7 +87,14 @@ export function AnnualPerformanceCard({
               <tbody>
                 {visibleRows.map((r) => (
                   <tr key={r.year} className={r.year === currentYear ? "border-t bg-primary/5" : "border-t"}>
-                    <td className="px-3 py-2 font-medium">{r.year}</td>
+                    <td className="px-3 py-2 font-medium">
+                      {r.year}
+                      {!r.chargesComplete && (
+                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+                          exercice incomplet
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatEuro(r.caHt)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {r.charges > 0 ? formatEuro(r.charges) : "—"}
