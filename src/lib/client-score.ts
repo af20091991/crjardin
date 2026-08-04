@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_SETTINGS, getSettings } from "@/lib/pilot";
 import { daysBetween as _daysBetween, currentYear as _currentYear } from "@/lib/date-utils";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
+import { hasIdentityRisk, isCertifiedForAnalytics } from "@/lib/pilot-referential";
 
 // ---------- Règles de classement (ajustables) ----------
 export const SCORE_RULES = {
@@ -70,6 +71,10 @@ export interface ClientScore {
   daysSinceLastIntervention: number | null;
   opportunitiesCount: number;
   opportunitiesValue: number;
+  /** Statut de référence de la fiche (certification du référentiel économique). */
+  entityStatus: string;
+  /** true = identité économique validée humainement. */
+  entityCertified: boolean;
   score: ClientScoreLabel;
   recommendation: string;
   confidenceLevel: "HIGH" | "MEDIUM" | "LOW";
@@ -111,7 +116,18 @@ function classify(
     hoursConfirmedRatio,
     rateRatio,
     daysSinceLastIntervention,
+    entityStatus,
   } = s;
+
+  // Identité économique douteuse (contact classé en client, doublon probable) :
+  // aucun score stratégique ne peut être présenté comme fiable.
+  if (hasIdentityRisk(entityStatus)) {
+    return {
+      score: "donnees_insuffisantes",
+      recommendation:
+        "Identité économique à certifier (contact ou doublon probable) — traiter la fiche dans le centre de contrôle du référentiel.",
+    };
+  }
 
   const dormantLong =
     daysSinceLastIntervention !== null &&
