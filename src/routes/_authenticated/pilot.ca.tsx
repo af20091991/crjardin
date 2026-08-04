@@ -238,7 +238,16 @@ function CaPage() {
             </CardContent>
           </Card>
 
-          <FixedChargesPanel year={year} />
+          {/*
+           * Panneau « charges fixes » legacy retiré (audit V2.3+, anomalie 3) :
+           * il lisait la table `pilot_fixed_charges`, doublon des charges du
+           * classeur. Source unique désormais : pilot_ca_entries.
+           * La table est conservée en base, aucune donnée supprimée.
+           */}
+          <p className="rounded-lg border border-dashed border-border/70 px-3 py-2 text-xs text-muted-foreground">
+            Source unique des charges : le classeur CA / charges ci-contre. L'ancien tableau de charges fixes
+            mensuelles a été retiré pour éviter tout double comptage.
+          </p>
         </div>
 
         <div className="space-y-4">
