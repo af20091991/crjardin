@@ -1,10 +1,19 @@
 // Migration assistée Client / Site (PP v2.3+).
-// Aucune fusion automatique : on propose, l'utilisateur valide, refuse ou modifie.
-// Aucune donnée n'est supprimée : les anciennes fiches sont conservées, marquées
-// « requalifiée » et transformées en alias de recherche du site officiel.
+//
+// RÈGLES NON NÉGOCIABLES
+//  1. Une proposition ne concerne QUE des SITES et leurs ALIAS.
+//  2. Valider une proposition ne modifie JAMAIS automatiquement un Client
+//     ni un Contact (étapes distinctes, chacune confirmée explicitement).
+//  3. Aucune donnée n'est supprimée : les libellés d'origine sont conservés
+//     et deviennent des alias de recherche du site officiel.
+//  4. Aucune fusion de clients réellement différents : la déduplication de
+//     clients est une action séparée, opt-in, réservée aux doublons avérés.
 
 import { supabase } from "@/integrations/supabase/client";
-import { addSiteAlias, clientRoot, createContact, createSite, looksLikePlace, normalizeLabel } from "@/lib/sites";
+import {
+  addSiteAlias, clientRoot, createContact, createSite, linkContactToSite,
+  looksLikePlace, normalizeLabel,
+} from "@/lib/sites";
 
 export type ProposalStatus = "en_attente" | "validee" | "refusee" | "modifiee";
 
@@ -145,17 +154,19 @@ export async function rejectProposal(id: string, note?: string) {
 }
 
 /**
- * Applique un regroupement validé :
- *  1. crée le site officiel sous le client cible ;
- *  2. rattache interventions / CA / heures / missions au client cible ET au site ;
- *  3. transforme les anciens libellés en alias et marque les fiches comme requalifiées ;
- *  4. crée le contact destinataire des comptes-rendus s'il manque.
- * Aucune ligne n'est supprimée.
+ * ÉTAPE 1 (site uniquement) — applique un regroupement validé :
+ *  1. crée le SITE officiel sous le client cible ;
+ *  2. enregistre tous les libellés d'origine comme ALIAS de recherche du site ;
+ *  3. rattache au site les données qui appartiennent DÉJÀ au client cible.
+ *
+ * Ne touche ni la table `clients`, ni la table `contacts`. Les données portées
+ * par d'autres fiches restent inchangées jusqu'à une confirmation explicite de
+ * doublon (voir `mergeDuplicateClients`).
  */
-export async function applyProposal(
+export async function applySiteProposal(
   proposal: MergeProposal,
   override?: { siteName?: string; targetClientId?: string },
-): Promise<{ site_id: string; moved: number }> {
+): Promise<{ site_id: string; tagged: number; pendingClients: number }> {
   const targetClientId = override?.targetClientId ?? proposal.target_client_id;
   if (!targetClientId) throw new Error("Client cible manquant");
   const siteName = (override?.siteName ?? proposal.suggested_site_name).trim();
@@ -177,64 +188,22 @@ export async function applyProposal(
     source: "migration_validee",
   });
 
-  const legacyIds = proposal.legacy_client_ids;
-  const others = legacyIds.filter((id) => id !== targetClientId);
-  let moved = 0;
-
-  // Rattachement du site sur les données du client cible.
-  for (const table of ["interventions", "pilot_ca_entries", "pilot_historic_hours", "subcontractor_missions", "worksite_sheets"] as const) {
-    const { error } = await supabase.from(table).update({ site_id: site.id }).in("client_id", legacyIds);
-    if (error) throw error;
-  }
-
-  // Rattachement au client cible (les libellés d'origine restent intacts).
-  if (others.length > 0) {
-    for (const table of ["interventions", "pilot_ca_entries", "pilot_historic_hours", "subcontractor_missions", "worksite_sheets", "ceev_contracts", "recommendations"] as const) {
-      const { error, count } = await supabase
-        .from(table)
-        .update({ client_id: targetClientId }, { count: "exact" })
-        .in("client_id", others);
-      if (error) throw error;
-      moved += count ?? 0;
-    }
-  }
-
-  // Alias de recherche + marquage des anciennes fiches (conservées).
+  // Alias de recherche : un alias n'est qu'une appellation du site, il ne crée
+  // aucun client et n'entraîne aucune fusion de clients.
   for (const label of proposal.legacy_labels) {
-    await addSiteAlias({ site_id: site.id, alias: label, origin: "migration" });
-  }
-  if (others.length > 0) {
-    const { error } = await supabase
-      .from("clients")
-      .update({
-        merged_into_client_id: targetClientId,
-        merged_reason: `Requalifiée : libellé de prestation rattaché au site « ${siteName} »`,
-        merged_at: new Date().toISOString(),
-        lifecycle_status: "actif",
-      })
-      .in("id", others);
-    if (error) throw error;
+    const legacy = proposal.legacy_client_ids.find((_, i) => proposal.legacy_labels[i] === label) ?? null;
+    await addSiteAlias({ site_id: site.id, alias: label, origin: "migration", legacy_client_id: legacy });
   }
 
-  // Contact destinataire des comptes-rendus.
-  const { data: existingContacts } = await supabase.from("contacts").select("id").eq("client_id", targetClientId).limit(1);
-  if (!existingContacts || existingContacts.length === 0) {
-    const suspicious = looksLikePlace(targetClient.name) || !targetClient.civility;
-    const contact = await createContact({
-      client_id: targetClientId,
-      site_id: site.id,
-      display_name: targetClient.name,
-      civility: targetClient.civility,
-      emails: (targetClient.emails ?? []).length > 0 ? targetClient.emails! : targetClient.email ? [targetClient.email] : [],
-      needs_review: suspicious,
-      review_reason: suspicious
-        ? looksLikePlace(targetClient.name)
-          ? "Le nom repris ressemble à un lieu, pas à une personne : à corriger avant envoi de CR."
-          : "Civilité manquante : à compléter avant envoi de CR."
-        : null,
-      source: "migration",
-    });
-    await supabase.from("clients").update({ default_contact_id: contact.id }).eq("id", targetClientId);
+  // Rattachement du site UNIQUEMENT sur les données déjà portées par le client cible.
+  let tagged = 0;
+  for (const table of ["interventions", "pilot_ca_entries", "pilot_historic_hours", "subcontractor_missions", "worksite_sheets"] as const) {
+    const { error, count } = await supabase
+      .from(table)
+      .update({ site_id: site.id }, { count: "exact" })
+      .eq("client_id", targetClientId);
+    if (error) throw error;
+    tagged += count ?? 0;
   }
 
   const { error: pErr } = await supabase
@@ -249,7 +218,95 @@ export async function applyProposal(
     .eq("id", proposal.id);
   if (pErr) throw pErr;
 
-  return { site_id: site.id, moved };
+  return {
+    site_id: site.id,
+    tagged,
+    pendingClients: proposal.legacy_client_ids.filter((id) => id !== targetClientId).length,
+  };
+}
+
+/**
+ * ÉTAPE 2 (opt-in, doublons AVÉRÉS uniquement) — rattache les données de fiches
+ * strictement redondantes au client cible et marque ces fiches comme requalifiées
+ * via `merged_into_client_id`. Jamais appelée automatiquement : elle exige une
+ * confirmation explicite de l'utilisateur, fiche par fiche.
+ *
+ * `merged_into_client_id` = pointeur « cette fiche est un doublon de celle-ci ».
+ * Interdit pour deux clients réellement différents, y compris deux clients qui
+ * partagent un même lieu ou un même nom de famille.
+ */
+export async function mergeDuplicateClients(input: {
+  targetClientId: string;
+  duplicateClientIds: string[];
+  siteId?: string | null;
+  siteName?: string;
+  note?: string;
+}): Promise<{ moved: number }> {
+  const duplicates = input.duplicateClientIds.filter((id) => id && id !== input.targetClientId);
+  if (duplicates.length === 0) return { moved: 0 };
+
+  let moved = 0;
+  const patch = input.siteId
+    ? { client_id: input.targetClientId, site_id: input.siteId }
+    : { client_id: input.targetClientId };
+  for (const table of ["interventions", "pilot_ca_entries", "pilot_historic_hours", "subcontractor_missions", "worksite_sheets", "ceev_contracts", "recommendations"] as const) {
+    const { error, count } = await supabase.from(table).update(patch as never, { count: "exact" }).in("client_id", duplicates);
+    if (error) throw error;
+    moved += count ?? 0;
+  }
+
+  const { error } = await supabase
+    .from("clients")
+    .update({
+      merged_into_client_id: input.targetClientId,
+      merged_reason:
+        input.note?.trim() ||
+        (input.siteName
+          ? `Doublon confirmé : libellé rattaché au site « ${input.siteName} »`
+          : "Doublon confirmé manuellement"),
+      merged_at: new Date().toISOString(),
+    })
+    .in("id", duplicates);
+  if (error) throw error;
+
+  return { moved };
+}
+
+/**
+ * ÉTAPE 3 (opt-in) — crée le contact destinataire des CR d'un client à partir de
+ * ses coordonnées, et le rattache au site. Signale les cas douteux (nom de lieu,
+ * civilité manquante) au lieu de les corriger silencieusement.
+ */
+export async function createContactFromClient(clientId: string, siteId?: string | null) {
+  const { data: client, error } = await supabase
+    .from("clients")
+    .select("id,name,civility,email,emails")
+    .eq("id", clientId)
+    .single();
+  if (error) throw error;
+
+  const { data: existing } = await supabase.from("contacts").select("id").eq("client_id", clientId).limit(1);
+  if (existing && existing.length > 0) return existing[0].id as string;
+
+  const place = looksLikePlace(client.name);
+  const suspicious = place || !client.civility;
+  const contact = await createContact({
+    client_id: clientId,
+    site_id: siteId ?? null,
+    display_name: client.name,
+    civility: client.civility,
+    emails: (client.emails ?? []).length > 0 ? client.emails! : client.email ? [client.email] : [],
+    needs_review: suspicious,
+    review_reason: suspicious
+      ? place
+        ? "Le nom repris ressemble à un lieu, pas à une personne : à corriger avant envoi de CR."
+        : "Civilité manquante : à compléter avant envoi de CR."
+      : null,
+    source: "migration",
+  });
+  if (siteId) await linkContactToSite({ contact_id: contact.id, site_id: siteId });
+  await supabase.from("clients").update({ default_contact_id: contact.id }).eq("id", clientId);
+  return contact.id;
 }
 
 /** Sites reconnaissables à l'import (nom officiel + alias). */
