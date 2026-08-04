@@ -15,8 +15,8 @@ import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { signalFromHourlyRate } from "@/lib/pilot-profit-signal";
 import { useThresholds } from "@/lib/pilot-thresholds";
-import { entityEligibility, statusOf, useEntityStatuses } from "@/lib/pilot-entity-rules";
-import { EntityStatusBadge } from "@/components/pilot/ReliabilityBadge";
+import { analysisReliability, entityEligibility, statusOf, useEntityStatuses } from "@/lib/pilot-entity-rules";
+import { EntityStatusBadge, ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
 
 export const Route = createFileRoute("/_authenticated/pilot/clients")({
   component: PilotClientsPage,
@@ -74,6 +74,16 @@ function PilotClientsPage() {
     [stats, statusesQ.data],
   );
   const excludedCount = stats.length - rankable.length;
+  // Une rentabilité n'est jamais présentée comme fiable si l'identité est
+  // incertaine ou si la couverture horaire est insuffisante.
+  const reliabilityOf = (c: { clientId: string | null; hours: number; ca: number }) =>
+    analysisReliability({
+      entityStatus: statusOf(statusesQ.data, c.clientId),
+      hours: c.hours,
+      hoursSource: c.hours > 0 ? "interventions" : "aucune",
+      caTotal: c.ca,
+      minHours: thresholds.heuresMinClient,
+    });
 
   const now = Date.now();
   const DAY = 86400000;
@@ -125,17 +135,26 @@ function PilotClientsPage() {
               </div>
               <p className="mt-1 truncate font-medium">{c.name}</p>
               <p className="font-serif text-xl font-semibold">{formatEuro(c.ca)}</p>
-              <div className="mt-1">
-                <ProfitSignal
-                  level={signalFromHourlyRate(c.hourlyRate, targetHourlyRate, thresholds)}
-                  title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
-                />
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                {reliabilityOf(c).profitabilityTrusted ? (
+                  <ProfitSignal
+                    level={signalFromHourlyRate(c.hourlyRate, targetHourlyRate, thresholds)}
+                    title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
+                  />
+                ) : (
+                  <ReliabilityBadge reliability={reliabilityOf(c)} compact />
+                )}
               </div>
               <p className="text-xs text-muted-foreground">{c.share.toFixed(0)} % du CA · {formatEuro(c.hourlyRate)}/h</p>
             </CardContent>
           </Card>
         ))}
-        {top.length === 0 && <p className="text-sm text-muted-foreground">Aucune donnée client.</p>}
+        {top.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Aucun TOP client exploitable : les identités économiques doivent d'abord être certifiées
+            dans le Centre de contrôle → Référentiel client.
+          </p>
+        )}
       </div>
 
       {/* Classement ABC */}
@@ -185,10 +204,14 @@ function PilotClientsPage() {
                     <TableCell className="text-right text-sm text-muted-foreground">{c.avgTime.toFixed(1)} h</TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">{formatEuro(c.hourlyRate)}</TableCell>
                     <TableCell className="text-center">
-                      <ProfitSignal
-                        level={signalFromHourlyRate(c.hourlyRate, targetHourlyRate, thresholds)}
-                        title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
-                      />
+                      {reliabilityOf(c).profitabilityTrusted ? (
+                        <ProfitSignal
+                          level={signalFromHourlyRate(c.hourlyRate, targetHourlyRate, thresholds)}
+                          title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
+                        />
+                      ) : (
+                        <ReliabilityBadge reliability={reliabilityOf(c)} compact />
+                      )}
                     </TableCell>
                     <TableCell className="text-center"><Badge className={ABC_TONE[c.abc]}>{c.abc}</Badge></TableCell>
                   </TableRow>
