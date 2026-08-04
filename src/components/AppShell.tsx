@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 import { useAppearance } from "@/lib/appearance";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
@@ -74,8 +75,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Clients",
       items: [
         { to: "/clients", label: "Clients", short: "Clients", icon: Users, exact: false, primary: true },
-        // Accès direct aux fiches client 360° (une entrée par client depuis la liste).
-        { to: "/pilot/clients", label: "Fiches client 360", short: "Fiches 360", icon: Users, exact: false, primary: false },
+        // Rentabilité clients (fiches 360° accessibles depuis chaque ligne).
+        { to: "/pilot/clients", label: "Rentabilité clients", short: "Rentab.", icon: Users, exact: false, primary: false },
       ],
     },
     {
@@ -87,7 +88,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
             { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
             { to: "/pilot/charges", label: "Charges", short: "Charges", icon: Receipt, exact: false, primary: false },
-            { to: "/pilot/clients", label: "Rentabilité", short: "Rentab.", icon: Users, exact: false, primary: false },
             { to: "/pilot/prestations", label: "Prestations", short: "Prestat.", icon: BarChart3, exact: false, primary: false },
             { to: "/pilot/ceev", label: "CEEV", short: "CEEV", icon: ClipboardList, exact: false, primary: false },
             { to: "/pilot/taux", label: "Taux horaire", short: "Taux", icon: Clock, exact: false, primary: false },
@@ -292,6 +292,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </div>
           <div className="flex items-center gap-4">
             <GlobalSearch collapsed />
+            {isPilot && <PilotYearSwitcher compact />}
             {isPilot && <PilotModeToggle compact />}
             <NotificationBell />
             <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
@@ -303,7 +304,12 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         {title && (
           <div className="hidden px-6 pt-6 md:flex md:items-start md:justify-between md:gap-4">
             <h1 className="font-serif text-2xl font-semibold">{title}</h1>
-            {isPilot && <PilotModeToggle />}
+            {isPilot && (
+              <div className="flex items-center gap-2">
+                <PilotYearSwitcher />
+                <PilotModeToggle />
+              </div>
+            )}
           </div>
         )}
 
@@ -409,5 +415,29 @@ function PilotModeToggle({ compact = false }: { compact?: boolean }) {
         {!compact && <span>Projection</span>}
       </Button>
     </div>
+  );
+}
+
+/** Exercice partagé : tous les écrans Pilot Pro suivent cette sélection. */
+function PilotYearSwitcher({ compact = false }: { compact?: boolean }) {
+  const { year, setYear } = usePilotYear();
+  const now = new Date().getFullYear();
+  const years = Array.from({ length: now - 2019 + 1 }, (_, i) => now + 1 - i);
+  return (
+    <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+      <SelectTrigger
+        className={compact ? "h-8 w-[76px] text-xs" : "h-9 w-[104px]"}
+        title="Exercice affiché dans tout Pilot Pro"
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {years.map((y) => (
+          <SelectItem key={y} value={String(y)}>
+            {y}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

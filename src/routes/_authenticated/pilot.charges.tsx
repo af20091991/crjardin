@@ -25,7 +25,7 @@ import {
   type ChargeRow,
   PRIORITY_VARIABLE_CATEGORIES,
 } from "@/lib/pilot-charges";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 
 export const Route = createFileRoute("/_authenticated/pilot/charges")({
@@ -56,7 +56,7 @@ function ChargesPage() {
       return { rows, sales, cats };
     },
   });
-  const [detailYear, setDetailYear] = useState<number>(currentYear());
+  const { year: detailYear, setYear: setDetailYear } = usePilotYear();
   const [search, setSearch] = useState("");
   const analysis = useMemo(
     () => (q.data ? analyzeCharges(q.data.rows, q.data.sales, q.data.cats.map((c) => c.label), { mode }) : null),

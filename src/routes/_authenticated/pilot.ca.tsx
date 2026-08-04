@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { usePilotYear } from "@/lib/pilot-mode";
 import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ChevronLeft, ChevronRight, TrendingUp, Wallet, Clock, PiggyBank, MessageSquare, Link2, Link2Off, Sparkles } from "lucide-react";
+import { Plus, Trash2, TrendingUp, Wallet, Clock, PiggyBank, MessageSquare, Link2, Link2Off, Sparkles } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -52,7 +53,7 @@ function StatBox({ label, value, icon: Icon, tone }: { label: string; value: str
 
 function CaPage() {
   const qc = useQueryClient();
-  const [year, setYear] = useState(() => new Date().getFullYear());
+  const { year } = usePilotYear();
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
   const [pending, setPending] = useState<number | null>(null);
   const [openNote, setOpenNote] = useState<Record<string, boolean>>({});
@@ -92,13 +93,9 @@ function CaPage() {
 
   return (
     <div className="space-y-5">
-      {/* Sélecteur année */}
+      {/* Exercice piloté par le sélecteur global (en-tête Pilot Pro) */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setYear((y) => y - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <span className="font-serif text-xl font-semibold">CA {year}</span>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setYear((y) => y + 1)}><ChevronRight className="h-4 w-4" /></Button>
-        </div>
+        <span className="font-serif text-xl font-semibold">CA {year}</span>
         {pending != null && (
           <Badge variant="secondary" className="gap-1">Résultat prêt : {formatEuro(pending)} — cliquez « + Ligne »</Badge>
         )}
