@@ -111,7 +111,10 @@ function ChargesPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Charges fixes" value={formatEuro(analysis.totals.fixe)} />
         <Kpi label="Charges variables" value={formatEuro(analysis.totals.variable)} />
-        <Kpi label="Charges globales" value={formatEuro(analysis.totals.total)} />
+        <Kpi
+          label={analysis.unclassifiedCount > 0 ? "Charges globales (au moins)" : "Charges globales"}
+          value={formatEuro(analysis.totals.total)}
+        />
         <Kpi label="Investissements" value={formatEuro(analysis.investmentsTotal)} />
         <Kpi label="Poids des charges dans le CA" value={weight == null ? "—" : `${weight.toFixed(1)} %`} />
       </div>
@@ -120,10 +123,20 @@ function ChargesPage() {
           <CardContent className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
             <span>
               <strong>{analysis.unclassifiedCount}</strong> charges restent « À classer » (
-              {formatEuro(analysis.unclassifiedAmount)}).
+              {formatEuro(analysis.unclassifiedAmount)}
+              {analysis.totals.total > 0
+                ? `, soit ${((analysis.unclassifiedAmount / analysis.totals.total) * 100).toFixed(0)} % des charges`
+                : ""}
+              ).
             </span>
-            <span className="text-muted-foreground">
-              Comptées dans le total, exclues des catégories analysées.
+            <span className="flex items-center gap-3">
+              <span className="text-muted-foreground">
+                Comptées dans le total, exclues du partage fixe / variable : le seuil de rentabilité et le TJM
+                restent approximatifs tant que ces lignes ne sont pas classées.
+              </span>
+              <Link to="/pilot/validation" className="whitespace-nowrap font-medium text-primary underline">
+                Classer maintenant
+              </Link>
             </span>
           </CardContent>
         </Card>
