@@ -197,6 +197,7 @@ export async function applySiteProposal(
 
   // Rattachement du site UNIQUEMENT sur les données déjà portées par le client cible.
   let tagged = 0;
+  const taggedCounts: Record<string, number> = {};
   for (const table of ["interventions", "pilot_ca_entries", "pilot_historic_hours", "subcontractor_missions", "worksite_sheets"] as const) {
     const { error, count } = await supabase
       .from(table)
@@ -204,6 +205,7 @@ export async function applySiteProposal(
       .eq("client_id", targetClientId);
     if (error) throw error;
     tagged += count ?? 0;
+    taggedCounts[table] = count ?? 0;
   }
 
   const { error: pErr } = await supabase
@@ -217,6 +219,33 @@ export async function applySiteProposal(
     })
     .eq("id", proposal.id);
   if (pErr) throw pErr;
+
+  // Traçabilité : utilisateur, date, état avant / après, éléments modifiés.
+  const { data: auth } = await supabase.auth.getUser();
+  if (auth.user) {
+    await supabase.from("site_merge_audit").insert({
+      user_id: auth.user.id,
+      proposal_id: proposal.id,
+      action: override ? "site_cree_modifie" : "site_cree",
+      site_id: site.id,
+      site_name: siteName,
+      client_id: targetClientId,
+      alias_labels: proposal.legacy_labels,
+      before_state: {
+        proposal_status: proposal.status,
+        target_site_id: proposal.target_site_id,
+        suggested_site_name: proposal.suggested_site_name,
+        site_existant: false,
+      },
+      after_state: {
+        proposal_status: override ? "modifiee" : "validee",
+        target_site_id: site.id,
+        site_name: siteName,
+        client_id: targetClientId,
+      },
+      tagged_counts: taggedCounts,
+    });
+  }
 
   return {
     site_id: site.id,
