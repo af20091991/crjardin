@@ -52,6 +52,7 @@ import { Route as AuthenticatedPilotFinanceRouteImport } from './routes/_authent
 import { Route as AuthenticatedPilotDonneesRouteImport } from './routes/_authenticated/pilot.donnees'
 import { Route as AuthenticatedPilotDirectionRouteImport } from './routes/_authenticated/pilot.direction'
 import { Route as AuthenticatedPilotCorrectionsRouteImport } from './routes/_authenticated/pilot.corrections'
+import { Route as AuthenticatedPilotControleRouteImport } from './routes/_authenticated/pilot.controle'
 import { Route as AuthenticatedPilotConseillerRouteImport } from './routes/_authenticated/pilot.conseiller'
 import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
 import { Route as AuthenticatedPilotChargesRouteImport } from './routes/_authenticated/pilot.charges'
@@ -302,6 +303,12 @@ const AuthenticatedPilotCorrectionsRoute =
     path: '/corrections',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedPilotControleRoute =
+  AuthenticatedPilotControleRouteImport.update({
+    id: '/controle',
+    path: '/controle',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotConseillerRoute =
   AuthenticatedPilotConseillerRouteImport.update({
     id: '/conseiller',
@@ -434,6 +441,7 @@ export interface FileRoutesByFullPath {
   '/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
   '/pilot/conseiller': typeof AuthenticatedPilotConseillerRoute
+  '/pilot/controle': typeof AuthenticatedPilotControleRoute
   '/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
   '/pilot/direction': typeof AuthenticatedPilotDirectionRoute
   '/pilot/donnees': typeof AuthenticatedPilotDonneesRoute
@@ -494,6 +502,7 @@ export interface FileRoutesByTo {
   '/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
   '/pilot/conseiller': typeof AuthenticatedPilotConseillerRoute
+  '/pilot/controle': typeof AuthenticatedPilotControleRoute
   '/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
   '/pilot/direction': typeof AuthenticatedPilotDirectionRoute
   '/pilot/donnees': typeof AuthenticatedPilotDonneesRoute
@@ -557,6 +566,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/_authenticated/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
   '/_authenticated/pilot/conseiller': typeof AuthenticatedPilotConseillerRoute
+  '/_authenticated/pilot/controle': typeof AuthenticatedPilotControleRoute
   '/_authenticated/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
   '/_authenticated/pilot/direction': typeof AuthenticatedPilotDirectionRoute
   '/_authenticated/pilot/donnees': typeof AuthenticatedPilotDonneesRoute
@@ -620,6 +630,7 @@ export interface FileRouteTypes {
     | '/pilot/charges'
     | '/pilot/clients'
     | '/pilot/conseiller'
+    | '/pilot/controle'
     | '/pilot/corrections'
     | '/pilot/direction'
     | '/pilot/donnees'
@@ -680,6 +691,7 @@ export interface FileRouteTypes {
     | '/pilot/charges'
     | '/pilot/clients'
     | '/pilot/conseiller'
+    | '/pilot/controle'
     | '/pilot/corrections'
     | '/pilot/direction'
     | '/pilot/donnees'
@@ -742,6 +754,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/charges'
     | '/_authenticated/pilot/clients'
     | '/_authenticated/pilot/conseiller'
+    | '/_authenticated/pilot/controle'
     | '/_authenticated/pilot/corrections'
     | '/_authenticated/pilot/direction'
     | '/_authenticated/pilot/donnees'
@@ -1091,6 +1104,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotCorrectionsRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/controle': {
+      id: '/_authenticated/pilot/controle'
+      path: '/controle'
+      fullPath: '/pilot/controle'
+      preLoaderRoute: typeof AuthenticatedPilotControleRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/conseiller': {
       id: '/_authenticated/pilot/conseiller'
       path: '/conseiller'
@@ -1235,6 +1255,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotChargesRoute: typeof AuthenticatedPilotChargesRoute
   AuthenticatedPilotClientsRoute: typeof AuthenticatedPilotClientsRouteWithChildren
   AuthenticatedPilotConseillerRoute: typeof AuthenticatedPilotConseillerRoute
+  AuthenticatedPilotControleRoute: typeof AuthenticatedPilotControleRoute
   AuthenticatedPilotCorrectionsRoute: typeof AuthenticatedPilotCorrectionsRoute
   AuthenticatedPilotDirectionRoute: typeof AuthenticatedPilotDirectionRoute
   AuthenticatedPilotDonneesRoute: typeof AuthenticatedPilotDonneesRoute
@@ -1263,6 +1284,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotChargesRoute: AuthenticatedPilotChargesRoute,
   AuthenticatedPilotClientsRoute: AuthenticatedPilotClientsRouteWithChildren,
   AuthenticatedPilotConseillerRoute: AuthenticatedPilotConseillerRoute,
+  AuthenticatedPilotControleRoute: AuthenticatedPilotControleRoute,
   AuthenticatedPilotCorrectionsRoute: AuthenticatedPilotCorrectionsRoute,
   AuthenticatedPilotDirectionRoute: AuthenticatedPilotDirectionRoute,
   AuthenticatedPilotDonneesRoute: AuthenticatedPilotDonneesRoute,
@@ -1357,13 +1379,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
