@@ -20,6 +20,12 @@ export interface AnnualRow {
   investissements: number;
   /** Bénéfice brut − investissements de l'exercice. */
   resultatApresInvestissements: number;
+  /**
+   * Exercice exploitable pour une décision : des charges ont bien été
+   * enregistrées. Un exercice sans aucune charge (ex. reprise partielle d'un
+   * historique) afficherait sinon 100 % de marge.
+   */
+  chargesComplete: boolean;
 }
 
 export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[], options?: { mode?: "reel" | "projection" }): AnnualRow[] {
@@ -58,17 +64,26 @@ export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[],
       const h = hours.get(year) ?? 0;
       const benefice = caHt - ch;
       const inv = invest.get(year) ?? 0;
+      const chargesComplete = ch > 0;
       return {
         year,
         caHt,
         charges: ch,
         beneficeBrut: benefice,
-        margePct: caHt > 0 ? (benefice / caHt) * 100 : null,
+        // Sans charge enregistrée, la marge n'est pas calculable : ne jamais
+        // afficher 100 % sur un exercice incomplet.
+        margePct: caHt > 0 && chargesComplete ? (benefice / caHt) * 100 : null,
         heuresVendues: h,
         tauxHoraireVendu: h > 0 ? caHt / h : null,
         nbLignes: lines.get(year) ?? 0,
         investissements: inv,
         resultatApresInvestissements: benefice - inv,
+        chargesComplete,
       };
     });
+}
+
+/** Exercices exploitables pour une comparaison ou un CAGR (charges présentes). */
+export function completeYears(rows: AnnualRow[]): AnnualRow[] {
+  return rows.filter((r) => r.chargesComplete);
 }
