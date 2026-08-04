@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 import { useAppearance } from "@/lib/appearance";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
@@ -291,6 +292,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </div>
           <div className="flex items-center gap-4">
             <GlobalSearch collapsed />
+            {isPilot && <PilotYearSwitcher compact />}
             {isPilot && <PilotModeToggle compact />}
             <NotificationBell />
             <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
@@ -302,7 +304,12 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         {title && (
           <div className="hidden px-6 pt-6 md:flex md:items-start md:justify-between md:gap-4">
             <h1 className="font-serif text-2xl font-semibold">{title}</h1>
-            {isPilot && <PilotModeToggle />}
+            {isPilot && (
+              <div className="flex items-center gap-2">
+                <PilotYearSwitcher />
+                <PilotModeToggle />
+              </div>
+            )}
           </div>
         )}
 
