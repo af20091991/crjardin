@@ -348,7 +348,7 @@ export async function proposalDetails(proposal: MergeProposal): Promise<Proposal
     supabase.from("clients").select("id,name,civility,address").in("id", ids),
     supabase.from("interventions").select("intervention_date").in("client_id", ids),
     supabase.from("pilot_ca_entries").select("year,month").in("client_id", ids),
-    supabase.from("pilot_historic_hours").select("year,month").in("client_id", ids),
+    supabase.from("pilot_historic_hours").select("year").in("client_id", ids),
   ]);
 
   const clients = (clientsRes.data ?? []) as { id: string; name: string; civility: string | null; address: string | null }[];
@@ -367,8 +367,11 @@ export async function proposalDetails(proposal: MergeProposal): Promise<Proposal
   for (const r of (ivRes.data ?? []) as { intervention_date: string | null }[]) {
     if (r.intervention_date) keys.push(r.intervention_date.slice(0, 7));
   }
-  for (const r of [...((caRes.data ?? []) as { year: number; month: number }[]), ...((hoursRes.data ?? []) as { year: number; month: number }[])]) {
+  for (const r of (caRes.data ?? []) as { year: number; month: number }[]) {
     if (r.year && r.month) keys.push(ymLabel(r.year, r.month));
+  }
+  for (const r of (hoursRes.data ?? []) as { year: number }[]) {
+    if (r.year) keys.push(`${String(r.year)}-01`);
   }
   keys.sort();
 
