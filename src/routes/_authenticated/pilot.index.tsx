@@ -27,7 +27,8 @@ import { listChargeRows } from "@/lib/pilot-charges";
 import { projectYear } from "@/lib/pilot-projection";
 import { usePilotMode } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
-import { classifyClients } from "@/lib/pilot-client-profitability";
+import { classifyClients, strategicClients } from "@/lib/pilot-client-profitability";
+import { useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { buildRecommendations } from "@/lib/pilot-recommendations";
 import { priorityStatusKey } from "@/lib/pilot-priorities";
@@ -368,18 +369,24 @@ function TodayPage() {
   const progressionAnnuelle = objectifAnnuel > 0 ? (caLecture / objectifAnnuel) * 100 : null;
 
   // Classement rentabilité (clients / prestations) — sert aux points d'attention.
+  const statusesQ = useEntityStatuses();
+  // Seules les entités économiquement exploitables alimentent les points
+  // d'attention : un contact ou un doublon ne doit jamais polluer les analyses.
   const clientsProfit = useMemo(
     () =>
       hoursLedger.data
-        ? classifyClients({
-            entries: realEntries,
-            ledger: ledgerRows,
-            year,
-            targetHourlyRate: set.target_hourly_rate || 0,
-            thresholds,
-          })
+        ? strategicClients(
+            classifyClients({
+              entries: realEntries,
+              ledger: ledgerRows,
+              year,
+              targetHourlyRate: set.target_hourly_rate || 0,
+              thresholds,
+              statuses: statusesQ.data,
+            }),
+          )
         : [],
-    [realEntries, hoursLedger.data, ledgerRows, year, set.target_hourly_rate, thresholds],
+    [realEntries, hoursLedger.data, ledgerRows, year, set.target_hourly_rate, thresholds, statusesQ.data],
   );
   const services = useMemo(
     () =>
