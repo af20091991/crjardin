@@ -243,7 +243,8 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
             </p>
           )}
           <p className="mt-1 text-xs text-muted-foreground">
-            Les autres libellés deviennent des alias de recherche et restent consultables.
+            Les autres libellés deviennent des alias de recherche du site et restent consultables. Un alias ne crée jamais
+            de client et n'entraîne jamais la fusion de deux clients.
           </p>
         </div>
 
@@ -257,7 +258,7 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
         {!editing && (
           <div className="flex flex-wrap gap-2">
             <Button size="sm" className="gap-1.5" disabled={validate.isPending} onClick={() => validate.mutate(undefined)}>
-              <Check className="h-4 w-4" /> Valider la fusion
+              <Check className="h-4 w-4" /> Créer le site + alias
             </Button>
             <Button size="sm" variant="outline" className="gap-1.5" disabled={refuse.isPending} onClick={() => refuse.mutate()}>
               <X className="h-4 w-4" /> Refuser
@@ -265,6 +266,32 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
             <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
               Modifier
             </Button>
+          </div>
+        )}
+
+        {createdSiteId && (
+          <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
+            <p className="text-xs text-muted-foreground">
+              Étapes facultatives, à confirmer une par une. À n'utiliser que si ces libellés désignent bien le
+              <strong> même client</strong> (jamais deux clients différents partageant un lieu ou un nom).
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={dedupe.isPending || proposal.legacy_client_ids.length < 2}
+                onClick={() => {
+                  if (window.confirm("Confirmez-vous que ces libellés sont des doublons du MÊME client ? Les fiches sont conservées et marquées comme requalifiées.")) {
+                    dedupe.mutate();
+                  }
+                }}
+              >
+                Ce sont des doublons du même client
+              </Button>
+              <Button size="sm" variant="ghost" disabled={makeContact.isPending} onClick={() => makeContact.mutate()}>
+                Créer le contact destinataire des CR
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
