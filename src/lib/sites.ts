@@ -195,3 +195,96 @@ export function looksLikePlace(name: string): boolean {
   const n = normalizeLabel(name);
   return PLACE_HINTS.some((h) => n.includes(normalizeLabel(h)));
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Liaison Contact ↔ Sites : un contact peut couvrir plusieurs sites du MÊME
+// client (syndic, entreprise multi-établissements, particulier multi-propriétés).
+// La base refuse toute liaison vers le site d'un autre client.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ContactSiteLink {
+  id: string;
+  contact_id: string;
+  site_id: string;
+  is_report_recipient: boolean;
+}
+
+export async function listContactSites(): Promise<ContactSiteLink[]> {
+  const { data, error } = await supabase.from("contact_sites").select("id,contact_id,site_id,is_report_recipient");
+  if (error) throw error;
+  return (data ?? []) as ContactSiteLink[];
+}
+
+export async function linkContactToSite(input: { contact_id: string; site_id: string; is_report_recipient?: boolean }) {
+  const user_id = await requireUserId();
+  const { error } = await supabase.from("contact_sites").upsert(
+    { user_id, contact_id: input.contact_id, site_id: input.site_id, is_report_recipient: input.is_report_recipient ?? true },
+    { onConflict: "contact_id,site_id" },
+  );
+  if (error) throw error;
+}
+
+export async function unlinkContactFromSite(contact_id: string, site_id: string) {
+  const { error } = await supabase.from("contact_sites").delete().eq("contact_id", contact_id).eq("site_id", site_id);
+  if (error) throw error;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lectures de contrôle de l'architecture (aucun calcul métier n'est modifié) :
+// « quels sites pour ce client ? », « quel client / contact pour ce site ? »,
+// « quelles interventions, quel CA, quelles heures pour ce site ? ».
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function sitesOfClient(clientId: string, sites: Site[]): Site[] {
+  return sites.filter((s) => s.client_id === clientId);
+}
+
+export function clientOfSite(siteId: string, sites: Site[]): string | null {
+  return sites.find((s) => s.id === siteId)?.client_id ?? null;
+}
+
+/**
+ * Contact principal d'un site : d'abord un contact explicitement rattaché au site,
+ * puis un contact de niveau client (valable pour tous ses sites).
+ */
+export function primaryContactOfSite(
+  siteId: string,
+  sites: Site[],
+  contacts: Contact[],
+  links: ContactSiteLink[] = [],
+): Contact | null {
+  const clientId = clientOfSite(siteId, sites);
+  if (!clientId) return null;
+  const linked = links.filter((l) => l.site_id === siteId);
+  const byLink = contacts.find((c) => linked.some((l) => l.contact_id === c.id && l.is_report_recipient));
+  if (byLink) return byLink;
+  const bySite = contacts.find((c) => c.site_id === siteId && c.is_report_recipient);
+  if (bySite) return bySite;
+  return contacts.find((c) => c.client_id === clientId && !c.site_id && c.is_report_recipient) ?? null;
+}
+
+export interface SiteFootprint {
+  interventions: number;
+  ca_entries: number;
+  ca_amount: number;
+  hours: number;
+  missions: number;
+}
+
+/** Empreinte réelle d'un site (contrôle de cohérence, hors calculs de pilotage). */
+export async function siteFootprint(siteId: string): Promise<SiteFootprint> {
+  const [iv, ca, hours, missions] = await Promise.all([
+    supabase.from("interventions").select("id", { count: "exact", head: true }).eq("site_id", siteId),
+    supabase.from("pilot_ca_entries").select("amount_ht,kind").eq("site_id", siteId),
+    supabase.from("pilot_historic_hours").select("hours").eq("site_id", siteId),
+    supabase.from("subcontractor_missions").select("id", { count: "exact", head: true }).eq("site_id", siteId),
+  ]);
+  const caRows = ((ca.data ?? []) as { amount_ht: number | null; kind: string }[]).filter((r) => r.kind === "vente");
+  return {
+    interventions: iv.count ?? 0,
+    ca_entries: caRows.length,
+    ca_amount: caRows.reduce((s, r) => s + Number(r.amount_ht ?? 0), 0),
+    hours: ((hours.data ?? []) as { hours: number | null }[]).reduce((s, r) => s + Number(r.hours ?? 0), 0),
+    missions: missions.count ?? 0,
+  };
+}
