@@ -128,6 +128,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         ...(canEdit
           ? [
               { to: "/pilot/donnees", label: "Classeur de données", short: "Classeur", icon: ClipboardList, exact: false, primary: false },
+              { to: "/pilot/sites", label: "Sites & contacts", short: "Sites", icon: MapPin, exact: false, primary: false },
               { to: "/pilot/rapprochement", label: "Rapprochement CA", short: "Rappr.", icon: Link2, exact: false, primary: false },
               { to: "/pilot/validation", label: "Centre de validation", short: "Valid.", icon: CheckCircle2, exact: false, primary: false },
               { to: "/pilot/qualite", label: "Qualité des données", short: "Qualité", icon: ShieldCheck, exact: false, primary: false },
