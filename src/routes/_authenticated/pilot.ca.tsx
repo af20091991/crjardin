@@ -54,6 +54,7 @@ function StatBox({ label, value, icon: Icon, tone }: { label: string; value: str
 function CaPage() {
   const qc = useQueryClient();
   const { year, setYear } = usePilotYear();
+  void setYear;
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
   const [pending, setPending] = useState<number | null>(null);
   const [openNote, setOpenNote] = useState<Record<string, boolean>>({});
