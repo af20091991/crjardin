@@ -38,6 +38,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
 import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_authenticated/pilot.validation'
 import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
+import { Route as AuthenticatedPilotSitesRouteImport } from './routes/_authenticated/pilot.sites'
 import { Route as AuthenticatedPilotSimulationsRouteImport } from './routes/_authenticated/pilot.simulations'
 import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
 import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
@@ -216,6 +217,11 @@ const AuthenticatedPilotValidationRoute =
 const AuthenticatedPilotTauxRoute = AuthenticatedPilotTauxRouteImport.update({
   id: '/taux',
   path: '/taux',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
+const AuthenticatedPilotSitesRoute = AuthenticatedPilotSitesRouteImport.update({
+  id: '/sites',
+  path: '/sites',
   getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
 const AuthenticatedPilotSimulationsRoute =
@@ -433,6 +439,7 @@ export interface FileRoutesByFullPath {
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
+  '/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
@@ -491,6 +498,7 @@ export interface FileRoutesByTo {
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
+  '/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
@@ -552,6 +560,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/_authenticated/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/_authenticated/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
+  '/_authenticated/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/_authenticated/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/_authenticated/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
@@ -613,6 +622,7 @@ export interface FileRouteTypes {
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulations'
+    | '/pilot/sites'
     | '/pilot/taux'
     | '/pilot/validation'
     | '/api/public/email-open'
@@ -671,6 +681,7 @@ export interface FileRouteTypes {
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulations'
+    | '/pilot/sites'
     | '/pilot/taux'
     | '/pilot/validation'
     | '/api/public/email-open'
@@ -731,6 +742,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/saison'
     | '/_authenticated/pilot/sante'
     | '/_authenticated/pilot/simulations'
+    | '/_authenticated/pilot/sites'
     | '/_authenticated/pilot/taux'
     | '/_authenticated/pilot/validation'
     | '/api/public/email-open'
@@ -966,6 +978,13 @@ declare module '@tanstack/react-router' {
       path: '/taux'
       fullPath: '/pilot/taux'
       preLoaderRoute: typeof AuthenticatedPilotTauxRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/sites': {
+      id: '/_authenticated/pilot/sites'
+      path: '/sites'
+      fullPath: '/pilot/sites'
+      preLoaderRoute: typeof AuthenticatedPilotSitesRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
     '/_authenticated/pilot/simulations': {
@@ -1208,6 +1227,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotSaisonRoute: typeof AuthenticatedPilotSaisonRoute
   AuthenticatedPilotSanteRoute: typeof AuthenticatedPilotSanteRoute
   AuthenticatedPilotSimulationsRoute: typeof AuthenticatedPilotSimulationsRoute
+  AuthenticatedPilotSitesRoute: typeof AuthenticatedPilotSitesRoute
   AuthenticatedPilotTauxRoute: typeof AuthenticatedPilotTauxRoute
   AuthenticatedPilotValidationRoute: typeof AuthenticatedPilotValidationRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
@@ -1234,6 +1254,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotSaisonRoute: AuthenticatedPilotSaisonRoute,
   AuthenticatedPilotSanteRoute: AuthenticatedPilotSanteRoute,
   AuthenticatedPilotSimulationsRoute: AuthenticatedPilotSimulationsRoute,
+  AuthenticatedPilotSitesRoute: AuthenticatedPilotSitesRoute,
   AuthenticatedPilotTauxRoute: AuthenticatedPilotTauxRoute,
   AuthenticatedPilotValidationRoute: AuthenticatedPilotValidationRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
@@ -1314,13 +1335,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

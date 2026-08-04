@@ -6,6 +6,7 @@ import {
 } from "@/lib/interventions";
 import type { Client } from "@/lib/clients";
 import { gardenLabel } from "@/lib/clients";
+import { reportRecipient } from "@/lib/report-recipient";
 import type { GardenHealth, Recommendation } from "@/lib/garden";
 import type { WorksiteSheet } from "@/lib/worksite";
 import {
@@ -71,7 +72,8 @@ export function InterventionReportPreview({
   const dateStr = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
-  const clientFull = [client.civility?.trim(), client.name?.trim()].filter(Boolean).join(" ") || garden;
+  // Destinataire : personne identifiée uniquement — jamais « Madame + nom de lieu ».
+  const clientFull = reportRecipient({ civility: client.civility, name: client.name }, garden).line || garden;
   const sections = normalizeReportSections(iv.report_sections);
   const reportPhotos = photos
     .filter((p) => p.include_in_report)

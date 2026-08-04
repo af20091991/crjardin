@@ -390,12 +390,16 @@ export type Database = {
           civility: string | null
           contract_type: string | null
           created_at: string
+          default_contact_id: string | null
           email: string | null
           emails: string[]
           frequency: string | null
           id: string
           lifecycle_status: string
           lost_at: string | null
+          merged_at: string | null
+          merged_into_client_id: string | null
+          merged_reason: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -411,12 +415,16 @@ export type Database = {
           civility?: string | null
           contract_type?: string | null
           created_at?: string
+          default_contact_id?: string | null
           email?: string | null
           emails?: string[]
           frequency?: string | null
           id?: string
           lifecycle_status?: string
           lost_at?: string | null
+          merged_at?: string | null
+          merged_into_client_id?: string | null
+          merged_reason?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -432,12 +440,16 @@ export type Database = {
           civility?: string | null
           contract_type?: string | null
           created_at?: string
+          default_contact_id?: string | null
           email?: string | null
           emails?: string[]
           frequency?: string | null
           id?: string
           lifecycle_status?: string
           lost_at?: string | null
+          merged_at?: string | null
+          merged_into_client_id?: string | null
+          merged_reason?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
@@ -448,7 +460,125 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_default_contact_id_fkey"
+            columns: ["default_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_merged_into_client_id_fkey"
+            columns: ["merged_into_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_merged_into_client_id_fkey"
+            columns: ["merged_into_client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "clients_merged_into_client_id_fkey"
+            columns: ["merged_into_client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          civility: string | null
+          client_id: string
+          created_at: string
+          display_name: string
+          emails: string[]
+          first_name: string | null
+          id: string
+          is_report_recipient: boolean
+          last_name: string | null
+          needs_review: boolean
+          phone: string | null
+          review_reason: string | null
+          role: string | null
+          site_id: string | null
+          source: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          civility?: string | null
+          client_id: string
+          created_at?: string
+          display_name: string
+          emails?: string[]
+          first_name?: string | null
+          id?: string
+          is_report_recipient?: boolean
+          last_name?: string | null
+          needs_review?: boolean
+          phone?: string | null
+          review_reason?: string | null
+          role?: string | null
+          site_id?: string | null
+          source?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          civility?: string | null
+          client_id?: string
+          created_at?: string
+          display_name?: string
+          emails?: string[]
+          first_name?: string | null
+          id?: string
+          is_report_recipient?: boolean
+          last_name?: string | null
+          needs_review?: boolean
+          phone?: string | null
+          review_reason?: string | null
+          role?: string | null
+          site_id?: string | null
+          source?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "contacts_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_opens: {
         Row: {
@@ -884,6 +1014,7 @@ export type Database = {
           client_id: string
           client_read_at: string | null
           client_read_count: number
+          contact_id: string | null
           created_at: string
           garden_evolution: string | null
           garden_state: string | null
@@ -902,6 +1033,7 @@ export type Database = {
           report_waived_reason: string | null
           sent_pdf_storage_path: string | null
           sent_to_client_at: string | null
+          site_id: string | null
           status: string
           summary: string | null
           title: string | null
@@ -916,6 +1048,7 @@ export type Database = {
           client_id: string
           client_read_at?: string | null
           client_read_count?: number
+          contact_id?: string | null
           created_at?: string
           garden_evolution?: string | null
           garden_state?: string | null
@@ -934,6 +1067,7 @@ export type Database = {
           report_waived_reason?: string | null
           sent_pdf_storage_path?: string | null
           sent_to_client_at?: string | null
+          site_id?: string | null
           status?: string
           summary?: string | null
           title?: string | null
@@ -948,6 +1082,7 @@ export type Database = {
           client_id?: string
           client_read_at?: string | null
           client_read_count?: number
+          contact_id?: string | null
           created_at?: string
           garden_evolution?: string | null
           garden_state?: string | null
@@ -966,6 +1101,7 @@ export type Database = {
           report_waived_reason?: string | null
           sent_pdf_storage_path?: string | null
           sent_to_client_at?: string | null
+          site_id?: string | null
           status?: string
           summary?: string | null
           title?: string | null
@@ -995,6 +1131,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "interventions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interventions_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "interventions_worksite_sheet_id_fkey"
@@ -1119,6 +1269,7 @@ export type Database = {
           raw_client_text: string | null
           raw_designation: string | null
           sale_status: string
+          site_id: string | null
           source_file: string | null
           source_row: number | null
           source_sheet: string | null
@@ -1155,6 +1306,7 @@ export type Database = {
           raw_client_text?: string | null
           raw_designation?: string | null
           sale_status?: string
+          site_id?: string | null
           source_file?: string | null
           source_row?: number | null
           source_sheet?: string | null
@@ -1191,6 +1343,7 @@ export type Database = {
           raw_client_text?: string | null
           raw_designation?: string | null
           sale_status?: string
+          site_id?: string | null
           source_file?: string | null
           source_row?: number | null
           source_sheet?: string | null
@@ -1236,6 +1389,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_intervention_pnl"
             referencedColumns: ["intervention_id"]
+          },
+          {
+            foreignKeyName: "pilot_ca_entries_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1568,6 +1728,7 @@ export type Database = {
           margin_net: number | null
           note: string | null
           raw_client_text: string
+          site_id: string | null
           source_file: string | null
           source_row: number | null
           source_sheet: string | null
@@ -1586,6 +1747,7 @@ export type Database = {
           margin_net?: number | null
           note?: string | null
           raw_client_text: string
+          site_id?: string | null
           source_file?: string | null
           source_row?: number | null
           source_sheet?: string | null
@@ -1604,6 +1766,7 @@ export type Database = {
           margin_net?: number | null
           note?: string | null
           raw_client_text?: string
+          site_id?: string | null
           source_file?: string | null
           source_row?: number | null
           source_sheet?: string | null
@@ -1633,6 +1796,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "pilot_historic_hours_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2695,6 +2865,252 @@ export type Database = {
           },
         ]
       }
+      site_aliases: {
+        Row: {
+          alias: string
+          alias_normalized: string
+          created_at: string
+          id: string
+          legacy_client_id: string | null
+          origin: string
+          site_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alias: string
+          alias_normalized: string
+          created_at?: string
+          id?: string
+          legacy_client_id?: string | null
+          origin?: string
+          site_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alias?: string
+          alias_normalized?: string
+          created_at?: string
+          id?: string
+          legacy_client_id?: string | null
+          origin?: string
+          site_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_aliases_legacy_client_id_fkey"
+            columns: ["legacy_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_aliases_legacy_client_id_fkey"
+            columns: ["legacy_client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "site_aliases_legacy_client_id_fkey"
+            columns: ["legacy_client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "site_aliases_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_merge_proposals: {
+        Row: {
+          cluster_key: string
+          confidence: number | null
+          created_at: string
+          decided_at: string | null
+          decision_note: string | null
+          id: string
+          impact_ca_amount: number
+          impact_ca_entries: number
+          impact_hours: number
+          impact_interventions: number
+          impact_missions: number
+          legacy_client_ids: string[]
+          legacy_labels: string[]
+          status: string
+          suggested_client_name: string
+          suggested_site_name: string
+          target_client_id: string | null
+          target_site_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cluster_key: string
+          confidence?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          id?: string
+          impact_ca_amount?: number
+          impact_ca_entries?: number
+          impact_hours?: number
+          impact_interventions?: number
+          impact_missions?: number
+          legacy_client_ids?: string[]
+          legacy_labels?: string[]
+          status?: string
+          suggested_client_name: string
+          suggested_site_name: string
+          target_client_id?: string | null
+          target_site_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cluster_key?: string
+          confidence?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          id?: string
+          impact_ca_amount?: number
+          impact_ca_entries?: number
+          impact_hours?: number
+          impact_interventions?: number
+          impact_missions?: number
+          legacy_client_ids?: string[]
+          legacy_labels?: string[]
+          status?: string
+          suggested_client_name?: string
+          suggested_site_name?: string
+          target_client_id?: string | null
+          target_site_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_merge_proposals_target_client_id_fkey"
+            columns: ["target_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_merge_proposals_target_client_id_fkey"
+            columns: ["target_client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "site_merge_proposals_target_client_id_fkey"
+            columns: ["target_client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "site_merge_proposals_target_site_id_fkey"
+            columns: ["target_site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sites: {
+        Row: {
+          access_complement: string | null
+          address: string | null
+          client_id: string
+          created_at: string
+          id: string
+          is_primary: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          notes: string | null
+          source: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          worksite_sheet_id: string | null
+        }
+        Insert: {
+          access_complement?: string | null
+          address?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          notes?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          worksite_sheet_id?: string | null
+        }
+        Update: {
+          access_complement?: string | null
+          address?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          notes?: string | null
+          source?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          worksite_sheet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sites_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sites_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "sites_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "sites_worksite_sheet_id_fkey"
+            columns: ["worksite_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "worksite_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sst_audit_log: {
         Row: {
           action: string
@@ -2847,6 +3263,7 @@ export type Database = {
           report_notes: string | null
           service_id: string | null
           service_requested: string
+          site_id: string | null
           status: string
           subcontractor_id: string
           updated_at: string
@@ -2881,6 +3298,7 @@ export type Database = {
           report_notes?: string | null
           service_id?: string | null
           service_requested: string
+          site_id?: string | null
           status?: string
           subcontractor_id: string
           updated_at?: string
@@ -2915,6 +3333,7 @@ export type Database = {
           report_notes?: string | null
           service_id?: string | null
           service_requested?: string
+          site_id?: string | null
           status?: string
           subcontractor_id?: string
           updated_at?: string
@@ -2984,6 +3403,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_service_seasonality_resolved"
             referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "subcontractor_missions_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "subcontractor_missions_subcontractor_id_fkey"
@@ -3212,6 +3638,7 @@ export type Database = {
           notes: string | null
           photos: Json
           recycling_center: Json | null
+          site_id: string | null
           tasks: Json
           updated_at: string
           user_id: string
@@ -3240,6 +3667,7 @@ export type Database = {
           notes?: string | null
           photos?: Json
           recycling_center?: Json | null
+          site_id?: string | null
           tasks?: Json
           updated_at?: string
           user_id: string
@@ -3268,6 +3696,7 @@ export type Database = {
           notes?: string | null
           photos?: Json
           recycling_center?: Json | null
+          site_id?: string | null
           tasks?: Json
           updated_at?: string
           user_id?: string
@@ -3293,6 +3722,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_client_service_gaps"
             referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "worksite_sheets_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3845,6 +4281,7 @@ export type Database = {
           raw_client_text: string | null
           raw_designation: string | null
           sale_status: string
+          site_id: string | null
           source_file: string | null
           source_row: number | null
           source_sheet: string | null
