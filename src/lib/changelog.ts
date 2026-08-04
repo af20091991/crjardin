@@ -27,6 +27,19 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-08-04",
+    version: "2.3.0",
+    theme: "Général",
+    title: "Analyse Temps & Rentabilité",
+    details: [
+      "Nouvelle page 📊 Pilotage → Analyse Temps & Rentabilité : croisement temps consommé / valeur économique.",
+      "Analyse par prestation (heures, % du temps, CA, charges réparties, résultat brut, €/h) avec tris et 2 graphiques.",
+      "Analyse par client : classement triable, rang de rentabilité et nuage de points à 4 zones (stratégiques, à développer, à optimiser, chronophages).",
+      "Filtres exercice / période / prestation / client, sources de données affichées et signalements de données incomplètes.",
+      "Couche d'analyse en lecture seule : aucun calcul, aucune règle métier ni aucune donnée existante modifiés.",
+    ],
+  },
+  {
+    date: "2026-08-04",
     version: "2.2.0",
     theme: "Général",
     title: "Centre de contrôle des données",
