@@ -95,11 +95,7 @@ function CaPage() {
     <div className="space-y-5">
       {/* Exercice piloté par le sélecteur global (en-tête Pilot Pro) */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" title={`Exercice ${year - 1}`} onClick={() => setYear(year - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <span className="font-serif text-xl font-semibold">CA {year}</span>
-          <Button variant="outline" size="icon" className="h-8 w-8" title={`Exercice ${year + 1}`} onClick={() => setYear(year + 1)}><ChevronRight className="h-4 w-4" /></Button>
-        </div>
+        <span className="font-serif text-xl font-semibold">CA {year}</span>
         {pending != null && (
           <Badge variant="secondary" className="gap-1">Résultat prêt : {formatEuro(pending)} — cliquez « + Ligne »</Badge>
         )}
