@@ -1167,6 +1167,21 @@ function TodayPage() {
       <DashboardBlock id="heures" layout={layout}>
         <SectionTitle question="Répartition du temps" label="Heures consolidées" />
         <HoursSummaryCards year={year} resolution={hoursResolution} toFill={missingHours.length} />
+        {missingHours.length > 0 && (
+          <Card className="border-amber-300/70 bg-amber-50/40 p-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-700" />
+              <span>
+                <strong>{missingHours.length}</strong> intervention{missingHours.length > 1 ? "s" : ""} terminée
+                {missingHours.length > 1 ? "s" : ""} sans heures réelles : le taux horaire réel reste indisponible
+                tant que ces heures ne sont pas saisies.
+              </span>
+              <Link to="/interventions" className="ml-auto font-medium text-primary underline">
+                Saisir les heures
+              </Link>
+            </div>
+          </Card>
+        )}
       </DashboardBlock>
 
       {/* 3 — Quels risques dois-je traiter ? */}
