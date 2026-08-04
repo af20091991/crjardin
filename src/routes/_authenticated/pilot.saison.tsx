@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { monthlySeries, formatEuro, formatPct, MONTHS, sum } from "@/lib/pilot";
 import { Card, CardContent } from "@/components/ui/card";
