@@ -26,6 +26,22 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-08-04",
+    version: "2.1.0",
+    theme: "Général",
+    title: "Pilot Pro — Corrections assistées des anomalies qualité",
+    details: [
+      "Nouvelle page « Corrections assistées » (Paramètres) : quatre parcours guidés — charges à classer, interventions terminées sans heures, missions de sous-traitance sans client, qualification des Sites.",
+      "Charges : chaque ligne affiche date, libellé, montant, catégorie actuelle et une proposition issue des mots-clés déjà paramétrés ; le classement (fixe, variable, investissement, rémunération) n'est appliqué qu'après validation.",
+      "Heures : saisie manuelle des heures réalisées, jamais estimée automatiquement, avec conservation de la source de saisie.",
+      "Sites : liste priorisée par chiffre d'affaires, volume d'interventions et ancienneté, avec Site proposé et niveau de confiance ; la validation reste dans le centre Sites.",
+      "Sous-traitance : rattachement manuel d'une mission à un client, sans aucun rapprochement automatique.",
+      "Statut « Ignorée » avec justification obligatoire, réintégrable à tout moment ; toute modification est historisée (avant / après / motif).",
+      "Centre Qualité : nouveau bloc « Plan d'action » avec impact, volume, progression et accès direct à la correction.",
+      "Aucun calcul métier modifié, aucune migration Client → Site, aucune suppression de données.",
+    ],
+  },
+  {
     date: "2026-08-01",
     version: "2.0.0",
     theme: "Général",

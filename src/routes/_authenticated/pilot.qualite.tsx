@@ -10,7 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { PilotCard } from "@/components/pilot/PilotCard";
+import { buildActionPlan } from "@/lib/pilot-fix-flows";
 import {
   buildDataQualityReport,
   readQualitySnapshot,
@@ -67,7 +69,17 @@ const STATUS_LABEL: Record<TrackingStatus, string> = {
   open: "Ouverte",
   in_progress: "En cours",
   resolved: "Résolue",
+  ignored: "Ignorée",
 };
+
+/** Anomalies disposant d'un parcours de correction guidé (Phase 7). */
+const GUIDED_KEYS = new Set([
+  "charges_a_classer",
+  "interventions_sans_heures",
+  "sst_sans_client",
+  "ca_sans_site",
+  "interventions_sans_site",
+]);
 
 function toneClass(tone?: string) {
   if (tone === "positive") return "text-primary";
@@ -80,23 +92,30 @@ function QualityPage() {
   const snapshot = useMemo(() => (typeof window === "undefined" ? null : readQualitySnapshot()), []);
   const qc = useQueryClient();
   const [pending, setPending] = useState<string | null>(null);
+  const [ignoreKey, setIgnoreKey] = useState<string | null>(null);
+  const [ignoreReason, setIgnoreReason] = useState("");
 
   const q = useQuery({ queryKey: ["pilot-data-quality"], queryFn: buildDataQualityReport });
   const center = useQuery({ queryKey: ["pilot-quality-center"], queryFn: buildQualityCenterReport });
   const tracking = useQuery({ queryKey: ["pilot-quality-tracking"], queryFn: listQualityTracking });
+  const plan = useQuery({ queryKey: ["fix-plan"], queryFn: buildActionPlan });
 
   const mutate = useMutation({
-    mutationFn: ({ anomaly, status }: { anomaly: QualityAnomaly; status: TrackingStatus }) =>
+    mutationFn: ({ anomaly, status, note }: { anomaly: QualityAnomaly; status: TrackingStatus; note?: string }) =>
       setAnomalyStatus(
         anomaly,
         status,
-        status === "resolved"
-          ? "Anomalie déclarée résolue depuis le centre de qualité"
-          : "Anomalie prise en charge depuis le centre de qualité",
+        note?.trim()
+          ? note.trim()
+          : status === "resolved"
+            ? "Anomalie déclarée résolue depuis le centre de qualité"
+            : "Anomalie prise en charge depuis le centre de qualité",
       ),
     onSuccess: (_d, v) => {
       toast.success(`Anomalie marquée « ${STATUS_LABEL[v.status]} »`);
       qc.invalidateQueries({ queryKey: ["pilot-quality-tracking"] });
+      setIgnoreKey(null);
+      setIgnoreReason("");
     },
     onError: (e: Error) => toast.error(e.message || "Enregistrement impossible"),
     onSettled: () => setPending(null),
@@ -183,6 +202,45 @@ function QualityPage() {
         </CardContent>
       </Card>
 
+      {/* Phase 7 — Plan d'action : impact, volume, progression, accès direct */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <TriangleAlert className="h-4 w-4 text-primary" />
+            Plan d'action
+            <Button asChild size="sm" variant="outline" className="ml-auto">
+              <Link to="/pilot/corrections">
+                Ouvrir les corrections assistées <ArrowRight className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Actions prioritaires, volume concerné et progression. Chaque correction est validée manuellement et
+            historisée.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          {plan.isLoading && <Skeleton className="h-20 w-full" />}
+          {(plan.data ?? []).map((a) => (
+            <Link
+              key={a.key}
+              to="/pilot/corrections"
+              className="rounded-lg border p-3 transition-colors hover:bg-muted/50"
+            >
+              <p className="text-sm font-medium">
+                {a.dot} {a.title}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{a.impact}</p>
+              <div className="mt-2 flex items-center gap-2">
+                <Progress value={a.progress} className="h-1.5" />
+                <span className="shrink-0 text-xs tabular-nums">{a.progress} %</span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">{a.volume}</p>
+            </Link>
+          ))}
+        </CardContent>
+      </Card>
+
       {/* Phase 2 — Indicateurs par domaine */}
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
@@ -232,7 +290,7 @@ function QualityPage() {
         </div>
 
         <div className="flex flex-wrap gap-2 text-xs">
-          {(["open", "in_progress", "resolved"] as TrackingStatus[]).map((s) => {
+          {(["open", "in_progress", "resolved", "ignored"] as TrackingStatus[]).map((s) => {
             const n =
               s === "open"
                 ? c.anomalies.filter((a) => (trackByKey.get(a.key)?.status ?? "open") === "open").length
@@ -288,6 +346,13 @@ function QualityPage() {
                         )}
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        {GUIDED_KEYS.has(a.key) && (
+                          <Button asChild size="sm">
+                            <Link to="/pilot/corrections">
+                              Corriger <ArrowRight className="ml-1 h-3 w-3" />
+                            </Link>
+                          </Button>
+                        )}
                         <Button asChild size="sm" variant="outline">
                           <Link to={a.to}>
                             {a.actionLabel} <ArrowRight className="ml-1 h-3 w-3" />
@@ -306,7 +371,7 @@ function QualityPage() {
                             Prendre en charge
                           </Button>
                         )}
-                        {status !== "resolved" && (
+                        {status !== "resolved" && status !== "ignored" && (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -319,6 +384,46 @@ function QualityPage() {
                             Marquer résolue
                           </Button>
                         )}
+                        {status !== "ignored" &&
+                          (ignoreKey === a.key ? (
+                            <span className="flex items-center gap-2">
+                              <Input
+                                value={ignoreReason}
+                                onChange={(e) => setIgnoreReason(e.target.value)}
+                                placeholder="Justification obligatoire"
+                                className="h-8 w-52"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={ignoreReason.trim().length < 3}
+                                onClick={() => {
+                                  setPending(a.key);
+                                  mutate.mutate({
+                                    anomaly: a,
+                                    status: "ignored",
+                                    note: `Ignorée : ${ignoreReason.trim()}`,
+                                  });
+                                }}
+                              >
+                                Confirmer
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setIgnoreKey(null)}>
+                                Annuler
+                              </Button>
+                            </span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setIgnoreKey(a.key);
+                                setIgnoreReason("");
+                              }}
+                            >
+                              Ignorer
+                            </Button>
+                          ))}
                       </div>
                     </div>
                   </div>
