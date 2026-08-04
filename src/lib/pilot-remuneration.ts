@@ -40,7 +40,14 @@ export function splitRemuneration(rows: ChargeRow[]): {
   const charges: ChargeRow[] = [];
   const remuneration: ChargeRow[] = [];
   for (const r of rows) {
-    if (isRemunerationLabel(r.designation) || isRemunerationLabel(r.charge_category)) {
+    // Source unique : une ligne typée `remuneration` en base n'est jamais
+    // re-devinée. La détection par libellé ne sert que d'appoint pour les
+    // exercices historiques importés avant l'existence de ce type.
+    const explicit = r.kind === "remuneration";
+    const guessed =
+      r.kind !== "remuneration" &&
+      (isRemunerationLabel(r.designation) || isRemunerationLabel(r.charge_category));
+    if (explicit || guessed) {
       remuneration.push(r);
     } else {
       charges.push(r);

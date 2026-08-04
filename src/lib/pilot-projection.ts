@@ -48,7 +48,8 @@ function monthlyCa(entries: PilotEntry[], year: number): number[] {
 
 function monthlyCharges(rows: ChargeRow[], year: number): number[] {
   const arr = new Array(12).fill(0);
-  for (const r of rows) {
+  // Charges d'exploitation uniquement (rémunération dirigeant suivie à part).
+  for (const r of rows.filter((x) => x.kind !== "remuneration")) {
     if (r.year !== year) continue;
     const m = Math.min(12, Math.max(1, r.month || 1));
     arr[m - 1] += r.amount_ht;

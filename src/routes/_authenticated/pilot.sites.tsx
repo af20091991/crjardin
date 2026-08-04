@@ -16,7 +16,7 @@ import {
   mergeDuplicateClients, proposalDetails, refreshProposals, revertSiteValidation,
   type MergeProposal, type ProposalDetails,
 } from "@/lib/site-merge";
-import { listContacts, listSites, updateContact } from "@/lib/sites";
+import { listContacts, listSites, siteCoverage, updateContact } from "@/lib/sites";
 import { formatEuro } from "@/lib/pilot";
 
 export const Route = createFileRoute("/_authenticated/pilot/sites")({
@@ -35,6 +35,7 @@ function SitesMigrationPage() {
   const proposals = useQuery({ queryKey: ["site-proposals"], queryFn: listProposals });
   const sites = useQuery({ queryKey: ["sites"], queryFn: listSites });
   const contacts = useQuery({ queryKey: ["contacts"], queryFn: listContacts });
+  const coverage = useQuery({ queryKey: ["site-coverage"], queryFn: siteCoverage });
 
   const refresh = useMutation({
     mutationFn: refreshProposals,
@@ -71,6 +72,20 @@ function SitesMigrationPage() {
         <StatCard label="Correspondances à valider" value={String(pending.length)} icon={<AlertTriangle className="h-4 w-4 text-orange-500" />} />
         <StatCard label="Contacts CR à corriger" value={String(toReview.length)} icon={<UserRound className="h-4 w-4 text-rose-500" />} />
       </div>
+
+      {coverage.data && (
+        <Card className="border-dashed">
+          <CardContent className="py-3 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Couverture de l'analyse par site : </span>
+            {coverage.data.caLines > 0
+              ? `${((coverage.data.caLinesWithSite / coverage.data.caLines) * 100).toFixed(0)} % des lignes de CA (${formatEuro(coverage.data.caAmountWithSite)} sur ${formatEuro(coverage.data.caAmount)})`
+              : "aucune ligne de CA"}
+            {" · "}
+            {coverage.data.interventionsWithSite}/{coverage.data.interventions} interventions rattachées à un site.
+            Tant que cette couverture est partielle, les analyses restent calculées au niveau Client.
+          </CardContent>
+        </Card>
+      )}
 
       {pending.length === 0 && (
         <Card>

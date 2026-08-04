@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Landmark, Undo2 } from "lucide-react";
-import { FixedChargesPanel } from "@/components/pilot/FixedChargesPanel";
 import { formatEuro } from "@/lib/pilot";
 import { currentYear } from "@/lib/date-utils";
 import {
@@ -111,7 +110,10 @@ function ChargesPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Charges fixes" value={formatEuro(analysis.totals.fixe)} />
         <Kpi label="Charges variables" value={formatEuro(analysis.totals.variable)} />
-        <Kpi label="Charges globales" value={formatEuro(analysis.totals.total)} />
+        <Kpi
+          label={analysis.unclassifiedCount > 0 ? "Charges globales (au moins)" : "Charges globales"}
+          value={formatEuro(analysis.totals.total)}
+        />
         <Kpi label="Investissements" value={formatEuro(analysis.investmentsTotal)} />
         <Kpi label="Poids des charges dans le CA" value={weight == null ? "—" : `${weight.toFixed(1)} %`} />
       </div>
@@ -120,10 +122,20 @@ function ChargesPage() {
           <CardContent className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
             <span>
               <strong>{analysis.unclassifiedCount}</strong> charges restent « À classer » (
-              {formatEuro(analysis.unclassifiedAmount)}).
+              {formatEuro(analysis.unclassifiedAmount)}
+              {analysis.totals.total > 0
+                ? `, soit ${((analysis.unclassifiedAmount / analysis.totals.total) * 100).toFixed(0)} % des charges`
+                : ""}
+              ).
             </span>
-            <span className="text-muted-foreground">
-              Comptées dans le total, exclues des catégories analysées.
+            <span className="flex items-center gap-3">
+              <span className="text-muted-foreground">
+                Comptées dans le total, exclues du partage fixe / variable : le seuil de rentabilité et le TJM
+                restent approximatifs tant que ces lignes ne sont pas classées.
+              </span>
+              <Link to="/pilot/validation" className="whitespace-nowrap font-medium text-primary underline">
+                Classer maintenant
+              </Link>
             </span>
           </CardContent>
         </Card>
@@ -304,7 +316,6 @@ function ChargesPage() {
           </p>
         </CardContent>
       </Card>
-      <FixedChargesPanel year={detailYear} />
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">

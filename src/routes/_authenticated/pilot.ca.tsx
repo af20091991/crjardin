@@ -25,7 +25,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
-import { FixedChargesPanel } from "@/components/pilot/FixedChargesPanel";
 import { remunerationBreakdown, SOCIAL_CONTRIBUTION_RATE } from "@/lib/pilot-fixed-charges";
 import { updateSaleStatus } from "@/lib/pilot";
 import { SALE_STATUS, SALE_STATUS_ORDER, type SaleStatus } from "@/lib/pilot-colors";
@@ -238,7 +237,16 @@ function CaPage() {
             </CardContent>
           </Card>
 
-          <FixedChargesPanel year={year} />
+          {/*
+           * Panneau « charges fixes » legacy retiré (audit V2.3+, anomalie 3) :
+           * il lisait la table `pilot_fixed_charges`, doublon des charges du
+           * classeur. Source unique désormais : pilot_ca_entries.
+           * La table est conservée en base, aucune donnée supprimée.
+           */}
+          <p className="rounded-lg border border-dashed border-border/70 px-3 py-2 text-xs text-muted-foreground">
+            Source unique des charges : le classeur CA / charges ci-contre. L'ancien tableau de charges fixes
+            mensuelles a été retiré pour éviter tout double comptage.
+          </p>
         </div>
 
         <div className="space-y-4">

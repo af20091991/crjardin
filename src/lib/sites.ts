@@ -271,6 +271,39 @@ export interface SiteFootprint {
   missions: number;
 }
 
+/**
+ * Couverture de l'analyse par site : part des lignes déjà rattachées à un site.
+ * Lecture seule, sert uniquement à éviter de croire l'analyse par site complète.
+ */
+export interface SiteCoverage {
+  caLines: number;
+  caLinesWithSite: number;
+  caAmount: number;
+  caAmountWithSite: number;
+  interventions: number;
+  interventionsWithSite: number;
+}
+
+export async function siteCoverage(): Promise<SiteCoverage> {
+  const [ca, iv, ivSite] = await Promise.all([
+    supabase.from("pilot_ca_entries").select("amount_ht,site_id,kind"),
+    supabase.from("interventions").select("id", { count: "exact", head: true }),
+    supabase.from("interventions").select("id", { count: "exact", head: true }).not("site_id", "is", null),
+  ]);
+  const rows = ((ca.data ?? []) as { amount_ht: number | null; site_id: string | null; kind: string }[]).filter(
+    (r) => r.kind === "vente",
+  );
+  const withSite = rows.filter((r) => r.site_id);
+  return {
+    caLines: rows.length,
+    caLinesWithSite: withSite.length,
+    caAmount: rows.reduce((s, r) => s + Number(r.amount_ht ?? 0), 0),
+    caAmountWithSite: withSite.reduce((s, r) => s + Number(r.amount_ht ?? 0), 0),
+    interventions: iv.count ?? 0,
+    interventionsWithSite: ivSite.count ?? 0,
+  };
+}
+
 /** Empreinte réelle d'un site (contrôle de cohérence, hors calculs de pilotage). */
 export async function siteFootprint(siteId: string): Promise<SiteFootprint> {
   const [iv, ca, hours, missions] = await Promise.all([

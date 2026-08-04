@@ -32,6 +32,8 @@ export interface ChargeRow {
   amount_ht: number;
   charge_class: ChargeClass;
   charge_category: string;
+  /** Type en base : `charge` (exploitation) ou `remuneration` (dirigeant). */
+  kind: "charge" | "remuneration";
   /** Qualifiée comme investissement : suivie à part, hors charges mensuelles. */
   is_investment: boolean;
 }
@@ -48,7 +50,7 @@ type RawRow = {
   is_investment?: boolean | null;
 };
 
-async function fetchAll(kind: "charge" | "vente"): Promise<RawRow[]> {
+async function fetchAll(kinds: string[]): Promise<RawRow[]> {
   const rows: RawRow[] = [];
   const pageSize = 1000;
   let from = 0;
@@ -56,7 +58,7 @@ async function fetchAll(kind: "charge" | "vente"): Promise<RawRow[]> {
     const { data, error } = await supabase
       .from("pilot_ca_entries")
       .select("id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment")
-      .eq("kind", kind)
+      .in("kind", kinds)
       .range(from, from + pageSize - 1);
     if (error) throw error;
     const chunk = (data ?? []) as unknown as RawRow[];
@@ -68,7 +70,9 @@ async function fetchAll(kind: "charge" | "vente"): Promise<RawRow[]> {
 }
 
 export async function listChargeRows(): Promise<ChargeRow[]> {
-  const raw = await fetchAll("charge");
+  // Charges d'exploitation ET rémunération dirigeant : une seule lecture,
+  // une seule source. La séparation se fait ensuite via `splitRemuneration`.
+  const raw = await fetchAll(["charge", "remuneration"]);
   return raw.map((r) => ({
     id: r.id,
     year: r.year,
@@ -77,6 +81,7 @@ export async function listChargeRows(): Promise<ChargeRow[]> {
     amount_ht: Number(r.amount_ht) || 0,
     charge_class: (r.charge_class as ChargeClass) ?? "a_classer",
     charge_category: r.charge_category ?? "À classer",
+    kind: r.kind === "remuneration" ? "remuneration" : "charge",
     is_investment: Boolean(r.is_investment),
   }));
 }
@@ -91,6 +96,12 @@ export async function setChargeInvestment(id: string, isInvestment: boolean): Pr
 }
 
 /** Total des investissements par exercice (jamais compté dans les charges). */
+export function operatingCharges(rows: ChargeRow[]): ChargeRow[] {
+  // Charges d'exploitation seules : la rémunération dirigeant est suivie à part
+  // (module Charges) et n'entre jamais dans le bénéfice brut.
+  return rows.filter((r) => r.kind !== "remuneration");
+}
+
 export function investmentsByYear(rows: ChargeRow[]): Map<number, number> {
   const m = new Map<number, number>();
   for (const r of rows) {
@@ -102,7 +113,7 @@ export function investmentsByYear(rows: ChargeRow[]): Map<number, number> {
 
 /** CA HT (ventes) par année — sert au poids des charges dans le CA. */
 export async function listSalesByYear(options?: { mode?: "reel" | "projection" }): Promise<Map<number, number>> {
-  const raw = await fetchAll("vente");
+  const raw = await fetchAll(["vente"]);
   const m = new Map<number, number>();
   for (const r of raw) {
     if (options?.mode !== "projection" && !isRealizedMonth(r.year, r.month)) continue;
