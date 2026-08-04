@@ -19,6 +19,9 @@ import { ClientUnderstandingCard } from "@/components/pilot/ClientUnderstandingC
 import { ClientTimeline } from "@/components/pilot/ClientTimeline";
 import { ClientQualityCard } from "@/components/pilot/ClientQualityCard";
 import { listMissions } from "@/lib/subcontractors";
+import { listContacts, listSites, type Contact, type Site } from "@/lib/sites";
+import { entityEligibility } from "@/lib/pilot-entity-rules";
+import { EntityStatusBadge } from "@/components/pilot/ReliabilityBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,6 +83,8 @@ function PilotClient360() {
     queryFn: () => getClient(clientId),
   });
 
+  const contactsQ = useQuery({ queryKey: ["contacts"], queryFn: listContacts });
+  const sitesQ = useQuery({ queryKey: ["sites"], queryFn: listSites });
   const scoreQ = useQuery({
     queryKey: ["fiche-score", clientId],
     queryFn: () => getClientEconomicScore(clientId),
@@ -320,6 +325,7 @@ function PilotClient360() {
                   </Badge>
                 )}
                 {client.contract_type && <Badge variant="secondary">{client.contract_type}</Badge>}
+                <EntityStatusBadge status={score?.entityStatus} />
               </div>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 {client.address && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{client.address}</span>}
@@ -345,6 +351,90 @@ function PilotClient360() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Séparation stricte : entité économique vs contacts / sites */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            Identité économique & interlocuteurs
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border border-border p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Entité économique cliente
+            </p>
+            <p className="mt-1 font-medium">{client.name}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <EntityStatusBadge status={score?.entityStatus} />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {entityEligibility(score?.entityStatus).warning ??
+                "Identité validée : CA, marge, rentabilité et prestations sont exploitables."}
+            </p>
+            <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+              <li>CA cumulé : {formatEuro(caCumule)}</li>
+              <li>
+                Heures confirmées : {(score?.hoursConfirmed ?? 0).toFixed(1)} h (source :
+                interventions confirmées)
+              </li>
+              <li>
+                Sites rattachés :{" "}
+                {(sitesQ.data ?? []).filter((s: Site) => s.client_id === clientId).length}
+              </li>
+            </ul>
+          </div>
+          <div className="rounded-lg border border-border p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Contacts associés (personnes physiques)
+            </p>
+            {(() => {
+              const contacts = (contactsQ.data ?? []).filter((c: Contact) => c.client_id === clientId);
+              if (contacts.length === 0)
+                return (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Aucun contact enregistré. Un interlocuteur ne doit jamais être utilisé comme
+                    identité économique : créez-le comme contact.
+                  </p>
+                );
+              return (
+                <ul className="mt-2 space-y-1.5 text-sm">
+                  {contacts.map((c: Contact) => (
+                    <li key={c.id} className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">
+                        {[c.civility, c.display_name].filter(Boolean).join(" ")}
+                      </span>
+                      {c.role && <span className="text-xs text-muted-foreground">{c.role}</span>}
+                      {c.is_report_recipient && (
+                        <Badge variant="outline" className="border-primary/40 text-primary">
+                          Reçoit les CR
+                        </Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {[c.emails?.[0], c.phone].filter(Boolean).join(" · ")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              );
+            })()}
+          </div>
+        </CardContent>
+      </Card>
+
+      {score && !entityEligibility(score.entityStatus).analytics && (
+        <Card className="border-amber-200 bg-amber-50/60">
+          <CardContent className="flex gap-3 py-4 text-sm">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <p className="text-muted-foreground">
+              {entityEligibility(score.entityStatus).warning} Les indicateurs ci-dessous sont
+              affichés à titre informatif et n'alimentent aucun classement stratégique tant que la
+              fiche n'est pas certifiée dans le Centre de contrôle → Référentiel client.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {noEconomicData && (
         <Card className="border-dashed">
