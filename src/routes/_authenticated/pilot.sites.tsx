@@ -334,7 +334,12 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
           {editing ? (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Input value={siteName} onChange={(e) => setSiteName(e.target.value)} className="h-8 max-w-xs" />
-              <Button size="sm" className="h-8" disabled={validate.isPending} onClick={() => validate.mutate({ siteName })}>
+              <Button
+                size="sm"
+                className="h-8"
+                disabled={validate.isPending || !siteName.trim()}
+                onClick={() => setConfirming({ siteName: siteName.trim(), override: true })}
+              >
                 Valider avec ce nom
               </Button>
               <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditing(false)}>
