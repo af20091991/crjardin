@@ -2975,6 +2975,68 @@ export type Database = {
           },
         ]
       }
+      site_merge_audit: {
+        Row: {
+          action: string
+          after_state: Json
+          alias_labels: string[]
+          before_state: Json
+          client_id: string | null
+          created_at: string
+          id: string
+          note: string | null
+          proposal_id: string | null
+          reverted_at: string | null
+          site_id: string | null
+          site_name: string | null
+          tagged_counts: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          after_state?: Json
+          alias_labels?: string[]
+          before_state?: Json
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          proposal_id?: string | null
+          reverted_at?: string | null
+          site_id?: string | null
+          site_name?: string | null
+          tagged_counts?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          after_state?: Json
+          alias_labels?: string[]
+          before_state?: Json
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          proposal_id?: string | null
+          reverted_at?: string | null
+          site_id?: string | null
+          site_name?: string | null
+          tagged_counts?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_merge_audit_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "site_merge_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_merge_proposals: {
         Row: {
           cluster_key: string
