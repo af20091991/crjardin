@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_SETTINGS, getSettings } from "@/lib/pilot";
 import { daysBetween as _daysBetween, currentYear as _currentYear } from "@/lib/date-utils";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
+import { hasIdentityRisk, isCertifiedForAnalytics } from "@/lib/pilot-referential";
 
 // ---------- Règles de classement (ajustables) ----------
 export const SCORE_RULES = {
@@ -70,6 +71,10 @@ export interface ClientScore {
   daysSinceLastIntervention: number | null;
   opportunitiesCount: number;
   opportunitiesValue: number;
+  /** Statut de référence de la fiche (certification du référentiel économique). */
+  entityStatus: string;
+  /** true = identité économique validée humainement. */
+  entityCertified: boolean;
   score: ClientScoreLabel;
   recommendation: string;
   confidenceLevel: "HIGH" | "MEDIUM" | "LOW";
@@ -111,7 +116,18 @@ function classify(
     hoursConfirmedRatio,
     rateRatio,
     daysSinceLastIntervention,
+    entityStatus,
   } = s;
+
+  // Identité économique douteuse (contact classé en client, doublon probable) :
+  // aucun score stratégique ne peut être présenté comme fiable.
+  if (hasIdentityRisk(entityStatus)) {
+    return {
+      score: "donnees_insuffisantes",
+      recommendation:
+        "Identité économique à certifier (contact ou doublon probable) — traiter la fiche dans le centre de contrôle du référentiel.",
+    };
+  }
 
   const dormantLong =
     daysSinceLastIntervention !== null &&
@@ -191,7 +207,7 @@ async function fetchAggregates() {
     supabase
       .from("v_client_next_best_offers" as never)
       .select("client_id,estimated_value,score_opportunity"),
-    supabase.from("clients").select("id,name"),
+    supabase.from("clients").select("id,name,entity_status"),
   ]);
   if (caRes.error) throw caRes.error;
   if (ivRes.error) throw ivRes.error;
@@ -231,8 +247,13 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       lastInterventionAt: string | null;
       opportunitiesCount: number;
       opportunitiesValue: number;
+      entityStatus: string;
     }
   >();
+
+  const entityStatusById = new Map<string, string>(
+    clients.map((c) => [c.id, (c as { entity_status?: string }).entity_status ?? "manual_review_required"]),
+  );
 
   const ensure = (id: string, name: string | null) => {
     let e = map.get(id);
@@ -248,6 +269,7 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
         lastInterventionAt: null,
         opportunitiesCount: 0,
         opportunitiesValue: 0,
+        entityStatus: entityStatusById.get(id) ?? "manual_review_required",
       };
       map.set(id, e);
     } else if (!e.client_name && name) {
@@ -335,6 +357,8 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       daysSinceLastIntervention: days,
       opportunitiesCount: e.opportunitiesCount,
       opportunitiesValue: e.opportunitiesValue,
+      entityStatus: e.entityStatus,
+      entityCertified: isCertifiedForAnalytics(e.entityStatus),
       confidenceLevel,
     };
     const { score, recommendation } = classify(base);
@@ -364,7 +388,7 @@ export async function getClientEconomicScore(
       .from("v_client_next_best_offers" as never)
       .select("client_id,estimated_value,score_opportunity")
       .eq("client_id", clientId),
-    supabase.from("clients").select("id,name").eq("id", clientId).maybeSingle(),
+    supabase.from("clients").select("id,name,entity_status").eq("id", clientId).maybeSingle(),
     getSettings().catch(() => null),
   ]);
   if (caRes.error) throw caRes.error;
@@ -380,7 +404,8 @@ export async function getClientEconomicScore(
         estimated_value: number | null;
         score_opportunity: number | null;
       }>) ?? [])) as Array<{ estimated_value: number | null; score_opportunity: number | null }>;
-  const clientRow = (clientRes.data as { id: string; name: string | null } | null) ?? null;
+  const clientRow =
+    (clientRes.data as { id: string; name: string | null; entity_status?: string } | null) ?? null;
 
   // Aucune trace économique : renvoyer null (fiche gérera l'affichage "données absentes").
   if (ca.length === 0 && interventions.length === 0 && opps.length === 0) {
@@ -449,6 +474,8 @@ export async function getClientEconomicScore(
     daysSinceLastIntervention: days,
     opportunitiesCount,
     opportunitiesValue,
+    entityStatus: clientRow?.entity_status ?? "manual_review_required",
+    entityCertified: isCertifiedForAnalytics(clientRow?.entity_status),
     confidenceLevel,
   };
   const { score, recommendation } = classify(base);

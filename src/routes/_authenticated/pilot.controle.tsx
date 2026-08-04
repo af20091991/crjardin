@@ -6,18 +6,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { ClipboardList, Database, Gauge, Link2, MapPin, ShieldCheck, Wrench } from "lucide-react";
+import { BadgeCheck, ClipboardList, Database, Gauge, Link2, MapPin, ShieldCheck, Wrench } from "lucide-react";
 import { QualityPage } from "@/components/pilot/panels/QualityPanel";
 import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
 import { RapprochementPage } from "@/components/pilot/panels/RapprochementPanel";
 import { CorrectionsPage } from "@/components/pilot/panels/CorrectionsPanel";
 import { SourcesPanel } from "@/components/pilot/panels/SourcesPanel";
+import { ReferentialPanel } from "@/components/pilot/panels/ReferentialPanel";
 
-type Section = "qualite" | "validation" | "corrections" | "sources";
+type Section = "qualite" | "validation" | "corrections" | "sources" | "referentiel";
 
 export const Route = createFileRoute("/_authenticated/pilot/controle")({
   validateSearch: (search: Record<string, unknown>): { section?: Section; sub?: string } => ({
-    section: (["qualite", "validation", "corrections", "sources"] as const).includes(
+    section: (["qualite", "validation", "corrections", "sources", "referentiel"] as const).includes(
       search.section as Section,
     )
       ? (search.section as Section)
@@ -45,7 +46,7 @@ export const Route = createFileRoute("/_authenticated/pilot/controle")({
 });
 
 function ControlCenterPage() {
-  const { section = "qualite", sub } = Route.useSearch();
+  const { section = "referentiel", sub } = Route.useSearch();
 
   return (
     <div className="space-y-5">
@@ -62,6 +63,11 @@ function ControlCenterPage() {
 
       <Tabs value={section}>
         <TabsList className="flex h-auto flex-wrap justify-start">
+          <TabsTrigger value="referentiel" asChild>
+            <Link to="/pilot/controle" search={{ section: "referentiel" }} className="gap-1.5">
+              <BadgeCheck className="h-4 w-4" /> Référentiel client
+            </Link>
+          </TabsTrigger>
           <TabsTrigger value="qualite" asChild>
             <Link to="/pilot/controle" search={{ section: "qualite" }} className="gap-1.5">
               <ShieldCheck className="h-4 w-4" /> Qualité des données
@@ -83,6 +89,14 @@ function ControlCenterPage() {
             </Link>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="referentiel" className="mt-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Certification — quelles fiches sont de véritables clients économiques (préalable
+            obligatoire à tout indicateur stratégique).
+          </p>
+          <ReferentialPanel />
+        </TabsContent>
 
         <TabsContent value="qualite" className="mt-4">
           <p className="mb-3 text-xs text-muted-foreground">
