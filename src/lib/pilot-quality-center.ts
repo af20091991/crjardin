@@ -384,7 +384,7 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
 // action réalisée. Aucun historique n'est supprimé : chaque changement conserve
 // sa trace (resolved_at / resolution_note).
 
-export type TrackingStatus = "open" | "in_progress" | "resolved";
+export type TrackingStatus = "open" | "in_progress" | "resolved" | "ignored";
 
 export interface QualityTracking {
   id: string;
@@ -443,7 +443,7 @@ export async function setAnomalyStatus(
       amount: anomaly.amount ?? null,
     },
     resolution_note: note || null,
-    resolved_at: status === "resolved" ? new Date().toISOString() : null,
+    resolved_at: status === "resolved" || status === "ignored" ? new Date().toISOString() : null,
     resolved_by: userId,
   };
 

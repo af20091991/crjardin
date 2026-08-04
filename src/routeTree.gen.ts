@@ -51,6 +51,7 @@ import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authe
 import { Route as AuthenticatedPilotFinanceRouteImport } from './routes/_authenticated/pilot.finance'
 import { Route as AuthenticatedPilotDonneesRouteImport } from './routes/_authenticated/pilot.donnees'
 import { Route as AuthenticatedPilotDirectionRouteImport } from './routes/_authenticated/pilot.direction'
+import { Route as AuthenticatedPilotCorrectionsRouteImport } from './routes/_authenticated/pilot.corrections'
 import { Route as AuthenticatedPilotConseillerRouteImport } from './routes/_authenticated/pilot.conseiller'
 import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
 import { Route as AuthenticatedPilotChargesRouteImport } from './routes/_authenticated/pilot.charges'
@@ -295,6 +296,12 @@ const AuthenticatedPilotDirectionRoute =
     path: '/direction',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedPilotCorrectionsRoute =
+  AuthenticatedPilotCorrectionsRouteImport.update({
+    id: '/corrections',
+    path: '/corrections',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotConseillerRoute =
   AuthenticatedPilotConseillerRouteImport.update({
     id: '/conseiller',
@@ -427,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
   '/pilot/conseiller': typeof AuthenticatedPilotConseillerRoute
+  '/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
   '/pilot/direction': typeof AuthenticatedPilotDirectionRoute
   '/pilot/donnees': typeof AuthenticatedPilotDonneesRoute
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
@@ -486,6 +494,7 @@ export interface FileRoutesByTo {
   '/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
   '/pilot/conseiller': typeof AuthenticatedPilotConseillerRoute
+  '/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
   '/pilot/direction': typeof AuthenticatedPilotDirectionRoute
   '/pilot/donnees': typeof AuthenticatedPilotDonneesRoute
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
@@ -548,6 +557,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/_authenticated/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
   '/_authenticated/pilot/conseiller': typeof AuthenticatedPilotConseillerRoute
+  '/_authenticated/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
   '/_authenticated/pilot/direction': typeof AuthenticatedPilotDirectionRoute
   '/_authenticated/pilot/donnees': typeof AuthenticatedPilotDonneesRoute
   '/_authenticated/pilot/finance': typeof AuthenticatedPilotFinanceRoute
@@ -610,6 +620,7 @@ export interface FileRouteTypes {
     | '/pilot/charges'
     | '/pilot/clients'
     | '/pilot/conseiller'
+    | '/pilot/corrections'
     | '/pilot/direction'
     | '/pilot/donnees'
     | '/pilot/finance'
@@ -669,6 +680,7 @@ export interface FileRouteTypes {
     | '/pilot/charges'
     | '/pilot/clients'
     | '/pilot/conseiller'
+    | '/pilot/corrections'
     | '/pilot/direction'
     | '/pilot/donnees'
     | '/pilot/finance'
@@ -730,6 +742,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/charges'
     | '/_authenticated/pilot/clients'
     | '/_authenticated/pilot/conseiller'
+    | '/_authenticated/pilot/corrections'
     | '/_authenticated/pilot/direction'
     | '/_authenticated/pilot/donnees'
     | '/_authenticated/pilot/finance'
@@ -1071,6 +1084,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotDirectionRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/corrections': {
+      id: '/_authenticated/pilot/corrections'
+      path: '/corrections'
+      fullPath: '/pilot/corrections'
+      preLoaderRoute: typeof AuthenticatedPilotCorrectionsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/conseiller': {
       id: '/_authenticated/pilot/conseiller'
       path: '/conseiller'
@@ -1215,6 +1235,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotChargesRoute: typeof AuthenticatedPilotChargesRoute
   AuthenticatedPilotClientsRoute: typeof AuthenticatedPilotClientsRouteWithChildren
   AuthenticatedPilotConseillerRoute: typeof AuthenticatedPilotConseillerRoute
+  AuthenticatedPilotCorrectionsRoute: typeof AuthenticatedPilotCorrectionsRoute
   AuthenticatedPilotDirectionRoute: typeof AuthenticatedPilotDirectionRoute
   AuthenticatedPilotDonneesRoute: typeof AuthenticatedPilotDonneesRoute
   AuthenticatedPilotFinanceRoute: typeof AuthenticatedPilotFinanceRoute
@@ -1242,6 +1263,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotChargesRoute: AuthenticatedPilotChargesRoute,
   AuthenticatedPilotClientsRoute: AuthenticatedPilotClientsRouteWithChildren,
   AuthenticatedPilotConseillerRoute: AuthenticatedPilotConseillerRoute,
+  AuthenticatedPilotCorrectionsRoute: AuthenticatedPilotCorrectionsRoute,
   AuthenticatedPilotDirectionRoute: AuthenticatedPilotDirectionRoute,
   AuthenticatedPilotDonneesRoute: AuthenticatedPilotDonneesRoute,
   AuthenticatedPilotFinanceRoute: AuthenticatedPilotFinanceRoute,

@@ -10,7 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { PilotCard } from "@/components/pilot/PilotCard";
+import { buildActionPlan } from "@/lib/pilot-fix-flows";
 import {
   buildDataQualityReport,
   readQualitySnapshot,
@@ -67,7 +69,17 @@ const STATUS_LABEL: Record<TrackingStatus, string> = {
   open: "Ouverte",
   in_progress: "En cours",
   resolved: "Résolue",
+  ignored: "Ignorée",
 };
+
+/** Anomalies disposant d'un parcours de correction guidé (Phase 7). */
+const GUIDED_KEYS = new Set([
+  "charges_a_classer",
+  "interventions_sans_heures",
+  "sst_sans_client",
+  "ca_sans_site",
+  "interventions_sans_site",
+]);
 
 function toneClass(tone?: string) {
   if (tone === "positive") return "text-primary";
@@ -80,23 +92,30 @@ function QualityPage() {
   const snapshot = useMemo(() => (typeof window === "undefined" ? null : readQualitySnapshot()), []);
   const qc = useQueryClient();
   const [pending, setPending] = useState<string | null>(null);
+  const [ignoreKey, setIgnoreKey] = useState<string | null>(null);
+  const [ignoreReason, setIgnoreReason] = useState("");
 
   const q = useQuery({ queryKey: ["pilot-data-quality"], queryFn: buildDataQualityReport });
   const center = useQuery({ queryKey: ["pilot-quality-center"], queryFn: buildQualityCenterReport });
   const tracking = useQuery({ queryKey: ["pilot-quality-tracking"], queryFn: listQualityTracking });
+  const plan = useQuery({ queryKey: ["fix-plan"], queryFn: buildActionPlan });
 
   const mutate = useMutation({
-    mutationFn: ({ anomaly, status }: { anomaly: QualityAnomaly; status: TrackingStatus }) =>
+    mutationFn: ({ anomaly, status, note }: { anomaly: QualityAnomaly; status: TrackingStatus; note?: string }) =>
       setAnomalyStatus(
         anomaly,
         status,
-        status === "resolved"
-          ? "Anomalie déclarée résolue depuis le centre de qualité"
-          : "Anomalie prise en charge depuis le centre de qualité",
+        note?.trim()
+          ? note.trim()
+          : status === "resolved"
+            ? "Anomalie déclarée résolue depuis le centre de qualité"
+            : "Anomalie prise en charge depuis le centre de qualité",
       ),
     onSuccess: (_d, v) => {
       toast.success(`Anomalie marquée « ${STATUS_LABEL[v.status]} »`);
       qc.invalidateQueries({ queryKey: ["pilot-quality-tracking"] });
+      setIgnoreKey(null);
+      setIgnoreReason("");
     },
     onError: (e: Error) => toast.error(e.message || "Enregistrement impossible"),
     onSettled: () => setPending(null),
@@ -180,6 +199,45 @@ function QualityPage() {
               ))}
             </ul>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Phase 7 — Plan d'action : impact, volume, progression, accès direct */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <TriangleAlert className="h-4 w-4 text-primary" />
+            Plan d'action
+            <Button asChild size="sm" variant="outline" className="ml-auto">
+              <Link to="/pilot/corrections">
+                Ouvrir les corrections assistées <ArrowRight className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Actions prioritaires, volume concerné et progression. Chaque correction est validée manuellement et
+            historisée.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          {plan.isLoading && <Skeleton className="h-20 w-full" />}
+          {(plan.data ?? []).map((a) => (
+            <Link
+              key={a.key}
+              to="/pilot/corrections"
+              className="rounded-lg border p-3 transition-colors hover:bg-muted/50"
+            >
+              <p className="text-sm font-medium">
+                {a.dot} {a.title}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{a.impact}</p>
+              <div className="mt-2 flex items-center gap-2">
+                <Progress value={a.progress} className="h-1.5" />
+                <span className="shrink-0 text-xs tabular-nums">{a.progress} %</span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">{a.volume}</p>
+            </Link>
+          ))}
         </CardContent>
       </Card>
 
