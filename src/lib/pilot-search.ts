@@ -29,6 +29,7 @@ export const SEARCH_PAGES: SearchResult[] = [
   { id: "p-finance", kind: "page", label: "Finance", to: "/pilot/finance" },
   { id: "p-rentab", kind: "page", label: "Rentabilité clients", to: "/pilot/clients" },
   { id: "p-prest", kind: "page", label: "Prestations", to: "/pilot/prestations" },
+  { id: "p-temps-renta", kind: "page", label: "Analyse Temps & Rentabilité", to: "/pilot/temps" },
   { id: "p-ceev", kind: "page", label: "Contrats CEEV", to: "/pilot/ceev" },
   { id: "p-taux", kind: "page", label: "Taux horaire", to: "/pilot/taux" },
   { id: "p-sante", kind: "page", label: "Santé", to: "/pilot/sante" },

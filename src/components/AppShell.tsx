@@ -114,6 +114,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
             { to: "/pilot/benchmark", label: "Comparatifs", short: "Bench.", icon: Target, exact: false, primary: false },
             { to: "/pilot/prestations", label: "Rentabilité prestations", short: "Prestat.", icon: BarChart3, exact: false, primary: false },
+            { to: "/pilot/temps", label: "Analyse Temps & Rentabilité", short: "Temps ×€", icon: Clock, exact: false, primary: false },
             { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
             { to: "/pilot/charges", label: "Charges & investissements", short: "Charges", icon: Receipt, exact: false, primary: false },
             { to: "/pilot/saison", label: "Prévisions", short: "Prévis.", icon: CalendarRange, exact: false, primary: false },

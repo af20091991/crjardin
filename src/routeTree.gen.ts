@@ -37,6 +37,7 @@ import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authent
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
 import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_authenticated/pilot.validation'
+import { Route as AuthenticatedPilotTempsRouteImport } from './routes/_authenticated/pilot.temps'
 import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
 import { Route as AuthenticatedPilotSitesRouteImport } from './routes/_authenticated/pilot.sites'
 import { Route as AuthenticatedPilotSimulationsRouteImport } from './routes/_authenticated/pilot.simulations'
@@ -216,6 +217,11 @@ const AuthenticatedPilotValidationRoute =
     path: '/validation',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedPilotTempsRoute = AuthenticatedPilotTempsRouteImport.update({
+  id: '/temps',
+  path: '/temps',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
 const AuthenticatedPilotTauxRoute = AuthenticatedPilotTauxRouteImport.update({
   id: '/taux',
   path: '/taux',
@@ -457,6 +463,7 @@ export interface FileRoutesByFullPath {
   '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
   '/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
+  '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -518,6 +525,7 @@ export interface FileRoutesByTo {
   '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
   '/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
+  '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -582,6 +590,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
   '/_authenticated/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/_authenticated/pilot/taux': typeof AuthenticatedPilotTauxRoute
+  '/_authenticated/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/_authenticated/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -646,6 +655,7 @@ export interface FileRouteTypes {
     | '/pilot/simulations'
     | '/pilot/sites'
     | '/pilot/taux'
+    | '/pilot/temps'
     | '/pilot/validation'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
@@ -707,6 +717,7 @@ export interface FileRouteTypes {
     | '/pilot/simulations'
     | '/pilot/sites'
     | '/pilot/taux'
+    | '/pilot/temps'
     | '/pilot/validation'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
@@ -770,6 +781,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/simulations'
     | '/_authenticated/pilot/sites'
     | '/_authenticated/pilot/taux'
+    | '/_authenticated/pilot/temps'
     | '/_authenticated/pilot/validation'
     | '/api/public/email-open'
     | '/lovable/email/suppression'
@@ -997,6 +1009,13 @@ declare module '@tanstack/react-router' {
       path: '/validation'
       fullPath: '/pilot/validation'
       preLoaderRoute: typeof AuthenticatedPilotValidationRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/temps': {
+      id: '/_authenticated/pilot/temps'
+      path: '/temps'
+      fullPath: '/pilot/temps'
+      preLoaderRoute: typeof AuthenticatedPilotTempsRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
     '/_authenticated/pilot/taux': {
@@ -1271,6 +1290,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotSimulationsRoute: typeof AuthenticatedPilotSimulationsRoute
   AuthenticatedPilotSitesRoute: typeof AuthenticatedPilotSitesRoute
   AuthenticatedPilotTauxRoute: typeof AuthenticatedPilotTauxRoute
+  AuthenticatedPilotTempsRoute: typeof AuthenticatedPilotTempsRoute
   AuthenticatedPilotValidationRoute: typeof AuthenticatedPilotValidationRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
   AuthenticatedPilotFicheClientIdRoute: typeof AuthenticatedPilotFicheClientIdRoute
@@ -1300,6 +1320,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotSimulationsRoute: AuthenticatedPilotSimulationsRoute,
   AuthenticatedPilotSitesRoute: AuthenticatedPilotSitesRoute,
   AuthenticatedPilotTauxRoute: AuthenticatedPilotTauxRoute,
+  AuthenticatedPilotTempsRoute: AuthenticatedPilotTempsRoute,
   AuthenticatedPilotValidationRoute: AuthenticatedPilotValidationRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
   AuthenticatedPilotFicheClientIdRoute: AuthenticatedPilotFicheClientIdRoute,
