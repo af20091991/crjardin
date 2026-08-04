@@ -132,6 +132,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               { to: "/pilot/rapprochement", label: "Rapprochement CA", short: "Rappr.", icon: Link2, exact: false, primary: false },
               { to: "/pilot/validation", label: "Centre de validation", short: "Valid.", icon: CheckCircle2, exact: false, primary: false },
               { to: "/pilot/qualite", label: "Qualité des données", short: "Qualité", icon: ShieldCheck, exact: false, primary: false },
+              { to: "/pilot/corrections", label: "Corrections assistées", short: "Corriger", icon: Wrench, exact: false, primary: false },
               { to: "/pilot/parametres", label: "Règles de calcul", short: "Règles", icon: Settings2, exact: false, primary: false },
             ]
           : []),
