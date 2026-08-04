@@ -290,7 +290,7 @@ function QualityPage() {
         </div>
 
         <div className="flex flex-wrap gap-2 text-xs">
-          {(["open", "in_progress", "resolved"] as TrackingStatus[]).map((s) => {
+          {(["open", "in_progress", "resolved", "ignored"] as TrackingStatus[]).map((s) => {
             const n =
               s === "open"
                 ? c.anomalies.filter((a) => (trackByKey.get(a.key)?.status ?? "open") === "open").length
@@ -346,6 +346,13 @@ function QualityPage() {
                         )}
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        {GUIDED_KEYS.has(a.key) && (
+                          <Button asChild size="sm">
+                            <Link to="/pilot/corrections">
+                              Corriger <ArrowRight className="ml-1 h-3 w-3" />
+                            </Link>
+                          </Button>
+                        )}
                         <Button asChild size="sm" variant="outline">
                           <Link to={a.to}>
                             {a.actionLabel} <ArrowRight className="ml-1 h-3 w-3" />
@@ -364,7 +371,7 @@ function QualityPage() {
                             Prendre en charge
                           </Button>
                         )}
-                        {status !== "resolved" && (
+                        {status !== "resolved" && status !== "ignored" && (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -377,6 +384,46 @@ function QualityPage() {
                             Marquer résolue
                           </Button>
                         )}
+                        {status !== "ignored" &&
+                          (ignoreKey === a.key ? (
+                            <span className="flex items-center gap-2">
+                              <Input
+                                value={ignoreReason}
+                                onChange={(e) => setIgnoreReason(e.target.value)}
+                                placeholder="Justification obligatoire"
+                                className="h-8 w-52"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={ignoreReason.trim().length < 3}
+                                onClick={() => {
+                                  setPending(a.key);
+                                  mutate.mutate({
+                                    anomaly: a,
+                                    status: "ignored",
+                                    note: `Ignorée : ${ignoreReason.trim()}`,
+                                  });
+                                }}
+                              >
+                                Confirmer
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setIgnoreKey(null)}>
+                                Annuler
+                              </Button>
+                            </span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setIgnoreKey(a.key);
+                                setIgnoreReason("");
+                              }}
+                            >
+                              Ignorer
+                            </Button>
+                          ))}
                       </div>
                     </div>
                   </div>
