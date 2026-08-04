@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Landmark, Undo2 } from "lucide-react";
-import { FixedChargesPanel } from "@/components/pilot/FixedChargesPanel";
 import { formatEuro } from "@/lib/pilot";
 import { currentYear } from "@/lib/date-utils";
 import {
@@ -317,7 +316,6 @@ function ChargesPage() {
           </p>
         </CardContent>
       </Card>
-      <FixedChargesPanel year={detailYear} />
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
