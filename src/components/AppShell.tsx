@@ -74,8 +74,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Clients",
       items: [
         { to: "/clients", label: "Clients", short: "Clients", icon: Users, exact: false, primary: true },
-        // Accès direct aux fiches client 360° (une entrée par client depuis la liste).
-        { to: "/pilot/clients", label: "Fiches client 360", short: "Fiches 360", icon: Users, exact: false, primary: false },
+        // Rentabilité clients (fiches 360° accessibles depuis chaque ligne).
+        { to: "/pilot/clients", label: "Rentabilité clients", short: "Rentab.", icon: Users, exact: false, primary: false },
       ],
     },
     {
@@ -87,7 +87,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
             { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
             { to: "/pilot/charges", label: "Charges", short: "Charges", icon: Receipt, exact: false, primary: false },
-            { to: "/pilot/clients", label: "Rentabilité", short: "Rentab.", icon: Users, exact: false, primary: false },
             { to: "/pilot/prestations", label: "Prestations", short: "Prestat.", icon: BarChart3, exact: false, primary: false },
             { to: "/pilot/ceev", label: "CEEV", short: "CEEV", icon: ClipboardList, exact: false, primary: false },
             { to: "/pilot/taux", label: "Taux horaire", short: "Taux", icon: Clock, exact: false, primary: false },
