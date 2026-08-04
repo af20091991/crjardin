@@ -35,6 +35,12 @@ export const SEARCH_PAGES: SearchResult[] = [
   { id: "p-sante", kind: "page", label: "Santé", to: "/pilot/sante" },
   { id: "p-controle", kind: "page", label: "Centre de contrôle des données", to: "/pilot/controle" },
   {
+    id: "p-controle-referentiel",
+    kind: "page",
+    label: "Certification du référentiel client économique",
+    to: "/pilot/controle",
+  },
+  {
     id: "p-controle-sources",
     kind: "page",
     label: "Sources officielles des données & états de rapprochement",
