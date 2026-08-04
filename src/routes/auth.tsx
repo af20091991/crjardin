@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/auth")({
+  // La session Supabase vit dans le navigateur : rendre cette page côté serveur
+  // provoque un écart d'hydratation.
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Connexion — De la graine au jardin" },
