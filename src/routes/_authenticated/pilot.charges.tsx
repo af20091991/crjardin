@@ -56,7 +56,7 @@ function ChargesPage() {
       return { rows, sales, cats };
     },
   });
-  const [detailYear, setDetailYear] = useState<number>(currentYear());
+  const { year: detailYear, setYear: setDetailYear } = usePilotYear();
   const [search, setSearch] = useState("");
   const analysis = useMemo(
     () => (q.data ? analyzeCharges(q.data.rows, q.data.sales, q.data.cats.map((c) => c.label), { mode }) : null),
