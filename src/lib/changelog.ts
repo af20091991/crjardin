@@ -27,6 +27,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-08-04",
+    version: "2.2.0",
+    theme: "Général",
+    title: "Centre de contrôle des données",
+    details: [
+      "Nouvelle entrée unique ⚙ Paramètres → Centre de contrôle des données : Qualité, Validation manuelle, Corrections assistées.",
+      "Rapprochement CA intégré dans la Validation manuelle (plus d'entrée séparée dans le menu).",
+      "Classeur de données et Sites & contacts conservés comme outils distincts.",
+      "Aucune donnée, aucun calcul ni aucune règle métier modifiés : réorganisation ergonomique uniquement.",
+    ],
+  },
+  {
+    date: "2026-08-04",
     version: "2.1.0",
     theme: "Général",
     title: "Pilot Pro — Corrections assistées des anomalies qualité",
