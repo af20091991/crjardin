@@ -96,6 +96,12 @@ export async function setChargeInvestment(id: string, isInvestment: boolean): Pr
 }
 
 /** Total des investissements par exercice (jamais compté dans les charges). */
+export function operatingCharges(rows: ChargeRow[]): ChargeRow[] {
+  // Charges d'exploitation seules : la rémunération dirigeant est suivie à part
+  // (module Charges) et n'entre jamais dans le bénéfice brut.
+  return rows.filter((r) => r.kind !== "remuneration");
+}
+
 export function investmentsByYear(rows: ChargeRow[]): Map<number, number> {
   const m = new Map<number, number>();
   for (const r of rows) {

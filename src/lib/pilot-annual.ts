@@ -1,5 +1,5 @@
 import type { PilotEntry } from "@/lib/pilot";
-import type { ChargeRow } from "@/lib/pilot-charges";
+import { operatingCharges, type ChargeRow } from "@/lib/pilot-charges";
 import { chargeRowsForMode, entriesForMode } from "@/lib/pilot-realized";
 
 /**
@@ -30,7 +30,7 @@ export interface AnnualRow {
 
 export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[], options?: { mode?: "reel" | "projection" }): AnnualRow[] {
   const scopedEntries = entriesForMode(entries, options?.mode ?? "reel");
-  const scopedCharges = chargeRowsForMode(allChargeRows, options?.mode ?? "reel");
+  const scopedCharges = operatingCharges(chargeRowsForMode(allChargeRows, options?.mode ?? "reel"));
   const chargeRows = scopedCharges.filter((c) => !c.is_investment);
   const years = new Set<number>();
   const ca = new Map<number, number>();

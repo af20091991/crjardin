@@ -86,6 +86,7 @@ function FinancePage() {
   const chargesByMonth = useMemo(() => {
     const arr = Array(12).fill(0) as number[];
     for (const r of chargeRowsQ.data ?? []) {
+      if (r.kind === "remuneration") continue; // suivie à part
       if (r.year === YEAR && r.month >= 1 && r.month <= 12 && chargeRowsForMode([r], mode).length > 0) arr[r.month - 1] += r.amount_ht;
     }
     return arr;
