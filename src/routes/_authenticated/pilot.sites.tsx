@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { AlertTriangle, Check, MapPin, RefreshCw, UserRound, X } from "lucide-react";
-import { applyProposal, listProposals, refreshProposals, type MergeProposal } from "@/lib/site-merge";
+import {
+  applySiteProposal, createContactFromClient, listProposals, mergeDuplicateClients,
+  refreshProposals, type MergeProposal,
+} from "@/lib/site-merge";
 import { listContacts, listSites, updateContact } from "@/lib/sites";
 import { formatEuro } from "@/lib/pilot";
 
@@ -48,7 +51,8 @@ function SitesMigrationPage() {
           <h3 className="font-serif text-lg font-semibold">Sites d'intervention & contacts</h3>
           <p className="text-sm text-muted-foreground">
             Séparation Client (qui commande) / Site (où le travail est réalisé) / Contact (qui reçoit les comptes-rendus).
-            Aucune fusion n'est appliquée sans votre validation, et aucune fiche historique n'est supprimée.
+            Valider une proposition crée uniquement un <strong>site</strong> et ses <strong>alias</strong> : aucun client
+            ni contact n'est modifié automatiquement, et aucune fiche historique n'est supprimée.
           </p>
         </div>
         <Button onClick={() => refresh.mutate()} disabled={refresh.isPending} variant="outline" className="gap-2">
@@ -150,6 +154,7 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [siteName, setSiteName] = useState(proposal.suggested_site_name);
+  const [createdSiteId, setCreatedSiteId] = useState<string | null>(proposal.target_site_id);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["site-proposals"] });
@@ -159,10 +164,39 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
   };
 
   const validate = useMutation({
-    mutationFn: (override?: { siteName: string }) => applyProposal(proposal, override),
+    mutationFn: (override?: { siteName: string }) => applySiteProposal(proposal, override),
+    onSuccess: (r: { site_id: string; tagged: number; pendingClients: number }) => {
+      setCreatedSiteId(r.site_id);
+      invalidate();
+      toast.success(
+        r.pendingClients > 0
+          ? `Site créé · ${r.tagged} enregistrement(s) rattaché(s) · ${r.pendingClients} fiche(s) en attente de votre confirmation`
+          : `Site créé · ${r.tagged} enregistrement(s) rattaché(s)`,
+      );
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const dedupe = useMutation({
+    mutationFn: () =>
+      mergeDuplicateClients({
+        targetClientId: proposal.target_client_id!,
+        duplicateClientIds: proposal.legacy_client_ids,
+        siteId: createdSiteId,
+        siteName: siteName,
+      }),
     onSuccess: (r) => {
       invalidate();
-      toast.success(`Site créé · ${r.moved} enregistrement(s) rattaché(s)`);
+      toast.success(`${r.moved} enregistrement(s) rattaché(s) au client conservé`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const makeContact = useMutation({
+    mutationFn: () => createContactFromClient(proposal.target_client_id!, createdSiteId),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Contact destinataire créé — vérifiez-le avant tout envoi de CR");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
