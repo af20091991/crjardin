@@ -13,6 +13,7 @@ import { analyzeServices, type ServiceProfitability } from "@/lib/pilot-service-
 import { projectYear, type ProjectionResult } from "@/lib/pilot-projection";
 import { annualSummary, type AnnualRow } from "@/lib/pilot-annual";
 import { getThresholds } from "@/lib/pilot-thresholds";
+import type { EntityStatusMap } from "@/lib/pilot-entity-rules";
 
 export interface DecisionBrief {
   year: number;
@@ -46,11 +47,12 @@ export function buildDecisionBrief(params: {
   year: number;
   targetHourlyRate: number;
   objectifAnnuel?: number | null;
+  statuses?: EntityStatusMap;
 }): DecisionBrief {
   const t = getThresholds();
   const { entries, charges, ledger, year, targetHourlyRate } = params;
 
-  const clients = classifyClients({ entries, ledger, year, targetHourlyRate });
+  const clients = classifyClients({ entries, ledger, year, targetHourlyRate, statuses: params.statuses });
   const prestations = analyzeServices({ entries, ledger, year, targetHourlyRate });
   const projection = projectYear({ entries, charges, year });
   const annuel = annualSummary(entries, charges);
