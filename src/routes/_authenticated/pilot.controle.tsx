@@ -6,17 +6,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { ClipboardList, Gauge, Link2, MapPin, ShieldCheck, Wrench } from "lucide-react";
+import { ClipboardList, Database, Gauge, Link2, MapPin, ShieldCheck, Wrench } from "lucide-react";
 import { QualityPage } from "@/components/pilot/panels/QualityPanel";
 import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
 import { RapprochementPage } from "@/components/pilot/panels/RapprochementPanel";
 import { CorrectionsPage } from "@/components/pilot/panels/CorrectionsPanel";
+import { SourcesPanel } from "@/components/pilot/panels/SourcesPanel";
 
-type Section = "qualite" | "validation" | "corrections";
+type Section = "qualite" | "validation" | "corrections" | "sources";
 
 export const Route = createFileRoute("/_authenticated/pilot/controle")({
   validateSearch: (search: Record<string, unknown>): { section?: Section; sub?: string } => ({
-    section: (["qualite", "validation", "corrections"] as const).includes(search.section as Section)
+    section: (["qualite", "validation", "corrections", "sources"] as const).includes(
+      search.section as Section,
+    )
       ? (search.section as Section)
       : undefined,
     sub: typeof search.sub === "string" ? search.sub : undefined,
@@ -74,6 +77,11 @@ function ControlCenterPage() {
               <Wrench className="h-4 w-4" /> Corrections assistées
             </Link>
           </TabsTrigger>
+          <TabsTrigger value="sources" asChild>
+            <Link to="/pilot/controle" search={{ section: "sources" }} className="gap-1.5">
+              <Database className="h-4 w-4" /> Sources & états
+            </Link>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="qualite" className="mt-4">
@@ -115,6 +123,14 @@ function ControlCenterPage() {
             Action guidée — traitement des anomalies connues, une ligne à la fois.
           </p>
           <CorrectionsPage />
+        </TabsContent>
+
+        <TabsContent value="sources" className="mt-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Référence — quelle donnée fait foi, où en est le rapprochement, et effet réel des
+            validations manuelles (lecture seule).
+          </p>
+          <SourcesPanel />
         </TabsContent>
       </Tabs>
 

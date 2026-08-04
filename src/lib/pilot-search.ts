@@ -34,6 +34,12 @@ export const SEARCH_PAGES: SearchResult[] = [
   { id: "p-taux", kind: "page", label: "Taux horaire", to: "/pilot/taux" },
   { id: "p-sante", kind: "page", label: "Santé", to: "/pilot/sante" },
   { id: "p-controle", kind: "page", label: "Centre de contrôle des données", to: "/pilot/controle" },
+  {
+    id: "p-controle-sources",
+    kind: "page",
+    label: "Sources officielles des données & états de rapprochement",
+    to: "/pilot/controle",
+  },
   { id: "p-valid", kind: "page", label: "Centre de validation manuelle", to: "/pilot/validation" },
   { id: "p-sst", kind: "page", label: "Sous-traitants", to: "/sst" },
   { id: "p-journal", kind: "page", label: "Journal SST", to: "/journal-sst" },
