@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { monthlySeries, formatEuro, formatPct, MONTHS, sum } from "@/lib/pilot";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { usePilotYear } from "@/lib/pilot-mode";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
@@ -14,8 +14,7 @@ export const Route = createFileRoute("/_authenticated/pilot/saison")({
 function SaisonPage() {
   const { entries } = usePilotData();
   const years = Array.from(new Set((entries.data ?? []).map((e) => new Date(e.entry_date).getFullYear()))).sort((a, b) => b - a);
-  const [year, setYear] = useState(String(new Date().getFullYear()));
-  const y = Number(year);
+  const { year: y } = usePilotYear();
   const series = useMemo(() => monthlySeries(entries.data ?? [], y), [entries.data, y]);
 
   // Moyenne historique par mois (toutes années)
@@ -32,13 +31,7 @@ function SaisonPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-serif text-lg font-semibold">Saisonnalité & tendances</h3>
-        <Select value={year} onValueChange={setYear}>
-          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-          <SelectContent>{(years.length ? years : [y]).map((yy) => <SelectItem key={yy} value={String(yy)}>{yy}</SelectItem>)}</SelectContent>
-        </Select>
-      </div>
+      <h3 className="font-serif text-lg font-semibold">Saisonnalité & tendances {y}</h3>
 
       <div className="grid grid-cols-3 gap-3">
         <Card><CardContent className="py-4"><p className="text-xs text-muted-foreground">CA {y}</p><p className="mt-1 font-serif text-xl font-semibold">{formatEuro(caY)}</p></CardContent></Card>
