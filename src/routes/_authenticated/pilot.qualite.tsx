@@ -1,8 +1,10 @@
-// Centre de qualité des données (Pilot Pro V1.21).
-// Lecture seule : agrège les moteurs existants, ne crée aucune donnée.
+// Centre de qualité des données (Pilot Pro V2.3+ — Phase 6).
+// Lecture seule sur les données métier : agrège les moteurs existants,
+// ne modifie aucun calcul et ne lance aucune migration Site.
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +16,25 @@ import {
   readQualitySnapshot,
   writeQualitySnapshot,
 } from "@/lib/pilot-data-quality";
-import { ArrowRight, ArrowUpRight, ShieldCheck, TriangleAlert, Users } from "lucide-react";
+import {
+  buildQualityCenterReport,
+  euro,
+  listQualityTracking,
+  setAnomalyStatus,
+  type QualityAnomaly,
+  type QualityPriorityLevel,
+  type TrackingStatus,
+} from "@/lib/pilot-quality-center";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  ShieldCheck,
+  TriangleAlert,
+  Users,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/qualite")({
   head: () => ({
@@ -23,7 +43,7 @@ export const Route = createFileRoute("/_authenticated/pilot/qualite")({
       {
         name: "description",
         content:
-          "Suivi en temps réel de la fiabilité de la base Pilot Pro : rapprochements, fiches complètes et actions à plus fort impact.",
+          "Suivi en temps réel de la fiabilité de la base Pilot Pro : finance, activité, clients/sites, sous-traitance et actions prioritaires.",
       },
       { property: "og:title", content: "Qualité des données — Pilot Pro" },
       {
@@ -35,19 +55,58 @@ export const Route = createFileRoute("/_authenticated/pilot/qualite")({
   component: QualityPage,
 });
 
+const PRIORITY_LABEL: Record<QualityPriorityLevel, string> = {
+  1: "Priorité 1 — fausse le résultat",
+  2: "Priorité 2 — limite l'analyse",
+  3: "Priorité 3 — confort",
+};
+
+const PRIORITY_DOT: Record<QualityPriorityLevel, string> = { 1: "🔴", 2: "🟠", 3: "🟡" };
+
+const STATUS_LABEL: Record<TrackingStatus, string> = {
+  open: "Ouverte",
+  in_progress: "En cours",
+  resolved: "Résolue",
+};
+
+function toneClass(tone?: string) {
+  if (tone === "positive") return "text-primary";
+  if (tone === "warning") return "text-amber-600 dark:text-amber-400";
+  if (tone === "negative") return "text-destructive";
+  return "";
+}
+
 function QualityPage() {
   const snapshot = useMemo(() => (typeof window === "undefined" ? null : readQualitySnapshot()), []);
+  const qc = useQueryClient();
+  const [pending, setPending] = useState<string | null>(null);
 
-  const q = useQuery({
-    queryKey: ["pilot-data-quality"],
-    queryFn: buildDataQualityReport,
+  const q = useQuery({ queryKey: ["pilot-data-quality"], queryFn: buildDataQualityReport });
+  const center = useQuery({ queryKey: ["pilot-quality-center"], queryFn: buildQualityCenterReport });
+  const tracking = useQuery({ queryKey: ["pilot-quality-tracking"], queryFn: listQualityTracking });
+
+  const mutate = useMutation({
+    mutationFn: ({ anomaly, status }: { anomaly: QualityAnomaly; status: TrackingStatus }) =>
+      setAnomalyStatus(
+        anomaly,
+        status,
+        status === "resolved"
+          ? "Anomalie déclarée résolue depuis le centre de qualité"
+          : "Anomalie prise en charge depuis le centre de qualité",
+      ),
+    onSuccess: (_d, v) => {
+      toast.success(`Anomalie marquée « ${STATUS_LABEL[v.status]} »`);
+      qc.invalidateQueries({ queryKey: ["pilot-quality-tracking"] });
+    },
+    onError: (e: Error) => toast.error(e.message || "Enregistrement impossible"),
+    onSettled: () => setPending(null),
   });
 
   useEffect(() => {
     if (q.data) writeQualitySnapshot(q.data);
   }, [q.data]);
 
-  if (q.isLoading) {
+  if (q.isLoading || center.isLoading) {
     return (
       <div className="space-y-4 py-4">
         <Skeleton className="h-24 w-full" />
@@ -56,7 +115,7 @@ function QualityPage() {
     );
   }
 
-  if (q.error || !q.data) {
+  if (q.error || !q.data || center.error || !center.data) {
     return (
       <p className="py-8 text-sm text-muted-foreground">
         Impossible de calculer la qualité des données pour le moment.
@@ -65,15 +124,21 @@ function QualityPage() {
   }
 
   const r = q.data;
+  const c = center.data;
   const delta = snapshot ? r.globalScore - snapshot.globalScore : null;
+  const trackByKey = new Map((tracking.data ?? []).map((t) => [t.key, t]));
+  const cov = c.siteCoverage;
+  const covPct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
+
+  const groups: QualityPriorityLevel[] = [1, 2, 3];
 
   return (
     <div className="space-y-6 py-4">
       <header>
         <h1 className="font-serif text-2xl font-semibold tracking-tight">Qualité des données</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Progression de Pilot Pro vers une base totalement fiable. Tous les taux sont calculés à partir des
-          données déjà enregistrées.
+          Fiabilité des informations utilisées pour décider. Détection, priorisation et suivi des anomalies —
+          aucun calcul financier n'est modifié depuis cet écran.
         </p>
       </header>
 
@@ -118,7 +183,195 @@ function QualityPage() {
         </CardContent>
       </Card>
 
-      {/* Taux détaillés */}
+      {/* Phase 2 — Indicateurs par domaine */}
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-serif text-lg font-semibold">Fiabilité par domaine</h2>
+          <span className="text-xs text-muted-foreground">Score domaines : {c.globalScore} %</span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {c.domains.map((d) => (
+            <Card key={d.key}>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center justify-between text-sm">
+                  <span>{d.label}</span>
+                  <Badge
+                    variant="outline"
+                    className={`text-[11px] ${d.score >= 90 ? "text-primary" : d.score >= 60 ? "" : "text-destructive"}`}
+                  >
+                    {d.score} %
+                  </Badge>
+                </CardTitle>
+                <Progress value={d.score} className="mt-1 h-1.5" />
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {d.metrics.map((m) => (
+                  <div key={m.label} className="flex items-start justify-between gap-3 border-b pb-2 last:border-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="text-sm">{m.label}</p>
+                      {m.hint && <p className="text-[11px] text-muted-foreground">{m.hint}</p>}
+                    </div>
+                    <span className={`shrink-0 text-sm font-semibold tabular-nums ${toneClass(m.tone)}`}>
+                      {m.value}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Phase 3 + 4 + 5 — Anomalies priorisées et suivi */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="font-serif text-lg font-semibold">Anomalies détectées</h2>
+          <p className="text-xs text-muted-foreground">
+            Classées par impact décisionnel. Le suivi conserve la date, l'utilisateur et l'action réalisée.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2 text-xs">
+          {(["open", "in_progress", "resolved"] as TrackingStatus[]).map((s) => {
+            const n =
+              s === "open"
+                ? c.anomalies.filter((a) => (trackByKey.get(a.key)?.status ?? "open") === "open").length
+                : (tracking.data ?? []).filter((t) => t.status === s).length;
+            return (
+              <Badge key={s} variant="secondary" className="gap-1">
+                {s === "resolved" ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                {STATUS_LABEL[s]} : {n}
+              </Badge>
+            );
+          })}
+        </div>
+
+        {c.anomalies.length === 0 && (
+          <p className="text-sm text-muted-foreground">Aucune anomalie détectée : la base est exploitable.</p>
+        )}
+
+        {groups.map((level) => {
+          const rows = c.anomalies.filter((a) => a.priority === level);
+          if (rows.length === 0) return null;
+          return (
+            <div key={level} className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {PRIORITY_LABEL[level]}
+              </p>
+              {rows.map((a) => {
+                const t = trackByKey.get(a.key);
+                const status: TrackingStatus = t?.status ?? "open";
+                return (
+                  <div key={a.key} className="rounded-lg border p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-2 text-sm font-medium">
+                          <span>{PRIORITY_DOT[level]}</span>
+                          <span>{a.title}</span>
+                          {status !== "open" && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {STATUS_LABEL[status]}
+                            </Badge>
+                          )}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">{a.impact}</p>
+                        <p className="mt-1 text-xs">
+                          <span className="text-muted-foreground">Éléments concernés : </span>
+                          <span className="tabular-nums">{a.count}</span>
+                          {a.amount != null && a.amount > 0 && <span> · {euro(a.amount)}</span>}
+                        </p>
+                        {t?.resolved_at && (
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            Dernière action le {new Date(t.resolved_at).toLocaleDateString("fr-FR")} —{" "}
+                            {t.resolution_note ?? "sans note"}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        <Button asChild size="sm" variant="outline">
+                          <Link to={a.to}>
+                            {a.actionLabel} <ArrowRight className="ml-1 h-3 w-3" />
+                          </Link>
+                        </Button>
+                        {status === "open" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={pending === a.key}
+                            onClick={() => {
+                              setPending(a.key);
+                              mutate.mutate({ anomaly: a, status: "in_progress" });
+                            }}
+                          >
+                            Prendre en charge
+                          </Button>
+                        )}
+                        {status !== "resolved" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={pending === a.key}
+                            onClick={() => {
+                              setPending(a.key);
+                              mutate.mutate({ anomaly: a, status: "resolved" });
+                            }}
+                          >
+                            Marquer résolue
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </section>
+
+      {/* Phase 6 — Couverture analytique Site */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <MapPin className="h-4 w-4 text-primary" />
+            Couverture analytique Site
+            <Badge variant="outline" className="ml-auto text-[11px]">
+              Préparation — {cov.readiness} %
+            </Badge>
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Indicateur de préparation uniquement : les analyses restent basées sur le Client. Aucune migration
+            n'est lancée.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-md border bg-muted/30 p-3">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">CA couvert</p>
+            <p className="text-lg font-semibold tabular-nums">{covPct(cov.caAmountWithSite, cov.caAmount)} %</p>
+            <p className="text-[11px] text-muted-foreground">
+              {euro(cov.caAmountWithSite)} / {euro(cov.caAmount)} · {cov.caLinesWithSite}/{cov.caLines} lignes
+            </p>
+          </div>
+          <div className="rounded-md border bg-muted/30 p-3">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Heures couvertes</p>
+            <p className="text-lg font-semibold tabular-nums">{covPct(cov.hoursWithSite, cov.hoursTotal)} %</p>
+            <p className="text-[11px] text-muted-foreground">
+              {Math.round(cov.hoursWithSite)} h / {Math.round(cov.hoursTotal)} h
+            </p>
+          </div>
+          <div className="rounded-md border bg-muted/30 p-3">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Interventions couvertes</p>
+            <p className="text-lg font-semibold tabular-nums">
+              {covPct(cov.interventionsWithSite, cov.interventions)} %
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {cov.interventionsWithSite} / {cov.interventions}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Taux détaillés (moteur historique) */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {r.rates.map((rate) => {
           const prev = snapshot?.rates?.[rate.key];
@@ -147,13 +400,12 @@ function QualityPage() {
         />
       </div>
 
-      {/* Priorités */}
+      {/* Priorités de qualification (moteur existant) */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Priorités de qualification</CardTitle>
+          <CardTitle className="text-base">Priorités de qualification client</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Les 10 actions ayant le plus fort impact sur la fiabilité de Pilot Pro. Recalculées à chaque
-            validation.
+            Les 10 actions ayant le plus fort impact sur la fiabilité de Pilot Pro.
           </p>
         </CardHeader>
         <CardContent className="space-y-2">
