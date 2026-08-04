@@ -64,77 +64,77 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const isActive = (to: string, exact: boolean) =>
     exact ? pathname === to : pathname.startsWith(to);
 
+  // Menu condensé en 5 rubriques (PP v2.3+).
   const groups: NavGroup[] = [
     {
       label: "Aujourd'hui",
       items: [
-        { to: "/pilot", label: "Aujourd'hui", short: "Accueil", icon: Home, exact: true, primary: true },
+        { to: "/pilot", label: "Centre de décision", short: "Accueil", icon: Home, exact: true, primary: true },
+        ...(canEdit
+          ? [
+              { to: "/pilot/sante", label: "Santé de l'activité", short: "Santé", icon: HeartPulse, exact: false, primary: false },
+              { to: "/pilot/conseiller", label: "Conseiller de gestion", short: "Conseil", icon: Compass, exact: false, primary: false },
+            ]
+          : []),
       ],
     },
     {
       label: "Clients",
       items: [
-        { to: "/clients", label: "Clients", short: "Clients", icon: Users, exact: false, primary: true },
-        // Rentabilité clients (fiches 360° accessibles depuis chaque ligne).
-        { to: "/pilot/clients", label: "Rentabilité clients", short: "Rentab.", icon: Users, exact: false, primary: false },
+        { to: "/clients", label: "Fiches clients", short: "Clients", icon: Users, exact: false, primary: true },
+        ...(canEdit
+          ? [
+              { to: "/pilot/clients", label: "Rentabilité clients", short: "Rentab.", icon: LineChart, exact: false, primary: false },
+              { to: "/pilot/ceev", label: "Contrats CEEV", short: "CEEV", icon: ClipboardList, exact: false, primary: false },
+            ]
+          : []),
       ],
     },
     {
-      label: "Pilot Pro",
+      label: "Activité",
+      items: [
+        { to: "/planning", label: "Planning", short: "Planning", icon: CalendarDays, exact: false, primary: true },
+        ...(canEdit
+          ? [
+              { to: "/interventions", label: "Comptes-rendus chantier", short: "CR", icon: FileText, exact: false, primary: false },
+              { to: "/fiches", label: "Fiches chantier", short: "Fiches", icon: ClipboardList, exact: false, primary: false },
+              { to: "/pilot/taux", label: "Répartition du temps", short: "Temps", icon: Clock, exact: false, primary: false },
+              { to: "/sst", label: "Sous-traitants", short: "SST", icon: HardHat, exact: false, primary: false },
+              { to: "/journal-sst", label: "Journal SST", short: "Journal", icon: ClipboardList, exact: false, primary: false },
+            ]
+          : []),
+      ],
+    },
+    {
+      label: "Pilotage",
       items: canEdit
         ? [
             { to: "/pilot/direction", label: "Direction", short: "Direction", icon: BarChart3, exact: false, primary: false },
-            { to: "/pilot/ca", label: "CA", short: "CA", icon: Euro, exact: false, primary: false },
+            { to: "/pilot/ca", label: "Chiffre d'affaires", short: "CA", icon: Euro, exact: false, primary: false },
             { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
+            { to: "/pilot/benchmark", label: "Comparatifs", short: "Bench.", icon: Target, exact: false, primary: false },
+            { to: "/pilot/prestations", label: "Rentabilité prestations", short: "Prestat.", icon: BarChart3, exact: false, primary: false },
             { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
-            { to: "/pilot/charges", label: "Charges", short: "Charges", icon: Receipt, exact: false, primary: false },
-            { to: "/pilot/prestations", label: "Prestations", short: "Prestat.", icon: BarChart3, exact: false, primary: false },
-            { to: "/pilot/ceev", label: "CEEV", short: "CEEV", icon: ClipboardList, exact: false, primary: false },
-            { to: "/pilot/taux", label: "Taux horaire", short: "Taux", icon: Clock, exact: false, primary: false },
-            { to: "/pilot/simulations", label: "Simulations", short: "Simul.", icon: Calculator, exact: false, primary: false },
-            { to: "/pilot/conseiller", label: "Conseiller de gestion", short: "Conseil", icon: Compass, exact: false, primary: false },
-            { to: "/pilot/sante", label: "Santé", short: "Santé", icon: HeartPulse, exact: false, primary: false },
+            { to: "/pilot/charges", label: "Charges & investissements", short: "Charges", icon: Receipt, exact: false, primary: false },
             { to: "/pilot/saison", label: "Prévisions", short: "Prévis.", icon: CalendarRange, exact: false, primary: false },
-            { to: "/pilot/benchmark", label: "Benchmark & SMART", short: "Bench.", icon: Target, exact: false, primary: false },
-            { to: "/pilot/rapprochement", label: "Rapprochement CA", short: "Rappr.", icon: Link2, exact: false, primary: false },
-            { to: "/pilot/validation", label: "Validation analytique", short: "Valid.", icon: CheckCircle2, exact: false, primary: false },
-            { to: "/pilot/qualite", label: "Qualité des données", short: "Qualité", icon: ShieldCheck, exact: false, primary: false },
-            { to: "/pilot/donnees", label: "Classeur des données", short: "Classeur", icon: ClipboardList, exact: false, primary: false },
-            { to: "/pilot/parametres", label: "Paramètres PP", short: "Param.", icon: Settings2, exact: false, primary: false },
+            { to: "/pilot/simulations", label: "Simulations", short: "Simul.", icon: Calculator, exact: false, primary: false },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Réservé",
-    },
-    {
-      label: "CR Chantier",
-      items: canEdit
-        ? [
-            { to: "/interventions", label: "Comptes-rendus", short: "CR", icon: FileText, exact: false, primary: false },
-            { to: "/fiches", label: "Fiches chantier", short: "Fiches", icon: ClipboardList, exact: false, primary: false },
-          ]
-        : [],
-      emptyLabel: canEdit ? undefined : "Réservé",
-    },
-    {
-      label: "SST Pro",
-      items: canEdit
-        ? [
-            { to: "/sst", label: "Sous-traitants", short: "SST", icon: HardHat, exact: false, primary: false },
-            { to: "/journal-sst", label: "Journal SST", short: "Journal", icon: ClipboardList, exact: false, primary: false },
-          ]
-        : [],
-      emptyLabel: canEdit ? undefined : "Bientôt disponible",
-    },
-    {
-      label: "Planning",
-      items: [
-        { to: "/planning", label: "Planning", short: "Planning", icon: CalendarDays, exact: false, primary: true },
-      ],
     },
     {
       label: "Paramètres",
       items: [
-        { to: "/settings", label: "Réglages", short: "Réglages", icon: Settings, exact: false, primary: false },
+        ...(canEdit
+          ? [
+              { to: "/pilot/donnees", label: "Classeur de données", short: "Classeur", icon: ClipboardList, exact: false, primary: false },
+              { to: "/pilot/rapprochement", label: "Rapprochement CA", short: "Rappr.", icon: Link2, exact: false, primary: false },
+              { to: "/pilot/validation", label: "Centre de validation", short: "Valid.", icon: CheckCircle2, exact: false, primary: false },
+              { to: "/pilot/qualite", label: "Qualité des données", short: "Qualité", icon: ShieldCheck, exact: false, primary: false },
+              { to: "/pilot/parametres", label: "Règles de calcul", short: "Règles", icon: Settings2, exact: false, primary: false },
+            ]
+          : []),
+        { to: "/settings", label: "Paramètres généraux", short: "Réglages", icon: Settings, exact: false, primary: false },
         { to: "/personnalisation", label: "Personnalisation", short: "Apparence", icon: Palette, exact: false, primary: false },
         ...(isAdmin
           ? [
@@ -153,13 +153,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const primaryItems = navItems.filter((i) => i.primary);
   const moreItems = navItems.filter((i) => !i.primary);
 
+  // Rubriques toutes repliées à l'ouverture ; l'état ne vit que le temps de la session.
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-  const isGroupOpen = (label: string) => openGroups[label] ?? true;
+  const isGroupOpen = (label: string) => openGroups[label] ?? false;
   const toggleGroup = (label: string) =>
-    setOpenGroups((s) => ({ ...s, [label]: !(s[label] ?? true) }));
+    setOpenGroups((s) => ({ ...s, [label]: !(s[label] ?? false) }));
   const groupIcon: Record<string, typeof LayoutDashboard> = {
-    "Catalogue": BookOpen,
-    "Pilot Pro": Compass,
+    Catalogue: BookOpen,
+    Pilotage: Compass,
   };
 
   return (
