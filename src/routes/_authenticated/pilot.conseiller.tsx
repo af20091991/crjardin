@@ -10,6 +10,7 @@ import { annualSummary } from "@/lib/pilot-annual";
 import { analyzeCharges, listChargeRows, listSalesByYear } from "@/lib/pilot-charges";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { classifyClients } from "@/lib/pilot-client-profitability";
+import { useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { buildAdvisorAnswers, buildHistoryTrend, ADVISOR_VERDICT_META } from "@/lib/pilot-advisor";
 import { usePilotMode } from "@/lib/pilot-mode";
@@ -73,6 +74,7 @@ function ConseillerPage() {
     () => analyzeCharges(chargeRows.data ?? [], salesByYear.data ?? new Map(), [], { mode }),
     [chargeRows.data, salesByYear.data, mode],
   );
+  const statusesQ = useEntityStatuses();
   const ledgerRows = useMemo(() => ledger.data ?? [], [ledger.data]);
   const clients = useMemo(
     () =>
@@ -82,8 +84,9 @@ function ConseillerPage() {
         year,
         targetHourlyRate: set.target_hourly_rate || 0,
         thresholds,
+        statuses: statusesQ.data,
       }),
-    [realEntries, ledgerRows, year, set.target_hourly_rate, thresholds],
+    [realEntries, ledgerRows, year, set.target_hourly_rate, thresholds, statusesQ.data],
   );
   const services = useMemo(
     () =>

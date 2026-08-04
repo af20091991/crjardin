@@ -66,6 +66,15 @@ export function ReferentialPanel() {
       setReason("");
       qc.invalidateQueries({ queryKey: ["referential-audit"] });
       qc.invalidateQueries({ queryKey: ["referential-log"] });
+      // Une décision de référentiel change l'exploitabilité des entités :
+      // tous les agrégats (CA, heures, rentabilité, classement, scores,
+      // opportunités) doivent être reconstruits, les anciens résultats
+      // n'étant plus valides.
+      qc.invalidateQueries({ queryKey: ["entity-statuses"] });
+      qc.invalidateQueries({ queryKey: ["client-economic-scores"] });
+      qc.invalidateQueries({ predicate: (q) => String(q.queryKey[0] ?? "").startsWith("pilot-") });
+      qc.invalidateQueries({ queryKey: ["confirmed-hours-by-client"] });
+      qc.invalidateQueries({ queryKey: ["client-opportunities"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });

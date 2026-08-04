@@ -8,6 +8,14 @@ import type { PilotEntry } from "@/lib/pilot";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 import { aggregateHoursByClient } from "@/lib/pilot-hours-ledger";
 import { getThresholds, type PilotThresholds } from "@/lib/pilot-thresholds";
+import {
+  analysisReliability,
+  entityEligibility,
+  statusOf,
+  type EntityStatusMap,
+  type Reliability,
+} from "@/lib/pilot-entity-rules";
+import type { EntityStatus } from "@/lib/pilot-referential";
 
 export type ClientProfitClass =
   | "tres_rentable"
@@ -60,6 +68,12 @@ export interface ClientProfitability {
   confidence: "haute" | "moyenne" | "faible";
   /** Pourquoi PP affiche ce classement. */
   why: string;
+  /** Statut référentiel (règle métier centrale unique). */
+  entityStatus: EntityStatus;
+  /** L'entité peut-elle apparaître dans un classement stratégique ? */
+  rankable: boolean;
+  /** Confiance globale du calcul (identité + heures). */
+  reliability: Reliability;
 }
 
 export function classifyClients(params: {
@@ -69,6 +83,8 @@ export function classifyClients(params: {
   year: number;
   targetHourlyRate: number;
   thresholds?: PilotThresholds;
+  /** Statuts référentiels : obligatoire pour un classement exploitable. */
+  statuses?: EntityStatusMap;
 }): ClientProfitability[] {
   const t = params.thresholds ?? getThresholds();
   const { entries, ledger, year, targetHourlyRate } = params;
@@ -103,10 +119,24 @@ export function classifyClients(params: {
     const source = h?.reellesSource ?? "aucune";
     const taux = heures > 0 && caTotal > 0 ? caTotal / heures : null;
 
+    const entityStatus = statusOf(params.statuses, clientId);
+    const eligibility = entityEligibility(entityStatus);
+    const reliability = analysisReliability({
+      entityStatus,
+      hours: heures,
+      hoursSource: source === "aucune" ? "aucune" : source,
+      caTotal,
+      minHours: t.heuresMinClient,
+    });
+
     const enough = heures >= t.heuresMinClient && caTotal > 0 && targetHourlyRate > 0;
     let classe: ClientProfitClass = "non_classe";
     let why = "Heures ou CA insuffisants pour juger la rentabilité de ce client.";
-    if (enough && taux != null) {
+    if (!eligibility.analytics) {
+      // Identité économique non exploitable : aucun classement n'est produit.
+      classe = "non_classe";
+      why = eligibility.warning ?? "Identité économique à certifier avant tout classement.";
+    } else if (enough && taux != null) {
       if (taux >= targetHourlyRate * t.clientTresRentableRatio) {
         classe = "tres_rentable";
         why = `Taux horaire généré ${taux.toFixed(0)} €/h ≥ ${(t.clientTresRentableRatio * 100).toFixed(0)} % de la cible (${targetHourlyRate} €/h) sur ${heures.toFixed(1)} h.`;
@@ -122,8 +152,9 @@ export function classifyClients(params: {
       }
     }
 
-    const confidence: ClientProfitability["confidence"] =
-      source === "interventions" && heures >= t.heuresMinClient
+    const confidence: ClientProfitability["confidence"] = !eligibility.analytics
+      ? "faible"
+      : source === "interventions" && heures >= t.heuresMinClient && eligibility.level === "fiable"
         ? "haute"
         : heures > 0 && caTotal > 0
           ? "moyenne"
@@ -143,10 +174,21 @@ export function classifyClients(params: {
       classe,
       confidence,
       why,
+      entityStatus,
+      rankable: eligibility.ranking,
+      reliability,
     });
   }
 
-  return rows.sort((a, b) => b.caTotal - a.caTotal);
+  return rows.sort((a, b) => {
+    if (a.rankable !== b.rankable) return a.rankable ? -1 : 1;
+    return b.caTotal - a.caTotal;
+  });
+}
+
+/** Classement stratégique : uniquement les entités économiquement exploitables. */
+export function strategicClients(rows: ClientProfitability[]): ClientProfitability[] {
+  return rows.filter((r) => r.rankable);
 }
 
 export function classifyClient(

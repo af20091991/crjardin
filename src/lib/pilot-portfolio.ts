@@ -1,6 +1,14 @@
 import type { PilotEntry } from "@/lib/pilot";
 import type { ClientScore } from "@/lib/client-score";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
+import {
+  analysisReliability,
+  entityEligibility,
+  statusOf,
+  type EntityStatusMap,
+  type Reliability,
+} from "@/lib/pilot-entity-rules";
+import type { EntityStatus } from "@/lib/pilot-referential";
 
 /**
  * Portefeuille clients enrichi automatiquement à partir des données déjà
@@ -24,6 +32,12 @@ export interface PortfolioRow {
   rentabilite: number | null;
   score: ClientScore["score"] | null;
   recommendation: string | null;
+  /** Statut référentiel de l'entité (règle métier centrale). */
+  entityStatus: EntityStatus;
+  /** L'entité peut-elle alimenter un classement stratégique ? */
+  rankable: boolean;
+  /** Confiance de la rentabilité affichée (identité + couverture horaire). */
+  reliability: Reliability;
 }
 
 export function buildPortfolio(params: {
@@ -31,8 +45,10 @@ export function buildPortfolio(params: {
   ledger: HoursLedgerEntry[];
   scores: ClientScore[];
   year: number;
+  /** Statuts référentiels — sans eux, aucune fiche n'est réputée certifiée. */
+  statuses?: EntityStatusMap;
 }): PortfolioRow[] {
-  const { entries, ledger, scores, year } = params;
+  const { entries, ledger, scores, year, statuses } = params;
 
   const agg = new Map<
     string,
@@ -84,6 +100,14 @@ export function buildPortfolio(params: {
             ? "ca"
             : "aucune";
     const lines = a?.lines ?? 0;
+    const entityStatus = statusOf(statuses, clientId);
+    const hoursSourceKey = hoursSource;
+    const reliability = analysisReliability({
+      entityStatus,
+      hours,
+      hoursSource: hoursSourceKey,
+      caTotal,
+    });
     rows.push({
       clientId,
       name,
@@ -97,20 +121,33 @@ export function buildPortfolio(params: {
       rentabilite: hours > 0 && caTotal > 0 ? caTotal / hours : null,
       score: s?.score ?? null,
       recommendation: s?.recommendation ?? null,
+      entityStatus,
+      rankable: entityEligibility(entityStatus).ranking,
+      reliability,
     });
   }
 
   return rows;
 }
 
-/** Tri par rentabilité décroissante ; les clients non calculables passent après. */
+/**
+ * Tri par rentabilité décroissante. Les entités non exploitables (contacts,
+ * doublons) sont reléguées après : un classement stratégique ne doit contenir
+ * que des entités économiquement exploitables.
+ */
 export function sortByProfitability(rows: PortfolioRow[]): PortfolioRow[] {
   return [...rows].sort((a, b) => {
+    if (a.rankable !== b.rankable) return a.rankable ? -1 : 1;
     if (a.rentabilite != null && b.rentabilite != null) return b.rentabilite - a.rentabilite;
     if (a.rentabilite != null) return -1;
     if (b.rentabilite != null) return 1;
     return b.caTotal - a.caTotal;
   });
+}
+
+/** Sous-ensemble exploitable pour les classements / TOP / analyses stratégiques. */
+export function strategicRows(rows: PortfolioRow[]): PortfolioRow[] {
+  return rows.filter((r) => r.rankable);
 }
 
 export function searchPortfolio(rows: PortfolioRow[], query: string): PortfolioRow[] {

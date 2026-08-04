@@ -11,6 +11,8 @@ import { suggestCrossSell, formatMonths } from "@/lib/pilot-cross-sell";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { currentYear } from "@/lib/date-utils";
 import { usePilotMode } from "@/lib/pilot-mode";
+import { useEntityStatuses } from "@/lib/pilot-entity-rules";
+import { AnalysisTraceability, EntityStatusBadge } from "@/components/pilot/ReliabilityBadge";
 
 /**
  * Analyse 360° d'un client : rentabilité classée + ventes additionnelles
@@ -33,6 +35,7 @@ export function ClientProfitabilityCard({
     queryFn: () => fetchHoursLedger(undefined, { mode }),
   });
   const settingsQ = useQuery({ queryKey: ["pilot-settings"], queryFn: getSettings });
+  const statusesQ = useEntityStatuses();
 
   const target = settingsQ.data?.target_hourly_rate ?? DEFAULT_SETTINGS.target_hourly_rate;
 
@@ -46,9 +49,10 @@ export function ClientProfitabilityCard({
         targetHourlyRate: target,
         thresholds,
         interventionsByClient: new Map([[clientId, interventions]]),
+        statuses: statusesQ.data,
       }).find((r) => r.clientId === clientId) ?? null
     );
-  }, [entriesQ.data, ledgerQ.data, year, target, thresholds, clientId, interventions]);
+  }, [entriesQ.data, ledgerQ.data, statusesQ.data, year, target, thresholds, clientId, interventions]);
 
   const suggestions = useMemo(
     () => (entriesQ.data ? suggestCrossSell({ clientId, entries: entriesQ.data }) : []),
@@ -79,10 +83,17 @@ export function ClientProfitabilityCard({
                 <Badge variant="outline" className={PROFIT_CLASS_META[row.classe].badge}>
                   {PROFIT_CLASS_META[row.classe].label}
                 </Badge>
+                <EntityStatusBadge status={row.entityStatus} />
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
                   confiance {row.confidence}
                 </span>
               </div>
+              <AnalysisTraceability
+                hours={row.hours}
+                hoursSource={row.hoursSource === "aucune" ? "aucune" : row.hoursSource}
+                period={`Cumul jusqu'à ${year}`}
+                reliability={row.reliability}
+              />
               <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
                 <Cell label="CA cumulé" value={formatEuro(row.caTotal)} />
                 <Cell label={`CA ${year}`} value={formatEuro(row.caYear)} />

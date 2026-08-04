@@ -11,6 +11,7 @@ import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
 import { annualSummary } from "@/lib/pilot-annual";
 import { buildPortfolio } from "@/lib/pilot-portfolio";
+import { useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { getClientEconomicScores } from "@/lib/client-score";
 import { buildDirectorInsights, type InsightTone } from "@/lib/pilot-director-insights";
 import { usePilotMode } from "@/lib/pilot-mode";
@@ -46,6 +47,7 @@ export function DirectorInsightsCard({
   const salesQ = useQuery({ queryKey: ["pilot-sales-by-year", mode], queryFn: () => listSalesByYear({ mode }) });
   const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year, mode], queryFn: () => fetchHoursLedger(year, { mode }) });
   const scoresQ = useQuery({ queryKey: ["client-economic-scores"], queryFn: getClientEconomicScores });
+  const statusesQ = useEntityStatuses();
 
   const loading = chargesQ.isLoading || salesQ.isLoading || ledgerQ.isLoading || scoresQ.isLoading;
 
@@ -59,12 +61,12 @@ export function DirectorInsightsCard({
       annual: annualSummary(entries, chargeRows, { mode }),
       charges: chargeRows.length > 0 ? analyzeCharges(chargeRows, sales, [], { mode }) : null,
       projection: chargeRows.length > 0 ? projectionBase(chargeRows, year, sales) : null,
-      portfolio: buildPortfolio({ entries, ledger, scores: scoresQ.data ?? [], year }),
+      portfolio: buildPortfolio({ entries, ledger, scores: scoresQ.data ?? [], year, statuses: statusesQ.data }),
       hours: ledger.length > 0 ? resolveRealHours(ledger, year) : null,
       opportunities: opportunities ?? null,
       year,
     });
-  }, [k, settings, entries, year, opportunities, chargesQ.data, salesQ.data, ledgerQ.data, scoresQ.data, mode]);
+  }, [k, settings, entries, year, opportunities, chargesQ.data, salesQ.data, ledgerQ.data, scoresQ.data, statusesQ.data, mode]);
 
   const visible = expanded ? insights : insights.slice(0, 10);
 
