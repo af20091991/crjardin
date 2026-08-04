@@ -6,6 +6,7 @@ import {
 } from "@/lib/interventions";
 import type { Client } from "@/lib/clients";
 import { gardenLabel } from "@/lib/clients";
+import { reportRecipient } from "@/lib/report-recipient";
 import type { GardenHealth, Recommendation } from "@/lib/garden";
 import type { WorksiteSheet } from "@/lib/worksite";
 import {
