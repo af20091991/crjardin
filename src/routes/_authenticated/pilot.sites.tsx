@@ -6,10 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { AlertTriangle, Check, MapPin, RefreshCw, UserRound, X } from "lucide-react";
 import {
-  applySiteProposal, createContactFromClient, listProposals, mergeDuplicateClients,
-  refreshProposals, type MergeProposal,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AlertTriangle, Check, History, MapPin, RefreshCw, Undo2, UserRound, X } from "lucide-react";
+import {
+  applySiteProposal, confidenceVerdict, createContactFromClient, listProposals, listSiteAudit,
+  mergeDuplicateClients, proposalDetails, refreshProposals, revertSiteValidation,
+  type MergeProposal, type ProposalDetails,
 } from "@/lib/site-merge";
 import { listContacts, listSites, updateContact } from "@/lib/sites";
 import { formatEuro } from "@/lib/pilot";
@@ -133,7 +138,92 @@ function SitesMigrationPage() {
           </CardContent>
         </Card>
       )}
+
+      <AuditPanel />
     </div>
+  );
+}
+
+function AuditPanel() {
+  const qc = useQueryClient();
+  const audit = useQuery({ queryKey: ["site-audit"], queryFn: () => listSiteAudit(20) });
+  const entries = audit.data ?? [];
+  const last = entries.find((e) => !e.reverted_at && e.site_id);
+
+  const revert = useMutation({
+    mutationFn: () => revertSiteValidation(last!),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["site-audit"] });
+      qc.invalidateQueries({ queryKey: ["site-proposals"] });
+      qc.invalidateQueries({ queryKey: ["sites"] });
+      toast.success(`Validation annulée · ${r.untagged} rattachement(s) retiré(s) — la trace est conservée`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  if (entries.length === 0) return null;
+
+  return (
+    <Card>
+      <CardContent className="pt-5">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h4 className="flex items-center gap-2 font-medium">
+            <History className="h-4 w-4 text-primary" /> Journal des validations
+          </h4>
+          {last && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="outline" className="gap-1.5" disabled={revert.isPending}>
+                  <Undo2 className="h-4 w-4" /> Annuler la dernière validation
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Annuler « {last.site_name} » ?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-2 text-sm">
+                      <p className="font-medium text-foreground">Cette annulation va :</p>
+                      <ul className="list-disc pl-5">
+                        <li>retirer le rattachement au site sur les données concernées ;</li>
+                        <li>supprimer le site créé et ses {last.alias_labels.length} alias ;</li>
+                        <li>remettre la proposition en attente de décision.</li>
+                      </ul>
+                      <p className="font-medium text-foreground">Ne modifiera pas :</p>
+                      <ul className="list-disc pl-5">
+                        <li>les clients et les contacts ;</li>
+                        <li>les calculs, indicateurs et analyses de rentabilité ;</li>
+                        <li>la trace de l'action, qui reste conservée dans le journal.</li>
+                      </ul>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => revert.mutate()}>Confirmer</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+        <ul className="space-y-1.5 text-sm">
+          {entries.map((e) => (
+            <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-2">
+              <span className="min-w-0">
+                <span className="font-medium">{e.site_name ?? "—"}</span>
+                <span className="text-xs text-muted-foreground">
+                  {" · "}
+                  {new Date(e.created_at).toLocaleString("fr-FR")} · {e.alias_labels.length} alias ·{" "}
+                  {Object.values(e.tagged_counts ?? {}).reduce((s, n) => s + Number(n ?? 0), 0)} rattachement(s)
+                </span>
+              </span>
+              <Badge variant="outline" className={e.reverted_at ? STATUS_TONE.refusee : STATUS_TONE.validee}>
+                {e.reverted_at ? "Annulée" : "Validée"}
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }
 
