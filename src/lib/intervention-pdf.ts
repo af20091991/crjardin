@@ -4,6 +4,7 @@ import type { Intervention, InterventionTask, InterventionPhoto } from "@/lib/in
 import { TASK_STATUS_META, type TaskStatus, signedPhotoUrl, normalizeReportSections } from "@/lib/interventions";
 import type { Client } from "@/lib/clients";
 import { gardenLabel } from "@/lib/clients";
+import { reportRecipient } from "@/lib/report-recipient";
 import type { GardenHealth, Recommendation } from "@/lib/garden";
 import {
   HEALTH_RATING_META, type HealthRating, RECO_STATUS_META, type RecommendationStatus,
@@ -125,8 +126,10 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
   doc.text(company, margin, 60);
   y = 84;
 
-  // Première ligne après l'en-tête : civilité + nom du client
-  const clientFull = [client.civility?.trim(), client.name?.trim()].filter(Boolean).join(" ") || garden;
+  // Première ligne après l'en-tête : destinataire (personne) et jamais un nom de lieu
+  // précédé d'une civilité. Le lieu du chantier apparaît sur la ligne « Client / Site ».
+  const recipient = reportRecipient({ civility: client.civility, name: client.name }, garden);
+  const clientFull = recipient.line || garden;
   doc.setTextColor(...DARK);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(15);
@@ -368,7 +371,7 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
 
   const dateSafe = iv.intervention_date.slice(0, 10);
   const parts = [
-    client.civility?.trim(),
+    recipient.isPlaceOnly ? null : client.civility?.trim(),
     client.name?.trim(),
     iv.title?.trim() || "Compte-rendu d'intervention",
     dateSafe,
