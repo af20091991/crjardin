@@ -246,10 +246,11 @@ export async function mergeDuplicateClients(input: {
   if (duplicates.length === 0) return { moved: 0 };
 
   let moved = 0;
+  const patch = input.siteId
+    ? { client_id: input.targetClientId, site_id: input.siteId }
+    : { client_id: input.targetClientId };
   for (const table of ["interventions", "pilot_ca_entries", "pilot_historic_hours", "subcontractor_missions", "worksite_sheets", "ceev_contracts", "recommendations"] as const) {
-    const patch: Record<string, unknown> = { client_id: input.targetClientId };
-    if (input.siteId) patch["site_id"] = input.siteId;
-    const { error, count } = await supabase.from(table).update(patch, { count: "exact" }).in("client_id", duplicates);
+    const { error, count } = await supabase.from(table).update(patch as never, { count: "exact" }).in("client_id", duplicates);
     if (error) throw error;
     moved += count ?? 0;
   }
