@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Trophy, AlertTriangle, UserX, TrendingUp } from "lucide-react";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import { entriesForMode } from "@/lib/pilot-realized";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { signalFromHourlyRate } from "@/lib/pilot-profit-signal";
 import { useThresholds } from "@/lib/pilot-thresholds";

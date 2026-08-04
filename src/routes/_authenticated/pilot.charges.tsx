@@ -25,7 +25,7 @@ import {
   type ChargeRow,
   PRIORITY_VARIABLE_CATEGORIES,
 } from "@/lib/pilot-charges";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 
 export const Route = createFileRoute("/_authenticated/pilot/charges")({

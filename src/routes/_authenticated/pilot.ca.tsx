@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { usePilotYear } from "@/lib/pilot-mode";
 import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
