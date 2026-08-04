@@ -1,0 +1,248 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { AlertTriangle, Check, MapPin, RefreshCw, UserRound, X } from "lucide-react";
+import { applyProposal, listProposals, refreshProposals, type MergeProposal } from "@/lib/site-merge";
+import { listContacts, listSites, updateContact } from "@/lib/sites";
+import { formatEuro } from "@/lib/pilot";
+
+export const Route = createFileRoute("/_authenticated/pilot/sites")({
+  component: SitesMigrationPage,
+});
+
+const STATUS_TONE: Record<string, string> = {
+  en_attente: "border-orange-200 bg-orange-50 text-orange-700",
+  validee: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  modifiee: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  refusee: "border-border bg-muted text-muted-foreground",
+};
+
+function SitesMigrationPage() {
+  const qc = useQueryClient();
+  const proposals = useQuery({ queryKey: ["site-proposals"], queryFn: listProposals });
+  const sites = useQuery({ queryKey: ["sites"], queryFn: listSites });
+  const contacts = useQuery({ queryKey: ["contacts"], queryFn: listContacts });
+
+  const refresh = useMutation({
+    mutationFn: refreshProposals,
+    onSuccess: (n) => {
+      qc.invalidateQueries({ queryKey: ["site-proposals"] });
+      toast.success(n === 0 ? "Aucune nouvelle correspondance détectée" : `${n} correspondance(s) proposée(s)`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const pending = (proposals.data ?? []).filter((p) => p.status === "en_attente");
+  const decided = (proposals.data ?? []).filter((p) => p.status !== "en_attente");
+  const toReview = (contacts.data ?? []).filter((c) => c.needs_review);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="font-serif text-lg font-semibold">Sites d'intervention & contacts</h3>
+          <p className="text-sm text-muted-foreground">
+            Séparation Client (qui commande) / Site (où le travail est réalisé) / Contact (qui reçoit les comptes-rendus).
+            Aucune fusion n'est appliquée sans votre validation, et aucune fiche historique n'est supprimée.
+          </p>
+        </div>
+        <Button onClick={() => refresh.mutate()} disabled={refresh.isPending} variant="outline" className="gap-2">
+          <RefreshCw className={`h-4 w-4 ${refresh.isPending ? "animate-spin" : ""}`} />
+          Analyser les correspondances
+        </Button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="Sites officiels créés" value={String(sites.data?.length ?? 0)} icon={<MapPin className="h-4 w-4 text-primary" />} />
+        <StatCard label="Correspondances à valider" value={String(pending.length)} icon={<AlertTriangle className="h-4 w-4 text-orange-500" />} />
+        <StatCard label="Contacts CR à corriger" value={String(toReview.length)} icon={<UserRound className="h-4 w-4 text-rose-500" />} />
+      </div>
+
+      {pending.length === 0 && (
+        <Card>
+          <CardContent className="pt-5 text-sm text-muted-foreground">
+            Aucune correspondance en attente. Lancez l'analyse pour détecter les fiches issues de l'import
+            (ex. « Baudlet », « Baudlet 2h », « Baudlet Rg »).
+          </CardContent>
+        </Card>
+      )}
+
+      {pending.map((p) => (
+        <ProposalCard key={p.id} proposal={p} />
+      ))}
+
+      {toReview.length > 0 && (
+        <Card>
+          <CardContent className="pt-5">
+            <h4 className="mb-2 flex items-center gap-2 font-medium">
+              <UserRound className="h-4 w-4 text-rose-500" /> Contacts à corriger avant envoi de compte-rendu
+            </h4>
+            <ul className="space-y-2">
+              {toReview.map((c) => (
+                <li key={c.id} className="rounded-lg border border-border p-3 text-sm">
+                  <p className="font-medium">
+                    {c.civility ? `${c.civility} ` : ""}
+                    {c.display_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{c.review_reason}</p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="mt-1 h-7 px-2 text-xs"
+                    onClick={async () => {
+                      await updateContact(c.id, { needs_review: false, review_reason: null });
+                      qc.invalidateQueries({ queryKey: ["contacts"] });
+                      toast.success("Contact marqué comme vérifié");
+                    }}
+                  >
+                    Marquer comme vérifié
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {decided.length > 0 && (
+        <Card>
+          <CardContent className="pt-5">
+            <h4 className="mb-2 font-medium">Décisions enregistrées</h4>
+            <ul className="space-y-1.5 text-sm">
+              {decided.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-2">
+                  <span className="truncate">
+                    {p.suggested_site_name}
+                    <span className="text-xs text-muted-foreground"> · {p.legacy_labels.length} libellé(s)</span>
+                  </span>
+                  <Badge variant="outline" className={STATUS_TONE[p.status]}>
+                    {p.status === "refusee" ? "Refusée" : p.status === "modifiee" ? "Validée (modifiée)" : "Validée"}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function StatCard({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
+  return (
+    <Card>
+      <CardContent className="pt-5">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {icon} {label}
+        </div>
+        <p className="font-serif text-2xl font-semibold">{value}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProposalCard({ proposal }: { proposal: MergeProposal }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [siteName, setSiteName] = useState(proposal.suggested_site_name);
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["site-proposals"] });
+    qc.invalidateQueries({ queryKey: ["sites"] });
+    qc.invalidateQueries({ queryKey: ["contacts"] });
+    qc.invalidateQueries({ queryKey: ["clients"] });
+  };
+
+  const validate = useMutation({
+    mutationFn: (override?: { siteName: string }) => applyProposal(proposal, override),
+    onSuccess: (r) => {
+      invalidate();
+      toast.success(`Site créé · ${r.moved} enregistrement(s) rattaché(s)`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  const refuse = useMutation({
+    mutationFn: async () => {
+      const { rejectProposal } = await import("@/lib/site-merge");
+      return rejectProposal(proposal.id);
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Proposition refusée — aucune donnée modifiée");
+    },
+  });
+
+  return (
+    <Card>
+      <CardContent className="space-y-3 pt-5">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Correspondances détectées</p>
+            <p className="font-medium">{proposal.legacy_labels.join(" · ")}</p>
+          </div>
+          <Badge variant="outline" className={STATUS_TONE.en_attente}>À valider</Badge>
+        </div>
+
+        <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+          <p>
+            Client conservé : <strong>{proposal.suggested_client_name}</strong>
+          </p>
+          {editing ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Input value={siteName} onChange={(e) => setSiteName(e.target.value)} className="h-8 max-w-xs" />
+              <Button size="sm" className="h-8" disabled={validate.isPending} onClick={() => validate.mutate({ siteName })}>
+                Valider avec ce nom
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditing(false)}>
+                Annuler
+              </Button>
+            </div>
+          ) : (
+            <p className="mt-1">
+              Site créé : <strong>{proposal.suggested_site_name}</strong>
+            </p>
+          )}
+          <p className="mt-1 text-xs text-muted-foreground">
+            Les autres libellés deviennent des alias de recherche et restent consultables.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+          <Impact label="Interventions" value={String(proposal.impact_interventions)} />
+          <Impact label="Lignes de CA" value={`${proposal.impact_ca_entries} · ${formatEuro(proposal.impact_ca_amount)}`} />
+          <Impact label="Heures" value={`${proposal.impact_hours.toFixed(1)} h`} />
+          <Impact label="Missions SST" value={String(proposal.impact_missions)} />
+        </div>
+
+        {!editing && (
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" className="gap-1.5" disabled={validate.isPending} onClick={() => validate.mutate(undefined)}>
+              <Check className="h-4 w-4" /> Valider la fusion
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1.5" disabled={refuse.isPending} onClick={() => refuse.mutate()}>
+              <X className="h-4 w-4" /> Refuser
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+              Modifier
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function Impact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border p-2">
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="font-medium">{value}</p>
+    </div>
+  );
+}
