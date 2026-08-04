@@ -491,6 +491,51 @@ export type Database = {
           },
         ]
       }
+      contact_sites: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          is_report_recipient: boolean
+          site_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          is_report_recipient?: boolean
+          site_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          is_report_recipient?: boolean
+          site_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_sites_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_sites_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           civility: string | null
