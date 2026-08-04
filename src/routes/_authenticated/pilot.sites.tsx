@@ -6,10 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { AlertTriangle, Check, MapPin, RefreshCw, UserRound, X } from "lucide-react";
 import {
-  applySiteProposal, createContactFromClient, listProposals, mergeDuplicateClients,
-  refreshProposals, type MergeProposal,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { AlertTriangle, Check, History, MapPin, RefreshCw, Undo2, UserRound, X } from "lucide-react";
+import {
+  applySiteProposal, confidenceVerdict, createContactFromClient, listProposals, listSiteAudit,
+  mergeDuplicateClients, proposalDetails, refreshProposals, revertSiteValidation,
+  type MergeProposal, type ProposalDetails,
 } from "@/lib/site-merge";
 import { listContacts, listSites, updateContact } from "@/lib/sites";
 import { formatEuro } from "@/lib/pilot";
@@ -133,7 +138,92 @@ function SitesMigrationPage() {
           </CardContent>
         </Card>
       )}
+
+      <AuditPanel />
     </div>
+  );
+}
+
+function AuditPanel() {
+  const qc = useQueryClient();
+  const audit = useQuery({ queryKey: ["site-audit"], queryFn: () => listSiteAudit(20) });
+  const entries = audit.data ?? [];
+  const last = entries.find((e) => !e.reverted_at && e.site_id);
+
+  const revert = useMutation({
+    mutationFn: () => revertSiteValidation(last!),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["site-audit"] });
+      qc.invalidateQueries({ queryKey: ["site-proposals"] });
+      qc.invalidateQueries({ queryKey: ["sites"] });
+      toast.success(`Validation annulée · ${r.untagged} rattachement(s) retiré(s) — la trace est conservée`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  if (entries.length === 0) return null;
+
+  return (
+    <Card>
+      <CardContent className="pt-5">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h4 className="flex items-center gap-2 font-medium">
+            <History className="h-4 w-4 text-primary" /> Journal des validations
+          </h4>
+          {last && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="outline" className="gap-1.5" disabled={revert.isPending}>
+                  <Undo2 className="h-4 w-4" /> Annuler la dernière validation
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Annuler « {last.site_name} » ?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-2 text-sm">
+                      <p className="font-medium text-foreground">Cette annulation va :</p>
+                      <ul className="list-disc pl-5">
+                        <li>retirer le rattachement au site sur les données concernées ;</li>
+                        <li>supprimer le site créé et ses {last.alias_labels.length} alias ;</li>
+                        <li>remettre la proposition en attente de décision.</li>
+                      </ul>
+                      <p className="font-medium text-foreground">Ne modifiera pas :</p>
+                      <ul className="list-disc pl-5">
+                        <li>les clients et les contacts ;</li>
+                        <li>les calculs, indicateurs et analyses de rentabilité ;</li>
+                        <li>la trace de l'action, qui reste conservée dans le journal.</li>
+                      </ul>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => revert.mutate()}>Confirmer</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+        <ul className="space-y-1.5 text-sm">
+          {entries.map((e) => (
+            <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-2">
+              <span className="min-w-0">
+                <span className="font-medium">{e.site_name ?? "—"}</span>
+                <span className="text-xs text-muted-foreground">
+                  {" · "}
+                  {new Date(e.created_at).toLocaleString("fr-FR")} · {e.alias_labels.length} alias ·{" "}
+                  {Object.values(e.tagged_counts ?? {}).reduce((s, n) => s + Number(n ?? 0), 0)} rattachement(s)
+                </span>
+              </span>
+              <Badge variant="outline" className={e.reverted_at ? STATUS_TONE.refusee : STATUS_TONE.validee}>
+                {e.reverted_at ? "Annulée" : "Validée"}
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -155,18 +245,27 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
   const [editing, setEditing] = useState(false);
   const [siteName, setSiteName] = useState(proposal.suggested_site_name);
   const [createdSiteId, setCreatedSiteId] = useState<string | null>(proposal.target_site_id);
+  const [confirming, setConfirming] = useState<null | { siteName: string; override: boolean }>(null);
+
+  const details = useQuery({
+    queryKey: ["site-proposal-details", proposal.id],
+    queryFn: () => proposalDetails(proposal),
+  });
+  const verdict = confidenceVerdict(proposal, details.data ?? null);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["site-proposals"] });
     qc.invalidateQueries({ queryKey: ["sites"] });
     qc.invalidateQueries({ queryKey: ["contacts"] });
     qc.invalidateQueries({ queryKey: ["clients"] });
+    qc.invalidateQueries({ queryKey: ["site-audit"] });
   };
 
   const validate = useMutation({
     mutationFn: (override?: { siteName: string }) => applySiteProposal(proposal, override),
     onSuccess: (r: { site_id: string; tagged: number; pendingClients: number }) => {
       setCreatedSiteId(r.site_id);
+      setConfirming(null);
       invalidate();
       toast.success(
         r.pendingClients > 0
@@ -220,7 +319,12 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Correspondances détectées</p>
             <p className="font-medium">{proposal.legacy_labels.join(" · ")}</p>
           </div>
-          <Badge variant="outline" className={STATUS_TONE.en_attente}>À valider</Badge>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="outline" className={verdict.badge}>
+              {verdict.level === "forte" ? "🟢" : verdict.level === "moyenne" ? "🟡" : "🔴"} {verdict.label}
+            </Badge>
+            <Badge variant="outline" className={STATUS_TONE.en_attente}>À valider</Badge>
+          </div>
         </div>
 
         <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
@@ -230,7 +334,12 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
           {editing ? (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Input value={siteName} onChange={(e) => setSiteName(e.target.value)} className="h-8 max-w-xs" />
-              <Button size="sm" className="h-8" disabled={validate.isPending} onClick={() => validate.mutate({ siteName })}>
+              <Button
+                size="sm"
+                className="h-8"
+                disabled={validate.isPending || !siteName.trim()}
+                onClick={() => setConfirming({ siteName: siteName.trim(), override: true })}
+              >
                 Valider avec ce nom
               </Button>
               <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditing(false)}>
@@ -248,16 +357,31 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
           <Impact label="Interventions" value={String(proposal.impact_interventions)} />
           <Impact label="Lignes de CA" value={`${proposal.impact_ca_entries} · ${formatEuro(proposal.impact_ca_amount)}`} />
           <Impact label="Heures" value={`${proposal.impact_hours.toFixed(1)} h`} />
           <Impact label="Missions SST" value={String(proposal.impact_missions)} />
+          <Impact
+            label="Période couverte"
+            value={
+              details.data?.firstDate
+                ? `${details.data.firstDate} → ${details.data.lastDate ?? details.data.firstDate}`
+                : details.isLoading ? "…" : "Inconnue"
+            }
+          />
         </div>
+
+        <ContextBlock details={details.data ?? null} loading={details.isLoading} verdict={verdict} />
 
         {!editing && (
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" className="gap-1.5" disabled={validate.isPending} onClick={() => validate.mutate(undefined)}>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={validate.isPending}
+              onClick={() => setConfirming({ siteName: proposal.suggested_site_name, override: false })}
+            >
               <Check className="h-4 w-4" /> Créer le site + alias
             </Button>
             <Button size="sm" variant="outline" className="gap-1.5" disabled={refuse.isPending} onClick={() => refuse.mutate()}>
@@ -268,6 +392,47 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
             </Button>
           </div>
         )}
+
+        <AlertDialog open={!!confirming} onOpenChange={(o) => !o && setConfirming(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer le regroupement</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2 text-sm">
+                  <p className="font-medium text-foreground">Cette action va :</p>
+                  <p className="font-medium">Créer</p>
+                  <ul className="list-disc pl-5">
+                    <li>1 site : <strong>{confirming?.siteName}</strong></li>
+                    <li>{proposal.legacy_labels.length} alias de recherche</li>
+                  </ul>
+                  <p className="font-medium">Rattacher</p>
+                  <ul className="list-disc pl-5">
+                    <li>{proposal.impact_interventions} intervention(s)</li>
+                    <li>{proposal.impact_ca_entries} ligne(s) de CA ({formatEuro(proposal.impact_ca_amount)})</li>
+                    <li>{proposal.impact_hours.toFixed(1)} heure(s) historiques</li>
+                    <li>{proposal.impact_missions} mission(s) SST</li>
+                  </ul>
+                  <p className="font-medium">Ne modifiera pas</p>
+                  <ul className="list-disc pl-5">
+                    <li>les clients ;</li>
+                    <li>les contacts ;</li>
+                    <li>les calculs de rentabilité, indicateurs et classements.</li>
+                  </ul>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() =>
+                  validate.mutate(confirming?.override ? { siteName: confirming.siteName } : undefined)
+                }
+              >
+                Confirmer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {createdSiteId && (
           <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
@@ -296,6 +461,51 @@ function ProposalCard({ proposal }: { proposal: MergeProposal }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function ContextBlock({
+  details, loading, verdict,
+}: {
+  details: ProposalDetails | null;
+  loading: boolean;
+  verdict: { reasons: string[] };
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <div className="rounded-lg border border-border p-3 text-sm">
+        <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Appellations & adresses connues</p>
+        {loading && <p className="text-xs text-muted-foreground">Chargement du contexte…</p>}
+        <ul className="space-y-1">
+          {(details?.labels ?? []).map((l) => (
+            <li key={l.client_id} className="text-xs">
+              <span className={l.is_target ? "font-medium" : ""}>
+                {l.civility ? `${l.civility} ` : ""}{l.label}
+              </span>
+              {l.is_target && <span className="text-muted-foreground"> · client conservé</span>}
+              <span className="block text-muted-foreground">{l.address ?? "Adresse non renseignée"}</span>
+            </li>
+          ))}
+        </ul>
+        {details && details.distinctAddresses > 1 && (
+          <p className="mt-1 flex items-start gap-1 text-xs text-destructive">
+            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+            Adresses différentes : vérifiez qu'il ne s'agit pas de deux sites homonymes.
+          </p>
+        )}
+      </div>
+      <div className="rounded-lg border border-border p-3 text-sm">
+        <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Éléments d'appréciation</p>
+        <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+          {verdict.reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Indicateur d'aide à la décision : aucune validation n'est jamais automatique.
+        </p>
+      </div>
+    </div>
   );
 }
 

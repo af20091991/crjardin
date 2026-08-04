@@ -197,6 +197,7 @@ export async function applySiteProposal(
 
   // Rattachement du site UNIQUEMENT sur les données déjà portées par le client cible.
   let tagged = 0;
+  const taggedCounts: Record<string, number> = {};
   for (const table of ["interventions", "pilot_ca_entries", "pilot_historic_hours", "subcontractor_missions", "worksite_sheets"] as const) {
     const { error, count } = await supabase
       .from(table)
@@ -204,6 +205,7 @@ export async function applySiteProposal(
       .eq("client_id", targetClientId);
     if (error) throw error;
     tagged += count ?? 0;
+    taggedCounts[table] = count ?? 0;
   }
 
   const { error: pErr } = await supabase
@@ -217,6 +219,33 @@ export async function applySiteProposal(
     })
     .eq("id", proposal.id);
   if (pErr) throw pErr;
+
+  // Traçabilité : utilisateur, date, état avant / après, éléments modifiés.
+  const { data: auth } = await supabase.auth.getUser();
+  if (auth.user) {
+    await supabase.from("site_merge_audit").insert({
+      user_id: auth.user.id,
+      proposal_id: proposal.id,
+      action: override ? "site_cree_modifie" : "site_cree",
+      site_id: site.id,
+      site_name: siteName,
+      client_id: targetClientId,
+      alias_labels: proposal.legacy_labels,
+      before_state: {
+        proposal_status: proposal.status,
+        target_site_id: proposal.target_site_id,
+        suggested_site_name: proposal.suggested_site_name,
+        site_existant: false,
+      },
+      after_state: {
+        proposal_status: override ? "modifiee" : "validee",
+        target_site_id: site.id,
+        site_name: siteName,
+        client_id: targetClientId,
+      },
+      tagged_counts: taggedCounts,
+    });
+  }
 
   return {
     site_id: site.id,
@@ -313,4 +342,214 @@ export async function createContactFromClient(clientId: string, siteId?: string 
 export function aliasSummary(labels: string[], official: string): string {
   const key = normalizeLabel(official);
   return labels.filter((l) => normalizeLabel(l) !== key).join(" · ");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 4 BIS — Contexte de décision, niveau de confiance, traçabilité, annulation.
+// Aucun calcul métier, aucun indicateur, aucune règle de CA ou d'heures n'est
+// touché ici : il s'agit uniquement de lectures d'aide à la décision.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ProposalLabelContext {
+  client_id: string;
+  label: string;
+  civility: string | null;
+  address: string | null;
+  is_target: boolean;
+}
+
+export interface ProposalDetails {
+  labels: ProposalLabelContext[];
+  addresses: string[];
+  firstDate: string | null;
+  lastDate: string | null;
+  distinctAddresses: number;
+}
+
+function ymLabel(year: number, month: number): string {
+  return `${String(year)}-${String(month).padStart(2, "0")}`;
+}
+
+/** Contexte complet d'une proposition : appellations, adresses, période couverte. */
+export async function proposalDetails(proposal: MergeProposal): Promise<ProposalDetails> {
+  const ids = proposal.legacy_client_ids;
+  const [clientsRes, ivRes, caRes, hoursRes] = await Promise.all([
+    supabase.from("clients").select("id,name,civility,address").in("id", ids),
+    supabase.from("interventions").select("intervention_date").in("client_id", ids),
+    supabase.from("pilot_ca_entries").select("year,month").in("client_id", ids),
+    supabase.from("pilot_historic_hours").select("year").in("client_id", ids),
+  ]);
+
+  const clients = (clientsRes.data ?? []) as { id: string; name: string; civility: string | null; address: string | null }[];
+  const labels: ProposalLabelContext[] = ids.map((id, i) => {
+    const c = clients.find((x) => x.id === id);
+    return {
+      client_id: id,
+      label: c?.name ?? proposal.legacy_labels[i] ?? "—",
+      civility: c?.civility ?? null,
+      address: c?.address?.trim() ? c.address.trim() : null,
+      is_target: id === proposal.target_client_id,
+    };
+  });
+
+  const keys: string[] = [];
+  for (const r of (ivRes.data ?? []) as { intervention_date: string | null }[]) {
+    if (r.intervention_date) keys.push(r.intervention_date.slice(0, 7));
+  }
+  for (const r of (caRes.data ?? []) as { year: number; month: number }[]) {
+    if (r.year && r.month) keys.push(ymLabel(r.year, r.month));
+  }
+  for (const r of (hoursRes.data ?? []) as { year: number }[]) {
+    if (r.year) keys.push(`${String(r.year)}-01`);
+  }
+  keys.sort();
+
+  const addresses = [...new Set(labels.map((l) => l.address).filter((a): a is string => !!a))];
+  return {
+    labels,
+    addresses,
+    firstDate: keys[0] ?? null,
+    lastDate: keys[keys.length - 1] ?? null,
+    distinctAddresses: new Set(addresses.map((a) => normalizeLabel(a))).size,
+  };
+}
+
+export type ConfidenceLevel = "forte" | "moyenne" | "faible";
+
+export interface ConfidenceVerdict {
+  level: ConfidenceLevel;
+  label: string;
+  badge: string;
+  reasons: string[];
+}
+
+/**
+ * Aide à la décision uniquement : ce niveau ne déclenche JAMAIS de validation
+ * automatique. Il agrège des signaux observables (similarité des libellés,
+ * nombre d'alias, unicité du client, adresse, historique commun).
+ */
+export function confidenceVerdict(proposal: MergeProposal, details?: ProposalDetails | null): ConfidenceVerdict {
+  const reasons: string[] = [];
+  let score = 0;
+
+  const root = normalizeLabel(proposal.cluster_key);
+  const allShareRoot = proposal.legacy_labels.every((l) => normalizeLabel(l).startsWith(root));
+  if (allShareRoot) {
+    score += 2;
+    reasons.push("Toutes les appellations partagent la même racine de nom.");
+  } else {
+    reasons.push("Certaines appellations s'écartent de la racine détectée.");
+  }
+
+  if (proposal.legacy_labels.length >= 2) {
+    score += 1;
+    reasons.push(`${proposal.legacy_labels.length} appellations regroupées en alias.`);
+  }
+
+  if (details) {
+    if (details.distinctAddresses === 1) {
+      score += 2;
+      reasons.push("Une seule adresse connue sur l'ensemble des appellations.");
+    } else if (details.distinctAddresses === 0) {
+      reasons.push("Aucune adresse renseignée : impossible de distinguer deux sites homonymes.");
+    } else {
+      score -= 2;
+      reasons.push(`${details.distinctAddresses} adresses différentes : possible confusion entre deux sites homonymes.`);
+    }
+
+    const civilities = new Set(details.labels.map((l) => (l.civility ?? "").trim().toLowerCase()).filter(Boolean));
+    if (civilities.size > 1) {
+      score -= 1;
+      reasons.push("Civilités différentes entre les fiches : vérifier qu'il s'agit bien du même client.");
+    }
+
+    if (details.firstDate && details.lastDate) {
+      score += 1;
+      reasons.push(`Historique commun de ${details.firstDate} à ${details.lastDate}.`);
+    } else {
+      reasons.push("Aucun historique daté rattaché à ces appellations.");
+    }
+  }
+
+  if (proposal.impact_ca_amount > 20000) {
+    score -= 1;
+    reasons.push("Impact financier élevé : vérification humaine recommandée.");
+  }
+
+  const level: ConfidenceLevel = score >= 5 ? "forte" : score >= 2 ? "moyenne" : "faible";
+  const meta = {
+    forte: { label: "Forte confiance", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    moyenne: { label: "Vérification recommandée", badge: "border-orange-200 bg-orange-50 text-orange-700" },
+    faible: { label: "Faible confiance", badge: "border-destructive/30 bg-destructive/10 text-destructive" },
+  }[level];
+
+  return { level, ...meta, reasons };
+}
+
+export interface SiteAuditEntry {
+  id: string;
+  proposal_id: string | null;
+  action: string;
+  site_id: string | null;
+  site_name: string | null;
+  client_id: string | null;
+  alias_labels: string[];
+  before_state: Record<string, unknown>;
+  after_state: Record<string, unknown>;
+  tagged_counts: Record<string, number>;
+  reverted_at: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export async function listSiteAudit(limit = 20): Promise<SiteAuditEntry[]> {
+  const { data, error } = await supabase
+    .from("site_merge_audit")
+    .select("id,proposal_id,action,site_id,site_name,client_id,alias_labels,before_state,after_state,tagged_counts,reverted_at,note,created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as unknown as SiteAuditEntry[];
+}
+
+/**
+ * Annulation de la dernière validation (tant que la migration des calculs n'est
+ * pas réalisée) : retire le rattachement au site, supprime le site et ses alias
+ * créés par erreur, remet la proposition en attente. La trace de l'action est
+ * conservée (`reverted_at`), rien n'est effacé du journal.
+ */
+export async function revertSiteValidation(entry: SiteAuditEntry): Promise<{ untagged: number }> {
+  if (entry.reverted_at) throw new Error("Cette validation a déjà été annulée");
+  if (!entry.site_id) throw new Error("Aucun site à annuler pour cette action");
+
+  let untagged = 0;
+  for (const table of ["interventions", "pilot_ca_entries", "pilot_historic_hours", "subcontractor_missions", "worksite_sheets"] as const) {
+    const { error, count } = await supabase
+      .from(table)
+      .update({ site_id: null } as never, { count: "exact" })
+      .eq("site_id", entry.site_id);
+    if (error) throw error;
+    untagged += count ?? 0;
+  }
+
+  const { error: aErr } = await supabase.from("site_aliases").delete().eq("site_id", entry.site_id);
+  if (aErr) throw aErr;
+  const { error: sErr } = await supabase.from("sites").delete().eq("id", entry.site_id);
+  if (sErr) throw sErr;
+
+  if (entry.proposal_id) {
+    const { error: pErr } = await supabase
+      .from("site_merge_proposals")
+      .update({ status: "en_attente", target_site_id: null, decided_at: null })
+      .eq("id", entry.proposal_id);
+    if (pErr) throw pErr;
+  }
+
+  const { error: logErr } = await supabase
+    .from("site_merge_audit")
+    .update({ reverted_at: new Date().toISOString() })
+    .eq("id", entry.id);
+  if (logErr) throw logErr;
+
+  return { untagged };
 }
