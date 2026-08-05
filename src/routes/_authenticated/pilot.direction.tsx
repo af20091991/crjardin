@@ -214,7 +214,7 @@ function PilotDashboard() {
           label="CA annuel"
           value={formatEuro(k.caYear)}
           icon={TrendingUp}
-          to="/pilot/saison"
+          to="/pilot/benchmark"
           sub={k.caPrevYTD > 0 ? `${formatPct(k.progression)} vs N-1` : undefined}
           tone={k.progression >= 0 ? "positive" : "negative"}
           description="Chiffre d'affaires HT cumulé depuis le 1er janvier de l'année en cours."
