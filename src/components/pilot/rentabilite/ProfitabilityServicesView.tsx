@@ -67,9 +67,6 @@ export function ProfitabilityServicesView() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold tracking-tight">
-          <BarChart3 className="h-6 w-6 text-primary" /> Rentabilité par prestation
-        </h1>
         <p className="text-sm text-muted-foreground">
           CA généré, heures consommées, taux horaire, évolution et nombre de clients — issus des
           lignes CA et du ledger d'heures. Aucune saisie complémentaire n'est demandée.
