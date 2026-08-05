@@ -1338,17 +1338,6 @@ function CompareBars({
   );
 }
 
-function SectionTitleLegacy({ question, label }: { question: string; label: string }) {
-  return (
-    <div className="flex flex-wrap items-baseline justify-between gap-2">
-      <h3 className="font-serif text-lg font-semibold tracking-tight">{question}</h3>
-      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-    </div>
-  );
-}
-
 function PriorityRow({
   rank,
   icon: Icon,
