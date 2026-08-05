@@ -154,7 +154,60 @@ export async function attachContractToClient(id: string, clientId: string): Prom
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as CeevContract;
+  const contract = data as unknown as CeevContract;
+
+  const { data: clientRow } = await supabase
+    .from("clients")
+    .select("name")
+    .eq("id", clientId)
+    .maybeSingle();
+  const clientName = ((clientRow as { name?: string } | null)?.name ?? "Client").toString();
+
+  // Décision humaine définitive : journalisée (traçabilité) puis appliquée à
+  // tous les contrats portant exactement le même libellé d'origine, afin que la
+  // ligne ne réapparaisse jamais dans la file « à valider ».
+  await supabase.from("ceev_match_log").insert({
+    contract_id: contract.id,
+    raw_label: contract.raw_label,
+    client_id: clientId,
+    client_name: clientName,
+    note: "Rapprochement manuel définitif",
+  } as never);
+
+  const { error: propagateErr } = await supabase
+    .from("ceev_contracts")
+    .update({
+      client_id: clientId,
+      match_status: "manuel",
+      validation_status: "valide",
+      match_method: "manuel",
+    } as never)
+    .eq("raw_label", contract.raw_label)
+    .eq("validation_status", "a_valider");
+  if (propagateErr) throw propagateErr;
+
+  return contract;
+}
+
+export interface CeevMatchLogEntry {
+  id: string;
+  contract_id: string | null;
+  raw_label: string;
+  client_id: string | null;
+  client_name: string;
+  note: string | null;
+  decided_at: string;
+}
+
+/** Journal des rapprochements manuels (mémoire des décisions humaines). */
+export async function listCeevMatchLog(limit = 30): Promise<CeevMatchLogEntry[]> {
+  const { data, error } = await supabase
+    .from("ceev_match_log")
+    .select("*")
+    .order("decided_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as unknown as CeevMatchLogEntry[];
 }
 
 // ---------------- Moteurs d'analyse (source unique) ----------------
