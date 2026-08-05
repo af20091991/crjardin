@@ -11,14 +11,19 @@ import { Landmark, Undo2 } from "lucide-react";
 import { formatEuro } from "@/lib/pilot";
 import { currentYear } from "@/lib/date-utils";
 import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import {
-  listChargeCategories,
+  analyzeCharges,
+  categoryBreakdown,
+  chargesEvolution,
+  chargesWeightPct,
+  salesTotal,
   setChargeInvestment,
   type ChargeRow,
 } from "@/lib/pilot-charges";
+import { isRealizedMonth } from "@/lib/pilot-realized";
 import { usePilotYear } from "@/lib/pilot-mode";
 import { useAnalytics } from "@/lib/pilot-analytics";
 import { ANALYTICS_QUERY_ROOT } from "@/lib/pilot-engine";
@@ -42,19 +47,43 @@ function ChargesPage() {
   const qc = useQueryClient();
   // Source unique : moteur analytique central.
   const { snapshot, isLoading } = useAnalytics();
-  const catsQ = useQuery({ queryKey: ["pilot-charge-categories"], queryFn: listChargeCategories });
   const { year: detailYear, setYear: setDetailYear } = usePilotYear();
   const [search, setSearch] = useState("");
+  const [showAllHistory, setShowAllHistory] = useState(false);
   if (isLoading || !snapshot) return <Skeleton className="h-96 w-full" />;
-  const analysis = snapshot.charges.analysis;
+  const YEAR = currentYear();
+  const fullAnalysis = snapshot.charges.analysis;
+  const salesByYear = new Map(snapshot.annual.map((a) => [a.year, a.caHt] as const));
+  const yearAnalysis = analyzeCharges(
+    snapshot.sources.chargeRows.filter((r) => r.year === YEAR),
+    salesByYear,
+    snapshot.sources.chargeCategories,
+  );
+  const analysis = showAllHistory ? fullAnalysis : yearAnalysis;
   const proj = snapshot.charges.projectionBase;
-  const weight = snapshot.charges.weightPct;
+  const weight = showAllHistory ? snapshot.charges.weightPct : chargesWeightPct(yearAnalysis, salesByYear.get(YEAR) ?? 0);
+  // Historique toujours complet, quelle que soit la vue sélectionnée.
   const priority = snapshot.charges.priority;
-  const evolutionData = snapshot.charges.evolution;
-  const repartition = snapshot.charges.repartition;
+  const evolutionData = chargesEvolution(analysis);
+  const repartition = categoryBreakdown(analysis);
   const priorityTrend = snapshot.charges.priorityTrend;
   const chargeRows = snapshot.sources.chargeRows;
   const PIE_COLORS = PP_SERIES;
+
+  // Graphiques complémentaires : CA/bénéfice et marge/investissements.
+  const monthlyFinance = (snapshot.monthly.finance ?? []).filter((m) => !m.projete);
+  const monthlyInvest = Array(12).fill(0) as number[];
+  for (const r of chargeRows) {
+    if (r.year === YEAR && r.is_investment && isRealizedMonth(r.year, r.month)) {
+      monthlyInvest[r.month - 1] += r.amount_ht;
+    }
+  }
+  const caBeneficeData = showAllHistory
+    ? snapshot.annual.map((a) => ({ label: String(a.year), CA: Math.round(a.caHt), "Bénéfice net": Math.round(a.beneficeBrut) }))
+    : monthlyFinance.map((m) => ({ label: m.mois, CA: Math.round(m.CA), "Bénéfice net": Math.round(m.Bénéfice) }));
+  const margeInvestData = showAllHistory
+    ? snapshot.annual.filter((a) => a.margePct != null).map((a) => ({ label: String(a.year), Marge: Number((a.margePct ?? 0).toFixed(1)), Investissements: Math.round(a.investissements) }))
+    : monthlyFinance.map((m, i) => ({ label: m.mois, Marge: m.CA > 0 ? Number(((m.Bénéfice / m.CA) * 100).toFixed(1)) : 0, Investissements: Math.round(monthlyInvest[i] ?? 0) }));
 
   return (
     <div className="space-y-5">
