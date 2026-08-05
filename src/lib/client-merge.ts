@@ -102,7 +102,6 @@ export async function mergeClients(params: {
       merged_into_client_id: targetId,
       merged_at: new Date().toISOString(),
       merged_reason: reason,
-      lifecycle_status: "fusionne",
     })
     .eq("id", sourceId);
   if (archErr) throw archErr;
@@ -148,7 +147,6 @@ export async function revertMerge(id: string): Promise<void> {
       merged_into_client_id: null,
       merged_at: null,
       merged_reason: `Fusion annulée le ${new Date().toLocaleDateString("fr-FR")}`,
-      lifecycle_status: "actif",
     })
     .eq("id", log.source_client_id);
   if (e1) throw e1;
