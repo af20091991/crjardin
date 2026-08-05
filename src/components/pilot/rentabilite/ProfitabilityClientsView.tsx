@@ -99,7 +99,9 @@ export function ProfitabilityClientsView() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-serif text-lg font-semibold">Rentabilité clients</h3>
+        <p className="text-sm text-muted-foreground">
+          CA, heures réelles et rentabilité par client. Cliquez sur un nom pour ouvrir sa fiche 360°.
+        </p>
         <Select value={allTimeScope ? "all" : "year"} onValueChange={(v) => setAllTimeScope(v === "all")}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -223,7 +225,9 @@ export function ProfitabilityClientsView() {
               <ul className="space-y-1.5">
                 {toRelaunch.slice(0, 8).map((c) => (
                   <li key={c.key} className="flex items-center justify-between text-sm">
-                    <span className="truncate">{c.name}</span>
+                    <span className="truncate">
+                      <ClientLink clientId={c.clientId} clientKey={c.key} name={c.name} />
+                    </span>
                     <span className="text-xs text-muted-foreground">{new Date(c.lastDate!).toLocaleDateString("fr-FR")}</span>
                   </li>
                 ))}
@@ -238,7 +242,9 @@ export function ProfitabilityClientsView() {
               <ul className="space-y-1.5">
                 {lost.slice(0, 8).map((c) => (
                   <li key={c.key} className="flex items-center justify-between text-sm">
-                    <span className="truncate">{c.name}</span>
+                    <span className="truncate">
+                      <ClientLink clientId={c.clientId} clientKey={c.key} name={c.name} />
+                    </span>
                     <span className="text-xs text-muted-foreground">{new Date(c.lastDate!).toLocaleDateString("fr-FR")}</span>
                   </li>
                 ))}
