@@ -325,6 +325,10 @@ export async function createCeevAgreement(input: CeevAgreementInput): Promise<Ce
       status: input.status ?? "actif",
       next_intervention_date: input.next_intervention_date ?? null,
       notes: input.notes ?? null,
+      visits_planned: input.visits_planned ?? null,
+      visit_duration_hours: input.visit_duration_hours ?? null,
+      season_start_month: input.season_start_month ?? null,
+      season_end_month: input.season_end_month ?? null,
     } as never)
     .select()
     .single();
