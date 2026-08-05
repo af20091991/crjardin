@@ -101,6 +101,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               { to: "/pilot/taux", label: "Répartition du temps", short: "Temps", icon: Clock, exact: false, primary: false },
               { to: "/sst", label: "Sous-traitants", short: "SST", icon: HardHat, exact: false, primary: false },
               { to: "/journal-sst", label: "Journal SST", short: "Journal", icon: ClipboardList, exact: false, primary: false },
+              { to: "/pilot/ceev-contrats", label: "Contrats d'entretien (CEEV)", short: "CEEV", icon: Leaf, exact: false, primary: false },
             ]
           : []),
       ],
