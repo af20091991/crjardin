@@ -21,6 +21,7 @@ import {
 } from "@/lib/pilot-charges";
 import { usePilotYear } from "@/lib/pilot-mode";
 import { useAnalytics } from "@/lib/pilot-analytics";
+import { ANALYTICS_QUERY_ROOT } from "@/lib/pilot-engine";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 
 export const Route = createFileRoute("/_authenticated/pilot/charges")({
@@ -305,7 +306,7 @@ function ChargesPage() {
             rows={chargeRows}
             year={detailYear}
             search={search}
-            onChanged={() => qc.invalidateQueries({ queryKey: ["pilot-charges-analysis"] })}
+            onChanged={() => qc.invalidateQueries({ queryKey: [ANALYTICS_QUERY_ROOT] })}
           />
         </CardContent>
       </Card>
