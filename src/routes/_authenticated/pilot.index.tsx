@@ -48,7 +48,13 @@ import {
   type ActionStatus,
 } from "@/lib/pilot-action-status";
 import { listCeevContracts } from "@/lib/ceev";
-import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
+import {
+  chargeRowsForMode,
+  entriesForMode,
+  goalsForMode,
+  hoursLedgerForMode,
+  todayIso,
+} from "@/lib/pilot-realized";
 import { annualSummary } from "@/lib/pilot-annual";
 import {
   listAlertFeedback,
@@ -650,6 +656,36 @@ function TodayPage() {
    */
   const heuresRealiseesMois = comparatifs.mois.find((i) => i.key === "h")?.current ?? 0;
   const heuresRealiseesAnnee = comparatifs.annee.find((i) => i.key === "h")?.current ?? 0;
+
+  /**
+   * Évolution mensuelle réelle depuis le 1er janvier : CA HT enregistré et
+   * bénéfice (CA − charges d'exploitation enregistrées, hors investissements).
+   * Seuls les mois écoulés sont présents : aucune projection, aucune estimation.
+   */
+  const monthlyPerformance = useMemo(() => {
+    const caByMonth = new Array(12).fill(0) as number[];
+    for (const e of realEntries) {
+      const d = new Date(e.entry_date);
+      if (!Number.isFinite(d.getTime()) || d.getFullYear() !== year) continue;
+      caByMonth[d.getMonth()] += Number(e.amount_ht) || 0;
+    }
+    const chargesByMonth = new Array(12).fill(0) as number[];
+    for (const c of operatingCharges(chargeRowsForMode(chargeRows.data ?? [], mode))) {
+      if (c.year !== year || c.is_investment) continue;
+      const idx = Number(c.month) - 1;
+      if (idx < 0 || idx > 11) continue;
+      chargesByMonth[idx] += Number(c.amount_ht) || 0;
+    }
+    const labels = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
+    return labels
+      .slice(0, month + 1)
+      .map((mois, i) => ({
+        mois,
+        "CA HT": caByMonth[i],
+        Bénéfice: caByMonth[i] - chargesByMonth[i],
+      }))
+      .filter((r, i) => caByMonth[i] !== 0 || chargesByMonth[i] !== 0);
+  }, [realEntries, chargeRows.data, mode, year, month]);
 
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
