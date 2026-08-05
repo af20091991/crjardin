@@ -60,6 +60,16 @@ import {
 } from "@/lib/pilot-alert-feedback";
 import { toast } from "sonner";
 import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+} from "recharts";
+import { PP_COLORS } from "@/lib/pilot-colors";
+import {
   Euro,
   Wallet,
   Sparkles,
@@ -78,7 +88,6 @@ import {
   Link2,
   Star,
   Eye,
-  Timer,
   Lightbulb,
 } from "lucide-react";
 
@@ -252,12 +261,6 @@ function TodayPage() {
   // exercice complet et faussait la lecture.
   const toDateCompare = useMemo(() => toDateVsSameDateLastYear(entries.data ?? []), [entries.data]);
 
-  const beneficeMois = useMemo(() => {
-    // approximation : marge annuelle appliquée au CA du mois
-    const marge = k.marge / 100;
-    return k.caMonth * marge;
-  }, [k]);
-
   const allI = (interventions.data ?? []).filter(
     (i) => !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso(),
   );
@@ -411,39 +414,9 @@ function TodayPage() {
   // ------- Nouvelles analyses (aucune nouvelle donnée) -------
   const targetHR = set.target_hourly_rate || 0;
 
-  // Moyenne d'heures par type d'intervention (issue des interventions terminées avec heures confirmées)
-  const avgHoursByType = useMemo(() => {
-    const acc = new Map<string, { total: number; n: number }>();
-    for (const i of allI) {
-      if (i.status !== "terminee" || i.hours_spent == null) continue;
-      const estimated =
-        i.ai_metadata &&
-        typeof i.ai_metadata === "object" &&
-        (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
-      if (estimated) continue;
-      const key = i.intervention_type ?? "—";
-      const cur = acc.get(key) ?? { total: 0, n: 0 };
-      cur.total += Number(i.hours_spent);
-      cur.n += 1;
-      acc.set(key, cur);
-    }
-    const out = new Map<string, number>();
-    acc.forEach((v, k) => v.n >= 2 && out.set(k, v.total / v.n));
-    return out;
-  }, [allI]);
-
-  // Interventions dont le temps réel dépasse fortement (>50 %) la moyenne du type
-  const timeOverruns = useMemo(
-    () =>
-      allI.filter((i) => {
-        if (i.status !== "terminee" || i.hours_spent == null) return false;
-        const key = i.intervention_type ?? "—";
-        const avg = avgHoursByType.get(key);
-        if (!avg || avg <= 0) return false;
-        return Number(i.hours_spent) > avg * 1.5;
-      }),
-    [allI, avgHoursByType],
-  );
+  // Aucune notion de « temps prévu / théorique » dans Pilot Pro : les
+  // comparaisons de temps passé à une moyenne de type d'intervention ont été
+  // supprimées (indicateur non vérifiable, trompeur pour le pilotage).
 
   // CA agrégé par client sur l'année (pour taux horaire réel par client)
   const caByClient = useMemo(() => {
@@ -542,8 +515,7 @@ function TodayPage() {
       reportsToSend.length +
       reportsToGenerate.length +
       missingHours.length +
-      goalsLate.length +
-      timeOverruns.length,
+      goalsLate.length,
     important:
       clientsARelancer.length +
       clientsDormants.length +
@@ -570,15 +542,6 @@ function TodayPage() {
     : ({ available: false, label: "Taux horaire réel", detail: "Chargement des heures…" } as const);
   const tauxEcartPct =
     realRate.available && targetHR > 0 ? ((realRate.value - targetHR) / targetHR) * 100 : 0;
-
-  // Heures vendues du mois en cours (ledger consolidé, mode Réel/Projection).
-  const heuresVenduesMois = useMemo(
-    () =>
-      ledgerRows
-        .filter((e) => e.type === "vendue" && e.year === year && e.month === month + 1)
-        .reduce((s, e) => s + e.hours, 0),
-    [ledgerRows, year, month],
-  );
 
   // ---- Synthèses de lecture (aucune projection, uniquement l'enregistré) ----
   /** Libellé de période « Du 1er août au 5 août 2026 ». */
@@ -612,21 +575,80 @@ function TodayPage() {
     [allI, year],
   );
 
-  /** Heures réalisées enregistrées (ledger « realisee »). */
-  const heuresRealiseesMois = useMemo(
-    () =>
-      ledgerRows
-        .filter((e) => e.type === "realisee" && e.year === year && e.month === month + 1)
-        .reduce((s, e) => s + e.hours, 0),
-    [ledgerRows, year, month],
-  );
-  const heuresRealiseesAnnee = useMemo(
-    () =>
-      ledgerRows
-        .filter((e) => e.type === "realisee" && e.year === year)
-        .reduce((s, e) => s + e.hours, 0),
-    [ledgerRows, year],
-  );
+  // ---- Comparatifs à date équivalente N-1 (uniquement l'enregistré) ----
+  // CA : lignes de vente enregistrées (pilot_ca_entries).
+  // Interventions : statut « terminée » (interventions).
+  // Heures : interventions.hours_spent non estimées uniquement. Les heures
+  // vendues et les heures historiques importées n'ont pas de précision au
+  // jour : elles ne sont jamais mélangées dans ces comparatifs.
+  const comparatifs = useMemo(() => {
+    const dayOfYear = (d: Date) =>
+      Math.floor(
+        (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 1)) /
+          86_400_000,
+      );
+    const limitDoy = dayOfYear(now);
+    const limitDay = now.getDate();
+
+    const ca = (keep: (d: Date) => boolean) =>
+      realEntries.reduce((s, e) => {
+        const d = new Date(e.entry_date);
+        return Number.isFinite(d.getTime()) && keep(d) ? s + (Number(e.amount_ht) || 0) : s;
+      }, 0);
+    const nbItv = (keep: (d: Date) => boolean) =>
+      allI.filter(
+        (i) =>
+          i.status === "terminee" && i.intervention_date && keep(new Date(i.intervention_date)),
+      ).length;
+    const heures = (keep: (d: Date) => boolean) =>
+      allI.reduce((s, i) => {
+        if (i.status !== "terminee" || i.hours_spent == null || !i.intervention_date) return s;
+        const meta = i.ai_metadata as Record<string, unknown> | null;
+        if (meta && meta["hours_spent_estimated"] === true) return s;
+        return keep(new Date(i.intervention_date)) ? s + Number(i.hours_spent) : s;
+      }, 0);
+
+    const moisN = (d: Date) =>
+      d.getFullYear() === year && d.getMonth() === month && d.getDate() <= limitDay;
+    const moisN1 = (d: Date) =>
+      d.getFullYear() === year - 1 && d.getMonth() === month && d.getDate() <= limitDay;
+    const anneeN = (d: Date) => d.getFullYear() === year && dayOfYear(d) <= limitDoy;
+    const anneeN1 = (d: Date) => d.getFullYear() === year - 1 && dayOfYear(d) <= limitDoy;
+
+    const build = (cur: (d: Date) => boolean, prev: (d: Date) => boolean) => [
+      {
+        key: "ca",
+        label: "CA facturé",
+        current: ca(cur),
+        previous: ca(prev),
+        fmt: (v: number) => formatEuro(v),
+      },
+      {
+        key: "itv",
+        label: "Interventions terminées",
+        current: nbItv(cur),
+        previous: nbItv(prev),
+        fmt: (v: number) => String(Math.round(v)),
+      },
+      {
+        key: "h",
+        label: "Heures réalisées",
+        current: heures(cur),
+        previous: heures(prev),
+        fmt: (v: number) => formatHours(v),
+      },
+    ];
+
+    return { mois: build(moisN, moisN1), annee: build(anneeN, anneeN1) };
+  }, [realEntries, allI, year, month, now]);
+
+  /**
+   * Heures réalisées — source unique et vérifiable : interventions terminées
+   * avec heures confirmées (les heures estimées sont exclues). Mêmes chiffres
+   * que les comparatifs ci-dessus, aucune autre source mélangée.
+   */
+  const heuresRealiseesMois = comparatifs.mois.find((i) => i.key === "h")?.current ?? 0;
+  const heuresRealiseesAnnee = comparatifs.annee.find((i) => i.key === "h")?.current ?? 0;
 
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
@@ -669,14 +691,6 @@ function TodayPage() {
       count: acceptedNotPlanned.length,
       icon: Handshake,
       topic: "recos-a-planifier" as FocusTopic,
-      tone: "urgent" as Priority,
-    },
-    {
-      key: "d",
-      label: "Dépassements de temps",
-      count: timeOverruns.length,
-      icon: TrendingDown,
-      topic: "depassements-temps" as FocusTopic,
       tone: "urgent" as Priority,
     },
     {
@@ -1022,8 +1036,8 @@ function TodayPage() {
 
       {/* 1 — Synthèse du mois en cours : premier bloc (données enregistrées) */}
       <DashboardBlock id="mois" layout={layout}>
-        <SectionTitle question="Comment se passe mon mois ?" label={moisPeriodeLabel} />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <SectionTitle question="Vue mois" label={moisPeriodeLabel} />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <PilotCard
             label="CA réalisé du mois"
             value={formatEuro(k.caMonth)}
@@ -1050,14 +1064,13 @@ function TodayPage() {
             to="/pilot/temps"
             help="Heures réelles saisies sur les interventions du mois (ledger consolidé). Affiché uniquement si des heures existent."
           />
-          <PilotCard
-            label="Heures vendues du mois"
-            value={hoursLedger.data ? formatHours(heuresVenduesMois) : "—"}
-            icon={Timer}
-            to="/pilot/ca"
-            help="Heures déclarées sur les lignes de vente du mois en cours."
-          />
         </div>
+        <CompareBars
+          items={comparatifs.mois}
+          currentLabel={`${moisCourtLabel} ${year}`}
+          previousLabel={`${moisCourtLabel} ${year - 1}`}
+          note={`Comparaison à date équivalente : du 1er au ${now.getDate()} du mois, ${year} vs ${year - 1}. Heures issues des interventions terminées (heures confirmées).`}
+        />
         {missingHours.length > 0 && (
           <Card className="border-amber-300/70 bg-amber-50/40 p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2">
@@ -1078,7 +1091,7 @@ function TodayPage() {
       {/* 2 — Synthèse depuis le début de l'exercice */}
       <DashboardBlock id="exercice" layout={layout}>
         <SectionTitle
-          question="Où en suis-je depuis le début de l'exercice ?"
+          question="Vue exercice"
           label={`Depuis le 1er janvier ${year}`}
         />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -1136,6 +1149,12 @@ function TodayPage() {
             }
           />
         </div>
+        <CompareBars
+          items={comparatifs.annee}
+          currentLabel={`1er janv. → aujourd'hui ${year}`}
+          previousLabel={`1er janv. → même date ${year - 1}`}
+          note={`Comparaison à date équivalente depuis le 1er janvier. Aucun exercice complet, aucune projection.`}
+        />
       </DashboardBlock>
 
       {/* 3 — Situation actuelle : deux niveaux de lecture */}
@@ -1151,7 +1170,7 @@ function TodayPage() {
                 <p className="text-sm text-muted-foreground">
                   {interventionsAnnee} intervention{interventionsAnnee > 1 ? "s" : ""}
                   {heuresRealiseesAnnee > 0
-                    ? ` · ${formatHours(heuresRealiseesAnnee)} réalisées`
+                    ? ` · ${formatHours(heuresRealiseesAnnee)} réalisées (heures confirmées sur interventions)`
                     : ""}
                 </p>
               </div>
@@ -1167,7 +1186,7 @@ function TodayPage() {
                 <p className="text-sm text-muted-foreground">
                   {interventionsMois} intervention{interventionsMois > 1 ? "s" : ""}
                   {heuresRealiseesMois > 0
-                    ? ` · ${formatHours(heuresRealiseesMois)} réalisées`
+                    ? ` · ${formatHours(heuresRealiseesMois)} réalisées (heures confirmées sur interventions)`
                     : ""}
                 </p>
               </div>
@@ -1177,22 +1196,18 @@ function TodayPage() {
             </div>
           </CardContent>
         </Card>
+        <p className="text-xs text-muted-foreground">
+          Source unique : CA facturé enregistré et heures confirmées sur les interventions
+          terminées. Les heures vendues (lignes CA) et les heures historiques importées ne sont pas
+          comptées ici — elles sont consultables dans le module Temps.
+        </p>
       </DashboardBlock>
 
       {/* Priorités du jour */}
       <DashboardBlock id="priorites" layout={layout}>
-        <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
-        {priorities.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex items-center gap-3 py-5">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <p className="text-sm text-muted-foreground">
-                Aucune action urgente. Concentrez-vous sur les opportunités.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
+        {priorities.length === 0 ? null : (
           <>
+            <SectionTitle question="Priorités" label="Actions fiables du jour" />
             <div className="grid gap-2 sm:grid-cols-2">
               {rankedPriorities
                 .slice(0, showAllPriorities ? rankedPriorities.length : 2)
@@ -1239,6 +1254,72 @@ function SectionTitle({ question, label }: { question: string; label: string }) 
       <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
+    </div>
+  );
+}
+
+/**
+ * Comparatif à date équivalente N vs N-1 : un mini histogramme par indicateur
+ * fiable. Aucune projection, aucune donnée reconstruite.
+ */
+function CompareBars({
+  items,
+  currentLabel,
+  previousLabel,
+  note,
+}: {
+  items: Array<{
+    key: string;
+    label: string;
+    current: number;
+    previous: number;
+    fmt: (v: number) => string;
+  }>;
+  currentLabel: string;
+  previousLabel: string;
+  note: string;
+}) {
+  const visible = items.filter((i) => i.current > 0 || i.previous > 0);
+  if (visible.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {visible.map((it) => {
+          const deltaPct =
+            it.previous > 0 ? ((it.current - it.previous) / it.previous) * 100 : null;
+          return (
+            <Card key={it.key} className="p-3">
+              <p className="text-xs font-medium">{it.label}</p>
+              <p className="font-serif text-lg font-semibold tabular-nums">{it.fmt(it.current)}</p>
+              <div className="h-[110px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      { name: previousLabel, v: it.previous },
+                      { name: currentLabel, v: it.current },
+                    ]}
+                    margin={{ top: 4, right: 4, left: 4, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} />
+                    <Tooltip formatter={(v: number | string) => it.fmt(Number(v))} />
+                    <Bar dataKey="v" radius={[4, 4, 0, 0]}>
+                      <Cell fill={PP_COLORS.neutral} />
+                      <Cell fill={PP_COLORS.primary} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {deltaPct != null
+                  ? `${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(0)} % vs période équivalente`
+                  : "Aucune référence sur la période équivalente"}
+              </p>
+            </Card>
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted-foreground">{note}</p>
     </div>
   );
 }
