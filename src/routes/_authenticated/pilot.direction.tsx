@@ -289,6 +289,9 @@ function PilotDashboard() {
         confidence={{ label: confidenceMeta.label, color: confidenceMeta.color, Icon: ConfIcon }}
         year={year}
       />
+
+      {/* Historique de couverture des données : en fin de page (information de contrôle) */}
+      <CoverageHistoryCard />
     </div>
   );
 }
