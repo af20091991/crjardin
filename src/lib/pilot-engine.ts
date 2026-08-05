@@ -18,15 +18,52 @@
 // ---------------------------------------------------------------------------
 
 import { queryOptions, useQuery } from "@tanstack/react-query";
-import { getSettings, listEntries, type PilotEntry, type PilotSettings } from "@/lib/pilot";
+import {
+  FAMILIES,
+  FAMILY_META,
+  MONTHS,
+  fetchConfirmedHoursByClient,
+  getSettings,
+  listEntries,
+  monthlySeries,
+  type PilotEntry,
+  type PilotSettings,
+} from "@/lib/pilot";
 import {
   analyzeCharges,
+  categoryBreakdown,
+  chargesEvolution,
+  chargesWeightPct,
+  investmentsForYear,
+  listChargeCategories,
   listChargeRows,
   listSalesByYear,
+  monthlyChargeTotals,
   operatingCharges,
+  priorityCategories,
+  priorityTrend,
+  projectionBase,
+  salesTotal,
   type ChargeRow,
   type ChargesAnalysis,
 } from "@/lib/pilot-charges";
+import {
+  computeMonths,
+  computeTjm,
+  getTjmSettings,
+  listHours,
+  monthlyCa as monthlyCaTotals,
+  monthlyFieldHours,
+  monthlyTotals,
+  monthsMissingGestion,
+  type HoursRow,
+  type MonthMetric,
+  type MonthlyHoursTotals,
+  type TjmResult,
+  type TjmSettings,
+} from "@/lib/pilot-hours";
+import { projectYear, type ProjectionResult } from "@/lib/pilot-projection";
+import { buildClientView, type ClientView, type ClientViewInput } from "@/lib/pilot-client-view";
 import { fetchHoursLedger, type HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours, type RealHoursResolution } from "@/lib/pilot-real-hours";
 import { annualSummary, type AnnualRow } from "@/lib/pilot-annual";
@@ -62,11 +99,33 @@ export interface EngineInputs {
   statuses: EntityStatusMap;
   salesByYear: Map<number, number>;
   settings: PilotSettings;
+  /** Référentiel temps mensuel (pilot_hours) et sources CA mensuelles. */
+  hoursRows: HoursRow[];
+  monthlyCa: number[];
+  monthlyFieldHours: number[];
+  tjmSettings: TjmSettings | null;
+  chargeCategories: string[];
+  /** Heures confirmées de l'exercice précédent (comparatif direction). */
+  prevConfirmedHours: Map<string, number>;
 }
 
 /** ÉTAPE 1-2 : lecture des sources officielles (une seule fois, pour tous les écrans). */
 export async function loadEngineInputs(scope: EngineScope): Promise<EngineInputs> {
-  const [entries, chargeRows, ledger, scores, statuses, salesByYear, settings] = await Promise.all([
+  const [
+    entries,
+    chargeRows,
+    ledger,
+    scores,
+    statuses,
+    salesByYear,
+    settings,
+    hoursRows,
+    monthlyCa,
+    fieldHours,
+    tjmSettings,
+    categories,
+    prevConfirmedHours,
+  ] = await Promise.all([
     listEntries(),
     listChargeRows(),
     fetchHoursLedger(undefined, { mode: scope.mode }),
@@ -74,8 +133,29 @@ export async function loadEngineInputs(scope: EngineScope): Promise<EngineInputs
     fetchEntityStatuses(),
     listSalesByYear({ mode: scope.mode }),
     getSettings(),
+    listHours(scope.year),
+    monthlyCaTotals(scope.year, { mode: scope.mode }),
+    monthlyFieldHours(scope.year, { mode: scope.mode }),
+    getTjmSettings(),
+    listChargeCategories(),
+    fetchConfirmedHoursByClient(scope.year - 1, { mode: "reel" }),
   ]);
-  return { scope, entries, chargeRows, ledger, scores, statuses, salesByYear, settings };
+  return {
+    scope,
+    entries,
+    chargeRows,
+    ledger,
+    scores,
+    statuses,
+    salesByYear,
+    settings,
+    hoursRows,
+    monthlyCa,
+    monthlyFieldHours: fieldHours,
+    tjmSettings,
+    chargeCategories: categories.map((c) => c.label),
+    prevConfirmedHours,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -149,17 +229,74 @@ export interface AnalyticsSnapshot {
     remunerationCoutEmployeur: number;
     complete: boolean;
     analysis: ChargesAnalysis;
+    /** Mois observés dans l'exercice (base du seuil mensuel). */
+    monthsObserved: number;
+    mensuelles: number;
+    /** Charges de l'exercice mois par mois (hors rémunération dirigeant). */
+    byMonth: number[];
+    /** Vues d'affichage prêtes à l'emploi (aucun calcul dans les écrans). */
+    weightPct: number | null;
+    evolution: Array<{ annee: string; Fixes: number; Variables: number; Total: number }>;
+    repartition: Array<{ name: string; value: number }>;
+    priority: ChargesAnalysis["categories"];
+    priorityTrend: Array<Record<string, string | number>>;
+    projectionBase: ReturnType<typeof projectionBase>;
   };
   resultat: {
     beneficeBrut: number;
     margePct: number | null;
     resultatApresInvestissements: number;
   };
+  /**
+   * Vue « fin d'exercice » : identique à `resultat` en mode réel, extrapolée en
+   * mode projection. Les écrans n'ont plus aucun arbitrage à faire.
+   */
+  outlook: {
+    caHt: number;
+    charges: number;
+    beneficeBrut: number;
+    margePct: number;
+    investissements: number;
+    resultatApresInvestissements: number;
+    projected: boolean;
+    explanation: string;
+  };
   rates: {
     tauxHoraireVendu: number | null;
     tauxHoraireReel: number | null;
     cible: number;
+    /** Coût horaire de structure = charges / heures travaillées (terrain + gestion). */
+    coutHoraireStructure: number | null;
+    /** Seuil de rentabilité mensuel = charges mensuelles moyennes. */
+    seuilMensuel: number;
   };
+  /** Référentiel temps mensuel consolidé (taux horaire, jours, gestion). */
+  monthly: {
+    rows: MonthMetric[];
+    totals: MonthlyHoursTotals;
+    gestionDefaut: number;
+    missingGestion: number[];
+    /** Série financière mensuelle (mode réel ou projection selon le périmètre). */
+    finance: Array<{
+      mois: string;
+      CA: number;
+      Charges: number;
+      Bénéfice: number;
+      projete: boolean;
+      tauxNet: number | null;
+    }>;
+    /** Série CA N vs N-1. */
+    caSeries: Array<{ month: string; current: number; previous: number }>;
+  };
+  tjm: { settings: TjmSettings | null; result: TjmResult | null; tauxCible: number | null };
+  projection: ProjectionResult;
+  /** Mix d'activité par famille de prestation. */
+  families: Array<{ family: string; label: string; color: string; value: number; pct: number }>;
+  familyConcentrationPct: number;
+  /** Exercice précédent (comparatifs direction). */
+  prevYear: { caHt: number; hoursConfirmed: number; hourlyRate: number | null };
+  /** Alertes financières dérivées des seuls indicateurs certifiés. */
+  financeAlerts: Array<{ tone: "danger" | "warn"; text: string }>;
   clients: {
     /** Toutes les fiches consolidées (certification incluse dans chaque ligne). */
     all: PortfolioRow[];
@@ -224,7 +361,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const hoursRes = resolveRealHours(ledger, year);
 
   // --- charges (source unique : pilot-charges) ---
-  const analysis = analyzeCharges(chargeAll, inputs.salesByYear, [], { mode });
+  const analysis = analyzeCharges(chargeAll, inputs.salesByYear, inputs.chargeCategories, { mode });
   const yearCharges = analysis.years.find((y) => y.year === year);
   const operatingYear = operatingCharges(chargeAll).filter(
     (c) => c.year === year && !c.is_investment,
@@ -267,6 +404,97 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   };
 
   const annual = annualSummary(inputs.entries, inputs.chargeRows, { mode });
+
+  // --- référentiel temps mensuel (taux horaire, jours, gestion) ---
+  const gestionDefaut = inputs.tjmSettings?.heures_gestion ?? 60;
+  const monthRows = computeMonths(
+    inputs.monthlyCa,
+    inputs.hoursRows,
+    gestionDefaut,
+    inputs.monthlyFieldHours,
+  );
+  const monthTotals = monthlyTotals(monthRows, gestionDefaut);
+  const tjmResult = inputs.tjmSettings ? computeTjm(inputs.tjmSettings) : null;
+
+  // --- projection d'exercice (mode projection) ---
+  const projection = projectYear({
+    entries: inputs.entries,
+    charges: inputs.chargeRows.filter((r) => !r.is_investment),
+    year,
+  });
+  const isProjection = mode === "projection";
+
+  // --- séries financières mensuelles ---
+  const chargesByMonth = monthlyChargeTotals(inputs.chargeRows, year, { mode });
+  const financeMonths = monthRows.map((m, i) => {
+    const ca = Math.round(isProjection ? projection.monthly[i].ca : m.ca);
+    const ch = Math.round(isProjection ? projection.monthly[i].charges : chargesByMonth[i]);
+    return {
+      mois: MONTHS[m.month - 1],
+      CA: ca,
+      Charges: ch,
+      Bénéfice: ca - ch,
+      projete: isProjection ? projection.monthly[i].projected : false,
+      tauxNet: m.net,
+    };
+  });
+
+  const monthsObserved = yearCharges?.monthsObserved ?? 0;
+  const currentAnnualRow = annual.find((a) => a.year === year);
+  const outlookCa = isProjection ? projection.caProjete : (currentAnnualRow?.caHt ?? yearHt);
+  const outlookCharges = isProjection ? projection.chargesProjetees : (currentAnnualRow?.charges ?? chargesTotal);
+  const outlookBenefice = isProjection
+    ? outlookCa - outlookCharges
+    : (currentAnnualRow?.beneficeBrut ?? beneficeBrut);
+  const chargesMensuelles = monthsObserved > 0 ? chargesTotal / monthsObserved : 0;
+  const coutHoraireStructure =
+    monthTotals.heuresTotales > 0 ? chargesTotal / monthTotals.heuresTotales : null;
+
+  // --- mix d'activité par famille ---
+  const families = FAMILIES.map((f) => {
+    const value = sum(yearEntries.filter((e) => e.family === f));
+    return {
+      family: f as string,
+      label: FAMILY_META[f].short,
+      color: FAMILY_META[f].color,
+      value,
+      pct: yearHt > 0 ? (value / yearHt) * 100 : 0,
+    };
+  });
+  const familyTotal = families.reduce((s, f) => s + f.value, 0);
+  const familiesRanked = [...families].filter((f) => f.value > 0).sort((a, b) => b.value - a.value);
+  const familyConcentrationPct =
+    familiesRanked[0] && familyTotal > 0 ? (familiesRanked[0].value / familyTotal) * 100 : 0;
+
+  // --- exercice précédent (comparatif) ---
+  let prevHours = 0;
+  for (const v of inputs.prevConfirmedHours.values()) prevHours += v;
+  const prevYearRow = annual.find((a) => a.year === year - 1);
+  const prevYearCa = prevYearRow?.caHt ?? prevYearHt;
+
+  // --- alertes financières (dérivées des seuls indicateurs du moteur) ---
+  const financeAlerts: AnalyticsSnapshot["financeAlerts"] = [];
+  if (margePct != null && margePct < 15 && yearHt > 0)
+    financeAlerts.push({
+      tone: "danger",
+      text: `Marge de ${margePct.toFixed(0)} % : en dessous du seuil de sécurité de 15 %.`,
+    });
+  if (prevYearRow && prevYearRow.charges > 0) {
+    const evo = ((chargesTotal - prevYearRow.charges) / prevYearRow.charges) * 100;
+    if (evo > 15)
+      financeAlerts.push({ tone: "warn", text: `Charges en hausse de ${evo.toFixed(0)} % vs ${year - 1}.` });
+  }
+  const negMonths = financeMonths.filter((m) => m.CA > 0 && m.Bénéfice < 0);
+  if (negMonths.length > 0)
+    financeAlerts.push({
+      tone: "warn",
+      text: `${negMonths.length} mois à bénéfice négatif : ${negMonths.map((m) => m.mois).join(", ")}.`,
+    });
+  if (analysis.unclassifiedCount > 0)
+    financeAlerts.push({
+      tone: "warn",
+      text: `${analysis.unclassifiedCount} charge(s) non classées faussent l'analyse.`,
+    });
 
   const periode =
     mode === "reel"
@@ -458,17 +686,62 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
       remunerationCoutEmployeur: remu.employerCost || employerCost(remu.net),
       complete: chargesComplete,
       analysis,
+      monthsObserved,
+      mensuelles: chargesMensuelles,
+      byMonth: chargesByMonth,
+      weightPct: chargesWeightPct(analysis, salesTotal(inputs.salesByYear)),
+      evolution: chargesEvolution(analysis),
+      repartition: categoryBreakdown(analysis),
+      priority: priorityCategories(analysis),
+      priorityTrend: priorityTrend(analysis),
+      projectionBase: projectionBase(inputs.chargeRows, year, inputs.salesByYear),
     },
     resultat: {
       beneficeBrut,
       margePct,
       resultatApresInvestissements: beneficeBrut - investissements,
     },
+    outlook: {
+      caHt: outlookCa,
+      charges: outlookCharges,
+      beneficeBrut: outlookBenefice,
+      margePct: outlookCa > 0 ? (outlookBenefice / outlookCa) * 100 : 0,
+      investissements,
+      resultatApresInvestissements: outlookBenefice - investissements,
+      projected: isProjection,
+      explanation: isProjection
+        ? projection.explanation
+        : "Mode réel : uniquement le CA facturé et les charges constatées à date.",
+    },
     rates: {
       tauxHoraireVendu,
       tauxHoraireReel,
       cible: inputs.settings.target_hourly_rate ?? 0,
+      coutHoraireStructure,
+      seuilMensuel: chargesMensuelles,
     },
+    monthly: {
+      rows: monthRows,
+      totals: monthTotals,
+      gestionDefaut,
+      missingGestion: monthsMissingGestion(monthRows, year, now),
+      finance: financeMonths,
+      caSeries: monthlySeries(inputs.entries, year, { mode, now }),
+    },
+    tjm: {
+      settings: inputs.tjmSettings,
+      result: tjmResult,
+      tauxCible: tjmResult ? Number(tjmResult.tauxHoraire.toFixed(1)) : null,
+    },
+    projection,
+    families,
+    familyConcentrationPct,
+    prevYear: {
+      caHt: prevYearCa,
+      hoursConfirmed: prevHours,
+      hourlyRate: prevHours > 0 ? prevYearCa / prevHours : null,
+    },
+    financeAlerts,
     clients: { all: allRows, ranking, excluded },
     annual,
     kpis,
@@ -514,4 +787,22 @@ export function formatKpi(k: Kpi): string {
     default:
       return k.value.toLocaleString("fr-FR");
   }
+}
+
+// ---------------------------------------------------------------------------
+// Sélecteurs — seule façon d'obtenir une valeur dérivée dans un écran.
+// ---------------------------------------------------------------------------
+
+export type { ClientView, ClientViewInput };
+
+/** Consolidation d'une fiche client 360° (aucun calcul dans la page). */
+export function clientView(input: ClientViewInput): ClientView {
+  return buildClientView(input);
+}
+
+/** Total d'une carte d'heures par client (jamais recalculé dans un écran). */
+export function sumHoursMap(map: Map<string, number> | undefined): number {
+  let s = 0;
+  for (const v of map?.values() ?? []) s += v;
+  return s;
 }

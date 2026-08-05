@@ -1,10 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  listHours, upsertHours, getTjmSettings, monthlyCa, monthlyFieldHours,
-  computeMonths, computeTjm, monthsMissingGestion,
-} from "@/lib/pilot-hours";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { upsertHours } from "@/lib/pilot-hours";
+import { useAnalytics } from "@/lib/pilot-analytics";
+import { ANALYTICS_QUERY_ROOT } from "@/lib/pilot-engine";
 import { MONTHS, formatEuro } from "@/lib/pilot";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +16,6 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
-import { usePilotMode } from "@/lib/pilot-mode";
 import { PP_COLORS } from "@/lib/pilot-colors";
 
 const YEAR = currentYear();
@@ -56,14 +54,9 @@ const DEFAULT_GRAPHS: GraphKey[] = ["brut", "net", "cible"];
 
 function TauxPage() {
   const qc = useQueryClient();
-  const { mode } = usePilotMode();
-  const hoursQ = useQuery({ queryKey: ["pilot-hours", YEAR], queryFn: () => listHours(YEAR) });
-  const caQ = useQuery({ queryKey: ["pilot-hours-ca", YEAR, mode], queryFn: () => monthlyCa(YEAR, { mode }) });
-  const caHoursQ = useQuery({ queryKey: ["pilot-ca-field-hours", YEAR, mode], queryFn: () => monthlyFieldHours(YEAR, { mode }) });
-  const setQ = useQuery({ queryKey: ["pilot-tjm-settings"], queryFn: getTjmSettings });
-
-  const settings = setQ.data;
-  const gestionDefaut = settings?.heures_gestion ?? 60;
+  // Toutes les valeurs affichées proviennent du moteur analytique central.
+  const { snapshot, isLoading } = useAnalytics();
+  const gestionDefaut = snapshot?.monthly.gestionDefaut ?? 60;
 
   const [cols, setCols] = useState<ColKey[]>(() => {
     if (typeof window === "undefined") return DEFAULT_COLS;
@@ -97,32 +90,18 @@ function TauxPage() {
   };
   const showGraph = (k: GraphKey) => graphs.includes(k);
 
-  const months = useMemo(
-    () => computeMonths(caQ.data ?? Array(12).fill(0), hoursQ.data ?? [], gestionDefaut, caHoursQ.data ?? []),
-    [caQ.data, hoursQ.data, gestionDefaut, caHoursQ.data],
-  );
+  const months = snapshot?.monthly.rows ?? [];
+  const totals = snapshot?.monthly.totals ?? null;
+  const missing = snapshot?.monthly.missingGestion ?? [];
+  const tjm = snapshot?.tjm.result ?? null;
+  const tauxCible = snapshot?.tjm.tauxCible ?? null;
 
   const hoursMut = useMutation({
     mutationFn: (p: { month: number; field: "temps_terrain" | "temps_gestion" | "jours_travailles"; value: number | null }) =>
       upsertHours(YEAR, p.month, { [p.field]: p.value }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["pilot-hours", YEAR] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [ANALYTICS_QUERY_ROOT] }),
     onError: (e: Error) => toast.error(e.message),
   });
-
-  const missing = monthsMissingGestion(months, YEAR);
-
-  // Moyennes annuelles (mois avec temps terrain connu)
-  const withTerrain = months.filter((m) => m.temps_terrain && m.temps_terrain > 0);
-  const totalCa = withTerrain.reduce((s, m) => s + m.ca, 0);
-  const totalTerrain = withTerrain.reduce((s, m) => s + (m.temps_terrain ?? 0), 0);
-  const totalGestion = withTerrain.reduce((s, m) => s + (m.temps_gestion ?? gestionDefaut), 0);
-  const avgBrut = totalTerrain > 0 ? totalCa / totalTerrain : 0;
-  const avgNet = totalTerrain + totalGestion > 0 ? totalCa / (totalTerrain + totalGestion) : 0;
-  const totalJours = months.reduce((s, m) => s + (m.jours_travailles ?? 0), 0);
-  const avgCaJour = totalJours > 0 ? months.reduce((s, m) => s + m.ca, 0) / totalJours : 0;
-
-  const tjm = settings ? computeTjm(settings) : null;
-  const tauxCible = tjm ? Number(tjm.tauxHoraire.toFixed(1)) : null;
 
   const chartData = months
     .filter((m) => m.brut != null)
@@ -189,9 +168,9 @@ function TauxPage() {
 
       {/* KPI */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi icon={<Timer className="h-4 w-4" />} label="Taux horaire brut" value={`${avgBrut.toFixed(0)} €/h`} sub="CA ÷ heures terrain" accent />
-        <Kpi icon={<Clock className="h-4 w-4" />} label="Taux horaire net" value={`${avgNet.toFixed(0)} €/h`} sub="CA ÷ (terrain + gestion)" />
-        <Kpi icon={<CalendarDays className="h-4 w-4" />} label="CA / jour moyen" value={formatEuro(avgCaJour)} sub={`${totalJours} jours travaillés`} />
+        <Kpi icon={<Timer className="h-4 w-4" />} label="Taux horaire brut" value={`${(totals?.avgBrut ?? 0).toFixed(0)} €/h`} sub="CA ÷ heures terrain" accent />
+        <Kpi icon={<Clock className="h-4 w-4" />} label="Taux horaire net" value={`${(totals?.avgNet ?? 0).toFixed(0)} €/h`} sub="CA ÷ (terrain + gestion)" />
+        <Kpi icon={<CalendarDays className="h-4 w-4" />} label="CA / jour moyen" value={formatEuro(totals?.avgCaJour ?? 0)} sub={`${totals?.totalJours ?? 0} jours travaillés`} />
         <Kpi icon={<Target className="h-4 w-4" />} label="TJM cible" value={tjm ? formatEuro(tjm.tauxJournalier) : "—"} sub="Seuil de rentabilité" />
       </div>
 

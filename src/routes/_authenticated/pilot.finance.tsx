@@ -1,14 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { usePilotData } from "@/components/pilot/usePilotData";
-import { computeKpis, fetchConfirmedHoursByClient, DEFAULT_SETTINGS, formatEuro, MONTHS } from "@/lib/pilot";
-import { annualSummary } from "@/lib/pilot-annual";
-import { listChargeRows, listSalesByYear, listChargeCategories, analyzeCharges } from "@/lib/pilot-charges";
-import { usePilotMode } from "@/lib/pilot-mode";
-import { projectYear } from "@/lib/pilot-projection";
-import { chargeRowsForMode } from "@/lib/pilot-realized";
-import { monthlyCa, monthlyFieldHours, listHours, computeMonths, getTjmSettings } from "@/lib/pilot-hours";
+import { formatEuro } from "@/lib/pilot";
+import { useAnalytics } from "@/lib/pilot-analytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Wallet, Clock } from "lucide-react";
@@ -26,82 +18,12 @@ export const Route = createFileRoute("/_authenticated/pilot/finance")({
 });
 
 function FinancePage() {
-  const { entries, charges, settings } = usePilotData();
-  const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const { mode } = usePilotMode();
-  const isProjection = mode === "projection";
-
-  const confirmed = useQuery({ queryKey: ["confirmed-hours-by-client", YEAR, mode], queryFn: () => fetchConfirmedHoursByClient(YEAR, { mode }) });
-  const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year", mode], queryFn: () => listSalesByYear({ mode }) });
-  const catsQ = useQuery({ queryKey: ["pilot-charge-categories"], queryFn: listChargeCategories });
-  const caMonthQ = useQuery({ queryKey: ["pilot-hours-ca", YEAR, mode], queryFn: () => monthlyCa(YEAR, { mode }) });
-  const caHoursQ = useQuery({ queryKey: ["pilot-ca-field-hours", YEAR, mode], queryFn: () => monthlyFieldHours(YEAR, { mode }) });
-  const hoursQ = useQuery({ queryKey: ["pilot-hours", YEAR], queryFn: () => listHours(YEAR) });
-  const tjmQ = useQuery({ queryKey: ["pilot-tjm-settings"], queryFn: getTjmSettings });
-
-  const k = useMemo(
-    () => computeKpis({
-      entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
-      year: YEAR, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data, mode,
-    }),
-    [entries.data, charges.data, set, confirmed.data, mode],
-  );
-
-  const annual = useMemo(
-    () => annualSummary(entries.data ?? [], chargeRowsQ.data ?? [], { mode }),
-    [entries.data, chargeRowsQ.data, mode],
-  );
-
-  const analysis = useMemo(() => {
-    if (!chargeRowsQ.data || !salesQ.data) return null;
-    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label), { mode });
-  }, [chargeRowsQ.data, salesQ.data, catsQ.data, mode]);
-
-  // Projection fin d'exercice : CA extrapolé par saisonnalité + charges moyennes.
-  const proj = useMemo(
-    () =>
-      projectYear({
-        entries: entries.data ?? [],
-        charges: (chargeRowsQ.data ?? []).filter((r) => !r.is_investment),
-        year: YEAR,
-      }),
-    [entries.data, chargeRowsQ.data],
-  );
-  const investYear = useMemo(
-    () =>
-      (chargeRowsQ.data ?? [])
-        .filter((r) => r.year === YEAR && r.is_investment && chargeRowsForMode([r], mode).length > 0)
-        .reduce((s, r) => s + r.amount_ht, 0),
-    [chargeRowsQ.data, mode],
-  );
-
-  const gestionDefaut = tjmQ.data?.heures_gestion ?? 60;
-  const months = useMemo(
-    () => computeMonths(caMonthQ.data ?? Array(12).fill(0), hoursQ.data ?? [], gestionDefaut, caHoursQ.data ?? []),
-    [caMonthQ.data, hoursQ.data, gestionDefaut, caHoursQ.data],
-  );
-
-  // Charges mensuelles réelles de l'exercice
-  const chargesByMonth = useMemo(() => {
-    const arr = Array(12).fill(0) as number[];
-    for (const r of chargeRowsQ.data ?? []) {
-      if (r.kind === "remuneration") continue; // suivie à part
-      if (r.year === YEAR && r.month >= 1 && r.month <= 12 && chargeRowsForMode([r], mode).length > 0) arr[r.month - 1] += r.amount_ht;
-    }
-    return arr;
-  }, [chargeRowsQ.data, mode]);
-
-  const monthly = months.map((m, i) => ({
-    mois: MONTHS[m.month - 1],
-    CA: Math.round(isProjection ? proj.monthly[i].ca : m.ca),
-    Charges: Math.round(isProjection ? proj.monthly[i].charges : chargesByMonth[i]),
-    Bénéfice: Math.round(
-      isProjection ? proj.monthly[i].ca - proj.monthly[i].charges : m.ca - chargesByMonth[i],
-    ),
-    projete: isProjection ? proj.monthly[i].projected : false,
-    tauxNet: m.net,
-  }));
+  // Source unique : moteur analytique central (aucun calcul dans cet écran).
+  const { snapshot, isLoading } = useAnalytics();
+  const isProjection = snapshot?.outlook.projected ?? false;
+  const monthly = snapshot?.monthly.finance ?? [];
+  const annual = snapshot?.annual ?? [];
+  const alerts = snapshot?.financeAlerts ?? [];
 
   // Séries CA/Charges scindées réel vs projeté (segment de jonction inclus pour continuité visuelle).
   const lineData = monthly.map((m, i) => {
@@ -115,33 +37,22 @@ function FinancePage() {
     };
   });
 
-  const currentYearRow = annual.find((a) => a.year === YEAR);
   const prevYearRow = annual.find((a) => a.year === YEAR - 1);
-  const caYear = isProjection ? proj.caProjete : (currentYearRow?.caHt ?? 0);
-  const chargesYear = isProjection ? proj.chargesProjetees : (currentYearRow?.charges ?? 0);
-  // Bénéfice = uniquement issu de annualSummary() en mode réel (source unique) ;
-  // en mode projection, dérivé des mêmes valeurs projetées CA/charges.
-  const benefice = isProjection ? caYear - chargesYear : (currentYearRow?.beneficeBrut ?? 0);
-  const marge = caYear > 0 ? (benefice / caYear) * 100 : 0;
-  const monthsObserved = analysis?.years.find((y) => y.year === YEAR)?.monthsObserved ?? 0;
-  const chargesMensuelles = monthsObserved > 0 ? chargesYear / monthsObserved : 0;
-  const seuilMensuel = chargesMensuelles;
-  const totalHeures = months.reduce((s, m) => s + (m.temps_terrain ?? 0) + (m.temps_gestion ?? gestionDefaut), 0);
-  const coutHoraire = totalHeures > 0 ? chargesYear / totalHeures : 0;
+  const caYear = snapshot?.outlook.caHt ?? 0;
+  const chargesYear = snapshot?.outlook.charges ?? 0;
+  const benefice = snapshot?.outlook.beneficeBrut ?? 0;
+  const marge = snapshot?.outlook.margePct ?? 0;
+  const investYear = snapshot?.outlook.investissements ?? 0;
+  const apresInvest = snapshot?.outlook.resultatApresInvestissements ?? 0;
+  const monthsObserved = snapshot?.charges.monthsObserved ?? 0;
+  const chargesMensuelles = snapshot?.charges.mensuelles ?? 0;
+  const seuilMensuel = snapshot?.rates.seuilMensuel ?? 0;
+  const totalHeures = snapshot?.monthly.totals.heuresTotales ?? 0;
+  const coutHoraire = snapshot?.rates.coutHoraireStructure ?? 0;
+  const tauxVendu = snapshot?.rates.tauxHoraireVendu ?? 0;
+  const tauxReel = snapshot?.rates.tauxHoraireReel ?? 0;
 
-  // Alertes
-  const alerts: { tone: "danger" | "warn"; text: string }[] = [];
-  if (marge < 15 && (currentYearRow?.caHt ?? 0) > 0) alerts.push({ tone: "danger", text: `Marge de ${marge.toFixed(0)} % : en dessous du seuil de sécurité de 15 %.` });
-  if (prevYearRow && currentYearRow && prevYearRow.charges > 0) {
-    const evo = ((currentYearRow.charges - prevYearRow.charges) / prevYearRow.charges) * 100;
-    if (evo > 15) alerts.push({ tone: "warn", text: `Charges en hausse de ${evo.toFixed(0)} % vs ${YEAR - 1}.` });
-  }
-  const lastMonthsNeg = monthly.filter((m) => m.CA > 0 && m.Bénéfice < 0);
-  if (lastMonthsNeg.length > 0) alerts.push({ tone: "warn", text: `${lastMonthsNeg.length} mois à bénéfice négatif : ${lastMonthsNeg.map((m) => m.mois).join(", ")}.` });
-  if (analysis && analysis.unclassifiedCount > 0)
-    alerts.push({ tone: "warn", text: `${analysis.unclassifiedCount} charge(s) non classées (${formatEuro(analysis.unclassifiedAmount)}) faussent l'analyse.` });
-
-  if (entries.isLoading || chargeRowsQ.isLoading) return <Skeleton className="h-64 rounded-xl" />;
+  if (isLoading || !snapshot) return <Skeleton className="h-64 rounded-xl" />;
 
   return (
     <div className="space-y-6">
@@ -150,9 +61,7 @@ function FinancePage() {
           <Calculator className="h-6 w-6 text-primary" /> Tableau financier
         </h1>
         <p className="text-sm text-muted-foreground">
-          {isProjection
-            ? `Mode projection : ${proj.explanation}`
-            : "Mode réel : uniquement le CA facturé et les charges constatées à date."}
+          {isProjection ? `Mode projection : ${snapshot.outlook.explanation}` : snapshot.outlook.explanation}
         </p>
       </div>
 
@@ -161,14 +70,14 @@ function FinancePage() {
         <Kpi label={`CA HT ${YEAR}${isProjection ? " (projeté)" : ""}`} value={formatEuro(caYear)} sub={prevYearRow ? `${YEAR - 1} : ${formatEuro(prevYearRow.caHt)}` : undefined} accent />
         <Kpi label="Charges" value={formatEuro(chargesYear)} sub={monthsObserved > 0 ? `${formatEuro(chargesMensuelles)} / mois` : "Aucune charge saisie"} />
         <Kpi label="Bénéfice brut" value={formatEuro(benefice)} sub={`Marge ${marge.toFixed(0)} %`} tone={benefice >= 0 ? "text-emerald-600" : "text-rose-600"} />
-        <Kpi label="Résultat après investissements" value={formatEuro(benefice - investYear)} sub={`Investissements ${formatEuro(investYear)}`} tone={benefice - investYear >= 0 ? "text-emerald-600" : "text-rose-600"} />
+        <Kpi label="Résultat après investissements" value={formatEuro(apresInvest)} sub={`Investissements ${formatEuro(investYear)}`} tone={apresInvest >= 0 ? "text-emerald-600" : "text-rose-600"} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Taux horaire vendu" value={k.tauxHoraireVendu > 0 ? `${k.tauxHoraireVendu.toFixed(0)} €/h` : "—"} sub="CA ÷ heures facturées" />
-        <Kpi label="Taux horaire réel" value={k.tauxHoraireReel > 0 ? `${k.tauxHoraireReel.toFixed(0)} €/h` : "—"} sub="CA ÷ heures confirmées" />
+        <Kpi label="Taux horaire vendu" value={tauxVendu && tauxVendu > 0 ? `${tauxVendu.toFixed(0)} €/h` : "—"} sub="CA ÷ heures facturées" />
+        <Kpi label="Taux horaire réel" value={tauxReel && tauxReel > 0 ? `${tauxReel.toFixed(0)} €/h` : "—"} sub="CA ÷ heures confirmées" />
         <Kpi label="Seuil de rentabilité mensuel" value={seuilMensuel > 0 ? formatEuro(seuilMensuel) : "—"} sub="CA minimum à réaliser" />
-        <Kpi label="Coût horaire de structure" value={coutHoraire > 0 ? `${coutHoraire.toFixed(0)} €/h` : "—"} sub={totalHeures > 0 ? `${totalHeures.toFixed(0)} h travaillées` : "Heures inconnues"} />
+        <Kpi label="Coût horaire de structure" value={coutHoraire && coutHoraire > 0 ? `${coutHoraire.toFixed(0)} €/h` : "—"} sub={totalHeures > 0 ? `${totalHeures.toFixed(0)} h travaillées` : "Heures inconnues"} />
       </div>
 
       {/* Alertes */}
