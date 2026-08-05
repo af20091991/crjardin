@@ -307,6 +307,16 @@ export interface AnalyticsSnapshot {
   };
   annual: AnnualRow[];
   kpis: Record<KpiKey, Kpi>;
+  /**
+   * Données brutes déjà chargées, exposées pour les tableaux de détail et les
+   * formulaires. Aucune agrégation ne doit être refaite à partir d'elles.
+   */
+  sources: {
+    chargeRows: ChargeRow[];
+    chargeCategories: string[];
+    entries: PilotEntry[];
+    settings: PilotSettings;
+  };
 }
 
 const MONTH_COUNT = 12;
