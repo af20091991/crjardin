@@ -23,6 +23,7 @@ import { annualSummary } from "@/lib/pilot-annual";
 import { listChargeRows } from "@/lib/pilot-charges";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { usePilotMode } from "@/lib/pilot-mode";
+import { useAnalytics } from "@/lib/pilot-analytics";
 import { getOpportunitiesValue } from "@/lib/garden";
 import { getClientEconomicScores, SCORE_META, type ClientScoreLabel, type ClientScore } from "@/lib/client-score";
 import { Link } from "@tanstack/react-router";
@@ -43,6 +44,7 @@ export const Route = createFileRoute("/_authenticated/pilot/direction")({
 function PilotDashboard() {
   const { entries, charges, settings } = usePilotData();
   const { mode } = usePilotMode();
+  const { snapshot } = useAnalytics();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
@@ -69,7 +71,7 @@ function PilotDashboard() {
     [entries.data, charges.data, set, year, month, confirmedHours.data, mode],
   );
   const health = useMemo(() => healthScore(k, set), [k, set]);
-  const series = useMemo(() => monthlySeries(entries.data ?? [], year, { mode }), [entries.data, year, mode]);
+  const series = snapshot?.monthly.caSeries ?? [];
   const familyData = k.byFamily.filter((f) => f.value > 0);
 
   const opps = useQuery({
@@ -77,43 +79,15 @@ function PilotDashboard() {
     queryFn: getOpportunitiesValue,
   });
 
-  const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const annualRows = useMemo(
-    () => annualSummary(realEntries, chargeRowsQ.data ?? []),
-    [realEntries, chargeRowsQ.data],
-  );
-  const evolutionData = useMemo(
-    () => [...annualRows].sort((a, b) => a.year - b.year).map((r) => ({
-      year: String(r.year),
-      ca: r.caHt,
-      charges: r.charges,
-      benefice: r.beneficeBrut,
-    })),
-    [annualRows],
-  );
+  // Toutes les agrégations proviennent du moteur analytique central.
+  const annualRows = snapshot?.annual ?? [];
+  const evolutionData = [...annualRows]
+    .sort((a, b) => a.year - b.year)
+    .map((r) => ({ year: String(r.year), ca: r.caHt, charges: r.charges, benefice: r.beneficeBrut }));
 
-  // Rentabilité N-1 (heures confirmées année précédente)
-  const prevConfirmedHours = useQuery({
-    queryKey: ["confirmed-hours-by-client", year - 1],
-    queryFn: () => fetchConfirmedHoursByClient(year - 1, { mode: "reel" }),
-  });
-  const prevHoursTotal = useMemo(() => {
-    const m = prevConfirmedHours.data;
-    if (!m) return 0;
-    let s = 0; for (const v of m.values()) s += v;
-    return s;
-  }, [prevConfirmedHours.data]);
-  const caPrevFull = useMemo(() => {
-    const list = entries.data ?? [];
-    return list
-      .filter((e) => new Date(e.entry_date).getFullYear() === year - 1)
-      .reduce((s, e) => s + (Number(e.amount_ht) || 0), 0);
-  }, [entries.data, year]);
-  const prevHourlyRate = prevHoursTotal > 0 ? caPrevFull / prevHoursTotal : 0;
-  const yearProjection = useMemo(
-    () => projectYear({ entries: entries.data ?? [], charges: chargeRowsQ.data ?? [], year }),
-    [entries.data, chargeRowsQ.data, year],
-  );
+  const caPrevFull = snapshot?.prevYear.caHt ?? 0;
+  const prevHourlyRate = snapshot?.prevYear.hourlyRate ?? 0;
+  const yearProjection = snapshot?.projection ?? null;
   const rateDelta = prevHourlyRate > 0 && k.tauxHoraireReel > 0 ? k.tauxHoraireReel - prevHourlyRate : null;
   const rateDeltaPct = rateDelta !== null && prevHourlyRate > 0 ? (rateDelta / prevHourlyRate) * 100 : null;
   const target = set.target_hourly_rate ?? 0;
@@ -129,9 +103,7 @@ function PilotDashboard() {
         ? { available: false, detail: "Valeur incohérente — vérifiez les heures réelles saisies." }
         : { available: true, value: k.tauxHoraireReel };
   const rateGapToTarget = target > 0 && k.tauxHoraireReel > 0 ? k.tauxHoraireReel - target : null;
-  const totalFamily = k.byFamily.reduce((s, f) => s + f.value, 0);
-  const familiesRanked = [...k.byFamily].filter((f) => f.value > 0).sort((a, b) => b.value - a.value);
-  const familyConcentration = familiesRanked[0] && totalFamily > 0 ? (familiesRanked[0].value / totalFamily) * 100 : 0;
+  const familyConcentration = snapshot?.familyConcentrationPct ?? 0;
   const rentabilityConfidence: "HIGH" | "MEDIUM" | "LOW" =
     k.totalConfirmedHours >= 200 && k.nbEntries >= 20
       ? "HIGH"
@@ -173,7 +145,7 @@ function PilotDashboard() {
       <CoverageHistoryCard />
 
       {/* Où vais-je si je continue ainsi ? */}
-      <DirectorProjectionCard projection={yearProjection} caPrevYear={caPrevFull} />
+      {yearProjection && <DirectorProjectionCard projection={yearProjection} caPrevYear={caPrevFull} />}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
