@@ -753,6 +753,12 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     },
     financeAlerts,
     clients: { all: allRows, ranking, excluded },
+    sources: {
+      chargeRows: inputs.chargeRows,
+      chargeCategories: inputs.chargeCategories,
+      entries: inputs.entries,
+      settings: inputs.settings,
+    },
     annual,
     kpis,
   };
