@@ -149,14 +149,15 @@ function ConseillerPage() {
           Conseiller de gestion
         </h1>
         <p className="text-sm text-muted-foreground">
-          Chaque réponse est calculée à partir de vos données enregistrées. Quand l'information
-          manque, Pilot Pro le dit au lieu d'estimer.
+          Chaque réponse est calculée à partir de vos données enregistrées, avec son calcul et ses
+          sources. Quand une donnée manque, aucune recommandation n'est produite.
         </p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
         {answers.map((a) => {
           const meta = ADVISOR_VERDICT_META[a.verdict];
+          const reliable = a.verdict !== "inconnu";
           return (
             <Card key={a.key} className="h-full">
               <CardHeader className="pb-2">
@@ -167,6 +168,32 @@ function ConseillerPage() {
                   </Badge>
                 </div>
               </CardHeader>
+              {!reliable ? (
+                <CardContent className="space-y-2 text-sm">
+                  <p className="font-medium">
+                    Donnée insuffisante pour établir une recommandation fiable.
+                  </p>
+                  <p className="text-xs text-muted-foreground">{a.answer}</p>
+                  <div className="rounded-md bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground">
+                    <p>
+                      <span className="font-medium text-foreground">Ce qui manque : </span>
+                      {a.limits}
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">Pour fiabiliser : </span>
+                      {a.action}
+                    </p>
+                  </div>
+                  {a.to && (
+                    <Link
+                      to={a.to}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      Compléter les données <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
+                </CardContent>
+              ) : (
               <CardContent className="space-y-2 text-sm">
                 <p>{a.answer}</p>
                 <div className="rounded-md bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground">
@@ -196,6 +223,7 @@ function ConseillerPage() {
                   </Link>
                 )}
               </CardContent>
+              )}
             </Card>
           );
         })}
