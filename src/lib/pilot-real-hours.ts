@@ -1,53 +1,32 @@
-// Résolution des heures réelles exploitables (Pilot Pro v2).
+// Résolution des heures d'intervention (Pilot Pro — règle structurelle).
 //
-// Règle fondamentale : ne jamais demander une saisie lorsque l'information
-// existe déjà dans Pilot Pro. Une intervention terminée sans heures saisies
-// n'est une tâche utilisateur QUE si aucune autre source PP ne couvre la
-// période/le client concerné.
+// RÈGLE MÉTIER ABSOLUE : la seule source de référence des heures
+// d'intervention utilisées dans un calcul métier est la colonne
+// « Vente → Temps » (pilot_ca_entries.hours des lignes de vente).
 //
-// Priorité des heures réelles :
-//   1. interventions.hours_spent confirmées (non estimées)
-//   2. heures historiques Excel validées et rattachées
-//   3. heures présentes dans le ledger (heures vendues du suivi CA)
-//   4. aucune — jamais d'estimation, jamais de donnée inventée
+// Les autres volumes horaires (interventions.hours_spent, import Excel
+// pilot_historic_hours, heures estimées ou reconstituées) sont CONSERVÉS pour
+// l'historique et la traçabilité, mais n'influencent plus aucun calcul standard.
 
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 
 export type RealHoursSource =
-  | "consolidee"
-  | "interventions"
-  | "historique"
-  | "ledger_vendu"
+  | "vente_temps"
   | "aucune";
 
 export const REAL_HOURS_SOURCE_META: Record<
   Exclude<RealHoursSource, "aucune">,
   { label: string; detail: string; confidence: "haute" | "moyenne" }
 > = {
-  consolidee: {
-    label: "Heures réalisées consolidées",
-    detail: "meilleure source par client : interventions confirmées, historique Excel ou heures CA identifiées",
+  vente_temps: {
+    label: "Heures d'intervention (Vente → Temps)",
+    detail: "colonne Temps des lignes de vente du suivi CA — source unique de référence",
     confidence: "haute",
-  },
-  interventions: {
-    label: "Heures réalisées confirmées",
-    detail: "interventions terminées avec heures confirmées",
-    confidence: "haute",
-  },
-  historique: {
-    label: "Heures historiques validées",
-    detail: "import Excel rattaché au référentiel client",
-    confidence: "haute",
-  },
-  ledger_vendu: {
-    label: "Heures vendues (ledger CA)",
-    detail: "heures portées par les lignes de vente du suivi CA",
-    confidence: "moyenne",
   },
 };
 
-/** Volume minimal d'heures confirmées pour retenir la source interventions. */
-export const MIN_CONFIRMED_HOURS = 20;
+/** Conservé pour compatibilité : aucun seuil n'est appliqué à Vente → Temps. */
+export const MIN_CONFIRMED_HOURS = 0;
 
 export interface RealHoursResolution {
   year: number;
@@ -76,7 +55,10 @@ function sumBy(entries: HoursLedgerEntry[], pick: (e: HoursLedgerEntry) => boole
   return entries.filter(pick).reduce((s, e) => s + e.hours, 0);
 }
 
-/** Agrège les heures réelles exploitables d'une année, toutes sources PP. */
+/**
+ * Agrège les heures d'une année. `hours` / `byClient` — les seules valeurs
+ * utilisées par les calculs métier — proviennent EXCLUSIVEMENT de Vente → Temps.
+ */
 export function resolveRealHours(entries: HoursLedgerEntry[], year: number): RealHoursResolution {
   const rows = entries.filter((e) => e.year === year);
   const vendues = sumBy(rows, (e) => e.type === "vendue");
@@ -84,44 +66,14 @@ export function resolveRealHours(entries: HoursLedgerEntry[], year: number): Rea
   const historiques = sumBy(rows, (e) => e.type === "historique");
   const venduesIdentifiees = sumBy(rows, (e) => e.type === "vendue" && !!e.clientId);
 
-  // Consolidation par client : une heure de travail n'est comptée qu'une fois.
-  // On retient, client par client, la source la plus fiable disponible.
-  const perClient = new Map<string, { r: number; h: number; v: number }>();
-  for (const e of rows) {
-    if (!e.clientId || e.hours <= 0) continue;
-    const cur = perClient.get(e.clientId) ?? { r: 0, h: 0, v: 0 };
-    if (e.type === "realisee") {
-      if (!e.estimated) cur.r += e.hours;
-    } else if (e.type === "historique") cur.h += e.hours;
-    else cur.v += e.hours;
-    perClient.set(e.clientId, cur);
-  }
+  // Source unique : Vente → Temps, agrégée par client.
   const byClient = new Map<string, number>();
-  let realiseesConsolidees = 0;
-  for (const [clientId, s] of perClient) {
-    const retained = s.r > 0 ? s.r : s.h > 0 ? s.h : s.v;
-    if (retained <= 0) continue;
-    byClient.set(clientId, retained);
-    realiseesConsolidees += retained;
+  for (const e of rows) {
+    if (e.type !== "vendue" || !e.clientId || e.hours <= 0) continue;
+    byClient.set(e.clientId, (byClient.get(e.clientId) ?? 0) + e.hours);
   }
-
-  let source: RealHoursSource = "aucune";
-  if (realiseesConsolidees > 0) source = "consolidee";
-  else if (realisees >= MIN_CONFIRMED_HOURS) source = "interventions";
-  else if (historiques > 0) source = "historique";
-  else if (vendues > 0) source = "ledger_vendu";
-  else if (realisees > 0) source = "interventions";
-
-  const hours =
-    source === "consolidee"
-      ? realiseesConsolidees
-      : source === "interventions"
-        ? realisees
-        : source === "historique"
-          ? historiques
-          : source === "ledger_vendu"
-            ? vendues
-            : 0;
+  const hours = vendues;
+  const source: RealHoursSource = hours > 0 ? "vente_temps" : "aucune";
 
   const meta = source === "aucune" ? null : REAL_HOURS_SOURCE_META[source];
   return {
@@ -130,11 +82,12 @@ export function resolveRealHours(entries: HoursLedgerEntry[], year: number): Rea
     realisees,
     historiques,
     venduesIdentifiees,
-    realiseesConsolidees,
+    realiseesConsolidees: venduesIdentifiees,
     hours,
     source,
-    sourceLabel: meta?.label ?? "Aucune heure réelle disponible",
-    sourceDetail: meta?.detail ?? "aucune source d'heures exploitable dans Pilot Pro",
+    sourceLabel: meta?.label ?? "Aucune heure d'intervention saisie",
+    sourceDetail:
+      meta?.detail ?? "aucune heure renseignée dans la colonne Temps des lignes de vente",
     confidence: meta?.confidence ?? "faible",
     ecart: vendues - hours,
     byClient,
@@ -151,31 +104,14 @@ export interface InterventionHoursInput {
 }
 
 /**
- * Interventions terminées dont les heures n'existent NULLE PART dans PP.
- * Une intervention dont le client dispose déjà d'heures (ledger CA, historique,
- * autre intervention confirmée) sur la même année n'est pas une tâche de saisie :
- * l'information est déjà présente et exploitée par le moteur d'analyse.
+ * Les heures d'intervention proviennent désormais exclusivement de
+ * Vente → Temps : `interventions.hours_spent` n'alimente plus aucun calcul,
+ * donc plus aucune saisie n'est réclamée. Conservé pour compatibilité d'appel.
  */
 export function interventionsNeedingHours(
-  interventions: InterventionHoursInput[],
-  ledger: HoursLedgerEntry[],
-  year: number,
+  _interventions: InterventionHoursInput[],
+  _ledger: HoursLedgerEntry[],
+  _year: number,
 ): InterventionHoursInput[] {
-  const covered = new Set<string>();
-  for (const e of ledger) {
-    if (e.year !== year || !e.clientId || e.hours <= 0) continue;
-    if (e.type === "realisee" && e.estimated) continue;
-    covered.add(e.clientId);
-  }
-  return interventions.filter((i) => {
-    if (i.status !== "terminee") return false;
-    if (Number(i.intervention_date.slice(0, 4)) !== year) return false;
-    const meta = i.ai_metadata && typeof i.ai_metadata === "object" ? (i.ai_metadata as Record<string, unknown>) : null;
-    const estimated = Boolean(meta?.["hours_estimated"] || meta?.["hours_spent_estimated"]);
-    // 0 h saisi volontairement (chantier sous-traité) est une information
-    // complète : seule l'absence de valeur constitue une tâche de saisie.
-    const missing = i.hours_spent == null || estimated;
-    if (!missing) return false;
-    return !(i.client_id && covered.has(i.client_id));
-  });
+  return [];
 }
