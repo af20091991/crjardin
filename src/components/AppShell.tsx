@@ -7,7 +7,7 @@ import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { GlobalSearch } from "@/components/pilot/GlobalSearch";
-import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat, Home, Euro, Target, Calculator, CalendarRange, Receipt, Activity, LineChart, Clock, HeartPulse, Settings2, ShieldCheck, MapPin, Leaf, Link2 } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat, Home, Euro, Target, Calculator, CalendarRange, Receipt, Activity, LineChart, Clock, HeartPulse, Settings2, ShieldCheck, MapPin, Leaf } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
@@ -113,13 +113,11 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/ca", label: "Chiffre d'affaires", short: "CA", icon: Euro, exact: false, primary: false },
             { to: "/pilot/ceev", label: "Rentabilité CEEV", short: "CEEV €", icon: ClipboardList, exact: false, primary: false },
             { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
-            { to: "/pilot/benchmark", label: "Comparatifs", short: "Bench.", icon: Target, exact: false, primary: false },
+            { to: "/pilot/benchmark", label: "Comparatifs et prévisions", short: "Compar.", icon: CalendarRange, exact: false, primary: false },
             { to: "/pilot/temps", label: "Analyse temps & rentabilité", short: "Temps", icon: Clock, exact: false, primary: false },
             { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
             { to: "/pilot/charges", label: "Charges & investissements", short: "Charges", icon: Receipt, exact: false, primary: false },
-            { to: "/pilot/saison", label: "Prévisions", short: "Prévis.", icon: CalendarRange, exact: false, primary: false },
             { to: "/pilot/simulations", label: "Simulations", short: "Simul.", icon: Calculator, exact: false, primary: false },
-            { to: "/pilot/rapprochement", label: "Centre de rapprochement", short: "Rapproch.", icon: Link2, exact: false, primary: false },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Réservé",

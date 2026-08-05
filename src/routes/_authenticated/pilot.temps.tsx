@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,8 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HourlyRateSection } from "@/components/pilot/HourlyRateSection";
+import { ProfitabilityServicesView } from "@/components/pilot/rentabilite/ProfitabilityServicesView";
+import { ClientProfitabilityTable } from "@/components/pilot/temps/ClientProfitabilityTable";
 import {
   Bar,
   BarChart,
@@ -52,14 +55,19 @@ import {
   type TimeValueFilters,
 } from "@/lib/pilot-time-value";
 
+const TempsSearch = z.object({
+  tab: z.enum(["realises", "rentabilite", "prestations"]).catch("realises"),
+});
+
 export const Route = createFileRoute("/_authenticated/pilot/temps")({
+  validateSearch: (s: Record<string, unknown>) => TempsSearch.parse(s),
   head: () => ({
     meta: [
       { title: "Analyse Temps & Rentabilité — Pilot Pro" },
       {
         name: "description",
         content:
-          "Où investir son temps : rentabilité horaire par prestation et par client, à partir des heures réalisées et du CA normalisé.",
+          "Où investir son temps : temps réalisés, taux horaire, rentabilité par prestation et par client, à partir des heures réellement réalisées et du CA normalisé.",
       },
     ],
   }),
@@ -67,6 +75,9 @@ export const Route = createFileRoute("/_authenticated/pilot/temps")({
 });
 
 function TimeAndProfitPage() {
+  const { tab } = Route.useSearch();
+  const navigate = Route.useNavigate();
+
   return (
     <div className="space-y-5">
       <header className="space-y-1">
@@ -75,20 +86,29 @@ function TimeAndProfitPage() {
           Analyse temps &amp; rentabilité
         </h1>
         <p className="text-sm text-muted-foreground">
-          Espace unique : temps réellement réalisés, taux horaire et rentabilité associée. Aucune
-          notion de temps prévu, théorique ou vendu n'est utilisée comme référence de charge.
+          Espace unique : temps réellement réalisés, taux horaire et rentabilité associée, par
+          prestation puis par client. Aucune notion de temps prévu, théorique ou vendu n'est
+          utilisée comme référence de charge.
         </p>
       </header>
-      <Tabs defaultValue="realises" className="space-y-4">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => navigate({ search: { tab: v as typeof tab } })}
+        className="space-y-4"
+      >
         <TabsList>
           <TabsTrigger value="realises">Temps réalisés &amp; taux horaire</TabsTrigger>
           <TabsTrigger value="rentabilite">Rentabilité du temps</TabsTrigger>
+          <TabsTrigger value="prestations">Rentabilité prestations</TabsTrigger>
         </TabsList>
         <TabsContent value="realises">
           <HourlyRateSection />
         </TabsContent>
         <TabsContent value="rentabilite">
           <TimeValueAnalysis />
+        </TabsContent>
+        <TabsContent value="prestations">
+          <ProfitabilityServicesView />
         </TabsContent>
       </Tabs>
     </div>
@@ -185,6 +205,14 @@ function TimeValueAnalysis() {
   const prestationRows = useMemo(
     () => sortPrestations(analysis.prestations, prestSort),
     [analysis.prestations, prestSort],
+  );
+
+  const ratedPrestations = useMemo(
+    () =>
+      [...prestationRows]
+        .map((p) => ({ name: p.prestation, rate: Math.round(p.resultPerHour ?? p.caPerHour ?? 0) }))
+        .sort((a, b) => b.rate - a.rate),
+    [prestationRows],
   );
 
   const clientRows = useMemo(() => {
@@ -492,60 +520,40 @@ function TimeValueAnalysis() {
                 </table>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div>
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">
-                    Graphique 1 — Répartition du temps (heures)
-                  </p>
-                  <ChartContainer
-                    config={{ hours: { label: "Heures", color: "var(--primary)" } }}
-                    className="h-[240px] w-full"
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  Rentabilité horaire par prestation (€/h), triée de la plus à la moins rentable ·
+                  cible {target} €/h
+                </p>
+                <ChartContainer
+                  config={{ rate: { label: "€/h", color: "var(--primary)" } }}
+                  className="w-full"
+                  style={{ height: Math.max(180, ratedPrestations.length * 38 + 20) }}
+                >
+                  <BarChart
+                    data={ratedPrestations}
+                    layout="vertical"
+                    margin={{ top: 4, right: 24, bottom: 4, left: 4 }}
                   >
-                    <BarChart data={prestationRows.map((p) => ({ name: p.prestation, hours: Number(p.hours.toFixed(1)) }))}>
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                      <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={11} />
-                      <YAxis tickLine={false} axisLine={false} fontSize={11} width={38} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
-                        {prestationRows.map((_, i) => (
-                          <Cell key={i} fill={PRESTATION_COLORS[i % PRESTATION_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                </div>
-                <div>
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">
-                    Graphique 2 — Rentabilité horaire (€/h) · cible {target} €/h
-                  </p>
-                  <ChartContainer
-                    config={{ rate: { label: "€/h", color: "var(--primary)" } }}
-                    className="h-[240px] w-full"
-                  >
-                    <BarChart
-                      data={prestationRows.map((p) => ({
-                        name: p.prestation,
-                        rate: Math.round(p.resultPerHour ?? p.caPerHour ?? 0),
-                      }))}
-                    >
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                      <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={11} />
-                      <YAxis tickLine={false} axisLine={false} fontSize={11} width={38} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <ReferenceLine y={target} stroke="#d9534f" strokeDasharray="4 4" />
-                      <Bar dataKey="rate" radius={[4, 4, 0, 0]}>
-                        {prestationRows.map((p, i) => (
-                          <Cell
-                            key={i}
-                            fill={
-                              (p.resultPerHour ?? p.caPerHour ?? 0) >= target ? "#2f9e5f" : "#f0a733"
-                            }
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                </div>
+                    <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                    <XAxis type="number" tickLine={false} axisLine={false} fontSize={11} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tickLine={false}
+                      axisLine={false}
+                      fontSize={11}
+                      width={150}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ReferenceLine x={target} stroke="#d9534f" strokeDasharray="4 4" />
+                    <Bar dataKey="rate" radius={[0, 4, 4, 0]}>
+                      {ratedPrestations.map((p, i) => (
+                        <Cell key={i} fill={p.rate >= target ? "#2f9e5f" : "#f0a733"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
               </div>
             </CardContent>
           </Card>
@@ -626,95 +634,13 @@ function TimeValueAnalysis() {
             </CardContent>
           </Card>
 
-          {/* PARTIES 2 & 4 — Tableau de classement */}
+          {/* PARTIES 2 & 4 — Classement des clients par rentabilité */}
           <Card>
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-              <CardTitle className="text-base">Classement des clients</CardTitle>
-              <div className="flex flex-wrap items-center gap-2">
-                <Input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Rechercher un client…"
-                  className="w-44"
-                />
-                <Select value={clientSort} onValueChange={(v) => setClientSort(v as ClientSort)}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="best_euro_h">Meilleur €/h</SelectItem>
-                    <SelectItem value="worst_euro_h">Pire €/h</SelectItem>
-                    <SelectItem value="ca">Plus gros CA</SelectItem>
-                    <SelectItem value="hours">Plus gros temps consommé</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <CardHeader>
+              <CardTitle className="text-base">Classement des clients par rentabilité</CardTitle>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-3">Client</th>
-                    <th className="py-2 pr-3 text-right">CA HT</th>
-                    <th className="py-2 pr-3 text-right">Résultat brut</th>
-                    <th className="py-2 pr-3 text-right">Temps passé</th>
-                    <th className="py-2 pr-3 text-right">Interv.</th>
-                    <th className="py-2 pr-3 text-right">€/h</th>
-                    <th className="py-2 pr-3">Prestation principale</th>
-                    <th className="py-2 pr-3 text-right">Rang</th>
-                    <th className="py-2 pr-3">Zone</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clientRows.slice(0, 200).map((c) => (
-                    <tr key={c.clientId} className="border-b last:border-0">
-                      <td className="py-2 pr-3 font-medium">{c.name}</td>
-                      <td className="py-2 pr-3 text-right">{formatEuro(c.caHt)}</td>
-                      <td
-                        className={`py-2 pr-3 text-right ${
-                          (c.resultatBrut ?? 0) < 0 ? "text-[var(--pp-charges,#d9534f)]" : ""
-                        }`}
-                      >
-                        {c.resultatBrut == null ? "—" : formatEuro(c.resultatBrut)}
-                      </td>
-                      <td className="py-2 pr-3 text-right">
-                        {c.hours > 0 ? formatHours(c.hours) : "—"}
-                        {c.hoursBasis === "vendues" && (
-                          <span className="ml-1 text-[10px] text-amber-600" title={HOURS_BASIS_LABEL.vendues}>
-                            indic.
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2 pr-3 text-right">{c.interventions || "—"}</td>
-                      <td className="py-2 pr-3 text-right font-medium">
-                        {euroPerHour(c.resultPerHour ?? c.caPerHour)}
-                      </td>
-                      <td className="py-2 pr-3 text-xs text-muted-foreground">
-                        {c.mainPrestation ?? "—"}
-                      </td>
-                      <td className="py-2 pr-3 text-right text-xs">{c.rank ?? "—"}</td>
-                      <td className="py-2 pr-3">
-                        <Badge variant="outline" className={`text-[10px] ${CLIENT_ZONE_META[c.zone].badge}`}>
-                          {CLIENT_ZONE_META[c.zone].label}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                  {clientRows.length === 0 && (
-                    <tr>
-                      <td colSpan={9} className="py-6 text-center text-sm text-muted-foreground">
-                        Aucun client sur la période sélectionnée.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-              {clientRows.length > 200 && (
-                <p className="pt-2 text-xs text-muted-foreground">
-                  200 premiers clients affichés sur {clientRows.length}. Affinez la recherche ou les
-                  filtres.
-                </p>
-              )}
+            <CardContent>
+              <ClientProfitabilityTable rows={analysis.clients} target={target} />
             </CardContent>
           </Card>
 
