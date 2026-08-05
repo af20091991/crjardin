@@ -312,6 +312,45 @@ export type Database = {
           },
         ]
       }
+      client_merge_log: {
+        Row: {
+          created_at: string
+          id: string
+          moved: Json
+          reason: string | null
+          reverted_at: string | null
+          source_client_id: string
+          source_client_name: string
+          target_client_id: string
+          target_client_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          moved?: Json
+          reason?: string | null
+          reverted_at?: string | null
+          source_client_id: string
+          source_client_name: string
+          target_client_id: string
+          target_client_name: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          moved?: Json
+          reason?: string | null
+          reverted_at?: string | null
+          source_client_id?: string
+          source_client_name?: string
+          target_client_id?: string
+          target_client_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       client_messages: {
         Row: {
           author_name: string | null
@@ -1946,6 +1985,64 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pilot_historic_hours"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      pilot_match_rules: {
+        Row: {
+          client_id: string
+          created_at: string
+          designation_key: string
+          hits: number
+          id: string
+          origin: string
+          sample_designation: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          designation_key: string
+          hits?: number
+          id?: string
+          origin?: string
+          sample_designation?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          designation_key?: string
+          hits?: number
+          id?: string
+          origin?: string
+          sample_designation?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilot_match_rules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_match_rules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "pilot_match_rules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
           },
         ]
       }
