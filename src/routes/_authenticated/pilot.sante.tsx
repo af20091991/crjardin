@@ -18,7 +18,6 @@ import { Sparkles, Send, Bot, HeartPulse, CheckCircle2, AlertTriangle, MinusCirc
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
 import { goalsForMode } from "@/lib/pilot-realized";
-import { usePilotMode } from "@/lib/pilot-mode";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, ReferenceLine } from "recharts";
 import { PP_COLORS } from "@/lib/pilot-colors";
@@ -30,7 +29,12 @@ export const Route = createFileRoute("/_authenticated/pilot/sante")({
 
 function SantePage() {
   const { entries, charges, settings } = usePilotData();
-  const { mode } = usePilotMode();
+  /**
+   * Règle absolue : la santé est une photographie RÉELLE à la date du jour.
+   * Aucune projection, aucune extrapolation, aucun objectif futur — le mode
+   * global Réel/Projection n'est volontairement pas lu ici.
+   */
+  const mode = "reel" as const;
   const thresholds = useThresholds();
   const year = currentYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
@@ -132,6 +136,11 @@ function SantePage() {
         <p className="text-sm text-muted-foreground">
           Quatre questions simples : est-ce que je gagne de l'argent, est-ce que je vends assez,
           est-ce que mon temps est bien employé, est-ce que j'avance sur mes priorités ?
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Photographie réelle au {new Date().toLocaleDateString("fr-FR")} : uniquement le CA, les
+          charges et l'activité déjà enregistrés. Aucune projection de fin d'exercice. Un axe sans
+          donnée exploitable affiche « Données insuffisantes ».
         </p>
       </div>
 
