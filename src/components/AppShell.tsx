@@ -84,7 +84,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         ...(canEdit
           ? [
               { to: "/pilot/rentabilite", label: "Rentabilité", short: "Rentab.", icon: LineChart, exact: false, primary: false },
-              { to: "/pilot/ceev", label: "Contrats CEEV", short: "CEEV", icon: ClipboardList, exact: false, primary: false },
             ]
           : []),
       ],
@@ -100,7 +99,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               { to: "/pilot/taux", label: "Répartition du temps", short: "Temps", icon: Clock, exact: false, primary: false },
               { to: "/sst", label: "Sous-traitants", short: "SST", icon: HardHat, exact: false, primary: false },
               { to: "/journal-sst", label: "Journal SST", short: "Journal", icon: ClipboardList, exact: false, primary: false },
-              { to: "/pilot/ceev-contrats", label: "Contrats d'entretien (CEEV)", short: "CEEV", icon: Leaf, exact: false, primary: false },
             ]
           : []),
       ],
@@ -111,6 +109,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         ? [
             { to: "/pilot/direction", label: "Direction", short: "Direction", icon: BarChart3, exact: false, primary: false },
             { to: "/pilot/ca", label: "Chiffre d'affaires", short: "CA", icon: Euro, exact: false, primary: false },
+            { to: "/pilot/ceev-contrats", label: "Contrats d'entretien (CEEV)", short: "CEEV", icon: Leaf, exact: false, primary: false },
+            { to: "/pilot/ceev", label: "Rentabilité CEEV", short: "CEEV €", icon: ClipboardList, exact: false, primary: false },
             { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
             { to: "/pilot/benchmark", label: "Comparatifs", short: "Bench.", icon: Target, exact: false, primary: false },
             { to: "/pilot/temps", label: "Analyse Temps & Rentabilité", short: "Temps ×€", icon: Clock, exact: false, primary: false },
