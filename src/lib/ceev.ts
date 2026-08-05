@@ -51,6 +51,9 @@ export function normalizeLabel(s: string): string {
 
 type ClientRow = { id: string; name: string };
 
+// Accès non typé (tables récentes non présentes dans les types générés).
+const db = supabase as unknown as { from: (t: string) => any };
+
 export async function listCeevContracts(): Promise<CeevContract[]> {
   const { data, error } = await supabase
     .from("ceev_contracts")
@@ -166,7 +169,7 @@ export async function attachContractToClient(id: string, clientId: string): Prom
   // Décision humaine définitive : journalisée (traçabilité) puis appliquée à
   // tous les contrats portant exactement le même libellé d'origine, afin que la
   // ligne ne réapparaisse jamais dans la file « à valider ».
-  await supabase.from("ceev_match_log").insert({
+  await db.from("ceev_match_log").insert({
     contract_id: contract.id,
     raw_label: contract.raw_label,
     client_id: clientId,
@@ -201,7 +204,7 @@ export interface CeevMatchLogEntry {
 
 /** Journal des rapprochements manuels (mémoire des décisions humaines). */
 export async function listCeevMatchLog(limit = 30): Promise<CeevMatchLogEntry[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("ceev_match_log")
     .select("*")
     .order("decided_at", { ascending: false })
