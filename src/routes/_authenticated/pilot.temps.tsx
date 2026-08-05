@@ -207,6 +207,14 @@ function TimeValueAnalysis() {
     [analysis.prestations, prestSort],
   );
 
+  const ratedPrestations = useMemo(
+    () =>
+      [...prestationRows]
+        .map((p) => ({ name: p.prestation, rate: Math.round(p.resultPerHour ?? p.caPerHour ?? 0) }))
+        .sort((a, b) => b.rate - a.rate),
+    [prestationRows],
+  );
+
   const clientRows = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const base = needle
@@ -512,60 +520,40 @@ function TimeValueAnalysis() {
                 </table>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div>
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">
-                    Graphique 1 — Répartition du temps (heures)
-                  </p>
-                  <ChartContainer
-                    config={{ hours: { label: "Heures", color: "var(--primary)" } }}
-                    className="h-[240px] w-full"
+              <div>
+                <p className="mb-2 text-xs font-medium text-muted-foreground">
+                  Rentabilité horaire par prestation (€/h), triée de la plus à la moins rentable ·
+                  cible {target} €/h
+                </p>
+                <ChartContainer
+                  config={{ rate: { label: "€/h", color: "var(--primary)" } }}
+                  className="w-full"
+                  style={{ height: Math.max(180, ratedPrestations.length * 38 + 20) }}
+                >
+                  <BarChart
+                    data={ratedPrestations}
+                    layout="vertical"
+                    margin={{ top: 4, right: 24, bottom: 4, left: 4 }}
                   >
-                    <BarChart data={prestationRows.map((p) => ({ name: p.prestation, hours: Number(p.hours.toFixed(1)) }))}>
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                      <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={11} />
-                      <YAxis tickLine={false} axisLine={false} fontSize={11} width={38} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
-                        {prestationRows.map((_, i) => (
-                          <Cell key={i} fill={PRESTATION_COLORS[i % PRESTATION_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                </div>
-                <div>
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">
-                    Graphique 2 — Rentabilité horaire (€/h) · cible {target} €/h
-                  </p>
-                  <ChartContainer
-                    config={{ rate: { label: "€/h", color: "var(--primary)" } }}
-                    className="h-[240px] w-full"
-                  >
-                    <BarChart
-                      data={prestationRows.map((p) => ({
-                        name: p.prestation,
-                        rate: Math.round(p.resultPerHour ?? p.caPerHour ?? 0),
-                      }))}
-                    >
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                      <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={11} />
-                      <YAxis tickLine={false} axisLine={false} fontSize={11} width={38} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <ReferenceLine y={target} stroke="#d9534f" strokeDasharray="4 4" />
-                      <Bar dataKey="rate" radius={[4, 4, 0, 0]}>
-                        {prestationRows.map((p, i) => (
-                          <Cell
-                            key={i}
-                            fill={
-                              (p.resultPerHour ?? p.caPerHour ?? 0) >= target ? "#2f9e5f" : "#f0a733"
-                            }
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                </div>
+                    <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                    <XAxis type="number" tickLine={false} axisLine={false} fontSize={11} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tickLine={false}
+                      axisLine={false}
+                      fontSize={11}
+                      width={150}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ReferenceLine x={target} stroke="#d9534f" strokeDasharray="4 4" />
+                    <Bar dataKey="rate" radius={[0, 4, 4, 0]}>
+                      {ratedPrestations.map((p, i) => (
+                        <Cell key={i} fill={p.rate >= target ? "#2f9e5f" : "#f0a733"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
               </div>
             </CardContent>
           </Card>
