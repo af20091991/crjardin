@@ -129,8 +129,6 @@ function PilotDashboard() {
         </Card>
       )}
 
-      <CoverageHistoryCard />
-
       {/* 1) Tableau financier mensuel — exercice en cours, données réelles uniquement */}
       <DirectorFinancialTable year={year} />
 
