@@ -261,12 +261,6 @@ function TodayPage() {
   // exercice complet et faussait la lecture.
   const toDateCompare = useMemo(() => toDateVsSameDateLastYear(entries.data ?? []), [entries.data]);
 
-  const beneficeMois = useMemo(() => {
-    // approximation : marge annuelle appliquée au CA du mois
-    const marge = k.marge / 100;
-    return k.caMonth * marge;
-  }, [k]);
-
   const allI = (interventions.data ?? []).filter(
     (i) => !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso(),
   );
