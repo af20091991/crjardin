@@ -642,6 +642,14 @@ function TodayPage() {
     return { mois: build(moisN, moisN1), annee: build(anneeN, anneeN1) };
   }, [realEntries, allI, year, month, now]);
 
+  /**
+   * Heures réalisées — source unique et vérifiable : interventions terminées
+   * avec heures confirmées (les heures estimées sont exclues). Mêmes chiffres
+   * que les comparatifs ci-dessus, aucune autre source mélangée.
+   */
+  const heuresRealiseesMois = comparatifs.mois.find((i) => i.key === "h")?.current ?? 0;
+  const heuresRealiseesAnnee = comparatifs.annee.find((i) => i.key === "h")?.current ?? 0;
+
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
     key: string;
