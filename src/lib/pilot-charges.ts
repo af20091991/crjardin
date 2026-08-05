@@ -326,3 +326,89 @@ export function projectionBase(
     resultatApresInvestissements: ca - total - invest,
   };
 }
+// ---------------------------------------------------------------------------
+// Vues d'affichage des charges — UNIQUE implémentation.
+// Les écrans ne regroupent, ne trient et ne totalisent plus rien eux-mêmes :
+// tout passe par ces fonctions, exposées via le moteur analytique central.
+// ---------------------------------------------------------------------------
+
+export function salesTotal(salesByYear: Map<number, number>): number {
+  let s = 0;
+  for (const v of salesByYear.values()) s += v;
+  return s;
+}
+
+/** Poids des charges dans le CA (toutes années confondues). */
+export function chargesWeightPct(analysis: ChargesAnalysis, caTotal: number): number | null {
+  return caTotal > 0 ? (analysis.totals.total / caTotal) * 100 : null;
+}
+
+/** Répartition par catégorie : top N + regroupement « Autres ». */
+export function categoryBreakdown(
+  analysis: ChargesAnalysis,
+  topN = 8,
+): Array<{ name: string; value: number }> {
+  const sorted = analysis.categories.filter((c) => c.total > 0);
+  const autres = sorted.slice(topN).reduce((s, c) => s + c.total, 0);
+  return [
+    ...sorted.slice(0, topN).map((c) => ({ name: c.label, value: Math.round(c.total) })),
+    ...(autres > 0 ? [{ name: "Autres", value: Math.round(autres) }] : []),
+  ];
+}
+
+/** Évolution annuelle fixes / variables / total. */
+export function chargesEvolution(
+  analysis: ChargesAnalysis,
+): Array<{ annee: string; Fixes: number; Variables: number; Total: number }> {
+  return analysis.years.map((y) => ({
+    annee: String(y.year),
+    Fixes: Math.round(y.fixe),
+    Variables: Math.round(y.variable),
+    Total: Math.round(y.total),
+  }));
+}
+
+export function priorityCategories(analysis: ChargesAnalysis): CategoryAnalysis[] {
+  return analysis.categories.filter((c) =>
+    (PRIORITY_VARIABLE_CATEGORIES as readonly string[]).includes(c.label),
+  );
+}
+
+/** Historique annuel des charges variables prioritaires. */
+export function priorityTrend(analysis: ChargesAnalysis): Array<Record<string, string | number>> {
+  const priority = priorityCategories(analysis);
+  return analysis.years.map((y) => {
+    const row: Record<string, string | number> = { annee: String(y.year) };
+    for (const c of priority) {
+      row[c.label] = Math.round(c.years.find((cy) => cy.year === y.year)?.total ?? 0);
+    }
+    return row;
+  });
+}
+
+/** Charges réelles mois par mois d'un exercice (hors rémunération dirigeant). */
+export function monthlyChargeTotals(
+  rows: ChargeRow[],
+  year: number,
+  options?: { mode?: "reel" | "projection" },
+): number[] {
+  const arr = Array(12).fill(0) as number[];
+  const scoped = options?.mode === "projection" ? rows : rows.filter((r) => isRealizedMonth(r.year, r.month));
+  for (const r of scoped) {
+    if (r.kind === "remuneration") continue;
+    if (r.year === year && r.month >= 1 && r.month <= 12) arr[r.month - 1] += r.amount_ht;
+  }
+  return arr;
+}
+
+/** Investissements qualifiés d'un exercice, selon le mode d'analyse. */
+export function investmentsForYear(
+  rows: ChargeRow[],
+  year: number,
+  options?: { mode?: "reel" | "projection" },
+): number {
+  const scoped = options?.mode === "projection" ? rows : rows.filter((r) => isRealizedMonth(r.year, r.month));
+  return scoped
+    .filter((r) => r.year === year && r.is_investment)
+    .reduce((s, r) => s + r.amount_ht, 0);
+}

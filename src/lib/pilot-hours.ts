@@ -194,3 +194,47 @@ export function computeTjm(s: TjmSettings): TjmResult {
   const tjmObjectif = joursFacturables > 0 ? (pointMort + s.objectif_remuneration * 12) / joursFacturables : 0;
   return { joursFacturables, totalOff, tauxJournalier, tauxHoraire, pointMort, tjmObjectif };
 }
+
+// ---------------------------------------------------------------------------
+// Agrégations annuelles du référentiel temps — UNIQUE implémentation.
+// Aucun écran ne recalcule ces totaux : ils sont consommés via le moteur
+// analytique central (pilot-engine).
+// ---------------------------------------------------------------------------
+
+export interface MonthlyHoursTotals {
+  /** CA des mois disposant d'heures terrain connues. */
+  caWithTerrain: number;
+  caTotal: number;
+  totalTerrain: number;
+  totalGestion: number;
+  /** Terrain + gestion sur l'ensemble des 12 mois. */
+  heuresTotales: number;
+  totalJours: number;
+  avgBrut: number;
+  avgNet: number;
+  avgCaJour: number;
+}
+
+export function monthlyTotals(months: MonthMetric[], gestionDefaut: number): MonthlyHoursTotals {
+  const withTerrain = months.filter((m) => (m.temps_terrain ?? 0) > 0);
+  const caWithTerrain = withTerrain.reduce((s, m) => s + m.ca, 0);
+  const totalTerrain = withTerrain.reduce((s, m) => s + (m.temps_terrain ?? 0), 0);
+  const totalGestion = withTerrain.reduce((s, m) => s + (m.temps_gestion ?? gestionDefaut), 0);
+  const caTotal = months.reduce((s, m) => s + m.ca, 0);
+  const totalJours = months.reduce((s, m) => s + (m.jours_travailles ?? 0), 0);
+  const heuresTotales = months.reduce(
+    (s, m) => s + (m.temps_terrain ?? 0) + (m.temps_gestion ?? gestionDefaut),
+    0,
+  );
+  return {
+    caWithTerrain,
+    caTotal,
+    totalTerrain,
+    totalGestion,
+    heuresTotales,
+    totalJours,
+    avgBrut: totalTerrain > 0 ? caWithTerrain / totalTerrain : 0,
+    avgNet: totalTerrain + totalGestion > 0 ? caWithTerrain / (totalTerrain + totalGestion) : 0,
+    avgCaJour: totalJours > 0 ? caTotal / totalJours : 0,
+  };
+}

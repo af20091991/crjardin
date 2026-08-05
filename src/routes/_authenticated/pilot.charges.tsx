@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,16 +15,13 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import {
-  analyzeCharges,
   listChargeCategories,
-  listChargeRows,
-  listSalesByYear,
-  projectionBase,
   setChargeInvestment,
   type ChargeRow,
-  PRIORITY_VARIABLE_CATEGORIES,
 } from "@/lib/pilot-charges";
-import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
+import { usePilotYear } from "@/lib/pilot-mode";
+import { useAnalytics } from "@/lib/pilot-analytics";
+import { ANALYTICS_QUERY_ROOT } from "@/lib/pilot-engine";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 
 export const Route = createFileRoute("/_authenticated/pilot/charges")({
@@ -43,61 +40,21 @@ function pct(v: number | null) {
 
 function ChargesPage() {
   const qc = useQueryClient();
-  const { mode } = usePilotMode();
-  const q = useQuery({
-    queryKey: ["pilot-charges-analysis", mode],
-    queryFn: async () => {
-      const [rows, sales, cats] = await Promise.all([
-        listChargeRows(),
-        listSalesByYear({ mode }),
-        listChargeCategories(),
-      ]);
-      return { rows, sales, cats };
-    },
-  });
+  // Source unique : moteur analytique central.
+  const { snapshot, isLoading } = useAnalytics();
+  const catsQ = useQuery({ queryKey: ["pilot-charge-categories"], queryFn: listChargeCategories });
   const { year: detailYear, setYear: setDetailYear } = usePilotYear();
   const [search, setSearch] = useState("");
-  const analysis = useMemo(
-    () => (q.data ? analyzeCharges(q.data.rows, q.data.sales, q.data.cats.map((c) => c.label), { mode }) : null),
-    [q.data, mode],
-  );
-  const proj = useMemo(
-    () => (q.data ? projectionBase(q.data.rows, currentYear(), q.data.sales) : null),
-    [q.data],
-  );
-  if (q.isLoading || !q.data || !analysis || !proj) return <Skeleton className="h-96 w-full" />;
-  const caTotal = [...q.data.sales.values()].reduce((s, v) => s + v, 0);
-  const weight = caTotal > 0 ? (analysis.totals.total / caTotal) * 100 : null;
-  const priority = analysis.categories.filter((c) =>
-    (PRIORITY_VARIABLE_CATEGORIES as readonly string[]).includes(c.label),
-  );
-
-  // Évolution annuelle fixes / variables
-  const evolutionData = analysis.years.map((y) => ({
-    annee: String(y.year),
-    Fixes: Math.round(y.fixe),
-    Variables: Math.round(y.variable),
-    Total: Math.round(y.total),
-  }));
-
-  // Répartition des charges par catégorie (top 8 + autres)
-  const sorted = analysis.categories.filter((c) => c.total > 0);
-  const top = sorted.slice(0, 8);
-  const autres = sorted.slice(8).reduce((s, c) => s + c.total, 0);
-  const repartition = [
-    ...top.map((c) => ({ name: c.label, value: Math.round(c.total) })),
-    ...(autres > 0 ? [{ name: "Autres", value: Math.round(autres) }] : []),
-  ];
+  if (isLoading || !snapshot) return <Skeleton className="h-96 w-full" />;
+  const analysis = snapshot.charges.analysis;
+  const proj = snapshot.charges.projectionBase;
+  const weight = snapshot.charges.weightPct;
+  const priority = snapshot.charges.priority;
+  const evolutionData = snapshot.charges.evolution;
+  const repartition = snapshot.charges.repartition;
+  const priorityTrend = snapshot.charges.priorityTrend;
+  const chargeRows = snapshot.sources.chargeRows;
   const PIE_COLORS = PP_SERIES;
-
-  // Suivi historique des 3 charges variables prioritaires
-  const priorityTrend = analysis.years.map((y) => {
-    const row: Record<string, string | number> = { annee: String(y.year) };
-    for (const c of priority) {
-      row[c.label] = Math.round(c.years.find((cy) => cy.year === y.year)?.total ?? 0);
-    }
-    return row;
-  });
 
   return (
     <div className="space-y-5">
@@ -346,10 +303,10 @@ function ChargesPage() {
         </CardHeader>
         <CardContent>
           <ChargeDetailTable
-            rows={q.data.rows}
+            rows={chargeRows}
             year={detailYear}
             search={search}
-            onChanged={() => qc.invalidateQueries({ queryKey: ["pilot-charges-analysis"] })}
+            onChanged={() => qc.invalidateQueries({ queryKey: [ANALYTICS_QUERY_ROOT] })}
           />
         </CardContent>
       </Card>
@@ -358,7 +315,7 @@ function ChargesPage() {
           <CardTitle className="text-base">Règles de classement</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {q.data.cats.map((c) => (
+          {(catsQ.data ?? []).map((c) => (
             <div
               key={c.id}
               className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 p-2.5 text-sm"
