@@ -414,6 +414,11 @@ function MissionsTab() {
   const { data: pnls = [] } = useQuery({ queryKey: ["sst-pnl"], queryFn: listMissionPnl });
   const [editing, setEditing] = useState<SubcontractorMission | null>(null);
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | MissionStatus>("all");
+  const [sstFilter, setSstFilter] = useState("all");
+  const [sort, setSort] = useState<"date_desc" | "date_asc" | "sst">("date_desc");
+  const [limit, setLimit] = useState(20);
 
   const sstById = new Map(ssts.map((s) => [s.id, s]));
   const clientById = new Map(clients.map((c) => [c.id, c]));
@@ -430,7 +435,42 @@ function MissionsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={q}
+            onChange={(e) => { setQ(e.target.value); setLimit(20); }}
+            placeholder="Rechercher une mission, un SST, un client…"
+            className="h-9 pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as typeof statusFilter); setLimit(20); }}>
+          <SelectTrigger className="h-9 w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les statuts</SelectItem>
+            {(Object.keys(MISSION_STATUS_META) as MissionStatus[]).map((s) => (
+              <SelectItem key={s} value={s}>{MISSION_STATUS_META[s].label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={sstFilter} onValueChange={(v) => { setSstFilter(v); setLimit(20); }}>
+          <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+          <SelectContent className="max-h-72">
+            <SelectItem value="all">Tous les SST</SelectItem>
+            {ssts.map((s) => (
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
+          <SelectTrigger className="h-9 w-48"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date_desc">Plus récentes d'abord</SelectItem>
+            <SelectItem value="date_asc">Plus anciennes d'abord</SelectItem>
+            <SelectItem value="sst">Par sous-traitant</SelectItem>
+          </SelectContent>
+        </Select>
         <Dialog
           open={open}
           onOpenChange={(v) => {
@@ -465,15 +505,19 @@ function MissionsTab() {
         </Card>
       )}
 
-      {missions.length === 0 ? (
+      {visibleMissions.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
-            Aucune mission enregistrée.
+            Aucune mission ne correspond.
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {missions.map((m) => {
+          <p className="text-xs text-muted-foreground">
+            {filteredMissions.length} mission{filteredMissions.length > 1 ? "s" : ""}
+            {visibleMissions.length < filteredMissions.length ? ` · ${visibleMissions.length} affichée(s)` : ""}
+          </p>
+          {visibleMissions.map((m) => {
             const sst = sstById.get(m.subcontractor_id);
             const client = m.client_id ? clientById.get(m.client_id) : null;
             const meta = MISSION_STATUS_META[m.status];
