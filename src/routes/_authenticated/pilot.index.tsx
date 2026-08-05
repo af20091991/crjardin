@@ -1272,6 +1272,83 @@ function SectionTitle({ question, label }: { question: string; label: string }) 
   );
 }
 
+/**
+ * Comparatif à date équivalente N vs N-1 : un mini histogramme par indicateur
+ * fiable. Aucune projection, aucune donnée reconstruite.
+ */
+function CompareBars({
+  items,
+  currentLabel,
+  previousLabel,
+  note,
+}: {
+  items: Array<{
+    key: string;
+    label: string;
+    current: number;
+    previous: number;
+    fmt: (v: number) => string;
+  }>;
+  currentLabel: string;
+  previousLabel: string;
+  note: string;
+}) {
+  const visible = items.filter((i) => i.current > 0 || i.previous > 0);
+  if (visible.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {visible.map((it) => {
+          const deltaPct =
+            it.previous > 0 ? ((it.current - it.previous) / it.previous) * 100 : null;
+          return (
+            <Card key={it.key} className="p-3">
+              <p className="text-xs font-medium">{it.label}</p>
+              <p className="font-serif text-lg font-semibold tabular-nums">{it.fmt(it.current)}</p>
+              <div className="h-[110px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      { name: previousLabel, v: it.previous },
+                      { name: currentLabel, v: it.current },
+                    ]}
+                    margin={{ top: 4, right: 4, left: 4, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} />
+                    <Tooltip formatter={(v: number | string) => it.fmt(Number(v))} />
+                    <Bar dataKey="v" radius={[4, 4, 0, 0]}>
+                      <Cell fill={PP_COLORS.neutral} />
+                      <Cell fill={PP_COLORS.primary} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {deltaPct != null
+                  ? `${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(0)} % vs période équivalente`
+                  : "Aucune référence sur la période équivalente"}
+              </p>
+            </Card>
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted-foreground">{note}</p>
+    </div>
+  );
+}
+
+function SectionTitleLegacy({ question, label }: { question: string; label: string }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <h3 className="font-serif text-lg font-semibold tracking-tight">{question}</h3>
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+    </div>
+  );
+}
+
 function PriorityRow({
   rank,
   icon: Icon,
