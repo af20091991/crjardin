@@ -255,6 +255,12 @@ function CeevDetailPage() {
               <Row label="Fréquence" value={CEEV_FREQUENCY_META[a.frequency].label} />
               <Row label="Début" value={fmt(a.start_date)} />
               <Row label="Fin" value={fmt(a.end_date)} />
+              <Row label="Passages prévus" value={a.visits_planned != null ? `${a.visits_planned} passages` : "Non défini"} />
+              <Row label="Période annuelle" value={seasonLabel(a)} />
+              <Row
+                label="Durée estimée d'un passage"
+                value={a.visit_duration_hours != null ? `${a.visit_duration_hours} h` : "Non définie"}
+              />
               <Row label="Prochaine intervention" value={fmt(a.next_intervention_date)} />
               <Row label="Statut" value={meta.label} />
               <div className="sm:col-span-2">
@@ -321,6 +327,50 @@ function CeevDetailPage() {
                   id="f-next" type="date" value={form.next_intervention_date}
                   onChange={(e) => setForm({ ...form, next_intervention_date: e.target.value })}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="f-visits">Passages prévus sur la période</Label>
+                <Input
+                  id="f-visits" type="number" min={0} max={365} value={form.visits_planned}
+                  onChange={(e) => setForm({ ...form, visits_planned: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="f-duration">Durée estimée d'un passage (h)</Label>
+                <Input
+                  id="f-duration" type="number" min={0} max={24} step="0.5" value={form.visit_duration_hours}
+                  onChange={(e) => setForm({ ...form, visit_duration_hours: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Début de la période annuelle</Label>
+                <Select
+                  value={form.season_start_month || "none"}
+                  onValueChange={(v) => setForm({ ...form, season_start_month: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Toute l'année</SelectItem>
+                    {MONTH_LABELS.map((m, i) => (
+                      <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Fin de la période annuelle</Label>
+                <Select
+                  value={form.season_end_month || "none"}
+                  onValueChange={(v) => setForm({ ...form, season_end_month: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Toute l'année</SelectItem>
+                    {MONTH_LABELS.map((m, i) => (
+                      <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="f-notes">Notes</Label>
