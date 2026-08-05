@@ -13,22 +13,32 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, CalendarPlus, RefreshCw, Save, Archive } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowLeft, CalendarPlus, RefreshCw, Save, Archive, ListChecks } from "lucide-react";
 import {
   CEEV_EVENT_LABEL,
   CEEV_FREQUENCY_META,
   CEEV_STATUS_META,
+  MONTH_LABELS,
   archiveCeevAgreement,
+  ceevProgress,
   daysUntil,
+  generateCeevInterventions,
   getCeevAgreement,
   listCeevEvents,
+  plannedVisitDates,
   renewCeevAgreement,
   renewalPeriod,
+  seasonLabel,
   suggestedNextIntervention,
   updateCeevAgreement,
+  type CeevAgreement,
   type CeevFrequency,
   type CeevStatus,
 } from "@/lib/ceev-agreements";
+import { listAllInterventions, type Intervention } from "@/lib/interventions";
 
 const searchSchema = z.object({ edit: z.boolean().optional() });
 
@@ -71,6 +81,7 @@ function CeevDetailPage() {
     queryKey: ["ceev-agreement-events", agreementId],
     queryFn: () => listCeevEvents(agreementId),
   });
+  const interventions = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
 
   const [form, setForm] = useState({
     name: "",
@@ -81,8 +92,13 @@ function CeevDetailPage() {
     frequency: "mensuelle" as CeevFrequency,
     next_intervention_date: "",
     notes: "",
+    visits_planned: "",
+    visit_duration_hours: "",
+    season_start_month: "",
+    season_end_month: "",
   });
   const [editing, setEditing] = useState(Boolean(edit));
+  const [genOpen, setGenOpen] = useState(false);
 
   const a = agreement.data;
   useEffect(() => {
@@ -96,6 +112,10 @@ function CeevDetailPage() {
       frequency: a.frequency,
       next_intervention_date: a.next_intervention_date ?? "",
       notes: a.notes ?? "",
+      visits_planned: a.visits_planned != null ? String(a.visits_planned) : "",
+      visit_duration_hours: a.visit_duration_hours != null ? String(a.visit_duration_hours) : "",
+      season_start_month: a.season_start_month != null ? String(a.season_start_month) : "",
+      season_end_month: a.season_end_month != null ? String(a.season_end_month) : "",
     });
   }, [a]);
 
@@ -103,6 +123,7 @@ function CeevDetailPage() {
     qc.invalidateQueries({ queryKey: ["ceev-agreement", agreementId] });
     qc.invalidateQueries({ queryKey: ["ceev-agreement-events", agreementId] });
     qc.invalidateQueries({ queryKey: ["ceev-agreements"] });
+    qc.invalidateQueries({ queryKey: ["interventions-all"] });
   };
 
   const save = useMutation({
@@ -116,6 +137,10 @@ function CeevDetailPage() {
         frequency: form.frequency,
         next_intervention_date: form.next_intervention_date || null,
         notes: form.notes.trim() || null,
+        visits_planned: form.visits_planned ? Number(form.visits_planned) : null,
+        visit_duration_hours: form.visit_duration_hours ? Number(form.visit_duration_hours) : null,
+        season_start_month: form.season_start_month ? Number(form.season_start_month) : null,
+        season_end_month: form.season_end_month ? Number(form.season_end_month) : null,
       }),
     onSuccess: () => { refresh(); setEditing(false); toast.success("Contrat mis à jour"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
@@ -159,6 +184,7 @@ function CeevDetailPage() {
   const meta = CEEV_STATUS_META[a.status];
   const nextDue = suggestedNextIntervention(a);
   const dEnd = daysUntil(a.end_date);
+  const progress = ceevProgress(a, interventions.data ?? []);
 
   return (
     <div className="space-y-5 py-6">
@@ -178,6 +204,9 @@ function CeevDetailPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline" className={meta.badge}>{meta.label}</Badge>
+          <Button size="sm" variant="outline" onClick={() => setGenOpen(true)}>
+            <ListChecks className="mr-1.5 h-4 w-4" /> Générer les passages
+          </Button>
           <Button asChild size="sm" variant="outline">
             <Link
               to="/interventions/new"
@@ -226,6 +255,12 @@ function CeevDetailPage() {
               <Row label="Fréquence" value={CEEV_FREQUENCY_META[a.frequency].label} />
               <Row label="Début" value={fmt(a.start_date)} />
               <Row label="Fin" value={fmt(a.end_date)} />
+              <Row label="Passages prévus" value={a.visits_planned != null ? `${a.visits_planned} passages` : "Non défini"} />
+              <Row label="Période annuelle" value={seasonLabel(a)} />
+              <Row
+                label="Durée estimée d'un passage"
+                value={a.visit_duration_hours != null ? `${a.visit_duration_hours} h` : "Non définie"}
+              />
               <Row label="Prochaine intervention" value={fmt(a.next_intervention_date)} />
               <Row label="Statut" value={meta.label} />
               <div className="sm:col-span-2">
@@ -293,6 +328,50 @@ function CeevDetailPage() {
                   onChange={(e) => setForm({ ...form, next_intervention_date: e.target.value })}
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="f-visits">Passages prévus sur la période</Label>
+                <Input
+                  id="f-visits" type="number" min={0} max={365} value={form.visits_planned}
+                  onChange={(e) => setForm({ ...form, visits_planned: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="f-duration">Durée estimée d'un passage (h)</Label>
+                <Input
+                  id="f-duration" type="number" min={0} max={24} step="0.5" value={form.visit_duration_hours}
+                  onChange={(e) => setForm({ ...form, visit_duration_hours: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Début de la période annuelle</Label>
+                <Select
+                  value={form.season_start_month || "none"}
+                  onValueChange={(v) => setForm({ ...form, season_start_month: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Toute l'année</SelectItem>
+                    {MONTH_LABELS.map((m, i) => (
+                      <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Fin de la période annuelle</Label>
+                <Select
+                  value={form.season_end_month || "none"}
+                  onValueChange={(v) => setForm({ ...form, season_end_month: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Toute l'année</SelectItem>
+                    {MONTH_LABELS.map((m, i) => (
+                      <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label htmlFor="f-notes">Notes</Label>
                 <Textarea
@@ -304,6 +383,69 @@ function CeevDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {a.renewed_from_id && (
+        <></>
+      )}
+
+      {/* Suivi des passages : source unique = interventions rattachées au contrat */}
+      <Card>
+        <CardContent className="space-y-3 pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-medium">Suivi des passages</h2>
+            {progress.estimatedHours != null && (
+              <span className="text-xs text-muted-foreground">
+                Volume estimé : {progress.estimatedHours} h
+              </span>
+            )}
+          </div>
+          {a.visits_planned == null ? (
+            <p className="text-sm text-muted-foreground">
+              Nombre de passages prévus non défini : renseignez-le dans « Informations contrat » pour
+              activer le suivi réalisé / restant.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Stat label="Prévus" value={progress.planned} />
+              <Stat label="Planifiés" value={progress.scheduled} />
+              <Stat label="Réalisés" value={progress.done} />
+              <Stat label="Restants à planifier" value={progress.remaining} />
+            </div>
+          )}
+          {interventions.isLoading ? (
+            <Skeleton className="h-12 w-full" />
+          ) : progress.interventions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aucune intervention rattachée à ce contrat pour le moment.
+            </p>
+          ) : (
+            <ul className="divide-y text-sm">
+              {progress.interventions.map((iv) => (
+                <li key={iv.id} className="flex items-center justify-between gap-3 py-2">
+                  <Link
+                    to="/interventions/$interventionId"
+                    params={{ interventionId: iv.id }}
+                    className="text-primary hover:underline"
+                  >
+                    {fmt(iv.intervention_date)}
+                  </Link>
+                  <span className="text-xs text-muted-foreground">
+                    {iv.status === "terminee" ? "Réalisée" : "Prévue"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <GenerateVisitsDialog
+        open={genOpen}
+        onOpenChange={setGenOpen}
+        agreement={a}
+        existing={progress.interventions}
+        onDone={refresh}
+      />
 
       {a.renewed_from_id && (
         <Card>
@@ -354,5 +496,84 @@ function Row({ label, value }: { label: string; value: string }) {
       <dt className="text-xs uppercase text-muted-foreground">{label}</dt>
       <dd>{value}</dd>
     </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <p className="text-xs uppercase text-muted-foreground">{label}</p>
+      <p className="text-xl font-semibold tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+function GenerateVisitsDialog({
+  open, onOpenChange, agreement, existing, onDone,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  agreement: CeevAgreement;
+  existing: Intervention[];
+  onDone: () => void;
+}) {
+  const [dates, setDates] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open) setDates(plannedVisitDates(agreement));
+  }, [open, agreement]);
+
+  const generate = useMutation({
+    mutationFn: () => generateCeevInterventions(agreement, dates, existing),
+    onSuccess: (created) => {
+      onDone();
+      onOpenChange(false);
+      toast.success(`${created.length} passage(s) créé(s) dans Activité`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Générer les passages d'entretien</DialogTitle>
+          <DialogDescription>
+            Dates proposées à partir des passages prévus et de la période annuelle
+            ({seasonLabel(agreement)}). Elles restent modifiables ; les dates déjà rattachées
+            au contrat ne sont pas dupliquées.
+          </DialogDescription>
+        </DialogHeader>
+        {dates.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Renseignez d'abord le nombre de passages prévus dans les informations du contrat.
+          </p>
+        ) : (
+          <div className="grid max-h-72 gap-2 overflow-y-auto sm:grid-cols-2">
+            {dates.map((d, i) => (
+              <Input
+                key={`${d}-${i}`}
+                type="date"
+                value={d}
+                onChange={(e) => {
+                  const next = [...dates];
+                  next[i] = e.target.value;
+                  setDates(next);
+                }}
+              />
+            ))}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Annuler</Button>
+          <Button
+            onClick={() => generate.mutate()}
+            disabled={dates.length === 0 || generate.isPending}
+          >
+            Créer les interventions
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

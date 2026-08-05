@@ -359,6 +359,8 @@ function QuickCreateDialog({
   const [frequency, setFrequency] = useState<CeevFrequency>("mensuelle");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [visits, setVisits] = useState("");
+  const [duration, setDuration] = useState("");
 
   const create = useMutation({
     mutationFn: () =>
@@ -369,10 +371,12 @@ function QuickCreateDialog({
         frequency,
         site_address: address.trim() || null,
         notes: notes.trim() || null,
+        visits_planned: visits ? Number(visits) : null,
+        visit_duration_hours: duration ? Number(duration) : null,
       }),
     onSuccess: () => {
       toast.success("Contrat CEEV créé");
-      setClientId(""); setAddress(""); setNotes("");
+      setClientId(""); setAddress(""); setNotes(""); setVisits(""); setDuration("");
       onCreated();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
@@ -423,6 +427,22 @@ function QuickCreateDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="ceev-visits">Passages prévus (optionnel)</Label>
+              <Input
+                id="ceev-visits" type="number" min={0} max={365} value={visits}
+                onChange={(e) => setVisits(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ceev-duration">Durée d'un passage en h (optionnel)</Label>
+              <Input
+                id="ceev-duration" type="number" min={0} max={24} step="0.5" value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+              />
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="ceev-address">Adresse chantier (optionnel)</Label>

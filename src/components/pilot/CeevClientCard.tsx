@@ -9,10 +9,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   CEEV_FREQUENCY_META,
   CEEV_STATUS_META,
+  ceevProgress,
   daysUntil,
   listCeevAgreementsForClient,
   type CeevAgreement,
 } from "@/lib/ceev-agreements";
+import { listAllInterventions, type Intervention } from "@/lib/interventions";
 
 function fmt(iso: string | null): string {
   if (!iso) return "—";
@@ -20,9 +22,10 @@ function fmt(iso: string | null): string {
   return Number.isFinite(d.getTime()) ? d.toLocaleDateString("fr-FR") : "—";
 }
 
-function Row({ a }: { a: CeevAgreement }) {
+function Row({ a, interventions }: { a: CeevAgreement; interventions: Intervention[] }) {
   const meta = CEEV_STATUS_META[a.status];
   const dEnd = daysUntil(a.end_date);
+  const p = ceevProgress(a, interventions);
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
       <div className="min-w-0">
@@ -37,6 +40,12 @@ function Row({ a }: { a: CeevAgreement }) {
           {fmt(a.start_date)} → {fmt(a.end_date)} · {CEEV_FREQUENCY_META[a.frequency].label}
           {a.next_intervention_date && ` · prochaine intervention ${fmt(a.next_intervention_date)}`}
         </div>
+        {p.planned > 0 && (
+          <div className="text-xs text-muted-foreground">
+            Passages : {p.done} réalisé(s) / {p.planned} prévu(s)
+            {p.remaining > 0 && ` · ${p.remaining} à planifier`}
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2">
         {dEnd != null && dEnd >= 0 && dEnd <= 60 && (
@@ -56,6 +65,8 @@ export function CeevClientCard({ clientId }: { clientId: string }) {
     queryKey: ["fiche-ceev-agreements", clientId],
     queryFn: () => listCeevAgreementsForClient(clientId),
   });
+  const iv = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
+  const interventions = iv.data ?? [];
   const rows = q.data ?? [];
   const live = rows.filter((a) => a.status === "actif" || a.status === "a_renouveler" || a.status === "suspendu");
   const history = rows.filter((a) => !live.includes(a));
@@ -84,7 +95,7 @@ export function CeevClientCard({ clientId }: { clientId: string }) {
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   En cours ({live.length})
                 </div>
-                {live.map((a) => <Row key={a.id} a={a} />)}
+                {live.map((a) => <Row key={a.id} a={a} interventions={interventions} />)}
               </div>
             )}
             {history.length > 0 && (
@@ -92,7 +103,7 @@ export function CeevClientCard({ clientId }: { clientId: string }) {
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Historique ({history.length})
                 </div>
-                {history.map((a) => <Row key={a.id} a={a} />)}
+                {history.map((a) => <Row key={a.id} a={a} interventions={interventions} />)}
               </div>
             )}
           </>

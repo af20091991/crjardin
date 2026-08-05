@@ -97,11 +97,15 @@ export type Database = {
           next_intervention_date: string | null
           notes: string | null
           renewed_from_id: string | null
+          season_end_month: number | null
+          season_start_month: number | null
           site_address: string | null
           start_date: string
           status: string
           updated_at: string
           user_id: string
+          visit_duration_hours: number | null
+          visits_planned: number | null
         }
         Insert: {
           archived_at?: string | null
@@ -114,11 +118,15 @@ export type Database = {
           next_intervention_date?: string | null
           notes?: string | null
           renewed_from_id?: string | null
+          season_end_month?: number | null
+          season_start_month?: number | null
           site_address?: string | null
           start_date: string
           status?: string
           updated_at?: string
           user_id: string
+          visit_duration_hours?: number | null
+          visits_planned?: number | null
         }
         Update: {
           archived_at?: string | null
@@ -131,11 +139,15 @@ export type Database = {
           next_intervention_date?: string | null
           notes?: string | null
           renewed_from_id?: string | null
+          season_end_month?: number | null
+          season_start_month?: number | null
           site_address?: string | null
           start_date?: string
           status?: string
           updated_at?: string
           user_id?: string
+          visit_duration_hours?: number | null
+          visits_planned?: number | null
         }
         Relationships: [
           {
@@ -1237,6 +1249,7 @@ export type Database = {
         Row: {
           ai_metadata: Json | null
           attention_points: string | null
+          ceev_agreement_id: string | null
           client_id: string
           client_read_at: string | null
           client_read_count: number
@@ -1271,6 +1284,7 @@ export type Database = {
         Insert: {
           ai_metadata?: Json | null
           attention_points?: string | null
+          ceev_agreement_id?: string | null
           client_id: string
           client_read_at?: string | null
           client_read_count?: number
@@ -1305,6 +1319,7 @@ export type Database = {
         Update: {
           ai_metadata?: Json | null
           attention_points?: string | null
+          ceev_agreement_id?: string | null
           client_id?: string
           client_read_at?: string | null
           client_read_count?: number
@@ -1337,6 +1352,13 @@ export type Database = {
           worksite_sheet_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "interventions_ceev_agreement_id_fkey"
+            columns: ["ceev_agreement_id"]
+            isOneToOne: false
+            referencedRelation: "ceev_agreements"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "interventions_client_id_fkey"
             columns: ["client_id"]
