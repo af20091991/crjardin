@@ -433,6 +433,33 @@ function MissionsTab() {
     },
   });
 
+  const needle = q.trim().toLowerCase();
+  const filteredMissions = missions
+    .filter((m) => (statusFilter === "all" ? true : m.status === statusFilter))
+    .filter((m) => (sstFilter === "all" ? true : m.subcontractor_id === sstFilter))
+    .filter((m) =>
+      needle
+        ? [
+            m.service_requested,
+            m.objective,
+            m.instructions,
+            sstById.get(m.subcontractor_id)?.name,
+            m.client_id ? clientById.get(m.client_id)?.name : null,
+          ].some((f) => f?.toLowerCase().includes(needle))
+        : true,
+    )
+    .sort((a, b) => {
+      if (sort === "sst")
+        return (sstById.get(a.subcontractor_id)?.name ?? "").localeCompare(
+          sstById.get(b.subcontractor_id)?.name ?? "",
+          "fr",
+        );
+      const da = new Date(a.mission_date).getTime();
+      const db = new Date(b.mission_date).getTime();
+      return sort === "date_asc" ? da - db : db - da;
+    });
+  const visibleMissions = filteredMissions.slice(0, limit);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
