@@ -32,6 +32,10 @@ type NavItem = {
 };
 type NavGroup = { label: string; items: NavItem[]; emptyLabel?: string };
 
+// État d'ouverture des rubriques : conservé pendant toute la navigation interne
+// (module scope = réinitialisé uniquement au rechargement complet de la page).
+let navGroupState: Record<string, boolean> = {};
+
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const navigate = useNavigate();
   const { user } = useAuth();
