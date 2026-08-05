@@ -213,6 +213,8 @@ export async function createIntervention(input: {
   intervention_date: string;
   intervention_type?: string | null;
   tasks?: string[];
+  /** Rattachement optionnel à un contrat d'entretien CEEV (aucun type d'intervention parallèle). */
+  ceev_agreement_id?: string | null;
 }): Promise<Intervention> {
   const user_id = await uid();
 
@@ -248,6 +250,7 @@ export async function createIntervention(input: {
       status: "brouillon",
       title,
       reference,
+      ceev_agreement_id: input.ceev_agreement_id ?? null,
     })
     .select()
     .single();
