@@ -64,11 +64,15 @@ export const ENTITY_STATUS_META: Record<
 };
 
 /** Une fiche non certifiée ne doit alimenter aucun KPI stratégique. */
+/** @deprecated Utiliser entityEligibility() de pilot-entity-rules (règle unique). */
 export function isCertifiedForAnalytics(status: string | null | undefined): boolean {
   return status === "certified_client";
 }
 
-/** Identité économique douteuse : rentabilité et score doivent être neutralisés. */
+/**
+ * Identité économique douteuse.
+ * @deprecated Utiliser entityEligibility().level === "non_fiable" (règle unique).
+ */
 export function hasIdentityRisk(status: string | null | undefined): boolean {
   return status === "probable_contact" || status === "duplicate_candidate";
 }
