@@ -268,10 +268,7 @@ function TodayPage() {
     () => monthVsSameMonthLastYear(entries.data ?? [], year, month),
     [entries.data, year, month],
   );
-  const toDateCompare = useMemo(
-    () => toDateVsSameDateLastYear(entries.data ?? []),
-    [entries.data],
-  );
+  const toDateCompare = useMemo(() => toDateVsSameDateLastYear(entries.data ?? []), [entries.data]);
 
   const beneficeMois = useMemo(() => {
     // approximation : marge annuelle appliquée au CA du mois
@@ -386,7 +383,15 @@ function TodayPage() {
             }),
           )
         : [],
-    [realEntries, hoursLedger.data, ledgerRows, year, set.target_hourly_rate, thresholds, statusesQ.data],
+    [
+      realEntries,
+      hoursLedger.data,
+      ledgerRows,
+      year,
+      set.target_hourly_rate,
+      thresholds,
+      statusesQ.data,
+    ],
   );
   const services = useMemo(
     () =>
@@ -856,12 +861,20 @@ function TodayPage() {
         .map((a) => {
           const alertKey = alertKeyFrom(a);
           const feedback = feedbackByKey.get(alertKey);
-          return { ...a, alertKey, seen: Boolean(feedback?.seen_at), rating: feedback?.rating ?? null };
+          return {
+            ...a,
+            alertKey,
+            seen: Boolean(feedback?.seen_at),
+            rating: feedback?.rating ?? null,
+          };
         })
         .sort((a, b) => Number(a.seen) - Number(b.seen)),
     [attentionsRaw, feedbackByKey],
   );
-  const alertsAvgRating = useMemo(() => averageRating(alertFeedback.data ?? []), [alertFeedback.data]);
+  const alertsAvgRating = useMemo(
+    () => averageRating(alertFeedback.data ?? []),
+    [alertFeedback.data],
+  );
 
   // ---- Opportunités préparées ----
   const prestationsADevelopper = services
@@ -902,7 +915,10 @@ function TodayPage() {
   const recommendations = rankItems(recommendationsRaw, { feedbackByKey, statusOf });
 
   // ---- Centre de décision : agrégation des moteurs existants uniquement ----
-  const activityRowsQ = useQuery({ queryKey: ["client-activity-rows"], queryFn: fetchClientActivityRows });
+  const activityRowsQ = useQuery({
+    queryKey: ["client-activity-rows"],
+    queryFn: fetchClientActivityRows,
+  });
   const commercialOpportunities = buildCommercialOpportunities({
     activity: activityRowsQ.data ?? [],
     ceev: ceevContracts.data ?? [],
@@ -924,7 +940,17 @@ function TodayPage() {
         tauxHoraireReel: k.tauxHoraireReel,
         targetHourlyRate: targetHR,
       }),
-    [year, annualRows, clientsProfit, services, ceevContracts.data, k.caYear, k.caPrevYear, k.tauxHoraireReel, targetHR],
+    [
+      year,
+      annualRows,
+      clientsProfit,
+      services,
+      ceevContracts.data,
+      k.caYear,
+      k.caPrevYear,
+      k.tauxHoraireReel,
+      targetHR,
+    ],
   );
   const decisions = buildDecisions({
     recommendations,
@@ -1076,8 +1102,8 @@ function TodayPage() {
               <AlertTriangle className="h-4 w-4 text-amber-700" />
               <span>
                 <strong>{missingHours.length}</strong> intervention
-                {missingHours.length > 1 ? "s" : ""} terminée{missingHours.length > 1 ? "s" : ""} sans
-                heures réelles.
+                {missingHours.length > 1 ? "s" : ""} terminée{missingHours.length > 1 ? "s" : ""}{" "}
+                sans heures réelles.
               </span>
               <Link to="/interventions" className="ml-auto font-medium text-primary underline">
                 Saisir les heures
@@ -1089,7 +1115,10 @@ function TodayPage() {
 
       {/* 2 — Synthèse depuis le début de l'exercice */}
       <DashboardBlock id="exercice" layout={layout}>
-        <SectionTitle question="Où en suis-je depuis le début de l'exercice ?" label={`Depuis le 1er janvier ${year}`} />
+        <SectionTitle
+          question="Où en suis-je depuis le début de l'exercice ?"
+          label={`Depuis le 1er janvier ${year}`}
+        />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <PilotCard
             label={`CA cumulé ${year}`}
@@ -1159,10 +1188,14 @@ function TodayPage() {
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {interventionsAnnee} intervention{interventionsAnnee > 1 ? "s" : ""}
-                  {heuresRealiseesAnnee > 0 ? ` · ${formatHours(heuresRealiseesAnnee)} réalisées` : ""}
+                  {heuresRealiseesAnnee > 0
+                    ? ` · ${formatHours(heuresRealiseesAnnee)} réalisées`
+                    : ""}
                 </p>
               </div>
-              <p className="font-serif text-2xl font-semibold tabular-nums">{formatEuro(caLecture)}</p>
+              <p className="font-serif text-2xl font-semibold tabular-nums">
+                {formatEuro(caLecture)}
+              </p>
             </div>
             <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3">
               <div>
@@ -1171,10 +1204,14 @@ function TodayPage() {
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {interventionsMois} intervention{interventionsMois > 1 ? "s" : ""}
-                  {heuresRealiseesMois > 0 ? ` · ${formatHours(heuresRealiseesMois)} réalisées` : ""}
+                  {heuresRealiseesMois > 0
+                    ? ` · ${formatHours(heuresRealiseesMois)} réalisées`
+                    : ""}
                 </p>
               </div>
-              <p className="font-serif text-2xl font-semibold tabular-nums">{formatEuro(k.caMonth)}</p>
+              <p className="font-serif text-2xl font-semibold tabular-nums">
+                {formatEuro(k.caMonth)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -1229,10 +1266,6 @@ function TodayPage() {
           </>
         )}
       </DashboardBlock>
-
-
-
-
     </div>
   );
 }
