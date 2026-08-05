@@ -9,12 +9,16 @@ export type PilotMode = RealProjectionMode;
 
 const KEY = "pp.mode.v1";
 const YEAR_KEY = "pp.year.v1";
+const STRICT_KEY = "pp.strict.v1";
 
 interface PilotCtx {
   mode: PilotMode;
   setMode: (m: PilotMode) => void;
   year: number;
   setYear: (y: number) => void;
+  /** Certification stricte : aucun KPI stratégique sur données non certifiées. */
+  strict: boolean;
+  setStrict: (v: boolean) => void;
 }
 
 export const RealProjectionContext = createContext<PilotCtx>({
@@ -22,11 +26,14 @@ export const RealProjectionContext = createContext<PilotCtx>({
   setMode: () => {},
   year: new Date().getFullYear(),
   setYear: () => {},
+  strict: false,
+  setStrict: () => {},
 });
 
 export function PilotModeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<PilotMode>("reel");
   const [year, setYearState] = useState<number>(() => new Date().getFullYear());
+  const [strict, setStrictState] = useState(false);
 
   useEffect(() => {
     try {
@@ -34,6 +41,7 @@ export function PilotModeProvider({ children }: { children: ReactNode }) {
       if (raw === "projection" || raw === "reel") setModeState(raw);
       const rawYear = Number(window.localStorage.getItem(YEAR_KEY));
       if (rawYear >= 2015 && rawYear <= 2100) setYearState(rawYear);
+      setStrictState(window.localStorage.getItem(STRICT_KEY) === "1");
     } catch {
       /* stockage indisponible */
     }
@@ -57,7 +65,19 @@ export function PilotModeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const value = useMemo(() => ({ mode, setMode, year, setYear }), [mode, setMode, year, setYear]);
+  const setStrict = useCallback((v: boolean) => {
+    setStrictState(v);
+    try {
+      window.localStorage.setItem(STRICT_KEY, v ? "1" : "0");
+    } catch {
+      /* stockage indisponible */
+    }
+  }, []);
+
+  const value = useMemo(
+    () => ({ mode, setMode, year, setYear, strict, setStrict }),
+    [mode, setMode, year, setYear, strict, setStrict],
+  );
   return <RealProjectionContext.Provider value={value}>{children}</RealProjectionContext.Provider>;
 }
 
@@ -69,4 +89,16 @@ export function usePilotMode() {
 export function usePilotYear() {
   const { year, setYear } = useContext(RealProjectionContext);
   return { year, setYear };
+}
+
+/** Mode « Certification stricte » partagé par tout Pilot Pro. */
+export function usePilotStrict() {
+  const { strict, setStrict } = useContext(RealProjectionContext);
+  return { strict, setStrict };
+}
+
+/** Périmètre d'analyse unique (exercice + mode + certification). */
+export function usePilotScope() {
+  const { year, mode, strict } = useContext(RealProjectionContext);
+  return { year, mode, strict };
 }
