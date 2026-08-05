@@ -43,6 +43,7 @@ import { Route as AuthenticatedPilotSitesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPilotSimulationsRouteImport } from './routes/_authenticated/pilot.simulations'
 import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
 import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
+import { Route as AuthenticatedPilotRentabiliteRouteImport } from './routes/_authenticated/pilot.rentabilite'
 import { Route as AuthenticatedPilotRapprochementRouteImport } from './routes/_authenticated/pilot.rapprochement'
 import { Route as AuthenticatedPilotRapportsRouteImport } from './routes/_authenticated/pilot.rapports'
 import { Route as AuthenticatedPilotQualiteRouteImport } from './routes/_authenticated/pilot.qualite'
@@ -54,7 +55,6 @@ import { Route as AuthenticatedPilotDonneesRouteImport } from './routes/_authent
 import { Route as AuthenticatedPilotDirectionRouteImport } from './routes/_authenticated/pilot.direction'
 import { Route as AuthenticatedPilotCorrectionsRouteImport } from './routes/_authenticated/pilot.corrections'
 import { Route as AuthenticatedPilotControleRouteImport } from './routes/_authenticated/pilot.controle'
-import { Route as AuthenticatedPilotConseillerRouteImport } from './routes/_authenticated/pilot.conseiller'
 import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
 import { Route as AuthenticatedPilotChargesRouteImport } from './routes/_authenticated/pilot.charges'
 import { Route as AuthenticatedPilotCeevRouteImport } from './routes/_authenticated/pilot.ceev'
@@ -65,6 +65,7 @@ import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
 import { Route as AuthenticatedFichesFicheIdRouteImport } from './routes/_authenticated/fiches.$ficheId'
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients.$clientId'
+import { Route as AuthenticatedPilotClientsIndexRouteImport } from './routes/_authenticated/pilot.clients.index'
 import { Route as AuthenticatedPilotCeevContratsIndexRouteImport } from './routes/_authenticated/pilot.ceev-contrats.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -251,6 +252,12 @@ const AuthenticatedPilotSaisonRoute =
     path: '/saison',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedPilotRentabiliteRoute =
+  AuthenticatedPilotRentabiliteRouteImport.update({
+    id: '/rentabilite',
+    path: '/rentabilite',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotRapprochementRoute =
   AuthenticatedPilotRapprochementRouteImport.update({
     id: '/rapprochement',
@@ -317,12 +324,6 @@ const AuthenticatedPilotControleRoute =
     path: '/controle',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
-const AuthenticatedPilotConseillerRoute =
-  AuthenticatedPilotConseillerRouteImport.update({
-    id: '/conseiller',
-    path: '/conseiller',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
 const AuthenticatedPilotClientsRoute =
   AuthenticatedPilotClientsRouteImport.update({
     id: '/clients',
@@ -379,6 +380,12 @@ const AuthenticatedClientsClientIdRoute =
     id: '/clients/$clientId',
     path: '/clients/$clientId',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPilotClientsIndexRoute =
+  AuthenticatedPilotClientsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedPilotClientsRoute,
   } as any)
 const AuthenticatedPilotCeevContratsIndexRoute =
   AuthenticatedPilotCeevContratsIndexRouteImport.update({
@@ -460,7 +467,6 @@ export interface FileRoutesByFullPath {
   '/pilot/ceev': typeof AuthenticatedPilotCeevRoute
   '/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
-  '/pilot/conseiller': typeof AuthenticatedPilotConseillerRoute
   '/pilot/controle': typeof AuthenticatedPilotControleRoute
   '/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
   '/pilot/direction': typeof AuthenticatedPilotDirectionRoute
@@ -472,6 +478,7 @@ export interface FileRoutesByFullPath {
   '/pilot/qualite': typeof AuthenticatedPilotQualiteRoute
   '/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
   '/pilot/rapprochement': typeof AuthenticatedPilotRapprochementRoute
+  '/pilot/rentabilite': typeof AuthenticatedPilotRentabiliteRoute
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
@@ -493,6 +500,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/pilot/ceev-contrats/': typeof AuthenticatedPilotCeevContratsIndexRoute
+  '/pilot/clients/': typeof AuthenticatedPilotClientsIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -523,8 +531,6 @@ export interface FileRoutesByTo {
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/pilot/ceev': typeof AuthenticatedPilotCeevRoute
   '/pilot/charges': typeof AuthenticatedPilotChargesRoute
-  '/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
-  '/pilot/conseiller': typeof AuthenticatedPilotConseillerRoute
   '/pilot/controle': typeof AuthenticatedPilotControleRoute
   '/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
   '/pilot/direction': typeof AuthenticatedPilotDirectionRoute
@@ -536,6 +542,7 @@ export interface FileRoutesByTo {
   '/pilot/qualite': typeof AuthenticatedPilotQualiteRoute
   '/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
   '/pilot/rapprochement': typeof AuthenticatedPilotRapprochementRoute
+  '/pilot/rentabilite': typeof AuthenticatedPilotRentabiliteRoute
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
@@ -557,6 +564,7 @@ export interface FileRoutesByTo {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/pilot/ceev-contrats': typeof AuthenticatedPilotCeevContratsIndexRoute
+  '/pilot/clients': typeof AuthenticatedPilotClientsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -591,7 +599,6 @@ export interface FileRoutesById {
   '/_authenticated/pilot/ceev': typeof AuthenticatedPilotCeevRoute
   '/_authenticated/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/_authenticated/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
-  '/_authenticated/pilot/conseiller': typeof AuthenticatedPilotConseillerRoute
   '/_authenticated/pilot/controle': typeof AuthenticatedPilotControleRoute
   '/_authenticated/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
   '/_authenticated/pilot/direction': typeof AuthenticatedPilotDirectionRoute
@@ -603,6 +610,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/qualite': typeof AuthenticatedPilotQualiteRoute
   '/_authenticated/pilot/rapports': typeof AuthenticatedPilotRapportsRoute
   '/_authenticated/pilot/rapprochement': typeof AuthenticatedPilotRapprochementRoute
+  '/_authenticated/pilot/rentabilite': typeof AuthenticatedPilotRentabiliteRoute
   '/_authenticated/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/_authenticated/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/_authenticated/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
@@ -624,6 +632,7 @@ export interface FileRoutesById {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/_authenticated/pilot/ceev-contrats/': typeof AuthenticatedPilotCeevContratsIndexRoute
+  '/_authenticated/pilot/clients/': typeof AuthenticatedPilotClientsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -658,7 +667,6 @@ export interface FileRouteTypes {
     | '/pilot/ceev'
     | '/pilot/charges'
     | '/pilot/clients'
-    | '/pilot/conseiller'
     | '/pilot/controle'
     | '/pilot/corrections'
     | '/pilot/direction'
@@ -670,6 +678,7 @@ export interface FileRouteTypes {
     | '/pilot/qualite'
     | '/pilot/rapports'
     | '/pilot/rapprochement'
+    | '/pilot/rentabilite'
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulations'
@@ -691,6 +700,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/pilot/ceev-contrats/'
+    | '/pilot/clients/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -721,8 +731,6 @@ export interface FileRouteTypes {
     | '/pilot/ca'
     | '/pilot/ceev'
     | '/pilot/charges'
-    | '/pilot/clients'
-    | '/pilot/conseiller'
     | '/pilot/controle'
     | '/pilot/corrections'
     | '/pilot/direction'
@@ -734,6 +742,7 @@ export interface FileRouteTypes {
     | '/pilot/qualite'
     | '/pilot/rapports'
     | '/pilot/rapprochement'
+    | '/pilot/rentabilite'
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulations'
@@ -755,6 +764,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/pilot/ceev-contrats'
+    | '/pilot/clients'
   id:
     | '__root__'
     | '/_authenticated'
@@ -788,7 +798,6 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/ceev'
     | '/_authenticated/pilot/charges'
     | '/_authenticated/pilot/clients'
-    | '/_authenticated/pilot/conseiller'
     | '/_authenticated/pilot/controle'
     | '/_authenticated/pilot/corrections'
     | '/_authenticated/pilot/direction'
@@ -800,6 +809,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/qualite'
     | '/_authenticated/pilot/rapports'
     | '/_authenticated/pilot/rapprochement'
+    | '/_authenticated/pilot/rentabilite'
     | '/_authenticated/pilot/saison'
     | '/_authenticated/pilot/sante'
     | '/_authenticated/pilot/simulations'
@@ -821,6 +831,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/_authenticated/pilot/ceev-contrats/'
+    | '/_authenticated/pilot/clients/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1079,6 +1090,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotSaisonRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/rentabilite': {
+      id: '/_authenticated/pilot/rentabilite'
+      path: '/rentabilite'
+      fullPath: '/pilot/rentabilite'
+      preLoaderRoute: typeof AuthenticatedPilotRentabiliteRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/rapprochement': {
       id: '/_authenticated/pilot/rapprochement'
       path: '/rapprochement'
@@ -1156,13 +1174,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotControleRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
-    '/_authenticated/pilot/conseiller': {
-      id: '/_authenticated/pilot/conseiller'
-      path: '/conseiller'
-      fullPath: '/pilot/conseiller'
-      preLoaderRoute: typeof AuthenticatedPilotConseillerRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
     '/_authenticated/pilot/clients': {
       id: '/_authenticated/pilot/clients'
       path: '/clients'
@@ -1233,6 +1244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pilot/clients/': {
+      id: '/_authenticated/pilot/clients/'
+      path: '/'
+      fullPath: '/pilot/clients/'
+      preLoaderRoute: typeof AuthenticatedPilotClientsIndexRouteImport
+      parentRoute: typeof AuthenticatedPilotClientsRoute
+    }
     '/_authenticated/pilot/ceev-contrats/': {
       id: '/_authenticated/pilot/ceev-contrats/'
       path: '/ceev-contrats'
@@ -1294,12 +1312,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedPilotClientsRouteChildren {
   AuthenticatedPilotClientsClientKeyRoute: typeof AuthenticatedPilotClientsClientKeyRoute
+  AuthenticatedPilotClientsIndexRoute: typeof AuthenticatedPilotClientsIndexRoute
 }
 
 const AuthenticatedPilotClientsRouteChildren: AuthenticatedPilotClientsRouteChildren =
   {
     AuthenticatedPilotClientsClientKeyRoute:
       AuthenticatedPilotClientsClientKeyRoute,
+    AuthenticatedPilotClientsIndexRoute: AuthenticatedPilotClientsIndexRoute,
   }
 
 const AuthenticatedPilotClientsRouteWithChildren =
@@ -1313,7 +1333,6 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotCeevRoute: typeof AuthenticatedPilotCeevRoute
   AuthenticatedPilotChargesRoute: typeof AuthenticatedPilotChargesRoute
   AuthenticatedPilotClientsRoute: typeof AuthenticatedPilotClientsRouteWithChildren
-  AuthenticatedPilotConseillerRoute: typeof AuthenticatedPilotConseillerRoute
   AuthenticatedPilotControleRoute: typeof AuthenticatedPilotControleRoute
   AuthenticatedPilotCorrectionsRoute: typeof AuthenticatedPilotCorrectionsRoute
   AuthenticatedPilotDirectionRoute: typeof AuthenticatedPilotDirectionRoute
@@ -1325,6 +1344,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotQualiteRoute: typeof AuthenticatedPilotQualiteRoute
   AuthenticatedPilotRapportsRoute: typeof AuthenticatedPilotRapportsRoute
   AuthenticatedPilotRapprochementRoute: typeof AuthenticatedPilotRapprochementRoute
+  AuthenticatedPilotRentabiliteRoute: typeof AuthenticatedPilotRentabiliteRoute
   AuthenticatedPilotSaisonRoute: typeof AuthenticatedPilotSaisonRoute
   AuthenticatedPilotSanteRoute: typeof AuthenticatedPilotSanteRoute
   AuthenticatedPilotSimulationsRoute: typeof AuthenticatedPilotSimulationsRoute
@@ -1345,7 +1365,6 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotCeevRoute: AuthenticatedPilotCeevRoute,
   AuthenticatedPilotChargesRoute: AuthenticatedPilotChargesRoute,
   AuthenticatedPilotClientsRoute: AuthenticatedPilotClientsRouteWithChildren,
-  AuthenticatedPilotConseillerRoute: AuthenticatedPilotConseillerRoute,
   AuthenticatedPilotControleRoute: AuthenticatedPilotControleRoute,
   AuthenticatedPilotCorrectionsRoute: AuthenticatedPilotCorrectionsRoute,
   AuthenticatedPilotDirectionRoute: AuthenticatedPilotDirectionRoute,
@@ -1357,6 +1376,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotQualiteRoute: AuthenticatedPilotQualiteRoute,
   AuthenticatedPilotRapportsRoute: AuthenticatedPilotRapportsRoute,
   AuthenticatedPilotRapprochementRoute: AuthenticatedPilotRapprochementRoute,
+  AuthenticatedPilotRentabiliteRoute: AuthenticatedPilotRentabiliteRoute,
   AuthenticatedPilotSaisonRoute: AuthenticatedPilotSaisonRoute,
   AuthenticatedPilotSanteRoute: AuthenticatedPilotSanteRoute,
   AuthenticatedPilotSimulationsRoute: AuthenticatedPilotSimulationsRoute,

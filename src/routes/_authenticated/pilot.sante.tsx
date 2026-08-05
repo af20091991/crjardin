@@ -9,7 +9,8 @@ import { listChargeRows, listSalesByYear, listChargeCategories, analyzeCharges }
 import { annualSummary } from "@/lib/pilot-annual";
 import { pragmaticHealth, margeHealthScore, HEALTH_THEME_META, HEALTH_LEVEL_META } from "@/lib/pilot-health";
 import { useThresholds } from "@/lib/pilot-thresholds";
-import { askPilotAi } from "@/lib/pilot-ai.functions";
+import { askPilotAi, type AiChartSpec } from "@/lib/pilot-ai.functions";
+import { AiChart } from "@/components/pilot/AiChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +19,6 @@ import { Sparkles, Send, Bot, HeartPulse, CheckCircle2, AlertTriangle, MinusCirc
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
 import { goalsForMode } from "@/lib/pilot-realized";
-import { usePilotMode } from "@/lib/pilot-mode";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, ReferenceLine } from "recharts";
 import { PP_COLORS } from "@/lib/pilot-colors";
@@ -30,7 +30,12 @@ export const Route = createFileRoute("/_authenticated/pilot/sante")({
 
 function SantePage() {
   const { entries, charges, settings } = usePilotData();
-  const { mode } = usePilotMode();
+  /**
+   * Règle absolue : la santé est une photographie RÉELLE à la date du jour.
+   * Aucune projection, aucune extrapolation, aucun objectif futur — le mode
+   * global Réel/Projection n'est volontairement pas lu ici.
+   */
+  const mode = "reel" as const;
   const thresholds = useThresholds();
   const year = currentYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
@@ -110,9 +115,13 @@ function SantePage() {
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
+  const [chart, setChart] = useState<AiChartSpec | null>(null);
   const askMut = useMutation({
     mutationFn: (q: string) => askPilotAi({ data: { question: q } }),
-    onSuccess: (r) => setAnswer(r.answer),
+    onSuccess: (r) => {
+      setAnswer(r.answer);
+      setChart(r.chart);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -132,6 +141,11 @@ function SantePage() {
         <p className="text-sm text-muted-foreground">
           Quatre questions simples : est-ce que je gagne de l'argent, est-ce que je vends assez,
           est-ce que mon temps est bien employé, est-ce que j'avance sur mes priorités ?
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Photographie réelle au {new Date().toLocaleDateString("fr-FR")} : uniquement le CA, les
+          charges et l'activité déjà enregistrés. Aucune projection de fin d'exercice. Un axe sans
+          donnée exploitable affiche « Données insuffisantes ».
         </p>
       </div>
 
@@ -292,7 +306,17 @@ function SantePage() {
               <Send className="h-4 w-4" /> {askMut.isPending ? "Analyse…" : "Poser la question"}
             </Button>
           </div>
-          {answer && <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/30 p-3 text-sm">{answer}</div>}
+          {answer && (
+            <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/30 p-3 text-sm">
+              {answer}
+            </div>
+          )}
+          {chart && <AiChart chart={chart} />}
+          <p className="text-xs text-muted-foreground">
+            Analyse courte, chiffres cités et graphique lorsqu'il apporte de la clarté. L'assistant
+            n'utilise que les données enregistrées dans Pilot Pro et répond « Données insuffisantes »
+            si elles manquent.
+          </p>
         </CardContent>
       </Card>
     </div>
