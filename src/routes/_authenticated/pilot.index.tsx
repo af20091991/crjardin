@@ -613,6 +613,54 @@ function TodayPage() {
   const heuresVenduesAnnee = hoursResolution?.vendues ?? 0;
   const ecartHeures = hoursResolution && hoursResolution.hours > 0 ? hoursResolution.ecart : null;
 
+  // ---- Synthèses de lecture (aucune projection, uniquement l'enregistré) ----
+  /** Libellé de période « Du 1er août au 5 août 2026 ». */
+  const moisPeriodeLabel = useMemo(() => {
+    const fmt = (d: Date) =>
+      d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+    const first = new Date(year, month, 1);
+    return `Du ${fmt(first).replace(/^1 /, "1er ")} au ${fmt(now)}`;
+  }, [year, month, now]);
+  const moisCourtLabel = useMemo(
+    () => `du 1er au ${now.getDate()} ${now.toLocaleDateString("fr-FR", { month: "long" })}`,
+    [now],
+  );
+
+  /** Interventions terminées : mois en cours et cumul de l'exercice. */
+  const interventionsMois = useMemo(
+    () =>
+      allI.filter((i) => {
+        if (i.status !== "terminee" || !i.intervention_date) return false;
+        const d = new Date(i.intervention_date);
+        return d.getFullYear() === year && d.getMonth() === month;
+      }).length,
+    [allI, year, month],
+  );
+  const interventionsAnnee = useMemo(
+    () =>
+      allI.filter((i) => {
+        if (i.status !== "terminee" || !i.intervention_date) return false;
+        return new Date(i.intervention_date).getFullYear() === year;
+      }).length,
+    [allI, year],
+  );
+
+  /** Heures réalisées enregistrées (ledger « realisee »). */
+  const heuresRealiseesMois = useMemo(
+    () =>
+      ledgerRows
+        .filter((e) => e.type === "realisee" && e.year === year && e.month === month + 1)
+        .reduce((s, e) => s + e.hours, 0),
+    [ledgerRows, year, month],
+  );
+  const heuresRealiseesAnnee = useMemo(
+    () =>
+      ledgerRows
+        .filter((e) => e.type === "realisee" && e.year === year)
+        .reduce((s, e) => s + e.hours, 0),
+    [ledgerRows, year],
+  );
+
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
     key: string;
