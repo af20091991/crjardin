@@ -126,6 +126,59 @@ function ChargesPage() {
           </CardContent>
         </Card>
       )}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          {showAllHistory ? "Historique complet depuis le début d'activité." : `Année en cours (${YEAR}), réel à date.`}
+        </p>
+        <Button variant="outline" size="sm" onClick={() => setShowAllHistory((v) => !v)}>
+          {showAllHistory ? "Revenir à l'année en cours" : "Afficher tout l'historique"}
+        </Button>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">CA / bénéfice net {showAllHistory ? "— tous exercices" : `${YEAR}`}</CardTitle></CardHeader>
+          <CardContent>
+            {caBeneficeData.length === 0 ? (
+              <p className="py-16 text-center text-sm text-muted-foreground">Données insuffisantes</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={caBeneficeData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="label" fontSize={12} />
+                  <YAxis fontSize={12} unit="€" />
+                  <Tooltip formatter={(v: number) => formatEuro(v)} />
+                  <Legend />
+                  <Line type="monotone" dataKey="CA" stroke={PP_COLORS.sales} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Bénéfice net" stroke={PP_COLORS.primary} strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Marge et investissements réalisés {showAllHistory ? "— tous exercices" : `${YEAR}`}</CardTitle></CardHeader>
+          <CardContent>
+            {margeInvestData.length === 0 ? (
+              <p className="py-16 text-center text-sm text-muted-foreground">Données insuffisantes</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <ComposedChart data={margeInvestData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="label" fontSize={12} />
+                  <YAxis yAxisId="left" fontSize={12} unit="%" />
+                  <YAxis yAxisId="right" orientation="right" fontSize={12} unit="€" />
+                  <Tooltip formatter={(v: number, name: string) => (name === "Marge" ? `${v} %` : formatEuro(v))} />
+                  <Legend />
+                  <Bar yAxisId="right" dataKey="Investissements" fill={PP_COLORS.business} radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="left" type="monotone" dataKey="Marge" stroke={PP_COLORS.primary} strokeWidth={2} dot />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-base">Évolution des charges par exercice</CardTitle></CardHeader>
@@ -337,31 +390,6 @@ function ChargesPage() {
             search={search}
             onChanged={() => qc.invalidateQueries({ queryKey: [ANALYTICS_QUERY_ROOT] })}
           />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Règles de classement</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {(catsQ.data ?? []).map((c) => (
-            <div
-              key={c.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 p-2.5 text-sm"
-            >
-              <span className="font-medium">{c.label}</span>
-              <div className="flex items-center gap-2">
-                <Badge variant={c.charge_class === "fixe" ? "default" : "secondary"}>
-                  {c.charge_class === "fixe" ? "Fixe" : "Variable"}
-                </Badge>
-                <span className="text-xs text-muted-foreground">{c.keywords.join(", ")}</span>
-              </div>
-            </div>
-          ))}
-          <p className="text-xs text-muted-foreground">
-            Catégories, nature fixe/variable et mots-clés sont stockés en base et pourront être modifiés depuis
-            Paramètres.
-          </p>
         </CardContent>
       </Card>
     </div>
