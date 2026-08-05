@@ -245,8 +245,8 @@ function PilotDashboard() {
         rateDeltaPct={rateDeltaPct}
         rateGapToTarget={rateGapToTarget}
         hoursConfirmed={k.totalConfirmedHours}
-        hoursPrev={prevHoursTotal}
-        familiesRanked={familiesRanked}
+        hoursPrev={snapshot?.prevYear.hoursConfirmed ?? 0}
+        familiesRanked={(snapshot?.families ?? []).filter((f) => f.value > 0).sort((a, b) => b.value - a.value)}
         familyConcentration={familyConcentration}
         confidence={{ label: confidenceMeta.label, color: confidenceMeta.color, Icon: ConfIcon }}
         year={year}
