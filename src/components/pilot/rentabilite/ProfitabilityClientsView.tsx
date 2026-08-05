@@ -129,7 +129,9 @@ export function ProfitabilityClientsView() {
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Trophy className={`h-4 w-4 ${i === 0 ? "text-amber-500" : "text-muted-foreground"}`} /> Top {i + 1}
               </div>
-              <p className="mt-1 truncate font-medium">{c.name}</p>
+              <p className="mt-1 truncate font-medium">
+                <ClientLink clientId={c.clientId} clientKey={c.key} name={c.name} />
+              </p>
               <p className="font-serif text-xl font-semibold">{formatEuro(c.ca)}</p>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                 {reliabilityOf(c).profitabilityTrusted ? (
@@ -183,13 +185,7 @@ export function ProfitabilityClientsView() {
                 {stats.map((c) => (
                   <TableRow key={c.key}>
                     <TableCell className="text-sm font-medium">
-                      <Link
-                        to="/pilot/clients/$clientKey"
-                        params={{ clientKey: encodeURIComponent(c.key) }}
-                        className="text-primary underline-offset-2 hover:underline"
-                      >
-                        {c.name}
-                      </Link>
+                      <ClientLink clientId={c.clientId} clientKey={c.key} name={c.name} />
                     </TableCell>
                     <TableCell><EntityStatusBadge status={statusOf(statusesQ.data, c.clientId)} /></TableCell>
                     <TableCell className="text-center"><Badge className={NATURE_TONE[c.nature] ?? NATURE_TONE.Autre}>{c.nature}</Badge></TableCell>
