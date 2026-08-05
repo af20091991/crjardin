@@ -34,6 +34,7 @@ import { buildRecommendations } from "@/lib/pilot-recommendations";
 import { priorityStatusKey } from "@/lib/pilot-priorities";
 import { PriorityCard } from "@/components/pilot/PriorityCard";
 import { OpportunitiesBoard } from "@/components/pilot/OpportunitiesBoard";
+import { CeevWatchCard } from "@/components/pilot/CeevWatchCard";
 import { rankItems } from "@/lib/pilot-learning";
 import { buildDecisions } from "@/lib/pilot-decisions";
 import { buildRisks } from "@/lib/pilot-risks";
@@ -1196,6 +1197,8 @@ function TodayPage() {
         <SectionTitle question="Où puis-je gagner du chiffre d'affaires ?" label="Opportunités commerciales" />
         <OpportunitiesBoard year={year} offers={priority} clientNameById={clientNameById} />
       </DashboardBlock>
+
+      <CeevWatchCard />
 
       <section className="space-y-2">
         <SectionTitle
