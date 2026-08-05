@@ -1180,12 +1180,7 @@ function TodayPage() {
             }
           />
         </div>
-        <CompareBars
-          items={comparatifs.annee}
-          currentLabel={`1er janv. → aujourd'hui ${year}`}
-          previousLabel={`1er janv. → même date ${year - 1}`}
-          note={`Comparaison à date équivalente depuis le 1er janvier. Aucun exercice complet, aucune projection.`}
-        />
+        <MonthlyPerformanceChart data={monthlyPerformance} year={year} />
       </DashboardBlock>
 
       {/* 3 — Situation actuelle : deux niveaux de lecture */}
