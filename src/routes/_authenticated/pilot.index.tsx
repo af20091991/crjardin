@@ -15,14 +15,12 @@ import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES, fetchClientActivityRows } from "@/lib/client-activity";
 import { realHourlyRateFromResolution, marginPct, periodComparison } from "@/lib/pilot-reliability";
-import { monthVsSameMonthLastYear, toDateVsSameDateLastYear } from "@/lib/pilot-compare";
+import { toDateVsSameDateLastYear } from "@/lib/pilot-compare";
 import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-hours";
 import type { FocusTopic } from "@/lib/pilot-focus";
-import { CaStatusCard } from "@/components/pilot/CaStatusCard";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import { listHistoricHours } from "@/lib/pilot-historic-hours";
-import { HoursSummaryCards } from "@/components/pilot/HoursSummaryCards";
 import { listChargeRows } from "@/lib/pilot-charges";
 import { projectYear } from "@/lib/pilot-projection";
 import { usePilotMode } from "@/lib/pilot-mode";
@@ -61,17 +59,6 @@ import {
   type AlertFeedback,
 } from "@/lib/pilot-alert-feedback";
 import { toast } from "sonner";
-import { PP_COLORS } from "@/lib/pilot-colors";
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import {
   Euro,
   Wallet,
@@ -92,7 +79,6 @@ import {
   Star,
   Eye,
   Timer,
-  Scale,
   Lightbulb,
 } from "lucide-react";
 
@@ -264,14 +250,7 @@ function TodayPage() {
   // cumul au jour J vs même date N-1). La comparaison à la fin de l'exercice
   // précédent est supprimée : elle opposait un exercice incomplet à un
   // exercice complet et faussait la lecture.
-  const monthCompare = useMemo(
-    () => monthVsSameMonthLastYear(entries.data ?? [], year, month),
-    [entries.data, year, month],
-  );
-  const toDateCompare = useMemo(
-    () => toDateVsSameDateLastYear(entries.data ?? []),
-    [entries.data],
-  );
+  const toDateCompare = useMemo(() => toDateVsSameDateLastYear(entries.data ?? []), [entries.data]);
 
   const beneficeMois = useMemo(() => {
     // approximation : marge annuelle appliquée au CA du mois
@@ -386,7 +365,15 @@ function TodayPage() {
             }),
           )
         : [],
-    [realEntries, hoursLedger.data, ledgerRows, year, set.target_hourly_rate, thresholds, statusesQ.data],
+    [
+      realEntries,
+      hoursLedger.data,
+      ledgerRows,
+      year,
+      set.target_hourly_rate,
+      thresholds,
+      statusesQ.data,
+    ],
   );
   const services = useMemo(
     () =>
@@ -411,24 +398,6 @@ function TodayPage() {
 
   // Données graphiques « Aujourd'hui » : CA mensuel (réel/projeté) et CA cumulé
   // vs objectif annuel (CA N-1), à partir du moteur de projection existant.
-  const monthlyChartData = useMemo(() => {
-    let cumule = 0;
-    const objectifCumulMensuel = objectifAnnuel > 0 ? objectifAnnuel / 12 : 0;
-    // Mode Réel : les mois à venir n'existent pas encore, on ne les dessine pas
-    // (aucune barre vide, aucune valeur estimée présentée comme réelle).
-    const source = projection.monthly.filter((m) => !m.projected);
-    return source.map((m) => {
-      cumule += m.ca;
-      return {
-        mois: new Date(year, m.month - 1, 1).toLocaleDateString("fr-FR", { month: "short" }),
-        ca: Math.round(m.ca),
-        charges: Math.round(m.charges),
-        cumule: Math.round(cumule),
-        objectifCumule: Math.round(objectifCumulMensuel * m.month),
-        projected: m.projected,
-      };
-    });
-  }, [projection.monthly, objectifAnnuel, year]);
 
   // Nom client par ID (pour opportunités et priorités affichées)
   const clientNameById = useMemo(() => {
@@ -610,8 +579,54 @@ function TodayPage() {
         .reduce((s, e) => s + e.hours, 0),
     [ledgerRows, year, month],
   );
-  const heuresVenduesAnnee = hoursResolution?.vendues ?? 0;
-  const ecartHeures = hoursResolution && hoursResolution.hours > 0 ? hoursResolution.ecart : null;
+
+  // ---- Synthèses de lecture (aucune projection, uniquement l'enregistré) ----
+  /** Libellé de période « Du 1er août au 5 août 2026 ». */
+  const moisPeriodeLabel = useMemo(() => {
+    const fmt = (d: Date) =>
+      d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+    const first = new Date(year, month, 1);
+    return `Du ${fmt(first).replace(/^1 /, "1er ")} au ${fmt(now)}`;
+  }, [year, month, now]);
+  const moisCourtLabel = useMemo(
+    () => `du 1er au ${now.getDate()} ${now.toLocaleDateString("fr-FR", { month: "long" })}`,
+    [now],
+  );
+
+  /** Interventions terminées : mois en cours et cumul de l'exercice. */
+  const interventionsMois = useMemo(
+    () =>
+      allI.filter((i) => {
+        if (i.status !== "terminee" || !i.intervention_date) return false;
+        const d = new Date(i.intervention_date);
+        return d.getFullYear() === year && d.getMonth() === month;
+      }).length,
+    [allI, year, month],
+  );
+  const interventionsAnnee = useMemo(
+    () =>
+      allI.filter((i) => {
+        if (i.status !== "terminee" || !i.intervention_date) return false;
+        return new Date(i.intervention_date).getFullYear() === year;
+      }).length,
+    [allI, year],
+  );
+
+  /** Heures réalisées enregistrées (ledger « realisee »). */
+  const heuresRealiseesMois = useMemo(
+    () =>
+      ledgerRows
+        .filter((e) => e.type === "realisee" && e.year === year && e.month === month + 1)
+        .reduce((s, e) => s + e.hours, 0),
+    [ledgerRows, year, month],
+  );
+  const heuresRealiseesAnnee = useMemo(
+    () =>
+      ledgerRows
+        .filter((e) => e.type === "realisee" && e.year === year)
+        .reduce((s, e) => s + e.hours, 0),
+    [ledgerRows, year],
+  );
 
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
@@ -808,12 +823,20 @@ function TodayPage() {
         .map((a) => {
           const alertKey = alertKeyFrom(a);
           const feedback = feedbackByKey.get(alertKey);
-          return { ...a, alertKey, seen: Boolean(feedback?.seen_at), rating: feedback?.rating ?? null };
+          return {
+            ...a,
+            alertKey,
+            seen: Boolean(feedback?.seen_at),
+            rating: feedback?.rating ?? null,
+          };
         })
         .sort((a, b) => Number(a.seen) - Number(b.seen)),
     [attentionsRaw, feedbackByKey],
   );
-  const alertsAvgRating = useMemo(() => averageRating(alertFeedback.data ?? []), [alertFeedback.data]);
+  const alertsAvgRating = useMemo(
+    () => averageRating(alertFeedback.data ?? []),
+    [alertFeedback.data],
+  );
 
   // ---- Opportunités préparées ----
   const prestationsADevelopper = services
@@ -854,7 +877,10 @@ function TodayPage() {
   const recommendations = rankItems(recommendationsRaw, { feedbackByKey, statusOf });
 
   // ---- Centre de décision : agrégation des moteurs existants uniquement ----
-  const activityRowsQ = useQuery({ queryKey: ["client-activity-rows"], queryFn: fetchClientActivityRows });
+  const activityRowsQ = useQuery({
+    queryKey: ["client-activity-rows"],
+    queryFn: fetchClientActivityRows,
+  });
   const commercialOpportunities = buildCommercialOpportunities({
     activity: activityRowsQ.data ?? [],
     ceev: ceevContracts.data ?? [],
@@ -876,7 +902,17 @@ function TodayPage() {
         tauxHoraireReel: k.tauxHoraireReel,
         targetHourlyRate: targetHR,
       }),
-    [year, annualRows, clientsProfit, services, ceevContracts.data, k.caYear, k.caPrevYear, k.tauxHoraireReel, targetHR],
+    [
+      year,
+      annualRows,
+      clientsProfit,
+      services,
+      ceevContracts.data,
+      k.caYear,
+      k.caPrevYear,
+      k.tauxHoraireReel,
+      targetHR,
+    ],
   );
   const decisions = buildDecisions({
     recommendations,
@@ -906,12 +942,10 @@ function TodayPage() {
   });
 
   const dashboardDefs: DashboardBlockDef[] = [
-    { id: "priorites", label: "Priorités du jour" },
-    { id: "decisions", label: "Décisions du jour" },
+    { id: "mois", label: "Synthèse du mois en cours" },
+    { id: "exercice", label: "Synthèse depuis le début de l'exercice" },
     { id: "situation", label: "Situation actuelle" },
-    { id: "graphique", label: "Graphique CA mensuel" },
-    { id: "heures", label: "Répartition du temps" },
-    { id: "opportunites", label: "Opportunités commerciales" },
+    { id: "priorites", label: "Priorités du jour" },
   ];
   const layout = useDashboardLayout(dashboardDefs);
 
@@ -986,7 +1020,166 @@ function TodayPage() {
         <DashboardCustomizer defs={dashboardDefs} layout={layout} />
       </div>
 
-      {/* 1 — Mes priorités du jour : premier bloc de l'écran (V2.2) */}
+      {/* 1 — Synthèse du mois en cours : premier bloc (données enregistrées) */}
+      <DashboardBlock id="mois" layout={layout}>
+        <SectionTitle question="Comment se passe mon mois ?" label={moisPeriodeLabel} />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <PilotCard
+            label="CA réalisé du mois"
+            value={formatEuro(k.caMonth)}
+            icon={Euro}
+            to="/pilot/ca"
+            help="Somme des lignes CA facturées du 1er du mois à aujourd'hui. Aucune projection."
+            sub={
+              objectifMois > 0
+                ? `${avancement.toFixed(0)} % du même mois ${year - 1} (${formatEuro(objectifMois)})`
+                : `Aucune référence en ${year - 1}`
+            }
+          />
+          <PilotCard
+            label="Interventions réalisées"
+            value={String(interventionsMois)}
+            icon={Leaf}
+            to="/interventions"
+            help="Interventions terminées et enregistrées sur le mois en cours."
+          />
+          <PilotCard
+            label="Heures réalisées"
+            value={heuresRealiseesMois > 0 ? formatHours(heuresRealiseesMois) : "Non renseignées"}
+            icon={Clock}
+            to="/pilot/temps"
+            help="Heures réelles saisies sur les interventions du mois (ledger consolidé). Affiché uniquement si des heures existent."
+          />
+          <PilotCard
+            label="Heures vendues du mois"
+            value={hoursLedger.data ? formatHours(heuresVenduesMois) : "—"}
+            icon={Timer}
+            to="/pilot/ca"
+            help="Heures déclarées sur les lignes de vente du mois en cours."
+          />
+        </div>
+        {missingHours.length > 0 && (
+          <Card className="border-amber-300/70 bg-amber-50/40 p-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-700" />
+              <span>
+                <strong>{missingHours.length}</strong> intervention
+                {missingHours.length > 1 ? "s" : ""} terminée{missingHours.length > 1 ? "s" : ""}{" "}
+                sans heures réelles.
+              </span>
+              <Link to="/interventions" className="ml-auto font-medium text-primary underline">
+                Saisir les heures
+              </Link>
+            </div>
+          </Card>
+        )}
+      </DashboardBlock>
+
+      {/* 2 — Synthèse depuis le début de l'exercice */}
+      <DashboardBlock id="exercice" layout={layout}>
+        <SectionTitle
+          question="Où en suis-je depuis le début de l'exercice ?"
+          label={`Depuis le 1er janvier ${year}`}
+        />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <PilotCard
+            label={`CA cumulé ${year}`}
+            value={formatEuro(caLecture)}
+            icon={Euro}
+            to="/pilot/ca"
+            help="Cumul des lignes CA facturées depuis le 1er janvier, à date."
+            sub={
+              toDateCompare.deltaPct != null
+                ? `${toDateCompare.deltaPct >= 0 ? "+" : ""}${toDateCompare.deltaPct.toFixed(0)} % ${toDateCompare.label}`
+                : `Aucune référence à la même date en ${year - 1}`
+            }
+          />
+          <PilotCard
+            label="Bénéfice"
+            value={formatEuro(resultatLecture)}
+            icon={Wallet}
+            to="/pilot/finance"
+            help="Bénéfice = CA − charges d'exploitation hors investissements (moteur annualSummary)."
+            tone={
+              resultatLecture <= 0
+                ? "warning"
+                : margeLecture != null && margeLecture >= thresholds.margeMin
+                  ? "positive"
+                  : "default"
+            }
+            sub={`Charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`}
+          />
+          <PilotCard
+            label="Interventions réalisées"
+            value={String(interventionsAnnee)}
+            icon={Leaf}
+            to="/interventions"
+            help="Interventions terminées et enregistrées depuis le début de l'exercice."
+          />
+          <PilotCard
+            label="Taux horaire réel"
+            value={realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible"}
+            icon={Gauge}
+            to="/pilot/taux"
+            help={realRate.available ? realRate.note : realRate.detail}
+            tone={
+              realRate.available && targetHR > 0
+                ? realRate.value >= targetHR
+                  ? "positive"
+                  : "warning"
+                : "default"
+            }
+            sub={
+              realRate.available && targetHR > 0
+                ? `${tauxEcartPct >= 0 ? "+" : ""}${tauxEcartPct.toFixed(0)} % vs cible ${formatEuro(targetHR)}`
+                : undefined
+            }
+          />
+        </div>
+      </DashboardBlock>
+
+      {/* 3 — Situation actuelle : deux niveaux de lecture */}
+      <DashboardBlock id="situation" layout={layout}>
+        <SectionTitle question="Situation actuelle" label={`Réel ${year}`} />
+        <Card>
+          <CardContent className="divide-y p-0">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Début exercice
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {interventionsAnnee} intervention{interventionsAnnee > 1 ? "s" : ""}
+                  {heuresRealiseesAnnee > 0
+                    ? ` · ${formatHours(heuresRealiseesAnnee)} réalisées`
+                    : ""}
+                </p>
+              </div>
+              <p className="font-serif text-2xl font-semibold tabular-nums">
+                {formatEuro(caLecture)}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Mois en cours ({moisCourtLabel})
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {interventionsMois} intervention{interventionsMois > 1 ? "s" : ""}
+                  {heuresRealiseesMois > 0
+                    ? ` · ${formatHours(heuresRealiseesMois)} réalisées`
+                    : ""}
+                </p>
+              </div>
+              <p className="font-serif text-2xl font-semibold tabular-nums">
+                {formatEuro(k.caMonth)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </DashboardBlock>
+
+      {/* Priorités du jour */}
       <DashboardBlock id="priorites" layout={layout}>
         <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
         {priorities.length === 0 ? (
@@ -1035,142 +1228,6 @@ function TodayPage() {
           </>
         )}
       </DashboardBlock>
-
-      <CaStatusCard year={year} caYear={k.caYear} comparison={toDateCompare} />
-
-      {/* 1 — Où en est mon entreprise aujourd'hui ? */}
-      <DashboardBlock id="situation" layout={layout}>
-        <SectionTitle
-          question="Situation actuelle"
-          label={`Réel ${year}`}
-        />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <PilotCard
-            label={`CA réalisé ${year}`}
-            value={formatEuro(caLecture)}
-            icon={Euro}
-            to="/pilot/ca"
-            help="Somme des lignes CA facturées à date. Sert de base à toute décision commerciale ou de trésorerie."
-            sub={
-              monthCompare.deltaPct != null
-                ? `${monthCompare.deltaPct >= 0 ? "+" : ""}${monthCompare.deltaPct.toFixed(0)} % — ${monthCompare.label}`
-                : monthCompare.label
-            }
-          />
-          <PilotCard
-            label="Bénéfice"
-            value={formatEuro(resultatLecture)}
-            icon={Wallet}
-            to="/pilot/finance"
-            help="Bénéfice = CA − charges d'exploitation hors investissements (moteur annualSummary, identique aux autres pages Pilot Pro). Décision : arbitrer les charges ou l'activité si le bénéfice se dégrade."
-            tone={
-              resultatLecture <= 0
-                ? "warning"
-                : margeLecture != null && margeLecture >= thresholds.margeMin
-                  ? "positive"
-                  : "default"
-            }
-            sub={`CA ${formatEuro(caLecture)} − charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`}
-          />
-          <PilotCard
-            label={`Heures vendues ${year}`}
-            value={hoursLedger.data ? formatHours(heuresVenduesAnnee) : "—"}
-            icon={Timer}
-            to="/pilot/ca"
-            help="Somme des heures déclarées sur les lignes de vente du suivi CA sur l'exercice en cours. Source unique : ledger consolidé des heures."
-          />
-          <PilotCard
-            label="Heures vendues ce mois"
-            value={hoursLedger.data ? formatHours(heuresVenduesMois) : "—"}
-            icon={Clock}
-            to="/pilot/ca"
-            help="Somme des heures déclarées sur les lignes de vente du mois en cours. Permet de suivre le rythme de vente du mois."
-          />
-          <PilotCard
-            label="Taux horaire réel"
-            value={realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible"}
-            icon={Gauge}
-            to="/pilot/taux"
-            help={
-              realRate.available
-                ? `${realRate.note} Décision : revoir les devis ou le temps passé si le taux réel reste sous la cible.`
-                : realRate.detail
-            }
-            tone={
-              realRate.available && targetHR > 0
-                ? realRate.value >= targetHR
-                  ? "positive"
-                  : "warning"
-                : "default"
-            }
-            sub={
-              realRate.available && targetHR > 0
-                ? `${tauxEcartPct >= 0 ? "+" : ""}${tauxEcartPct.toFixed(0)} % vs cible ${formatEuro(targetHR)}`
-                : realRate.available
-                  ? realRate.note
-                  : realRate.detail
-            }
-          />
-          {ecartHeures != null && (
-            <PilotCard
-              label="Écart heures vendues / réelles"
-              value={`${ecartHeures >= 0 ? "+" : ""}${formatHours(ecartHeures)}`}
-              icon={Scale}
-              to="/pilot/direction"
-              help={`Heures réelles retenues : ${hoursResolution?.sourceLabel} (${hoursResolution?.sourceDetail}). Un écart négatif signale un temps réel supérieur au vendu.`}
-              sub={hoursResolution?.sourceLabel}
-              tone={ecartHeures < 0 ? "warning" : "default"}
-            />
-          )}
-        </div>
-      </DashboardBlock>
-
-      {/* Graphique — évolution de l'exercice en cours */}
-      <DashboardBlock id="graphique" layout={layout}>
-        <PilotCard
-          label={`CA mensuel ${year}`}
-          icon={Euro}
-          help="Histogramme du CA par mois (lignes CA facturées) et des charges d'exploitation du mois. Seuls les mois écoulés sont affichés. Décision : repérer les mois faibles à anticiper."
-          content={
-            <ChartContainer config={{}} className="mt-3 h-[220px] w-full">
-              <ResponsiveContainer>
-                <ComposedChart data={monthlyChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="mois" tickLine={false} axisLine={false} fontSize={11} />
-                  <YAxis tickLine={false} axisLine={false} fontSize={11} width={40} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="ca" name="CA" fill={PP_COLORS.sales} radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="charges" name="Charges" fill={PP_COLORS.charges} radius={[3, 3, 0, 0]} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          }
-        />
-      </DashboardBlock>
-
-      {/* Répartition du temps */}
-      <DashboardBlock id="heures" layout={layout}>
-        <SectionTitle question="Répartition du temps" label="Heures consolidées" />
-        <HoursSummaryCards year={year} resolution={hoursResolution} toFill={missingHours.length} />
-        {missingHours.length > 0 && (
-          <Card className="border-amber-300/70 bg-amber-50/40 p-3 text-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-700" />
-              <span>
-                <strong>{missingHours.length}</strong> intervention{missingHours.length > 1 ? "s" : ""} terminée
-                {missingHours.length > 1 ? "s" : ""} sans heures réelles : le taux horaire réel reste indisponible
-                tant que ces heures ne sont pas saisies.
-              </span>
-              <Link to="/interventions" className="ml-auto font-medium text-primary underline">
-                Saisir les heures
-              </Link>
-            </div>
-          </Card>
-        )}
-      </DashboardBlock>
-
-
-
     </div>
   );
 }
