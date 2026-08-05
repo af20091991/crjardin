@@ -39,14 +39,14 @@ export const Route = createFileRoute("/_authenticated/sst")({
 
 function SstPage() {
   return (
-    <AppShell title="Sous-traitants">
+    <AppShell title="SST">
       <div className="container mx-auto max-w-6xl space-y-6 py-6">
         <div className="flex items-center gap-3">
           <HardHat className="h-7 w-7 text-primary" />
           <div>
-            <h1 className="font-serif text-2xl font-semibold">Sous-traitants</h1>
+            <h1 className="font-serif text-2xl font-semibold">SST</h1>
             <p className="text-sm text-muted-foreground">
-              Carnet de liaison numérique entre l'entreprise et ses sous-traitants
+              Base de gestion des sous-traitants : carnet, missions et rentabilité
             </p>
           </div>
         </div>
@@ -75,6 +75,9 @@ function CarnetTab() {
   const { data: summaries = [] } = useQuery({ queryKey: ["sst-summary"], queryFn: listSubcontractorSummary });
   const [editing, setEditing] = useState<Subcontractor | null>(null);
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
+  const [sort, setSort] = useState<"name" | "missions" | "margin">("name");
   const summaryById = new Map(summaries.map((s) => [s.subcontractor_id, s]));
 
   const del = useMutation({
@@ -86,9 +89,54 @@ function CarnetTab() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
+  const needle = q.trim().toLowerCase();
+  const visibleSsts = ssts
+    .filter((s) =>
+      statusFilter === "all" ? true : statusFilter === "active" ? s.active : !s.active,
+    )
+    .filter((s) =>
+      needle
+        ? [s.name, s.company, s.email, s.phone, s.address, ...s.specialties].some((f) =>
+            f?.toLowerCase().includes(needle),
+          )
+        : true,
+    )
+    .sort((a, b) => {
+      if (sort === "name") return a.name.localeCompare(b.name, "fr");
+      const sa = summaryById.get(a.id);
+      const sb = summaryById.get(b.id);
+      if (sort === "missions") return (sb?.missions_count ?? 0) - (sa?.missions_count ?? 0);
+      return Number(sb?.total_gross_margin ?? 0) - Number(sa?.total_gross_margin ?? 0);
+    });
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Rechercher un SST, une spécialité, un contact…"
+            className="h-9 pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+          <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Actifs</SelectItem>
+            <SelectItem value="inactive">Inactifs</SelectItem>
+            <SelectItem value="all">Tous</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
+          <SelectTrigger className="h-9 w-48"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Nom (A→Z)</SelectItem>
+            <SelectItem value="missions">Nombre de missions</SelectItem>
+            <SelectItem value="margin">Marge cumulée</SelectItem>
+          </SelectContent>
+        </Select>
         <Dialog
           open={open}
           onOpenChange={(v) => {
@@ -112,15 +160,19 @@ function CarnetTab() {
         </Dialog>
       </div>
 
-      {ssts.length === 0 ? (
+      <p className="text-xs text-muted-foreground">
+        {visibleSsts.length} sous-traitant{visibleSsts.length > 1 ? "s" : ""}
+      </p>
+
+      {visibleSsts.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
-            Aucun sous-traitant enregistré pour le moment.
+            Aucun sous-traitant ne correspond.
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {ssts.map((sst) => (
+          {visibleSsts.map((sst) => (
             <Card key={sst.id}>
               <CardContent className="space-y-2 pt-6">
                 <div className="flex items-start justify-between">
