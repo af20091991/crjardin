@@ -60,6 +60,16 @@ import {
 } from "@/lib/pilot-alert-feedback";
 import { toast } from "sonner";
 import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+} from "recharts";
+import { PP_COLORS } from "@/lib/pilot-colors";
+import {
   Euro,
   Wallet,
   Sparkles,
@@ -78,7 +88,6 @@ import {
   Link2,
   Star,
   Eye,
-  Timer,
   Lightbulb,
 } from "lucide-react";
 
@@ -1175,7 +1184,7 @@ function TodayPage() {
                 <p className="text-sm text-muted-foreground">
                   {interventionsAnnee} intervention{interventionsAnnee > 1 ? "s" : ""}
                   {heuresRealiseesAnnee > 0
-                    ? ` · ${formatHours(heuresRealiseesAnnee)} réalisées`
+                    ? ` · ${formatHours(heuresRealiseesAnnee)} réalisées (heures confirmées sur interventions)`
                     : ""}
                 </p>
               </div>
@@ -1191,7 +1200,7 @@ function TodayPage() {
                 <p className="text-sm text-muted-foreground">
                   {interventionsMois} intervention{interventionsMois > 1 ? "s" : ""}
                   {heuresRealiseesMois > 0
-                    ? ` · ${formatHours(heuresRealiseesMois)} réalisées`
+                    ? ` · ${formatHours(heuresRealiseesMois)} réalisées (heures confirmées sur interventions)`
                     : ""}
                 </p>
               </div>
@@ -1201,22 +1210,18 @@ function TodayPage() {
             </div>
           </CardContent>
         </Card>
+        <p className="text-xs text-muted-foreground">
+          Source unique : CA facturé enregistré et heures confirmées sur les interventions
+          terminées. Les heures vendues (lignes CA) et les heures historiques importées ne sont pas
+          comptées ici — elles sont consultables dans le module Temps.
+        </p>
       </DashboardBlock>
 
       {/* Priorités du jour */}
       <DashboardBlock id="priorites" layout={layout}>
-        <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
-        {priorities.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex items-center gap-3 py-5">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <p className="text-sm text-muted-foreground">
-                Aucune action urgente. Concentrez-vous sur les opportunités.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
+        {priorities.length === 0 ? null : (
           <>
+            <SectionTitle question="Priorités" label="Actions fiables du jour" />
             <div className="grid gap-2 sm:grid-cols-2">
               {rankedPriorities
                 .slice(0, showAllPriorities ? rankedPriorities.length : 2)
