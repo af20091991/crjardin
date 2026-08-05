@@ -147,7 +147,6 @@ function FinancePage() {
                 <tr key={m.mois} className="border-b border-border/60 last:border-0">
                   <td className="px-3 py-1.5 font-medium">
                     {m.mois}
-                    {m.projete && <span className="ml-1.5 text-xs text-muted-foreground">projeté</span>}
                   </td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(m.CA)}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(m.Charges)}</td>
