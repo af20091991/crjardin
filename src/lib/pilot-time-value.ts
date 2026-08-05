@@ -141,9 +141,11 @@ interface HoursBuckets {
   vendues: number;
 }
 
+/**
+ * Source unique des heures d'intervention : Vente → Temps (bucket `vendues`).
+ * Les heures comptes-rendus / historiques restent exposées à titre informatif.
+ */
 function pickHours(b: HoursBuckets): { hours: number; basis: HoursBasis } {
-  if (b.realisees > 0) return { hours: b.realisees, basis: "reelles" };
-  if (b.historiques > 0) return { hours: b.historiques, basis: "historique" };
   if (b.vendues > 0) return { hours: b.vendues, basis: "vendues" };
   return { hours: 0, basis: "aucune" };
 }
