@@ -22,7 +22,11 @@ import { Loader2, Plus, X, ArrowLeft, Check, Star, LayoutTemplate, Save } from "
 import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
 
-const searchSchema = z.object({ client: z.string().optional() });
+const searchSchema = z.object({
+  client: z.string().optional(),
+  date: z.string().optional(),
+  motif: z.string().optional(),
+});
 
 export const Route = createFileRoute("/_authenticated/interventions/new")({
   validateSearch: (s) => searchSchema.parse(s),
@@ -36,16 +40,18 @@ function NewIntervention() {
   useEffect(() => {
     if (!roleLoading && !canEdit) navigate({ to: "/", replace: true });
   }, [canEdit, roleLoading, navigate]);
-  const { client: presetClient } = Route.useSearch();
+  const { client: presetClient, date: presetDate, motif: presetMotif } = Route.useSearch();
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const qc = useQueryClient();
   const { data: favorites } = useQuery({ queryKey: ["favorite-tasks"], queryFn: listFavoriteTasks });
   const { data: templates } = useQuery({ queryKey: ["report-templates"], queryFn: listTemplates });
 
   const [clientId, setClientId] = useState(presetClient ?? "");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => presetDate ?? new Date().toISOString().slice(0, 10));
   const [type, setType] = useState<string>(INTERVENTION_TYPES[0]);
-  const [tasks, setTasks] = useState<string[]>([]);
+  const [tasks, setTasks] = useState<string[]>(
+    presetMotif === "ceev" ? ["Passage contrat d'entretien (CEEV)"] : [],
+  );
   const [custom, setCustom] = useState("");
 
   const sortedClients = useMemo(
