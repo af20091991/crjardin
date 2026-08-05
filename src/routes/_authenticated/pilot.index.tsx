@@ -15,7 +15,7 @@ import { listGoals } from "@/lib/pilot-goals";
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES, fetchClientActivityRows } from "@/lib/client-activity";
 import { realHourlyRateFromResolution, marginPct, periodComparison } from "@/lib/pilot-reliability";
-import { monthVsSameMonthLastYear, toDateVsSameDateLastYear } from "@/lib/pilot-compare";
+import { toDateVsSameDateLastYear } from "@/lib/pilot-compare";
 import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-hours";
 import type { FocusTopic } from "@/lib/pilot-focus";
