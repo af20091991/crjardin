@@ -154,11 +154,21 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const primaryItems = navItems.filter((i) => i.primary);
   const moreItems = navItems.filter((i) => !i.primary);
 
-  // Rubriques toutes repliées à l'ouverture ; l'état ne vit que le temps de la session.
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  // La rubrique de la page courante reste dépliée jusqu'à fermeture manuelle
+  // ou rechargement complet de la page.
+  const activeGroup = groups.find((g) => g.items.some((i) => isActive(i.to, i.exact)))?.label;
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => navGroupState);
+  useEffect(() => {
+    if (!activeGroup) return;
+    if (navGroupState[activeGroup] === false || navGroupState[activeGroup] === true) return;
+    navGroupState = { ...navGroupState, [activeGroup]: true };
+    setOpenGroups(navGroupState);
+  }, [activeGroup]);
   const isGroupOpen = (label: string) => openGroups[label] ?? false;
-  const toggleGroup = (label: string) =>
-    setOpenGroups((s) => ({ ...s, [label]: !(s[label] ?? false) }));
+  const toggleGroup = (label: string) => {
+    navGroupState = { ...navGroupState, [label]: !(navGroupState[label] ?? false) };
+    setOpenGroups(navGroupState);
+  };
   const groupIcon: Record<string, typeof LayoutDashboard> = {
     Catalogue: BookOpen,
     Pilotage: Compass,
