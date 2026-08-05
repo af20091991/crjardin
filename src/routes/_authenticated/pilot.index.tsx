@@ -1034,7 +1034,155 @@ function TodayPage() {
         <DashboardCustomizer defs={dashboardDefs} layout={layout} />
       </div>
 
-      {/* 1 — Mes priorités du jour : premier bloc de l'écran (V2.2) */}
+      {/* 1 — Synthèse du mois en cours : premier bloc (données enregistrées) */}
+      <DashboardBlock id="mois" layout={layout}>
+        <SectionTitle question="Comment se passe mon mois ?" label={moisPeriodeLabel} />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <PilotCard
+            label="CA réalisé du mois"
+            value={formatEuro(k.caMonth)}
+            icon={Euro}
+            to="/pilot/ca"
+            help="Somme des lignes CA facturées du 1er du mois à aujourd'hui. Aucune projection."
+            sub={
+              objectifMois > 0
+                ? `${avancement.toFixed(0)} % du même mois ${year - 1} (${formatEuro(objectifMois)})`
+                : `Aucune référence en ${year - 1}`
+            }
+          />
+          <PilotCard
+            label="Interventions réalisées"
+            value={String(interventionsMois)}
+            icon={Leaf}
+            to="/interventions"
+            help="Interventions terminées et enregistrées sur le mois en cours."
+          />
+          <PilotCard
+            label="Heures réalisées"
+            value={heuresRealiseesMois > 0 ? formatHours(heuresRealiseesMois) : "Non renseignées"}
+            icon={Clock}
+            to="/pilot/temps"
+            help="Heures réelles saisies sur les interventions du mois (ledger consolidé). Affiché uniquement si des heures existent."
+          />
+          <PilotCard
+            label="Heures vendues du mois"
+            value={hoursLedger.data ? formatHours(heuresVenduesMois) : "—"}
+            icon={Timer}
+            to="/pilot/ca"
+            help="Heures déclarées sur les lignes de vente du mois en cours."
+          />
+        </div>
+        {missingHours.length > 0 && (
+          <Card className="border-amber-300/70 bg-amber-50/40 p-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-700" />
+              <span>
+                <strong>{missingHours.length}</strong> intervention
+                {missingHours.length > 1 ? "s" : ""} terminée{missingHours.length > 1 ? "s" : ""} sans
+                heures réelles.
+              </span>
+              <Link to="/interventions" className="ml-auto font-medium text-primary underline">
+                Saisir les heures
+              </Link>
+            </div>
+          </Card>
+        )}
+      </DashboardBlock>
+
+      {/* 2 — Synthèse depuis le début de l'exercice */}
+      <DashboardBlock id="exercice" layout={layout}>
+        <SectionTitle question="Où en suis-je depuis le début de l'exercice ?" label={`Depuis le 1er janvier ${year}`} />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <PilotCard
+            label={`CA cumulé ${year}`}
+            value={formatEuro(caLecture)}
+            icon={Euro}
+            to="/pilot/ca"
+            help="Cumul des lignes CA facturées depuis le 1er janvier, à date."
+            sub={
+              toDateCompare.deltaPct != null
+                ? `${toDateCompare.deltaPct >= 0 ? "+" : ""}${toDateCompare.deltaPct.toFixed(0)} % ${toDateCompare.label}`
+                : `Aucune référence à la même date en ${year - 1}`
+            }
+          />
+          <PilotCard
+            label="Bénéfice"
+            value={formatEuro(resultatLecture)}
+            icon={Wallet}
+            to="/pilot/finance"
+            help="Bénéfice = CA − charges d'exploitation hors investissements (moteur annualSummary)."
+            tone={
+              resultatLecture <= 0
+                ? "warning"
+                : margeLecture != null && margeLecture >= thresholds.margeMin
+                  ? "positive"
+                  : "default"
+            }
+            sub={`Charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`}
+          />
+          <PilotCard
+            label="Interventions réalisées"
+            value={String(interventionsAnnee)}
+            icon={Leaf}
+            to="/interventions"
+            help="Interventions terminées et enregistrées depuis le début de l'exercice."
+          />
+          <PilotCard
+            label="Taux horaire réel"
+            value={realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible"}
+            icon={Gauge}
+            to="/pilot/taux"
+            help={realRate.available ? realRate.note : realRate.detail}
+            tone={
+              realRate.available && targetHR > 0
+                ? realRate.value >= targetHR
+                  ? "positive"
+                  : "warning"
+                : "default"
+            }
+            sub={
+              realRate.available && targetHR > 0
+                ? `${tauxEcartPct >= 0 ? "+" : ""}${tauxEcartPct.toFixed(0)} % vs cible ${formatEuro(targetHR)}`
+                : undefined
+            }
+          />
+        </div>
+      </DashboardBlock>
+
+      {/* 3 — Situation actuelle : deux niveaux de lecture */}
+      <DashboardBlock id="situation" layout={layout}>
+        <SectionTitle question="Situation actuelle" label={`Réel ${year}`} />
+        <Card>
+          <CardContent className="divide-y p-0">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Début exercice
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {interventionsAnnee} intervention{interventionsAnnee > 1 ? "s" : ""}
+                  {heuresRealiseesAnnee > 0 ? ` · ${formatHours(heuresRealiseesAnnee)} réalisées` : ""}
+                </p>
+              </div>
+              <p className="font-serif text-2xl font-semibold tabular-nums">{formatEuro(caLecture)}</p>
+            </div>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Mois en cours ({moisCourtLabel})
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {interventionsMois} intervention{interventionsMois > 1 ? "s" : ""}
+                  {heuresRealiseesMois > 0 ? ` · ${formatHours(heuresRealiseesMois)} réalisées` : ""}
+                </p>
+              </div>
+              <p className="font-serif text-2xl font-semibold tabular-nums">{formatEuro(k.caMonth)}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </DashboardBlock>
+
+      {/* Priorités du jour */}
       <DashboardBlock id="priorites" layout={layout}>
         <SectionTitle question="Quelles sont mes priorités ?" label="Priorités du jour" />
         {priorities.length === 0 ? (
