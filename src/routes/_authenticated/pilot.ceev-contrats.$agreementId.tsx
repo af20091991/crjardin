@@ -498,3 +498,82 @@ function Row({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <p className="text-xs uppercase text-muted-foreground">{label}</p>
+      <p className="text-xl font-semibold tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+function GenerateVisitsDialog({
+  open, onOpenChange, agreement, existing, onDone,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  agreement: CeevAgreement;
+  existing: Intervention[];
+  onDone: () => void;
+}) {
+  const [dates, setDates] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open) setDates(plannedVisitDates(agreement));
+  }, [open, agreement]);
+
+  const generate = useMutation({
+    mutationFn: () => generateCeevInterventions(agreement, dates, existing),
+    onSuccess: (created) => {
+      onDone();
+      onOpenChange(false);
+      toast.success(`${created.length} passage(s) créé(s) dans Activité`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Générer les passages d'entretien</DialogTitle>
+          <DialogDescription>
+            Dates proposées à partir des passages prévus et de la période annuelle
+            ({seasonLabel(agreement)}). Elles restent modifiables ; les dates déjà rattachées
+            au contrat ne sont pas dupliquées.
+          </DialogDescription>
+        </DialogHeader>
+        {dates.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Renseignez d'abord le nombre de passages prévus dans les informations du contrat.
+          </p>
+        ) : (
+          <div className="grid max-h-72 gap-2 overflow-y-auto sm:grid-cols-2">
+            {dates.map((d, i) => (
+              <Input
+                key={`${d}-${i}`}
+                type="date"
+                value={d}
+                onChange={(e) => {
+                  const next = [...dates];
+                  next[i] = e.target.value;
+                  setDates(next);
+                }}
+              />
+            ))}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Annuler</Button>
+          <Button
+            onClick={() => generate.mutate()}
+            disabled={dates.length === 0 || generate.isPending}
+          >
+            Créer les interventions
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
