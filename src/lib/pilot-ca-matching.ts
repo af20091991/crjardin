@@ -462,4 +462,34 @@ export async function revertLastDecision(entryId: string): Promise<void> {
     method: "reverted",
     note: `Annulation de la décision ${last.id}`,
   });
+  // Une ligne précédemment ignorée redevient visible dans la file d'attente.
+  const { error: e2 } = await supabase
+    .from("pilot_ca_entries")
+    .update({ match_status: "validation" } as never)
+    .eq("id", entryId)
+    .eq("match_status", "non_applicable");
+  if (e2) throw e2;
+}
+
+/**
+ * IGNORER : la ligne est conservée intégralement (montant, date, catégorie)
+ * mais marquée comme n'alimentant pas les analyses clients. Elle sort de la
+ * file d'attente sans jamais disparaître des totaux CA, et la décision est
+ * journalisée (donc annulable).
+ */
+export async function ignoreEntry(params: {
+  entryId: string;
+  note?: string | null;
+}): Promise<void> {
+  await linkEntryToClient({
+    entryId: params.entryId,
+    clientId: null,
+    method: "refused",
+    note: params.note ?? "Ligne ignorée : n'alimente pas les analyses clients",
+  });
+  const { error } = await supabase
+    .from("pilot_ca_entries")
+    .update({ match_status: "non_applicable" } as never)
+    .eq("id", params.entryId);
+  if (error) throw error;
 }

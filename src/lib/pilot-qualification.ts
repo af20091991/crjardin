@@ -7,6 +7,7 @@ import { clientNameFromDesignation } from "@/lib/pilot-ca-designation";
 import { linkEntryToClient, normalizeLabel } from "@/lib/pilot-ca-matching";
 import { getClientEconomicScore } from "@/lib/client-score";
 import { listNextBestOffers } from "@/lib/next-best-offers";
+import { listMatchRules, rulesIndex, saveMatchRule } from "@/lib/pilot-match-rules";
 
 /** Clé de mémoire : désignation nettoyée puis normalisée. */
 export function memoryKey(designation: string | null | undefined): string {
@@ -25,6 +26,13 @@ export interface MemoryEntry {
  * Sert à proposer la même correspondance et à relever la confiance.
  */
 export async function loadValidationMemory(): Promise<Map<string, MemoryEntry>> {
+  // Les règles explicitement enregistrées sont prioritaires : elles sont le
+  // reflet direct d'une décision humaine conservée et supprimable.
+  const out = new Map<string, MemoryEntry>();
+  const rules = await listMatchRules().catch(() => []);
+  rulesIndex(rules).forEach((v, key) => {
+    out.set(key, { clientId: v.clientId, count: v.count, lastAt: new Date().toISOString() });
+  });
   const { data: logs, error } = await supabase
     .from("pilot_ca_match_log")
     .select("entry_id, new_client_id, method, decided_at")
@@ -38,7 +46,7 @@ export async function loadValidationMemory(): Promise<Map<string, MemoryEntry>> 
     new_client_id: string;
     decided_at: string;
   }>;
-  if (rows.length === 0) return new Map();
+  if (rows.length === 0) return out;
 
   const ids = Array.from(new Set(rows.map((r) => r.entry_id)));
   const { data: entries, error: e2 } = await supabase
@@ -52,7 +60,6 @@ export async function loadValidationMemory(): Promise<Map<string, MemoryEntry>> 
     ),
   );
 
-  const out = new Map<string, MemoryEntry>();
   for (const r of rows) {
     const key = memoryKey(desigById.get(r.entry_id));
     if (!key) continue;
@@ -78,6 +85,13 @@ export async function propagateValidatedMatch(params: {
 }): Promise<{ propagated: number; amount: number }> {
   const key = memoryKey(params.designation);
   if (!key) return { propagated: 0, amount: 0 };
+
+  // La décision humaine devient une règle persistante consultable / supprimable.
+  await saveMatchRule({
+    designationKey: key,
+    sampleDesignation: params.designation,
+    clientId: params.clientId,
+  }).catch(() => undefined);
 
   const { data, error } = await supabase
     .from("pilot_ca_entries")
