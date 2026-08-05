@@ -575,22 +575,6 @@ function TodayPage() {
     [allI, year],
   );
 
-  /** Heures réalisées enregistrées (ledger « realisee »). */
-  const heuresRealiseesMois = useMemo(
-    () =>
-      ledgerRows
-        .filter((e) => e.type === "realisee" && e.year === year && e.month === month + 1)
-        .reduce((s, e) => s + e.hours, 0),
-    [ledgerRows, year, month],
-  );
-  const heuresRealiseesAnnee = useMemo(
-    () =>
-      ledgerRows
-        .filter((e) => e.type === "realisee" && e.year === year)
-        .reduce((s, e) => s + e.hours, 0),
-    [ledgerRows, year],
-  );
-
   // ---- Comparatifs à date équivalente N-1 (uniquement l'enregistré) ----
   // CA : lignes de vente enregistrées (pilot_ca_entries).
   // Interventions : statut « terminée » (interventions).
