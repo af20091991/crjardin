@@ -21,7 +21,7 @@ import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-ho
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import { listHistoricHours } from "@/lib/pilot-historic-hours";
-import { listChargeRows } from "@/lib/pilot-charges";
+import { listChargeRows, operatingCharges } from "@/lib/pilot-charges";
 import { projectYear } from "@/lib/pilot-projection";
 import { usePilotMode } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
@@ -48,7 +48,13 @@ import {
   type ActionStatus,
 } from "@/lib/pilot-action-status";
 import { listCeevContracts } from "@/lib/ceev";
-import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
+import {
+  chargeRowsForMode,
+  entriesForMode,
+  goalsForMode,
+  hoursLedgerForMode,
+  todayIso,
+} from "@/lib/pilot-realized";
 import { annualSummary } from "@/lib/pilot-annual";
 import {
   listAlertFeedback,
@@ -63,10 +69,11 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
+  YAxis,
 } from "recharts";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import {
@@ -650,6 +657,36 @@ function TodayPage() {
   const heuresRealiseesMois = comparatifs.mois.find((i) => i.key === "h")?.current ?? 0;
   const heuresRealiseesAnnee = comparatifs.annee.find((i) => i.key === "h")?.current ?? 0;
 
+  /**
+   * Évolution mensuelle réelle depuis le 1er janvier : CA HT enregistré et
+   * bénéfice (CA − charges d'exploitation enregistrées, hors investissements).
+   * Seuls les mois écoulés sont présents : aucune projection, aucune estimation.
+   */
+  const monthlyPerformance = useMemo(() => {
+    const caByMonth = new Array(12).fill(0) as number[];
+    for (const e of realEntries) {
+      const d = new Date(e.entry_date);
+      if (!Number.isFinite(d.getTime()) || d.getFullYear() !== year) continue;
+      caByMonth[d.getMonth()] += Number(e.amount_ht) || 0;
+    }
+    const chargesByMonth = new Array(12).fill(0) as number[];
+    for (const c of operatingCharges(chargeRowsForMode(chargeRows.data ?? [], mode))) {
+      if (c.year !== year || c.is_investment) continue;
+      const idx = Number(c.month) - 1;
+      if (idx < 0 || idx > 11) continue;
+      chargesByMonth[idx] += Number(c.amount_ht) || 0;
+    }
+    const labels = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
+    return labels
+      .slice(0, month + 1)
+      .map((mois, i) => ({
+        mois,
+        "CA HT": caByMonth[i],
+        Bénéfice: caByMonth[i] - chargesByMonth[i],
+      }))
+      .filter((r, i) => caByMonth[i] !== 0 || chargesByMonth[i] !== 0);
+  }, [realEntries, chargeRows.data, mode, year, month]);
+
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
     key: string;
@@ -1065,12 +1102,6 @@ function TodayPage() {
             help="Heures réelles saisies sur les interventions du mois (ledger consolidé). Affiché uniquement si des heures existent."
           />
         </div>
-        <CompareBars
-          items={comparatifs.mois}
-          currentLabel={`${moisCourtLabel} ${year}`}
-          previousLabel={`${moisCourtLabel} ${year - 1}`}
-          note={`Comparaison à date équivalente : du 1er au ${now.getDate()} du mois, ${year} vs ${year - 1}. Heures issues des interventions terminées (heures confirmées).`}
-        />
         {missingHours.length > 0 && (
           <Card className="border-amber-300/70 bg-amber-50/40 p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2">
@@ -1149,12 +1180,7 @@ function TodayPage() {
             }
           />
         </div>
-        <CompareBars
-          items={comparatifs.annee}
-          currentLabel={`1er janv. → aujourd'hui ${year}`}
-          previousLabel={`1er janv. → même date ${year - 1}`}
-          note={`Comparaison à date équivalente depuis le 1er janvier. Aucun exercice complet, aucune projection.`}
-        />
+        <MonthlyPerformanceChart data={monthlyPerformance} year={year} />
       </DashboardBlock>
 
       {/* 3 — Situation actuelle : deux niveaux de lecture */}
@@ -1259,68 +1285,40 @@ function SectionTitle({ question, label }: { question: string; label: string }) 
 }
 
 /**
- * Comparatif à date équivalente N vs N-1 : un mini histogramme par indicateur
- * fiable. Aucune projection, aucune donnée reconstruite.
+ * Évolution mensuelle réelle de l'exercice : CA HT enregistré et bénéfice
+ * (CA − charges d'exploitation enregistrées). Seuls les mois écoulés avec des
+ * données réellement présentes sont affichés. Aucune projection.
  */
-function CompareBars({
-  items,
-  currentLabel,
-  previousLabel,
-  note,
+function MonthlyPerformanceChart({
+  data,
+  year,
 }: {
-  items: Array<{
-    key: string;
-    label: string;
-    current: number;
-    previous: number;
-    fmt: (v: number) => string;
-  }>;
-  currentLabel: string;
-  previousLabel: string;
-  note: string;
+  data: Array<{ mois: string; "CA HT": number; Bénéfice: number }>;
+  year: number;
 }) {
-  const visible = items.filter((i) => i.current > 0 || i.previous > 0);
-  if (visible.length === 0) return null;
+  if (data.length === 0) return null;
   return (
-    <div className="space-y-1.5">
-      <div className="grid gap-3 sm:grid-cols-3">
-        {visible.map((it) => {
-          const deltaPct =
-            it.previous > 0 ? ((it.current - it.previous) / it.previous) * 100 : null;
-          return (
-            <Card key={it.key} className="p-3">
-              <p className="text-xs font-medium">{it.label}</p>
-              <p className="font-serif text-lg font-semibold tabular-nums">{it.fmt(it.current)}</p>
-              <div className="h-[110px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      { name: previousLabel, v: it.previous },
-                      { name: currentLabel, v: it.current },
-                    ]}
-                    margin={{ top: 4, right: 4, left: 4, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} />
-                    <Tooltip formatter={(v: number | string) => it.fmt(Number(v))} />
-                    <Bar dataKey="v" radius={[4, 4, 0, 0]}>
-                      <Cell fill={PP_COLORS.neutral} />
-                      <Cell fill={PP_COLORS.primary} />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {deltaPct != null
-                  ? `${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(0)} % vs période équivalente`
-                  : "Aucune référence sur la période équivalente"}
-              </p>
-            </Card>
-          );
-        })}
+    <Card className="p-4">
+      <p className="text-sm font-medium">Évolution mensuelle {year} — CA HT et bénéfice réels</p>
+      <div className="mt-3 h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="mois" tick={{ fontSize: 11 }} interval={0} />
+            <YAxis tick={{ fontSize: 11 }} unit="€" />
+            <Tooltip formatter={(v: number | string) => formatEuro(Number(v))} />
+            <Legend />
+            <Bar dataKey="CA HT" fill={PP_COLORS.primary} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Bénéfice" fill={PP_COLORS.charges} radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
-      <p className="text-xs text-muted-foreground">{note}</p>
-    </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Mois écoulés uniquement. CA HT = lignes de vente enregistrées ; bénéfice = CA HT − charges
+        d'exploitation enregistrées du mois (investissements exclus). Aucune projection ni
+        estimation.
+      </p>
+    </Card>
   );
 }
 
