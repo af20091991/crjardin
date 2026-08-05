@@ -28,6 +28,7 @@ import {
   contractHourlyMarginRate,
   contractsForYear,
   contractsToValidate,
+  listCeevMatchLog,
   createCeevContract,
   deleteCeevContract,
   listCeevContracts,
@@ -106,7 +107,12 @@ function CeevPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<CeevContractInput & { id?: string }>(EMPTY_FORM);
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["ceev-contracts"] });
+  const matchLog = useQuery({ queryKey: ["ceev-match-log"], queryFn: () => listCeevMatchLog(30) });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["ceev-contracts"] });
+    qc.invalidateQueries({ queryKey: ["ceev-match-log"] });
+  };
 
   const createMut = useMutation({
     mutationFn: (input: CeevContractInput) => createCeevContract(input),
@@ -358,6 +364,18 @@ function CeevPage() {
                 </Select>
               </div>
             ))
+          )}
+          {(matchLog.data ?? []).length > 0 && (
+            <div className="mt-3 space-y-1 border-t pt-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Rapprochements manuels validés (définitifs)
+              </p>
+              {(matchLog.data ?? []).slice(0, 8).map((l) => (
+                <p key={l.id} className="truncate text-xs text-muted-foreground">
+                  {new Date(l.decided_at).toLocaleDateString("fr-FR")} · « {l.raw_label} » → {l.client_name}
+                </p>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

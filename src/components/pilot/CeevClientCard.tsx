@@ -1,20 +1,13 @@
-// Bloc CEEV de la fiche client 360° : contrats actifs, prochaines échéances et
-// historique (périodes terminées / archivées). Source : ceev_agreements.
+// Bloc CEEV de la fiche client 360° : SYNTHÈSE uniquement (nombre de contrats
+// en cours + prochaines échéances). La gestion complète des contrats se fait
+// dans Pilotage → Contrats d'entretien (CEEV).
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Leaf } from "lucide-react";
+import { Leaf, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  CEEV_FREQUENCY_META,
-  CEEV_STATUS_META,
-  ceevProgress,
-  daysUntil,
-  listCeevAgreementsForClient,
-  type CeevAgreement,
-} from "@/lib/ceev-agreements";
-import { listAllInterventions, type Intervention } from "@/lib/interventions";
+import { daysUntil, listCeevAgreementsForClient } from "@/lib/ceev-agreements";
 
 function fmt(iso: string | null): string {
   if (!iso) return "—";
@@ -22,54 +15,24 @@ function fmt(iso: string | null): string {
   return Number.isFinite(d.getTime()) ? d.toLocaleDateString("fr-FR") : "—";
 }
 
-function Row({ a, interventions }: { a: CeevAgreement; interventions: Intervention[] }) {
-  const meta = CEEV_STATUS_META[a.status];
-  const dEnd = daysUntil(a.end_date);
-  const p = ceevProgress(a, interventions);
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
-      <div className="min-w-0">
-        <Link
-          to="/pilot/ceev-contrats/$agreementId"
-          params={{ agreementId: a.id }}
-          className="font-medium text-primary hover:underline"
-        >
-          {a.name?.trim() || "Contrat d'entretien"}
-        </Link>
-        <div className="text-xs text-muted-foreground">
-          {fmt(a.start_date)} → {fmt(a.end_date)} · {CEEV_FREQUENCY_META[a.frequency].label}
-          {a.next_intervention_date && ` · prochaine intervention ${fmt(a.next_intervention_date)}`}
-        </div>
-        {p.planned > 0 && (
-          <div className="text-xs text-muted-foreground">
-            Passages : {p.done} réalisé(s) / {p.planned} prévu(s)
-            {p.remaining > 0 && ` · ${p.remaining} à planifier`}
-          </div>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        {dEnd != null && dEnd >= 0 && dEnd <= 60 && (
-          <span className="text-xs text-orange-600">échéance dans {dEnd} j</span>
-        )}
-        {dEnd != null && dEnd < 0 && a.status !== "termine" && (
-          <span className="text-xs text-rose-600">échéance dépassée</span>
-        )}
-        <Badge variant="outline" className={meta.badge}>{meta.label}</Badge>
-      </div>
-    </div>
-  );
-}
-
 export function CeevClientCard({ clientId }: { clientId: string }) {
   const q = useQuery({
     queryKey: ["fiche-ceev-agreements", clientId],
     queryFn: () => listCeevAgreementsForClient(clientId),
   });
-  const iv = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
-  const interventions = iv.data ?? [];
   const rows = q.data ?? [];
-  const live = rows.filter((a) => a.status === "actif" || a.status === "a_renouveler" || a.status === "suspendu");
-  const history = rows.filter((a) => !live.includes(a));
+  const live = rows.filter(
+    (a) => a.status === "actif" || a.status === "a_renouveler" || a.status === "suspendu",
+  );
+  const nextVisit = live
+    .map((a) => a.next_intervention_date)
+    .filter((d): d is string => Boolean(d))
+    .sort()[0] ?? null;
+  const nextEnd = live
+    .map((a) => a.end_date)
+    .filter((d): d is string => Boolean(d))
+    .sort()[0] ?? null;
+  const endIn = daysUntil(nextEnd);
 
   return (
     <Card>
@@ -78,36 +41,40 @@ export function CeevClientCard({ clientId }: { clientId: string }) {
           <Leaf className="h-4 w-4 text-primary" />Contrats d'entretien (CEEV)
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2">
         {q.isLoading ? (
-          <Skeleton className="h-16" />
+          <Skeleton className="h-12" />
         ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Aucun contrat d'entretien enregistré pour ce client.{" "}
-            <Link to="/pilot/ceev-contrats" className="text-primary hover:underline">
-              Créer un CEEV
-            </Link>
+            Aucun contrat d'entretien enregistré pour ce client.
           </p>
         ) : (
-          <>
-            {live.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  En cours ({live.length})
-                </div>
-                {live.map((a) => <Row key={a.id} a={a} interventions={interventions} />)}
-              </div>
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <span className="flex items-center gap-2">
+              <Badge variant="secondary">{live.length}</Badge>
+              contrat{live.length > 1 ? "s" : ""} en cours
+              {rows.length > live.length && (
+                <span className="text-xs text-muted-foreground">
+                  ({rows.length - live.length} terminé{rows.length - live.length > 1 ? "s" : ""})
+                </span>
+              )}
+            </span>
+            {nextVisit && (
+              <span className="text-muted-foreground">Prochaine intervention : {fmt(nextVisit)}</span>
             )}
-            {history.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Historique ({history.length})
-                </div>
-                {history.map((a) => <Row key={a.id} a={a} interventions={interventions} />)}
-              </div>
+            {endIn != null && (
+              <span className={endIn < 0 ? "text-rose-600" : endIn <= 60 ? "text-orange-600" : "text-muted-foreground"}>
+                {endIn < 0 ? "Échéance dépassée" : `Échéance dans ${endIn} j`} ({fmt(nextEnd)})
+              </span>
             )}
-          </>
+          </div>
         )}
+        <Link
+          to="/pilot/ceev-contrats"
+          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        >
+          Gérer les contrats dans Pilotage <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </CardContent>
     </Card>
   );
