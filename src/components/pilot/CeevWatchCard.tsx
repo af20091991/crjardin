@@ -25,7 +25,8 @@ export function CeevWatchCard() {
   const watch = ceevWatch(agreements.data ?? []);
   if (agreements.isLoading || ceevWatchCount(watch) === 0) return null;
 
-  const groups: Array<{ title: string; hint: string; rows: CeevAgreement[]; kind: "echeance" | "intervention" | "action" }> = [
+  type WatchKind = "echeance" | "intervention" | "action";
+  const groups: Array<{ title: string; hint: string; rows: CeevAgreement[]; kind: WatchKind }> = ([
     { title: "Échéances dépassées", hint: "Contrats à renouveler ou à clore", rows: watch.overdueEnd, kind: "echeance" },
     { title: "Fins de contrat proches", hint: "Échéance sous 60 jours", rows: watch.endingSoon, kind: "echeance" },
     {
@@ -40,7 +41,7 @@ export function CeevWatchCard() {
       rows: watch.withoutNextAction,
       kind: "action",
     },
-  ].filter((g) => g.rows.length > 0);
+  ] as Array<{ title: string; hint: string; rows: CeevAgreement[]; kind: WatchKind }>).filter((g) => g.rows.length > 0);
 
   return (
     <Card>
