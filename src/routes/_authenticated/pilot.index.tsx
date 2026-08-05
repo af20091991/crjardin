@@ -411,39 +411,9 @@ function TodayPage() {
   // ------- Nouvelles analyses (aucune nouvelle donnée) -------
   const targetHR = set.target_hourly_rate || 0;
 
-  // Moyenne d'heures par type d'intervention (issue des interventions terminées avec heures confirmées)
-  const avgHoursByType = useMemo(() => {
-    const acc = new Map<string, { total: number; n: number }>();
-    for (const i of allI) {
-      if (i.status !== "terminee" || i.hours_spent == null) continue;
-      const estimated =
-        i.ai_metadata &&
-        typeof i.ai_metadata === "object" &&
-        (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
-      if (estimated) continue;
-      const key = i.intervention_type ?? "—";
-      const cur = acc.get(key) ?? { total: 0, n: 0 };
-      cur.total += Number(i.hours_spent);
-      cur.n += 1;
-      acc.set(key, cur);
-    }
-    const out = new Map<string, number>();
-    acc.forEach((v, k) => v.n >= 2 && out.set(k, v.total / v.n));
-    return out;
-  }, [allI]);
-
-  // Interventions dont le temps réel dépasse fortement (>50 %) la moyenne du type
-  const timeOverruns = useMemo(
-    () =>
-      allI.filter((i) => {
-        if (i.status !== "terminee" || i.hours_spent == null) return false;
-        const key = i.intervention_type ?? "—";
-        const avg = avgHoursByType.get(key);
-        if (!avg || avg <= 0) return false;
-        return Number(i.hours_spent) > avg * 1.5;
-      }),
-    [allI, avgHoursByType],
-  );
+  // Aucune notion de « temps prévu / théorique » dans Pilot Pro : les
+  // comparaisons de temps passé à une moyenne de type d'intervention ont été
+  // supprimées (indicateur non vérifiable, trompeur pour le pilotage).
 
   // CA agrégé par client sur l'année (pour taux horaire réel par client)
   const caByClient = useMemo(() => {
@@ -542,8 +512,7 @@ function TodayPage() {
       reportsToSend.length +
       reportsToGenerate.length +
       missingHours.length +
-      goalsLate.length +
-      timeOverruns.length,
+      goalsLate.length,
     important:
       clientsARelancer.length +
       clientsDormants.length +
@@ -570,15 +539,6 @@ function TodayPage() {
     : ({ available: false, label: "Taux horaire réel", detail: "Chargement des heures…" } as const);
   const tauxEcartPct =
     realRate.available && targetHR > 0 ? ((realRate.value - targetHR) / targetHR) * 100 : 0;
-
-  // Heures vendues du mois en cours (ledger consolidé, mode Réel/Projection).
-  const heuresVenduesMois = useMemo(
-    () =>
-      ledgerRows
-        .filter((e) => e.type === "vendue" && e.year === year && e.month === month + 1)
-        .reduce((s, e) => s + e.hours, 0),
-    [ledgerRows, year, month],
-  );
 
   // ---- Synthèses de lecture (aucune projection, uniquement l'enregistré) ----
   /** Libellé de période « Du 1er août au 5 août 2026 ». */
@@ -669,14 +629,6 @@ function TodayPage() {
       count: acceptedNotPlanned.length,
       icon: Handshake,
       topic: "recos-a-planifier" as FocusTopic,
-      tone: "urgent" as Priority,
-    },
-    {
-      key: "d",
-      label: "Dépassements de temps",
-      count: timeOverruns.length,
-      icon: TrendingDown,
-      topic: "depassements-temps" as FocusTopic,
       tone: "urgent" as Priority,
     },
     {
