@@ -9,7 +9,8 @@ import { listChargeRows, listSalesByYear, listChargeCategories, analyzeCharges }
 import { annualSummary } from "@/lib/pilot-annual";
 import { pragmaticHealth, margeHealthScore, HEALTH_THEME_META, HEALTH_LEVEL_META } from "@/lib/pilot-health";
 import { useThresholds } from "@/lib/pilot-thresholds";
-import { askPilotAi } from "@/lib/pilot-ai.functions";
+import { askPilotAi, type AiChartSpec } from "@/lib/pilot-ai.functions";
+import { AiChart } from "@/components/pilot/AiChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -114,9 +115,13 @@ function SantePage() {
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
+  const [chart, setChart] = useState<AiChartSpec | null>(null);
   const askMut = useMutation({
     mutationFn: (q: string) => askPilotAi({ data: { question: q } }),
-    onSuccess: (r) => setAnswer(r.answer),
+    onSuccess: (r) => {
+      setAnswer(r.answer);
+      setChart(r.chart);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -301,7 +306,17 @@ function SantePage() {
               <Send className="h-4 w-4" /> {askMut.isPending ? "Analyse…" : "Poser la question"}
             </Button>
           </div>
-          {answer && <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/30 p-3 text-sm">{answer}</div>}
+          {answer && (
+            <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/30 p-3 text-sm">
+              {answer}
+            </div>
+          )}
+          {chart && <AiChart chart={chart} />}
+          <p className="text-xs text-muted-foreground">
+            Analyse courte, chiffres cités et graphique lorsqu'il apporte de la clarté. L'assistant
+            n'utilise que les données enregistrées dans Pilot Pro et répond « Données insuffisantes »
+            si elles manquent.
+          </p>
         </CardContent>
       </Card>
     </div>
