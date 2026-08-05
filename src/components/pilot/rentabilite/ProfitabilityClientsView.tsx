@@ -250,3 +250,35 @@ export function ProfitabilityClientsView() {
     </div>
   );
 }
+/**
+ * Nom de client cliquable : ouvre la fiche client 360° du référentiel
+ * (`/pilot/fiche/$clientId`). Sans identité économique rattachée, on retombe
+ * sur la vue de rentabilité par clé de regroupement.
+ */
+function ClientLink({
+  clientId,
+  clientKey,
+  name,
+}: {
+  clientId: string | null;
+  clientKey: string;
+  name: string;
+}) {
+  const cls = "text-primary underline-offset-2 hover:underline";
+  if (clientId) {
+    return (
+      <Link to="/pilot/fiche/$clientId" params={{ clientId }} className={cls}>
+        {name}
+      </Link>
+    );
+  }
+  return (
+    <Link
+      to="/pilot/clients/$clientKey"
+      params={{ clientKey: encodeURIComponent(clientKey) }}
+      className={cls}
+    >
+      {name}
+    </Link>
+  );
+}
