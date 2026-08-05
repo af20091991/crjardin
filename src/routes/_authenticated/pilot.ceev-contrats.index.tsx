@@ -307,6 +307,12 @@ function RenewForm({
   const suggestion = renewalPeriod(source);
   const [start, setStart] = useState(suggestion.start_date);
   const [end, setEnd] = useState(suggestion.end_date);
+  const error =
+    start && end && end <= start
+      ? "La date de fin doit être postérieure à la date de début."
+      : start && start < source.start_date
+        ? "La nouvelle période doit débuter après le début du contrat d'origine."
+        : null;
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
@@ -322,8 +328,12 @@ function RenewForm({
           <Input id="renew-end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
         </div>
       </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
       <DialogFooter>
-        <Button disabled={pending || !start || !end} onClick={() => onSubmit({ start_date: start, end_date: end })}>
+        <Button
+          disabled={pending || !start || !end || Boolean(error)}
+          onClick={() => onSubmit({ start_date: start, end_date: end })}
+        >
           Créer la nouvelle période
         </Button>
       </DialogFooter>
