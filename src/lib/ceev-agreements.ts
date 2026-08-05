@@ -2,6 +2,10 @@
 // Aucun rapprochement automatique : le client est toujours choisi explicitement
 // dans le référentiel client existant (clients.id).
 import { supabase } from "@/integrations/supabase/client";
+import { createIntervention, type Intervention } from "@/lib/interventions";
+
+/** Motif unique des passages CEEV (aucun type d'intervention parallèle). */
+export const CEEV_INTERVENTION_TYPE = "Entretien CEEV";
 
 export type CeevStatus = "actif" | "a_renouveler" | "termine" | "suspendu";
 export type CeevFrequency = "mensuelle" | "trimestrielle" | "personnalisee";
@@ -39,6 +43,13 @@ export interface CeevAgreement {
   frequency: CeevFrequency;
   next_intervention_date: string | null;
   notes: string | null;
+  /** Organisation : nombre de passages prévus sur la période. */
+  visits_planned: number | null;
+  /** Durée estimée d'un passage, en heures. */
+  visit_duration_hours: number | null;
+  /** Période annuelle d'entretien (ex. 3 → 11 pour mars-novembre). */
+  season_start_month: number | null;
+  season_end_month: number | null;
   renewed_from_id: string | null;
   archived_at: string | null;
   created_at: string;
@@ -65,6 +76,10 @@ export type CeevAgreementInput = {
   notes?: string | null;
   status?: CeevStatus;
   next_intervention_date?: string | null;
+  visits_planned?: number | null;
+  visit_duration_hours?: number | null;
+  season_start_month?: number | null;
+  season_end_month?: number | null;
 };
 
 const DAY_MS = 86_400_000;
@@ -116,6 +131,116 @@ export function suggestedNextIntervention(a: Pick<CeevAgreement, "frequency" | "
 
 export function agreementLabel(a: CeevAgreement): string {
   return a.name?.trim() || a.client_name?.trim() || "Contrat d'entretien";
+}
+
+export const MONTH_LABELS = [
+  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+];
+
+/** Libellé de la période annuelle d'entretien (« Mars → Novembre »). */
+export function seasonLabel(a: Pick<CeevAgreement, "season_start_month" | "season_end_month">): string {
+  if (!a.season_start_month || !a.season_end_month) return "Toute l'année";
+  return `${MONTH_LABELS[a.season_start_month - 1]} → ${MONTH_LABELS[a.season_end_month - 1]}`;
+}
+
+// ---------------- Planning des passages (calcul, aucune écriture) ----------------
+
+function iso(y: number, m: number, d: number): string {
+  const dt = new Date(Date.UTC(y, m - 1, Math.min(d, 28)));
+  return dt.toISOString().slice(0, 10);
+}
+
+/**
+ * Dates de passage suggérées : réparties régulièrement sur la période annuelle
+ * d'entretien (saison) à l'intérieur de la période du contrat. Aucune date
+ * n'est enregistrée : c'est une proposition modifiable avant génération.
+ */
+export function plannedVisitDates(a: CeevAgreement): string[] {
+  const count = a.visits_planned ?? 0;
+  if (count <= 0) return [];
+  const start = new Date(`${a.start_date}T00:00:00`);
+  const startMonth = a.season_start_month ?? start.getMonth() + 1;
+  const endMonth = a.season_end_month ?? 12;
+  const year = start.getFullYear();
+  // Nombre de mois de la saison (gère un chevauchement d'année civile).
+  const span = endMonth >= startMonth ? endMonth - startMonth + 1 : 12 - startMonth + 1 + endMonth;
+  const dates: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const offset = span === 1 ? 0 : Math.round((i * (span - 1)) / Math.max(count - 1, 1));
+    const absolute = startMonth + offset;
+    const month = ((absolute - 1) % 12) + 1;
+    const y = year + Math.floor((absolute - 1) / 12);
+    dates.push(iso(y, month, 15));
+  }
+  return dates.filter((d) => d >= a.start_date && d <= a.end_date);
+}
+
+export interface CeevProgress {
+  planned: number;
+  done: number;
+  scheduled: number;
+  remaining: number;
+  interventions: Intervention[];
+  estimatedHours: number | null;
+}
+
+/**
+ * Suivi réalisé / restant. Source unique : interventions rattachées au contrat
+ * (interventions.ceev_agreement_id). Aucune hypothèse sur les autres interventions.
+ */
+export function ceevProgress(a: CeevAgreement, interventions: Intervention[]): CeevProgress {
+  const linked = interventions
+    .filter((i) => i.ceev_agreement_id === a.id)
+    .sort((x, y) => x.intervention_date.localeCompare(y.intervention_date));
+  const done = linked.filter((i) => i.status === "terminee").length;
+  const scheduled = linked.length - done;
+  const planned = a.visits_planned ?? 0;
+  return {
+    planned,
+    done,
+    scheduled,
+    remaining: Math.max(planned - linked.length, 0),
+    interventions: linked,
+    estimatedHours:
+      a.visit_duration_hours != null && planned > 0 ? a.visit_duration_hours * planned : null,
+  };
+}
+
+/**
+ * Génération des passages : crée de vraies interventions Pilot Pro (module
+ * Activité), rattachées au contrat. Aucune date déjà couverte n'est dupliquée.
+ */
+export async function generateCeevInterventions(
+  a: CeevAgreement,
+  dates: string[],
+  existing: Intervention[] = [],
+): Promise<Intervention[]> {
+  assertClient(a.client_id);
+  const already = new Set(
+    existing.filter((i) => i.ceev_agreement_id === a.id).map((i) => i.intervention_date),
+  );
+  const toCreate = dates.filter((d) => d && !already.has(d));
+  if (toCreate.length === 0) {
+    throw new Error("Toutes les dates sélectionnées possèdent déjà une intervention rattachée.");
+  }
+  const created: Intervention[] = [];
+  for (const date of toCreate) {
+    created.push(
+      await createIntervention({
+        client_id: a.client_id,
+        intervention_date: date,
+        intervention_type: CEEV_INTERVENTION_TYPE,
+        ceev_agreement_id: a.id,
+        tasks: ["Passage contrat d'entretien (CEEV)"],
+      }),
+    );
+  }
+  const userId = await currentUserId();
+  await logEvent(userId, a.id, "modification", `${created.length} passage(s) généré(s) dans Activité`, {
+    dates: created.map((c) => c.intervention_date),
+  });
+  return created;
 }
 
 // ---------------- Accès données ----------------
