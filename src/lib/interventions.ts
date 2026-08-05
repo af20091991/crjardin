@@ -96,6 +96,7 @@ export interface Intervention {
   intervention_date: string;
   intervention_type: string | null;
   status: string;
+  ceev_agreement_id?: string | null;
   title: string | null;
   reference: string | null;
   summary: string | null;
