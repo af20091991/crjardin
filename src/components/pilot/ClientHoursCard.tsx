@@ -29,11 +29,9 @@ export function ClientHoursCard({ clientId, caCumule }: { clientId: string; caCu
   const ratioVendu = d && d.vendues > 0 ? caCumule / d.vendues : null;
   const ratioReel = d && d.reelles > 0 ? caCumule / d.reelles : null;
   const sourceLabel =
-    d?.reellesSource === "interventions"
-      ? HOURS_TYPE_META.realisee.label
-      : d?.reellesSource === "historique"
-        ? HOURS_TYPE_META.historique.label
-        : "Aucune heure réelle disponible";
+    d?.reellesSource === "vente_temps"
+      ? HOURS_TYPE_META.vendue.label
+      : "Aucune heure d'intervention saisie";
 
   return (
     <Card>
@@ -51,9 +49,17 @@ export function ClientHoursCard({ clientId, caCumule }: { clientId: string; caCu
         {d && (
           <>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <Item label="Heures vendues" value={formatHours(d.vendues)} hint="Suivi CA" />
-              <Item label="Heures réalisées" value={formatHours(d.realisees)} hint="Interventions confirmées" />
-              <Item label="Heures historiques" value={formatHours(d.historiques)} hint="Import Excel" />
+              <Item
+                label="Heures d'intervention"
+                value={formatHours(d.vendues)}
+                hint="Vente → Temps (source unique)"
+              />
+              <Item
+                label="Heures comptes-rendus"
+                value={formatHours(d.realisees)}
+                hint="Historique — hors calculs"
+              />
+              <Item label="Heures historiques" value={formatHours(d.historiques)} hint="Import Excel — hors calculs" />
               <Item
                 label="Écart vendu / réel"
                 value={`${d.ecart >= 0 ? "+" : ""}${formatHours(d.ecart)}`}
@@ -66,11 +72,7 @@ export function ClientHoursCard({ clientId, caCumule }: { clientId: string; caCu
               </Badge>
               <Badge
                 variant="outline"
-                className={
-                  d.reellesSource === "interventions"
-                    ? HOURS_TYPE_META.realisee.badge
-                    : HOURS_TYPE_META.historique.badge
-                }
+                className={HOURS_TYPE_META.vendue.badge}
               >
                 CA / heure réelle : {ratioReel != null ? `${formatEuro(ratioReel)}/h` : "—"}
               </Badge>
