@@ -24,10 +24,10 @@ import { normalizePrestation } from "@/lib/pilot-service-profitability";
 export type HoursBasis = "reelles" | "historique" | "vendues" | "aucune";
 
 export const HOURS_BASIS_LABEL: Record<HoursBasis, string> = {
-  reelles: "Heures réalisées confirmées (interventions)",
-  historique: "Heures historiques validées (import Excel)",
-  vendues: "Heures vendues (lignes CA) — analyse indicative",
-  aucune: "Aucune heure connue",
+  reelles: "Heures comptes-rendus (historique, hors calculs)",
+  historique: "Heures historiques import Excel (hors calculs)",
+  vendues: "Heures d'intervention (Vente → Temps) — source unique",
+  aucune: "Aucune heure d'intervention saisie",
 };
 
 export interface TimeValueFilters {
