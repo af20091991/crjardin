@@ -634,95 +634,13 @@ function TimeValueAnalysis() {
             </CardContent>
           </Card>
 
-          {/* PARTIES 2 & 4 — Tableau de classement */}
+          {/* PARTIES 2 & 4 — Classement des clients par rentabilité */}
           <Card>
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-              <CardTitle className="text-base">Classement des clients</CardTitle>
-              <div className="flex flex-wrap items-center gap-2">
-                <Input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Rechercher un client…"
-                  className="w-44"
-                />
-                <Select value={clientSort} onValueChange={(v) => setClientSort(v as ClientSort)}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="best_euro_h">Meilleur €/h</SelectItem>
-                    <SelectItem value="worst_euro_h">Pire €/h</SelectItem>
-                    <SelectItem value="ca">Plus gros CA</SelectItem>
-                    <SelectItem value="hours">Plus gros temps consommé</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <CardHeader>
+              <CardTitle className="text-base">Classement des clients par rentabilité</CardTitle>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-3">Client</th>
-                    <th className="py-2 pr-3 text-right">CA HT</th>
-                    <th className="py-2 pr-3 text-right">Résultat brut</th>
-                    <th className="py-2 pr-3 text-right">Temps passé</th>
-                    <th className="py-2 pr-3 text-right">Interv.</th>
-                    <th className="py-2 pr-3 text-right">€/h</th>
-                    <th className="py-2 pr-3">Prestation principale</th>
-                    <th className="py-2 pr-3 text-right">Rang</th>
-                    <th className="py-2 pr-3">Zone</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clientRows.slice(0, 200).map((c) => (
-                    <tr key={c.clientId} className="border-b last:border-0">
-                      <td className="py-2 pr-3 font-medium">{c.name}</td>
-                      <td className="py-2 pr-3 text-right">{formatEuro(c.caHt)}</td>
-                      <td
-                        className={`py-2 pr-3 text-right ${
-                          (c.resultatBrut ?? 0) < 0 ? "text-[var(--pp-charges,#d9534f)]" : ""
-                        }`}
-                      >
-                        {c.resultatBrut == null ? "—" : formatEuro(c.resultatBrut)}
-                      </td>
-                      <td className="py-2 pr-3 text-right">
-                        {c.hours > 0 ? formatHours(c.hours) : "—"}
-                        {c.hoursBasis === "vendues" && (
-                          <span className="ml-1 text-[10px] text-amber-600" title={HOURS_BASIS_LABEL.vendues}>
-                            indic.
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2 pr-3 text-right">{c.interventions || "—"}</td>
-                      <td className="py-2 pr-3 text-right font-medium">
-                        {euroPerHour(c.resultPerHour ?? c.caPerHour)}
-                      </td>
-                      <td className="py-2 pr-3 text-xs text-muted-foreground">
-                        {c.mainPrestation ?? "—"}
-                      </td>
-                      <td className="py-2 pr-3 text-right text-xs">{c.rank ?? "—"}</td>
-                      <td className="py-2 pr-3">
-                        <Badge variant="outline" className={`text-[10px] ${CLIENT_ZONE_META[c.zone].badge}`}>
-                          {CLIENT_ZONE_META[c.zone].label}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                  {clientRows.length === 0 && (
-                    <tr>
-                      <td colSpan={9} className="py-6 text-center text-sm text-muted-foreground">
-                        Aucun client sur la période sélectionnée.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-              {clientRows.length > 200 && (
-                <p className="pt-2 text-xs text-muted-foreground">
-                  200 premiers clients affichés sur {clientRows.length}. Affinez la recherche ou les
-                  filtres.
-                </p>
-              )}
+            <CardContent>
+              <ClientProfitabilityTable rows={analysis.clients} target={target} />
             </CardContent>
           </Card>
 

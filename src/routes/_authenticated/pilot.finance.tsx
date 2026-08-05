@@ -6,9 +6,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Wallet, Clock } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, BarChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  PieChart, Pie,
 } from "recharts";
 import { currentYear } from "@/lib/date-utils";
-import { PP_COLORS } from "@/lib/pilot-colors";
+import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 
 const YEAR = currentYear();
 
@@ -42,6 +43,12 @@ function FinancePage() {
   const coutHoraire = snapshot?.rates.coutHoraireStructure ?? 0;
   const tauxVendu = snapshot?.rates.tauxHoraireVendu ?? 0;
   const tauxReel = snapshot?.rates.tauxHoraireReel ?? 0;
+
+  const margeAnnuelleData = annual
+    .filter((a) => a.margePct != null)
+    .map((a) => ({ annee: String(a.year), Marge: Number((a.margePct ?? 0).toFixed(1)) }));
+  const familiesData = (snapshot?.families ?? []).filter((f) => f.value > 0);
+  const investissementsData = annual.map((a) => ({ annee: String(a.year), Investissements: Math.round(a.investissements) }));
 
   if (isLoading || !snapshot) return <Skeleton className="h-64 rounded-xl" />;
 
@@ -124,6 +131,67 @@ function FinancePage() {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Compléments d'analyse financière : marge, activité, investissements. */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Marge annuelle (%)</CardTitle></CardHeader>
+          <CardContent>
+            {margeAnnuelleData.length < 2 ? (
+              <p className="py-16 text-center text-sm text-muted-foreground">Données insuffisantes</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={margeAnnuelleData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="annee" fontSize={12} />
+                  <YAxis fontSize={12} unit="%" />
+                  <Tooltip formatter={(v: number) => `${v.toFixed(1)} %`} />
+                  <Line type="monotone" dataKey="Marge" stroke={PP_COLORS.primary} strokeWidth={2} dot />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">Source : exercices réels (Bénéfice brut ÷ CA HT).</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Répartition du CA par activité {YEAR}</CardTitle></CardHeader>
+          <CardContent>
+            {familiesData.length === 0 ? (
+              <p className="py-16 text-center text-sm text-muted-foreground">Données insuffisantes</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie data={familiesData} dataKey="value" nameKey="label" innerRadius={50} outerRadius={85} paddingAngle={2}>
+                    {familiesData.map((f, i) => <Cell key={f.family} fill={f.color || PP_SERIES[i % PP_SERIES.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: number) => formatEuro(v)} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">Source : CA HT réel de l'exercice, par famille de prestation.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Évolution des investissements</CardTitle></CardHeader>
+          <CardContent>
+            {investissementsData.every((d) => d.Investissements === 0) ? (
+              <p className="py-16 text-center text-sm text-muted-foreground">Données insuffisantes</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={investissementsData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="annee" fontSize={12} />
+                  <YAxis fontSize={12} unit="€" />
+                  <Tooltip formatter={(v: number) => formatEuro(v)} />
+                  <Bar dataKey="Investissements" fill={PP_COLORS.business} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">Source : charges qualifiées « investissement », par exercice.</p>
           </CardContent>
         </Card>
       </div>
