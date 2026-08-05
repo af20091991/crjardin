@@ -954,12 +954,10 @@ function TodayPage() {
   });
 
   const dashboardDefs: DashboardBlockDef[] = [
-    { id: "priorites", label: "Priorités du jour" },
-    { id: "decisions", label: "Décisions du jour" },
+    { id: "mois", label: "Synthèse du mois en cours" },
+    { id: "exercice", label: "Synthèse depuis le début de l'exercice" },
     { id: "situation", label: "Situation actuelle" },
-    { id: "graphique", label: "Graphique CA mensuel" },
-    { id: "heures", label: "Répartition du temps" },
-    { id: "opportunites", label: "Opportunités commerciales" },
+    { id: "priorites", label: "Priorités du jour" },
   ];
   const layout = useDashboardLayout(dashboardDefs);
 
