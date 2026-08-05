@@ -49,6 +49,8 @@ import {
   readQualitySnapshot,
   writeQualitySnapshot,
 } from "@/lib/pilot-data-quality";
+import { MatchRulesPanel } from "@/components/pilot/panels/MatchRulesPanel";
+import { ignoreEntry } from "@/lib/pilot-ca-matching";
 
 
 export function RapprochementPage() {
@@ -87,6 +89,7 @@ export function RapprochementPage() {
     qc.invalidateQueries({ queryKey: ["pilot-recommendations"] });
     qc.invalidateQueries({ queryKey: ["pilot-portfolio"] });
     qc.invalidateQueries({ queryKey: ["pilot-data-quality"] });
+    qc.invalidateQueries({ queryKey: ["pilot-match-rules"] });
   };
 
   const designationIndex = useMemo(
@@ -217,6 +220,19 @@ export function RapprochementPage() {
       toast.success("Fiche client créée et ligne rattachée");
       setSelectedId(null);
       qc.invalidateQueries({ queryKey: ["clients"] });
+      invalidateAll();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // IGNORER : la ligne reste dans les totaux CA mais n'alimente plus les
+  // analyses clients ; la décision est journalisée et annulable.
+  const ignoreMut = useMutation({
+    mutationFn: (entryId: string) => ignoreEntry({ entryId }),
+    onSuccess: () => {
+      toast.success("Ligne ignorée : conservée mais exclue des analyses clients");
+      setSelectedId(null);
+      qc.invalidateQueries({ queryKey: ["pilot-ca-non-applicable"] });
       invalidateAll();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -550,14 +566,8 @@ export function RapprochementPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    disabled={linkMut.isPending}
-                    onClick={() =>
-                      linkMut.mutate({
-                        entryId: selected.id,
-                        clientId: null,
-                        method: "refused",
-                      })
-                    }
+                    disabled={ignoreMut.isPending}
+                    onClick={() => ignoreMut.mutate(selected.id)}
                   >
                     <X className="mr-1.5 h-4 w-4" /> Ignorer
                   </Button>
@@ -569,6 +579,7 @@ export function RapprochementPage() {
       </div>
 
       <HistoricHoursPanel />
+      <MatchRulesPanel />
 
       {/* Journal des décisions */}
       <Card>

@@ -33,6 +33,10 @@ export interface QualityGap {
 export interface ClientQuality {
   completeness: number; // 0..100
   confidenceLabel: string;
+  /** Niveau lisible : n'empêche jamais l'utilisation de l'application. */
+  level: "excellente" | "correcte" | "a_verifier";
+  levelLabel: string;
+  levelBadge: string;
   lastQualifiedAt: string | null;
   attachedCount: number;
   gaps: QualityGap[];
@@ -61,6 +65,14 @@ export function computeClientQuality(i: ClientQualityInput, clientId: string): C
   ];
   const total = criteria.reduce((s, c) => s + c.weight, 0);
   const got = criteria.reduce((s, c) => s + (c.ok ? c.weight : 0), 0);
+  const completeness = Math.round((got / total) * 100);
+  const level: ClientQuality["level"] =
+    completeness >= 80 ? "excellente" : completeness >= 55 ? "correcte" : "a_verifier";
+  const LEVEL_META = {
+    excellente: { label: "Qualité excellente", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    correcte: { label: "Qualité correcte", badge: "border-sky-200 bg-sky-50 text-sky-700" },
+    a_verifier: { label: "À vérifier", badge: "border-orange-200 bg-orange-50 text-orange-800" },
+  } as const;
 
   const gaps: QualityGap[] = [];
   if (i.caLines === 0) {
@@ -83,7 +95,10 @@ export function computeClientQuality(i: ClientQualityInput, clientId: string): C
   }
 
   return {
-    completeness: Math.round((got / total) * 100),
+    completeness,
+    level,
+    levelLabel: LEVEL_META[level].label,
+    levelBadge: LEVEL_META[level].badge,
     confidenceLabel: i.confidenceLevel ? CONFIDENCE_LABEL[i.confidenceLevel] : "non évaluée",
     lastQualifiedAt: i.lastQualifiedAt,
     attachedCount:
