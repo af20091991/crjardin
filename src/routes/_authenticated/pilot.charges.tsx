@@ -302,7 +302,7 @@ function ChargesPage() {
         </CardHeader>
         <CardContent>
           <ChargeDetailTable
-            rows={q.data.rows}
+            rows={chargeRows}
             year={detailYear}
             search={search}
             onChanged={() => qc.invalidateQueries({ queryKey: ["pilot-charges-analysis"] })}
@@ -314,7 +314,7 @@ function ChargesPage() {
           <CardTitle className="text-base">Règles de classement</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {q.data.cats.map((c) => (
+          {(catsQ.data ?? []).map((c) => (
             <div
               key={c.id}
               className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 p-2.5 text-sm"
