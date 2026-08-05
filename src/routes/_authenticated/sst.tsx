@@ -643,6 +643,13 @@ function MissionsTab() {
               </Card>
             );
           })}
+          {visibleMissions.length < filteredMissions.length && (
+            <div className="flex justify-center pt-1">
+              <Button variant="outline" onClick={() => setLimit((l) => l + 20)}>
+                Afficher {Math.min(20, filteredMissions.length - visibleMissions.length)} de plus
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
