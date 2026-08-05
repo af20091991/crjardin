@@ -184,6 +184,7 @@ function CeevDetailPage() {
   const meta = CEEV_STATUS_META[a.status];
   const nextDue = suggestedNextIntervention(a);
   const dEnd = daysUntil(a.end_date);
+  const progress = ceevProgress(a, interventions.data ?? []);
 
   return (
     <div className="space-y-5 py-6">
@@ -203,6 +204,9 @@ function CeevDetailPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline" className={meta.badge}>{meta.label}</Badge>
+          <Button size="sm" variant="outline" onClick={() => setGenOpen(true)}>
+            <ListChecks className="mr-1.5 h-4 w-4" /> Générer les passages
+          </Button>
           <Button asChild size="sm" variant="outline">
             <Link
               to="/interventions/new"
