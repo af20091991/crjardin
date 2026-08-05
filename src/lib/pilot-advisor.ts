@@ -19,7 +19,7 @@ export const ADVISOR_VERDICT_META: Record<AdvisorVerdict, { label: string; badge
   favorable: { label: "Favorable", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
   prudence: { label: "Sous conditions", badge: "border-amber-200 bg-amber-50 text-amber-700" },
   defavorable: { label: "Défavorable", badge: "border-red-200 bg-red-50 text-red-700" },
-  inconnu: { label: "Information insuffisante", badge: "border-border bg-muted text-muted-foreground" },
+  inconnu: { label: "Donnée insuffisante", badge: "border-border bg-muted text-muted-foreground" },
 };
 
 export interface AdvisorAnswer {
