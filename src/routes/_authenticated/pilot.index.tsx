@@ -21,7 +21,7 @@ import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-ho
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import { listHistoricHours } from "@/lib/pilot-historic-hours";
-import { listChargeRows } from "@/lib/pilot-charges";
+import { listChargeRows, operatingCharges } from "@/lib/pilot-charges";
 import { projectYear } from "@/lib/pilot-projection";
 import { usePilotMode } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
@@ -63,10 +63,11 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
+  YAxis,
 } from "recharts";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import {
