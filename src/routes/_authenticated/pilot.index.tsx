@@ -1093,11 +1093,11 @@ function TodayPage() {
             help="Interventions terminées et enregistrées sur le mois en cours."
           />
           <PilotCard
-            label="Heures réalisées"
+            label="Heures d'intervention"
             value={heuresRealiseesMois > 0 ? formatHours(heuresRealiseesMois) : "Non renseignées"}
             icon={Clock}
             to="/pilot/temps"
-            help="Heures réelles saisies sur les interventions du mois (ledger consolidé). Affiché uniquement si des heures existent."
+            help="Heures issues de la colonne Vente → Temps des lignes de vente du mois (source unique)."
           />
         </div>
         {missingHours.length > 0 && (
@@ -1194,7 +1194,7 @@ function TodayPage() {
                 <p className="text-sm text-muted-foreground">
                   {interventionsAnnee} intervention{interventionsAnnee > 1 ? "s" : ""}
                   {heuresRealiseesAnnee > 0
-                    ? ` · ${formatHours(heuresRealiseesAnnee)} réalisées (heures confirmées sur interventions)`
+                    ? ` · ${formatHours(heuresRealiseesAnnee)} (Vente → Temps)`
                     : ""}
                 </p>
               </div>
@@ -1210,7 +1210,7 @@ function TodayPage() {
                 <p className="text-sm text-muted-foreground">
                   {interventionsMois} intervention{interventionsMois > 1 ? "s" : ""}
                   {heuresRealiseesMois > 0
-                    ? ` · ${formatHours(heuresRealiseesMois)} réalisées (heures confirmées sur interventions)`
+                    ? ` · ${formatHours(heuresRealiseesMois)} (Vente → Temps)`
                     : ""}
                 </p>
               </div>
@@ -1221,9 +1221,9 @@ function TodayPage() {
           </CardContent>
         </Card>
         <p className="text-xs text-muted-foreground">
-          Source unique : CA facturé enregistré et heures confirmées sur les interventions
-          terminées. Les heures vendues (lignes CA) et les heures historiques importées ne sont pas
-          comptées ici — elles sont consultables dans le module Temps.
+          Source unique : CA facturé enregistré et heures de la colonne Vente → Temps. Les heures
+          des comptes-rendus et les heures historiques importées sont conservées pour consultation
+          mais n'entrent dans aucun calcul.
         </p>
       </DashboardBlock>
 
