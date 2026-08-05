@@ -19,10 +19,8 @@ import { monthVsSameMonthLastYear, toDateVsSameDateLastYear } from "@/lib/pilot-
 import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-hours";
 import type { FocusTopic } from "@/lib/pilot-focus";
-import { CaStatusCard } from "@/components/pilot/CaStatusCard";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import { listHistoricHours } from "@/lib/pilot-historic-hours";
-import { HoursSummaryCards } from "@/components/pilot/HoursSummaryCards";
 import { listChargeRows } from "@/lib/pilot-charges";
 import { projectYear } from "@/lib/pilot-projection";
 import { usePilotMode } from "@/lib/pilot-mode";
@@ -61,17 +59,6 @@ import {
   type AlertFeedback,
 } from "@/lib/pilot-alert-feedback";
 import { toast } from "sonner";
-import { PP_COLORS } from "@/lib/pilot-colors";
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import {
   Euro,
   Wallet,
@@ -92,7 +79,6 @@ import {
   Star,
   Eye,
   Timer,
-  Scale,
   Lightbulb,
 } from "lucide-react";
 
@@ -264,10 +250,6 @@ function TodayPage() {
   // cumul au jour J vs même date N-1). La comparaison à la fin de l'exercice
   // précédent est supprimée : elle opposait un exercice incomplet à un
   // exercice complet et faussait la lecture.
-  const monthCompare = useMemo(
-    () => monthVsSameMonthLastYear(entries.data ?? [], year, month),
-    [entries.data, year, month],
-  );
   const toDateCompare = useMemo(() => toDateVsSameDateLastYear(entries.data ?? []), [entries.data]);
 
   const beneficeMois = useMemo(() => {
@@ -416,24 +398,6 @@ function TodayPage() {
 
   // Données graphiques « Aujourd'hui » : CA mensuel (réel/projeté) et CA cumulé
   // vs objectif annuel (CA N-1), à partir du moteur de projection existant.
-  const monthlyChartData = useMemo(() => {
-    let cumule = 0;
-    const objectifCumulMensuel = objectifAnnuel > 0 ? objectifAnnuel / 12 : 0;
-    // Mode Réel : les mois à venir n'existent pas encore, on ne les dessine pas
-    // (aucune barre vide, aucune valeur estimée présentée comme réelle).
-    const source = projection.monthly.filter((m) => !m.projected);
-    return source.map((m) => {
-      cumule += m.ca;
-      return {
-        mois: new Date(year, m.month - 1, 1).toLocaleDateString("fr-FR", { month: "short" }),
-        ca: Math.round(m.ca),
-        charges: Math.round(m.charges),
-        cumule: Math.round(cumule),
-        objectifCumule: Math.round(objectifCumulMensuel * m.month),
-        projected: m.projected,
-      };
-    });
-  }, [projection.monthly, objectifAnnuel, year]);
 
   // Nom client par ID (pour opportunités et priorités affichées)
   const clientNameById = useMemo(() => {
@@ -615,8 +579,6 @@ function TodayPage() {
         .reduce((s, e) => s + e.hours, 0),
     [ledgerRows, year, month],
   );
-  const heuresVenduesAnnee = hoursResolution?.vendues ?? 0;
-  const ecartHeures = hoursResolution && hoursResolution.hours > 0 ? hoursResolution.ecart : null;
 
   // ---- Synthèses de lecture (aucune projection, uniquement l'enregistré) ----
   /** Libellé de période « Du 1er août au 5 août 2026 ». */
