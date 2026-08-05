@@ -20,22 +20,13 @@ export const Route = createFileRoute("/_authenticated/pilot/finance")({
 function FinancePage() {
   // Source unique : moteur analytique central (aucun calcul dans cet écran).
   const { snapshot, isLoading } = useAnalytics();
-  const isProjection = snapshot?.outlook.projected ?? false;
-  const monthly = snapshot?.monthly.finance ?? [];
+  // Lecture unique : données réelles enregistrées (le mode Projection a été supprimé).
+  const monthly = (snapshot?.monthly.finance ?? []).filter((m) => !m.projete);
   const annual = snapshot?.annual ?? [];
   const alerts = snapshot?.financeAlerts ?? [];
 
-  // Séries CA/Charges scindées réel vs projeté (segment de jonction inclus pour continuité visuelle).
-  const lineData = monthly.map((m, i) => {
-    const prevReal = i > 0 && !monthly[i - 1].projete;
-    return {
-      mois: m.mois,
-      CA: !m.projete ? m.CA : null,
-      "CA (projeté)": m.projete ? m.CA : (prevReal && monthly[i + 1]?.projete ? m.CA : null),
-      Charges: !m.projete ? m.Charges : null,
-      "Charges (projeté)": m.projete ? m.Charges : (prevReal && monthly[i + 1]?.projete ? m.Charges : null),
-    };
-  });
+  // Séries CA/Charges réelles uniquement.
+  const lineData = monthly.map((m) => ({ mois: m.mois, CA: m.CA, Charges: m.Charges }));
 
   const prevYearRow = annual.find((a) => a.year === YEAR - 1);
   const caYear = snapshot?.outlook.caHt ?? 0;
@@ -61,13 +52,13 @@ function FinancePage() {
           <Calculator className="h-6 w-6 text-primary" /> Tableau financier
         </h1>
         <p className="text-sm text-muted-foreground">
-          {isProjection ? `Mode projection : ${snapshot.outlook.explanation}` : snapshot.outlook.explanation}
+          {snapshot.outlook.explanation}
         </p>
       </div>
 
       {/* Synthèse */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label={`CA HT ${YEAR}${isProjection ? " (projeté)" : ""}`} value={formatEuro(caYear)} sub={prevYearRow ? `${YEAR - 1} : ${formatEuro(prevYearRow.caHt)}` : undefined} accent />
+        <Kpi label={`CA HT ${YEAR}`} value={formatEuro(caYear)} sub={prevYearRow ? `${YEAR - 1} : ${formatEuro(prevYearRow.caHt)}` : undefined} accent />
         <Kpi label="Charges" value={formatEuro(chargesYear)} sub={monthsObserved > 0 ? `${formatEuro(chargesMensuelles)} / mois` : "Aucune charge saisie"} />
         <Kpi label="Bénéfice brut" value={formatEuro(benefice)} sub={`Marge ${marge.toFixed(0)} %`} tone={benefice >= 0 ? "text-emerald-600" : "text-rose-600"} />
         <Kpi label="Résultat après investissements" value={formatEuro(apresInvest)} sub={`Investissements ${formatEuro(investYear)}`} tone={apresInvest >= 0 ? "text-emerald-600" : "text-rose-600"} />
@@ -101,7 +92,7 @@ function FinancePage() {
       {/* Analyse mensuelle : CA vs charges, et bénéfice mensuel */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">CA vs charges {YEAR}{isProjection ? " — projection" : ""}</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">CA vs charges {YEAR}</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={lineData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
@@ -111,15 +102,13 @@ function FinancePage() {
                 <Tooltip formatter={(v: number) => formatEuro(v)} />
                 <Legend />
                 <Line type="monotone" dataKey="CA" name="CA" stroke={PP_COLORS.sales} strokeWidth={2} connectNulls dot={false} />
-                <Line type="monotone" dataKey="CA (projeté)" stroke={PP_COLORS.sales} strokeWidth={2} strokeDasharray="5 4" connectNulls dot={false} />
                 <Line type="monotone" dataKey="Charges" name="Charges" stroke={PP_COLORS.charges} strokeWidth={2} connectNulls dot={false} />
-                <Line type="monotone" dataKey="Charges (projeté)" stroke={PP_COLORS.charges} strokeWidth={2} strokeDasharray="5 4" connectNulls dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Bénéfice mensuel {YEAR}{isProjection ? " — projection" : ""}</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Bénéfice mensuel {YEAR}</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={monthly} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
