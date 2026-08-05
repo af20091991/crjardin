@@ -38,7 +38,7 @@ import {
   type CeevFrequency,
   type CeevStatus,
 } from "@/lib/ceev-agreements";
-import { listAllInterventions } from "@/lib/interventions";
+import { listAllInterventions, type Intervention } from "@/lib/interventions";
 
 const searchSchema = z.object({ edit: z.boolean().optional() });
 
