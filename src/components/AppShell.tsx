@@ -73,7 +73,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         ...(canEdit
           ? [
               { to: "/pilot/sante", label: "Santé de l'activité", short: "Santé", icon: HeartPulse, exact: false, primary: false },
-              { to: "/pilot/conseiller", label: "Conseiller de gestion", short: "Conseil", icon: Compass, exact: false, primary: false },
             ]
           : []),
       ],
@@ -84,7 +83,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         { to: "/clients", label: "Fiches clients", short: "Clients", icon: Users, exact: false, primary: true },
         ...(canEdit
           ? [
-              { to: "/pilot/clients", label: "Rentabilité clients", short: "Rentab.", icon: LineChart, exact: false, primary: false },
+              { to: "/pilot/rentabilite", label: "Rentabilité", short: "Rentab.", icon: LineChart, exact: false, primary: false },
               { to: "/pilot/ceev", label: "Contrats CEEV", short: "CEEV", icon: ClipboardList, exact: false, primary: false },
             ]
           : []),
