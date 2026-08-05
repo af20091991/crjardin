@@ -585,9 +585,9 @@ function TodayPage() {
   // ---- Comparatifs à date équivalente N-1 (uniquement l'enregistré) ----
   // CA : lignes de vente enregistrées (pilot_ca_entries).
   // Interventions : statut « terminée » (interventions).
-  // Heures : interventions.hours_spent non estimées uniquement. Les heures
-  // vendues et les heures historiques importées n'ont pas de précision au
-  // jour : elles ne sont jamais mélangées dans ces comparatifs.
+  // Heures : colonne Vente → Temps des lignes de vente (source unique). Les
+  // heures des comptes-rendus et les heures historiques importées ne sont
+  // jamais utilisées dans un calcul.
   const comparatifs = useMemo(() => {
     const dayOfYear = (d: Date) =>
       Math.floor(
@@ -608,11 +608,10 @@ function TodayPage() {
           i.status === "terminee" && i.intervention_date && keep(new Date(i.intervention_date)),
       ).length;
     const heures = (keep: (d: Date) => boolean) =>
-      allI.reduce((s, i) => {
-        if (i.status !== "terminee" || i.hours_spent == null || !i.intervention_date) return s;
-        const meta = i.ai_metadata as Record<string, unknown> | null;
-        if (meta && meta["hours_spent_estimated"] === true) return s;
-        return keep(new Date(i.intervention_date)) ? s + Number(i.hours_spent) : s;
+      realEntries.reduce((s, e) => {
+        const d = new Date(e.entry_date);
+        if (!Number.isFinite(d.getTime()) || !keep(d)) return s;
+        return s + (Number(e.hours) || 0);
       }, 0);
 
     const moisN = (d: Date) =>
@@ -639,7 +638,7 @@ function TodayPage() {
       },
       {
         key: "h",
-        label: "Heures réalisées",
+        label: "Heures d'intervention",
         current: heures(cur),
         previous: heures(prev),
         fmt: (v: number) => formatHours(v),
@@ -650,9 +649,8 @@ function TodayPage() {
   }, [realEntries, allI, year, month, now]);
 
   /**
-   * Heures réalisées — source unique et vérifiable : interventions terminées
-   * avec heures confirmées (les heures estimées sont exclues). Mêmes chiffres
-   * que les comparatifs ci-dessus, aucune autre source mélangée.
+   * Heures d'intervention — source unique : colonne Vente → Temps des lignes
+   * de vente du suivi CA. Aucune autre source n'entre dans ces chiffres.
    */
   const heuresRealiseesMois = comparatifs.mois.find((i) => i.key === "h")?.current ?? 0;
   const heuresRealiseesAnnee = comparatifs.annee.find((i) => i.key === "h")?.current ?? 0;
@@ -1095,11 +1093,11 @@ function TodayPage() {
             help="Interventions terminées et enregistrées sur le mois en cours."
           />
           <PilotCard
-            label="Heures réalisées"
+            label="Heures d'intervention"
             value={heuresRealiseesMois > 0 ? formatHours(heuresRealiseesMois) : "Non renseignées"}
             icon={Clock}
             to="/pilot/temps"
-            help="Heures réelles saisies sur les interventions du mois (ledger consolidé). Affiché uniquement si des heures existent."
+            help="Heures issues de la colonne Vente → Temps des lignes de vente du mois (source unique)."
           />
         </div>
         {missingHours.length > 0 && (
@@ -1196,7 +1194,7 @@ function TodayPage() {
                 <p className="text-sm text-muted-foreground">
                   {interventionsAnnee} intervention{interventionsAnnee > 1 ? "s" : ""}
                   {heuresRealiseesAnnee > 0
-                    ? ` · ${formatHours(heuresRealiseesAnnee)} réalisées (heures confirmées sur interventions)`
+                    ? ` · ${formatHours(heuresRealiseesAnnee)} (Vente → Temps)`
                     : ""}
                 </p>
               </div>
@@ -1212,7 +1210,7 @@ function TodayPage() {
                 <p className="text-sm text-muted-foreground">
                   {interventionsMois} intervention{interventionsMois > 1 ? "s" : ""}
                   {heuresRealiseesMois > 0
-                    ? ` · ${formatHours(heuresRealiseesMois)} réalisées (heures confirmées sur interventions)`
+                    ? ` · ${formatHours(heuresRealiseesMois)} (Vente → Temps)`
                     : ""}
                 </p>
               </div>
@@ -1223,9 +1221,9 @@ function TodayPage() {
           </CardContent>
         </Card>
         <p className="text-xs text-muted-foreground">
-          Source unique : CA facturé enregistré et heures confirmées sur les interventions
-          terminées. Les heures vendues (lignes CA) et les heures historiques importées ne sont pas
-          comptées ici — elles sont consultables dans le module Temps.
+          Source unique : CA facturé enregistré et heures de la colonne Vente → Temps. Les heures
+          des comptes-rendus et les heures historiques importées sont conservées pour consultation
+          mais n'entrent dans aucun calcul.
         </p>
       </DashboardBlock>
 

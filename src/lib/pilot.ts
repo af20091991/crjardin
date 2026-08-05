@@ -286,9 +286,8 @@ export function computeKpis(params: {
   year: number;
   month: number; // 0-11 current month reference
   /**
-   * Heures réellement consommées par client, issues de interventions.hours_spent
-   * (statut = "terminee"). Source de vérité pour `tauxHoraireReel`.
-   * Si absent, `tauxHoraireReel` vaut 0 (pas de fallback silencieux).
+   * Heures d'intervention par client, issues de Vente → Temps
+   * (pilot_ca_entries.hours). Source unique pour `tauxHoraireReel`.
    */
   confirmedHoursByClient?: Map<string, number>;
   mode?: "reel" | "projection";
@@ -335,19 +334,17 @@ export function computeKpis(params: {
   const tauxHoraireVendu = totalHours > 0 ? caYear / totalHours : 0;
   // Atteinte de la cible : taux horaire vendu / taux horaire cible.
   const objectifPct = target > 0 && tauxHoraireVendu > 0 ? (tauxHoraireVendu / target) * 100 : 0;
-  // Taux horaire réel = CA HT / heures confirmées (interventions.hours_spent)
-  let totalConfirmedHours = 0;
+  // Heures d'intervention : source unique = Vente → Temps. Le total des heures
+  // rattachées aux clients ne peut donc dépasser `totalHours` (mêmes lignes CA).
+  let attachedHours = 0;
   if (confirmedHoursByClient) {
     confirmedHoursByClient.forEach((h) => {
-      if (Number.isFinite(h) && h > 0) totalConfirmedHours += h;
+      if (Number.isFinite(h) && h > 0) attachedHours += h;
     });
   }
-  // Seuil de plausibilité : en dessous de 20 h confirmées sur l'année, le taux
-  // horaire réel n'est pas significatif — il reste à 0 (affiché « — »).
-  const MIN_CONFIRMED_HOURS = 20;
-  const tauxHoraireReel =
-    totalConfirmedHours >= MIN_CONFIRMED_HOURS ? caYear / totalConfirmedHours : 0;
-  // Rétrocompatibilité : `tauxHoraire` = taux horaire vendu (comportement d'origine).
+  const totalConfirmedHours = totalHours > 0 ? totalHours : attachedHours;
+  const tauxHoraireReel = totalConfirmedHours > 0 ? caYear / totalConfirmedHours : 0;
+  // Rétrocompatibilité : `tauxHoraire` = taux horaire Vente → Temps.
   const tauxHoraire = tauxHoraireVendu;
 
   // Répartition par famille
@@ -424,16 +421,14 @@ export function clientStats(entries: PilotEntry[], year?: number): ClientStat[] 
 }
 
 /**
- * Variante de clientStats qui accepte une source de vérité pour les heures.
- * `confirmedHoursByClient` : map (client_id → heures confirmées) issue des interventions.
- * Si fourni, `hours`, `hourlyRate` et `avgTime` reflètent les heures réellement passées
- * (source de vérité = interventions.hours_spent). Les valeurs par défaut restent
- * les heures déclarées sur les lignes CA (heures vendues / facturées).
+ * Variante de clientStats conservée pour compatibilité d'appel.
+ * Les heures utilisées sont TOUJOURS celles de Vente → Temps portées par les
+ * lignes CA (`e.hours`) — le paramètre `confirmedHoursByClient` est ignoré.
  */
 export function clientStatsWithHours(
   entries: PilotEntry[],
   year?: number,
-  confirmedHoursByClient?: Map<string, number>,
+  _confirmedHoursByClient?: Map<string, number>,
 ): ClientStat[] {
   const filtered = year ? entries.filter((e) => y(e.entry_date) === year) : entries;
   const map = new Map<
@@ -476,11 +471,7 @@ export function clientStatsWithHours(
     .map(([key, v]) => {
       const nature =
         Object.entries(v.natures).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Autre";
-      const confirmed =
-        v.clientId && confirmedHoursByClient
-          ? confirmedHoursByClient.get(v.clientId)
-          : undefined;
-      const hours = confirmed != null ? confirmed : v.hours;
+      const hours = v.hours;
       return {
         key,
         name: v.name,
@@ -507,9 +498,8 @@ export function clientStatsWithHours(
 }
 
 /**
- * Charge les heures confirmées par client depuis interventions.hours_spent
- * (interventions terminées uniquement). Retourne une Map client_id → heures.
- * Source de vérité pour toutes les analyses de rentabilité.
+ * Heures d'intervention par client depuis Vente → Temps
+ * (pilot_ca_entries.hours des lignes de vente). Source unique de référence.
  */
 export async function fetchConfirmedHoursByClient(
   yearFilter?: number,
@@ -518,30 +508,8 @@ export async function fetchConfirmedHoursByClient(
   const mode = options?.mode ?? "reel";
   const ledger = await fetchHoursLedger(yearFilter, { mode });
   const resolved = resolveRealHours(ledger, yearFilter ?? new Date().getFullYear());
-  if (resolved.byClient.size > 0) return resolved.byClient;
-
-  const today = new Date().toISOString().slice(0, 10);
-  let q = supabase
-    .from("interventions")
-    .select("client_id,hours_spent,intervention_date")
-    .eq("status", "terminee")
-    .not("hours_spent", "is", null);
-  if (mode !== "projection") q = q.lte("intervention_date", today);
-  if (yearFilter != null) {
-    q = q
-      .gte("intervention_date", `${yearFilter}-01-01`)
-      .lte("intervention_date", `${yearFilter}-12-31`);
-  }
-  const { data, error } = await q;
-  if (error) throw error;
-  const out = new Map<string, number>();
-  for (const r of data ?? []) {
-    if (!r.client_id) continue;
-    const h = Number(r.hours_spent);
-    if (!Number.isFinite(h) || h <= 0) continue;
-    out.set(r.client_id, (out.get(r.client_id) ?? 0) + h);
-  }
-  return out;
+  // Aucun fallback : si aucune heure Vente → Temps n'existe, la map est vide.
+  return resolved.byClient;
 }
 
 // ---------- Santé financière ----------
@@ -558,9 +526,8 @@ export function healthScore(k: Kpis, settings: PilotSettings) {
   const marge = Math.max(0, Math.min(100, (k.marge / 30) * 100)); // 30% marge = 100
   const croissance = Math.max(0, Math.min(100, 50 + k.progression * 2)); // +25% => 100
   const objectif = Math.max(0, Math.min(100, k.objectifPct));
-  // Rentabilité : uniquement basée sur le taux horaire réel (interventions.hours_spent).
-  // Aucun fallback silencieux vers les heures vendues — si les heures confirmées
-  // manquent, le sous-score est marqué "données insuffisantes" et exclu du calcul.
+  // Rentabilité : taux horaire calculé sur Vente → Temps (source unique).
+  // Sans heures saisies, le sous-score est "données insuffisantes" et exclu.
   const rentabiliteAvailable =
     settings.target_hourly_rate > 0 && k.tauxHoraireReel > 0;
   const rentabilite = rentabiliteAvailable

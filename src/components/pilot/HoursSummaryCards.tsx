@@ -26,8 +26,8 @@ export function HoursSummaryCards({
   const ecart = d ? d.ecart : 0;
   const pie = d
     ? [
-        { key: "vendues", label: "Heures vendues", value: Math.max(0, d.vendues), color: PP_COLORS.sales },
-        { key: "realisees", label: "Heures réalisées", value: Math.max(0, d.hours), color: PP_COLORS.mid },
+        { key: "vendues", label: "Heures d'intervention", value: Math.max(0, d.vendues), color: PP_COLORS.sales },
+        { key: "realisees", label: "Heures retenues", value: Math.max(0, d.hours), color: PP_COLORS.mid },
       ].filter((s) => s.value > 0)
     : [];
 
@@ -35,18 +35,18 @@ export function HoursSummaryCards({
     <div className="grid gap-3 lg:grid-cols-[1fr_300px]">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-2">
         <PilotCard
-          label={`Heures vendues ${year}`}
+          label={`Heures d'intervention ${year}`}
           value={d ? formatHours(d.vendues) : "—"}
           icon={Timer}
           to="/pilot/ca"
           help="Somme des heures déclarées sur les lignes de vente du suivi CA. Permet de vérifier la cohérence entre ce qui est vendu et ce qui est réalisé."
         />
         <PilotCard
-          label="Heures réalisées"
+          label="Heures retenues"
           value={d ? formatHours(d.hours) : "—"}
           icon={Gauge}
           to="/pilot/rapprochement"
-          help="Consolidation par client : interventions confirmées, sinon historique Excel, sinon heures CA identifiées. Aucun double comptage, aucune estimation. Sert à trancher un éventuel écart de facturation."
+          help="Source unique : colonne Vente → Temps des lignes de vente. Les heures des comptes-rendus et l'historique Excel restent consultables mais n'entrent dans aucun calcul."
           sub={d && d.hours > 0 ? d.sourceLabel : "Aucune heure exploitable"}
         />
         <PilotCard

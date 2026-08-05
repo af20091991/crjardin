@@ -108,26 +108,36 @@ export function canRank(status: string | null | undefined): boolean {
 // Sources d'heures — séparation stricte (jamais de mélange)
 // ---------------------------------------------------------------------------
 
-export type HoursSourceKey = "interventions" | "historique" | "ca" | "aucune";
+export type HoursSourceKey =
+  | "vente_temps"
+  | "interventions"
+  | "historique"
+  | "ca"
+  | "aucune";
 
 export const HOURS_SOURCE_META: Record<
   HoursSourceKey,
   { label: string; short: string; reliable: boolean }
 > = {
-  interventions: {
-    label: "Heures réalisées confirmées (interventions)",
-    short: "interventions confirmées",
+  vente_temps: {
+    label: "Heures d'intervention (Vente → Temps)",
+    short: "Vente → Temps",
     reliable: true,
+  },
+  interventions: {
+    label: "Heures comptes-rendus (historique, hors calculs)",
+    short: "comptes-rendus",
+    reliable: false,
   },
   historique: {
-    label: "Heures historiques validées (import Excel)",
+    label: "Heures historiques import Excel (hors calculs)",
     short: "historique Excel",
-    reliable: true,
+    reliable: false,
   },
   ca: {
-    label: "Heures vendues (lignes CA) — indicatif",
-    short: "heures vendues (CA)",
-    reliable: false,
+    label: "Heures d'intervention (Vente → Temps)",
+    short: "Vente → Temps",
+    reliable: true,
   },
   aucune: { label: "Aucune heure connue", short: "aucune source", reliable: false },
 };
@@ -174,7 +184,9 @@ export function analysisReliability(input: ReliabilityInput): Reliability {
       `Couverture horaire insuffisante (${input.hours.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} h < ${minHours} h).`,
     );
   if (input.hours > 0 && !HOURS_SOURCE_META[input.hoursSource].reliable)
-    reasons.push("Heures issues des lignes CA (heures vendues) : analyse indicative.");
+    reasons.push(
+      "Heures issues d'une source historique : seule la colonne Vente → Temps alimente les calculs.",
+    );
   if (input.caTotal <= 0) reasons.push("Aucun chiffre d'affaires rattaché.");
 
   const hoursOk =

@@ -126,11 +126,15 @@ export type MonthMetric = {
   partTerrain: number | null;
 };
 
+/**
+ * Le temps terrain provient EXCLUSIVEMENT de Vente → Temps (`caHours`).
+ * `pilot_hours.temps_terrain` est conservé en base mais n'alimente plus le calcul.
+ */
 export function computeMonths(
   ca: number[],
   hours: HoursRow[],
   gestionDefaut: number,
-  /** Heures terrain issues du CA (source prioritaire). */
+  /** Heures terrain issues de Vente → Temps (source unique). */
   caHours: number[] = [],
 ): MonthMetric[] {
   const byMonth = new Map(hours.map((h) => [h.month, h]));
@@ -138,10 +142,8 @@ export function computeMonths(
     const m = i + 1;
     const h = byMonth.get(m);
     const fromCa = Number(caHours[i]) || 0;
-    const saisi = h?.temps_terrain ?? null;
-    const terrain = fromCa > 0 ? fromCa : saisi && saisi > 0 ? saisi : null;
-    const terrainSource: MonthMetric["terrainSource"] =
-      fromCa > 0 ? "ca" : saisi && saisi > 0 ? "saisie" : "aucune";
+    const terrain = fromCa > 0 ? fromCa : null;
+    const terrainSource: MonthMetric["terrainSource"] = fromCa > 0 ? "ca" : "aucune";
     const gestionSaisie = h?.temps_gestion == null ? null : Number(h.temps_gestion);
     const gestion = gestionSaisie ?? gestionDefaut;
     const jours = h?.jours_travailles ?? null;

@@ -578,20 +578,20 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
           ? `${certification.caCoveragePct.toFixed(1)} % du CA certifié`
           : undefined,
     }),
-    heures_vendues: kpi("heures_vendues", "Heures vendues", hoursRes.vendues, "heures", {
+    heures_vendues: kpi("heures_vendues", "Heures d'intervention (Vente → Temps)", hoursRes.vendues, "heures", {
       sources: ["pilot_ca_entries.hours"],
-      calcul: "Somme des heures portées par les lignes de vente.",
+      calcul: "Somme de la colonne Temps des lignes de vente — source unique des heures.",
       periode,
     }),
     heures_reelles: kpi(
       "heures_reelles",
-      "Heures réelles consolidées",
+      "Heures d'intervention retenues",
       hoursRes.hours > 0 ? hoursRes.hours : null,
       "heures",
       {
-        sources: ["interventions.hours_spent", "pilot_historic_hours", "pilot_ca_entries.hours"],
+        sources: ["pilot_ca_entries.hours (Vente → Temps)"],
         calcul:
-          "Cascade unique : interventions confirmées > historique Excel validé > heures vendues identifiées. Aucune estimation.",
+          "Somme de la colonne Vente → Temps. Aucune autre source d'heures n'entre dans les calculs.",
         periode,
         fiabilite: hoursRes.sourceLabel,
       },
@@ -647,8 +647,8 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
       tauxHoraireReel,
       "eur_heure",
       {
-        sources: ["pilot_ca_entries", "interventions.hours_spent"],
-        calcul: "CA HT / heures réelles consolidées.",
+        sources: ["pilot_ca_entries", "pilot_ca_entries.hours (Vente → Temps)"],
+        calcul: "CA HT / heures d'intervention (Vente → Temps).",
         periode,
         fiabilite: hoursRes.sourceLabel,
       },

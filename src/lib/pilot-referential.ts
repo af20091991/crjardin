@@ -281,12 +281,14 @@ export async function runReferentialAudit(): Promise<ReferentialAudit> {
     if (entity) a.designations.set(entity, (a.designations.get(entity) ?? 0) + Math.max(amount, 1));
   }
 
+  // Heures retenues : Vente → Temps (source unique). Les heures des
+  // comptes-rendus ne servent plus qu'au comptage des interventions.
   const realHours = new Map<string, number>();
+  for (const [clientId, a] of caByClient) realHours.set(clientId, a.hoursSold);
   const ivCount = new Map<string, number>();
   for (const iv of (ivRes.data ?? []) as Array<Record<string, any>>) {
     if (!iv.client_id) continue;
     ivCount.set(iv.client_id, (ivCount.get(iv.client_id) ?? 0) + 1);
-    realHours.set(iv.client_id, (realHours.get(iv.client_id) ?? 0) + (Number(iv.hours_spent) || 0));
   }
   const histHours = new Map<string, number>();
   for (const h of (histRes.data ?? []) as Array<Record<string, any>>) {

@@ -24,10 +24,10 @@ import { normalizePrestation } from "@/lib/pilot-service-profitability";
 export type HoursBasis = "reelles" | "historique" | "vendues" | "aucune";
 
 export const HOURS_BASIS_LABEL: Record<HoursBasis, string> = {
-  reelles: "Heures réalisées confirmées (interventions)",
-  historique: "Heures historiques validées (import Excel)",
-  vendues: "Heures vendues (lignes CA) — analyse indicative",
-  aucune: "Aucune heure connue",
+  reelles: "Heures comptes-rendus (historique, hors calculs)",
+  historique: "Heures historiques import Excel (hors calculs)",
+  vendues: "Heures d'intervention (Vente → Temps) — source unique",
+  aucune: "Aucune heure d'intervention saisie",
 };
 
 export interface TimeValueFilters {
@@ -141,9 +141,11 @@ interface HoursBuckets {
   vendues: number;
 }
 
+/**
+ * Source unique des heures d'intervention : Vente → Temps (bucket `vendues`).
+ * Les heures comptes-rendus / historiques restent exposées à titre informatif.
+ */
 function pickHours(b: HoursBuckets): { hours: number; basis: HoursBasis } {
-  if (b.realisees > 0) return { hours: b.realisees, basis: "reelles" };
-  if (b.historiques > 0) return { hours: b.historiques, basis: "historique" };
   if (b.vendues > 0) return { hours: b.vendues, basis: "vendues" };
   return { hours: 0, basis: "aucune" };
 }

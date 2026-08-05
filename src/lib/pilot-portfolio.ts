@@ -23,7 +23,7 @@ export interface PortfolioRow {
   caTotal: number;
   caYear: number;
   hours: number;
-  hoursSource: "interventions" | "historique" | "ca" | "aucune";
+  hoursSource: "vente_temps" | "aucune";
   interventions: number;
   /** Prix de vente moyen par ligne facturée. */
   panierMoyen: number | null;
@@ -89,16 +89,9 @@ export function buildPortfolio(params: {
     const name = a?.name ?? s?.client_name ?? "Client";
     const caTotal = a?.caTotal ?? s?.revenueTotalHt ?? 0;
     const caYear = a?.caYear ?? s?.revenueYearHt ?? 0;
-    const hours = h ? (h.r > 0 ? h.r : h.h > 0 ? h.h : h.v) : 0;
-    const hoursSource: PortfolioRow["hoursSource"] = !h
-      ? "aucune"
-      : h.r > 0
-        ? "interventions"
-        : h.h > 0
-          ? "historique"
-          : h.v > 0
-            ? "ca"
-            : "aucune";
+    // Source unique des heures d'intervention : Vente → Temps (h.v).
+    const hours = h ? h.v : 0;
+    const hoursSource: PortfolioRow["hoursSource"] = hours > 0 ? "vente_temps" : "aucune";
     const lines = a?.lines ?? 0;
     const entityStatus = statusOf(statuses, clientId);
     const hoursSourceKey = hoursSource;

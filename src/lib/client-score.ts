@@ -199,7 +199,7 @@ async function fetchAggregates() {
   const [caRes, ivRes, oppRes, clientsRes] = await Promise.all([
     supabase
       .from("pilot_ca_entries")
-      .select("client_id,year,amount_ht")
+      .select("client_id,year,amount_ht,hours")
       .eq("kind", "vente"),
     supabase
       .from("interventions")
@@ -245,6 +245,8 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       interventionsCount: number;
       interventionsWithHours: number;
       hoursConfirmed: number;
+      caLines: number;
+      caLinesWithHours: number;
       lastInterventionAt: string | null;
       opportunitiesCount: number;
       opportunitiesValue: number;
@@ -267,6 +269,8 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
         interventionsCount: 0,
         interventionsWithHours: 0,
         hoursConfirmed: 0,
+        caLines: 0,
+        caLinesWithHours: 0,
         lastInterventionAt: null,
         opportunitiesCount: 0,
         opportunitiesValue: 0,
@@ -289,17 +293,20 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
     const ht = Number(r.amount_ht) || 0;
     e.revenueTotalHt += ht;
     if (Number(r.year) === yr) e.revenueYearHt += ht;
+    // Heures d'intervention : source unique = Vente → Temps.
+    e.caLines += 1;
+    const h = Number((r as { hours?: number | null }).hours) || 0;
+    if (h > 0) {
+      e.caLinesWithHours += 1;
+      e.hoursConfirmed += h;
+      e.interventionsWithHours += 1;
+    }
   }
 
   for (const iv of interventions) {
     if (!iv.client_id) continue;
     const e = ensure(iv.client_id, null);
     e.interventionsCount += 1;
-    const h = Number(iv.hours_spent) || 0;
-    if (h > 0) {
-      e.interventionsWithHours += 1;
-      e.hoursConfirmed += h;
-    }
     if (iv.intervention_date) {
       if (
         !e.lastInterventionAt ||
@@ -331,13 +338,11 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       e.hoursConfirmed > 0 ? e.revenueTotalHt / e.hoursConfirmed : null;
     const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
     const hoursConfirmedRatio =
-      e.interventionsCount > 0
-        ? e.interventionsWithHours / e.interventionsCount
-        : 0;
+      e.caLines > 0 ? e.caLinesWithHours / e.caLines : 0;
     const days = daysBetween(e.lastInterventionAt);
 
     const confidenceLevel = computeConfidenceLevel(
-      e.interventionsCount,
+      Math.max(e.interventionsCount, e.caLines),
       e.hoursConfirmed,
       hoursConfirmedRatio,
     );
@@ -377,7 +382,7 @@ export async function getClientEconomicScore(
   const [caRes, ivRes, oppRes, clientRes, settings] = await Promise.all([
     supabase
       .from("pilot_ca_entries")
-      .select("client_id,year,amount_ht")
+      .select("client_id,year,amount_ht,hours")
       .eq("kind", "vente")
       .eq("client_id", clientId),
     supabase
@@ -419,27 +424,30 @@ export async function getClientEconomicScore(
 
   let revenueTotalHt = 0;
   let revenueYearHt = 0;
+  let hoursConfirmed = 0;
+  let caLines = 0;
+  let caLinesWithHours = 0;
   for (const r of ca) {
     const ht = Number(r.amount_ht) || 0;
     revenueTotalHt += ht;
     if (Number(r.year) === yr) revenueYearHt += ht;
+    caLines += 1;
+    const h = Number((r as { hours?: number | null }).hours) || 0;
+    if (h > 0) {
+      caLinesWithHours += 1;
+      hoursConfirmed += h;
+    }
   }
 
   let interventionsCount = 0;
-  let interventionsWithHours = 0;
-  let hoursConfirmed = 0;
   let lastInterventionAt: string | null = null;
   for (const iv of interventions) {
     interventionsCount += 1;
-    const h = Number(iv.hours_spent) || 0;
-    if (h > 0) {
-      interventionsWithHours += 1;
-      hoursConfirmed += h;
-    }
     if (iv.intervention_date && (!lastInterventionAt || iv.intervention_date > lastInterventionAt)) {
       lastInterventionAt = iv.intervention_date;
     }
   }
+  const interventionsWithHours = caLinesWithHours;
 
   let opportunitiesCount = 0;
   let opportunitiesValue = 0;
@@ -451,10 +459,10 @@ export async function getClientEconomicScore(
   const realRate = hoursConfirmed > 0 ? revenueTotalHt / hoursConfirmed : null;
   const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
   const hoursConfirmedRatio =
-    interventionsCount > 0 ? interventionsWithHours / interventionsCount : 0;
+    caLines > 0 ? caLinesWithHours / caLines : 0;
   const days = daysBetween(lastInterventionAt);
   const confidenceLevel = computeConfidenceLevel(
-    interventionsCount,
+    Math.max(interventionsCount, caLines),
     hoursConfirmed,
     hoursConfirmedRatio,
   );
