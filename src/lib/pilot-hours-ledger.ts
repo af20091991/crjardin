@@ -3,16 +3,18 @@ import { parseDesignation } from "@/lib/pilot-ca-designation";
 import { isRealizedMonth, todayIso } from "@/lib/pilot-realized";
 
 /**
- * Couche unique d'analyse des heures (Pilot Pro v2).
+ * Couche unique d'analyse des heures (Pilot Pro).
  *
- * Trois sources STRICTEMENT séparées, jamais fusionnées :
- *  - vendue     : pilot_ca_entries.hours          (heures facturées au client)
- *  - realisee   : interventions.hours_spent       (heures confirmées sur le terrain)
- *  - historique : pilot_historic_hours            (import Excel, rattaché au référentiel)
+ * RÈGLE STRUCTURELLE : la seule source de référence des heures d'intervention
+ * pour tout calcul métier est « Vente → Temps » (pilot_ca_entries.hours,
+ * lignes de vente) — type `vendue` ci-dessous.
+ *
+ * Les deux autres sources restent chargées et affichées à titre d'historique et
+ * de traçabilité, sans jamais alimenter un calcul standard :
+ *  - realisee   : interventions.hours_spent   (comptes-rendus, informatif)
+ *  - historique : pilot_historic_hours        (import Excel, informatif)
  *
  * Garde-fous : aucune heure n'est créée, modifiée ou remplacée ici.
- * Les heures estimées (ai_metadata.hours_spent_estimated) sont conservées mais
- * exclues de tous les KPI de rentabilité.
  */
 
 export type HoursType = "vendue" | "realisee" | "historique";
@@ -20,18 +22,18 @@ export type HoursConfidence = "haute" | "moyenne" | "faible";
 
 export const HOURS_TYPE_META: Record<HoursType, { label: string; origin: string; badge: string }> = {
   vendue: {
-    label: "Heures vendues",
-    origin: "Suivi CA (lignes de vente)",
+    label: "Heures d'intervention (Vente → Temps)",
+    origin: "Suivi CA — colonne Temps des lignes de vente (source unique)",
     badge: "border-sky-200 bg-sky-50 text-sky-700",
   },
   realisee: {
-    label: "Heures réalisées",
-    origin: "Interventions terminées (heures confirmées)",
+    label: "Heures comptes-rendus (historique)",
+    origin: "Interventions terminées — informatif, hors calculs",
     badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
   },
   historique: {
-    label: "Heures historiques",
-    origin: "Import Excel rattaché au référentiel client",
+    label: "Heures historiques (import Excel)",
+    origin: "Import Excel rattaché au référentiel client — informatif, hors calculs",
     badge: "border-amber-200 bg-amber-50 text-amber-700",
   },
 };
@@ -212,15 +214,13 @@ export interface ClientHours {
   historiques: number;
   /** Heures réelles retenues selon les règles de priorité. */
   reelles: number;
-  reellesSource: "interventions" | "historique" | "aucune";
+  reellesSource: "vente_temps" | "aucune";
   ecart: number;          // vendues - réelles retenues
 }
 
 /**
- * Règles de priorité pour les heures réelles :
- *  1. interventions.hours_spent confirmées (non estimées)
- *  2. heures historiques Excel rattachées
- *  3. aucune estimation — jamais de valeur inventée
+ * Heures retenues (`reelles`) = Vente → Temps, sans exception.
+ * `realisees` et `historiques` sont conservées pour information.
  */
 export function aggregateHoursByClient(entries: HoursLedgerEntry[]): Map<string, ClientHours> {
   const map = new Map<string, ClientHours>();
@@ -246,16 +246,8 @@ export function aggregateHoursByClient(entries: HoursLedgerEntry[]): Map<string,
     map.set(e.clientId, cur);
   }
   for (const c of map.values()) {
-    if (c.realisees > 0) {
-      c.reelles = c.realisees;
-      c.reellesSource = "interventions";
-    } else if (c.historiques > 0) {
-      c.reelles = c.historiques;
-      c.reellesSource = "historique";
-    } else {
-      c.reelles = 0;
-      c.reellesSource = "aucune";
-    }
+    c.reelles = c.vendues;
+    c.reellesSource = c.vendues > 0 ? "vente_temps" : "aucune";
     c.ecart = c.vendues - c.reelles;
   }
   return map;
@@ -268,15 +260,15 @@ export interface PrestationHours {
   ecart: number;
 }
 
-/** Heures par prestation (vendues vs réalisées confirmées). */
+/** Heures par prestation. `reelles` = Vente → Temps (source unique). */
 export function aggregateHoursByPrestation(entries: HoursLedgerEntry[]): PrestationHours[] {
   const map = new Map<string, PrestationHours>();
   for (const e of entries) {
-    if (e.type === "historique") continue;
+    if (e.type !== "vendue") continue;
     const key = (e.prestation ?? "Non catégorisé").trim() || "Non catégorisé";
     const cur = map.get(key) ?? { prestation: key, vendues: 0, reelles: 0, ecart: 0 };
-    if (e.type === "vendue") cur.vendues += e.hours;
-    else if (!e.estimated) cur.reelles += e.hours;
+    cur.vendues += e.hours;
+    cur.reelles += e.hours;
     map.set(key, cur);
   }
   const rows = [...map.values()].map((r) => ({ ...r, ecart: r.vendues - r.reelles }));
