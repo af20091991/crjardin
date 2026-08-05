@@ -1285,68 +1285,40 @@ function SectionTitle({ question, label }: { question: string; label: string }) 
 }
 
 /**
- * Comparatif à date équivalente N vs N-1 : un mini histogramme par indicateur
- * fiable. Aucune projection, aucune donnée reconstruite.
+ * Évolution mensuelle réelle de l'exercice : CA HT enregistré et bénéfice
+ * (CA − charges d'exploitation enregistrées). Seuls les mois écoulés avec des
+ * données réellement présentes sont affichés. Aucune projection.
  */
-function CompareBars({
-  items,
-  currentLabel,
-  previousLabel,
-  note,
+function MonthlyPerformanceChart({
+  data,
+  year,
 }: {
-  items: Array<{
-    key: string;
-    label: string;
-    current: number;
-    previous: number;
-    fmt: (v: number) => string;
-  }>;
-  currentLabel: string;
-  previousLabel: string;
-  note: string;
+  data: Array<{ mois: string; "CA HT": number; Bénéfice: number }>;
+  year: number;
 }) {
-  const visible = items.filter((i) => i.current > 0 || i.previous > 0);
-  if (visible.length === 0) return null;
+  if (data.length === 0) return null;
   return (
-    <div className="space-y-1.5">
-      <div className="grid gap-3 sm:grid-cols-3">
-        {visible.map((it) => {
-          const deltaPct =
-            it.previous > 0 ? ((it.current - it.previous) / it.previous) * 100 : null;
-          return (
-            <Card key={it.key} className="p-3">
-              <p className="text-xs font-medium">{it.label}</p>
-              <p className="font-serif text-lg font-semibold tabular-nums">{it.fmt(it.current)}</p>
-              <div className="h-[110px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      { name: previousLabel, v: it.previous },
-                      { name: currentLabel, v: it.current },
-                    ]}
-                    margin={{ top: 4, right: 4, left: 4, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} />
-                    <Tooltip formatter={(v: number | string) => it.fmt(Number(v))} />
-                    <Bar dataKey="v" radius={[4, 4, 0, 0]}>
-                      <Cell fill={PP_COLORS.neutral} />
-                      <Cell fill={PP_COLORS.primary} />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {deltaPct != null
-                  ? `${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(0)} % vs période équivalente`
-                  : "Aucune référence sur la période équivalente"}
-              </p>
-            </Card>
-          );
-        })}
+    <Card className="p-4">
+      <p className="text-sm font-medium">Évolution mensuelle {year} — CA HT et bénéfice réels</p>
+      <div className="mt-3 h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="mois" tick={{ fontSize: 11 }} interval={0} />
+            <YAxis tick={{ fontSize: 11 }} unit="€" />
+            <Tooltip formatter={(v: number | string) => formatEuro(Number(v))} />
+            <Legend />
+            <Bar dataKey="CA HT" fill={PP_COLORS.primary} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Bénéfice" fill={PP_COLORS.charges} radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
-      <p className="text-xs text-muted-foreground">{note}</p>
-    </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Mois écoulés uniquement. CA HT = lignes de vente enregistrées ; bénéfice = CA HT − charges
+        d'exploitation enregistrées du mois (investissements exclus). Aucune projection ni
+        estimation.
+      </p>
+    </Card>
   );
 }
 
