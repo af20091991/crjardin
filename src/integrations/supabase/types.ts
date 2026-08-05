@@ -47,6 +47,127 @@ export type Database = {
         }
         Relationships: []
       }
+      ceev_agreement_events: {
+        Row: {
+          agreement_id: string
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          label: string
+          user_id: string
+        }
+        Insert: {
+          agreement_id: string
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          label: string
+          user_id: string
+        }
+        Update: {
+          agreement_id?: string
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          label?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ceev_agreement_events_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "ceev_agreements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ceev_agreements: {
+        Row: {
+          archived_at: string | null
+          client_id: string
+          created_at: string
+          end_date: string
+          frequency: string
+          id: string
+          name: string | null
+          next_intervention_date: string | null
+          notes: string | null
+          renewed_from_id: string | null
+          site_address: string | null
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          client_id: string
+          created_at?: string
+          end_date: string
+          frequency?: string
+          id?: string
+          name?: string | null
+          next_intervention_date?: string | null
+          notes?: string | null
+          renewed_from_id?: string | null
+          site_address?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          client_id?: string
+          created_at?: string
+          end_date?: string
+          frequency?: string
+          id?: string
+          name?: string | null
+          next_intervention_date?: string | null
+          notes?: string | null
+          renewed_from_id?: string | null
+          site_address?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ceev_agreements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ceev_agreements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "ceev_agreements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "ceev_agreements_renewed_from_id_fkey"
+            columns: ["renewed_from_id"]
+            isOneToOne: false
+            referencedRelation: "ceev_agreements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ceev_contracts: {
         Row: {
           charges: number
