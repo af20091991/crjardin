@@ -1197,6 +1197,8 @@ function TodayPage() {
         <OpportunitiesBoard year={year} offers={priority} clientNameById={clientNameById} />
       </DashboardBlock>
 
+      <CeevWatchCard />
+
       <section className="space-y-2">
         <SectionTitle
           question="Points d'attention"

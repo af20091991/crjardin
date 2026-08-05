@@ -72,6 +72,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as AuthenticatedPilotFocusTopicRouteImport } from './routes/_authenticated/pilot.focus.$topic'
 import { Route as AuthenticatedPilotFicheClientIdRouteImport } from './routes/_authenticated/pilot.fiche.$clientId'
 import { Route as AuthenticatedPilotClientsClientKeyRouteImport } from './routes/_authenticated/pilot.clients.$clientKey'
+import { Route as AuthenticatedPilotCeevContratsAgreementIdRouteImport } from './routes/_authenticated/pilot.ceev-contrats.$agreementId'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -421,6 +422,12 @@ const AuthenticatedPilotClientsClientKeyRoute =
     path: '/$clientKey',
     getParentRoute: () => AuthenticatedPilotClientsRoute,
   } as any)
+const AuthenticatedPilotCeevContratsAgreementIdRoute =
+  AuthenticatedPilotCeevContratsAgreementIdRouteImport.update({
+    id: '/ceev-contrats/$agreementId',
+    path: '/ceev-contrats/$agreementId',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -478,6 +485,7 @@ export interface FileRoutesByFullPath {
   '/fiches/': typeof AuthenticatedFichesIndexRoute
   '/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/pilot/': typeof AuthenticatedPilotIndexRoute
+  '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
   '/pilot/focus/$topic': typeof AuthenticatedPilotFocusTopicRoute
@@ -541,6 +549,7 @@ export interface FileRoutesByTo {
   '/fiches': typeof AuthenticatedFichesIndexRoute
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
   '/pilot': typeof AuthenticatedPilotIndexRoute
+  '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
   '/pilot/focus/$topic': typeof AuthenticatedPilotFocusTopicRoute
@@ -607,6 +616,7 @@ export interface FileRoutesById {
   '/_authenticated/fiches/': typeof AuthenticatedFichesIndexRoute
   '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/_authenticated/pilot/': typeof AuthenticatedPilotIndexRoute
+  '/_authenticated/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/_authenticated/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/_authenticated/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
   '/_authenticated/pilot/focus/$topic': typeof AuthenticatedPilotFocusTopicRoute
@@ -673,6 +683,7 @@ export interface FileRouteTypes {
     | '/fiches/'
     | '/interventions/'
     | '/pilot/'
+    | '/pilot/ceev-contrats/$agreementId'
     | '/pilot/clients/$clientKey'
     | '/pilot/fiche/$clientId'
     | '/pilot/focus/$topic'
@@ -736,6 +747,7 @@ export interface FileRouteTypes {
     | '/fiches'
     | '/interventions'
     | '/pilot'
+    | '/pilot/ceev-contrats/$agreementId'
     | '/pilot/clients/$clientKey'
     | '/pilot/fiche/$clientId'
     | '/pilot/focus/$topic'
@@ -801,6 +813,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fiches/'
     | '/_authenticated/interventions/'
     | '/_authenticated/pilot/'
+    | '/_authenticated/pilot/ceev-contrats/$agreementId'
     | '/_authenticated/pilot/clients/$clientKey'
     | '/_authenticated/pilot/fiche/$clientId'
     | '/_authenticated/pilot/focus/$topic'
@@ -1269,6 +1282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotClientsClientKeyRouteImport
       parentRoute: typeof AuthenticatedPilotClientsRoute
     }
+    '/_authenticated/pilot/ceev-contrats/$agreementId': {
+      id: '/_authenticated/pilot/ceev-contrats/$agreementId'
+      path: '/ceev-contrats/$agreementId'
+      fullPath: '/pilot/ceev-contrats/$agreementId'
+      preLoaderRoute: typeof AuthenticatedPilotCeevContratsAgreementIdRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
   }
 }
 
@@ -1313,6 +1333,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotTempsRoute: typeof AuthenticatedPilotTempsRoute
   AuthenticatedPilotValidationRoute: typeof AuthenticatedPilotValidationRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
+  AuthenticatedPilotCeevContratsAgreementIdRoute: typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   AuthenticatedPilotFicheClientIdRoute: typeof AuthenticatedPilotFicheClientIdRoute
   AuthenticatedPilotFocusTopicRoute: typeof AuthenticatedPilotFocusTopicRoute
   AuthenticatedPilotCeevContratsIndexRoute: typeof AuthenticatedPilotCeevContratsIndexRoute
@@ -1344,6 +1365,8 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotTempsRoute: AuthenticatedPilotTempsRoute,
   AuthenticatedPilotValidationRoute: AuthenticatedPilotValidationRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
+  AuthenticatedPilotCeevContratsAgreementIdRoute:
+    AuthenticatedPilotCeevContratsAgreementIdRoute,
   AuthenticatedPilotFicheClientIdRoute: AuthenticatedPilotFicheClientIdRoute,
   AuthenticatedPilotFocusTopicRoute: AuthenticatedPilotFocusTopicRoute,
   AuthenticatedPilotCeevContratsIndexRoute:
