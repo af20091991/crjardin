@@ -47,6 +47,12 @@ export interface PilotCharge {
   amount: number;
   period: "mensuel" | "annuel" | "ponctuel";
   charge_date: string | null;
+  /**
+   * Investissement qualifié : exclu des charges d'exploitation, exactement
+   * comme dans le moteur analytique (pilot-engine / pilot-annual). Sans ce
+   * drapeau, le bénéfice affiché ici divergeait de celui de la Direction.
+   */
+  is_investment?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -123,7 +129,8 @@ type CaVenteRow = {
 
 type CaChargeRow = {
   id: string; user_id: string; year: number; month: number; designation: string | null;
-  category: string | null; amount_ht: number | null; created_at: string; updated_at: string;
+  category: string | null; amount_ht: number | null; is_investment?: boolean | null;
+  created_at: string; updated_at: string;
 };
 
 async function bridgeCaEntries(): Promise<PilotEntry[]> {
@@ -166,7 +173,7 @@ export async function listCharges(): Promise<PilotCharge[]> {
 
 async function bridgeCaCharges(): Promise<PilotCharge[]> {
   const rows = await fetchCaRows<CaChargeRow>(
-    "id,user_id,year,month,kind,designation,category,amount_ht,created_at,updated_at",
+    "id,user_id,year,month,kind,designation,category,amount_ht,is_investment,created_at,updated_at",
     "charge",
   );
   return rows.map((r) => {
@@ -180,6 +187,7 @@ async function bridgeCaCharges(): Promise<PilotCharge[]> {
       amount: Number(r.amount_ht) || 0,
       period: "ponctuel" as const,
       charge_date: `${r.year}-${mm}-15`,
+      is_investment: Boolean(r.is_investment),
       created_at: r.created_at,
       updated_at: r.updated_at,
     };
@@ -245,7 +253,7 @@ export function sum(list: number[]): number {
 /** Charges annuelles pour une année donnée (fixe/variable récurrentes + ponctuelles de l'année). */
 export function annualCharges(charges: PilotCharge[], year: number, options?: { realizedOnly?: boolean; now?: Date }): number {
   return sum(
-    charges.map((c) => {
+    charges.filter((c) => !c.is_investment).map((c) => {
       if (c.period === "mensuel") {
         const months = Array.from({ length: 12 }, (_, i) => i + 1).filter(
           (month) => !options?.realizedOnly || isRealizedMonth(year, month, options.now),
