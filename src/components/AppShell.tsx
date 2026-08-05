@@ -7,7 +7,7 @@ import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { GlobalSearch } from "@/components/pilot/GlobalSearch";
-import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat, Home, Euro, Target, Calculator, CalendarRange, Receipt, Activity, LineChart, Clock, HeartPulse, Settings2, ShieldCheck, MapPin, Leaf } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat, Home, Euro, Target, Calculator, CalendarRange, Receipt, Activity, LineChart, Clock, HeartPulse, Settings2, ShieldCheck, MapPin, Leaf, Link2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
