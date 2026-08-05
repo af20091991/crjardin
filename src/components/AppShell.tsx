@@ -7,13 +7,13 @@ import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { GlobalSearch } from "@/components/pilot/GlobalSearch";
-import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat, Home, Euro, Target, Calculator, CalendarRange, Receipt, Activity, LineChart, Clock, HeartPulse, Settings2, ShieldCheck, MapPin, Leaf } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat, Home, Euro, Target, Calculator, CalendarRange, Receipt, Activity, LineChart, Clock, HeartPulse, Settings2, ShieldCheck, MapPin, Leaf, Link2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 import { useAppearance } from "@/lib/appearance";
-import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
+import { usePilotYear } from "@/lib/pilot-mode";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Tooltip,
@@ -120,6 +120,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             { to: "/pilot/charges", label: "Charges & investissements", short: "Charges", icon: Receipt, exact: false, primary: false },
             { to: "/pilot/saison", label: "Prévisions", short: "Prévis.", icon: CalendarRange, exact: false, primary: false },
             { to: "/pilot/simulations", label: "Simulations", short: "Simul.", icon: Calculator, exact: false, primary: false },
+            { to: "/pilot/rapprochement", label: "Centre de rapprochement", short: "Rapproch.", icon: Link2, exact: false, primary: false },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Réservé",
@@ -295,7 +296,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           <div className="flex items-center gap-4">
             <GlobalSearch collapsed />
             {isPilot && <PilotYearSwitcher compact />}
-            {isPilot && <PilotModeToggle compact />}
             <NotificationBell />
             <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
               <LogOut className="h-5 w-5" />
@@ -309,7 +309,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             {isPilot && (
               <div className="flex items-center gap-2">
                 <PilotYearSwitcher />
-                <PilotModeToggle />
               </div>
             )}
           </div>
@@ -386,36 +385,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         )}
       </nav>
       <InstallPrompt />
-    </div>
-  );
-}
-
-function PilotModeToggle({ compact = false }: { compact?: boolean }) {
-  const { mode, setMode } = usePilotMode();
-  return (
-    <div className="inline-flex shrink-0 rounded-lg border border-border bg-card p-1 shadow-sm">
-      <Button
-        type="button"
-        variant={mode === "reel" ? "default" : "ghost"}
-        size={compact ? "icon" : "sm"}
-        onClick={() => setMode("reel")}
-        title="Mode réel"
-        className={compact ? "h-8 w-8" : "h-8 gap-1.5 px-2.5"}
-      >
-        <Activity className="h-3.5 w-3.5" />
-        {!compact && <span>Réel</span>}
-      </Button>
-      <Button
-        type="button"
-        variant={mode === "projection" ? "default" : "ghost"}
-        size={compact ? "icon" : "sm"}
-        onClick={() => setMode("projection")}
-        title="Mode projection"
-        className={compact ? "h-8 w-8" : "h-8 gap-1.5 px-2.5"}
-      >
-        <LineChart className="h-3.5 w-3.5" />
-        {!compact && <span>Projection</span>}
-      </Button>
     </div>
   );
 }

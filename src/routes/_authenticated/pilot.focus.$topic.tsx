@@ -110,7 +110,7 @@ function FocusPage() {
   const rows: Row[] = useMemo(() => {
     if (loading) return [];
     const allI = (interventions.data ?? []).filter(
-      (i) => mode === "projection" || !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso(),
+      (i) => !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso(),
     );
     const allR = recos.data ?? [];
     const allE = entriesForMode(entries.data ?? [], mode);

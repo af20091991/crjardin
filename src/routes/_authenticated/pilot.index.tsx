@@ -280,7 +280,7 @@ function TodayPage() {
   }, [k]);
 
   const allI = (interventions.data ?? []).filter(
-    (i) => mode === "projection" || !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso(),
+    (i) => !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso(),
   );
   const allR = recos.data ?? [];
   const allG = goalsForMode(goals.data ?? [], mode);
@@ -341,13 +341,12 @@ function TodayPage() {
 
   const priority = priorityOffers.data ?? [];
 
-  // ---- Mode Réel / Projection : une seule source, deux lectures séparées ----
+  // ---- Lecture unique : données réelles enregistrées (aucune extrapolation) ----
   const projection = useMemo(
     () => projectYear({ entries: entries.data ?? [], charges: chargeRows.data ?? [], year }),
     [entries.data, chargeRows.data, year],
   );
-  const isProjection = mode === "projection";
-  const caLecture = isProjection ? projection.caProjete : projection.caReel;
+  const caLecture = projection.caReel;
   // Bénéfice = CA − charges d'exploitation hors investissements, via le moteur
   // annualSummary (référentiel unique du bénéfice dans tout Pilot Pro).
   const annualRows = useMemo(
@@ -417,7 +416,7 @@ function TodayPage() {
     const objectifCumulMensuel = objectifAnnuel > 0 ? objectifAnnuel / 12 : 0;
     // Mode Réel : les mois à venir n'existent pas encore, on ne les dessine pas
     // (aucune barre vide, aucune valeur estimée présentée comme réelle).
-    const source = mode === "projection" ? projection.monthly : projection.monthly.filter((m) => !m.projected);
+    const source = projection.monthly.filter((m) => !m.projected);
     return source.map((m) => {
       cumule += m.ca;
       return {
@@ -429,7 +428,7 @@ function TodayPage() {
         projected: m.projected,
       };
     });
-  }, [projection.monthly, objectifAnnuel, year, mode]);
+  }, [projection.monthly, objectifAnnuel, year]);
 
   // Nom client par ID (pour opportunités et priorités affichées)
   const clientNameById = useMemo(() => {
@@ -1037,47 +1036,25 @@ function TodayPage() {
         )}
       </DashboardBlock>
 
-      {/* 2 — Centre de décision dirigeant : les 5 décisions les plus importantes */}
-      <DashboardBlock id="decisions" layout={layout}>
-        <SectionTitle
-          question="Quelles décisions prendre aujourd'hui ?"
-          label={`${autoRisks.length} risque${autoRisks.length > 1 ? "s" : ""} détecté${autoRisks.length > 1 ? "s" : ""}`}
-        />
-        <DecisionCenter
-          decisions={decisions.active}
-          groups={decisions.groups}
-          handledCount={decisions.handled.length}
-          statusOf={(key) => statusOf(key)}
-          onStatus={(key, s) => setStatus(key, s)}
-          onSnooze={(key, days) => snoozeAction(key, days)}
-        />
-      </DashboardBlock>
-
       <CaStatusCard year={year} caYear={k.caYear} comparison={toDateCompare} />
 
       {/* 1 — Où en est mon entreprise aujourd'hui ? */}
       <DashboardBlock id="situation" layout={layout}>
         <SectionTitle
           question="Situation actuelle"
-          label={isProjection ? `Projection ${year}` : `Réel ${year}`}
+          label={`Réel ${year}`}
         />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <PilotCard
-            label={isProjection ? `CA projeté ${year}` : `CA réalisé ${year}`}
+            label={`CA réalisé ${year}`}
             value={formatEuro(caLecture)}
             icon={Euro}
             to="/pilot/ca"
-            help={
-              isProjection
-                ? `Projection à partir des lignes CA de l'exercice. ${projection.explanation} Décision : ajuster l'effort commercial si l'écart à l'objectif se creuse.`
-                : "Somme des lignes CA facturées à date (mode Réel). Sert de base à toute décision commerciale ou de trésorerie."
-            }
+            help="Somme des lignes CA facturées à date. Sert de base à toute décision commerciale ou de trésorerie."
             sub={
-              isProjection
-                ? `Réel à date ${formatEuro(projection.caReel)}`
-                : monthCompare.deltaPct != null
-                  ? `${monthCompare.deltaPct >= 0 ? "+" : ""}${monthCompare.deltaPct.toFixed(0)} % — ${monthCompare.label}`
-                  : monthCompare.label
+              monthCompare.deltaPct != null
+                ? `${monthCompare.deltaPct >= 0 ? "+" : ""}${monthCompare.deltaPct.toFixed(0)} % — ${monthCompare.label}`
+                : monthCompare.label
             }
           />
           <PilotCard
@@ -1100,7 +1077,7 @@ function TodayPage() {
             value={hoursLedger.data ? formatHours(heuresVenduesAnnee) : "—"}
             icon={Timer}
             to="/pilot/ca"
-            help="Somme des heures déclarées sur les lignes de vente du suivi CA sur l'exercice en cours (mode Réel/Projection). Source unique : ledger consolidé des heures."
+            help="Somme des heures déclarées sur les lignes de vente du suivi CA sur l'exercice en cours. Source unique : ledger consolidé des heures."
           />
           <PilotCard
             label="Heures vendues ce mois"
@@ -1151,9 +1128,9 @@ function TodayPage() {
       {/* Graphique — évolution de l'exercice en cours */}
       <DashboardBlock id="graphique" layout={layout}>
         <PilotCard
-          label={`CA mensuel ${year}${isProjection ? " (réel + projeté)" : ""}`}
+          label={`CA mensuel ${year}`}
           icon={Euro}
-          help="Histogramme du CA par mois (lignes CA facturées) et des charges d'exploitation du mois. En mode Projection, les mois futurs sont estimés par saisonnalité ou moyenne. Décision : repérer les mois faibles à anticiper."
+          help="Histogramme du CA par mois (lignes CA facturées) et des charges d'exploitation du mois. Seuls les mois écoulés sont affichés. Décision : repérer les mois faibles à anticiper."
           content={
             <ChartContainer config={{}} className="mt-3 h-[220px] w-full">
               <ResponsiveContainer>
@@ -1192,251 +1169,8 @@ function TodayPage() {
         )}
       </DashboardBlock>
 
-      {/* 3 — Quels risques dois-je traiter ? */}
-      <DashboardBlock id="opportunites" layout={layout}>
-        <SectionTitle question="Où puis-je gagner du chiffre d'affaires ?" label="Opportunités commerciales" />
-        <OpportunitiesBoard year={year} offers={priority} clientNameById={clientNameById} />
-      </DashboardBlock>
 
-      <CeevWatchCard />
 
-      <section className="space-y-2">
-        <SectionTitle
-          question="Points d'attention"
-          label={
-            alertsAvgRating != null
-              ? `Alertes expliquées · pertinence moyenne ${alertsAvgRating.toFixed(1)}/5`
-              : "Alertes expliquées"
-          }
-        />
-        {attentionsWithFeedback.length > 0 && (
-          <div className="grid gap-2 md:grid-cols-2">
-            {attentionsWithFeedback.map((a) => {
-              const destination = a.topic
-                ? ({ to: "/pilot/focus/$topic", params: { topic: a.topic } } as const)
-                : ({ to: (a.to ?? "/pilot") as string } as const);
-              return (
-                <Card
-                  key={a.key}
-                  className={cn(
-                    "h-full border-orange-200 bg-orange-50/40 p-4 transition-all",
-                    a.seen && "border-border bg-muted/30 opacity-60",
-                  )}
-                >
-                  <Link
-                    {...destination}
-                    className="block cursor-pointer rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:-translate-y-0.5"
-                  >
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className={cn("h-4 w-4 shrink-0", a.seen ? "text-muted-foreground" : "text-orange-700")} />
-                      <p className="text-sm font-medium">{a.label}</p>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{a.detail}</p>
-                    <p className="mt-2 rounded-md bg-background/70 px-2 py-1.5 text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">
-                        Pourquoi PP affiche cette information ?{" "}
-                      </span>
-                      {a.why}
-                    </p>
-                  </Link>
-                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/60 pt-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={a.seen ? "secondary" : "outline"}
-                      className="h-7 gap-1 text-xs"
-                      onClick={() => seenMutation.mutate({ alertKey: a.alertKey, seen: !a.seen })}
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      {a.seen ? "Vue" : "Marquer vue"}
-                    </Button>
-                    <div className="ml-auto flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          title={`Noter ${n}/5`}
-                          className="rounded p-0.5 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                          onClick={() => rateMutation.mutate({ alertKey: a.alertKey, rating: n })}
-                        >
-                          <Star
-                            className={cn(
-                              "h-3.5 w-3.5",
-                              a.rating != null && n <= a.rating
-                                ? "fill-primary text-primary"
-                                : "text-muted-foreground",
-                            )}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-        {risks.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex items-center gap-3 py-5">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <p className="text-sm text-muted-foreground">
-                Aucun risque détecté avec les seuils actuels.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-3">
-            {risks.map((r) => (
-              <RiskCard
-                key={r.key}
-                icon={r.icon}
-                title={r.label}
-                count={r.count}
-                hint={r.hint}
-                topic={r.topic}
-              />
-            ))}
-          </div>
-        )}
-        {crToQualifyCount > 0 && (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-wrap items-center gap-3 py-4">
-              <Send className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                {crToQualifyCount} client{crToQualifyCount > 1 ? "s" : ""} à qualifier : indiquez
-                s'ils sont concernés par l'envoi de comptes-rendus (aucun retard comptabilisé).
-              </p>
-              <Link
-                to="/clients"
-                className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              >
-                Qualifier <ArrowRight className="h-3 w-3" />
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-      </section>
-
-      {/* 4 — Quelles opportunités puis-je saisir ? */}
-      <section className="space-y-2">
-        <SectionTitle
-          question="Opportunités"
-          label="Relances, ventes additionnelles, prestations"
-        />
-        <div className="grid gap-3 md:grid-cols-3">
-          <Card className="md:col-span-2">
-            <CardContent className="space-y-3 pt-6">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-emerald-600" />
-                <h4 className="font-medium">Top offres à proposer</h4>
-                <Badge variant="secondary" className="ml-auto">
-                  {priority.length}
-                </Badge>
-              </div>
-              {topOffers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune opportunité à score ≥ 80.</p>
-              ) : (
-                <ul className="divide-y">
-                  {topOffers.map((o) => (
-                    <li key={`${o.client_id}-${o.service_id}`}>
-                      <Link
-                        to="/pilot/fiche/$clientId"
-                        params={{ clientId: o.client_id }}
-                        className="flex items-center gap-3 py-2 hover:bg-accent/40 rounded-md px-2 -mx-2"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            {clientNameById.get(o.client_id) ?? "Client"}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">{o.service_name}</p>
-                        </div>
-                        <Badge className="shrink-0 bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
-                          Score {Math.round(o.score_opportunity)}
-                        </Badge>
-                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {priority.length > 3 && (
-                <Link
-                  to="/pilot/focus/$topic"
-                  params={{ topic: "opportunites" }}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                >
-                  Voir les {priority.length} opportunités <ArrowRight className="h-3 w-3" />
-                </Link>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="space-y-3 pt-6">
-              <div className="flex items-center gap-2">
-                <Leaf className="h-4 w-4 text-primary" />
-                <h4 className="font-medium">Signaux à activer</h4>
-              </div>
-              {secondarySignals.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucun signal secondaire actif.</p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {secondarySignals.map((s) => (
-                    <li key={s.topic}>
-                      <Link
-                        to="/pilot/focus/$topic"
-                        params={{ topic: s.topic }}
-                        className="flex items-center justify-between gap-2 rounded-md px-2 py-1 text-sm hover:bg-accent/40"
-                      >
-                        <span className="truncate">{s.label}</span>
-                        <Badge variant="outline" className="shrink-0">
-                          {s.count}
-                        </Badge>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardContent className="space-y-3 pt-6">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <h4 className="font-medium">Prestations complémentaires à développer</h4>
-            </div>
-            {prestationsADevelopper.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Pas encore assez de lignes CA et d'heures pour classer une prestation comme
-                rentable.
-              </p>
-            ) : (
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {prestationsADevelopper.map((p) => (
-                  <li key={p.prestation} className="rounded-lg border border-border/60 p-2.5">
-                    <div className="flex items-center gap-2">
-                      <p className="min-w-0 flex-1 truncate text-sm font-medium">{p.prestation}</p>
-                      <Badge variant="secondary" className="tabular-nums">
-                        {p.tauxHoraire == null ? "—" : `${formatEuro(p.tauxHoraire)}/h`}
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{p.why}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Link
-              to="/pilot/prestations"
-              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-            >
-              Voir la rentabilité par prestation <ArrowRight className="h-3 w-3" />
-            </Link>
-          </CardContent>
-        </Card>
-      </section>
     </div>
   );
 }
