@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,8 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HourlyRateSection } from "@/components/pilot/HourlyRateSection";
+import { ProfitabilityServicesView } from "@/components/pilot/rentabilite/ProfitabilityServicesView";
+import { ClientProfitabilityTable } from "@/components/pilot/temps/ClientProfitabilityTable";
 import {
   Bar,
   BarChart,
@@ -52,14 +55,19 @@ import {
   type TimeValueFilters,
 } from "@/lib/pilot-time-value";
 
+const TempsSearch = z.object({
+  tab: z.enum(["realises", "rentabilite", "prestations"]).catch("realises"),
+});
+
 export const Route = createFileRoute("/_authenticated/pilot/temps")({
+  validateSearch: (s: Record<string, unknown>) => TempsSearch.parse(s),
   head: () => ({
     meta: [
       { title: "Analyse Temps & Rentabilité — Pilot Pro" },
       {
         name: "description",
         content:
-          "Où investir son temps : rentabilité horaire par prestation et par client, à partir des heures réalisées et du CA normalisé.",
+          "Où investir son temps : temps réalisés, taux horaire, rentabilité par prestation et par client, à partir des heures réellement réalisées et du CA normalisé.",
       },
     ],
   }),
@@ -67,6 +75,9 @@ export const Route = createFileRoute("/_authenticated/pilot/temps")({
 });
 
 function TimeAndProfitPage() {
+  const { tab } = Route.useSearch();
+  const navigate = Route.useNavigate();
+
   return (
     <div className="space-y-5">
       <header className="space-y-1">
@@ -75,20 +86,29 @@ function TimeAndProfitPage() {
           Analyse temps &amp; rentabilité
         </h1>
         <p className="text-sm text-muted-foreground">
-          Espace unique : temps réellement réalisés, taux horaire et rentabilité associée. Aucune
-          notion de temps prévu, théorique ou vendu n'est utilisée comme référence de charge.
+          Espace unique : temps réellement réalisés, taux horaire et rentabilité associée, par
+          prestation puis par client. Aucune notion de temps prévu, théorique ou vendu n'est
+          utilisée comme référence de charge.
         </p>
       </header>
-      <Tabs defaultValue="realises" className="space-y-4">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => navigate({ search: { tab: v as typeof tab } })}
+        className="space-y-4"
+      >
         <TabsList>
           <TabsTrigger value="realises">Temps réalisés &amp; taux horaire</TabsTrigger>
           <TabsTrigger value="rentabilite">Rentabilité du temps</TabsTrigger>
+          <TabsTrigger value="prestations">Rentabilité prestations</TabsTrigger>
         </TabsList>
         <TabsContent value="realises">
           <HourlyRateSection />
         </TabsContent>
         <TabsContent value="rentabilite">
           <TimeValueAnalysis />
+        </TabsContent>
+        <TabsContent value="prestations">
+          <ProfitabilityServicesView />
         </TabsContent>
       </Tabs>
     </div>

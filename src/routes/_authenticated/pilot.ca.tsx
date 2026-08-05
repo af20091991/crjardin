@@ -24,8 +24,8 @@ import { Plus, Trash2, TrendingUp, Wallet, Clock, PiggyBank, MessageSquare, Link
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import { remunerationBreakdown, SOCIAL_CONTRIBUTION_RATE } from "@/lib/pilot-fixed-charges";
+import { realizedMonthLimit } from "@/lib/pilot-realized";
 import { updateSaleStatus } from "@/lib/pilot";
 import { SALE_STATUS, SALE_STATUS_ORDER, type SaleStatus } from "@/lib/pilot-colors";
 import {
@@ -54,6 +54,7 @@ function CaPage() {
   const qc = useQueryClient();
   const { year } = usePilotYear();
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
+  const [displayMode, setDisplayMode] = useState<"exercice" | "annee">("exercice");
   const [pending, setPending] = useState<number | null>(null);
   const [openNote, setOpenNote] = useState<Record<string, boolean>>({});
   const toggleNote = (id: string) => setOpenNote((s) => ({ ...s, [id]: !s[id] }));
@@ -71,6 +72,14 @@ function CaPage() {
     onSuccess: invalidate,
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const now = new Date();
+  const isCurrentYear = year === now.getFullYear();
+  const monthsVisible = displayMode === "exercice" && isCurrentYear ? Math.max(realizedMonthLimit(year, now), 1) : 12;
+
+  useMemo(() => {
+    if (month > monthsVisible) setMonth(monthsVisible);
+  }, [monthsVisible]);
 
   const yt = useMemo(() => yearTotals(entries), [entries]);
   const mt = useMemo(() => monthTotals(entries, month), [entries, month]);
@@ -95,9 +104,18 @@ function CaPage() {
       {/* Exercice piloté par le sélecteur global (en-tête Pilot Pro) */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="font-serif text-xl font-semibold">CA {year}</span>
-        {pending != null && (
-          <Badge variant="secondary" className="gap-1">Résultat prêt : {formatEuro(pending)} — cliquez « + Ligne »</Badge>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={displayMode} onValueChange={(v) => setDisplayMode(v as "exercice" | "annee")}>
+            <SelectTrigger className="h-8 w-[260px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="exercice">Exercice en cours (01/01 → aujourd'hui)</SelectItem>
+              <SelectItem value="annee">Année complète</SelectItem>
+            </SelectContent>
+          </Select>
+          {pending != null && (
+            <Badge variant="secondary" className="gap-1">Résultat prêt : {formatEuro(pending)} — cliquez « + Ligne »</Badge>
+          )}
+        </div>
       </div>
 
       {/* Synthèse annuelle */}
@@ -109,12 +127,11 @@ function CaPage() {
         <StatBox label="Temps total" value={`${yt.hours.toLocaleString("fr-FR")} h`} icon={Clock} />
       </div>
 
-      <CoverageBanner year={year} compact />
 
       {/* Onglets mois */}
       <div className="-mx-1 overflow-x-auto pb-1">
         <div className="flex min-w-max gap-1 rounded-xl border border-border bg-card p-1">
-          {MONTH_NAMES.map((name, i) => {
+          {MONTH_NAMES.slice(0, monthsVisible).map((name, i) => {
             const m = i + 1;
             const t = yt.months[i];
             const activeM = m === month;
@@ -159,7 +176,7 @@ function CaPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Désignation</TableHead>
+                    <TableHead className="min-w-[220px] resize-x overflow-auto">Désignation</TableHead>
                     <TableHead className="w-40 text-right">Montant HT</TableHead>
                     <TableHead className="w-10" />
                   </TableRow>
@@ -173,7 +190,7 @@ function CaPage() {
                     <Fragment key={row.id}>
                     <TableRow>
                       <TableCell>
-                        <Input defaultValue={row.designation ?? ""} placeholder="Désignation" className="h-8 border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
+                        <Input defaultValue={row.designation ?? ""} placeholder="Désignation" title={row.designation ?? undefined} className="h-8 min-w-[200px] border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
                       </TableCell>
                       <TableCell className="text-right">
                         <Input defaultValue={row.amount_ht || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }} />
@@ -262,7 +279,7 @@ function CaPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8" />
-                    <TableHead>Désignation</TableHead>
+                    <TableHead className="min-w-[220px] resize-x overflow-auto">Désignation</TableHead>
                     <TableHead className="w-32">Type</TableHead>
                     <TableHead className="w-36 text-right">Montant HT</TableHead>
                     <TableHead className="w-24 text-right">Temps</TableHead>
@@ -302,7 +319,7 @@ function CaPage() {
                         </DropdownMenu>
                       </TableCell>
                       <TableCell>
-                        <Input defaultValue={row.designation ?? ""} placeholder="Désignation" className="h-8 border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
+                        <Input defaultValue={row.designation ?? ""} placeholder="Désignation" title={row.designation ?? undefined} className="h-8 min-w-[200px] border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
                       </TableCell>
                       <TableCell>
                         <Select value={row.category ?? "AP"} onValueChange={(v) => save(row.id, { category: v as CaCategory })}>
