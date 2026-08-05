@@ -383,6 +383,10 @@ export async function renewCeevAgreement(
       status: "actif",
       next_intervention_date: null,
       notes: source.notes,
+      visits_planned: source.visits_planned,
+      visit_duration_hours: source.visit_duration_hours,
+      season_start_month: source.season_start_month,
+      season_end_month: source.season_end_month,
       renewed_from_id: source.id,
     } as never)
     .select()
