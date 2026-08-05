@@ -1041,8 +1041,8 @@ function TodayPage() {
 
       {/* 1 — Synthèse du mois en cours : premier bloc (données enregistrées) */}
       <DashboardBlock id="mois" layout={layout}>
-        <SectionTitle question="Comment se passe mon mois ?" label={moisPeriodeLabel} />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <SectionTitle question="Vue mois" label={moisPeriodeLabel} />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <PilotCard
             label="CA réalisé du mois"
             value={formatEuro(k.caMonth)}
@@ -1069,14 +1069,13 @@ function TodayPage() {
             to="/pilot/temps"
             help="Heures réelles saisies sur les interventions du mois (ledger consolidé). Affiché uniquement si des heures existent."
           />
-          <PilotCard
-            label="Heures vendues du mois"
-            value={hoursLedger.data ? formatHours(heuresVenduesMois) : "—"}
-            icon={Timer}
-            to="/pilot/ca"
-            help="Heures déclarées sur les lignes de vente du mois en cours."
-          />
         </div>
+        <CompareBars
+          items={comparatifs.mois}
+          currentLabel={`${moisCourtLabel} ${year}`}
+          previousLabel={`${moisCourtLabel} ${year - 1}`}
+          note={`Comparaison à date équivalente : du 1er au ${now.getDate()} du mois, ${year} vs ${year - 1}. Heures issues des interventions terminées (heures confirmées).`}
+        />
         {missingHours.length > 0 && (
           <Card className="border-amber-300/70 bg-amber-50/40 p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2">
@@ -1097,7 +1096,7 @@ function TodayPage() {
       {/* 2 — Synthèse depuis le début de l'exercice */}
       <DashboardBlock id="exercice" layout={layout}>
         <SectionTitle
-          question="Où en suis-je depuis le début de l'exercice ?"
+          question="Vue exercice"
           label={`Depuis le 1er janvier ${year}`}
         />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -1155,6 +1154,12 @@ function TodayPage() {
             }
           />
         </div>
+        <CompareBars
+          items={comparatifs.annee}
+          currentLabel={`1er janv. → aujourd'hui ${year}`}
+          previousLabel={`1er janv. → même date ${year - 1}`}
+          note={`Comparaison à date équivalente depuis le 1er janvier. Aucun exercice complet, aucune projection.`}
+        />
       </DashboardBlock>
 
       {/* 3 — Situation actuelle : deux niveaux de lecture */}
