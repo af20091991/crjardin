@@ -1102,12 +1102,6 @@ function TodayPage() {
             help="Heures réelles saisies sur les interventions du mois (ledger consolidé). Affiché uniquement si des heures existent."
           />
         </div>
-        <CompareBars
-          items={comparatifs.mois}
-          currentLabel={`${moisCourtLabel} ${year}`}
-          previousLabel={`${moisCourtLabel} ${year - 1}`}
-          note={`Comparaison à date équivalente : du 1er au ${now.getDate()} du mois, ${year} vs ${year - 1}. Heures issues des interventions terminées (heures confirmées).`}
-        />
         {missingHours.length > 0 && (
           <Card className="border-amber-300/70 bg-amber-50/40 p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2">
