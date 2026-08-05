@@ -357,7 +357,17 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const yearHt = sum(yearEntries);
   const prevYearHt = sum(prevEntries);
   const ytdHt = sum(yearEntries.filter((e) => monthOf(e.entry_date) <= limit));
-  const prevYtdHt = sum(prevEntries.filter((e) => monthOf(e.entry_date) <= limit));
+  // N-1 borné à la MÊME date calendaire (jour inclus) pour une comparaison
+  // strictement à date équivalente.
+  const prevCutoffDay = year === now.getFullYear() ? now.getDate() : 31;
+  const prevYtdHt = sum(
+    prevEntries.filter((e) => {
+      const m = monthOf(e.entry_date);
+      if (m < limit) return true;
+      if (m > limit) return false;
+      return new Date(e.entry_date).getDate() <= prevCutoffDay;
+    }),
+  );
   const monthHt = sum(yearEntries.filter((e) => monthOf(e.entry_date) === Math.max(limit, 1)));
 
   const byMonth = Array.from({ length: MONTH_COUNT }, (_, i) => ({
