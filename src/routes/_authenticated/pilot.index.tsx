@@ -280,7 +280,7 @@ function TodayPage() {
   }, [k]);
 
   const allI = (interventions.data ?? []).filter(
-    (i) => mode === "projection" || !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso(),
+    (i) => !i.intervention_date || i.intervention_date.slice(0, 10) <= todayIso(),
   );
   const allR = recos.data ?? [];
   const allG = goalsForMode(goals.data ?? [], mode);
@@ -341,13 +341,12 @@ function TodayPage() {
 
   const priority = priorityOffers.data ?? [];
 
-  // ---- Mode Réel / Projection : une seule source, deux lectures séparées ----
+  // ---- Lecture unique : données réelles enregistrées (aucune extrapolation) ----
   const projection = useMemo(
     () => projectYear({ entries: entries.data ?? [], charges: chargeRows.data ?? [], year }),
     [entries.data, chargeRows.data, year],
   );
-  const isProjection = mode === "projection";
-  const caLecture = isProjection ? projection.caProjete : projection.caReel;
+  const caLecture = projection.caReel;
   // Bénéfice = CA − charges d'exploitation hors investissements, via le moteur
   // annualSummary (référentiel unique du bénéfice dans tout Pilot Pro).
   const annualRows = useMemo(
@@ -417,7 +416,7 @@ function TodayPage() {
     const objectifCumulMensuel = objectifAnnuel > 0 ? objectifAnnuel / 12 : 0;
     // Mode Réel : les mois à venir n'existent pas encore, on ne les dessine pas
     // (aucune barre vide, aucune valeur estimée présentée comme réelle).
-    const source = mode === "projection" ? projection.monthly : projection.monthly.filter((m) => !m.projected);
+    const source = projection.monthly.filter((m) => !m.projected);
     return source.map((m) => {
       cumule += m.ca;
       return {
@@ -429,7 +428,7 @@ function TodayPage() {
         projected: m.projected,
       };
     });
-  }, [projection.monthly, objectifAnnuel, year, mode]);
+  }, [projection.monthly, objectifAnnuel, year]);
 
   // Nom client par ID (pour opportunités et priorités affichées)
   const clientNameById = useMemo(() => {
@@ -1059,25 +1058,19 @@ function TodayPage() {
       <DashboardBlock id="situation" layout={layout}>
         <SectionTitle
           question="Situation actuelle"
-          label={isProjection ? `Projection ${year}` : `Réel ${year}`}
+          label={`Réel ${year}`}
         />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <PilotCard
-            label={isProjection ? `CA projeté ${year}` : `CA réalisé ${year}`}
+            label={`CA réalisé ${year}`}
             value={formatEuro(caLecture)}
             icon={Euro}
             to="/pilot/ca"
-            help={
-              isProjection
-                ? `Projection à partir des lignes CA de l'exercice. ${projection.explanation} Décision : ajuster l'effort commercial si l'écart à l'objectif se creuse.`
-                : "Somme des lignes CA facturées à date (mode Réel). Sert de base à toute décision commerciale ou de trésorerie."
-            }
+            help="Somme des lignes CA facturées à date. Sert de base à toute décision commerciale ou de trésorerie."
             sub={
-              isProjection
-                ? `Réel à date ${formatEuro(projection.caReel)}`
-                : monthCompare.deltaPct != null
-                  ? `${monthCompare.deltaPct >= 0 ? "+" : ""}${monthCompare.deltaPct.toFixed(0)} % — ${monthCompare.label}`
-                  : monthCompare.label
+              monthCompare.deltaPct != null
+                ? `${monthCompare.deltaPct >= 0 ? "+" : ""}${monthCompare.deltaPct.toFixed(0)} % — ${monthCompare.label}`
+                : monthCompare.label
             }
           />
           <PilotCard
@@ -1100,7 +1093,7 @@ function TodayPage() {
             value={hoursLedger.data ? formatHours(heuresVenduesAnnee) : "—"}
             icon={Timer}
             to="/pilot/ca"
-            help="Somme des heures déclarées sur les lignes de vente du suivi CA sur l'exercice en cours (mode Réel/Projection). Source unique : ledger consolidé des heures."
+            help="Somme des heures déclarées sur les lignes de vente du suivi CA sur l'exercice en cours. Source unique : ledger consolidé des heures."
           />
           <PilotCard
             label="Heures vendues ce mois"
@@ -1151,9 +1144,9 @@ function TodayPage() {
       {/* Graphique — évolution de l'exercice en cours */}
       <DashboardBlock id="graphique" layout={layout}>
         <PilotCard
-          label={`CA mensuel ${year}${isProjection ? " (réel + projeté)" : ""}`}
+          label={`CA mensuel ${year}`}
           icon={Euro}
-          help="Histogramme du CA par mois (lignes CA facturées) et des charges d'exploitation du mois. En mode Projection, les mois futurs sont estimés par saisonnalité ou moyenne. Décision : repérer les mois faibles à anticiper."
+          help="Histogramme du CA par mois (lignes CA facturées) et des charges d'exploitation du mois. Seuls les mois écoulés sont affichés. Décision : repérer les mois faibles à anticiper."
           content={
             <ChartContainer config={{}} className="mt-3 h-[220px] w-full">
               <ResponsiveContainer>
