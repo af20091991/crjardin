@@ -31,7 +31,7 @@ export const SEARCH_PAGES: SearchResult[] = [
   { id: "p-prest", kind: "page", label: "Prestations", to: "/pilot/prestations" },
   { id: "p-temps-renta", kind: "page", label: "Analyse Temps & Rentabilité", to: "/pilot/temps" },
   { id: "p-ceev", kind: "page", label: "Contrats CEEV", to: "/pilot/ceev" },
-  { id: "p-taux", kind: "page", label: "Taux horaire", to: "/pilot/taux" },
+  { id: "p-taux", kind: "page", label: "Analyse temps & rentabilité", to: "/pilot/temps" },
   { id: "p-sante", kind: "page", label: "Santé", to: "/pilot/sante" },
   { id: "p-controle", kind: "page", label: "Centre de contrôle des données", to: "/pilot/controle" },
   {
@@ -49,7 +49,6 @@ export const SEARCH_PAGES: SearchResult[] = [
   { id: "p-valid", kind: "page", label: "Centre de validation manuelle", to: "/pilot/validation" },
   { id: "p-sst", kind: "page", label: "Sous-traitants", to: "/sst" },
   { id: "p-journal", kind: "page", label: "Journal SST", to: "/journal-sst" },
-  { id: "p-planning", kind: "page", label: "Planning", to: "/planning" },
 ];
 
 /** Charge une fois l'index de recherche (données réelles uniquement). */

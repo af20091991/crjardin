@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { HourlyRateSection } from "@/components/pilot/HourlyRateSection";
 import {
   Bar,
   BarChart,
@@ -61,8 +63,37 @@ export const Route = createFileRoute("/_authenticated/pilot/temps")({
       },
     ],
   }),
-  component: TimeValuePage,
+  component: TimeAndProfitPage,
 });
+
+function TimeAndProfitPage() {
+  return (
+    <div className="space-y-5">
+      <header className="space-y-1">
+        <h1 className="flex items-center gap-2 font-serif text-xl font-semibold">
+          <Clock className="h-5 w-5 text-primary" />
+          Analyse temps &amp; rentabilité
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Espace unique : temps réellement réalisés, taux horaire et rentabilité associée. Aucune
+          notion de temps prévu, théorique ou vendu n'est utilisée comme référence de charge.
+        </p>
+      </header>
+      <Tabs defaultValue="realises" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="realises">Temps réalisés &amp; taux horaire</TabsTrigger>
+          <TabsTrigger value="rentabilite">Rentabilité du temps</TabsTrigger>
+        </TabsList>
+        <TabsContent value="realises">
+          <HourlyRateSection />
+        </TabsContent>
+        <TabsContent value="rentabilite">
+          <TimeValueAnalysis />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
 
 const MONTH_LABELS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 const PRESTATION_COLORS = [
@@ -87,7 +118,7 @@ function euroPerHour(n: number | null | undefined): string {
   return `${Math.round(n)} €/h`;
 }
 
-function TimeValuePage() {
+function TimeValueAnalysis() {
   const { mode } = usePilotMode();
   const { entries, settings, clients } = usePilotData();
 
@@ -199,11 +230,11 @@ function TimeValuePage() {
       <header className="space-y-1">
         <h2 className="flex items-center gap-2 font-serif text-lg font-semibold">
           <Timer className="h-5 w-5 text-primary" />
-          Analyse Temps &amp; Rentabilité
+          Rentabilité du temps réalisé
         </h2>
         <p className="text-sm text-muted-foreground">
-          Où investir votre temps pour maximiser la rentabilité ? Croisement du temps consommé et de
-          la valeur économique générée. Complète la page « Répartition du temps ».
+          Où investir votre temps pour maximiser la rentabilité ? Croisement du temps réellement
+          réalisé et de la valeur économique générée.
         </p>
       </header>
 

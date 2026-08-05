@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -31,6 +31,10 @@ type NavItem = {
   primary: boolean;
 };
 type NavGroup = { label: string; items: NavItem[]; emptyLabel?: string };
+
+// État d'ouverture des rubriques : conservé pendant toute la navigation interne
+// (module scope = réinitialisé uniquement au rechargement complet de la page).
+let navGroupState: Record<string, boolean> = {};
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const navigate = useNavigate();
@@ -91,13 +95,11 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     {
       label: "Activité",
       items: [
-        { to: "/planning", label: "Planning", short: "Planning", icon: CalendarDays, exact: false, primary: true },
+        { to: "/interventions", label: "CR chantier", short: "CR", icon: FileText, exact: false, primary: true },
         ...(canEdit
           ? [
-              { to: "/interventions", label: "Comptes-rendus chantier", short: "CR", icon: FileText, exact: false, primary: false },
-              { to: "/fiches", label: "Fiches chantier", short: "Fiches", icon: ClipboardList, exact: false, primary: false },
-              { to: "/pilot/taux", label: "Répartition du temps", short: "Temps", icon: Clock, exact: false, primary: false },
-              { to: "/sst", label: "Sous-traitants", short: "SST", icon: HardHat, exact: false, primary: false },
+              { to: "/fiches", label: "Fiches SST", short: "Fiches", icon: ClipboardList, exact: false, primary: false },
+              { to: "/sst", label: "SST", short: "SST", icon: HardHat, exact: false, primary: false },
               { to: "/journal-sst", label: "Journal SST", short: "Journal", icon: ClipboardList, exact: false, primary: false },
             ]
           : []),
@@ -109,11 +111,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         ? [
             { to: "/pilot/direction", label: "Direction", short: "Direction", icon: BarChart3, exact: false, primary: false },
             { to: "/pilot/ca", label: "Chiffre d'affaires", short: "CA", icon: Euro, exact: false, primary: false },
-            { to: "/pilot/ceev-contrats", label: "Contrats d'entretien (CEEV)", short: "CEEV", icon: Leaf, exact: false, primary: false },
             { to: "/pilot/ceev", label: "Rentabilité CEEV", short: "CEEV €", icon: ClipboardList, exact: false, primary: false },
             { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
             { to: "/pilot/benchmark", label: "Comparatifs", short: "Bench.", icon: Target, exact: false, primary: false },
-            { to: "/pilot/temps", label: "Analyse Temps & Rentabilité", short: "Temps ×€", icon: Clock, exact: false, primary: false },
+            { to: "/pilot/temps", label: "Analyse temps & rentabilité", short: "Temps", icon: Clock, exact: false, primary: false },
             { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
             { to: "/pilot/charges", label: "Charges & investissements", short: "Charges", icon: Receipt, exact: false, primary: false },
             { to: "/pilot/saison", label: "Prévisions", short: "Prévis.", icon: CalendarRange, exact: false, primary: false },
@@ -153,11 +154,21 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const primaryItems = navItems.filter((i) => i.primary);
   const moreItems = navItems.filter((i) => !i.primary);
 
-  // Rubriques toutes repliées à l'ouverture ; l'état ne vit que le temps de la session.
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  // La rubrique de la page courante reste dépliée jusqu'à fermeture manuelle
+  // ou rechargement complet de la page.
+  const activeGroup = groups.find((g) => g.items.some((i) => isActive(i.to, i.exact)))?.label;
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => navGroupState);
+  useEffect(() => {
+    if (!activeGroup) return;
+    if (navGroupState[activeGroup] === false || navGroupState[activeGroup] === true) return;
+    navGroupState = { ...navGroupState, [activeGroup]: true };
+    setOpenGroups(navGroupState);
+  }, [activeGroup]);
   const isGroupOpen = (label: string) => openGroups[label] ?? false;
-  const toggleGroup = (label: string) =>
-    setOpenGroups((s) => ({ ...s, [label]: !(s[label] ?? false) }));
+  const toggleGroup = (label: string) => {
+    navGroupState = { ...navGroupState, [label]: !(navGroupState[label] ?? false) };
+    setOpenGroups(navGroupState);
+  };
   const groupIcon: Record<string, typeof LayoutDashboard> = {
     Catalogue: BookOpen,
     Pilotage: Compass,
