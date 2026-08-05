@@ -69,6 +69,24 @@ export type CeevAgreementInput = {
 
 const DAY_MS = 86_400_000;
 
+/**
+ * Contrôles métier communs (création, modification, renouvellement).
+ * Messages explicites destinés à l'utilisateur terrain.
+ */
+function assertPeriod(start?: string | null, end?: string | null): void {
+  if (start !== undefined && !start) throw new Error("La date de début est obligatoire.");
+  if (end !== undefined && !end) throw new Error("La date de fin est obligatoire.");
+  if (start && end && end <= start) {
+    throw new Error("La date de fin doit être postérieure à la date de début.");
+  }
+}
+
+function assertClient(clientId: string | null | undefined): void {
+  if (!clientId) {
+    throw new Error("Sélectionnez un client existant dans le référentiel avant d'enregistrer le contrat.");
+  }
+}
+
 /** Ajoute n mois à une date ISO (yyyy-mm-dd). */
 export function addMonths(iso: string, months: number): string {
   const d = new Date(`${iso}T00:00:00`);
@@ -114,6 +132,17 @@ export async function listCeevAgreements(): Promise<CeevAgreement[]> {
   }));
 }
 
+/** Contrats d'entretien d'un client (fiche 360°). */
+export async function listCeevAgreementsForClient(clientId: string): Promise<CeevAgreement[]> {
+  const { data, error } = await supabase
+    .from("ceev_agreements")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("start_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as CeevAgreement[];
+}
+
 export async function getCeevAgreement(id: string): Promise<CeevAgreement> {
   const { data, error } = await supabase
     .from("ceev_agreements")
@@ -155,6 +184,9 @@ async function logEvent(
 
 export async function createCeevAgreement(input: CeevAgreementInput): Promise<CeevAgreement> {
   const userId = await currentUserId();
+  // Aucun client n'est créé ici : la liaison utilise uniquement clients.id existant.
+  assertClient(input.client_id);
+  assertPeriod(input.start_date, input.end_date);
   const { data, error } = await supabase
     .from("ceev_agreements")
     .insert({
@@ -183,6 +215,8 @@ export async function createCeevAgreement(input: CeevAgreementInput): Promise<Ce
 
 export async function updateCeevAgreement(id: string, input: Partial<CeevAgreementInput>): Promise<CeevAgreement> {
   const userId = await currentUserId();
+  if ("client_id" in input) assertClient(input.client_id);
+  assertPeriod(input.start_date, input.end_date);
   const { data, error } = await supabase
     .from("ceev_agreements")
     .update({ ...input } as never)
@@ -203,6 +237,10 @@ export async function renewCeevAgreement(
   period: { start_date: string; end_date: string },
 ): Promise<CeevAgreement> {
   const userId = await currentUserId();
+  assertPeriod(period.start_date, period.end_date);
+  if (period.start_date < source.start_date) {
+    throw new Error("La nouvelle période doit débuter après le début du contrat d'origine.");
+  }
   const { data, error } = await supabase
     .from("ceev_agreements")
     .insert({

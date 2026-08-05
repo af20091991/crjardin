@@ -18,6 +18,7 @@ import { ClientProfitabilityCard } from "@/components/pilot/ClientProfitabilityC
 import { ClientUnderstandingCard } from "@/components/pilot/ClientUnderstandingCard";
 import { ClientTimeline } from "@/components/pilot/ClientTimeline";
 import { ClientQualityCard } from "@/components/pilot/ClientQualityCard";
+import { CeevClientCard } from "@/components/pilot/CeevClientCard";
 import { listMissions } from "@/lib/subcontractors";
 import { listContacts, listSites, type Contact, type Site } from "@/lib/sites";
 import { entityEligibility } from "@/lib/pilot-entity-rules";
@@ -491,6 +492,8 @@ function PilotClient360() {
       />
 
       {/* Chronologie complète du client (données déjà enregistrées) */}
+      <CeevClientCard clientId={clientId} />
+
       <ClientTimeline
         createdAt={(client as { created_at?: string | null }).created_at ?? null}
         interventions={(interventionsQ.data ?? []).map((iv) => ({

@@ -14,6 +14,7 @@ const LINKED_TABLES = [
   "pilot_ca_entries",
   "interventions",
   "ceev_contracts",
+  "ceev_agreements",
   "subcontractor_missions",
   "recommendations",
   "pilot_historic_hours",

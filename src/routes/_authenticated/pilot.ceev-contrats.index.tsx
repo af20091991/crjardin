@@ -32,6 +32,7 @@ import {
 } from "@/lib/ceev-agreements";
 import { listClients } from "@/lib/clients";
 import { listAllInterventions } from "@/lib/interventions";
+import { ClientPicker } from "@/components/pilot/ClientPicker";
 
 export const Route = createFileRoute("/_authenticated/pilot/ceev-contrats/")({
   head: () => ({
@@ -306,6 +307,12 @@ function RenewForm({
   const suggestion = renewalPeriod(source);
   const [start, setStart] = useState(suggestion.start_date);
   const [end, setEnd] = useState(suggestion.end_date);
+  const error =
+    start && end && end <= start
+      ? "La date de fin doit être postérieure à la date de début."
+      : start && start < source.start_date
+        ? "La nouvelle période doit débuter après le début du contrat d'origine."
+        : null;
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
@@ -321,8 +328,12 @@ function RenewForm({
           <Input id="renew-end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
         </div>
       </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
       <DialogFooter>
-        <Button disabled={pending || !start || !end} onClick={() => onSubmit({ start_date: start, end_date: end })}>
+        <Button
+          disabled={pending || !start || !end || Boolean(error)}
+          onClick={() => onSubmit({ start_date: start, end_date: end })}
+        >
           Créer la nouvelle période
         </Button>
       </DialogFooter>
@@ -368,7 +379,8 @@ function QuickCreateDialog({
   });
 
   const sorted = [...clients].sort((a, b) => a.name.localeCompare(b.name));
-  const valid = clientId && start && end;
+  const periodError = start && end && end <= start ? "La date de fin doit être postérieure à la date de début." : null;
+  const valid = Boolean(clientId && start && end && !periodError);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -385,14 +397,10 @@ function QuickCreateDialog({
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>Client *</Label>
-            <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger><SelectValue placeholder="Choisir un client…" /></SelectTrigger>
-              <SelectContent>
-                {sorted.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ClientPicker clients={sorted} value={clientId} onChange={setClientId} />
+            <p className="text-xs text-muted-foreground">
+              Client issu du référentiel existant — aucune fiche n'est créée automatiquement.
+            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -404,6 +412,7 @@ function QuickCreateDialog({
               <Input id="ceev-end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
             </div>
           </div>
+          {periodError && <p className="text-sm text-destructive">{periodError}</p>}
           <div className="space-y-1.5">
             <Label>Fréquence *</Label>
             <Select value={frequency} onValueChange={(v) => setFrequency(v as CeevFrequency)}>
