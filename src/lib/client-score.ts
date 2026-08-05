@@ -2,7 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_SETTINGS, getSettings } from "@/lib/pilot";
 import { daysBetween as _daysBetween, currentYear as _currentYear } from "@/lib/date-utils";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
-import { hasIdentityRisk, isCertifiedForAnalytics } from "@/lib/pilot-referential";
+// Règle métier centrale UNIQUE (aucune logique de confiance recréée ici).
+import { entityEligibility } from "@/lib/pilot-entity-rules";
 
 // ---------- Règles de classement (ajustables) ----------
 export const SCORE_RULES = {
@@ -121,7 +122,7 @@ function classify(
 
   // Identité économique douteuse (contact classé en client, doublon probable) :
   // aucun score stratégique ne peut être présenté comme fiable.
-  if (hasIdentityRisk(entityStatus)) {
+  if (entityEligibility(entityStatus).level === "non_fiable") {
     return {
       score: "donnees_insuffisantes",
       recommendation:
@@ -358,7 +359,7 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       opportunitiesCount: e.opportunitiesCount,
       opportunitiesValue: e.opportunitiesValue,
       entityStatus: e.entityStatus,
-      entityCertified: isCertifiedForAnalytics(e.entityStatus),
+      entityCertified: entityEligibility(e.entityStatus).status === "certified_client",
       confidenceLevel,
     };
     const { score, recommendation } = classify(base);
@@ -475,7 +476,7 @@ export async function getClientEconomicScore(
     opportunitiesCount,
     opportunitiesValue,
     entityStatus: clientRow?.entity_status ?? "manual_review_required",
-    entityCertified: isCertifiedForAnalytics(clientRow?.entity_status),
+    entityCertified: entityEligibility(clientRow?.entity_status).status === "certified_client",
     confidenceLevel,
   };
   const { score, recommendation } = classify(base);
