@@ -13,22 +13,32 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, CalendarPlus, RefreshCw, Save, Archive } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowLeft, CalendarPlus, RefreshCw, Save, Archive, ListChecks } from "lucide-react";
 import {
   CEEV_EVENT_LABEL,
   CEEV_FREQUENCY_META,
   CEEV_STATUS_META,
+  MONTH_LABELS,
   archiveCeevAgreement,
+  ceevProgress,
   daysUntil,
+  generateCeevInterventions,
   getCeevAgreement,
   listCeevEvents,
+  plannedVisitDates,
   renewCeevAgreement,
   renewalPeriod,
+  seasonLabel,
   suggestedNextIntervention,
   updateCeevAgreement,
+  type CeevAgreement,
   type CeevFrequency,
   type CeevStatus,
 } from "@/lib/ceev-agreements";
+import { listAllInterventions } from "@/lib/interventions";
 
 const searchSchema = z.object({ edit: z.boolean().optional() });
 
@@ -71,6 +81,7 @@ function CeevDetailPage() {
     queryKey: ["ceev-agreement-events", agreementId],
     queryFn: () => listCeevEvents(agreementId),
   });
+  const interventions = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
 
   const [form, setForm] = useState({
     name: "",
@@ -81,8 +92,13 @@ function CeevDetailPage() {
     frequency: "mensuelle" as CeevFrequency,
     next_intervention_date: "",
     notes: "",
+    visits_planned: "",
+    visit_duration_hours: "",
+    season_start_month: "",
+    season_end_month: "",
   });
   const [editing, setEditing] = useState(Boolean(edit));
+  const [genOpen, setGenOpen] = useState(false);
 
   const a = agreement.data;
   useEffect(() => {
@@ -96,6 +112,10 @@ function CeevDetailPage() {
       frequency: a.frequency,
       next_intervention_date: a.next_intervention_date ?? "",
       notes: a.notes ?? "",
+      visits_planned: a.visits_planned != null ? String(a.visits_planned) : "",
+      visit_duration_hours: a.visit_duration_hours != null ? String(a.visit_duration_hours) : "",
+      season_start_month: a.season_start_month != null ? String(a.season_start_month) : "",
+      season_end_month: a.season_end_month != null ? String(a.season_end_month) : "",
     });
   }, [a]);
 
@@ -103,6 +123,7 @@ function CeevDetailPage() {
     qc.invalidateQueries({ queryKey: ["ceev-agreement", agreementId] });
     qc.invalidateQueries({ queryKey: ["ceev-agreement-events", agreementId] });
     qc.invalidateQueries({ queryKey: ["ceev-agreements"] });
+    qc.invalidateQueries({ queryKey: ["interventions-all"] });
   };
 
   const save = useMutation({
@@ -116,6 +137,10 @@ function CeevDetailPage() {
         frequency: form.frequency,
         next_intervention_date: form.next_intervention_date || null,
         notes: form.notes.trim() || null,
+        visits_planned: form.visits_planned ? Number(form.visits_planned) : null,
+        visit_duration_hours: form.visit_duration_hours ? Number(form.visit_duration_hours) : null,
+        season_start_month: form.season_start_month ? Number(form.season_start_month) : null,
+        season_end_month: form.season_end_month ? Number(form.season_end_month) : null,
       }),
     onSuccess: () => { refresh(); setEditing(false); toast.success("Contrat mis à jour"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
