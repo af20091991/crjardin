@@ -6,21 +6,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { BadgeCheck, ClipboardList, Database, Gauge, Link2, MapPin, ShieldCheck, Wrench } from "lucide-react";
+import { BadgeCheck, ClipboardList, Cpu, Database, Gauge, Link2, MapPin, ShieldCheck, Wrench } from "lucide-react";
 import { QualityPage } from "@/components/pilot/panels/QualityPanel";
 import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
 import { RapprochementPage } from "@/components/pilot/panels/RapprochementPanel";
 import { CorrectionsPage } from "@/components/pilot/panels/CorrectionsPanel";
 import { SourcesPanel } from "@/components/pilot/panels/SourcesPanel";
 import { ReferentialPanel } from "@/components/pilot/panels/ReferentialPanel";
+import { EnginePanel } from "@/components/pilot/panels/EnginePanel";
 
-type Section = "qualite" | "validation" | "corrections" | "sources" | "referentiel";
+type Section = "qualite" | "validation" | "corrections" | "sources" | "referentiel" | "moteur";
 
 export const Route = createFileRoute("/_authenticated/pilot/controle")({
   validateSearch: (search: Record<string, unknown>): { section?: Section; sub?: string } => ({
-    section: (["qualite", "validation", "corrections", "sources", "referentiel"] as const).includes(
-      search.section as Section,
-    )
+    section: (
+      ["qualite", "validation", "corrections", "sources", "referentiel", "moteur"] as const
+    ).includes(search.section as never)
       ? (search.section as Section)
       : undefined,
     sub: typeof search.sub === "string" ? search.sub : undefined,
@@ -88,6 +89,11 @@ function ControlCenterPage() {
               <Database className="h-4 w-4" /> Sources & états
             </Link>
           </TabsTrigger>
+          <TabsTrigger value="moteur" asChild>
+            <Link to="/pilot/controle" search={{ section: "moteur" }} className="gap-1.5">
+              <Cpu className="h-4 w-4" /> Moteur analytique
+            </Link>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="referentiel" className="mt-4">
@@ -145,6 +151,14 @@ function ControlCenterPage() {
             validations manuelles (lecture seule).
           </p>
           <SourcesPanel />
+        </TabsContent>
+
+        <TabsContent value="moteur" className="mt-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Traçabilité — chaîne de calcul unique, mode strict et audit automatique de cohérence
+            entre le moteur et les autres chemins de calcul (lecture seule).
+          </p>
+          <EnginePanel />
         </TabsContent>
       </Tabs>
 
