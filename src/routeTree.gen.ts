@@ -65,6 +65,7 @@ import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
 import { Route as AuthenticatedFichesFicheIdRouteImport } from './routes/_authenticated/fiches.$ficheId'
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients.$clientId'
+import { Route as AuthenticatedPilotCeevContratsIndexRouteImport } from './routes/_authenticated/pilot.ceev-contrats.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -378,6 +379,12 @@ const AuthenticatedClientsClientIdRoute =
     path: '/clients/$clientId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPilotCeevContratsIndexRoute =
+  AuthenticatedPilotCeevContratsIndexRouteImport.update({
+    id: '/ceev-contrats/',
+    path: '/ceev-contrats/',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -477,6 +484,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/pilot/ceev-contrats/': typeof AuthenticatedPilotCeevContratsIndexRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -539,6 +547,7 @@ export interface FileRoutesByTo {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/pilot/ceev-contrats': typeof AuthenticatedPilotCeevContratsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -604,6 +613,7 @@ export interface FileRoutesById {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/_authenticated/pilot/ceev-contrats/': typeof AuthenticatedPilotCeevContratsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -669,6 +679,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/pilot/ceev-contrats/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -731,6 +742,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/pilot/ceev-contrats'
   id:
     | '__root__'
     | '/_authenticated'
@@ -795,6 +807,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/_authenticated/pilot/ceev-contrats/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1207,6 +1220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pilot/ceev-contrats/': {
+      id: '/_authenticated/pilot/ceev-contrats/'
+      path: '/ceev-contrats'
+      fullPath: '/pilot/ceev-contrats/'
+      preLoaderRoute: typeof AuthenticatedPilotCeevContratsIndexRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -1295,6 +1315,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
   AuthenticatedPilotFicheClientIdRoute: typeof AuthenticatedPilotFicheClientIdRoute
   AuthenticatedPilotFocusTopicRoute: typeof AuthenticatedPilotFocusTopicRoute
+  AuthenticatedPilotCeevContratsIndexRoute: typeof AuthenticatedPilotCeevContratsIndexRoute
 }
 
 const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
@@ -1325,6 +1346,8 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
   AuthenticatedPilotFicheClientIdRoute: AuthenticatedPilotFicheClientIdRoute,
   AuthenticatedPilotFocusTopicRoute: AuthenticatedPilotFocusTopicRoute,
+  AuthenticatedPilotCeevContratsIndexRoute:
+    AuthenticatedPilotCeevContratsIndexRoute,
 }
 
 const AuthenticatedPilotRouteWithChildren =
