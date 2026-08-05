@@ -41,7 +41,11 @@ function BenchmarkPage() {
       </div>
 
       <ComparatifsSection snapshot={snapshot} />
-      <SaisonSection />
+      <SaisonSection
+        caCurrentToDate={snapshot?.ca.ytdHt ?? null}
+        caPrevAtSameDate={snapshot?.ca.prevYtdHt ?? null}
+        prog={snapshot?.ca.progressionPct ?? null}
+      />
     </div>
   );
 }
@@ -164,7 +168,15 @@ function ComparatifsSection({ snapshot }: { snapshot: ReturnType<typeof useAnaly
 // Saisonnalité & tendances (ex /pilot/saison), comparaison à date équivalente.
 // ---------------------------------------------------------------------------
 
-function SaisonSection() {
+function SaisonSection({
+  caCurrentToDate,
+  caPrevAtSameDate,
+  prog,
+}: {
+  caCurrentToDate: number | null;
+  caPrevAtSameDate: number | null;
+  prog: number | null;
+}) {
   const { entries } = usePilotData();
   const { year: y } = usePilotYear();
   const now = new Date();
@@ -192,25 +204,9 @@ function SaisonSection() {
   const maxAvg = Math.max(...active.map((h) => h.avg), 1);
   const weak = [...active].sort((a, b) => a.avg - b.avg).slice(0, 3);
 
-  // Comparaison à date équivalente : exercice en cours (réel à date) vs exercice
-  // précédent, borné à la même date calendaire. Jamais d'année incomplète
-  // comparée à une année complète.
-  const cutoffMonth = now.getMonth();
-  const cutoffDay = now.getDate();
-  const isOnOrBeforeCutoff = (d: Date) => d.getMonth() < cutoffMonth || (d.getMonth() === cutoffMonth && d.getDate() <= cutoffDay);
-
-  const caCurrentToDate = sum(
-    allEntries
-      .filter((e) => new Date(e.entry_date).getFullYear() === y && isRealizedAccountingDate(e.entry_date, now))
-      .map((e) => e.amount_ht),
-  );
-  const caPrevAtSameDate = sum(
-    allEntries
-      .filter((e) => new Date(e.entry_date).getFullYear() === y - 1 && isOnOrBeforeCutoff(new Date(e.entry_date)))
-      .map((e) => e.amount_ht),
-  );
+  // Valeurs à date équivalente : fournies par le moteur analytique central
+  // (source unique, aucun recalcul local).
   const caPrevFull = sum(allEntries.filter((e) => new Date(e.entry_date).getFullYear() === y - 1).map((e) => e.amount_ht));
-  const prog = caPrevAtSameDate > 0 ? ((caCurrentToDate - caPrevAtSameDate) / caPrevAtSameDate) * 100 : null;
 
   return (
     <div className="space-y-4">
@@ -220,14 +216,16 @@ function SaisonSection() {
         <Card>
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground">CA {y} à date (01/01 → aujourd'hui)</p>
-            <p className="mt-1 font-serif text-xl font-semibold">{formatEuro(caCurrentToDate)}</p>
+            <p className="mt-1 font-serif text-xl font-semibold">
+              {caCurrentToDate != null ? formatEuro(caCurrentToDate) : DATA_INSUFFISANTE}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground">CA {y - 1} à la même date</p>
             <p className="mt-1 font-serif text-xl font-semibold">
-              {caPrevAtSameDate > 0 ? formatEuro(caPrevAtSameDate) : DATA_INSUFFISANTE}
+              {caPrevAtSameDate != null && caPrevAtSameDate > 0 ? formatEuro(caPrevAtSameDate) : DATA_INSUFFISANTE}
             </p>
           </CardContent>
         </Card>
