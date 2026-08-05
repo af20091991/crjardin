@@ -7,6 +7,50 @@ const AskInput = z.object({
 });
 
 /**
+ * Représentation graphique proposée par l'IA. Les valeurs proviennent
+ * exclusivement du contexte chiffré fourni au modèle (données Pilot Pro).
+ */
+export interface AiChartSpec {
+  type: "bar" | "line" | "pie";
+  title: string;
+  unit: "EUR" | "h" | "%" | "nb";
+  series: { name: string; points: { label: string; value: number }[] }[];
+}
+
+const ChartSchema = z.object({
+  type: z.enum(["bar", "line", "pie"]),
+  title: z.string(),
+  unit: z.enum(["EUR", "h", "%", "nb"]),
+  series: z
+    .array(
+      z.object({
+        name: z.string(),
+        points: z.array(z.object({ label: z.string(), value: z.number() })),
+      }),
+    )
+    .nonempty(),
+});
+
+/** Extrait un éventuel bloc ```chart { ... } ``` de la réponse du modèle. */
+function extractChart(text: string): { answer: string; chart: AiChartSpec | null } {
+  const match = text.match(/```chart\s*([\s\S]*?)```/);
+  if (!match) return { answer: text.trim(), chart: null };
+  const answer = text.replace(match[0], "").trim();
+  try {
+    const parsed = ChartSchema.parse(JSON.parse(match[1]));
+    const clean = {
+      ...parsed,
+      series: parsed.series
+        .map((s) => ({ ...s, points: s.points.filter((p) => Number.isFinite(p.value)) }))
+        .filter((s) => s.points.length > 0),
+    };
+    return { answer, chart: clean.series.length ? (clean as AiChartSpec) : null };
+  } catch {
+    return { answer, chart: null };
+  }
+}
+
+/**
  * Assistant IA du module Pilotage.
  * Rassemble un instantané chiffré des données de l'utilisateur (CA, charges,
  * clients, interventions, fiches chantier, santé du jardin) et le fournit
@@ -16,7 +60,7 @@ const AskInput = z.object({
 export const askPilotAi = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AskInput.parse(input))
-  .handler(async ({ data, context }): Promise<{ answer: string }> => {
+  .handler(async ({ data, context }): Promise<{ answer: string; chart: AiChartSpec | null }> => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Configuration IA manquante");
     const { supabase } = context;
@@ -48,6 +92,20 @@ export const askPilotAi = createServerFn({ method: "POST" })
       byCat[c] = (byCat[c] ?? 0) + Number(r.amount_ht || 0);
     }
 
+    // Séries mensuelles réelles : uniquement les mois écoulés de l'exercice.
+    const monthLimit = new Date().getMonth() + 1;
+    const monthLabels = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
+    const monthly = (rows: CaRow[], y: number, upTo: number) =>
+      monthLabels.slice(0, upTo).map((label, i) => ({
+        label,
+        value: Math.round(
+          rows.filter((r) => r.year === y && Number(r.month) === i + 1).reduce((s, r) => s + Number(r.amount_ht || 0), 0),
+        ),
+      }));
+    const caMonthly = monthly(ventes, year, monthLimit);
+    const caMonthlyPrev = monthly(ventes, year - 1, 12);
+    const chargesMonthly = monthly(charges, year, monthLimit);
+
     const clientsList = (clientsRes.data ?? []) as Array<{ name: string; civility: string | null; contract_type: string | null; frequency: string | null; notes: string | null; address: string | null }>;
     const interventions = (intRes.data ?? []) as Array<{ intervention_date: string; intervention_type: string | null; client_id: string; summary: string | null }>;
     const fiches = (fichesRes.data ?? []) as unknown as Array<{ client_name: string | null; intervention_date: string | null; intervenant: string | null }>;
@@ -65,6 +123,11 @@ CHIFFRE D'AFFAIRES ${year}
 - Charges HT cumulées : ${fmt(chargesYear)}
 - Bénéfice estimé : ${fmt(caYear - chargesYear)} (marge ${caYear > 0 ? (((caYear - chargesYear) / caYear) * 100).toFixed(0) : 0} %)
 - Répartition par nature : ${Object.entries(byCat).map(([k, v]) => `${k} ${fmt(v)}`).join(", ") || "aucune donnée"}
+
+SÉRIES MENSUELLES RÉELLES (mois écoulés uniquement, montants HT en €)
+- CA ${year} : ${caMonthly.map((p) => `${p.label} ${p.value}`).join(", ") || "aucune donnée"}
+- CA ${year - 1} : ${caMonthlyPrev.map((p) => `${p.label} ${p.value}`).join(", ") || "aucune donnée"}
+- Charges ${year} : ${chargesMonthly.map((p) => `${p.label} ${p.value}`).join(", ") || "aucune donnée"}
 
 PARAMÈTRES
 - TJM cible : ${settings?.target_tjm ?? "?"} €
@@ -89,11 +152,16 @@ SANTÉ DES JARDINS
 ${healths.slice(0, 10).map((h) => `- ${h.zone ?? "zone ?"} : note ${h.rating ?? "?"}/5 (${h.assessed_on ?? ""})`).join("\n") || "Aucune évaluation."}`;
 
     const prompt = `Tu es l'assistant IA du module Pilotage de « CR Pro », logiciel de gestion pour paysagistes indépendants.
-On te fournit un instantané chiffré de l'activité de l'utilisateur. Tu réponds à ses questions en français, de façon détaillée mais synthétique :
-- appuie-toi UNIQUEMENT sur les chiffres et éléments fournis dans le contexte, sans inventer ;
-- si l'information manque, dis-le clairement et suggère ce qu'il faudrait renseigner ;
-- structure ta réponse en 2 à 5 paragraphes courts ou en liste à puces si c'est plus lisible ;
-- termine si pertinent par une recommandation concrète.
+On te fournit un instantané chiffré de l'activité de l'utilisateur. Tu réponds en français, de façon COURTE et orientée décision :
+- appuie-toi UNIQUEMENT sur les chiffres fournis dans le contexte ; n'invente JAMAIS une donnée ;
+- si la donnée fiable n'existe pas, réponds simplement « Données insuffisantes » et indique ce qu'il faudrait renseigner, sans analyse ni graphique ;
+- 3 à 6 lignes maximum, en citant les chiffres utilisés (montants, %, heures) ;
+- termine si pertinent par une recommandation concrète en une phrase.
+
+GRAPHIQUE (facultatif, uniquement s'il améliore réellement la compréhension) :
+ajoute à la fin un bloc de code balisé \`\`\`chart contenant un JSON strictement de cette forme :
+{"type":"bar"|"line"|"pie","title":"...","unit":"EUR"|"h"|"%"|"nb","series":[{"name":"CA 2026","points":[{"label":"Janv.","value":1234}]}]}
+Règles du graphique : n'utilise que des valeurs présentes dans le contexte (aucun mois futur, aucune estimation) ; "line"/"bar" pour une évolution ou une comparaison, "pie" pour une répartition ; pas de graphique si les données sont insuffisantes.
 
 ===== CONTEXTE =====
 ${contextText}
@@ -122,6 +190,6 @@ ${data.question}`;
       throw new Error(`Erreur IA (${res.status}) ${body.slice(0, 200)}`);
     }
     const json = await res.json();
-    const answer = json?.choices?.[0]?.message?.content ?? "Aucune réponse générée.";
-    return { answer };
+    const raw: string = json?.choices?.[0]?.message?.content ?? "Aucune réponse générée.";
+    return extractChart(raw);
   });
