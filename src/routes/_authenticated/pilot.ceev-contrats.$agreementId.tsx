@@ -385,6 +385,69 @@ function CeevDetailPage() {
       </Card>
 
       {a.renewed_from_id && (
+        <></>
+      )}
+
+      {/* Suivi des passages : source unique = interventions rattachées au contrat */}
+      <Card>
+        <CardContent className="space-y-3 pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-medium">Suivi des passages</h2>
+            {progress.estimatedHours != null && (
+              <span className="text-xs text-muted-foreground">
+                Volume estimé : {progress.estimatedHours} h
+              </span>
+            )}
+          </div>
+          {a.visits_planned == null ? (
+            <p className="text-sm text-muted-foreground">
+              Nombre de passages prévus non défini : renseignez-le dans « Informations contrat » pour
+              activer le suivi réalisé / restant.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Stat label="Prévus" value={progress.planned} />
+              <Stat label="Planifiés" value={progress.scheduled} />
+              <Stat label="Réalisés" value={progress.done} />
+              <Stat label="Restants à planifier" value={progress.remaining} />
+            </div>
+          )}
+          {interventions.isLoading ? (
+            <Skeleton className="h-12 w-full" />
+          ) : progress.interventions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aucune intervention rattachée à ce contrat pour le moment.
+            </p>
+          ) : (
+            <ul className="divide-y text-sm">
+              {progress.interventions.map((iv) => (
+                <li key={iv.id} className="flex items-center justify-between gap-3 py-2">
+                  <Link
+                    to="/interventions/$interventionId"
+                    params={{ interventionId: iv.id }}
+                    className="text-primary hover:underline"
+                  >
+                    {fmt(iv.intervention_date)}
+                  </Link>
+                  <span className="text-xs text-muted-foreground">
+                    {iv.status === "terminee" ? "Réalisée" : "Prévue"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <GenerateVisitsDialog
+        open={genOpen}
+        onOpenChange={setGenOpen}
+        agreement={a}
+        existing={progress.interventions}
+        onDone={refresh}
+      />
+
+      {a.renewed_from_id && (
         <Card>
           <CardContent className="pt-6 text-sm">
             Cette période provient d'un renouvellement.{" "}
