@@ -6,7 +6,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { BadgeCheck, ClipboardList, Cpu, Database, Gauge, Link2, MapPin, ShieldCheck, Wrench } from "lucide-react";
+import { BadgeCheck, ClipboardList, Copy, Cpu, Database, Gauge, Link2, MapPin, ShieldCheck, Wrench } from "lucide-react";
 import { QualityPage } from "@/components/pilot/panels/QualityPanel";
 import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
 import { RapprochementPage } from "@/components/pilot/panels/RapprochementPanel";
@@ -14,13 +14,14 @@ import { CorrectionsPage } from "@/components/pilot/panels/CorrectionsPanel";
 import { SourcesPanel } from "@/components/pilot/panels/SourcesPanel";
 import { ReferentialPanel } from "@/components/pilot/panels/ReferentialPanel";
 import { EnginePanel } from "@/components/pilot/panels/EnginePanel";
+import { DoublonsPanel } from "@/components/pilot/panels/DoublonsPanel";
 
-type Section = "qualite" | "validation" | "corrections" | "sources" | "referentiel" | "moteur";
+type Section = "qualite" | "validation" | "corrections" | "sources" | "referentiel" | "moteur" | "doublons";
 
 export const Route = createFileRoute("/_authenticated/pilot/controle")({
   validateSearch: (search: Record<string, unknown>): { section?: Section; sub?: string } => ({
     section: (
-      ["qualite", "validation", "corrections", "sources", "referentiel", "moteur"] as const
+      ["qualite", "validation", "corrections", "sources", "referentiel", "moteur", "doublons"] as const
     ).includes(search.section as never)
       ? (search.section as Section)
       : undefined,
@@ -69,6 +70,11 @@ function ControlCenterPage() {
               <BadgeCheck className="h-4 w-4" /> Référentiel client
             </Link>
           </TabsTrigger>
+          <TabsTrigger value="doublons" asChild>
+            <Link to="/pilot/controle" search={{ section: "doublons" }} className="gap-1.5">
+              <Copy className="h-4 w-4" /> Doublons clients
+            </Link>
+          </TabsTrigger>
           <TabsTrigger value="qualite" asChild>
             <Link to="/pilot/controle" search={{ section: "qualite" }} className="gap-1.5">
               <ShieldCheck className="h-4 w-4" /> Qualité des données
@@ -102,6 +108,14 @@ function ControlCenterPage() {
             obligatoire à tout indicateur stratégique).
           </p>
           <ReferentialPanel />
+        </TabsContent>
+
+        <TabsContent value="doublons" className="mt-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Nettoyage sécurisé — détection des fiches probablement identiques, comparaison des
+            historiques et fusion manuelle réversible.
+          </p>
+          <DoublonsPanel />
         </TabsContent>
 
         <TabsContent value="qualite" className="mt-4">

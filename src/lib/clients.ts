@@ -96,6 +96,9 @@ export async function listClients(): Promise<Client[]> {
   const { data, error } = await supabase
     .from("clients")
     .select("*")
+    // Les fiches fusionnées sont conservées en base mais retirées des listes :
+    // leurs données ont été déplacées vers la fiche conservée.
+    .is("merged_into_client_id", null)
     .order("name", { ascending: true });
   if (error) throw error;
   return data as unknown as Client[];

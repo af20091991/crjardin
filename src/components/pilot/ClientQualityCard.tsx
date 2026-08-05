@@ -24,7 +24,10 @@ export function ClientQualityCard({
         <CardTitle className="flex items-center gap-2 text-base">
           <ClipboardCheck className="h-4 w-4 text-primary" />
           Qualité de la fiche
-          <Badge variant="outline" className="ml-auto text-[10px]">
+          <Badge variant="outline" className={`ml-auto text-[10px] ${q.levelBadge}`}>
+            {q.levelLabel}
+          </Badge>
+          <Badge variant="outline" className="text-[10px]">
             Confiance {q.confidenceLabel}
           </Badge>
         </CardTitle>
