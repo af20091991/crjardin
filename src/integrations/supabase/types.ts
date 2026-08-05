@@ -268,6 +268,68 @@ export type Database = {
           },
         ]
       }
+      ceev_match_log: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          contract_id: string | null
+          decided_at: string
+          id: string
+          note: string | null
+          raw_label: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          contract_id?: string | null
+          decided_at?: string
+          id?: string
+          note?: string | null
+          raw_label: string
+          user_id?: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          contract_id?: string | null
+          decided_at?: string
+          id?: string
+          note?: string | null
+          raw_label?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ceev_match_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ceev_match_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "ceev_match_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "ceev_match_log_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "ceev_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       charge_categories: {
         Row: {
           code: string
@@ -952,6 +1014,49 @@ export type Database = {
           used_at?: string | null
         }
         Relationships: []
+      }
+      favorite_clients: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorite_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favorite_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "favorite_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+        ]
       }
       favorite_tasks: {
         Row: {
