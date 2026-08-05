@@ -588,6 +588,73 @@ function TodayPage() {
     [ledgerRows, year],
   );
 
+  // ---- Comparatifs à date équivalente N-1 (uniquement l'enregistré) ----
+  // CA : lignes de vente enregistrées (pilot_ca_entries).
+  // Interventions : statut « terminée » (interventions).
+  // Heures : interventions.hours_spent non estimées uniquement. Les heures
+  // vendues et les heures historiques importées n'ont pas de précision au
+  // jour : elles ne sont jamais mélangées dans ces comparatifs.
+  const comparatifs = useMemo(() => {
+    const dayOfYear = (d: Date) =>
+      Math.floor(
+        (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 1)) /
+          86_400_000,
+      );
+    const limitDoy = dayOfYear(now);
+    const limitDay = now.getDate();
+
+    const ca = (keep: (d: Date) => boolean) =>
+      realEntries.reduce((s, e) => {
+        const d = new Date(e.entry_date);
+        return Number.isFinite(d.getTime()) && keep(d) ? s + (Number(e.amount_ht) || 0) : s;
+      }, 0);
+    const nbItv = (keep: (d: Date) => boolean) =>
+      allI.filter(
+        (i) =>
+          i.status === "terminee" && i.intervention_date && keep(new Date(i.intervention_date)),
+      ).length;
+    const heures = (keep: (d: Date) => boolean) =>
+      allI.reduce((s, i) => {
+        if (i.status !== "terminee" || i.hours_spent == null || !i.intervention_date) return s;
+        const meta = i.ai_metadata as Record<string, unknown> | null;
+        if (meta && meta["hours_spent_estimated"] === true) return s;
+        return keep(new Date(i.intervention_date)) ? s + Number(i.hours_spent) : s;
+      }, 0);
+
+    const moisN = (d: Date) =>
+      d.getFullYear() === year && d.getMonth() === month && d.getDate() <= limitDay;
+    const moisN1 = (d: Date) =>
+      d.getFullYear() === year - 1 && d.getMonth() === month && d.getDate() <= limitDay;
+    const anneeN = (d: Date) => d.getFullYear() === year && dayOfYear(d) <= limitDoy;
+    const anneeN1 = (d: Date) => d.getFullYear() === year - 1 && dayOfYear(d) <= limitDoy;
+
+    const build = (cur: (d: Date) => boolean, prev: (d: Date) => boolean) => [
+      {
+        key: "ca",
+        label: "CA facturé",
+        current: ca(cur),
+        previous: ca(prev),
+        fmt: (v: number) => formatEuro(v),
+      },
+      {
+        key: "itv",
+        label: "Interventions terminées",
+        current: nbItv(cur),
+        previous: nbItv(prev),
+        fmt: (v: number) => String(Math.round(v)),
+      },
+      {
+        key: "h",
+        label: "Heures réalisées",
+        current: heures(cur),
+        previous: heures(prev),
+        fmt: (v: number) => formatHours(v),
+      },
+    ];
+
+    return { mois: build(moisN, moisN1), annee: build(anneeN, anneeN1) };
+  }, [realEntries, allI, year, month, now]);
+
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
     key: string;
