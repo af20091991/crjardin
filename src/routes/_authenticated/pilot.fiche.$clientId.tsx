@@ -18,6 +18,7 @@ import { ClientProfitabilityCard } from "@/components/pilot/ClientProfitabilityC
 import { ClientUnderstandingCard } from "@/components/pilot/ClientUnderstandingCard";
 import { ClientTimeline } from "@/components/pilot/ClientTimeline";
 import { ClientQualityCard } from "@/components/pilot/ClientQualityCard";
+import { CeevClientCard } from "@/components/pilot/CeevClientCard";
 import { listMissions } from "@/lib/subcontractors";
 import { listContacts, listSites, type Contact, type Site } from "@/lib/sites";
 import { entityEligibility } from "@/lib/pilot-entity-rules";
