@@ -60,7 +60,7 @@ export interface ClientProfitability {
   /** Évolution CA année vs N-1 en %, `null` si N-1 absent. */
   evolutionPct: number | null;
   hours: number;
-  hoursSource: "interventions" | "historique" | "aucune";
+  hoursSource: "vente_temps" | "aucune";
   interventions: number;
   /** CA cumulé / heures réelles retenues. */
   tauxHoraire: number | null;
@@ -124,7 +124,7 @@ export function classifyClients(params: {
     const reliability = analysisReliability({
       entityStatus,
       hours: heures,
-      hoursSource: source === "aucune" ? "aucune" : source,
+      hoursSource: source,
       caTotal,
       minHours: t.heuresMinClient,
     });
@@ -154,7 +154,7 @@ export function classifyClients(params: {
 
     const confidence: ClientProfitability["confidence"] = !eligibility.analytics
       ? "faible"
-      : source === "interventions" && heures >= t.heuresMinClient && eligibility.level === "fiable"
+      : source === "vente_temps" && heures >= t.heuresMinClient && eligibility.level === "fiable"
         ? "haute"
         : heures > 0 && caTotal > 0
           ? "moyenne"
