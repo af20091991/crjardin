@@ -529,24 +529,30 @@ export interface ActionPlanItem {
 
 /** Vision « plan d'action » : impact, volume, progression, accès direct. */
 export async function buildActionPlan(): Promise<ActionPlanItem[]> {
-  const [charges, iv, ca, sst] = await Promise.all([
+  const [charges, ca, sst] = await Promise.all([
     db.from("pilot_ca_entries").select("id,charge_class,amount_ht").eq("kind", "charge").limit(5000),
-    db.from("interventions").select("id,hours_spent,status").in("status", DONE_STATUSES).limit(2000),
-    db.from("pilot_ca_entries").select("id,site_id,amount_ht,match_status").eq("kind", "vente").limit(5000),
+    db
+      .from("pilot_ca_entries")
+      .select("id,site_id,amount_ht,match_status,hours,intervention_type")
+      .eq("kind", "vente")
+      .limit(5000),
     db.from("subcontractor_missions").select("id,client_id").limit(2000),
   ]);
-  for (const r of [charges, iv, ca, sst]) if (r.error) throw r.error;
+  for (const r of [charges, ca, sst]) if (r.error) throw r.error;
 
   const chargeRows = (charges.data ?? []) as Record<string, unknown>[];
   const toClass = chargeRows.filter((r) => !r.charge_class || r.charge_class === "a_classer");
   const toClassAmount = toClass.reduce((s, r) => s + num(r.amount_ht), 0);
 
-  const done = (iv.data ?? []) as Record<string, unknown>[];
-  const noHours = done.filter((r) => num(r.hours_spent) <= 0);
-
   const sales = ((ca.data ?? []) as Record<string, unknown>[]).filter((r) => r.match_status !== "non_applicable");
   const salesAmount = sales.reduce((s, r) => s + num(r.amount_ht), 0);
   const salesWithSite = sales.filter((r) => r.site_id).reduce((s, r) => s + num(r.amount_ht), 0);
+  const noHours = sales.filter((r) =>
+    saleTimeMissing({
+      hours: r.hours == null ? null : num(r.hours),
+      intervention_type: r.intervention_type == null ? null : str(r.intervention_type),
+    }),
+  );
 
   const missions = (sst.data ?? []) as Record<string, unknown>[];
   const sstNoClient = missions.filter((r) => !r.client_id);
@@ -567,12 +573,12 @@ export async function buildActionPlan(): Promise<ActionPlanItem[]> {
     {
       key: "heures",
       dot: noHours.length ? "🔴" : "🟢",
-      title: `Compléter ${noHours.length} intervention(s) sans heures`,
-      impact: "Sans heures réalisées, aucun taux horaire réel ni rentabilité client fiable.",
-      volume: `${noHours.length} sur ${done.length} intervention(s) terminée(s)`,
-      progress: pct(done.length - noHours.length, done.length),
+      title: `Compléter le temps de ${noHours.length} ligne(s) de vente`,
+      impact: "Le temps du suivi CA est la seule source des taux horaires et de la rentabilité.",
+      volume: `${noHours.length} sur ${sales.length} ligne(s) de vente`,
+      progress: pct(sales.length - noHours.length, sales.length),
       to: "/pilot/corrections",
-      cta: "Saisir les heures",
+      cta: "Saisir le temps",
     },
     {
       key: "sst",
