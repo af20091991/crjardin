@@ -8,6 +8,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { computeClientQuality } from "@/lib/client-quality";
 import { clientNameFromDesignation } from "@/lib/pilot-ca-designation";
+import { saleTimeKnown } from "@/lib/pilot-sale-time";
 
 export interface QualityRate {
   key: string;
@@ -55,7 +56,16 @@ interface QualityDataset {
     email: string | null;
     report_policy?: string | null;
   }>;
-  ca: Array<{ id: string; client_id: string | null; kind: string; match_status: string; amount_ht: number; designation: string | null }>;
+  ca: Array<{
+    id: string;
+    client_id: string | null;
+    kind: string;
+    match_status: string;
+    amount_ht: number;
+    designation: string | null;
+    hours: number | null;
+    intervention_type: string | null;
+  }>;
   ceev: Array<{ id: string; client_id: string | null; label: string; pv_ht: number; year: number }>;
   sst: Array<{ id: string; client_id: string | null; service_requested: string | null; mission_date: string }>;
   interventions: Array<{ id: string; client_id: string; hours_spent: number | null }>;
@@ -66,7 +76,7 @@ interface QualityDataset {
 async function fetchAll(): Promise<QualityDataset> {
   const [c, ca, ceev, sst, iv, reco, histo] = await Promise.all([
     paged("clients", "id,name,address,phone,email,report_policy"),
-    paged("pilot_ca_entries", "id,client_id,kind,match_status,amount_ht,designation"),
+    paged("pilot_ca_entries", "id,client_id,kind,match_status,amount_ht,designation,hours,intervention_type"),
     paged("ceev_contracts", "id,client_id,label,pv_ht,year"),
     paged("subcontractor_missions", "id,client_id,service_requested,mission_date"),
     paged("interventions", "id,client_id,hours_spent"),
@@ -131,6 +141,9 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
     amountByClient.set(r.client_id!, (amountByClient.get(r.client_id!) ?? 0) + (Number(r.amount_ht) || 0));
   }
   const ivByClient = countBy(interventions, "client_id");
+  // Temps exploitable = source maître uniquement (lignes de vente du suivi CA).
+  // 0 h sur une ligne SST compte comme donnée connue, jamais comme manquante.
+  const caHoursByClient = countBy(caLinked.filter((r) => saleTimeKnown(r)), "client_id");
   const ivHoursByClient = countBy(
     interventions.filter((i) => Number(i.hours_spent ?? 0) > 0),
     "client_id",
@@ -167,9 +180,7 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
   });
 
   const qualified = perClient.filter((p) => p.quality.hasAnyData).length;
-  const profitable = perClient.filter(
-    (p) => (ivHoursByClient.get(p.client.id) ?? 0) > 0 || (histoByClient.get(p.client.id) ?? 0) > 0,
-  ).length;
+  const profitable = perClient.filter((p) => (caHoursByClient.get(p.client.id) ?? 0) > 0).length;
 
   const rates: QualityRate[] = [
     {
@@ -210,7 +221,7 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
       pct: pct(profitable, Math.max(1, qualified)),
       done: profitable,
       total: qualified,
-      help: "Clients disposant d'heures réelles (interventions clôturées ou heures historiques).",
+      help: "Clients dont les lignes de vente portent un temps exploitable (Chiffre d'affaires → Temps).",
     },
   ];
 
@@ -228,9 +239,11 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
   const sstOrphan = sst.filter((r) => !r.client_id);
   if (sstOrphan.length > 0) blockers.push(`${sstOrphan.length} mission(s) SST sans client.`);
   const noHours = perClient.filter(
-    (p) => p.quality.hasAnyData && (ivHoursByClient.get(p.client.id) ?? 0) === 0 && (histoByClient.get(p.client.id) ?? 0) === 0,
+    (p) => p.quality.hasAnyData && (caHoursByClient.get(p.client.id) ?? 0) === 0,
   );
-  if (noHours.length > 0) blockers.push(`${noHours.length} client(s) sans heures réelles : rentabilité indisponible.`);
+  if (noHours.length > 0) {
+    blockers.push(`${noHours.length} client(s) sans temps dans le suivi CA : rentabilité indisponible.`);
+  }
   const noCoords = perClient.filter(
     (p) => p.quality.hasAnyData && (!p.client.address || (!p.client.phone && !p.client.email)),
   );
@@ -280,12 +293,12 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
     if (p.amount <= 0) continue;
     priorities.push({
       id: `hours:${p.client.id}`,
-      title: `Renseigner les heures de ${p.client.name}`,
-      why: `${euro(p.amount)} de CA rattachés mais aucune heure réelle enregistrée.`,
+      title: `Renseigner le temps de ${p.client.name} dans le suivi CA`,
+      why: `${euro(p.amount)} de CA rattachés mais aucun temps saisi sur les lignes de vente.`,
       modules: ["Rentabilité", "Taux horaire", "Santé"],
       gain: "Rentabilité et taux horaire réel activés pour ce client",
       weight: p.amount * 0.8,
-      to: "/pilot/rapprochement",
+      to: "/pilot/ca",
     });
   }
 
