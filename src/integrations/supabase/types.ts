@@ -1608,6 +1608,7 @@ export type Database = {
           hours: number | null
           id: string
           intervention_id: string | null
+          intervention_type: string | null
           is_fixed: boolean
           is_investment: boolean
           kind: string
@@ -1645,6 +1646,7 @@ export type Database = {
           hours?: number | null
           id?: string
           intervention_id?: string | null
+          intervention_type?: string | null
           is_fixed?: boolean
           is_investment?: boolean
           kind: string
@@ -1682,6 +1684,7 @@ export type Database = {
           hours?: number | null
           id?: string
           intervention_id?: string | null
+          intervention_type?: string | null
           is_fixed?: boolean
           is_investment?: boolean
           kind?: string
@@ -4804,6 +4807,7 @@ export type Database = {
           hours: number | null
           id: string
           intervention_id: string | null
+          intervention_type: string | null
           is_fixed: boolean
           is_investment: boolean
           kind: string
