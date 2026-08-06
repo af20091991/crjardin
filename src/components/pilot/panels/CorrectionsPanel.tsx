@@ -19,12 +19,12 @@ import {
   buildActionPlan,
   CHARGE_TARGET_LABELS,
   classifyCharge,
-  confirmInterventionHours,
+  confirmSaleTime,
   euroFix,
   ignoreFixItem,
   listChargesToClassify,
   listIgnored,
-  listInterventionsToComplete,
+  listSalesMissingTime,
   listSiteQualificationTargets,
   listSstMissingClient,
   restoreFixItem,
@@ -32,7 +32,7 @@ import {
   type ChargeTarget,
   type ChargeToClassify,
   type FixScope,
-  type InterventionToComplete,
+  type SaleMissingTime,
   type SstToAttach,
 } from "@/lib/pilot-fix-flows";
 import { ArrowRight, Check, MapPin, RotateCcw, ShieldCheck, Undo2 } from "lucide-react";
@@ -226,14 +226,14 @@ function ChargesFlow() {
   );
 }
 
-// ── Heures ─────────────────────────────────────────────────────────────────
-function HoursRowCard({ row, onDone }: { row: InterventionToComplete; onDone: () => void }) {
+// ── Temps des lignes de vente (source unique) ──────────────────────────────
+function HoursRowCard({ row, onDone }: { row: SaleMissingTime; onDone: () => void }) {
   const [hours, setHours] = useState("");
   const [note, setNote] = useState("");
   const m = useMutation({
-    mutationFn: () => confirmInterventionHours(row, Number(hours.replace(",", ".")), note),
+    mutationFn: () => confirmSaleTime(row, Number(hours.replace(",", ".")), note),
     onSuccess: () => {
-      toast.success("Heures réalisées confirmées");
+      toast.success("Temps enregistré dans le suivi CA");
       onDone();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -241,20 +241,18 @@ function HoursRowCard({ row, onDone }: { row: InterventionToComplete; onDone: ()
   return (
     <div className="rounded-lg border p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-sm font-medium">
-          {row.clientName}
-          {row.siteName && <span className="text-muted-foreground"> · {row.siteName}</span>}
-        </p>
+        <p className="text-sm font-medium">{row.clientName}</p>
         {row.amount > 0 && <span className="text-sm tabular-nums">{euroFix(row.amount)}</span>}
       </div>
       <p className="mt-0.5 text-xs text-muted-foreground">
-        {row.date ? new Date(row.date).toLocaleDateString("fr-FR") : "date inconnue"} · {row.title}
+        {String(row.month).padStart(2, "0")}/{row.year} · {row.designation} ·{" "}
+        {row.kind === "sst" ? "SST (0 h accepté)" : "Interne"}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Input
           value={hours}
           onChange={(e) => setHours(e.target.value)}
-          placeholder="Heures réalisées"
+          placeholder="Temps (h)"
           className="h-8 w-36"
           inputMode="decimal"
         />
@@ -268,15 +266,13 @@ function HoursRowCard({ row, onDone }: { row: InterventionToComplete; onDone: ()
           <Check className="mr-1 h-3 w-3" /> Valider
         </Button>
         <Button asChild size="sm" variant="outline">
-          <Link to="/interventions/$interventionId" params={{ interventionId: row.id }}>
-            Ouvrir la fiche
-          </Link>
+          <Link to="/pilot/ca">Ouvrir le suivi CA</Link>
         </Button>
         <IgnoreButton
           scope="heures"
-          table="interventions"
+          table="pilot_ca_entries"
           targetId={row.id}
-          label={`${row.clientName} — ${row.title}`}
+          label={`${row.clientName} — ${row.designation}`}
           onDone={onDone}
         />
       </div>
@@ -286,7 +282,7 @@ function HoursRowCard({ row, onDone }: { row: InterventionToComplete; onDone: ()
 
 function HoursFlow() {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ["fix", "heures"], queryFn: listInterventionsToComplete });
+  const q = useQuery({ queryKey: ["fix", "heures"], queryFn: listSalesMissingTime });
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["fix", "heures"] });
     qc.invalidateQueries({ queryKey: ["fix-ignored", "heures"] });
@@ -297,15 +293,15 @@ function HoursFlow() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        {rows.length} intervention(s) terminée(s) sans heures. Les heures saisies ici sont des heures{" "}
-        <strong>réalisées confirmées</strong> : elles restent distinctes des heures estimées et ne sont jamais
-        calculées automatiquement.
+        {rows.length} ligne(s) de vente sans temps. Le temps du suivi CA est la{" "}
+        <strong>seule source</strong> utilisée par les calculs : aucune heure n'est reprise des comptes-rendus ni
+        du module SST. Un temps de 0 h reste valide sur une ligne de type SST.
       </p>
       {rows.map((r) => (
         <HoursRowCard key={r.id} row={r} onDone={refresh} />
       ))}
       {rows.length === 0 && (
-        <p className="text-sm text-muted-foreground">Toutes les interventions terminées ont des heures.</p>
+        <p className="text-sm text-muted-foreground">Toutes les lignes de vente ont un temps documenté.</p>
       )}
       <IgnoredList scope="heures" />
     </div>

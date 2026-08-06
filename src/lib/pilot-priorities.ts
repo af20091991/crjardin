@@ -23,9 +23,9 @@ export const PRIORITY_EXPLANATIONS: Record<string, PriorityExplanation> = {
     action: "Générer le compte-rendu puis l'envoyer.",
   },
   h: {
-    why: "Sans heures réelles, la rentabilité de ces interventions ne peut pas être calculée.",
-    source: "Interventions terminées sans heures connues (aucune source disponible)",
-    action: "Renseigner les heures réellement passées.",
+    why: "Sans temps saisi dans le suivi CA, la rentabilité de ces prestations ne peut pas être calculée.",
+    source: "Chiffre d'affaires → Ventes : lignes sans temps (0 h valide uniquement pour le type SST)",
+    action: "Renseigner la colonne Temps de la ligne de vente concernée.",
   },
   r: {
     why: "Des recommandations acceptées par le client ne sont pas encore planifiées : du chiffre d'affaires est en attente.",

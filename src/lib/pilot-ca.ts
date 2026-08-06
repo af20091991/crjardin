@@ -1,4 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { InterventionKind } from "@/lib/pilot-sale-time";
+
+export { INTERVENTION_KINDS, INTERVENTION_KIND_META, interventionKind } from "@/lib/pilot-sale-time";
+export type { InterventionKind } from "@/lib/pilot-sale-time";
 
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser();
@@ -42,6 +46,8 @@ export interface CaEntry {
   position: number;
   note: string | null;
   client_id: string | null;
+  /** Type d'intervention saisi sur la ligne de vente (interne / sst). */
+  intervention_type?: InterventionKind | null;
   match_status?: MatchStatusValue | null;
   sale_status?: SaleStatusValue;
   created_at: string;
@@ -60,6 +66,7 @@ export type CaEntryInput = {
   note?: string | null;
   position?: number;
   client_id?: string | null;
+  intervention_type?: InterventionKind | null;
 };
 
 export async function listCaEntries(year: number): Promise<CaEntry[]> {

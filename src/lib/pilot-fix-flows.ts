@@ -9,6 +9,11 @@
 //   • « ignorer » exige une justification, conservée dans pilot_quality_checks.
 
 import { supabase } from "@/integrations/supabase/client";
+import {
+  interventionKind,
+  saleTimeMissing,
+  type InterventionKind,
+} from "@/lib/pilot-sale-time";
 
 const db = supabase as unknown as { from: (t: string) => any };
 
@@ -21,7 +26,7 @@ export type FixScope = "charges" | "heures" | "sites" | "sst";
 
 export const SCOPE_LABELS: Record<FixScope, string> = {
   charges: "Charges à classer",
-  heures: "Interventions sans heures",
+  heures: "Lignes de vente sans temps",
   sites: "Qualification des Sites",
   sst: "Missions SST sans client",
 };
@@ -272,77 +277,77 @@ export async function classifyCharge(
   }
 }
 
-// ── Phase 3 — Interventions terminées sans heures ───────────────────────────
+// ── Phase 3 — Lignes de vente sans temps (source unique) ────────────────────
+//
+// Le temps métier provient EXCLUSIVEMENT de Chiffre d'affaires → Ventes → Temps.
+// Les heures des comptes-rendus (interventions.hours_spent) ne sont plus
+// corrigées ici : elles ne participent à aucun calcul.
+// Rappel : 0 h est une valeur VALIDE pour une ligne de type SST.
 
-const DONE_STATUSES = ["termine", "terminee", "termine_signe"];
-
-export interface InterventionToComplete {
+export interface SaleMissingTime {
   id: string;
-  date: string | null;
-  title: string;
+  year: number;
+  month: number;
+  designation: string;
   clientName: string;
-  siteName: string | null;
-  /** CA rattaché à cette intervention le cas échéant. */
+  kind: InterventionKind;
   amount: number;
 }
 
-export async function listInterventionsToComplete(): Promise<InterventionToComplete[]> {
-  const [iv, clients, sites, ca] = await Promise.all([
+export async function listSalesMissingTime(): Promise<SaleMissingTime[]> {
+  const [ca, clients] = await Promise.all([
     db
-      .from("interventions")
-      .select("id,intervention_date,title,intervention_type,client_id,site_id,hours_spent,status")
-      .in("status", DONE_STATUSES)
-      .order("intervention_date", { ascending: false })
-      .limit(1000),
+      .from("pilot_ca_entries")
+      .select("id,year,month,designation,client_id,amount_ht,hours,intervention_type")
+      .eq("kind", "vente")
+      .order("year", { ascending: false })
+      .order("month", { ascending: false })
+      .limit(5000),
     db.from("clients").select("id,name"),
-    db.from("sites").select("id,name"),
-    db.from("pilot_ca_entries").select("intervention_id,amount_ht").eq("kind", "vente").not("intervention_id", "is", null),
   ]);
-  for (const r of [iv, clients, sites, ca]) if (r.error) throw r.error;
+  for (const r of [ca, clients]) if (r.error) throw r.error;
 
   const clientName = new Map(((clients.data ?? []) as Record<string, unknown>[]).map((c) => [str(c.id), str(c.name)]));
-  const siteName = new Map(((sites.data ?? []) as Record<string, unknown>[]).map((s) => [str(s.id), str(s.name)]));
-  const caByIv = new Map<string, number>();
-  for (const r of (ca.data ?? []) as Record<string, unknown>[]) {
-    const k = str(r.intervention_id);
-    caByIv.set(k, (caByIv.get(k) ?? 0) + num(r.amount_ht));
-  }
   const ignored = new Set((await listIgnored("heures")).map((i) => i.targetId));
 
-  return ((iv.data ?? []) as Record<string, unknown>[])
-    .filter((r) => num(r.hours_spent) <= 0)
+  return ((ca.data ?? []) as Record<string, unknown>[])
+    .filter((r) =>
+      saleTimeMissing({
+        hours: r.hours == null ? null : num(r.hours),
+        intervention_type: r.intervention_type == null ? null : str(r.intervention_type),
+      }),
+    )
     .filter((r) => !ignored.has(str(r.id)))
     .map((r) => ({
       id: str(r.id),
-      date: r.intervention_date ? str(r.intervention_date) : null,
-      title: str(r.title) || str(r.intervention_type) || "Intervention",
-      clientName: clientName.get(str(r.client_id)) ?? "Client inconnu",
-      siteName: r.site_id ? (siteName.get(str(r.site_id)) ?? null) : null,
-      amount: caByIv.get(str(r.id)) ?? 0,
+      year: num(r.year),
+      month: num(r.month),
+      designation: str(r.designation) || "Ligne de vente",
+      clientName: r.client_id ? (clientName.get(str(r.client_id)) ?? "Client inconnu") : "Client non rattaché",
+      kind: interventionKind(r.intervention_type == null ? null : str(r.intervention_type)),
+      amount: num(r.amount_ht),
     }));
 }
 
 /**
- * Saisit les heures RÉALISÉES d'une intervention terminée.
- * Aucune estimation automatique : la valeur vient exclusivement de l'utilisateur,
- * et la source de saisie est conservée dans le journal des modifications.
+ * Renseigne le temps d'une ligne de vente — seule saisie de temps ayant une
+ * valeur métier. 0 h n'est accepté que pour une ligne SST (réalisée par un tiers).
  */
-export async function confirmInterventionHours(
-  row: InterventionToComplete,
-  hours: number,
-  note: string,
-): Promise<void> {
-  if (!Number.isFinite(hours) || hours <= 0) throw new Error("Saisissez un nombre d'heures supérieur à 0.");
-  const { error } = await db.from("interventions").update({ hours_spent: hours }).eq("id", row.id);
+export async function confirmSaleTime(row: SaleMissingTime, hours: number, note: string): Promise<void> {
+  if (!Number.isFinite(hours) || hours < 0) throw new Error("Saisissez un nombre d'heures valide.");
+  if (hours === 0 && row.kind !== "sst") {
+    throw new Error("0 h n'est valide que pour une ligne de type SST (sous-traitance).");
+  }
+  const { error } = await db.from("pilot_ca_entries").update({ hours }).eq("id", row.id);
   if (error) throw error;
   await logEdit({
-    entity: "interventions",
+    entity: "pilot_ca_entries",
     entityId: row.id,
-    label: `${row.clientName} — ${row.title}`,
-    field: "hours_spent",
-    before: 0,
+    label: `${row.clientName} — ${row.designation}`,
+    field: "hours",
+    before: null,
     after: hours,
-    reason: `Heures réalisées confirmées manuellement (source : saisie dirigeant)${note.trim() ? ` — ${note.trim()}` : ""}`,
+    reason: `Temps renseigné manuellement dans le suivi CA (source unique)${note.trim() ? ` — ${note.trim()}` : ""}`,
   });
 }
 
@@ -524,24 +529,30 @@ export interface ActionPlanItem {
 
 /** Vision « plan d'action » : impact, volume, progression, accès direct. */
 export async function buildActionPlan(): Promise<ActionPlanItem[]> {
-  const [charges, iv, ca, sst] = await Promise.all([
+  const [charges, ca, sst] = await Promise.all([
     db.from("pilot_ca_entries").select("id,charge_class,amount_ht").eq("kind", "charge").limit(5000),
-    db.from("interventions").select("id,hours_spent,status").in("status", DONE_STATUSES).limit(2000),
-    db.from("pilot_ca_entries").select("id,site_id,amount_ht,match_status").eq("kind", "vente").limit(5000),
+    db
+      .from("pilot_ca_entries")
+      .select("id,site_id,amount_ht,match_status,hours,intervention_type")
+      .eq("kind", "vente")
+      .limit(5000),
     db.from("subcontractor_missions").select("id,client_id").limit(2000),
   ]);
-  for (const r of [charges, iv, ca, sst]) if (r.error) throw r.error;
+  for (const r of [charges, ca, sst]) if (r.error) throw r.error;
 
   const chargeRows = (charges.data ?? []) as Record<string, unknown>[];
   const toClass = chargeRows.filter((r) => !r.charge_class || r.charge_class === "a_classer");
   const toClassAmount = toClass.reduce((s, r) => s + num(r.amount_ht), 0);
 
-  const done = (iv.data ?? []) as Record<string, unknown>[];
-  const noHours = done.filter((r) => num(r.hours_spent) <= 0);
-
   const sales = ((ca.data ?? []) as Record<string, unknown>[]).filter((r) => r.match_status !== "non_applicable");
   const salesAmount = sales.reduce((s, r) => s + num(r.amount_ht), 0);
   const salesWithSite = sales.filter((r) => r.site_id).reduce((s, r) => s + num(r.amount_ht), 0);
+  const noHours = sales.filter((r) =>
+    saleTimeMissing({
+      hours: r.hours == null ? null : num(r.hours),
+      intervention_type: r.intervention_type == null ? null : str(r.intervention_type),
+    }),
+  );
 
   const missions = (sst.data ?? []) as Record<string, unknown>[];
   const sstNoClient = missions.filter((r) => !r.client_id);
@@ -562,12 +573,12 @@ export async function buildActionPlan(): Promise<ActionPlanItem[]> {
     {
       key: "heures",
       dot: noHours.length ? "🔴" : "🟢",
-      title: `Compléter ${noHours.length} intervention(s) sans heures`,
-      impact: "Sans heures réalisées, aucun taux horaire réel ni rentabilité client fiable.",
-      volume: `${noHours.length} sur ${done.length} intervention(s) terminée(s)`,
-      progress: pct(done.length - noHours.length, done.length),
+      title: `Compléter le temps de ${noHours.length} ligne(s) de vente`,
+      impact: "Le temps du suivi CA est la seule source des taux horaires et de la rentabilité.",
+      volume: `${noHours.length} sur ${sales.length} ligne(s) de vente`,
+      progress: pct(sales.length - noHours.length, sales.length),
       to: "/pilot/corrections",
-      cta: "Saisir les heures",
+      cta: "Saisir le temps",
     },
     {
       key: "sst",
