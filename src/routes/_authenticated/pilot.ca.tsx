@@ -14,6 +14,13 @@ import {
   recommendationPrice, type BillableRecommendation,
 } from "@/lib/garden";
 import { Calculators } from "@/components/pilot/Calculators";
+import { ClientPicker } from "@/components/pilot/ClientPicker";
+import { listClients } from "@/lib/clients";
+import {
+  INTERVENTION_KINDS, INTERVENTION_KIND_META, interventionKind,
+  saleTimeState, SALE_TIME_STATE_LABEL, type InterventionKind,
+} from "@/lib/pilot-sale-time";
+import { useColumnWidths, ResizeHandle } from "@/components/pilot/ResizableColumns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, TrendingUp, Wallet, Clock, PiggyBank, MessageSquare, Link2, Link2Off, Sparkles } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -63,6 +71,21 @@ function CaPage() {
   const entriesQ = useQuery({ queryKey: ["pilot-ca", year], queryFn: () => listCaEntries(year) });
   const entries = entriesQ.data ?? [];
   const invalidate = () => qc.invalidateQueries({ queryKey: ["pilot-ca", year] });
+
+  // Référentiel client : le client d'une ligne de vente est TOUJOURS choisi ici.
+  const clientsQ = useQuery({ queryKey: ["clients-lite"], queryFn: listClients });
+  const clients = useMemo(
+    () => (clientsQ.data ?? []).map((c) => ({ id: c.id, name: c.name })),
+    [clientsQ.data],
+  );
+
+  // Largeurs de colonnes du tableau des ventes (ajustables à la souris).
+  const salesCols = useColumnWidths("pilot-ca-ventes", {
+    statut: 36, client: 200, designation: 260, categorie: 110, type: 130, montant: 130, temps: 96, actions: 120,
+  });
+  const chargeCols = useColumnWidths("pilot-ca-charges", {
+    designation: 300, montant: 150, actions: 84,
+  });
 
   const createMut = useMutation({ mutationFn: createCaEntry, onSuccess: invalidate, onError: (e: Error) => toast.error(e.message) });
   const updateMut = useMutation({ mutationFn: (p: { id: string; input: Partial<CaEntry> }) => updateCaEntry(p.id, p.input), onSuccess: invalidate, onError: (e: Error) => toast.error(e.message) });
