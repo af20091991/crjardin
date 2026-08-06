@@ -115,7 +115,14 @@ function CaPage() {
   const addRow = (kind: CaKind) => {
     const list = monthRows(kind);
     const position = list.length ? Math.max(...list.map((r) => r.position)) + 1 : 0;
-    createMut.mutate({ year, month, kind, position, designation: "", category: kind === "vente" ? "AP" : null, amount_ht: kind === "remuneration" ? 0 : (pending ?? 0), hours: kind === "vente" ? 0 : null });
+    createMut.mutate({
+      year, month, kind, position, designation: "",
+      category: kind === "vente" ? "AP" : null,
+      amount_ht: kind === "remuneration" ? 0 : (pending ?? 0),
+      // Temps volontairement vide : aucune valeur n'est inventée à la création.
+      hours: null,
+      intervention_type: kind === "vente" ? "interne" : null,
+    });
     if (pending != null) setPending(null);
   };
 
@@ -460,6 +467,9 @@ function CaPage() {
                       {SALE_STATUS[s].label}
                     </span>
                   ))}
+                  <span className="ml-auto">
+                    Type SST : un temps de 0 h est une valeur valide. Case ambrée = temps non renseigné.
+                  </span>
                 </div>
               )}
               <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
