@@ -9,6 +9,11 @@
 //   • « ignorer » exige une justification, conservée dans pilot_quality_checks.
 
 import { supabase } from "@/integrations/supabase/client";
+import {
+  interventionKind,
+  saleTimeMissing,
+  type InterventionKind,
+} from "@/lib/pilot-sale-time";
 
 const db = supabase as unknown as { from: (t: string) => any };
 
