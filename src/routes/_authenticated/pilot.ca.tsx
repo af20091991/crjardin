@@ -304,23 +304,42 @@ function CaPage() {
               <Button size="sm" variant="outline" onClick={() => addRow("vente")}><Plus className="mr-1 h-4 w-4" />Ligne</Button>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <p className="px-4 pb-2 text-xs text-muted-foreground">
+                Source unique de vérité économique. Chaque ligne porte le client, la prestation, le montant HT,
+                le temps et le type d'intervention. Largeur des colonnes ajustable en glissant leur bord droit.
+              </p>
+              <div className="overflow-x-auto">
+              <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
+                <colgroup>
+                  <col style={{ width: salesCols.widths.statut }} />
+                  <col style={{ width: salesCols.widths.client }} />
+                  <col style={{ width: salesCols.widths.designation }} />
+                  <col style={{ width: salesCols.widths.categorie }} />
+                  <col style={{ width: salesCols.widths.type }} />
+                  <col style={{ width: salesCols.widths.montant }} />
+                  <col style={{ width: salesCols.widths.temps }} />
+                  <col style={{ width: salesCols.widths.actions }} />
+                </colgroup>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-8" />
-                    <TableHead className="min-w-[220px] resize-x overflow-auto">Désignation</TableHead>
-                    <TableHead className="w-32">Type</TableHead>
-                    <TableHead className="w-36 text-right">Montant HT</TableHead>
-                    <TableHead className="w-24 text-right">Temps</TableHead>
-                    <TableHead className="w-10" />
+                    <TableHead />
+                    <TableHead className="relative">Client<ResizeHandle width={salesCols.widths.client} onResize={(w) => salesCols.setWidth("client", w)} /></TableHead>
+                    <TableHead className="relative">Désignation<ResizeHandle width={salesCols.widths.designation} onResize={(w) => salesCols.setWidth("designation", w)} /></TableHead>
+                    <TableHead className="relative">Catégorie<ResizeHandle width={salesCols.widths.categorie} onResize={(w) => salesCols.setWidth("categorie", w)} /></TableHead>
+                    <TableHead className="relative">Type d'intervention<ResizeHandle width={salesCols.widths.type} onResize={(w) => salesCols.setWidth("type", w)} /></TableHead>
+                    <TableHead className="relative text-right">Montant HT<ResizeHandle width={salesCols.widths.montant} onResize={(w) => salesCols.setWidth("montant", w)} /></TableHead>
+                    <TableHead className="relative text-right">Temps<ResizeHandle width={salesCols.widths.temps} onResize={(w) => salesCols.setWidth("temps", w)} /></TableHead>
+                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ventes.length === 0 && <TableRow><TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">Aucune vente — ajoutez une ligne</TableCell></TableRow>}
+                  {ventes.length === 0 && <TableRow><TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">Aucune vente — ajoutez une ligne</TableCell></TableRow>}
                   {ventes.map((row) => {
                     const hasNote = !!row.note;
                     const opened = openNote[row.id] || hasNote;
                     const status = ((row.sale_status as SaleStatus | undefined) ?? "realise") as SaleStatus;
+                    const kind = interventionKind(row.intervention_type);
+                    const timeState = saleTimeState(row);
                     return (
                     <Fragment key={row.id}>
                     <TableRow className={SALE_STATUS[status].row}>
@@ -348,7 +367,15 @@ function CaPage() {
                         </DropdownMenu>
                       </TableCell>
                       <TableCell>
-                        <Input defaultValue={row.designation ?? ""} placeholder="Désignation" title={row.designation ?? undefined} className="h-8 min-w-[200px] border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
+                        <ClientPicker
+                          clients={clients}
+                          value={row.client_id ?? ""}
+                          onChange={(id) => save(row.id, { client_id: id })}
+                          placeholder="Client…"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input defaultValue={row.designation ?? ""} placeholder="Désignation" title={row.designation ?? undefined} className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
                       </TableCell>
                       <TableCell>
                         <Select value={row.category ?? "AP"} onValueChange={(v) => save(row.id, { category: v as CaCategory })}>
@@ -358,11 +385,36 @@ function CaPage() {
                           </SelectContent>
                         </Select>
                       </TableCell>
+                      <TableCell>
+                        <Select
+                          value={kind}
+                          onValueChange={(v) => save(row.id, { intervention_type: v as InterventionKind })}
+                        >
+                          <SelectTrigger className="h-8" title={INTERVENTION_KIND_META[kind].help}><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {INTERVENTION_KINDS.map((k) => (
+                              <SelectItem key={k} value={k}>{INTERVENTION_KIND_META[k].label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell className="text-right">
                         <Input defaultValue={row.amount_ht || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }} />
                       </TableCell>
                       <TableCell className="text-right">
-                        <Input defaultValue={row.hours || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== (row.hours ?? 0)) save(row.id, { hours: v }); }} />
+                        <Input
+                          defaultValue={row.hours == null ? "" : String(row.hours)}
+                          type="number"
+                          inputMode="decimal"
+                          placeholder={kind === "sst" ? "0" : "—"}
+                          title={SALE_TIME_STATE_LABEL[timeState]}
+                          className={`h-8 text-right ${timeState === "absent" ? "border-amber-300 bg-amber-50/60" : ""}`}
+                          onBlur={(e) => {
+                            const raw = e.target.value.trim();
+                            const v = raw === "" ? null : num(raw);
+                            if (v !== (row.hours ?? null)) save(row.id, { hours: v });
+                          }}
+                        />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <Button
@@ -380,7 +432,7 @@ function CaPage() {
                     </TableRow>
                     {opened && (
                       <TableRow>
-                        <TableCell colSpan={6} className="bg-muted/20 py-2">
+                        <TableCell colSpan={8} className="bg-muted/20 py-2">
                           <Textarea
                             defaultValue={row.note ?? ""}
                             placeholder="Commentaire (optionnel)…"
@@ -398,6 +450,7 @@ function CaPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
               {ventes.length > 0 && (
                 <div className="flex flex-wrap items-center gap-3 border-t px-4 py-2 text-[11px] text-muted-foreground">
                   <span className="uppercase tracking-wide">Statut :</span>
