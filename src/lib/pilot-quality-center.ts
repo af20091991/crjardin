@@ -10,6 +10,7 @@
 // et action réalisée. Aucune suppression, aucune fusion automatique.
 
 import { supabase } from "@/integrations/supabase/client";
+import { saleTimeMissing } from "@/lib/pilot-sale-time";
 
 export type QualityDomainKey = "finance" | "activite" | "clients" | "sst";
 
@@ -94,7 +95,7 @@ export const euro = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €
 /** Rapport complet : indicateurs par domaine, anomalies priorisées, couverture Site. */
 export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   const [ca, iv, sst, sites, aliases, proposals, histo] = await Promise.all([
-    paged("pilot_ca_entries", "id,kind,charge_class,amount_ht,client_id,site_id,year,match_status,hours"),
+    paged("pilot_ca_entries", "id,kind,charge_class,amount_ht,client_id,site_id,year,match_status,hours,intervention_type"),
     paged("interventions", "id,status,hours_spent,client_id,site_id"),
     paged("subcontractor_missions", "id,client_id,site_id,status,mission_date"),
     paged("sites", "id"),
@@ -120,14 +121,25 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   );
 
   // ── Activité ───────────────────────────────────────────────────────────────
-  const done = iv.filter((r) => r.status === "termine" || r.status === "terminee" || r.status === "termine_signe");
-  const doneNoHours = done.filter((r) => num(r.hours_spent) <= 0);
+  // Source unique du temps : Chiffre d'affaires → Ventes (colonne Temps).
+  // Les heures des comptes-rendus (CR Chantier) et du module SST ne sont plus
+  // évaluées ici : elles n'alimentent aucun calcul économique.
+  // Un temps de 0 h sur une ligne SST est une donnée valide, jamais une anomalie.
+  const salesTimeMissing = ca.filter(
+    (r) =>
+      r.kind === "vente" &&
+      saleTimeMissing({
+        hours: r.hours as number | null,
+        intervention_type: r.intervention_type as string | null,
+      }),
+  );
+  const salesTimeMissingAmount = salesTimeMissing.reduce((s, r) => s + num(r.amount_ht), 0);
+  const salesAll = ca.filter((r) => r.kind === "vente");
+  const salesNoType = salesAll.filter((r) => !r.intervention_type);
   const ivNoClient = iv.filter((r) => !r.client_id);
   const ivNoSite = iv.filter((r) => r.client_id && !r.site_id);
 
-  const activiteScore = Math.round(
-    0.6 * pct(done.length - doneNoHours.length, done.length) + 0.4 * pct(iv.length - ivNoClient.length, iv.length),
-  );
+  const activiteScore = pct(salesAll.length - salesTimeMissing.length, salesAll.length);
 
   // ── Clients / Sites ────────────────────────────────────────────────────────
   const salesLinkable = sales.filter((r) => r.match_status !== "non_applicable");
@@ -146,10 +158,10 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   );
 
   // ── Couverture analytique Site (préparation, aucune migration) ─────────────
-  const hoursRows = [
-    ...histo.map((r) => ({ hours: num(r.hours), site: Boolean(r.site_id) })),
-    ...iv.map((r) => ({ hours: num(r.hours_spent), site: Boolean(r.site_id) })),
-  ].filter((r) => r.hours > 0);
+  // Heures mesurées sur la source maître uniquement (lignes de vente).
+  const hoursRows = salesAll
+    .map((r) => ({ hours: num(r.hours), site: Boolean(r.site_id) }))
+    .filter((r) => r.hours > 0);
   const hoursTotal = hoursRows.reduce((s, r) => s + r.hours, 0);
   const hoursWithSite = hoursRows.filter((r) => r.site).reduce((s, r) => s + r.hours, 0);
   const ivWithSite = iv.filter((r) => r.site_id).length;
@@ -195,25 +207,26 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
     },
     {
       key: "activite",
-      label: "Activité",
+      label: "Activité (source : Ventes)",
       score: activiteScore,
       metrics: [
         {
-          label: "Interventions terminées sans heures",
-          value: `${doneNoHours.length}`,
-          hint: `${done.length} intervention(s) terminée(s)`,
-          tone: doneNoHours.length === 0 ? "positive" : "negative",
+          label: "Lignes de vente sans temps",
+          value: `${salesTimeMissing.length}`,
+          hint: `${euro(salesTimeMissingAmount)} — 0 h sur une ligne SST reste valide`,
+          tone: salesTimeMissing.length === 0 ? "positive" : "negative",
         },
         {
-          label: "Interventions sans client",
+          label: "Type d'intervention non renseigné",
+          value: `${salesNoType.length}`,
+          hint: `${salesAll.length} ligne(s) de vente — Interne ou SST`,
+          tone: salesNoType.length === 0 ? "positive" : "neutral",
+        },
+        {
+          label: "Comptes-rendus sans client (suivi seul)",
           value: `${ivNoClient.length}`,
+          hint: "CR Chantier : suivi opérationnel, hors calculs économiques",
           tone: ivNoClient.length === 0 ? "positive" : "warning",
-        },
-        {
-          label: "Interventions sans Site",
-          value: `${ivNoSite.length}`,
-          hint: "Information utile pour l'analyse par lieu",
-          tone: ivNoSite.length === 0 ? "positive" : "neutral",
         },
       ],
     },
@@ -290,14 +303,15 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
     actionLabel: "Ouvrir les charges",
   });
   push({
-    key: "interventions_sans_heures",
+    key: "ventes_sans_temps",
     domain: "activite",
     priority: 1,
-    title: `${doneNoHours.length} intervention(s) terminée(s) sans heures`,
-    impact: "Aucun taux horaire réel : rentabilité client non calculable.",
-    count: doneNoHours.length,
-    to: "/interventions",
-    actionLabel: "Compléter les heures",
+    title: `${salesTimeMissing.length} ligne(s) de vente sans temps`,
+    impact: "Sans temps saisi dans le suivi CA, aucun taux horaire ni rentabilité calculable sur ces lignes.",
+    count: salesTimeMissing.length,
+    amount: salesTimeMissingAmount,
+    to: "/pilot/ca",
+    actionLabel: "Compléter la colonne Temps",
   });
   push({
     key: "sst_sans_client",
@@ -333,9 +347,9 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   push({
     key: "interventions_sans_client",
     domain: "activite",
-    priority: 2,
+    priority: 3,
     title: `${ivNoClient.length} intervention(s) sans client`,
-    impact: "Historique technique absent de la fiche client.",
+    impact: "Historique technique absent de la fiche client (suivi opérationnel, sans effet sur les calculs).",
     count: ivNoClient.length,
     to: "/interventions",
     actionLabel: "Ouvrir les interventions",
