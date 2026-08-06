@@ -94,14 +94,13 @@ export const euro = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €
 
 /** Rapport complet : indicateurs par domaine, anomalies priorisées, couverture Site. */
 export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
-  const [ca, iv, sst, sites, aliases, proposals, histo] = await Promise.all([
+  const [ca, iv, sst, sites, aliases, proposals] = await Promise.all([
     paged("pilot_ca_entries", "id,kind,charge_class,amount_ht,client_id,site_id,year,match_status,hours,intervention_type"),
     paged("interventions", "id,status,hours_spent,client_id,site_id"),
     paged("subcontractor_missions", "id,client_id,site_id,status,mission_date"),
     paged("sites", "id"),
     paged("site_aliases", "id,origin"),
     paged("site_merge_proposals", "id,status"),
-    paged("pilot_historic_hours", "id,hours,client_id,site_id"),
   ]);
 
   // ── Finance ────────────────────────────────────────────────────────────────
