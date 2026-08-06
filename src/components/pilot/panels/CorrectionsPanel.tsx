@@ -19,12 +19,12 @@ import {
   buildActionPlan,
   CHARGE_TARGET_LABELS,
   classifyCharge,
-  confirmInterventionHours,
+  confirmSaleTime,
   euroFix,
   ignoreFixItem,
   listChargesToClassify,
   listIgnored,
-  listInterventionsToComplete,
+  listSalesMissingTime,
   listSiteQualificationTargets,
   listSstMissingClient,
   restoreFixItem,
@@ -32,7 +32,7 @@ import {
   type ChargeTarget,
   type ChargeToClassify,
   type FixScope,
-  type InterventionToComplete,
+  type SaleMissingTime,
   type SstToAttach,
 } from "@/lib/pilot-fix-flows";
 import { ArrowRight, Check, MapPin, RotateCcw, ShieldCheck, Undo2 } from "lucide-react";
