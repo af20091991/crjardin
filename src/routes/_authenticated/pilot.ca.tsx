@@ -218,7 +218,7 @@ function CaPage() {
                     <Fragment key={row.id}>
                     <TableRow>
                       <TableCell>
-                        <Input defaultValue={row.designation ?? ""} placeholder="Désignation" title={row.designation ?? undefined} className="h-8 min-w-[200px] border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
+                        <Input defaultValue={row.designation ?? ""} placeholder="Désignation" title={row.designation ?? undefined} className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
                       </TableCell>
                       <TableCell className="text-right">
                         <Input defaultValue={row.amount_ht || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }} />
