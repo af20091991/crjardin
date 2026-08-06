@@ -195,12 +195,18 @@ function CaPage() {
               <Button size="sm" variant="outline" onClick={() => addRow("charge")}><Plus className="mr-1 h-4 w-4" />Ligne</Button>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <div className="overflow-x-auto">
+              <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
+                <colgroup>
+                  <col style={{ width: chargeCols.widths.designation }} />
+                  <col style={{ width: chargeCols.widths.montant }} />
+                  <col style={{ width: chargeCols.widths.actions }} />
+                </colgroup>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[220px] resize-x overflow-auto">Désignation</TableHead>
-                    <TableHead className="w-40 text-right">Montant HT</TableHead>
-                    <TableHead className="w-10" />
+                    <TableHead className="relative">Désignation<ResizeHandle width={chargeCols.widths.designation} onResize={(w) => chargeCols.setWidth("designation", w)} /></TableHead>
+                    <TableHead className="relative text-right">Montant HT<ResizeHandle width={chargeCols.widths.montant} onResize={(w) => chargeCols.setWidth("montant", w)} /></TableHead>
+                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -242,6 +248,7 @@ function CaPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
               <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
                 <span className="font-medium">Total charges {MONTH_NAMES[month - 1]}</span>
                 <span className="font-semibold text-rose-600">{formatEuro(mt.chargesHt)}</span>
