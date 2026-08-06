@@ -26,7 +26,7 @@ export type FixScope = "charges" | "heures" | "sites" | "sst";
 
 export const SCOPE_LABELS: Record<FixScope, string> = {
   charges: "Charges à classer",
-  heures: "Interventions sans heures",
+  heures: "Lignes de vente sans temps",
   sites: "Qualification des Sites",
   sst: "Missions SST sans client",
 };
