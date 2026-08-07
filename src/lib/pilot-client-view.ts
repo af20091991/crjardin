@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------
 
 import { sumHistoricHours, type HistoricHoursRow } from "@/lib/pilot-historic-hours";
+import { saleTimeKnown } from "@/lib/pilot-sale-time";
 
 export interface ClientViewInput {
   clientId: string;
