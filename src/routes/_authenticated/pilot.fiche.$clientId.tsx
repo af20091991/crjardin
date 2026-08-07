@@ -22,6 +22,7 @@ import { CeevClientCard } from "@/components/pilot/CeevClientCard";
 import { listMissions } from "@/lib/subcontractors";
 import { listContacts, listSites, type Contact, type Site } from "@/lib/sites";
 import { entityEligibility } from "@/lib/pilot-entity-rules";
+import { saleTimeKnown } from "@/lib/pilot-sale-time";
 import { EntityStatusBadge } from "@/components/pilot/ReliabilityBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,8 @@ interface CaEntryRow {
   amount_ht: number;
   designation: string | null;
   kind: string;
+  hours: number | null;
+  intervention_type: string | null;
 }
 
 interface InterventionRow {
@@ -148,7 +151,7 @@ function PilotClient360() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pilot_ca_entries")
-        .select("id,year,month,amount_ht,designation,kind")
+        .select("id,year,month,amount_ht,designation,kind,hours,intervention_type")
         .eq("client_id", clientId)
         .eq("kind", "vente")
         .order("year", { ascending: false })
@@ -231,9 +234,9 @@ function PilotClient360() {
 
   const caCumule = score?.revenueTotalHt ?? (caQ.data ?? []).reduce((s, r) => s + (Number(r.amount_ht) || 0), 0);
   const totalHours = (interventionsQ.data ?? []).reduce((s, iv) => s + (iv.hours_spent ?? 0), 0);
-  const missingHours = (interventionsQ.data ?? []).filter(
-    (iv) => iv.status === "terminee" && iv.hours_spent == null,
-  ).length;
+  // Anomalie de temps = ligne de vente sans Temps (source unique). Les
+  // comptes-rendus sans heures ne sont plus une anomalie.
+  const missingHours = (caQ.data ?? []).filter((r) => !saleTimeKnown(r)).length;
   const crSent = (interventionsQ.data ?? []).filter((iv) => iv.sent_to_client_at).length;
   const historicRows = historicHoursQ.data ?? [];
   const historicHours = sumHistoricHours(historicRows);
@@ -246,9 +249,9 @@ function PilotClient360() {
   const ceevValue = ceevRows.reduce((s, c) => s + (Number(c.pv_ht) || 0), 0);
   const sstRows = (missionsQ.data ?? []).filter((m) => m.client_id === clientId);
   const recoRows = recosQ.data ?? [];
-  const interventionsWithHours = (interventionsQ.data ?? []).filter(
-    (iv) => iv.hours_spent != null,
-  ).length;
+  // Temps documenté = lignes de vente (Chiffre d'affaires → Temps), source unique.
+  // 0 h sur une ligne SST est une donnée valide et complète.
+  const interventionsWithHours = (caQ.data ?? []).filter((r) => saleTimeKnown(r)).length;
 
   const qualityInput = {
     hasAddress: !!client.address,
@@ -709,9 +712,9 @@ function PilotClient360() {
               <MiniStat icon={Clock} label="Heures cumulées" value={`${totalHours.toFixed(1)} h`} />
               <MiniStat
                 icon={AlertCircle}
-                label="Heures manquantes"
+                label="Ventes sans temps"
                 value={String(missingHours)}
-                sub={missingHours > 0 ? "À confirmer" : undefined}
+                sub={missingHours > 0 ? "À compléter dans Chiffre d'affaires" : undefined}
               />
             </div>
           )}

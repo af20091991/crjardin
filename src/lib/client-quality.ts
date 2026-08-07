@@ -8,9 +8,15 @@ export interface ClientQualityInput {
   caLines: number;
   caAmount: number;
   interventions: number;
+  /**
+   * Nombre de lignes de vente (Chiffre d'affaires → Ventes) dont le Temps est
+   * documenté — source UNIQUE des heures. 0 h sur une ligne SST compte comme
+   * documenté. Les heures des comptes-rendus n'entrent pas dans ce compte.
+   */
   interventionsWithHours: number;
   ceev: number;
   sst: number;
+  /** Heures importées (historique) — informatif seul, hors score de temps. */
   historicHours: number;
   recommendations: number;
   confidenceLevel: "HIGH" | "MEDIUM" | "LOW" | null;
@@ -53,7 +59,8 @@ export function computeClientQuality(i: ClientQualityInput, clientId: string): C
   // Client non concerné par les comptes-rendus : les interventions ne sont pas
   // attendues, on ne pénalise donc ni la complétude ni la liste des manques.
   const interventionsExpected = i.reportPolicy !== "non";
-  const hoursKnown = i.interventionsWithHours > 0 || i.historicHours > 0;
+  // Temps connu = uniquement la colonne Temps des lignes de vente.
+  const hoursKnown = i.interventionsWithHours > 0;
   const criteria: Array<{ ok: boolean; weight: number }> = [
     { ok: i.hasAddress, weight: 1 },
     { ok: i.hasPhone || i.hasEmail, weight: 1 },

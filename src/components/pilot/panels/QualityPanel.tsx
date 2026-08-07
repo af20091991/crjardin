@@ -416,19 +416,19 @@ export function QualityPage() {
         })}
       </section>
 
-      {/* Phase 6 — Couverture analytique Site */}
+      {/* Couverture analytique — référence unique : Client */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <MapPin className="h-4 w-4 text-primary" />
-            Couverture analytique Site
+            Couverture analytique Client
             <Badge variant="outline" className="ml-auto text-[11px]">
-              Préparation — {cov.readiness} %
+              Rattachement — {cov.readiness} %
             </Badge>
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Indicateur de préparation uniquement : les analyses restent basées sur le Client. Aucune migration
-            n'est lancée.
+            Part du CA, des heures (Chiffre d'affaires → Temps) et des comptes-rendus rattachés à une fiche
+            client. Le Site n'est plus une clé d'analyse.
           </p>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-3">
