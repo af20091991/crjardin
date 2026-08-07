@@ -144,10 +144,6 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
   // Temps exploitable = source maître uniquement (lignes de vente du suivi CA).
   // 0 h sur une ligne SST compte comme donnée connue, jamais comme manquante.
   const caHoursByClient = countBy(caLinked.filter((r) => saleTimeKnown(r)), "client_id");
-  const ivHoursByClient = countBy(
-    interventions.filter((i) => Number(i.hours_spent ?? 0) > 0),
-    "client_id",
-  );
   const ceevByClient = countBy(ceev.filter((r) => r.client_id), "client_id");
   const sstByClient = countBy(sst.filter((r) => r.client_id), "client_id");
   const recoByClient = countBy(recos, "client_id");
