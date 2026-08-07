@@ -160,7 +160,7 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
         caLines: caByClient.get(cl.id) ?? 0,
         caAmount: amountByClient.get(cl.id) ?? 0,
         interventions: ivByClient.get(cl.id) ?? 0,
-        interventionsWithHours: ivHoursByClient.get(cl.id) ?? 0,
+        interventionsWithHours: caHoursByClient.get(cl.id) ?? 0,
         ceev: ceevByClient.get(cl.id) ?? 0,
         sst: sstByClient.get(cl.id) ?? 0,
         historicHours: histoByClient.get(cl.id) ?? 0,
