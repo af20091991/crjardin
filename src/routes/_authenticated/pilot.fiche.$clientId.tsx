@@ -22,6 +22,7 @@ import { CeevClientCard } from "@/components/pilot/CeevClientCard";
 import { listMissions } from "@/lib/subcontractors";
 import { listContacts, listSites, type Contact, type Site } from "@/lib/sites";
 import { entityEligibility } from "@/lib/pilot-entity-rules";
+import { saleTimeKnown } from "@/lib/pilot-sale-time";
 import { EntityStatusBadge } from "@/components/pilot/ReliabilityBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
