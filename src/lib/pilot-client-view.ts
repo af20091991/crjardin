@@ -10,7 +10,14 @@ import { sumHistoricHours, type HistoricHoursRow } from "@/lib/pilot-historic-ho
 export interface ClientViewInput {
   clientId: string;
   /** Lignes de vente rattachées (pilot_ca_entries, kind = vente). */
-  caRows: Array<{ amount_ht: number | null; designation: string | null; entry_date?: string }>;
+  caRows: Array<{
+    amount_ht: number | null;
+    designation: string | null;
+    entry_date?: string;
+    /** Temps de la ligne de vente — SOURCE UNIQUE des heures. */
+    hours?: number | null;
+    intervention_type?: string | null;
+  }>;
   interventions: Array<{
     intervention_date: string;
     status: string;
@@ -71,15 +78,20 @@ export function buildClientView(input: ClientViewInput): ClientView {
         : lastSale
       : (lastIntervention ?? lastSale ?? null);
 
+  // Heures : uniquement la colonne Temps des lignes de vente (0 h SST = valide).
+  const saleHours = caRows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
+  const salesTimeKnown = caRows.filter((r) => saleTimeKnown(r)).length;
+  const salesTimeMissing = caRows.length - salesTimeKnown;
+
   return {
     caCumule,
-    totalHours: interventions.reduce((s, iv) => s + (iv.hours_spent ?? 0), 0),
+    totalHours: saleHours,
     historicHours: sumHistoricHours(historicRows),
-    missingHours: interventions.filter((iv) => iv.status === "terminee" && iv.hours_spent == null).length,
+    missingHours: salesTimeMissing,
     crSent,
     crTotal: interventions.length,
     hasCrHistory: crSent > 0,
-    interventionsWithHours: interventions.filter((iv) => iv.hours_spent != null).length,
+    interventionsWithHours: salesTimeKnown,
     ceevValue: ceevRows.reduce((s, c) => s + (Number(c.pv_ht) || 0), 0),
     ceevCount: ceevRows.length,
     sstCount: missions.filter((m) => m.client_id === input.clientId).length,
