@@ -234,9 +234,9 @@ function PilotClient360() {
 
   const caCumule = score?.revenueTotalHt ?? (caQ.data ?? []).reduce((s, r) => s + (Number(r.amount_ht) || 0), 0);
   const totalHours = (interventionsQ.data ?? []).reduce((s, iv) => s + (iv.hours_spent ?? 0), 0);
-  const missingHours = (interventionsQ.data ?? []).filter(
-    (iv) => iv.status === "terminee" && iv.hours_spent == null,
-  ).length;
+  // Anomalie de temps = ligne de vente sans Temps (source unique). Les
+  // comptes-rendus sans heures ne sont plus une anomalie.
+  const missingHours = (caQ.data ?? []).filter((r) => !saleTimeKnown(r)).length;
   const crSent = (interventionsQ.data ?? []).filter((iv) => iv.sent_to_client_at).length;
   const historicRows = historicHoursQ.data ?? [];
   const historicHours = sumHistoricHours(historicRows);
