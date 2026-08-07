@@ -192,9 +192,9 @@ function CaPage() {
         <StatBox label="Taux horaire" value={mt.hours ? `${formatEuro(mt.tauxHoraire)}/h` : "—"} icon={TrendingUp} />
       </div>
 
-      {/* Corps : Charges à gauche · Ventes à droite (disposition Excel) */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="space-y-4">
+      {/* Corps : Ventes (source de vérité) en premier, Charges ensuite */}
+      <div className="grid grid-cols-1 gap-4">
+        <div className="order-2 space-y-4">
           {/* Charges */}
           <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-charges) 7%, transparent)" }}>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
