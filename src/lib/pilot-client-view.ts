@@ -81,7 +81,9 @@ export function buildClientView(input: ClientViewInput): ClientView {
 
   // Heures : uniquement la colonne Temps des lignes de vente (0 h SST = valide).
   const saleHours = caRows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
-  const salesTimeKnown = caRows.filter((r) => saleTimeKnown(r)).length;
+  const salesTimeKnown = caRows.filter((r) =>
+    saleTimeKnown({ hours: r.hours ?? null, intervention_type: r.intervention_type ?? null }),
+  ).length;
   const salesTimeMissing = caRows.length - salesTimeKnown;
 
   return {
