@@ -289,42 +289,39 @@ function FocusPage() {
     }
 
     if (topic === "depassements-temps") {
+      // Source unique : Chiffre d'affaires → Ventes → Temps.
+      // Les heures des comptes-rendus n'entrent plus dans ce comparatif.
+      const sales = allE.filter((e) => Number(e.hours) > 0);
       const avg = new Map<string, { total: number; n: number }>();
-      for (const i of allI) {
-        if (i.status !== "terminee" || i.hours_spent == null) continue;
-        const est =
-          i.ai_metadata && typeof i.ai_metadata === "object" &&
-          (i.ai_metadata as Record<string, unknown>).hours_estimated === true;
-        if (est) continue;
-        const key = i.intervention_type ?? "—";
+      for (const e of sales) {
+        const key = (e.nature ?? e.family ?? "—") || "—";
         const cur = avg.get(key) ?? { total: 0, n: 0 };
-        cur.total += Number(i.hours_spent);
+        cur.total += Number(e.hours);
         cur.n += 1;
         avg.set(key, cur);
       }
       const avgMap = new Map<string, number>();
       avg.forEach((v, k) => v.n >= 2 && avgMap.set(k, v.total / v.n));
-      return allI
-        .filter((i) => {
-          if (i.status !== "terminee" || i.hours_spent == null) return false;
-          const a = avgMap.get(i.intervention_type ?? "—");
-          return a != null && Number(i.hours_spent) > a * 1.5;
+      return sales
+        .filter((e) => {
+          const a = avgMap.get((e.nature ?? e.family ?? "—") || "—");
+          return a != null && Number(e.hours) > a * 1.5;
         })
         .slice(0, 100)
-        .map((i) => {
-          const a = avgMap.get(i.intervention_type ?? "—") ?? 0;
+        .map((e) => {
+          const key = (e.nature ?? e.family ?? "—") || "—";
+          const a = avgMap.get(key) ?? 0;
           return {
-            key: i.id,
-            clientName: nameByClient.get(i.client_id) ?? "Client",
-            clientId: i.client_id,
-            interventionId: i.id,
+            key: e.id,
+            clientName: (e.client_id ? nameByClient.get(e.client_id) : null) ?? e.client_name ?? "Client",
+            clientId: e.client_id,
             columns: [
-              { label: "Date", value: new Date(i.intervention_date).toLocaleDateString("fr-FR") },
-              { label: "Type", value: i.intervention_type ?? "—" },
-              { label: "Heures", value: `${Number(i.hours_spent).toFixed(1)} h` },
-              { label: "Moyenne type", value: `${a.toFixed(1)} h` },
+              { label: "Date", value: new Date(e.entry_date).toLocaleDateString("fr-FR") },
+              { label: "Prestation", value: key },
+              { label: "Temps vendu", value: `${Number(e.hours).toFixed(1)} h` },
+              { label: "Moyenne prestation", value: `${a.toFixed(1)} h` },
             ],
-            reason: `Temps réel à ${Math.round((Number(i.hours_spent) / a) * 100)} % de la moyenne du type.`,
+            reason: `Temps vendu à ${Math.round((Number(e.hours) / a) * 100)} % de la moyenne de la prestation.`,
           };
         });
     }
