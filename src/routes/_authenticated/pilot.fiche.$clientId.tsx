@@ -62,6 +62,8 @@ interface CaEntryRow {
   amount_ht: number;
   designation: string | null;
   kind: string;
+  hours: number | null;
+  intervention_type: string | null;
 }
 
 interface InterventionRow {
@@ -148,7 +150,7 @@ function PilotClient360() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pilot_ca_entries")
-        .select("id,year,month,amount_ht,designation,kind")
+        .select("id,year,month,amount_ht,designation,kind,hours,intervention_type")
         .eq("client_id", clientId)
         .eq("kind", "vente")
         .order("year", { ascending: false })
