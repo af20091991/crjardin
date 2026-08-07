@@ -248,9 +248,9 @@ function PilotClient360() {
   const ceevValue = ceevRows.reduce((s, c) => s + (Number(c.pv_ht) || 0), 0);
   const sstRows = (missionsQ.data ?? []).filter((m) => m.client_id === clientId);
   const recoRows = recosQ.data ?? [];
-  const interventionsWithHours = (interventionsQ.data ?? []).filter(
-    (iv) => iv.hours_spent != null,
-  ).length;
+  // Temps documenté = lignes de vente (Chiffre d'affaires → Temps), source unique.
+  // 0 h sur une ligne SST est une donnée valide et complète.
+  const interventionsWithHours = (caQ.data ?? []).filter((r) => saleTimeKnown(r)).length;
 
   const qualityInput = {
     hasAddress: !!client.address,
