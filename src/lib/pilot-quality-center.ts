@@ -50,6 +50,7 @@ export interface QualityAnomaly {
   actionLabel: string;
 }
 
+/** Couverture analytique — la référence unique est le Client (plus le Site). */
 export interface SiteCoverageIndicator {
   caLines: number;
   caLinesWithSite: number;
@@ -142,7 +143,8 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
 
   // ── Clients / Sites ────────────────────────────────────────────────────────
   const salesLinkable = sales.filter((r) => r.match_status !== "non_applicable");
-  const salesWithSite = salesLinkable.filter((r) => r.site_id);
+  // Référence unique : Client. Le Site n'est plus une clé d'analyse.
+  const salesWithSite = salesLinkable.filter((r) => r.client_id);
   const caAmount = salesLinkable.reduce((s, r) => s + num(r.amount_ht), 0);
   const caAmountWithSite = salesWithSite.reduce((s, r) => s + num(r.amount_ht), 0);
   const pendingProposals = proposals.filter((r) => r.status === "pending" || r.status === "en_attente");
@@ -159,11 +161,11 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   // ── Couverture analytique Site (préparation, aucune migration) ─────────────
   // Heures mesurées sur la source maître uniquement (lignes de vente).
   const hoursRows = salesAll
-    .map((r) => ({ hours: num(r.hours), site: Boolean(r.site_id) }))
+    .map((r) => ({ hours: num(r.hours), site: Boolean(r.client_id) }))
     .filter((r) => r.hours > 0);
   const hoursTotal = hoursRows.reduce((s, r) => s + r.hours, 0);
   const hoursWithSite = hoursRows.filter((r) => r.site).reduce((s, r) => s + r.hours, 0);
-  const ivWithSite = iv.filter((r) => r.site_id).length;
+  const ivWithSite = iv.filter((r) => r.client_id).length;
   const siteCoverage: SiteCoverageIndicator = {
     caLines: salesLinkable.length,
     caLinesWithSite: salesWithSite.length,
