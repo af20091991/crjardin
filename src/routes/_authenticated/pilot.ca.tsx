@@ -302,9 +302,9 @@ function CaPage() {
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="order-1 space-y-4">
 
-          {/* Ventes */}
+          {/* Ventes — source de vérité unique */}
           <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-sales) 7%, transparent)" }}>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
               <CardTitle className="text-base">Détails des ventes</CardTitle>
