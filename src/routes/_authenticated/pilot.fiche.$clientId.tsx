@@ -712,9 +712,9 @@ function PilotClient360() {
               <MiniStat icon={Clock} label="Heures cumulées" value={`${totalHours.toFixed(1)} h`} />
               <MiniStat
                 icon={AlertCircle}
-                label="Heures manquantes"
+                label="Ventes sans temps"
                 value={String(missingHours)}
-                sub={missingHours > 0 ? "À confirmer" : undefined}
+                sub={missingHours > 0 ? "À compléter dans Chiffre d'affaires" : undefined}
               />
             </div>
           )}
