@@ -91,6 +91,7 @@ export function analyzeServices(params: {
       lignes: 0,
       clients: new Set<string>(),
       hv: 0,
+      caRated: 0,
     };
     const amount = Number(e.amount_ht) || 0;
     const y = new Date(e.entry_date).getFullYear();
@@ -98,11 +99,16 @@ export function analyzeServices(params: {
     if (y === year) cur.caYear += amount;
     if (y === year - 1) cur.caPrev += amount;
     cur.lignes += 1;
-    cur.hv += Number(e.hours) || 0;
+    // Seules les lignes de vente porteuses de temps alimentent le taux horaire.
+    if ((Number(e.hours) || 0) > 0) {
+      cur.hv += Number(e.hours) || 0;
+      cur.caRated += amount;
+    }
     if (e.client_id) cur.clients.add(e.client_id);
     acc.set(key, cur);
   }
 
+  // Heures informatives (comptes-rendus) : jamais utilisées dans un calcul.
   const reelles = new Map<string, number>();
   for (const l of ledger) {
     if (l.type !== "realisee" || l.estimated || l.hours <= 0) continue;
@@ -115,10 +121,10 @@ export function analyzeServices(params: {
   const rows: ServiceProfitability[] = [];
   for (const [prestation, v] of acc) {
     const hr = reelles.get(prestation) ?? 0;
-    const basis: ServiceProfitability["hoursBasis"] =
-      hr > 0 ? "reelles" : v.hv > 0 ? "vendues" : "aucune";
-    const hours = basis === "reelles" ? hr : basis === "vendues" ? v.hv : 0;
-    const taux = hours > 0 && v.caTotal > 0 ? v.caTotal / hours : null;
+    // Source exclusive : Vente → Temps. Taux = CA des lignes avec temps / ce temps.
+    const basis: ServiceProfitability["hoursBasis"] = v.hv > 0 ? "vendues" : "aucune";
+    const hours = v.hv;
+    const taux = hours > 0 && v.caRated > 0 ? v.caRated / hours : null;
     const share = caTotalAll > 0 ? v.caTotal / caTotalAll : 0;
 
     let classe: ServiceClass = "non_classe";
@@ -132,7 +138,7 @@ export function analyzeServices(params: {
             : `Taux ${taux.toFixed(0)} €/h au-dessus de la cible (${targetHourlyRate} €/h) sur ${v.lignes} lignes.`;
       } else {
         classe = "faible";
-        why = `Taux ${taux.toFixed(0)} €/h sous la cible (${targetHourlyRate} €/h) sur ${hours.toFixed(0)} h ${basis === "reelles" ? "réalisées" : "vendues"}.`;
+        why = `Taux ${taux.toFixed(0)} €/h sous la cible (${targetHourlyRate} €/h) sur ${hours.toFixed(0)} h vendues.`;
       }
     }
 
@@ -150,7 +156,7 @@ export function analyzeServices(params: {
       lignes: v.lignes,
       classe,
       why,
-      confidence: basis === "reelles" ? "haute" : basis === "vendues" ? "moyenne" : "faible",
+      confidence: basis === "vendues" ? "haute" : "faible",
     });
   }
 
