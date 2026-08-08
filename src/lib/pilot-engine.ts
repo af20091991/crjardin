@@ -394,9 +394,20 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const chargesComplete = chargesTotal > 0;
   const margePct = yearHt > 0 && chargesComplete ? (beneficeBrut / yearHt) * 100 : null;
 
-  const tauxHoraireVendu = hoursRes.vendues > 0 ? yearHt / hoursRes.vendues : null;
-  const baseReelle = strict ? sum(analyticalEntries) : yearHt;
-  const tauxHoraireReel = hoursRes.hours > 0 ? baseReelle / hoursRes.hours : null;
+  // Taux horaire : montant HT de la ligne de vente ÷ temps de cette même
+  // ligne. Agrégé sur les seules lignes porteuses de temps (une ligne SST à
+  // 0 h reste à 0 h et n'entre pas dans le calcul).
+  const ratedAll = hourlyRateFromSales(
+    yearEntries.map((e) => ({ amount_ht: e.amount_ht, hours: e.hours })),
+  );
+  const ratedAnalytical = hourlyRateFromSales(
+    (strict ? analyticalEntries : yearEntries).map((e) => ({
+      amount_ht: e.amount_ht,
+      hours: e.hours,
+    })),
+  );
+  const tauxHoraireVendu = ratedAll.rate;
+  const tauxHoraireReel = ratedAnalytical.rate;
 
   // --- portefeuille & classement (une seule implémentation) ---
   const allRows = buildPortfolio({
