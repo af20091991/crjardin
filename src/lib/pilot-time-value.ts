@@ -269,14 +269,20 @@ export function analyzeTimeValue(params: {
   // CA par prestation
   const prestCa = new Map<
     string,
-    { ca: number; lignes: number; clients: Set<string>; hoursVenduesCa: number }
+    { ca: number; caRated: number; lignes: number; clients: Set<string>; hoursVenduesCa: number }
   >();
   for (const e of scopedEntries) {
     const key = entryPrestation(e);
-    const cur = prestCa.get(key) ?? { ca: 0, lignes: 0, clients: new Set<string>(), hoursVenduesCa: 0 };
+    const cur =
+      prestCa.get(key) ??
+      { ca: 0, caRated: 0, lignes: 0, clients: new Set<string>(), hoursVenduesCa: 0 };
     cur.ca += Number(e.amount_ht) || 0;
     cur.lignes += 1;
-    cur.hoursVenduesCa += Number(e.hours) || 0;
+    // Taux horaire : seules les lignes de vente porteuses de temps comptent.
+    if ((Number(e.hours) || 0) > 0) {
+      cur.hoursVenduesCa += Number(e.hours) || 0;
+      cur.caRated += Number(e.amount_ht) || 0;
+    }
     if (e.client_id) cur.clients.add(e.client_id);
     prestCa.set(key, cur);
   }
@@ -297,6 +303,7 @@ export function analyzeTimeValue(params: {
       const picked = prestPicked.get(prestation)!;
       const ca = prestCa.get(prestation);
       const caHt = ca?.ca ?? 0;
+      const caRated = ca?.caRated ?? 0;
       const charges = cost.costPerHour != null ? cost.costPerHour * picked.hours : null;
       const resultat = charges != null ? caHt - charges : null;
       return {
@@ -310,8 +317,11 @@ export function analyzeTimeValue(params: {
         hoursPct: hoursTotal > 0 ? (picked.hours / hoursTotal) * 100 : 0,
         charges,
         resultatBrut: resultat,
-        caPerHour: picked.hours > 0 && caHt > 0 ? caHt / picked.hours : null,
-        resultPerHour: resultat != null && picked.hours > 0 ? resultat / picked.hours : null,
+        caPerHour: picked.hours > 0 && caRated > 0 ? caRated / picked.hours : null,
+        resultPerHour:
+          picked.hours > 0 && caRated > 0 && cost.costPerHour != null
+            ? caRated / picked.hours - cost.costPerHour
+            : null,
         lignes: ca?.lignes ?? 0,
         clients: ca?.clients.size ?? 0,
       };
