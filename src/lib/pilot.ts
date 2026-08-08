@@ -437,6 +437,7 @@ export function clientStatsWithHours(
       name: string;
       ca: number;
       hours: number;
+      caRated: number;
       count: number;
       last: string;
       natures: Record<string, number>;
@@ -451,13 +452,17 @@ export function clientStatsWithHours(
         name: e.client_name ?? "Sans nom",
         ca: 0,
         hours: 0,
+        caRated: 0,
         count: 0,
         last: e.entry_date,
         natures: {} as Record<string, number>,
         clientId: e.client_id ?? null,
       };
     cur.ca += e.amount_ht;
-    cur.hours += e.hours;
+    if ((Number(e.hours) || 0) > 0) {
+      cur.hours += Number(e.hours) || 0;
+      cur.caRated += Number(e.amount_ht) || 0;
+    }
     cur.count += 1;
     if (e.entry_date > cur.last) cur.last = e.entry_date;
     if (e.client_name) cur.name = e.client_name;
@@ -478,7 +483,8 @@ export function clientStatsWithHours(
         ca: v.ca,
         hours,
         count: v.count,
-        hourlyRate: hours > 0 ? v.ca / hours : 0,
+        // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
+        hourlyRate: hours > 0 ? v.caRated / hours : 0,
         share: (v.ca / total) * 100,
         lastDate: v.last,
         avgTime: v.count > 0 ? hours / v.count : 0,
