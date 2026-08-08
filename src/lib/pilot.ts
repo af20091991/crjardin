@@ -371,6 +371,8 @@ export function computeKpis(params: {
     objectifPct,
     projection,
     totalHours,
+    /** CA HT des seules lignes de vente porteuses de temps (base du taux horaire). */
+    caHeuresVendues: caRatedLines.ca,
     workedDays,
     nbEntries,
     panierMoyen,
