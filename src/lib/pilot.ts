@@ -325,25 +325,24 @@ export function computeKpis(params: {
   const fraction = isCurrentYear ? Math.max(dayOfYear / 365, 0.02) : 1;
   const projection = isCurrentYear ? caYear / fraction : caYear;
 
-  const totalHours = sum(yearEntries.map((e) => e.hours));
+  const totalHours = sum(yearEntries.filter((e) => (Number(e.hours) || 0) > 0).map((e) => e.hours));
+  // Numérateur du taux horaire : CA des SEULES lignes de vente porteuses de
+  // temps (règle : montant HT de la ligne ÷ temps de cette même ligne).
+  const caRatedLines = hourlyRateFromSales(
+    yearEntries.map((e) => ({ amount_ht: e.amount_ht, hours: e.hours })),
+  );
   const workedDays = new Set(yearEntries.map((e) => e.entry_date)).size;
   const nbEntries = yearEntries.length;
   const panierMoyen = nbEntries > 0 ? caYear / nbEntries : 0;
   const tjm = workedDays > 0 ? caYear / workedDays : 0;
-  // Taux horaire vendu = CA HT / heures facturées (pilot_ca_entries.hours)
-  const tauxHoraireVendu = totalHours > 0 ? caYear / totalHours : 0;
+  // Taux horaire vendu = CA des lignes de vente avec temps / temps de ces lignes
+  const tauxHoraireVendu = caRatedLines.rate ?? 0;
   // Atteinte de la cible : taux horaire vendu / taux horaire cible.
   const objectifPct = target > 0 && tauxHoraireVendu > 0 ? (tauxHoraireVendu / target) * 100 : 0;
   // Heures d'intervention : source unique = Vente → Temps. Le total des heures
   // rattachées aux clients ne peut donc dépasser `totalHours` (mêmes lignes CA).
-  let attachedHours = 0;
-  if (confirmedHoursByClient) {
-    confirmedHoursByClient.forEach((h) => {
-      if (Number.isFinite(h) && h > 0) attachedHours += h;
-    });
-  }
-  const totalConfirmedHours = totalHours > 0 ? totalHours : attachedHours;
-  const tauxHoraireReel = totalConfirmedHours > 0 ? caYear / totalConfirmedHours : 0;
+  const totalConfirmedHours = caRatedLines.hours;
+  const tauxHoraireReel = tauxHoraireVendu;
   // Rétrocompatibilité : `tauxHoraire` = taux horaire Vente → Temps.
   const tauxHoraire = tauxHoraireVendu;
 
