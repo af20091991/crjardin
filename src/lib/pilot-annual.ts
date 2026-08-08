@@ -35,6 +35,7 @@ export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[],
   const years = new Set<number>();
   const ca = new Map<number, number>();
   const hours = new Map<number, number>();
+  const caRated = new Map<number, number>();
   const lines = new Map<number, number>();
   for (const e of scopedEntries) {
     const y = new Date(e.entry_date).getFullYear();
