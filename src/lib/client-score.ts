@@ -4,6 +4,7 @@ import { daysBetween as _daysBetween, currentYear as _currentYear } from "@/lib/
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 // Règle métier centrale UNIQUE (aucune logique de confiance recréée ici).
 import { entityEligibility } from "@/lib/pilot-entity-rules";
+import { hourlyRate } from "@/lib/pilot-sale-time";
 
 // ---------- Règles de classement (ajustables) ----------
 export const SCORE_RULES = {
