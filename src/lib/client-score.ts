@@ -247,6 +247,8 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       hoursConfirmed: number;
       caLines: number;
       caLinesWithHours: number;
+      /** CA HT des seules lignes de vente porteuses de temps. */
+      revenueRatedHt: number;
       lastInterventionAt: string | null;
       opportunitiesCount: number;
       opportunitiesValue: number;
@@ -271,6 +273,7 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
         hoursConfirmed: 0,
         caLines: 0,
         caLinesWithHours: 0,
+        revenueRatedHt: 0,
         lastInterventionAt: null,
         opportunitiesCount: 0,
         opportunitiesValue: 0,
@@ -300,6 +303,7 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       e.caLinesWithHours += 1;
       e.hoursConfirmed += h;
       e.interventionsWithHours += 1;
+      e.revenueRatedHt += ht;
     }
   }
 
@@ -334,8 +338,8 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
     ) {
       continue;
     }
-    const realRate =
-      e.hoursConfirmed > 0 ? e.revenueTotalHt / e.hoursConfirmed : null;
+    // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
+    const realRate = hourlyRate(e.revenueRatedHt, e.hoursConfirmed);
     const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
     const hoursConfirmedRatio =
       e.caLines > 0 ? e.caLinesWithHours / e.caLines : 0;
