@@ -499,8 +499,11 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     familiesRanked[0] && familyTotal > 0 ? (familiesRanked[0].value / familyTotal) * 100 : 0;
 
   // --- exercice précédent (comparatif) ---
-  let prevHours = 0;
-  for (const v of inputs.prevConfirmedHours.values()) prevHours += v;
+  // Taux horaire N-1 : mêmes lignes de vente au numérateur et au dénominateur.
+  const ratedPrev = hourlyRateFromSales(
+    prevEntries.map((e) => ({ amount_ht: e.amount_ht, hours: e.hours })),
+  );
+  const prevHours = ratedPrev.hours;
   const prevYearRow = annual.find((a) => a.year === year - 1);
   const prevYearCa = prevYearRow?.caHt ?? prevYearHt;
 
@@ -771,7 +774,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     prevYear: {
       caHt: prevYearCa,
       hoursConfirmed: prevHours,
-      hourlyRate: prevHours > 0 ? prevYearCa / prevHours : null,
+      hourlyRate: ratedPrev.rate,
     },
     financeAlerts,
     clients: { all: allRows, ranking, excluded },
