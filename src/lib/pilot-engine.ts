@@ -80,6 +80,7 @@ import {
 import { chargeRowsForMode, entriesForMode, type RealProjectionMode } from "@/lib/pilot-realized";
 import type { KpiAudit } from "@/lib/pilot-kpi-audit";
 import { employerCost } from "@/lib/pilot-remuneration";
+import { hourlyRateFromSales } from "@/lib/pilot-sale-time";
 
 export type EngineMode = RealProjectionMode;
 
