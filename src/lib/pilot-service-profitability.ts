@@ -79,6 +79,7 @@ export function analyzeServices(params: {
       lignes: number;
       clients: Set<string>;
       hv: number;
+      caRated: number;
     }
   >();
   for (const e of entries) {
