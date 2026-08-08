@@ -89,7 +89,10 @@ export function classifyClients(params: {
   const t = params.thresholds ?? getThresholds();
   const { entries, ledger, year, targetHourlyRate } = params;
 
-  const agg = new Map<string, { name: string; total: number; y: number; prev: number }>();
+  const agg = new Map<
+    string,
+    { name: string; total: number; y: number; prev: number; rated: number }
+  >();
   for (const e of entries) {
     if (!e.client_id) continue;
     const yy = new Date(e.entry_date).getFullYear();
@@ -98,10 +101,13 @@ export function classifyClients(params: {
       total: 0,
       y: 0,
       prev: 0,
+      rated: 0,
     };
     if (e.client_name) cur.name = e.client_name;
     const amount = Number(e.amount_ht) || 0;
     cur.total += amount;
+    // Numérateur du taux horaire : montant HT des lignes de vente avec temps.
+    if ((Number(e.hours) || 0) > 0) cur.rated += amount;
     if (yy === year) cur.y += amount;
     if (yy === year - 1) cur.prev += amount;
     agg.set(e.client_id, cur);
@@ -117,7 +123,9 @@ export function classifyClients(params: {
     const caTotal = a?.total ?? 0;
     const heures = h?.reelles ?? 0;
     const source = h?.reellesSource ?? "aucune";
-    const taux = heures > 0 && caTotal > 0 ? caTotal / heures : null;
+    // Taux horaire = CA des lignes de vente porteuses de temps / ces heures.
+    const caRated = a?.rated ?? 0;
+    const taux = heures > 0 && caRated > 0 ? caRated / heures : null;
 
     const entityStatus = statusOf(params.statuses, clientId);
     const eligibility = entityEligibility(entityStatus);

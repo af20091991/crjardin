@@ -72,8 +72,8 @@ function FinancePage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Taux horaire vendu" value={tauxVendu && tauxVendu > 0 ? `${tauxVendu.toFixed(0)} €/h` : "—"} sub="CA ÷ heures facturées" />
-        <Kpi label="Taux horaire réel" value={tauxReel && tauxReel > 0 ? `${tauxReel.toFixed(0)} €/h` : "—"} sub="CA ÷ heures confirmées" />
+        <Kpi label="Taux horaire vendu" value={tauxVendu && tauxVendu > 0 ? `${tauxVendu.toFixed(0)} €/h` : "—"} sub="CA des lignes de vente avec temps ÷ ce temps" />
+        <Kpi label="Taux horaire réel" value={tauxReel && tauxReel > 0 ? `${tauxReel.toFixed(0)} €/h` : "—"} sub="CA des lignes de vente avec temps ÷ ce temps" />
         <Kpi label="Seuil de rentabilité mensuel" value={seuilMensuel > 0 ? formatEuro(seuilMensuel) : "—"} sub="CA minimum à réaliser" />
         <Kpi label="Coût horaire de structure" value={coutHoraire && coutHoraire > 0 ? `${coutHoraire.toFixed(0)} €/h` : "—"} sub={totalHeures > 0 ? `${totalHeures.toFixed(0)} h travaillées` : "Heures inconnues"} />
       </div>

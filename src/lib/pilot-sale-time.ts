@@ -72,3 +72,45 @@ export const SALE_TIME_STATE_LABEL: Record<SaleTimeState, string> = {
   sst_sans_heures: "Sous-traitée — 0 h interne (valide)",
   absent: "Temps non renseigné",
 };
+
+// ---------------------------------------------------------------------------
+// Taux horaire — règle absolue et unique
+//
+// Taux horaire = Montant HT de la ligne de vente ÷ Temps de cette même ligne.
+// Agrégé : somme des montants HT des lignes porteuses de temps ÷ somme de ces
+// temps. Une ligne sans temps (SST à 0 h, temps absent) n'entre NI au
+// numérateur NI au dénominateur : on ne va jamais chercher une durée ailleurs.
+// ---------------------------------------------------------------------------
+
+export interface SaleRateRow {
+  amount_ht?: number | null;
+  hours?: number | null;
+  intervention_type?: string | null;
+}
+
+/** true = la ligne participe au calcul d'un taux horaire (temps > 0 saisi). */
+export function saleRateEligible(row: SaleRateRow): boolean {
+  const h = row.hours == null ? null : Number(row.hours);
+  return h != null && Number.isFinite(h) && h > 0;
+}
+
+/** Taux horaire agrégé de lignes de vente (CA des lignes avec temps / ce temps). */
+export function hourlyRateFromSales(rows: SaleRateRow[]): {
+  ca: number;
+  hours: number;
+  rate: number | null;
+} {
+  let ca = 0;
+  let hours = 0;
+  for (const r of rows) {
+    if (!saleRateEligible(r)) continue;
+    ca += Number(r.amount_ht) || 0;
+    hours += Number(r.hours) || 0;
+  }
+  return { ca, hours, rate: hours > 0 ? ca / hours : null };
+}
+
+/** Taux horaire à partir de totaux déjà agrégés sur les mêmes lignes. */
+export function hourlyRate(caOfRatedLines: number, ratedHours: number): number | null {
+  return ratedHours > 0 ? caOfRatedLines / ratedHours : null;
+}

@@ -80,6 +80,7 @@ import {
 import { chargeRowsForMode, entriesForMode, type RealProjectionMode } from "@/lib/pilot-realized";
 import type { KpiAudit } from "@/lib/pilot-kpi-audit";
 import { employerCost } from "@/lib/pilot-remuneration";
+import { hourlyRateFromSales } from "@/lib/pilot-sale-time";
 
 export type EngineMode = RealProjectionMode;
 
@@ -394,9 +395,20 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const chargesComplete = chargesTotal > 0;
   const margePct = yearHt > 0 && chargesComplete ? (beneficeBrut / yearHt) * 100 : null;
 
-  const tauxHoraireVendu = hoursRes.vendues > 0 ? yearHt / hoursRes.vendues : null;
-  const baseReelle = strict ? sum(analyticalEntries) : yearHt;
-  const tauxHoraireReel = hoursRes.hours > 0 ? baseReelle / hoursRes.hours : null;
+  // Taux horaire : montant HT de la ligne de vente ÷ temps de cette même
+  // ligne. Agrégé sur les seules lignes porteuses de temps (une ligne SST à
+  // 0 h reste à 0 h et n'entre pas dans le calcul).
+  const ratedAll = hourlyRateFromSales(
+    yearEntries.map((e) => ({ amount_ht: e.amount_ht, hours: e.hours })),
+  );
+  const ratedAnalytical = hourlyRateFromSales(
+    (strict ? analyticalEntries : yearEntries).map((e) => ({
+      amount_ht: e.amount_ht,
+      hours: e.hours,
+    })),
+  );
+  const tauxHoraireVendu = ratedAll.rate;
+  const tauxHoraireReel = ratedAnalytical.rate;
 
   // --- portefeuille & classement (une seule implémentation) ---
   const allRows = buildPortfolio({
@@ -487,8 +499,11 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     familiesRanked[0] && familyTotal > 0 ? (familiesRanked[0].value / familyTotal) * 100 : 0;
 
   // --- exercice précédent (comparatif) ---
-  let prevHours = 0;
-  for (const v of inputs.prevConfirmedHours.values()) prevHours += v;
+  // Taux horaire N-1 : mêmes lignes de vente au numérateur et au dénominateur.
+  const ratedPrev = hourlyRateFromSales(
+    prevEntries.map((e) => ({ amount_ht: e.amount_ht, hours: e.hours })),
+  );
+  const prevHours = ratedPrev.hours;
   const prevYearRow = annual.find((a) => a.year === year - 1);
   const prevYearCa = prevYearRow?.caHt ?? prevYearHt;
 
@@ -759,7 +774,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     prevYear: {
       caHt: prevYearCa,
       hoursConfirmed: prevHours,
-      hourlyRate: prevHours > 0 ? prevYearCa / prevHours : null,
+      hourlyRate: ratedPrev.rate,
     },
     financeAlerts,
     clients: { all: allRows, ranking, excluded },

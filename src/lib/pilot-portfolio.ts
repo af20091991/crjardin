@@ -52,16 +52,20 @@ export function buildPortfolio(params: {
 
   const agg = new Map<
     string,
-    { name: string; caTotal: number; caYear: number; lines: number }
+    { name: string; caTotal: number; caYear: number; lines: number; caRated: number }
   >();
   for (const e of entries) {
     if (!e.client_id) continue;
     const y = new Date(e.entry_date).getFullYear();
-    const cur = agg.get(e.client_id) ?? { name: e.client_name ?? "Client", caTotal: 0, caYear: 0, lines: 0 };
+    const cur =
+      agg.get(e.client_id) ??
+      { name: e.client_name ?? "Client", caTotal: 0, caYear: 0, lines: 0, caRated: 0 };
     if (e.client_name) cur.name = e.client_name;
     const amount = Number(e.amount_ht) || 0;
     cur.caTotal += amount;
     if (y === year) cur.caYear += amount;
+    // CA des seules lignes de vente porteuses de temps (numérateur du taux horaire).
+    if ((Number(e.hours) || 0) > 0) cur.caRated += amount;
     cur.lines += 1;
     agg.set(e.client_id, cur);
   }
@@ -111,7 +115,8 @@ export function buildPortfolio(params: {
       interventions: s?.interventionsCount ?? lines,
       panierMoyen: lines > 0 ? caTotal / lines : null,
       prestations: h ? [...h.prestations].slice(0, 4) : [],
-      rentabilite: hours > 0 && caTotal > 0 ? caTotal / hours : null,
+      // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
+      rentabilite: hours > 0 && (a?.caRated ?? 0) > 0 ? (a?.caRated ?? 0) / hours : null,
       score: s?.score ?? null,
       recommendation: s?.recommendation ?? null,
       entityStatus,

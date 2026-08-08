@@ -401,12 +401,10 @@ function TimeValueAnalysis() {
               icon={Clock}
               audit={{
                 sources: [
-                  "interventions.hours_spent (heures confirmées)",
-                  "pilot_historic_hours (heures validées)",
-                  "pilot_ca_entries.hours (heures vendues, dernier recours)",
+                  "pilot_ca_entries.hours (Vente → Temps, source exclusive)",
                 ],
                 calcul:
-                  "Somme des heures retenues par prestation selon la hiérarchie réalisées > historiques > vendues.",
+                  "Somme du temps des lignes de vente (Vente → Temps) par prestation.",
                 periode: filters.year === "all" ? "Tous exercices" : `Exercice ${filters.year}`,
               }}
             />

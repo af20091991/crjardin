@@ -3,6 +3,7 @@ import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import { entriesForMode, isRealizedMonth, realizedEntries } from "@/lib/pilot-realized";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
+import { hourlyRateFromSales } from "@/lib/pilot-sale-time";
 
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser();
@@ -325,25 +326,24 @@ export function computeKpis(params: {
   const fraction = isCurrentYear ? Math.max(dayOfYear / 365, 0.02) : 1;
   const projection = isCurrentYear ? caYear / fraction : caYear;
 
-  const totalHours = sum(yearEntries.map((e) => e.hours));
+  const totalHours = sum(yearEntries.filter((e) => (Number(e.hours) || 0) > 0).map((e) => e.hours));
+  // Numérateur du taux horaire : CA des SEULES lignes de vente porteuses de
+  // temps (règle : montant HT de la ligne ÷ temps de cette même ligne).
+  const caRatedLines = hourlyRateFromSales(
+    yearEntries.map((e) => ({ amount_ht: e.amount_ht, hours: e.hours })),
+  );
   const workedDays = new Set(yearEntries.map((e) => e.entry_date)).size;
   const nbEntries = yearEntries.length;
   const panierMoyen = nbEntries > 0 ? caYear / nbEntries : 0;
   const tjm = workedDays > 0 ? caYear / workedDays : 0;
-  // Taux horaire vendu = CA HT / heures facturées (pilot_ca_entries.hours)
-  const tauxHoraireVendu = totalHours > 0 ? caYear / totalHours : 0;
+  // Taux horaire vendu = CA des lignes de vente avec temps / temps de ces lignes
+  const tauxHoraireVendu = caRatedLines.rate ?? 0;
   // Atteinte de la cible : taux horaire vendu / taux horaire cible.
   const objectifPct = target > 0 && tauxHoraireVendu > 0 ? (tauxHoraireVendu / target) * 100 : 0;
   // Heures d'intervention : source unique = Vente → Temps. Le total des heures
   // rattachées aux clients ne peut donc dépasser `totalHours` (mêmes lignes CA).
-  let attachedHours = 0;
-  if (confirmedHoursByClient) {
-    confirmedHoursByClient.forEach((h) => {
-      if (Number.isFinite(h) && h > 0) attachedHours += h;
-    });
-  }
-  const totalConfirmedHours = totalHours > 0 ? totalHours : attachedHours;
-  const tauxHoraireReel = totalConfirmedHours > 0 ? caYear / totalConfirmedHours : 0;
+  const totalConfirmedHours = caRatedLines.hours;
+  const tauxHoraireReel = tauxHoraireVendu;
   // Rétrocompatibilité : `tauxHoraire` = taux horaire Vente → Temps.
   const tauxHoraire = tauxHoraireVendu;
 
@@ -371,6 +371,8 @@ export function computeKpis(params: {
     objectifPct,
     projection,
     totalHours,
+    /** CA HT des seules lignes de vente porteuses de temps (base du taux horaire). */
+    caHeuresVendues: caRatedLines.ca,
     workedDays,
     nbEntries,
     panierMoyen,
@@ -437,6 +439,7 @@ export function clientStatsWithHours(
       name: string;
       ca: number;
       hours: number;
+      caRated: number;
       count: number;
       last: string;
       natures: Record<string, number>;
@@ -451,13 +454,17 @@ export function clientStatsWithHours(
         name: e.client_name ?? "Sans nom",
         ca: 0,
         hours: 0,
+        caRated: 0,
         count: 0,
         last: e.entry_date,
         natures: {} as Record<string, number>,
         clientId: e.client_id ?? null,
       };
     cur.ca += e.amount_ht;
-    cur.hours += e.hours;
+    if ((Number(e.hours) || 0) > 0) {
+      cur.hours += Number(e.hours) || 0;
+      cur.caRated += Number(e.amount_ht) || 0;
+    }
     cur.count += 1;
     if (e.entry_date > cur.last) cur.last = e.entry_date;
     if (e.client_name) cur.name = e.client_name;
@@ -478,7 +485,8 @@ export function clientStatsWithHours(
         ca: v.ca,
         hours,
         count: v.count,
-        hourlyRate: hours > 0 ? v.ca / hours : 0,
+        // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
+        hourlyRate: hours > 0 ? v.caRated / hours : 0,
         share: (v.ca / total) * 100,
         lastDate: v.last,
         avgTime: v.count > 0 ? hours / v.count : 0,

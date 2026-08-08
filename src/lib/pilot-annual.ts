@@ -35,13 +35,18 @@ export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[],
   const years = new Set<number>();
   const ca = new Map<number, number>();
   const hours = new Map<number, number>();
+  const caRated = new Map<number, number>();
   const lines = new Map<number, number>();
   for (const e of scopedEntries) {
     const y = new Date(e.entry_date).getFullYear();
     if (!Number.isFinite(y)) continue;
     years.add(y);
     ca.set(y, (ca.get(y) ?? 0) + (Number(e.amount_ht) || 0));
-    hours.set(y, (hours.get(y) ?? 0) + (Number(e.hours) || 0));
+    // Taux horaire : seules les lignes de vente porteuses de temps comptent.
+    if ((Number(e.hours) || 0) > 0) {
+      hours.set(y, (hours.get(y) ?? 0) + (Number(e.hours) || 0));
+      caRated.set(y, (caRated.get(y) ?? 0) + (Number(e.amount_ht) || 0));
+    }
     lines.set(y, (lines.get(y) ?? 0) + 1);
   }
   const charges = new Map<number, number>();
@@ -62,6 +67,7 @@ export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[],
       const caHt = ca.get(year) ?? 0;
       const ch = charges.get(year) ?? 0;
       const h = hours.get(year) ?? 0;
+      const caR = caRated.get(year) ?? 0;
       const benefice = caHt - ch;
       const inv = invest.get(year) ?? 0;
       const chargesComplete = ch > 0;
@@ -74,7 +80,7 @@ export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[],
         // afficher 100 % sur un exercice incomplet.
         margePct: caHt > 0 && chargesComplete ? (benefice / caHt) * 100 : null,
         heuresVendues: h,
-        tauxHoraireVendu: h > 0 ? caHt / h : null,
+        tauxHoraireVendu: h > 0 && caR > 0 ? caR / h : null,
         nbLignes: lines.get(year) ?? 0,
         investissements: inv,
         resultatApresInvestissements: benefice - inv,

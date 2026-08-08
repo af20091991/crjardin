@@ -241,14 +241,14 @@ function PilotDashboard() {
           sub={
             realRate.available
               ? set.target_hourly_rate > 0
-                ? `Cible ${formatEuro(set.target_hourly_rate)}/h · ${k.totalConfirmedHours.toFixed(0)} h confirmées`
-                : `${k.totalConfirmedHours.toFixed(0)} h confirmées`
+                ? `Cible ${formatEuro(set.target_hourly_rate)}/h · ${k.totalConfirmedHours.toFixed(0)} h vendues`
+                : `${k.totalConfirmedHours.toFixed(0)} h vendues`
               : realRate.detail
           }
           tone={
             realRate.available && realRate.value >= set.target_hourly_rate ? "positive" : "warning"
           }
-          description="Taux horaire réel = CA HT annuel / heures réellement consommées (interventions terminées avec heures confirmées). À comparer au taux cible."
+          description="Taux horaire = montant HT des lignes de vente porteuses de temps ÷ le temps de ces mêmes lignes (Chiffre d'affaires → Ventes). À comparer au taux cible."
         />
         <KpiCard
           label="Interventions"

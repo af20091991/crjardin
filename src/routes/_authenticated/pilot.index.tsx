@@ -538,11 +538,11 @@ function TodayPage() {
   const caComparison = periodComparison({ current: k.caMonth, previous: objectifMois });
   // Marge : non calculable sans CA sur l'année.
   const margin = marginPct({ ca: k.caMonth, marge: k.marge });
-  // Taux horaire réel : exploite les heures déjà présentes dans PP selon la
-  // cascade interventions confirmées → historique validé → ledger heures.
+  // Taux horaire réel : CA HT des lignes de vente porteuses de temps divisé
+  // par le temps de ces mêmes lignes (Vente → Temps, source exclusive).
   const realRate = hoursResolution
     ? realHourlyRateFromResolution({
-        ca: k.caYear,
+        ca: k.caHeuresVendues,
         resolution: hoursResolution,
         targetRate: targetHR,
       })

@@ -269,14 +269,20 @@ export function analyzeTimeValue(params: {
   // CA par prestation
   const prestCa = new Map<
     string,
-    { ca: number; lignes: number; clients: Set<string>; hoursVenduesCa: number }
+    { ca: number; caRated: number; lignes: number; clients: Set<string>; hoursVenduesCa: number }
   >();
   for (const e of scopedEntries) {
     const key = entryPrestation(e);
-    const cur = prestCa.get(key) ?? { ca: 0, lignes: 0, clients: new Set<string>(), hoursVenduesCa: 0 };
+    const cur =
+      prestCa.get(key) ??
+      { ca: 0, caRated: 0, lignes: 0, clients: new Set<string>(), hoursVenduesCa: 0 };
     cur.ca += Number(e.amount_ht) || 0;
     cur.lignes += 1;
-    cur.hoursVenduesCa += Number(e.hours) || 0;
+    // Taux horaire : seules les lignes de vente porteuses de temps comptent.
+    if ((Number(e.hours) || 0) > 0) {
+      cur.hoursVenduesCa += Number(e.hours) || 0;
+      cur.caRated += Number(e.amount_ht) || 0;
+    }
     if (e.client_id) cur.clients.add(e.client_id);
     prestCa.set(key, cur);
   }
@@ -297,6 +303,7 @@ export function analyzeTimeValue(params: {
       const picked = prestPicked.get(prestation)!;
       const ca = prestCa.get(prestation);
       const caHt = ca?.ca ?? 0;
+      const caRated = ca?.caRated ?? 0;
       const charges = cost.costPerHour != null ? cost.costPerHour * picked.hours : null;
       const resultat = charges != null ? caHt - charges : null;
       return {
@@ -310,8 +317,11 @@ export function analyzeTimeValue(params: {
         hoursPct: hoursTotal > 0 ? (picked.hours / hoursTotal) * 100 : 0,
         charges,
         resultatBrut: resultat,
-        caPerHour: picked.hours > 0 && caHt > 0 ? caHt / picked.hours : null,
-        resultPerHour: resultat != null && picked.hours > 0 ? resultat / picked.hours : null,
+        caPerHour: picked.hours > 0 && caRated > 0 ? caRated / picked.hours : null,
+        resultPerHour:
+          picked.hours > 0 && caRated > 0 && cost.costPerHour != null
+            ? caRated / picked.hours - cost.costPerHour
+            : null,
         lignes: ca?.lignes ?? 0,
         clients: ca?.clients.size ?? 0,
       };
@@ -327,7 +337,7 @@ export function analyzeTimeValue(params: {
 
   const clientCa = new Map<
     string,
-    { ca: number; name: string; prest: Map<string, number>; hoursVenduesCa: number }
+    { ca: number; caRated: number; name: string; prest: Map<string, number>; hoursVenduesCa: number }
   >();
   for (const e of scopedEntries) {
     if (!e.client_id) continue;
@@ -335,13 +345,17 @@ export function analyzeTimeValue(params: {
       clientCa.get(e.client_id) ??
       {
         ca: 0,
+        caRated: 0,
         name: params.clientNames?.get(e.client_id) ?? "Client",
         prest: new Map<string, number>(),
         hoursVenduesCa: 0,
       };
     const amount = Number(e.amount_ht) || 0;
     cur.ca += amount;
-    cur.hoursVenduesCa += Number(e.hours) || 0;
+    if ((Number(e.hours) || 0) > 0) {
+      cur.hoursVenduesCa += Number(e.hours) || 0;
+      cur.caRated += amount;
+    }
     const p = entryPrestation(e);
     cur.prest.set(p, (cur.prest.get(p) ?? 0) + amount);
     clientCa.set(e.client_id, cur);
@@ -355,6 +369,7 @@ export function analyzeTimeValue(params: {
     if (b.vendues === 0) b.vendues = ca?.hoursVenduesCa ?? 0;
     const { hours, basis } = pickHours(b);
     const caHt = ca?.ca ?? 0;
+    const caRated = ca?.caRated ?? 0;
     const charges = cost.costPerHour != null ? cost.costPerHour * hours : null;
     const resultat = charges != null ? caHt - charges : null;
     const mainPrestation =
@@ -372,8 +387,11 @@ export function analyzeTimeValue(params: {
       interventions: params.interventionsByClient?.get(clientId) ?? 0,
       charges,
       resultatBrut: resultat,
-      caPerHour: hours > 0 && caHt > 0 ? caHt / hours : null,
-      resultPerHour: resultat != null && hours > 0 ? resultat / hours : null,
+      caPerHour: hours > 0 && caRated > 0 ? caRated / hours : null,
+      resultPerHour:
+        hours > 0 && caRated > 0 && cost.costPerHour != null
+          ? caRated / hours - cost.costPerHour
+          : null,
       mainPrestation,
       zone: "non_classe",
       rank: null,

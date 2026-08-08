@@ -4,6 +4,7 @@ import { daysBetween as _daysBetween, currentYear as _currentYear } from "@/lib/
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 // Règle métier centrale UNIQUE (aucune logique de confiance recréée ici).
 import { entityEligibility } from "@/lib/pilot-entity-rules";
+import { hourlyRate } from "@/lib/pilot-sale-time";
 
 // ---------- Règles de classement (ajustables) ----------
 export const SCORE_RULES = {
@@ -247,6 +248,8 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       hoursConfirmed: number;
       caLines: number;
       caLinesWithHours: number;
+      /** CA HT des seules lignes de vente porteuses de temps. */
+      revenueRatedHt: number;
       lastInterventionAt: string | null;
       opportunitiesCount: number;
       opportunitiesValue: number;
@@ -271,6 +274,7 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
         hoursConfirmed: 0,
         caLines: 0,
         caLinesWithHours: 0,
+        revenueRatedHt: 0,
         lastInterventionAt: null,
         opportunitiesCount: 0,
         opportunitiesValue: 0,
@@ -300,6 +304,7 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       e.caLinesWithHours += 1;
       e.hoursConfirmed += h;
       e.interventionsWithHours += 1;
+      e.revenueRatedHt += ht;
     }
   }
 
@@ -334,8 +339,8 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
     ) {
       continue;
     }
-    const realRate =
-      e.hoursConfirmed > 0 ? e.revenueTotalHt / e.hoursConfirmed : null;
+    // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
+    const realRate = hourlyRate(e.revenueRatedHt, e.hoursConfirmed);
     const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
     const hoursConfirmedRatio =
       e.caLines > 0 ? e.caLinesWithHours / e.caLines : 0;
@@ -424,6 +429,7 @@ export async function getClientEconomicScore(
 
   let revenueTotalHt = 0;
   let revenueYearHt = 0;
+  let revenueRatedHt = 0;
   let hoursConfirmed = 0;
   let caLines = 0;
   let caLinesWithHours = 0;
@@ -436,6 +442,7 @@ export async function getClientEconomicScore(
     if (h > 0) {
       caLinesWithHours += 1;
       hoursConfirmed += h;
+      revenueRatedHt += ht;
     }
   }
 
@@ -456,7 +463,8 @@ export async function getClientEconomicScore(
     opportunitiesValue += Number(o.estimated_value) || 0;
   }
 
-  const realRate = hoursConfirmed > 0 ? revenueTotalHt / hoursConfirmed : null;
+  // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
+  const realRate = hourlyRate(revenueRatedHt, hoursConfirmed);
   const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
   const hoursConfirmedRatio =
     caLines > 0 ? caLinesWithHours / caLines : 0;
