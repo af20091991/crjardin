@@ -3,6 +3,7 @@ import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import { entriesForMode, isRealizedMonth, realizedEntries } from "@/lib/pilot-realized";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
+import { hourlyRateFromSales } from "@/lib/pilot-sale-time";
 
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser();
