@@ -147,8 +147,9 @@ export function buildDirectorInsights(params: {
   }
 
   // ---- Rentabilité / heures ----
-  if (hours && hours.hours > 0 && k.caYear > 0) {
-    const rate = k.caYear / hours.hours;
+  if (hours && hours.hours > 0 && k.caHeuresVendues > 0) {
+    // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
+    const rate = k.caHeuresVendues / hours.hours;
     add(
       "taux-reel",
       "Rentabilité",
