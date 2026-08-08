@@ -429,6 +429,7 @@ export async function getClientEconomicScore(
 
   let revenueTotalHt = 0;
   let revenueYearHt = 0;
+  let revenueRatedHt = 0;
   let hoursConfirmed = 0;
   let caLines = 0;
   let caLinesWithHours = 0;
@@ -441,6 +442,7 @@ export async function getClientEconomicScore(
     if (h > 0) {
       caLinesWithHours += 1;
       hoursConfirmed += h;
+      revenueRatedHt += ht;
     }
   }
 
@@ -461,7 +463,8 @@ export async function getClientEconomicScore(
     opportunitiesValue += Number(o.estimated_value) || 0;
   }
 
-  const realRate = hoursConfirmed > 0 ? revenueTotalHt / hoursConfirmed : null;
+  // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
+  const realRate = hourlyRate(revenueRatedHt, hoursConfirmed);
   const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
   const hoursConfirmedRatio =
     caLines > 0 ? caLinesWithHours / caLines : 0;
