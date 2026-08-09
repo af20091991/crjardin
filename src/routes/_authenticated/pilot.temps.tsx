@@ -393,7 +393,8 @@ function TimeValueAnalysis() {
       {loading ? (
         <Skeleton className="h-64 w-full" />
       ) : (
-        <>
+        <PageBlocks className="gap-5">
+          <DashboardBlock id="kpi" layout={layout}>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <PilotCard
               label="Temps analysé"
@@ -451,8 +452,10 @@ function TimeValueAnalysis() {
               }}
             />
           </div>
+          </DashboardBlock>
 
           {/* PARTIE 1 — Prestations */}
+          <DashboardBlock id="prestations" layout={layout}>
           <Card>
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
               <CardTitle className="text-base">Temps ↔ valeur par type de prestation</CardTitle>
