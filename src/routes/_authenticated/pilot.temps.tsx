@@ -271,7 +271,8 @@ function TimeValueAnalysis() {
 
   return (
     <div className="space-y-5">
-      <header className="space-y-1">
+      <header className="flex flex-wrap items-start justify-between gap-2">
+        <div className="space-y-1">
         <h2 className="flex items-center gap-2 font-serif text-lg font-semibold">
           <Timer className="h-5 w-5 text-primary" />
           Rentabilité du temps réalisé
@@ -280,6 +281,8 @@ function TimeValueAnalysis() {
           Où investir votre temps pour maximiser la rentabilité ? Croisement du temps réellement
           réalisé et de la valeur économique générée.
         </p>
+        </div>
+        <DashboardCustomizer defs={TIME_BLOCKS} layout={layout} />
       </header>
 
       {/* PARTIE 5 — Filtres */}
