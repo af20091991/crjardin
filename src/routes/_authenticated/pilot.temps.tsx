@@ -560,6 +560,7 @@ function TimeValueAnalysis() {
           </Card>
 
           {/* PARTIE 3 — Graphique stratégique */}
+          </DashboardBlock>
           <DashboardBlock id="positionnement" layout={layout}>
           <Card>
             <CardHeader>
@@ -637,6 +638,7 @@ function TimeValueAnalysis() {
           </Card>
 
           {/* PARTIES 2 & 4 — Classement des clients par rentabilité */}
+          </DashboardBlock>
           <DashboardBlock id="clients" layout={layout}>
           <Card>
             <CardHeader>
