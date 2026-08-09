@@ -17,6 +17,17 @@ import { signalFromHourlyRate } from "@/lib/pilot-profit-signal";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { analysisReliability, entityEligibility, statusOf, useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { EntityStatusBadge, ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
+import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
+import { DashboardBlock, DashboardCustomizer, PageBlocks } from "@/components/pilot/DashboardCustomizer";
+
+/** Blocs de la page — présentation uniquement, aucun impact sur les calculs. */
+const BLOCKS: DashboardBlockDef[] = [
+  { id: "couverture", label: "Couverture analytique" },
+  { id: "exclusions", label: "Fiches écartées du classement" },
+  { id: "top", label: "TOP clients" },
+  { id: "abc", label: "Classement ABC" },
+  { id: "relances", label: "À relancer / clients perdus" },
+];
 
 const ABC_TONE: Record<string, string> = {
   A: "bg-emerald-100 text-emerald-700",
@@ -35,6 +46,7 @@ const NATURE_TONE: Record<string, string> = {
 export function ProfitabilityClientsView() {
   const { entries } = usePilotData();
   const { mode } = usePilotMode();
+  const layout = useDashboardLayout(BLOCKS, "rentabilite-clients");
   const thresholds = useThresholds();
   const targetHourlyRate = thresholds.tauxHoraireCibleMin;
   const { year } = usePilotYear();
@@ -76,7 +88,8 @@ export function ProfitabilityClientsView() {
     analysisReliability({
       entityStatus: statusOf(statusesQ.data, c.clientId),
       hours: c.hours,
-      hoursSource: c.hours > 0 ? "interventions" : "aucune",
+      // Source unique : colonne Temps des lignes de vente (Vente → Temps).
+      hoursSource: c.hours > 0 ? "vente_temps" : "aucune",
       caTotal: c.ca,
       minHours: thresholds.heuresMinClient,
     });
@@ -102,18 +115,25 @@ export function ProfitabilityClientsView() {
         <p className="text-sm text-muted-foreground">
           CA, heures réelles et rentabilité par client. Cliquez sur un nom pour ouvrir sa fiche 360°.
         </p>
-        <Select value={allTimeScope ? "all" : "year"} onValueChange={(v) => setAllTimeScope(v === "all")}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="year">Exercice {year}</SelectItem>
-            <SelectItem value="all">Depuis le début</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={allTimeScope ? "all" : "year"} onValueChange={(v) => setAllTimeScope(v === "all")}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="year">Exercice {year}</SelectItem>
+              <SelectItem value="all">Depuis le début</SelectItem>
+            </SelectContent>
+          </Select>
+          <DashboardCustomizer defs={BLOCKS} layout={layout} />
+        </div>
       </div>
 
-      <CoverageBanner year={yearFilter} compact />
+      <PageBlocks>
+        <DashboardBlock id="couverture" layout={layout}>
+          <CoverageBanner year={yearFilter} compact />
+        </DashboardBlock>
 
-      {excludedCount > 0 && (
+        <DashboardBlock id="exclusions" layout={layout}>
+          {excludedCount > 0 && (
         <Card className="border-amber-200 bg-amber-50/60">
           <CardContent className="py-3 text-sm text-muted-foreground">
             {excludedCount} fiche(s) sont écartées du classement stratégique : contact probable,
@@ -121,9 +141,11 @@ export function ProfitabilityClientsView() {
             contrôle → Référentiel client.
           </CardContent>
         </Card>
-      )}
+          )}
+        </DashboardBlock>
 
-      {/* Top clients */}
+        {/* Top clients */}
+        <DashboardBlock id="top" layout={layout}>
       <div className="grid gap-3 sm:grid-cols-3">
         {top.map((c, i) => (
           <Card key={c.key}>
@@ -156,8 +178,10 @@ export function ProfitabilityClientsView() {
           </p>
         )}
       </div>
+        </DashboardBlock>
 
-      {/* Classement ABC */}
+        {/* Classement ABC */}
+        <DashboardBlock id="abc" layout={layout}>
       <Card>
         <CardContent className="p-0">
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
@@ -174,10 +198,10 @@ export function ProfitabilityClientsView() {
                   <TableHead className="text-center" title="Nature dominante du client (AP, SAP, CEEV, Conseil, Autre) déduite de la répartition de son CA.">Nature</TableHead>
                   <TableHead className="text-right">CA</TableHead>
                   <TableHead className="text-right">Part</TableHead>
-                  <TableHead className="text-right">Interv.</TableHead>
-                  <TableHead className="text-right" title="CA HT moyen par intervention pour ce client.">CA moy.</TableHead>
-                  <TableHead className="text-right" title="Temps moyen (en heures) par intervention pour ce client.">Temps moy.</TableHead>
-                  <TableHead className="text-right">Taux/h</TableHead>
+                  <TableHead className="text-right" title="Nombre de lignes de vente du client sur la période.">Lignes</TableHead>
+                  <TableHead className="text-right" title="CA HT moyen par ligne de vente pour ce client.">CA moy.</TableHead>
+                  <TableHead className="text-right" title="Temps moyen (en heures) par ligne de vente — colonne Temps du suivi CA.">Temps moy.</TableHead>
+                  <TableHead className="text-right" title="CA HT des lignes de vente porteuses de temps ÷ temps de ces mêmes lignes (Vente → Temps).">Taux/h</TableHead>
                   <TableHead className="text-center" title="Lecture immédiate de la rentabilité : taux horaire généré comparé à la cible des Paramètres PP.">Rentabilité</TableHead>
                   <TableHead className="text-center">Cat.</TableHead>
                 </TableRow>
@@ -215,8 +239,10 @@ export function ProfitabilityClientsView() {
           </div>
         </CardContent>
       </Card>
+        </DashboardBlock>
 
-      {/* Relance / perdus */}
+        {/* Relance / perdus */}
+        <DashboardBlock id="relances" layout={layout}>
       <div className="grid gap-3 md:grid-cols-2">
         <Card>
           <CardContent className="pt-5">
@@ -253,6 +279,8 @@ export function ProfitabilityClientsView() {
           </CardContent>
         </Card>
       </div>
+        </DashboardBlock>
+      </PageBlocks>
     </div>
   );
 }
