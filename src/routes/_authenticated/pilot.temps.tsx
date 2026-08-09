@@ -25,6 +25,14 @@ import {
   DashboardCustomizer,
   PageBlocks,
 } from "@/components/pilot/DashboardCustomizer";
+
+/** Blocs de la page — présentation uniquement, aucun impact sur les calculs. */
+const TIME_BLOCKS: DashboardBlockDef[] = [
+  { id: "kpi", label: "Indicateurs clés" },
+  { id: "prestations", label: "Temps ↔ valeur par prestation" },
+  { id: "positionnement", label: "Positionnement stratégique des clients" },
+  { id: "clients", label: "Classement des clients par rentabilité" },
+];
 import {
   Bar,
   BarChart,
