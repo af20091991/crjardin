@@ -148,3 +148,11 @@ export function DashboardBlock({
     </div>
   );
 }
+
+/**
+ * Conteneur d'une page organisée en blocs indépendants : l'ordre choisi par
+ * l'utilisateur est appliqué en CSS (flex + order), sans toucher aux données.
+ */
+export function PageBlocks({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("flex flex-col gap-4", className)}>{children}</div>;
+}
