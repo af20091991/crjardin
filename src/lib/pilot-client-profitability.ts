@@ -106,14 +106,16 @@ export function classifyClients(params: {
     if (e.client_name) cur.name = e.client_name;
     const amount = Number(e.amount_ht) || 0;
     cur.total += amount;
-    // Numérateur du taux horaire : montant HT des lignes de vente avec temps.
-    if ((Number(e.hours) || 0) > 0) cur.rated += amount;
+    // Numérateur du taux horaire : montant HT des lignes de vente de
+    // l'exercice analysé porteuses de temps (même périmètre que les heures).
+    if (yy === year && (Number(e.hours) || 0) > 0) cur.rated += amount;
     if (yy === year) cur.y += amount;
     if (yy === year - 1) cur.prev += amount;
     agg.set(e.client_id, cur);
   }
 
-  const hours = aggregateHoursByClient(ledger);
+  // Heures : exclusivement les lignes de vente de l'exercice analysé.
+  const hours = aggregateHoursByClient(ledger.filter((l) => l.year === year));
   const rows: ClientProfitability[] = [];
 
   const ids = new Set<string>([...agg.keys(), ...hours.keys()]);
