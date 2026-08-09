@@ -560,6 +560,7 @@ function TimeValueAnalysis() {
           </Card>
 
           {/* PARTIE 3 — Graphique stratégique */}
+          <DashboardBlock id="positionnement" layout={layout}>
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Positionnement stratégique des clients</CardTitle>
@@ -636,6 +637,7 @@ function TimeValueAnalysis() {
           </Card>
 
           {/* PARTIES 2 & 4 — Classement des clients par rentabilité */}
+          <DashboardBlock id="clients" layout={layout}>
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Classement des clients par rentabilité</CardTitle>
@@ -644,14 +646,14 @@ function TimeValueAnalysis() {
               <ClientProfitabilityTable rows={analysis.clients} target={target} />
             </CardContent>
           </Card>
+          </DashboardBlock>
 
           <p className="text-xs text-muted-foreground">
-            Sources : CA normalisé (lignes de vente) · heures réalisées confirmées (interventions),
-            heures historiques validées, heures vendues en dernier recours · charges d'exploitation
-            validées hors investissements, réparties au prorata des heures. Aucun calcul existant
-            n'est modifié : cette page est une couche d'analyse en lecture seule.
+            Sources : Chiffre d'affaires → Ventes uniquement (montant HT et colonne Temps des lignes
+            de vente) · charges d'exploitation validées hors investissements, réparties au prorata
+            des heures. Ni CR Chantier, ni SST, ni historique n'alimentent ces heures.
           </p>
-        </>
+        </PageBlocks>
       )}
     </div>
   );
