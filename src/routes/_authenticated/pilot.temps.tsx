@@ -19,6 +19,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HourlyRateSection } from "@/components/pilot/HourlyRateSection";
 import { ProfitabilityServicesView } from "@/components/pilot/rentabilite/ProfitabilityServicesView";
 import { ClientProfitabilityTable } from "@/components/pilot/temps/ClientProfitabilityTable";
+import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
+import {
+  DashboardBlock,
+  DashboardCustomizer,
+  PageBlocks,
+} from "@/components/pilot/DashboardCustomizer";
 import {
   Bar,
   BarChart,
@@ -201,6 +207,8 @@ function TimeValueAnalysis() {
   );
 
   const loading = entries.isLoading || ledger.isLoading || charges.isLoading;
+
+  const layout = useDashboardLayout(TIME_BLOCKS, "temps-rentabilite");
 
   const prestationRows = useMemo(
     () => sortPrestations(analysis.prestations, prestSort),
