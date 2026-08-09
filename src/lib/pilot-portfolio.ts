@@ -50,6 +50,9 @@ export function buildPortfolio(params: {
 }): PortfolioRow[] {
   const { entries, ledger, scores, year, statuses } = params;
 
+  // Périmètre unique : les heures ET le CA servant au taux horaire portent sur
+  // les mêmes lignes de vente de l'exercice analysé (jamais deux périmètres).
+
   const agg = new Map<
     string,
     { name: string; caTotal: number; caYear: number; lines: number; caRated: number }
@@ -64,15 +67,16 @@ export function buildPortfolio(params: {
     const amount = Number(e.amount_ht) || 0;
     cur.caTotal += amount;
     if (y === year) cur.caYear += amount;
-    // CA des seules lignes de vente porteuses de temps (numérateur du taux horaire).
-    if ((Number(e.hours) || 0) > 0) cur.caRated += amount;
+    // CA des seules lignes de vente de l'exercice porteuses de temps
+    // (numérateur du taux horaire).
+    if (y === year && (Number(e.hours) || 0) > 0) cur.caRated += amount;
     cur.lines += 1;
     agg.set(e.client_id, cur);
   }
 
   const hoursByClient = new Map<string, { r: number; h: number; v: number; prestations: Set<string> }>();
   for (const l of ledger) {
-    if (!l.clientId || l.hours <= 0) continue;
+    if (!l.clientId || l.hours <= 0 || l.year !== year) continue;
     const cur = hoursByClient.get(l.clientId) ?? { r: 0, h: 0, v: 0, prestations: new Set<string>() };
     if (l.type === "realisee") {
       if (!l.estimated) cur.r += l.hours;
