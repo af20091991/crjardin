@@ -16,12 +16,22 @@ interface LayoutState {
   pinned: string[];
 }
 
-const STORAGE_KEY = "pp.dashboard.layout";
+const STORAGE_PREFIX = "pp.layout.";
+const DEFAULT_SCOPE = "dashboard";
 const EMPTY: LayoutState = { order: [], hidden: [], pinned: [] };
 
-function read(): LayoutState {
+/** Ancienne clé du cockpit : conservée pour ne perdre aucune préférence. */
+const LEGACY_KEYS: Record<string, string> = { dashboard: "pp.dashboard.layout" };
+
+function storageKey(scope: string): string {
+  return STORAGE_PREFIX + scope;
+}
+
+function read(scope: string): LayoutState {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(storageKey(scope)) ??
+      (LEGACY_KEYS[scope] ? window.localStorage.getItem(LEGACY_KEYS[scope]) : null);
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as Partial<LayoutState>;
     return {
@@ -34,21 +44,28 @@ function read(): LayoutState {
   }
 }
 
-export function useDashboardLayout(defs: DashboardBlockDef[]) {
+/**
+ * Organisation personnelle d'une page en blocs (ordre, visibilité, épinglage).
+ * `scope` isole les préférences par page. Aucune donnée métier n'est touchée.
+ */
+export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DEFAULT_SCOPE) {
   const [state, setState] = useState<LayoutState>(EMPTY);
 
   useEffect(() => {
-    setState(read());
-  }, []);
+    setState(read(scope));
+  }, [scope]);
 
-  const persist = useCallback((next: LayoutState) => {
-    setState(next);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* stockage indisponible */
-    }
-  }, []);
+  const persist = useCallback(
+    (next: LayoutState) => {
+      setState(next);
+      try {
+        window.localStorage.setItem(storageKey(scope), JSON.stringify(next));
+      } catch {
+        /* stockage indisponible */
+      }
+    },
+    [scope],
+  );
 
   /** Ordre effectif : épinglés d'abord, puis l'ordre choisi, puis l'ordre par défaut. */
   const ordered = useMemo(() => {
