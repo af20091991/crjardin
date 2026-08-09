@@ -5,14 +5,15 @@
 // aucune donnée et ne modifie aucun calcul existant. Il croise les objets déjà
 // produits par les moteurs en place :
 //   - PilotEntry[]        (CA normalisé : pilot_ca_entries, kind = 'vente')
-//   - HoursLedgerEntry[]  (ledger d'heures unique : interventions / historique / vendues)
+//   - HoursLedgerEntry[]  (ledger d'heures unique, alimenté par Vente → Temps)
 //   - ChargeRow[]         (charges validées : pilot_ca_entries, kind = 'charge')
 //
-// Hiérarchie des heures respectée telle quelle :
-//   1. heures réalisées confirmées (interventions.hours_spent, non estimées)
-//   2. heures historiques validées (pilot_historic_hours)
-//   3. heures vendues (CA) — uniquement en dernier recours, signalé
-// Les heures estimées sont exclues, jamais mélangées aux heures réalisées.
+// SOURCE UNIQUE DES HEURES : Chiffre d'affaires → Ventes → colonne Temps
+// (pilot_ca_entries.hours). Ni CR Chantier, ni SST, ni historique, ni estimation
+// n'alimentent ces heures. Le nombre d'interventions n'est jamais une source
+// d'heures : il n'est affiché qu'à titre informatif.
+// Taux horaire = CA HT des lignes de vente porteuses de temps ÷ temps de ces
+// mêmes lignes (périmètre strictement identique au numérateur).
 // -----------------------------------------------------------------------------
 
 import type { PilotEntry } from "@/lib/pilot";
