@@ -35,8 +35,8 @@ export function DashboardCustomizer({
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 space-y-2">
         <p className="text-xs text-muted-foreground">
-          Glissez un bloc pour le déplacer, masquez ceux dont vous n'avez pas besoin et épinglez
-          vos favoris en haut. L'organisation est conservée sur cet appareil.
+          Glissez un bloc pour le déplacer, masquez ceux dont vous n'avez pas besoin et épinglez vos
+          favoris en haut. L'organisation est conservée sur cet appareil.
         </p>
         <ul className="space-y-1">
           {layout.ordered.map((id, i) => (
@@ -97,7 +97,13 @@ export function DashboardCustomizer({
             </li>
           ))}
         </ul>
-        <Button type="button" variant="ghost" size="sm" className="w-full gap-2" onClick={layout.reset}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-full gap-2"
+          onClick={layout.reset}
+        >
           <RotateCcw className="h-3.5 w-3.5" /> Réinitialiser
         </Button>
       </PopoverContent>

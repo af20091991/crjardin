@@ -179,35 +179,41 @@ export interface TimeValueAnalysis {
 // PARTIE 2/3/4 — Analyse par client, zones stratégiques, classement
 // ---------------------------------------------------------------------------
 
-export type ClientZone = "strategique" | "a_developper" | "a_optimiser" | "chronophage" | "non_classe";
+export type ClientZone =
+  | "strategique"
+  | "a_developper"
+  | "a_optimiser"
+  | "chronophage"
+  | "non_classe";
 
-export const CLIENT_ZONE_META: Record<ClientZone, { label: string; badge: string; hint: string }> = {
-  strategique: {
-    label: "Client stratégique",
-    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    hint: "Peu d'heures consommées, forte rentabilité horaire.",
-  },
-  a_developper: {
-    label: "Client à développer",
-    badge: "border-sky-200 bg-sky-50 text-sky-700",
-    hint: "Peu de temps consommé, rentabilité horaire encore sous la cible : potentiel.",
-  },
-  a_optimiser: {
-    label: "Client à optimiser",
-    badge: "border-amber-200 bg-amber-50 text-amber-700",
-    hint: "Beaucoup de temps consommé pour une rentabilité proche de la cible.",
-  },
-  chronophage: {
-    label: "Client chronophage",
-    badge: "border-red-200 bg-red-50 text-red-700",
-    hint: "Beaucoup de temps consommé pour une rentabilité insuffisante.",
-  },
-  non_classe: {
-    label: "Données insuffisantes",
-    badge: "border-border bg-muted text-muted-foreground",
-    hint: "Heures ou CA manquants : ce client n'est pas classé.",
-  },
-};
+export const CLIENT_ZONE_META: Record<ClientZone, { label: string; badge: string; hint: string }> =
+  {
+    strategique: {
+      label: "Client stratégique",
+      badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      hint: "Peu d'heures consommées, forte rentabilité horaire.",
+    },
+    a_developper: {
+      label: "Client à développer",
+      badge: "border-sky-200 bg-sky-50 text-sky-700",
+      hint: "Peu de temps consommé, rentabilité horaire encore sous la cible : potentiel.",
+    },
+    a_optimiser: {
+      label: "Client à optimiser",
+      badge: "border-amber-200 bg-amber-50 text-amber-700",
+      hint: "Beaucoup de temps consommé pour une rentabilité proche de la cible.",
+    },
+    chronophage: {
+      label: "Client chronophage",
+      badge: "border-red-200 bg-red-50 text-red-700",
+      hint: "Beaucoup de temps consommé pour une rentabilité insuffisante.",
+    },
+    non_classe: {
+      label: "Données insuffisantes",
+      badge: "border-border bg-muted text-muted-foreground",
+      hint: "Heures ou CA manquants : ce client n'est pas classé.",
+    },
+  };
 
 export interface ClientTimeValue {
   clientId: string;
@@ -258,7 +264,8 @@ export function analyzeTimeValue(params: {
   // --- Heures de la période ----------------------------------------------
   const scopedLedger = ledger.filter((l) => {
     if (!inScopeYearMonth(filters, l.year, l.month)) return false;
-    if (filters.prestation !== "all" && normalizePrestation(l.prestation) !== filters.prestation) return false;
+    if (filters.prestation !== "all" && normalizePrestation(l.prestation) !== filters.prestation)
+      return false;
     if (filters.clientId !== "all" && l.clientId !== filters.clientId) return false;
     return true;
   });
@@ -274,9 +281,13 @@ export function analyzeTimeValue(params: {
   >();
   for (const e of scopedEntries) {
     const key = entryPrestation(e);
-    const cur =
-      prestCa.get(key) ??
-      { ca: 0, caRated: 0, lignes: 0, clients: new Set<string>(), hoursVenduesCa: 0 };
+    const cur = prestCa.get(key) ?? {
+      ca: 0,
+      caRated: 0,
+      lignes: 0,
+      clients: new Set<string>(),
+      hoursVenduesCa: 0,
+    };
     cur.ca += Number(e.amount_ht) || 0;
     cur.lignes += 1;
     // Taux horaire : seules les lignes de vente porteuses de temps comptent.
@@ -338,19 +349,23 @@ export function analyzeTimeValue(params: {
 
   const clientCa = new Map<
     string,
-    { ca: number; caRated: number; name: string; prest: Map<string, number>; hoursVenduesCa: number }
+    {
+      ca: number;
+      caRated: number;
+      name: string;
+      prest: Map<string, number>;
+      hoursVenduesCa: number;
+    }
   >();
   for (const e of scopedEntries) {
     if (!e.client_id) continue;
-    const cur =
-      clientCa.get(e.client_id) ??
-      {
-        ca: 0,
-        caRated: 0,
-        name: params.clientNames?.get(e.client_id) ?? "Client",
-        prest: new Map<string, number>(),
-        hoursVenduesCa: 0,
-      };
+    const cur = clientCa.get(e.client_id) ?? {
+      ca: 0,
+      caRated: 0,
+      name: params.clientNames?.get(e.client_id) ?? "Client",
+      prest: new Map<string, number>(),
+      hoursVenduesCa: 0,
+    };
     const amount = Number(e.amount_ht) || 0;
     cur.ca += amount;
     if ((Number(e.hours) || 0) > 0) {
@@ -408,7 +423,13 @@ export function analyzeTimeValue(params: {
     if (perHour == null || targetHourlyRate <= 0) continue;
     const lowTime = r.hours <= medHours;
     const good = perHour >= targetHourlyRate;
-    r.zone = lowTime ? (good ? "strategique" : "a_developper") : good ? "a_optimiser" : "chronophage";
+    r.zone = lowTime
+      ? good
+        ? "strategique"
+        : "a_developper"
+      : good
+        ? "a_optimiser"
+        : "chronophage";
   }
 
   // Rang de rentabilité (meilleur €/h = 1), uniquement sur les clients classés.
@@ -443,7 +464,9 @@ export function analyzeTimeValue(params: {
       "Aucune charge exploitable sur la période : seul le CA par heure est affiché, pas de résultat brut.",
     );
   }
-  warnings.push("Site non qualifié : analyse conduite au niveau Client (modèle Client / Site inchangé).");
+  warnings.push(
+    "Site non qualifié : analyse conduite au niveau Client (modèle Client / Site inchangé).",
+  );
 
   return {
     prestations,
@@ -458,12 +481,16 @@ export function analyzeTimeValue(params: {
 export type PrestationSort = "euro_h" | "hours" | "ca";
 export type ClientSort = "best_euro_h" | "worst_euro_h" | "ca" | "hours";
 
-export function sortPrestations(rows: PrestationTimeValue[], sort: PrestationSort): PrestationTimeValue[] {
+export function sortPrestations(
+  rows: PrestationTimeValue[],
+  sort: PrestationSort,
+): PrestationTimeValue[] {
   const out = [...rows];
   if (sort === "hours") return out.sort((a, b) => b.hours - a.hours);
   if (sort === "ca") return out.sort((a, b) => b.caHt - a.caHt);
   return out.sort(
-    (a, b) => (b.resultPerHour ?? b.caPerHour ?? -Infinity) - (a.resultPerHour ?? a.caPerHour ?? -Infinity),
+    (a, b) =>
+      (b.resultPerHour ?? b.caPerHour ?? -Infinity) - (a.resultPerHour ?? a.caPerHour ?? -Infinity),
   );
 }
 

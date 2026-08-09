@@ -70,7 +70,10 @@ export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DE
   /** Ordre effectif : épinglés d'abord, puis l'ordre choisi, puis l'ordre par défaut. */
   const ordered = useMemo(() => {
     const known = defs.map((d) => d.id);
-    const base = [...state.order.filter((id) => known.includes(id)), ...known.filter((id) => !state.order.includes(id))];
+    const base = [
+      ...state.order.filter((id) => known.includes(id)),
+      ...known.filter((id) => !state.order.includes(id)),
+    ];
     const pinned = base.filter((id) => state.pinned.includes(id));
     const rest = base.filter((id) => !state.pinned.includes(id));
     return [...pinned, ...rest];
@@ -119,7 +122,8 @@ export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DE
   /** Réordonne par glisser-déposer : `from` et `to` sont des index d'affichage. */
   const reorder = useCallback(
     (from: number, to: number) => {
-      if (from === to || from < 0 || to < 0 || from >= ordered.length || to >= ordered.length) return;
+      if (from === to || from < 0 || to < 0 || from >= ordered.length || to >= ordered.length)
+        return;
       const next = [...ordered];
       next.splice(to, 0, next.splice(from, 1)[0]);
       persist({ ...state, order: next });

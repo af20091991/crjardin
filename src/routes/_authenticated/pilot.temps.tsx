@@ -129,7 +129,20 @@ function TimeAndProfitPage() {
   );
 }
 
-const MONTH_LABELS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+const MONTH_LABELS = [
+  "Jan",
+  "Fév",
+  "Mar",
+  "Avr",
+  "Mai",
+  "Juin",
+  "Juil",
+  "Aoû",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Déc",
+];
 const PRESTATION_COLORS = [
   "var(--pp-ventes, #4c8a2f)",
   "#7cb342",
@@ -169,8 +182,14 @@ function TimeValueAnalysis() {
   const [q, setQ] = useState("");
 
   const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode]);
-  const realLedger = useMemo(() => hoursLedgerForMode(ledger.data ?? [], mode), [ledger.data, mode]);
-  const realCharges = useMemo(() => chargeRowsForMode(charges.data ?? [], mode), [charges.data, mode]);
+  const realLedger = useMemo(
+    () => hoursLedgerForMode(ledger.data ?? [], mode),
+    [ledger.data, mode],
+  );
+  const realCharges = useMemo(
+    () => chargeRowsForMode(charges.data ?? [], mode),
+    [charges.data, mode],
+  );
 
   const years = useMemo(
     () =>
@@ -273,14 +292,14 @@ function TimeValueAnalysis() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div className="space-y-1">
-        <h2 className="flex items-center gap-2 font-serif text-lg font-semibold">
-          <Timer className="h-5 w-5 text-primary" />
-          Rentabilité du temps réalisé
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Où investir votre temps pour maximiser la rentabilité ? Croisement du temps réellement
-          réalisé et de la valeur économique générée.
-        </p>
+          <h2 className="flex items-center gap-2 font-serif text-lg font-semibold">
+            <Timer className="h-5 w-5 text-primary" />
+            Rentabilité du temps réalisé
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Où investir votre temps pour maximiser la rentabilité ? Croisement du temps réellement
+            réalisé et de la valeur économique générée.
+          </p>
         </div>
         <DashboardCustomizer defs={TIME_BLOCKS} layout={layout} />
       </header>
@@ -414,259 +433,273 @@ function TimeValueAnalysis() {
       ) : (
         <PageBlocks className="gap-5">
           <DashboardBlock id="kpi" layout={layout}>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <PilotCard
-              label="Temps analysé"
-              value={formatHours(analysis.hoursTotal)}
-              icon={Clock}
-              audit={{
-                sources: [
-                  "pilot_ca_entries.hours (Vente → Temps, source exclusive)",
-                ],
-                calcul:
-                  "Somme du temps des lignes de vente (Vente → Temps) par prestation.",
-                periode: filters.year === "all" ? "Tous exercices" : `Exercice ${filters.year}`,
-              }}
-            />
-            <PilotCard
-              label="CA HT analysé"
-              value={formatEuro(analysis.caTotal)}
-              icon={TrendingUp}
-              audit={{
-                sources: ["pilot_ca_entries (kind = vente, CA normalisé)"],
-                calcul: "Somme des montants HT des lignes de vente de la période filtrée.",
-              }}
-            />
-            <PilotCard
-              label="Coût horaire d'exploitation"
-              value={euroPerHour(analysis.cost.costPerHour)}
-              sub={
-                analysis.cost.costPerHour == null
-                  ? "Charges non exploitables sur la période"
-                  : `${formatEuro(analysis.cost.chargesTotal)} de charges réparties`
-              }
-              icon={Info}
-              audit={{
-                sources: ["pilot_ca_entries (kind = charge, hors investissements)"],
-                calcul:
-                  "Charges d'exploitation validées de la période ÷ heures retenues. Les charges n'étant pas rattachées à un client en base, elles sont réparties au prorata des heures.",
-                fiabilite:
-                  analysis.cost.chargesUnclassified > 0
-                    ? "Charges partiellement classées : résultat brut minimum."
-                    : "Charges intégralement classées.",
-              }}
-            />
-            <PilotCard
-              label="Meilleure prestation (€/h)"
-              value={bestPrestation ? bestPrestation.prestation : "—"}
-              sub={
-                bestPrestation
-                  ? euroPerHour(bestPrestation.resultPerHour ?? bestPrestation.caPerHour)
-                  : "Données insuffisantes"
-              }
-              tone="positive"
-              audit={{
-                sources: ["CA normalisé", "Ledger d'heures"],
-                calcul: "Résultat brut réparti ÷ heures retenues, par prestation.",
-              }}
-            />
-          </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <PilotCard
+                label="Temps analysé"
+                value={formatHours(analysis.hoursTotal)}
+                icon={Clock}
+                audit={{
+                  sources: ["pilot_ca_entries.hours (Vente → Temps, source exclusive)"],
+                  calcul: "Somme du temps des lignes de vente (Vente → Temps) par prestation.",
+                  periode: filters.year === "all" ? "Tous exercices" : `Exercice ${filters.year}`,
+                }}
+              />
+              <PilotCard
+                label="CA HT analysé"
+                value={formatEuro(analysis.caTotal)}
+                icon={TrendingUp}
+                audit={{
+                  sources: ["pilot_ca_entries (kind = vente, CA normalisé)"],
+                  calcul: "Somme des montants HT des lignes de vente de la période filtrée.",
+                }}
+              />
+              <PilotCard
+                label="Coût horaire d'exploitation"
+                value={euroPerHour(analysis.cost.costPerHour)}
+                sub={
+                  analysis.cost.costPerHour == null
+                    ? "Charges non exploitables sur la période"
+                    : `${formatEuro(analysis.cost.chargesTotal)} de charges réparties`
+                }
+                icon={Info}
+                audit={{
+                  sources: ["pilot_ca_entries (kind = charge, hors investissements)"],
+                  calcul:
+                    "Charges d'exploitation validées de la période ÷ heures retenues. Les charges n'étant pas rattachées à un client en base, elles sont réparties au prorata des heures.",
+                  fiabilite:
+                    analysis.cost.chargesUnclassified > 0
+                      ? "Charges partiellement classées : résultat brut minimum."
+                      : "Charges intégralement classées.",
+                }}
+              />
+              <PilotCard
+                label="Meilleure prestation (€/h)"
+                value={bestPrestation ? bestPrestation.prestation : "—"}
+                sub={
+                  bestPrestation
+                    ? euroPerHour(bestPrestation.resultPerHour ?? bestPrestation.caPerHour)
+                    : "Données insuffisantes"
+                }
+                tone="positive"
+                audit={{
+                  sources: ["CA normalisé", "Ledger d'heures"],
+                  calcul: "Résultat brut réparti ÷ heures retenues, par prestation.",
+                }}
+              />
+            </div>
           </DashboardBlock>
 
           {/* PARTIE 1 — Prestations */}
           <DashboardBlock id="prestations" layout={layout}>
-          <Card>
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-              <CardTitle className="text-base">Temps ↔ valeur par type de prestation</CardTitle>
-              <Select value={prestSort} onValueChange={(v) => setPrestSort(v as PrestationSort)}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="euro_h">Meilleur €/h</SelectItem>
-                  <SelectItem value="hours">Plus gros volume d'heures</SelectItem>
-                  <SelectItem value="ca">Plus gros CA</SelectItem>
-                </SelectContent>
-              </Select>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-xs text-muted-foreground">
-                      <th className="py-2 pr-3">Prestation</th>
-                      <th className="py-2 pr-3 text-right">Heures</th>
-                      <th className="py-2 pr-3 text-right">% temps</th>
-                      <th className="py-2 pr-3 text-right">CA HT</th>
-                      <th className="py-2 pr-3 text-right">Charges réparties</th>
-                      <th className="py-2 pr-3 text-right">Résultat brut</th>
-                      <th className="py-2 pr-3 text-right">Rentabilité horaire</th>
-                      <th className="py-2 pr-3">Source heures</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {prestationRows.map((p) => (
-                      <tr key={p.prestation} className="border-b last:border-0">
-                        <td className="py-2 pr-3 font-medium">{p.prestation}</td>
-                        <td className="py-2 pr-3 text-right">{formatHours(p.hours)}</td>
-                        <td className="py-2 pr-3 text-right">{p.hoursPct.toFixed(1)} %</td>
-                        <td className="py-2 pr-3 text-right">{formatEuro(p.caHt)}</td>
-                        <td className="py-2 pr-3 text-right text-muted-foreground">
-                          {p.charges == null ? "—" : formatEuro(p.charges)}
-                        </td>
-                        <td
-                          className={`py-2 pr-3 text-right font-medium ${
-                            (p.resultatBrut ?? 0) < 0 ? "text-[var(--pp-charges,#d9534f)]" : ""
-                          }`}
-                        >
-                          {p.resultatBrut == null ? "—" : formatEuro(p.resultatBrut)}
-                        </td>
-                        <td className="py-2 pr-3 text-right">
-                          {euroPerHour(p.resultPerHour ?? p.caPerHour)}
-                        </td>
-                        <td className="py-2 pr-3 text-xs text-muted-foreground">
-                          {HOURS_BASIS_LABEL[p.hoursBasis]}
-                        </td>
+            <Card>
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+                <CardTitle className="text-base">Temps ↔ valeur par type de prestation</CardTitle>
+                <Select value={prestSort} onValueChange={(v) => setPrestSort(v as PrestationSort)}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="euro_h">Meilleur €/h</SelectItem>
+                    <SelectItem value="hours">Plus gros volume d'heures</SelectItem>
+                    <SelectItem value="ca">Plus gros CA</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-xs text-muted-foreground">
+                        <th className="py-2 pr-3">Prestation</th>
+                        <th className="py-2 pr-3 text-right">Heures</th>
+                        <th className="py-2 pr-3 text-right">% temps</th>
+                        <th className="py-2 pr-3 text-right">CA HT</th>
+                        <th className="py-2 pr-3 text-right">Charges réparties</th>
+                        <th className="py-2 pr-3 text-right">Résultat brut</th>
+                        <th className="py-2 pr-3 text-right">Rentabilité horaire</th>
+                        <th className="py-2 pr-3">Source heures</th>
                       </tr>
-                    ))}
-                    {prestationRows.length === 0 && (
-                      <tr>
-                        <td colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
-                          Aucune donnée sur la période sélectionnée.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs font-medium text-muted-foreground">
-                  Rentabilité horaire par prestation (€/h), triée de la plus à la moins rentable ·
-                  cible {target} €/h
-                </p>
-                <ChartContainer
-                  config={{ rate: { label: "€/h", color: "var(--primary)" } }}
-                  className="w-full"
-                  style={{ height: Math.max(180, ratedPrestations.length * 38 + 20) }}
-                >
-                  <BarChart
-                    data={ratedPrestations}
-                    layout="vertical"
-                    margin={{ top: 4, right: 24, bottom: 4, left: 4 }}
-                  >
-                    <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                    <XAxis type="number" tickLine={false} axisLine={false} fontSize={11} />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      tickLine={false}
-                      axisLine={false}
-                      fontSize={11}
-                      width={150}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ReferenceLine x={target} stroke="#d9534f" strokeDasharray="4 4" />
-                    <Bar dataKey="rate" radius={[0, 4, 4, 0]}>
-                      {ratedPrestations.map((p, i) => (
-                        <Cell key={i} fill={p.rate >= target ? "#2f9e5f" : "#f0a733"} />
+                    </thead>
+                    <tbody>
+                      {prestationRows.map((p) => (
+                        <tr key={p.prestation} className="border-b last:border-0">
+                          <td className="py-2 pr-3 font-medium">{p.prestation}</td>
+                          <td className="py-2 pr-3 text-right">{formatHours(p.hours)}</td>
+                          <td className="py-2 pr-3 text-right">{p.hoursPct.toFixed(1)} %</td>
+                          <td className="py-2 pr-3 text-right">{formatEuro(p.caHt)}</td>
+                          <td className="py-2 pr-3 text-right text-muted-foreground">
+                            {p.charges == null ? "—" : formatEuro(p.charges)}
+                          </td>
+                          <td
+                            className={`py-2 pr-3 text-right font-medium ${
+                              (p.resultatBrut ?? 0) < 0 ? "text-[var(--pp-charges,#d9534f)]" : ""
+                            }`}
+                          >
+                            {p.resultatBrut == null ? "—" : formatEuro(p.resultatBrut)}
+                          </td>
+                          <td className="py-2 pr-3 text-right">
+                            {euroPerHour(p.resultPerHour ?? p.caPerHour)}
+                          </td>
+                          <td className="py-2 pr-3 text-xs text-muted-foreground">
+                            {HOURS_BASIS_LABEL[p.hoursBasis]}
+                          </td>
+                        </tr>
                       ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              </div>
-            </CardContent>
-          </Card>
+                      {prestationRows.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={8}
+                            className="py-6 text-center text-sm text-muted-foreground"
+                          >
+                            Aucune donnée sur la période sélectionnée.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-          {/* PARTIE 3 — Graphique stratégique */}
+                <div>
+                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                    Rentabilité horaire par prestation (€/h), triée de la plus à la moins rentable ·
+                    cible {target} €/h
+                  </p>
+                  <ChartContainer
+                    config={{ rate: { label: "€/h", color: "var(--primary)" } }}
+                    className="w-full"
+                    style={{ height: Math.max(180, ratedPrestations.length * 38 + 20) }}
+                  >
+                    <BarChart
+                      data={ratedPrestations}
+                      layout="vertical"
+                      margin={{ top: 4, right: 24, bottom: 4, left: 4 }}
+                    >
+                      <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                      <XAxis type="number" tickLine={false} axisLine={false} fontSize={11} />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        tickLine={false}
+                        axisLine={false}
+                        fontSize={11}
+                        width={150}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ReferenceLine x={target} stroke="#d9534f" strokeDasharray="4 4" />
+                      <Bar dataKey="rate" radius={[0, 4, 4, 0]}>
+                        {ratedPrestations.map((p, i) => (
+                          <Cell key={i} fill={p.rate >= target ? "#2f9e5f" : "#f0a733"} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ChartContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* PARTIE 3 — Graphique stratégique */}
           </DashboardBlock>
           <DashboardBlock id="positionnement" layout={layout}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Positionnement stratégique des clients</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-2 text-xs">
-                {(["strategique", "a_developper", "a_optimiser", "chronophage"] as ClientZone[]).map(
-                  (z) => (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Positionnement stratégique des clients</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {(
+                    ["strategique", "a_developper", "a_optimiser", "chronophage"] as ClientZone[]
+                  ).map((z) => (
                     <Badge key={z} variant="outline" className={CLIENT_ZONE_META[z].badge}>
                       {CLIENT_ZONE_META[z].label} · {zoneCounts.get(z) ?? 0}
                     </Badge>
-                  ),
-                )}
-              </div>
-              <ChartContainer config={{}} className="h-[340px] w-full">
-                <ScatterChart margin={{ top: 10, right: 16, bottom: 24, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    type="number"
-                    dataKey="x"
-                    name="Heures"
-                    fontSize={11}
-                    label={{ value: "Temps consommé (h)", position: "insideBottom", offset: -14, fontSize: 11 }}
-                  />
-                  <YAxis
-                    type="number"
-                    dataKey="y"
-                    name="Résultat brut"
-                    fontSize={11}
-                    width={62}
-                    label={{ value: "Résultat brut (€)", angle: -90, position: "insideLeft", fontSize: 11 }}
-                  />
-                  <ZAxis type="number" dataKey="z" range={[40, 420]} name="CA HT" />
-                  <ChartTooltip
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.length) return null;
-                      const d = payload[0].payload as (typeof scatterData)[number];
-                      return (
-                        <div className="rounded-md border bg-background p-2 text-xs shadow-sm">
-                          <p className="font-medium">{d.name}</p>
-                          <p>{formatHours(d.x)} consommées</p>
-                          <p>Résultat brut : {formatEuro(d.y)}</p>
-                          <p>CA HT : {formatEuro(d.z)}</p>
-                          <p>{euroPerHour(d.perHour)}</p>
-                          <p className="text-muted-foreground">{CLIENT_ZONE_META[d.zone].label}</p>
-                        </div>
-                      );
-                    }}
-                  />
-                  <ReferenceLine x={medHours} stroke="#9aa0a6" strokeDasharray="4 4" />
-                  <ReferenceLine y={0} stroke="#9aa0a6" />
-                  <Scatter data={scatterData}>
-                    {scatterData.map((d, i) => (
-                      <Cell key={i} fill={ZONE_COLORS[d.zone]} fillOpacity={0.75} />
-                    ))}
-                  </Scatter>
-                </ScatterChart>
-              </ChartContainer>
-              <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-                {(["strategique", "a_developper", "a_optimiser", "chronophage"] as ClientZone[]).map(
-                  (z) => (
+                  ))}
+                </div>
+                <ChartContainer config={{}} className="h-[340px] w-full">
+                  <ScatterChart margin={{ top: 10, right: 16, bottom: 24, left: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      type="number"
+                      dataKey="x"
+                      name="Heures"
+                      fontSize={11}
+                      label={{
+                        value: "Temps consommé (h)",
+                        position: "insideBottom",
+                        offset: -14,
+                        fontSize: 11,
+                      }}
+                    />
+                    <YAxis
+                      type="number"
+                      dataKey="y"
+                      name="Résultat brut"
+                      fontSize={11}
+                      width={62}
+                      label={{
+                        value: "Résultat brut (€)",
+                        angle: -90,
+                        position: "insideLeft",
+                        fontSize: 11,
+                      }}
+                    />
+                    <ZAxis type="number" dataKey="z" range={[40, 420]} name="CA HT" />
+                    <ChartTooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const d = payload[0].payload as (typeof scatterData)[number];
+                        return (
+                          <div className="rounded-md border bg-background p-2 text-xs shadow-sm">
+                            <p className="font-medium">{d.name}</p>
+                            <p>{formatHours(d.x)} consommées</p>
+                            <p>Résultat brut : {formatEuro(d.y)}</p>
+                            <p>CA HT : {formatEuro(d.z)}</p>
+                            <p>{euroPerHour(d.perHour)}</p>
+                            <p className="text-muted-foreground">
+                              {CLIENT_ZONE_META[d.zone].label}
+                            </p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <ReferenceLine x={medHours} stroke="#9aa0a6" strokeDasharray="4 4" />
+                    <ReferenceLine y={0} stroke="#9aa0a6" />
+                    <Scatter data={scatterData}>
+                      {scatterData.map((d, i) => (
+                        <Cell key={i} fill={ZONE_COLORS[d.zone]} fillOpacity={0.75} />
+                      ))}
+                    </Scatter>
+                  </ScatterChart>
+                </ChartContainer>
+                <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                  {(
+                    ["strategique", "a_developper", "a_optimiser", "chronophage"] as ClientZone[]
+                  ).map((z) => (
                     <p key={z}>
-                      <span className="font-medium text-foreground">{CLIENT_ZONE_META[z].label} :</span>{" "}
+                      <span className="font-medium text-foreground">
+                        {CLIENT_ZONE_META[z].label} :
+                      </span>{" "}
                       {CLIENT_ZONE_META[z].hint}
                     </p>
-                  ),
-                )}
-                <p className="sm:col-span-2">
-                  Repères : ligne verticale = médiane du temps consommé ({formatHours(medHours)}) ;
-                  seuil de rentabilité horaire = {target} €/h (règles de calcul Pilot Pro).
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                  <p className="sm:col-span-2">
+                    Repères : ligne verticale = médiane du temps consommé ({formatHours(medHours)})
+                    ; seuil de rentabilité horaire = {target} €/h (règles de calcul Pilot Pro).
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* PARTIES 2 & 4 — Classement des clients par rentabilité */}
+            {/* PARTIES 2 & 4 — Classement des clients par rentabilité */}
           </DashboardBlock>
           <DashboardBlock id="clients" layout={layout}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Classement des clients par rentabilité</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ClientProfitabilityTable rows={analysis.clients} target={target} />
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Classement des clients par rentabilité</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ClientProfitabilityTable rows={analysis.clients} target={target} />
+              </CardContent>
+            </Card>
           </DashboardBlock>
 
           <p className="text-xs text-muted-foreground">

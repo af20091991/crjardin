@@ -60,9 +60,13 @@ export function buildPortfolio(params: {
   for (const e of entries) {
     if (!e.client_id) continue;
     const y = new Date(e.entry_date).getFullYear();
-    const cur =
-      agg.get(e.client_id) ??
-      { name: e.client_name ?? "Client", caTotal: 0, caYear: 0, lines: 0, caRated: 0 };
+    const cur = agg.get(e.client_id) ?? {
+      name: e.client_name ?? "Client",
+      caTotal: 0,
+      caYear: 0,
+      lines: 0,
+      caRated: 0,
+    };
     if (e.client_name) cur.name = e.client_name;
     const amount = Number(e.amount_ht) || 0;
     cur.caTotal += amount;
@@ -74,10 +78,18 @@ export function buildPortfolio(params: {
     agg.set(e.client_id, cur);
   }
 
-  const hoursByClient = new Map<string, { r: number; h: number; v: number; prestations: Set<string> }>();
+  const hoursByClient = new Map<
+    string,
+    { r: number; h: number; v: number; prestations: Set<string> }
+  >();
   for (const l of ledger) {
     if (!l.clientId || l.hours <= 0 || l.year !== year) continue;
-    const cur = hoursByClient.get(l.clientId) ?? { r: 0, h: 0, v: 0, prestations: new Set<string>() };
+    const cur = hoursByClient.get(l.clientId) ?? {
+      r: 0,
+      h: 0,
+      v: 0,
+      prestations: new Set<string>(),
+    };
     if (l.type === "realisee") {
       if (!l.estimated) cur.r += l.hours;
     } else if (l.type === "historique") cur.h += l.hours;
@@ -156,6 +168,7 @@ export function searchPortfolio(rows: PortfolioRow[], query: string): PortfolioR
   const q = query.trim().toLowerCase();
   if (!q) return rows;
   return rows.filter(
-    (r) => r.name.toLowerCase().includes(q) || r.prestations.some((p) => p.toLowerCase().includes(q)),
+    (r) =>
+      r.name.toLowerCase().includes(q) || r.prestations.some((p) => p.toLowerCase().includes(q)),
   );
 }
