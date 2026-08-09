@@ -16,12 +16,22 @@ interface LayoutState {
   pinned: string[];
 }
 
-const STORAGE_KEY = "pp.dashboard.layout";
+const STORAGE_PREFIX = "pp.layout.";
+const DEFAULT_SCOPE = "dashboard";
 const EMPTY: LayoutState = { order: [], hidden: [], pinned: [] };
 
-function read(): LayoutState {
+/** Ancienne clé du cockpit : conservée pour ne perdre aucune préférence. */
+const LEGACY_KEYS: Record<string, string> = { dashboard: "pp.dashboard.layout" };
+
+function storageKey(scope: string): string {
+  return STORAGE_PREFIX + scope;
+}
+
+function read(scope: string): LayoutState {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(storageKey(scope)) ??
+      (LEGACY_KEYS[scope] ? window.localStorage.getItem(LEGACY_KEYS[scope]) : null);
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as Partial<LayoutState>;
     return {
@@ -34,26 +44,36 @@ function read(): LayoutState {
   }
 }
 
-export function useDashboardLayout(defs: DashboardBlockDef[]) {
+/**
+ * Organisation personnelle d'une page en blocs (ordre, visibilité, épinglage).
+ * `scope` isole les préférences par page. Aucune donnée métier n'est touchée.
+ */
+export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DEFAULT_SCOPE) {
   const [state, setState] = useState<LayoutState>(EMPTY);
 
   useEffect(() => {
-    setState(read());
-  }, []);
+    setState(read(scope));
+  }, [scope]);
 
-  const persist = useCallback((next: LayoutState) => {
-    setState(next);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* stockage indisponible */
-    }
-  }, []);
+  const persist = useCallback(
+    (next: LayoutState) => {
+      setState(next);
+      try {
+        window.localStorage.setItem(storageKey(scope), JSON.stringify(next));
+      } catch {
+        /* stockage indisponible */
+      }
+    },
+    [scope],
+  );
 
   /** Ordre effectif : épinglés d'abord, puis l'ordre choisi, puis l'ordre par défaut. */
   const ordered = useMemo(() => {
     const known = defs.map((d) => d.id);
-    const base = [...state.order.filter((id) => known.includes(id)), ...known.filter((id) => !state.order.includes(id))];
+    const base = [
+      ...state.order.filter((id) => known.includes(id)),
+      ...known.filter((id) => !state.order.includes(id)),
+    ];
     const pinned = base.filter((id) => state.pinned.includes(id));
     const rest = base.filter((id) => !state.pinned.includes(id));
     return [...pinned, ...rest];
@@ -99,7 +119,19 @@ export function useDashboardLayout(defs: DashboardBlockDef[]) {
 
   const reset = useCallback(() => persist(EMPTY), [persist]);
 
-  return { ordered, indexOf, isHidden, isPinned, toggleHidden, togglePinned, move, reset };
+  /** Réordonne par glisser-déposer : `from` et `to` sont des index d'affichage. */
+  const reorder = useCallback(
+    (from: number, to: number) => {
+      if (from === to || from < 0 || to < 0 || from >= ordered.length || to >= ordered.length)
+        return;
+      const next = [...ordered];
+      next.splice(to, 0, next.splice(from, 1)[0]);
+      persist({ ...state, order: next });
+    },
+    [ordered, persist, state],
+  );
+
+  return { ordered, indexOf, isHidden, isPinned, toggleHidden, togglePinned, move, reorder, reset };
 }
 
 export type DashboardLayout = ReturnType<typeof useDashboardLayout>;
