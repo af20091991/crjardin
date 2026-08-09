@@ -116,7 +116,18 @@ export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DE
 
   const reset = useCallback(() => persist(EMPTY), [persist]);
 
-  return { ordered, indexOf, isHidden, isPinned, toggleHidden, togglePinned, move, reset };
+  /** Réordonne par glisser-déposer : `from` et `to` sont des index d'affichage. */
+  const reorder = useCallback(
+    (from: number, to: number) => {
+      if (from === to || from < 0 || to < 0 || from >= ordered.length || to >= ordered.length) return;
+      const next = [...ordered];
+      next.splice(to, 0, next.splice(from, 1)[0]);
+      persist({ ...state, order: next });
+    },
+    [ordered, persist, state],
+  );
+
+  return { ordered, indexOf, isHidden, isPinned, toggleHidden, togglePinned, move, reorder, reset };
 }
 
 export type DashboardLayout = ReturnType<typeof useDashboardLayout>;
