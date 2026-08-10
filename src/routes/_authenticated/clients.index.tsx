@@ -3,7 +3,7 @@
 // favoris personnels et centre de nettoyage des faux clients.
 // RÈGLES : aucune fusion automatique, aucune donnée supprimée. Les indicateurs
 // affichés proviennent uniquement des données enregistrées (CA, interventions,
-// heures réelles).
+// heures d'intervention issues de Vente → Temps).
 // ---------------------------------------------------------------------------
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
