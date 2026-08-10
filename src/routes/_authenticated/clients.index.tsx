@@ -20,6 +20,7 @@ import { useRole } from "@/hooks/use-role";
 import { listAllRecommendations, staleClientIds } from "@/lib/garden";
 import { listAllInterventions } from "@/lib/interventions";
 import { listEntries, formatEuro } from "@/lib/pilot";
+import { saleRateEligible } from "@/lib/pilot-sale-time";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { signalFromHourlyRate } from "@/lib/pilot-profit-signal";
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
@@ -104,31 +105,39 @@ function ClientsPage() {
   // Agrégats par client — uniquement des données déjà enregistrées.
   const rows = useMemo<Row[]>(() => {
     const caByClient = new Map<string, number>();
+    // Taux horaire (règle absolue) : CA des lignes de vente porteuses de
+    // temps ÷ temps de ces mêmes lignes (Vente → Temps, source unique).
+    const ratedByClient = new Map<string, { ca: number; hours: number }>();
     for (const e of entriesQ.data ?? []) {
       if (!e.client_id) continue;
       caByClient.set(e.client_id, (caByClient.get(e.client_id) ?? 0) + (Number(e.amount_ht) || 0));
+      if (saleRateEligible(e)) {
+        const cur = ratedByClient.get(e.client_id) ?? { ca: 0, hours: 0 };
+        cur.ca += Number(e.amount_ht) || 0;
+        cur.hours += Number(e.hours) || 0;
+        ratedByClient.set(e.client_id, cur);
+      }
     }
     const ivCount = new Map<string, number>();
-    const hours = new Map<string, number>();
     const last = new Map<string, string>();
     for (const iv of interventionsQ.data ?? []) {
       const id = iv.client_id;
       if (!id) continue;
       ivCount.set(id, (ivCount.get(id) ?? 0) + 1);
-      hours.set(id, (hours.get(id) ?? 0) + (Number(iv.hours_spent) || 0));
       const prev = last.get(id);
       if (!prev || iv.intervention_date > prev) last.set(id, iv.intervention_date);
     }
     return (clients ?? []).map((client) => {
       const ca = caByClient.get(client.id) ?? 0;
-      const h = hours.get(client.id) ?? 0;
+      const rated = ratedByClient.get(client.id);
+      const h = rated?.hours ?? 0;
       return {
         client,
         ca,
         interventions: ivCount.get(client.id) ?? 0,
         hours: h,
         lastDate: last.get(client.id) ?? null,
-        hourlyRate: ca > 0 && h > 0 ? ca / h : null,
+        hourlyRate: h > 0 && (rated?.ca ?? 0) > 0 ? (rated as { ca: number }).ca / h : null,
       };
     });
   }, [clients, entriesQ.data, interventionsQ.data]);
