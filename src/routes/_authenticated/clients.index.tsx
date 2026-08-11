@@ -223,8 +223,14 @@ function ClientsPage() {
               )}
             </div>
             <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-              <span>{r.interventions} intervention{r.interventions > 1 ? "s" : ""}</span>
-              {canEdit && <span>CA {formatEuro(r.ca)}</span>}
+              <span>
+                {r.interventions} intervention{r.interventions > 1 ? "s" : ""} en {pilotYear}
+              </span>
+              {canEdit && (
+                <span>
+                  CA {pilotYear} {formatEuro(r.ca)}
+                </span>
+              )}
               {canEdit && r.hourlyRate != null && (
                 <span className="flex items-center gap-1">
                   <ProfitSignal
