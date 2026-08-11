@@ -22,6 +22,7 @@ import { listAllInterventions } from "@/lib/interventions";
 import { listEntries, formatEuro } from "@/lib/pilot";
 import { saleRateEligible } from "@/lib/pilot-sale-time";
 import { useThresholds } from "@/lib/pilot-thresholds";
+import { usePilotYear } from "@/lib/pilot-mode";
 import { signalFromHourlyRate } from "@/lib/pilot-profit-signal";
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { Input } from "@/components/ui/input";
@@ -81,6 +82,8 @@ function ClientsPage() {
   const qc = useQueryClient();
   const { canEdit } = useRole();
   const thresholds = useThresholds();
+  // Exercice courant partagé : tous les agrégats ci-dessous y sont bornés.
+  const { year: pilotYear } = usePilotYear();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
