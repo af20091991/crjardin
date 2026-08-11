@@ -48,7 +48,7 @@ import {
 import { AlertTriangle, Clock, Info, Timer, TrendingUp } from "lucide-react";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { PilotCard } from "@/components/pilot/PilotCard";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
 import { DEFAULT_SETTINGS, formatEuro } from "@/lib/pilot";
 import { formatHours } from "@/lib/format-utils";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
@@ -167,6 +167,7 @@ function euroPerHour(n: number | null | undefined): string {
 
 function TimeValueAnalysis() {
   const { mode } = usePilotMode();
+  const { year: pilotYear } = usePilotYear();
   const { entries, settings, clients } = usePilotData();
 
   const ledger = useQuery({
