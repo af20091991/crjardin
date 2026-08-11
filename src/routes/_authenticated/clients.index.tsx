@@ -107,9 +107,12 @@ function ClientsPage() {
     const caByClient = new Map<string, number>();
     // Taux horaire (règle absolue) : CA des lignes de vente porteuses de
     // temps ÷ temps de ces mêmes lignes (Vente → Temps, source unique).
+    // Périmètre verrouillé sur l'exercice courant : ni CA ni heures d'un
+    // autre exercice n'entrent dans ces indicateurs.
     const ratedByClient = new Map<string, { ca: number; hours: number }>();
     for (const e of entriesQ.data ?? []) {
       if (!e.client_id) continue;
+      if (new Date(e.entry_date).getFullYear() !== pilotYear) continue;
       caByClient.set(e.client_id, (caByClient.get(e.client_id) ?? 0) + (Number(e.amount_ht) || 0));
       if (saleRateEligible(e)) {
         const cur = ratedByClient.get(e.client_id) ?? { ca: 0, hours: 0 };
@@ -123,9 +126,10 @@ function ClientsPage() {
     for (const iv of interventionsQ.data ?? []) {
       const id = iv.client_id;
       if (!id) continue;
-      ivCount.set(id, (ivCount.get(id) ?? 0) + 1);
       const prev = last.get(id);
       if (!prev || iv.intervention_date > prev) last.set(id, iv.intervention_date);
+      if (new Date(iv.intervention_date).getFullYear() !== pilotYear) continue;
+      ivCount.set(id, (ivCount.get(id) ?? 0) + 1);
     }
     return (clients ?? []).map((client) => {
       const ca = caByClient.get(client.id) ?? 0;
@@ -140,7 +144,7 @@ function ClientsPage() {
         hourlyRate: h > 0 && (rated?.ca ?? 0) > 0 ? (rated as { ca: number }).ca / h : null,
       };
     });
-  }, [clients, entriesQ.data, interventionsQ.data]);
+  }, [clients, entriesQ.data, interventionsQ.data, pilotYear]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
