@@ -164,5 +164,5 @@ export function analyzeServices(params: {
     });
   }
 
-  return rows.sort((a, b) => b.caTotal - a.caTotal);
+  return rows.sort((a, b) => b.caYear - a.caYear);
 }

@@ -194,7 +194,7 @@ export function classifyClients(params: {
 
   return rows.sort((a, b) => {
     if (a.rankable !== b.rankable) return a.rankable ? -1 : 1;
-    return b.caTotal - a.caTotal;
+    return b.caYear - a.caYear;
   });
 }
 

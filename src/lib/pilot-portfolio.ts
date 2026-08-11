@@ -162,7 +162,7 @@ export function sortByProfitability(rows: PortfolioRow[]): PortfolioRow[] {
     if (a.rentabilite != null && b.rentabilite != null) return b.rentabilite - a.rentabilite;
     if (a.rentabilite != null) return -1;
     if (b.rentabilite != null) return 1;
-    return b.caTotal - a.caTotal;
+    return b.caYear - a.caYear;
   });
 }
 
