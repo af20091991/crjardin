@@ -168,7 +168,7 @@ export function classifyClients(params: {
       ? "faible"
       : source === "vente_temps" && heures >= t.heuresMinClient && eligibility.level === "fiable"
         ? "haute"
-        : heures > 0 && caTotal > 0
+        : heures > 0 && caYear > 0
           ? "moyenne"
           : "faible";
 
