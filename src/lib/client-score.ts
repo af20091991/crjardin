@@ -296,8 +296,11 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
     const e = ensure(r.client_id, null);
     const ht = Number(r.amount_ht) || 0;
     e.revenueTotalHt += ht;
-    if (Number(r.year) === yr) e.revenueYearHt += ht;
-    // Heures d'intervention : source unique = Vente → Temps.
+    if (Number(r.year) !== yr) continue;
+    e.revenueYearHt += ht;
+    // Périmètre temporel verrouillé : heures ET CA du taux horaire portent sur
+    // les seules lignes de vente de l'exercice courant (source unique
+    // Chiffre d'affaires → Ventes → Temps). Aucun mélange d'exercices.
     e.caLines += 1;
     const h = Number((r as { hours?: number | null }).hours) || 0;
     if (h > 0) {
@@ -436,7 +439,9 @@ export async function getClientEconomicScore(
   for (const r of ca) {
     const ht = Number(r.amount_ht) || 0;
     revenueTotalHt += ht;
-    if (Number(r.year) === yr) revenueYearHt += ht;
+    if (Number(r.year) !== yr) continue;
+    revenueYearHt += ht;
+    // Même exercice = même périmètre (CA + Temps de l'exercice courant).
     caLines += 1;
     const h = Number((r as { hours?: number | null }).hours) || 0;
     if (h > 0) {
