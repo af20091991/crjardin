@@ -55,7 +55,7 @@ export function buildPortfolio(params: {
 
   const agg = new Map<
     string,
-    { name: string; caTotal: number; caYear: number; lines: number; caRated: number }
+    { name: string; caTotal: number; caYear: number; lines: number; linesYear: number; caRated: number }
   >();
   for (const e of entries) {
     if (!e.client_id) continue;
@@ -65,12 +65,16 @@ export function buildPortfolio(params: {
       caTotal: 0,
       caYear: 0,
       lines: 0,
+      linesYear: 0,
       caRated: 0,
     };
     if (e.client_name) cur.name = e.client_name;
     const amount = Number(e.amount_ht) || 0;
     cur.caTotal += amount;
-    if (y === year) cur.caYear += amount;
+    if (y === year) {
+      cur.caYear += amount;
+      cur.linesYear += 1;
+    }
     // CA des seules lignes de vente de l'exercice porteuses de temps
     // (numérateur du taux horaire).
     if (y === year && (Number(e.hours) || 0) > 0) cur.caRated += amount;
@@ -113,13 +117,15 @@ export function buildPortfolio(params: {
     const hours = h ? h.v : 0;
     const hoursSource: PortfolioRow["hoursSource"] = hours > 0 ? "vente_temps" : "aucune";
     const lines = a?.lines ?? 0;
+    // Périmètre annuel : lignes de l'exercice analysé uniquement.
+    const linesYear = a?.linesYear ?? 0;
     const entityStatus = statusOf(statuses, clientId);
     const hoursSourceKey = hoursSource;
     const reliability = analysisReliability({
       entityStatus,
       hours,
       hoursSource: hoursSourceKey,
-      caTotal,
+      caTotal: caYear,
     });
     rows.push({
       clientId,
@@ -128,8 +134,9 @@ export function buildPortfolio(params: {
       caYear,
       hours,
       hoursSource,
-      interventions: s?.interventionsCount ?? lines,
-      panierMoyen: lines > 0 ? caTotal / lines : null,
+      interventions: s?.interventionsCount ?? linesYear,
+      // Panier moyen de l'exercice analysé (CA de l'exercice / lignes de l'exercice).
+      panierMoyen: linesYear > 0 ? caYear / linesYear : null,
       prestations: h ? [...h.prestations].slice(0, 4) : [],
       // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
       rentabilite: hours > 0 && (a?.caRated ?? 0) > 0 ? (a?.caRated ?? 0) / hours : null,
