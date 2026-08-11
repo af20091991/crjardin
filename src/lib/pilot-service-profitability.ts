@@ -96,27 +96,31 @@ export function analyzeServices(params: {
     const amount = Number(e.amount_ht) || 0;
     const y = new Date(e.entry_date).getFullYear();
     cur.caTotal += amount;
-    if (y === year) cur.caYear += amount;
     if (y === year - 1) cur.caPrev += amount;
-    cur.lignes += 1;
-    // Seules les lignes de vente porteuses de temps alimentent le taux horaire.
-    if ((Number(e.hours) || 0) > 0) {
-      cur.hv += Number(e.hours) || 0;
-      cur.caRated += amount;
+    // Périmètre verrouillé : le classement et le taux horaire de l'exercice
+    // n'utilisent QUE les lignes de vente de cet exercice (CA + Temps).
+    if (y === year) {
+      cur.caYear += amount;
+      cur.lignes += 1;
+      if ((Number(e.hours) || 0) > 0) {
+        cur.hv += Number(e.hours) || 0;
+        cur.caRated += amount;
+      }
+      if (e.client_id) cur.clients.add(e.client_id);
     }
-    if (e.client_id) cur.clients.add(e.client_id);
     acc.set(key, cur);
   }
 
   // Heures informatives (comptes-rendus) : jamais utilisées dans un calcul.
   const reelles = new Map<string, number>();
   for (const l of ledger) {
-    if (l.type !== "realisee" || l.estimated || l.hours <= 0) continue;
+    if (l.type !== "realisee" || l.estimated || l.hours <= 0 || l.year !== year) continue;
     const key = normalizePrestation(l.prestation);
     reelles.set(key, (reelles.get(key) ?? 0) + l.hours);
   }
 
-  const caTotalAll = [...acc.values()].reduce((s, v) => s + v.caTotal, 0);
+  // Part de CA : rapportée au CA du même exercice, jamais au cumul historique.
+  const caYearAll = [...acc.values()].reduce((s, v) => s + v.caYear, 0);
 
   const rows: ServiceProfitability[] = [];
   for (const [prestation, v] of acc) {
@@ -125,7 +129,7 @@ export function analyzeServices(params: {
     const basis: ServiceProfitability["hoursBasis"] = v.hv > 0 ? "vendues" : "aucune";
     const hours = v.hv;
     const taux = hours > 0 && v.caRated > 0 ? v.caRated / hours : null;
-    const share = caTotalAll > 0 ? v.caTotal / caTotalAll : 0;
+    const share = caYearAll > 0 ? v.caYear / caYearAll : 0;
 
     let classe: ServiceClass = "non_classe";
     let why = `Moins de ${t.lignesMinPrestation} lignes CA ou aucune heure connue : prestation non classée.`;
@@ -134,7 +138,7 @@ export function analyzeServices(params: {
         classe = share >= 0.2 || v.clients.size >= 10 ? "strategique" : "rentable";
         why =
           classe === "strategique"
-            ? `Taux ${taux.toFixed(0)} €/h ≥ cible et ${(share * 100).toFixed(0)} % du CA cumulé sur ${v.clients.size} clients : prestation structurante.`
+            ? `Taux ${taux.toFixed(0)} €/h ≥ cible et ${(share * 100).toFixed(0)} % du CA de l'exercice ${year} sur ${v.clients.size} clients : prestation structurante.`
             : `Taux ${taux.toFixed(0)} €/h au-dessus de la cible (${targetHourlyRate} €/h) sur ${v.lignes} lignes.`;
       } else {
         classe = "faible";
@@ -160,5 +164,5 @@ export function analyzeServices(params: {
     });
   }
 
-  return rows.sort((a, b) => b.caTotal - a.caTotal);
+  return rows.sort((a, b) => b.caYear - a.caYear);
 }

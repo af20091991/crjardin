@@ -48,7 +48,7 @@ import {
 import { AlertTriangle, Clock, Info, Timer, TrendingUp } from "lucide-react";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { PilotCard } from "@/components/pilot/PilotCard";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
 import { DEFAULT_SETTINGS, formatEuro } from "@/lib/pilot";
 import { formatHours } from "@/lib/format-utils";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
@@ -59,7 +59,7 @@ import { PRESTATIONS } from "@/lib/pilot-ca-designation";
 import {
   analyzeTimeValue,
   CLIENT_ZONE_META,
-  DEFAULT_TIME_VALUE_FILTERS,
+  defaultTimeValueFilters,
   HOURS_BASIS_LABEL,
   sortClients,
   sortPrestations,
@@ -167,6 +167,7 @@ function euroPerHour(n: number | null | undefined): string {
 
 function TimeValueAnalysis() {
   const { mode } = usePilotMode();
+  const { year: pilotYear } = usePilotYear();
   const { entries, settings, clients } = usePilotData();
 
   const ledger = useQuery({
@@ -176,7 +177,7 @@ function TimeValueAnalysis() {
   const charges = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   const interventions = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });
 
-  const [filters, setFilters] = useState<TimeValueFilters>(DEFAULT_TIME_VALUE_FILTERS);
+  const [filters, setFilters] = useState<TimeValueFilters>(() => defaultTimeValueFilters(pilotYear));
   const [prestSort, setPrestSort] = useState<PrestationSort>("euro_h");
   const [clientSort, setClientSort] = useState<ClientSort>("best_euro_h");
   const [q, setQ] = useState("");
@@ -408,7 +409,7 @@ function TimeValueAnalysis() {
               Non qualifié
             </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setFilters(DEFAULT_TIME_VALUE_FILTERS)}>
+          <Button variant="ghost" size="sm" onClick={() => setFilters(defaultTimeValueFilters(pilotYear))}>
             Réinitialiser
           </Button>
         </CardContent>

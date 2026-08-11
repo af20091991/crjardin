@@ -123,6 +123,8 @@ export function classifyClients(params: {
     const a = agg.get(clientId);
     const h = hours.get(clientId);
     const caTotal = a?.total ?? 0;
+    // CA de l'exercice analysé : seule base économique du classement annuel.
+    const caYear = a?.y ?? 0;
     const heures = h?.reelles ?? 0;
     const source = h?.reellesSource ?? "aucune";
     // Taux horaire = CA des lignes de vente porteuses de temps / ces heures.
@@ -135,11 +137,11 @@ export function classifyClients(params: {
       entityStatus,
       hours: heures,
       hoursSource: source,
-      caTotal,
+      caTotal: caYear,
       minHours: t.heuresMinClient,
     });
 
-    const enough = heures >= t.heuresMinClient && caTotal > 0 && targetHourlyRate > 0;
+    const enough = heures >= t.heuresMinClient && caYear > 0 && targetHourlyRate > 0;
     let classe: ClientProfitClass = "non_classe";
     let why = "Heures ou CA insuffisants pour juger la rentabilité de ce client.";
     if (!eligibility.analytics) {
@@ -166,7 +168,7 @@ export function classifyClients(params: {
       ? "faible"
       : source === "vente_temps" && heures >= t.heuresMinClient && eligibility.level === "fiable"
         ? "haute"
-        : heures > 0 && caTotal > 0
+        : heures > 0 && caYear > 0
           ? "moyenne"
           : "faible";
 
@@ -174,7 +176,7 @@ export function classifyClients(params: {
       clientId,
       name: a?.name ?? h?.clientName ?? "Client",
       caTotal,
-      caYear: a?.y ?? 0,
+      caYear,
       caPrevYear: a?.prev ?? 0,
       evolutionPct: a && a.prev > 0 ? ((a.y - a.prev) / a.prev) * 100 : null,
       hours: heures,
@@ -192,7 +194,7 @@ export function classifyClients(params: {
 
   return rows.sort((a, b) => {
     if (a.rankable !== b.rankable) return a.rankable ? -1 : 1;
-    return b.caTotal - a.caTotal;
+    return b.caYear - a.caYear;
   });
 }
 

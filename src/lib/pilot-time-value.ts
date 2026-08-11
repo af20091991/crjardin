@@ -32,7 +32,11 @@ export const HOURS_BASIS_LABEL: Record<HoursBasis, string> = {
 };
 
 export interface TimeValueFilters {
-  /** Exercice, ou `all` pour cumuler tous les exercices présents. */
+  /**
+   * Exercice analysé. `all` reste possible pour une lecture historique
+   * explicite, mais n'est JAMAIS la valeur par défaut : un KPI présenté comme
+   * celui de l'exercice courant ne doit contenir que les données de cet exercice.
+   */
   year: number | "all";
   /** Mois de début / fin (1-12), bornes incluses. */
   monthFrom: number;
@@ -43,13 +47,12 @@ export interface TimeValueFilters {
   clientId: string;
 }
 
-export const DEFAULT_TIME_VALUE_FILTERS: TimeValueFilters = {
-  year: "all",
-  monthFrom: 1,
-  monthTo: 12,
-  prestation: "all",
-  clientId: "all",
-};
+/** Périmètre par défaut : exercice en cours uniquement (aucun mélange d'années). */
+export function defaultTimeValueFilters(year = new Date().getFullYear()): TimeValueFilters {
+  return { year, monthFrom: 1, monthTo: 12, prestation: "all", clientId: "all" };
+}
+
+export const DEFAULT_TIME_VALUE_FILTERS: TimeValueFilters = defaultTimeValueFilters();
 
 function monthOf(iso: string): number {
   return new Date(iso).getMonth() + 1;
