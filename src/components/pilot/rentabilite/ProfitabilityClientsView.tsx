@@ -2,7 +2,13 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
-import { clientStatsWithHours, fetchConfirmedHoursByClient, formatEuro } from "@/lib/pilot";
+import {
+  clientStatsWithHours,
+  fetchConfirmedHoursByClient,
+  formatEuro,
+  UNASSIGNED_CLIENT_KEY,
+  UNASSIGNED_CLIENT_LABEL,
+} from "@/lib/pilot";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -422,6 +428,11 @@ function ClientLink({
   name: string;
 }) {
   const cls = "text-primary underline-offset-2 hover:underline";
+  // Affichage seul : le bucket non rattaché n'est pas un client — jamais de lien
+  // vers une fiche, et libellé explicite « Ventes non rattachées (à valider) ».
+  if (!clientId && clientKey === UNASSIGNED_CLIENT_KEY) {
+    return <span className="text-muted-foreground italic">{UNASSIGNED_CLIENT_LABEL}</span>;
+  }
   if (clientId) {
     return (
       <Link to="/pilot/fiche/$clientId" params={{ clientId }} className={cls}>
