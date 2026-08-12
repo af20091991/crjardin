@@ -130,7 +130,11 @@ export function RapprochementPage() {
       (orphans.data ?? [])
         .map((entry) => ({ entry, suggestion: evalByEntry.get(entry.id)?.[0] }))
         .filter((r): r is { entry: CaEntry; suggestion: Suggestion } =>
-          !!r.suggestion && r.suggestion.confidence === "haute",
+          // Preuve formelle uniquement (nom identique ou alias déjà validé) :
+          // aucune ressemblance ne déclenche un rattachement automatique.
+          !!r.suggestion &&
+          r.suggestion.confidence === "haute" &&
+          (r.suggestion.reason === "exact" || r.suggestion.reason === "historique"),
         ),
     [orphans.data, evalByEntry],
   );
