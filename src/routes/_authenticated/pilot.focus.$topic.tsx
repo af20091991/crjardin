@@ -180,7 +180,10 @@ function FocusPage() {
       if (targetHR <= 0) return [];
       const cstats = clientStatsWithHours(allE, year, confirmedMap);
       return cstats
-        .filter((c) => c.hours >= 20 && c.hourlyRate > 0 && c.hourlyRate < targetHR * 0.85)
+        .filter(
+          (c) =>
+            !c.unassigned && c.hours >= 20 && c.hourlyRate > 0 && c.hourlyRate < targetHR * 0.85,
+        )
         .slice(0, 50)
         .map((c) => ({
           key: c.key,
