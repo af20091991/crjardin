@@ -100,7 +100,12 @@ export function ProfitabilityClientsView() {
   // Règle centrale : un classement stratégique ne contient que des entités
   // économiques exploitables (ni contact, ni doublon possible).
   const rankable = useMemo(
-    () => stats.filter((c) => entityEligibility(statusOf(statusesQ.data, c.clientId)).ranking),
+    () =>
+      stats.filter(
+        (c) =>
+          // Le bucket « ventes non rattachées » n'est pas un client : jamais classé.
+          !c.unassigned && entityEligibility(statusOf(statusesQ.data, c.clientId)).ranking,
+      ),
     [stats, statusesQ.data],
   );
   const excludedCount = stats.length - rankable.length;

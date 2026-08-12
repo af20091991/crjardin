@@ -68,7 +68,9 @@ function SantePage() {
   }, [chargeRowsQ.data, salesQ.data, catsQ.data, mode]);
 
   const topClientSharePct = useMemo(() => {
-    const stats = clientStats(entries.data ?? [], year);
+    // Concentration client : le bucket « ventes non rattachées » n'est pas un
+    // client et ne peut donc jamais être le 1er client du portefeuille.
+    const stats = clientStats(entries.data ?? [], year).filter((s) => !s.unassigned);
     return stats.length ? stats[0].share : null;
   }, [entries.data, year]);
 

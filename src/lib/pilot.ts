@@ -416,7 +416,16 @@ export type ClientStat = {
   nature: string;    // nature dominante du client (AP, SAP, CEEV, Conseil, Autre)
   natureBreakdown: Record<string, number>; // CA HT par nature
   clientId: string | null;
+  /**
+   * Ligne agrégeant les ventes SANS client rattaché. Jamais un client
+   * économique : ces montants restent identifiables comme à valider.
+   */
+  unassigned?: boolean;
 };
+/** Libellé unique des ventes non rattachées (aucun client deviné). */
+export const UNASSIGNED_CLIENT_KEY = "unassigned";
+export const UNASSIGNED_CLIENT_LABEL = "Ventes non rattachées (à valider)";
+
 
 export function clientStats(entries: PilotEntry[], year?: number): ClientStat[] {
   return clientStatsWithHours(entries, year);
@@ -447,11 +456,14 @@ export function clientStatsWithHours(
     }
   >();
   for (const e of filtered) {
-    const key = e.client_id ?? `name:${(e.client_name ?? "Sans nom").toLowerCase()}`;
+    // RÈGLE : Client = référence unique. Une vente sans client_id n'est JAMAIS
+    // regroupée par intitulé (cela fabriquerait un client fictif) : elle rejoint
+    // un unique bucket « non rattaché », exclu du classement ABC.
+    const key = e.client_id ?? UNASSIGNED_CLIENT_KEY;
     const cur =
       map.get(key) ??
       {
-        name: e.client_name ?? "Sans nom",
+        name: e.client_id ? (e.client_name ?? "Client") : UNASSIGNED_CLIENT_LABEL,
         ca: 0,
         hours: 0,
         caRated: 0,
@@ -467,7 +479,7 @@ export function clientStatsWithHours(
     }
     cur.count += 1;
     if (e.entry_date > cur.last) cur.last = e.entry_date;
-    if (e.client_name) cur.name = e.client_name;
+    if (e.client_id && e.client_name) cur.name = e.client_name;
     const nat = (e.nature ?? "Autre").trim() || "Autre";
     cur.natures[nat] = (cur.natures[nat] ?? 0) + (e.amount_ht || 0);
     if (e.client_id) cur.clientId = e.client_id;
@@ -494,11 +506,15 @@ export function clientStatsWithHours(
         nature,
         natureBreakdown: v.natures,
         clientId: v.clientId,
+        unassigned: key === UNASSIGNED_CLIENT_KEY,
       };
     })
     .sort((a, b) => b.ca - a.ca);
   let cum = 0;
   return rows.map((r) => {
+    // Le bucket non rattaché ne participe pas au classement ABC : il n'est pas
+    // un client et ne doit pas décaler les seuils 80 / 95 %.
+    if (r.unassigned) return { ...r, cumShare: 0, abc: "C" as const };
     cum += r.share;
     const abc: "A" | "B" | "C" = cum <= 80 ? "A" : cum <= 95 ? "B" : "C";
     return { ...r, cumShare: cum, abc };

@@ -460,7 +460,7 @@ function TodayPage() {
   const heavyLowMarginClients = useMemo(() => {
     if (targetHR <= 0) return cstats.filter(() => false);
     return cstats.filter(
-      (c) => c.hours >= 20 && c.hourlyRate > 0 && c.hourlyRate < targetHR * 0.85,
+      (c) => !c.unassigned && c.hours >= 20 && c.hourlyRate > 0 && c.hourlyRate < targetHR * 0.85,
     );
   }, [cstats, targetHR]);
 
