@@ -298,13 +298,20 @@ export function entryConfidence(suggestions: Suggestion[]): ConfidenceLevel {
   return suggestions[0].confidence;
 }
 
-/** Rattachement automatique — uniquement les lignes en confiance haute. */
+/**
+ * Rattachement automatique — uniquement les preuves formelles :
+ *  - `exact`      : désignation identique au nom du client après normalisation ;
+ *  - `historique` : désignation déjà validée manuellement pour ce client (alias).
+ * Toute autre correspondance (ressemblance, tokens, renforcement) reste à
+ * validation humaine : Pilot Pro ne devine jamais un rattachement client.
+ */
 export async function autoLinkHighConfidence(
   rows: Array<{ entry: CaEntry; suggestion: Suggestion }>,
 ): Promise<number> {
   let done = 0;
   for (const r of rows) {
     if (r.suggestion.confidence !== "haute") continue;
+    if (r.suggestion.reason !== "exact" && r.suggestion.reason !== "historique") continue;
     await linkEntryToClient({
       entryId: r.entry.id,
       clientId: r.suggestion.client.id,
