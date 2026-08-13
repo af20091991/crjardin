@@ -669,12 +669,10 @@ function TodayPage() {
       caByMonth[d.getMonth()] += Number(e.amount_ht) || 0;
     }
     const chargesByMonth = new Array(12).fill(0) as number[];
-    for (const c of operatingCharges(chargeRowsForMode(chargeRows.data ?? [], mode))) {
-      if (c.year !== year || c.is_investment) continue;
-      const idx = Number(c.month) - 1;
-      if (idx < 0 || idx > 11) continue;
-      chargesByMonth[idx] += Number(c.amount_ht) || 0;
-    }
+    // Périmètre unique : fonction métier commune (exercice + mode, hors
+    // investissements et rémunération dirigeant).
+    const monthlyCharges = monthlyChargeTotals(chargeRows.data ?? [], year, { mode });
+    for (let i = 0; i < 12; i++) chargesByMonth[i] = monthlyCharges[i] ?? 0;
     const labels = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
     return labels
       .slice(0, month + 1)
