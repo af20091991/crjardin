@@ -49,7 +49,6 @@ import {
 } from "@/lib/pilot-action-status";
 import { listCeevContracts } from "@/lib/ceev";
 import {
-  chargeRowsForMode,
   entriesForMode,
   goalsForMode,
   hoursLedgerForMode,
