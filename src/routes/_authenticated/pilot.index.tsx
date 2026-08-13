@@ -21,7 +21,7 @@ import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-ho
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import { listHistoricHours } from "@/lib/pilot-historic-hours";
-import { listChargeRows, operatingCharges } from "@/lib/pilot-charges";
+import { listChargeRows, chargesTotalForYear, monthlyChargeTotals } from "@/lib/pilot-charges";
 import { projectYear } from "@/lib/pilot-projection";
 import { usePilotMode } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
@@ -401,8 +401,9 @@ function TodayPage() {
 
   // Dérive des charges : charges à date vs même part d'exercice en N-1.
   const chargesPrevYearProrata = useMemo(() => {
-    const prev = (chargeRows.data ?? []).filter((r) => r.year === year - 1);
-    const total = prev.reduce((s, r) => s + r.amount_ht, 0);
+    // Exercice N-1 complet (mode projection = exercice clos entier), périmètre
+    // charges d'exploitation unique, puis prorata des mois observés en N.
+    const total = chargesTotalForYear(chargeRows.data ?? [], year - 1, { mode: "projection" });
     return total > 0 ? (total * projection.monthsObserved) / 12 : 0;
   }, [chargeRows.data, year, projection.monthsObserved]);
 
