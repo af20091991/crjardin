@@ -184,6 +184,34 @@ function monthsIn(rows: ChargeRow[]): number {
   return new Set(rows.map((r) => r.month)).size;
 }
 
+/**
+ * PÉRIMÈTRE UNIQUE DES CHARGES D'UN EXERCICE.
+ * Toute page qui a besoin des charges d'un exercice passe par ici :
+ *  - exercice strict (`year`) : jamais d'autre année agrégée implicitement ;
+ *  - mode Réel = mois déjà réalisés uniquement, Projection = exercice complet ;
+ *  - hors investissements qualifiés (suivis à part) ;
+ *  - hors rémunération dirigeant (règle net + 45 %, module dédié).
+ * La classification fixe / variable / à classer n'est jamais modifiée ici :
+ * une charge « à classer » reste « à classer ».
+ */
+export function operatingChargesForYear(
+  rows: ChargeRow[],
+  year: number,
+  options?: { mode?: "reel" | "projection" },
+): ChargeRow[] {
+  const scoped = options?.mode === "projection" ? rows : rows.filter((r) => isRealizedMonth(r.year, r.month));
+  return splitRemuneration(scoped.filter((r) => r.year === year && !r.is_investment)).charges;
+}
+
+/** Total des charges d'exploitation d'un exercice (même périmètre unique). */
+export function chargesTotalForYear(
+  rows: ChargeRow[],
+  year: number,
+  options?: { mode?: "reel" | "projection" },
+): number {
+  return operatingChargesForYear(rows, year, options).reduce((s, r) => s + r.amount_ht, 0);
+}
+
 export function analyzeCharges(
   allRows: ChargeRow[],
   salesByYear: Map<number, number>,
@@ -298,10 +326,7 @@ export function projectionBase(
   year: number,
   salesByYear: Map<number, number>,
 ): ProjectionBase {
-  const scopedRows = allRows.filter((r) => isRealizedMonth(r.year, r.month));
-  const yr = splitRemuneration(
-    scopedRows.filter((r) => r.year === year && !r.is_investment),
-  ).charges;
+  const yr = operatingChargesForYear(allRows, year);
   const invest = allRows
     .filter((r) => r.year === year && r.is_investment && isRealizedMonth(r.year, r.month))
     .reduce((s, r) => s + r.amount_ht, 0);
@@ -393,10 +418,8 @@ export function monthlyChargeTotals(
   options?: { mode?: "reel" | "projection" },
 ): number[] {
   const arr = Array(12).fill(0) as number[];
-  const scoped = options?.mode === "projection" ? rows : rows.filter((r) => isRealizedMonth(r.year, r.month));
-  for (const r of scoped) {
-    if (r.kind === "remuneration") continue;
-    if (r.year === year && r.month >= 1 && r.month <= 12) arr[r.month - 1] += r.amount_ht;
+  for (const r of operatingChargesForYear(rows, year, options)) {
+    if (r.month >= 1 && r.month <= 12) arr[r.month - 1] += r.amount_ht;
   }
   return arr;
 }

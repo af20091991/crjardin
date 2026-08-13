@@ -46,6 +46,8 @@ export interface CaEntry {
   position: number;
   note: string | null;
   client_id: string | null;
+  /** Charge qualifiée d'investissement : suivie à part, hors charges d'exploitation. */
+  is_investment?: boolean | null;
   /** Type d'intervention saisi sur la ligne de vente (interne / sst). */
   intervention_type?: InterventionKind | null;
   match_status?: MatchStatusValue | null;
