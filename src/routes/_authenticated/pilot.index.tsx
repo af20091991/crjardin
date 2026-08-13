@@ -21,7 +21,7 @@ import { resolveRealHours, interventionsNeedingHours } from "@/lib/pilot-real-ho
 import type { FocusTopic } from "@/lib/pilot-focus";
 import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import { listHistoricHours } from "@/lib/pilot-historic-hours";
-import { listChargeRows, operatingCharges } from "@/lib/pilot-charges";
+import { listChargeRows, chargesTotalForYear, monthlyChargeTotals } from "@/lib/pilot-charges";
 import { projectYear } from "@/lib/pilot-projection";
 import { usePilotMode } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
@@ -49,7 +49,6 @@ import {
 } from "@/lib/pilot-action-status";
 import { listCeevContracts } from "@/lib/ceev";
 import {
-  chargeRowsForMode,
   entriesForMode,
   goalsForMode,
   hoursLedgerForMode,
@@ -401,8 +400,9 @@ function TodayPage() {
 
   // Dérive des charges : charges à date vs même part d'exercice en N-1.
   const chargesPrevYearProrata = useMemo(() => {
-    const prev = (chargeRows.data ?? []).filter((r) => r.year === year - 1);
-    const total = prev.reduce((s, r) => s + r.amount_ht, 0);
+    // Exercice N-1 complet (mode projection = exercice clos entier), périmètre
+    // charges d'exploitation unique, puis prorata des mois observés en N.
+    const total = chargesTotalForYear(chargeRows.data ?? [], year - 1, { mode: "projection" });
     return total > 0 ? (total * projection.monthsObserved) / 12 : 0;
   }, [chargeRows.data, year, projection.monthsObserved]);
 
@@ -668,12 +668,10 @@ function TodayPage() {
       caByMonth[d.getMonth()] += Number(e.amount_ht) || 0;
     }
     const chargesByMonth = new Array(12).fill(0) as number[];
-    for (const c of operatingCharges(chargeRowsForMode(chargeRows.data ?? [], mode))) {
-      if (c.year !== year || c.is_investment) continue;
-      const idx = Number(c.month) - 1;
-      if (idx < 0 || idx > 11) continue;
-      chargesByMonth[idx] += Number(c.amount_ht) || 0;
-    }
+    // Périmètre unique : fonction métier commune (exercice + mode, hors
+    // investissements et rémunération dirigeant).
+    const monthlyCharges = monthlyChargeTotals(chargeRows.data ?? [], year, { mode });
+    for (let i = 0; i < 12; i++) chargesByMonth[i] = monthlyCharges[i] ?? 0;
     const labels = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
     return labels
       .slice(0, month + 1)

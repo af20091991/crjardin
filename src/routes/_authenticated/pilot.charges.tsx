@@ -24,7 +24,7 @@ import {
   type ChargeRow,
 } from "@/lib/pilot-charges";
 import { isRealizedMonth } from "@/lib/pilot-realized";
-import { usePilotYear } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
 import { useAnalytics } from "@/lib/pilot-analytics";
 import { ANALYTICS_QUERY_ROOT } from "@/lib/pilot-engine";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
@@ -47,17 +47,21 @@ function ChargesPage() {
   const qc = useQueryClient();
   // Source unique : moteur analytique central.
   const { snapshot, isLoading } = useAnalytics();
+  const { mode } = usePilotMode();
   const { year: detailYear, setYear: setDetailYear } = usePilotYear();
   const [search, setSearch] = useState("");
   const [showAllHistory, setShowAllHistory] = useState(false);
   if (isLoading || !snapshot) return <Skeleton className="h-96 w-full" />;
-  const YEAR = currentYear();
+  // Exercice unique de la page : celui sélectionné dans le sélecteur partagé
+  // (jamais un mélange d'exercices dans un indicateur présenté comme annuel).
+  const YEAR = detailYear;
   const fullAnalysis = snapshot.charges.analysis;
   const salesByYear = new Map(snapshot.annual.map((a) => [a.year, a.caHt] as const));
   const yearAnalysis = analyzeCharges(
     snapshot.sources.chargeRows.filter((r) => r.year === YEAR),
     salesByYear,
     snapshot.sources.chargeCategories,
+    { mode },
   );
   const analysis = showAllHistory ? fullAnalysis : yearAnalysis;
   const proj = snapshot.charges.projectionBase;
