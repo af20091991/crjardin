@@ -130,7 +130,9 @@ export type MonthTotals = {
 export function monthTotals(entries: CaEntry[], month: number): MonthTotals {
   const rows = entries.filter((e) => e.month === month);
   const ventes = rows.filter((e) => e.kind === "vente");
-  const charges = rows.filter((e) => e.kind === "charge");
+  // Périmètre identique au moteur analytique : charges d'exploitation seules
+  // (les investissements qualifiés sont suivis à part, jamais dans le bénéfice).
+  const charges = rows.filter((e) => e.kind === "charge" && !e.is_investment);
   const remu = rows.filter((e) => e.kind === "remuneration");
   const ventesHt = ventes.reduce((s, e) => s + (e.amount_ht || 0), 0);
   const chargesHt = charges.reduce((s, e) => s + (e.amount_ht || 0), 0);
