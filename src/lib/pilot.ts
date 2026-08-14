@@ -44,6 +44,18 @@ export interface PilotEntry {
   updated_at: string;
 }
 
+/**
+ * Projection d'une vente vers le périmètre canonique du taux horaire.
+ * UNIQUE passerelle : aucune vue ne reconstruit ce mapping elle-même.
+ */
+export function saleRateRowOf(e: PilotEntry) {
+  return {
+    amount_ht: e.amount_ht,
+    hours: e.hours_raw ?? (e.intervention_type === "sst" ? 0 : null),
+    intervention_type: e.intervention_type,
+  };
+}
+
 export interface PilotCharge {
   id: string;
   user_id: string;
@@ -334,10 +346,11 @@ export function computeKpis(params: {
   const fraction = isCurrentYear ? Math.max(dayOfYear / 365, 0.02) : 1;
   const projection = isCurrentYear ? caYear / fraction : caYear;
 
-  const totalHours = sum(yearEntries.filter((e) => (Number(e.hours) || 0) > 0).map((e) => e.hours));
+  // Heures d'intervention de l'exercice = Temps des lignes de vente retenues.
   // Taux horaire brut : CA de TOUTES les ventes de l'exercice (ventes SST à
   // 0 h incluses) ÷ temps de travail interne de ces ventes.
   const caRatedLines = saleRateScope(yearEntries.map(saleRateRowOf));
+  const totalHours = caRatedLines.hours;
   const workedDays = new Set(yearEntries.map((e) => e.entry_date)).size;
   const nbEntries = yearEntries.length;
   const panierMoyen = nbEntries > 0 ? caYear / nbEntries : 0;
