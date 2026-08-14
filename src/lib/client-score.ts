@@ -5,6 +5,7 @@ import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 // Règle métier centrale UNIQUE (aucune logique de confiance recréée ici).
 import { entityEligibility } from "@/lib/pilot-entity-rules";
 import { hourlyRate, saleRateEligible, type SaleRateRow } from "@/lib/pilot-sale-time";
+import { accountedSale } from "@/lib/pilot-sale-accounting";
 
 // ---------- Règles de classement (ajustables) ----------
 export const SCORE_RULES = {
@@ -215,7 +216,7 @@ async function fetchAggregates() {
   const [caRes, oppRes, clientsRes] = await Promise.all([
     supabase
       .from("pilot_ca_entries")
-      .select("client_id,year,month,amount_ht,hours,intervention_type")
+      .select("client_id,year,month,amount_ht,hours,intervention_type,sale_status")
       .eq("kind", "vente"),
     supabase
       .from("v_client_next_best_offers" as never)
@@ -226,7 +227,8 @@ async function fetchAggregates() {
   if (clientsRes.error) throw clientsRes.error;
   // opp peut échouer si vue absente : on tolère
   return {
-    ca: caRes.data ?? [],
+    // Règle de comptabilisation Facturé/Réglé appliquée dès la lecture.
+    ca: (caRes.data ?? []).map((r) => accountedSale(r)),
     opps: (oppRes.error ? [] : (oppRes.data as unknown as Array<{
       client_id: string;
       estimated_value: number | null;
@@ -394,7 +396,7 @@ export async function getClientEconomicScore(
   const [caRes, oppRes, clientRes, settings] = await Promise.all([
     supabase
       .from("pilot_ca_entries")
-      .select("client_id,year,month,amount_ht,hours,intervention_type")
+      .select("client_id,year,month,amount_ht,hours,intervention_type,sale_status")
       .eq("kind", "vente")
       .eq("client_id", clientId),
     supabase
@@ -407,7 +409,7 @@ export async function getClientEconomicScore(
   if (caRes.error) throw caRes.error;
   if (clientRes.error) throw clientRes.error;
 
-  const ca = caRes.data ?? [];
+  const ca = (caRes.data ?? []).map((r) => accountedSale(r));
   const opps = (oppRes.error
     ? []
     : ((oppRes.data as unknown as Array<{

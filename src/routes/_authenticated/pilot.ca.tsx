@@ -91,7 +91,11 @@ function CaPage() {
   const deleteMut = useMutation({ mutationFn: deleteCaEntry, onSuccess: invalidate, onError: (e: Error) => toast.error(e.message) });
   const statusMut = useMutation({
     mutationFn: (p: { id: string; status: SaleStatus }) => updateSaleStatus(p.id, p.status),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      // Le statut pilote la comptabilisation (Temps dès Facturé, CA dès Réglé) :
+      // tous les écrans dérivés doivent se recalculer immédiatement.
+      qc.invalidateQueries();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 

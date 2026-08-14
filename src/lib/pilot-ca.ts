@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { InterventionKind } from "@/lib/pilot-sale-time";
+import { hoursCounted, revenueCounted } from "@/lib/pilot-sale-accounting";
 
 export { INTERVENTION_KINDS, INTERVENTION_KIND_META, interventionKind } from "@/lib/pilot-sale-time";
 export type { InterventionKind } from "@/lib/pilot-sale-time";
@@ -134,10 +135,14 @@ export function monthTotals(entries: CaEntry[], month: number): MonthTotals {
   // (les investissements qualifiés sont suivis à part, jamais dans le bénéfice).
   const charges = rows.filter((e) => e.kind === "charge" && !e.is_investment);
   const remu = rows.filter((e) => e.kind === "remuneration");
-  const ventesHt = ventes.reduce((s, e) => s + (e.amount_ht || 0), 0);
+  // Comptabilisation : CA à partir de 🟢 Réglé, Temps dès 🟠 Facturé.
+  const ventesHt = ventes.reduce(
+    (s, e) => s + (revenueCounted(e.sale_status) ? e.amount_ht || 0 : 0),
+    0,
+  );
   const chargesHt = charges.reduce((s, e) => s + (e.amount_ht || 0), 0);
   const remuneration = remu.reduce((s, e) => s + (e.amount_ht || 0), 0);
-  const hours = ventes.reduce((s, e) => s + (e.hours || 0), 0);
+  const hours = ventes.reduce((s, e) => s + (hoursCounted(e.sale_status) ? e.hours || 0 : 0), 0);
   return {
     month,
     ventesHt,
@@ -182,8 +187,8 @@ export function categoryTotals(entries: CaEntry[], month?: number): CategoryTota
     const rows = ventes.filter((e) => (e.category ?? "Autre") === category);
     return {
       category,
-      ht: rows.reduce((s, e) => s + (e.amount_ht || 0), 0),
-      hours: rows.reduce((s, e) => s + (e.hours || 0), 0),
+      ht: rows.reduce((s, e) => s + (revenueCounted(e.sale_status) ? e.amount_ht || 0 : 0), 0),
+      hours: rows.reduce((s, e) => s + (hoursCounted(e.sale_status) ? e.hours || 0 : 0), 0),
     };
   }).filter((c) => c.ht > 0 || c.hours > 0);
 }
