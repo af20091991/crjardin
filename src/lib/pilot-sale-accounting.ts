@@ -40,3 +40,23 @@ export function revenueCounted(status: string | null | undefined): boolean {
   const s = saleStatusOf(status);
   return s === "regle" || s === "particulier";
 }
+
+export interface RawSaleRow {
+  amount_ht?: number | null;
+  hours?: number | null;
+  sale_status?: string | null;
+}
+
+/**
+ * Applique la règle de comptabilisation à une ligne brute :
+ * renvoie le CA et le Temps réellement comptabilisables.
+ */
+export function accountedSale<T extends RawSaleRow>(row: T): T & { amount_ht: number; hours: number | null } {
+  const ht = Number(row.amount_ht) || 0;
+  const h = row.hours == null ? null : Number(row.hours);
+  return {
+    ...row,
+    amount_ht: revenueCounted(row.sale_status) ? ht : 0,
+    hours: hoursCounted(row.sale_status) ? h : null,
+  };
+}
