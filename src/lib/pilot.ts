@@ -210,7 +210,6 @@ async function bridgeCaCharges(): Promise<PilotCharge[]> {
     "charge",
   );
   return rows.map((r) => {
-    const mm = String(r.month).padStart(2, "0");
     return {
       id: r.id,
       user_id: r.user_id,
