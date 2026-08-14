@@ -227,8 +227,8 @@ async function bridgeCaCharges(): Promise<PilotCharge[]> {
 }
 
 /**
- * Met à jour le statut visuel d'une vente (pilot_ca_entries.sale_status).
- * Suivi purement visuel : ne modifie aucun calcul de CA.
+ * Met à jour le statut de comptabilisation d'une vente (pilot_ca_entries.sale_status).
+ * 🟠 Facturé = Temps comptabilisé ; 🟢 Réglé = Temps + CA comptabilisés.
  */
 export async function updateSaleStatus(id: string, status: string): Promise<void> {
   const { error } = await supabase
