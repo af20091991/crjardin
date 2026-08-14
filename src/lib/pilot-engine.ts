@@ -26,6 +26,7 @@ import {
   getSettings,
   listEntries,
   monthlySeries,
+  saleRateRowOf,
   type PilotEntry,
   type PilotSettings,
 } from "@/lib/pilot";
@@ -80,7 +81,7 @@ import {
 import { chargeRowsForMode, entriesForMode, type RealProjectionMode } from "@/lib/pilot-realized";
 import type { KpiAudit } from "@/lib/pilot-kpi-audit";
 import { employerCost } from "@/lib/pilot-remuneration";
-import { hourlyRateFromSales } from "@/lib/pilot-sale-time";
+import { saleRateScope } from "@/lib/pilot-sale-time";
 
 export type EngineMode = RealProjectionMode;
 
@@ -395,17 +396,11 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const chargesComplete = chargesTotal > 0;
   const margePct = yearHt > 0 && chargesComplete ? (beneficeBrut / yearHt) * 100 : null;
 
-  // Taux horaire brut : CA de toutes les ventes du périmètre ÷ temps de
-  // travail interne de ces ventes. Une vente SST à 0 h compte par son CA et
-  // n'ajoute aucune heure interne.
-  const ratedAll = hourlyRateFromSales(
-    yearEntries.map((e) => ({ amount_ht: e.amount_ht, hours: e.hours })),
-  );
-  const ratedAnalytical = hourlyRateFromSales(
-    (strict ? analyticalEntries : yearEntries).map((e) => ({
-      amount_ht: e.amount_ht,
-      hours: e.hours,
-    })),
+  // Taux horaire : CA des lignes de vente retenues (Temps documenté, 0 h SST
+  // inclus) ÷ Temps de CES MÊMES lignes. Aucune autre source de temps.
+  const ratedAll = saleRateScope(yearEntries.map(saleRateRowOf));
+  const ratedAnalytical = saleRateScope(
+    (strict ? analyticalEntries : yearEntries).map(saleRateRowOf),
   );
   const tauxHoraireVendu = ratedAll.rate;
   const tauxHoraireReel = ratedAnalytical.rate;
@@ -500,9 +495,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
 
   // --- exercice précédent (comparatif) ---
   // Taux horaire N-1 : mêmes lignes de vente au numérateur et au dénominateur.
-  const ratedPrev = hourlyRateFromSales(
-    prevEntries.map((e) => ({ amount_ht: e.amount_ht, hours: e.hours })),
-  );
+  const ratedPrev = saleRateScope(prevEntries.map(saleRateRowOf));
   const prevHours = ratedPrev.hours;
   const prevYearRow = annual.find((a) => a.year === year - 1);
   const prevYearCa = prevYearRow?.caHt ?? prevYearHt;

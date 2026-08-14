@@ -16,7 +16,8 @@
 // mêmes lignes (périmètre strictement identique au numérateur).
 // -----------------------------------------------------------------------------
 
-import type { PilotEntry } from "@/lib/pilot";
+import { saleRateRowOf, type PilotEntry } from "@/lib/pilot";
+import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
 import { canonicalPrestation } from "@/lib/pilot-ca-designation";
 import { operatingCharges, type ChargeRow } from "@/lib/pilot-charges";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
@@ -293,8 +294,8 @@ export function analyzeTimeValue(params: {
     };
     cur.ca += Number(e.amount_ht) || 0;
     cur.lignes += 1;
-    // Taux horaire : seules les lignes de vente porteuses de temps comptent.
-    if ((Number(e.hours) || 0) > 0) {
+    // PÉRIMÈTRE UNIQUE : CA et Temps issus des mêmes lignes retenues.
+    if (saleRateEligible(saleRateRowOf(e))) {
       cur.hoursVenduesCa += Number(e.hours) || 0;
       cur.caRated += Number(e.amount_ht) || 0;
     }
@@ -306,7 +307,8 @@ export function analyzeTimeValue(params: {
   const prestPicked = new Map<string, { hours: number; basis: HoursBasis; b: HoursBuckets }>();
   for (const key of prestKeys) {
     const b = prestHours.get(key) ?? emptyBuckets();
-    if (b.vendues === 0) b.vendues = prestCa.get(key)?.hoursVenduesCa ?? 0;
+    // Temps = Temps des lignes de vente retenues (source unique Vente → Temps).
+    b.vendues = prestCa.get(key)?.hoursVenduesCa ?? 0;
     prestPicked.set(key, { ...pickHours(b), b });
   }
   const hoursTotal = [...prestPicked.values()].reduce((s, v) => s + v.hours, 0);
@@ -331,12 +333,12 @@ export function analyzeTimeValue(params: {
         hoursPct: hoursTotal > 0 ? (picked.hours / hoursTotal) * 100 : 0,
         charges,
         resultatBrut: resultat,
-        // Taux horaire brut : CA total de la prestation / temps interne.
-        caPerHour: picked.hours > 0 && caHt > 0 ? caHt / picked.hours : null,
-        resultPerHour:
-          picked.hours > 0 && caHt > 0 && cost.costPerHour != null
-            ? caHt / picked.hours - cost.costPerHour
-            : null,
+        // Taux horaire = CA des lignes retenues ÷ Temps de ces mêmes lignes.
+        caPerHour: hourlyRate(ca?.caRated ?? 0, picked.hours),
+        resultPerHour: (() => {
+          const perHour = hourlyRate(ca?.caRated ?? 0, picked.hours);
+          return perHour != null && cost.costPerHour != null ? perHour - cost.costPerHour : null;
+        })(),
         lignes: ca?.lignes ?? 0,
         clients: ca?.clients.size ?? 0,
       };
@@ -374,7 +376,8 @@ export function analyzeTimeValue(params: {
     const amount = Number(e.amount_ht) || 0;
     cur.ca += amount;
     cur.lignes += 1;
-    if ((Number(e.hours) || 0) > 0) {
+    // PÉRIMÈTRE UNIQUE : CA et Temps issus des mêmes lignes retenues.
+    if (saleRateEligible(saleRateRowOf(e))) {
       cur.hoursVenduesCa += Number(e.hours) || 0;
       cur.caRated += amount;
     }
@@ -388,7 +391,8 @@ export function analyzeTimeValue(params: {
   for (const clientId of ids) {
     const ca = clientCa.get(clientId);
     const b = clientHours.get(clientId) ?? emptyBuckets();
-    if (b.vendues === 0) b.vendues = ca?.hoursVenduesCa ?? 0;
+    // Temps = Temps des lignes de vente retenues du périmètre (source unique).
+    b.vendues = ca?.hoursVenduesCa ?? 0;
     const { hours, basis } = pickHours(b);
     const caHt = ca?.ca ?? 0;
     const charges = cost.costPerHour != null ? cost.costPerHour * hours : null;
@@ -409,10 +413,12 @@ export function analyzeTimeValue(params: {
       interventions: ca?.lignes ?? 0,
       charges,
       resultatBrut: resultat,
-      // Taux horaire brut : CA total du client / temps interne.
-      caPerHour: hours > 0 && caHt > 0 ? caHt / hours : null,
-      resultPerHour:
-        hours > 0 && caHt > 0 && cost.costPerHour != null ? caHt / hours - cost.costPerHour : null,
+      // Taux horaire = CA des lignes retenues ÷ Temps de ces mêmes lignes.
+      caPerHour: hourlyRate(ca?.caRated ?? 0, hours),
+      resultPerHour: (() => {
+        const perHour = hourlyRate(ca?.caRated ?? 0, hours);
+        return perHour != null && cost.costPerHour != null ? perHour - cost.costPerHour : null;
+      })(),
       mainPrestation,
       zone: "non_classe",
       rank: null,

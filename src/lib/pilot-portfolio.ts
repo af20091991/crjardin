@@ -1,4 +1,5 @@
-import type { PilotEntry } from "@/lib/pilot";
+import { saleRateRowOf, type PilotEntry } from "@/lib/pilot";
+import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
 import type { ClientScore } from "@/lib/client-score";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 import {
@@ -55,7 +56,17 @@ export function buildPortfolio(params: {
 
   const agg = new Map<
     string,
-    { name: string; caTotal: number; caYear: number; lines: number; linesYear: number; caRated: number }
+    {
+      name: string;
+      caTotal: number;
+      caYear: number;
+      lines: number;
+      linesYear: number;
+      /** CA des lignes de l'exercice RETENUES (Temps documenté) = numérateur. */
+      caRated: number;
+      /** Temps de ces mêmes lignes = dénominateur. */
+      timedHours: number;
+    }
   >();
   for (const e of entries) {
     if (!e.client_id) continue;
@@ -67,6 +78,7 @@ export function buildPortfolio(params: {
       lines: 0,
       linesYear: 0,
       caRated: 0,
+      timedHours: 0,
     };
     if (e.client_name) cur.name = e.client_name;
     const amount = Number(e.amount_ht) || 0;
@@ -75,9 +87,11 @@ export function buildPortfolio(params: {
       cur.caYear += amount;
       cur.linesYear += 1;
     }
-    // CA des seules lignes de vente de l'exercice porteuses de temps
-    // (indicateur de qualité, jamais le numérateur du taux horaire brut).
-    if (y === year && (Number(e.hours) || 0) > 0) cur.caRated += amount;
+    // PÉRIMÈTRE UNIQUE du taux horaire : CA et Temps des MÊMES lignes retenues.
+    if (y === year && saleRateEligible(saleRateRowOf(e))) {
+      cur.caRated += amount;
+      cur.timedHours += Number(e.hours) || 0;
+    }
     cur.lines += 1;
     agg.set(e.client_id, cur);
   }
@@ -113,8 +127,9 @@ export function buildPortfolio(params: {
     const name = a?.name ?? s?.client_name ?? "Client";
     const caTotal = a?.caTotal ?? s?.revenueTotalHt ?? 0;
     const caYear = a?.caYear ?? s?.revenueYearHt ?? 0;
-    // Source unique des heures d'intervention : Vente → Temps (h.v).
-    const hours = h ? h.v : 0;
+    // Source unique des heures : Temps des lignes de vente retenues de
+    // l'exercice (le registre d'heures ne sert plus au dénominateur).
+    const hours = a?.timedHours ?? 0;
     const hoursSource: PortfolioRow["hoursSource"] = hours > 0 ? "vente_temps" : "aucune";
     const lines = a?.lines ?? 0;
     // Périmètre annuel : lignes de l'exercice analysé uniquement.
@@ -134,12 +149,13 @@ export function buildPortfolio(params: {
       caYear,
       hours,
       hoursSource,
-      interventions: s?.interventionsCount ?? linesYear,
+      // Interventions ÉCONOMIQUES = lignes de vente de l'exercice.
+      interventions: linesYear,
       // Panier moyen de l'exercice analysé (CA de l'exercice / lignes de l'exercice).
       panierMoyen: linesYear > 0 ? caYear / linesYear : null,
       prestations: h ? [...h.prestations].slice(0, 4) : [],
-      // Taux horaire brut = CA de toutes les ventes de l'exercice / temps interne.
-      rentabilite: hours > 0 && caYear > 0 ? caYear / hours : null,
+      // Taux horaire = CA des lignes retenues ÷ Temps de ces mêmes lignes.
+      rentabilite: hourlyRate(a?.caRated ?? 0, hours),
       score: s?.score ?? null,
       recommendation: s?.recommendation ?? null,
       entityStatus,

@@ -4,7 +4,8 @@
 // pour le chiffre d'affaires et les heures vendues, ledger d'heures pour les
 // heures réalisées. Aucune donnée n'est créée ni estimée.
 
-import type { PilotEntry } from "@/lib/pilot";
+import { saleRateRowOf, type PilotEntry } from "@/lib/pilot";
+import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
 import { canonicalPrestation, PRESTATIONS } from "@/lib/pilot-ca-designation";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 import { getThresholds, type PilotThresholds } from "@/lib/pilot-thresholds";
@@ -102,7 +103,8 @@ export function analyzeServices(params: {
     if (y === year) {
       cur.caYear += amount;
       cur.lignes += 1;
-      if ((Number(e.hours) || 0) > 0) {
+      // Ligne RETENUE = Temps documenté (> 0 h, ou 0 h qualifié SST).
+      if (saleRateEligible(saleRateRowOf(e))) {
         cur.hv += Number(e.hours) || 0;
         cur.caRated += amount;
       }
@@ -128,7 +130,7 @@ export function analyzeServices(params: {
     // Source exclusive : Vente → Temps. Taux = CA des lignes avec temps / ce temps.
     const basis: ServiceProfitability["hoursBasis"] = v.hv > 0 ? "vendues" : "aucune";
     const hours = v.hv;
-    const taux = hours > 0 && v.caRated > 0 ? v.caRated / hours : null;
+    const taux = hourlyRate(v.caRated, hours);
     const share = caYearAll > 0 ? v.caYear / caYearAll : 0;
 
     let classe: ServiceClass = "non_classe";

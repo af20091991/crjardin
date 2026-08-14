@@ -16,6 +16,8 @@ import {
   type Reliability,
 } from "@/lib/pilot-entity-rules";
 import type { EntityStatus } from "@/lib/pilot-referential";
+import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
+import { saleRateRowOf } from "@/lib/pilot";
 
 export type ClientProfitClass =
   | "tres_rentable"
@@ -91,7 +93,17 @@ export function classifyClients(params: {
 
   const agg = new Map<
     string,
-    { name: string; total: number; y: number; prev: number; rated: number; linesYear: number }
+    {
+      name: string;
+      total: number;
+      y: number;
+      prev: number;
+      /** CA des lignes de l'exercice RETENUES (Temps documenté) = numérateur. */
+      rated: number;
+      linesYear: number;
+      /** Temps de ces mêmes lignes retenues = dénominateur. */
+      timedHours: number;
+    }
   >();
   for (const e of entries) {
     if (!e.client_id) continue;
@@ -103,13 +115,16 @@ export function classifyClients(params: {
       prev: 0,
       rated: 0,
       linesYear: 0,
+      timedHours: 0,
     };
     if (e.client_name) cur.name = e.client_name;
     const amount = Number(e.amount_ht) || 0;
     cur.total += amount;
-    // Indicateur de qualité : CA des lignes de l'exercice porteuses de temps
-    // (jamais le numérateur du taux horaire brut).
-    if (yy === year && (Number(e.hours) || 0) > 0) cur.rated += amount;
+    // PÉRIMÈTRE UNIQUE : CA et Temps issus des mêmes lignes retenues.
+    if (yy === year && saleRateEligible(saleRateRowOf(e))) {
+      cur.rated += amount;
+      cur.timedHours += Number(e.hours) || 0;
+    }
     if (yy === year) {
       cur.y += amount;
       cur.linesYear += 1;
@@ -129,11 +144,13 @@ export function classifyClients(params: {
     const caTotal = a?.total ?? 0;
     // CA de l'exercice analysé : seule base économique du classement annuel.
     const caYear = a?.y ?? 0;
-    const heures = h?.reelles ?? 0;
-    const source = h?.reellesSource ?? "aucune";
-    // Taux horaire BRUT = CA de toutes les ventes de l'exercice (ventes SST à
-    // 0 h incluses) ÷ temps de travail interne de l'exercice.
-    const taux = heures > 0 && caYear > 0 ? caYear / heures : null;
+    // Heures = Temps des lignes de vente retenues de l'exercice (source unique
+    // Chiffre d'affaires → Ventes → Temps). Le registre d'heures ne sert plus
+    // qu'à qualifier la source affichée.
+    const heures = a?.timedHours ?? 0;
+    const source: ClientProfitability["hoursSource"] = heures > 0 ? "vente_temps" : (h?.reellesSource ?? "aucune");
+    // Taux horaire = CA des lignes retenues ÷ Temps de ces mêmes lignes.
+    const taux = hourlyRate(a?.rated ?? 0, heures);
 
     const entityStatus = statusOf(params.statuses, clientId);
     const eligibility = entityEligibility(entityStatus);

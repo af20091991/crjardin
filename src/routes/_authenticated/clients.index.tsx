@@ -19,7 +19,7 @@ import { findSuspectClients } from "@/lib/client-cleanup";
 import { useRole } from "@/hooks/use-role";
 import { listAllRecommendations, staleClientIds } from "@/lib/garden";
 import { listEntries, formatEuro } from "@/lib/pilot";
-import { saleRateEligible } from "@/lib/pilot-sale-time";
+import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { usePilotYear } from "@/lib/pilot-mode";
 import { signalFromHourlyRate } from "@/lib/pilot-profit-signal";
@@ -110,6 +110,8 @@ function ClientsPage() {
     // travail interne (Vente → Temps > 0). Une vente SST à 0 h compte dans le
     // CA sans ajouter d'heure. Périmètre verrouillé sur l'exercice courant.
     const hoursByClient = new Map<string, number>();
+    /** CA des seules lignes RETENUES = numérateur du taux horaire. */
+    const caRatedByClient = new Map<string, number>();
     const salesByClient = new Map<string, number>();
     const lastSale = new Map<string, string>();
     for (const e of entriesQ.data ?? []) {
@@ -124,6 +126,10 @@ function ClientsPage() {
           e.client_id,
           (hoursByClient.get(e.client_id) ?? 0) + (Number(e.hours) || 0),
         );
+        caRatedByClient.set(
+          e.client_id,
+          (caRatedByClient.get(e.client_id) ?? 0) + (Number(e.amount_ht) || 0),
+        );
       }
     }
     return (clients ?? []).map((client) => {
@@ -137,7 +143,8 @@ function ClientsPage() {
         interventions: salesByClient.get(client.id) ?? 0,
         hours: h,
         lastDate: lastSale.get(client.id) ?? null,
-        hourlyRate: h > 0 && ca > 0 ? ca / h : null,
+        // Taux horaire = CA des lignes retenues ÷ Temps de ces mêmes lignes.
+        hourlyRate: hourlyRate(caRatedByClient.get(client.id) ?? 0, h),
       };
     });
   }, [clients, entriesQ.data, pilotYear]);

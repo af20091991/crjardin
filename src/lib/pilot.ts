@@ -3,7 +3,7 @@ import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import { entriesForMode, isRealizedMonth, realizedEntries } from "@/lib/pilot-realized";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
-import { hourlyRateFromSales } from "@/lib/pilot-sale-time";
+import { saleRateScope, saleRateEligible } from "@/lib/pilot-sale-time";
 
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser();
@@ -32,11 +32,28 @@ export interface PilotEntry {
   nature: string | null;
   amount_ht: number;
   amount_ttc: number;
+  /** Temps normalisé à 0 pour les calculs de volume (jamais null côté UI). */
   hours: number;
+  /** Temps BRUT de la ligne : `null` = donnée absente (à ne jamais confondre avec 0 h). */
+  hours_raw: number | null;
+  /** Type de réalisation : `sst` = 0 h interne valide. */
+  intervention_type: string | null;
   observation: string | null;
   sale_status?: string;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Projection d'une vente vers le périmètre canonique du taux horaire.
+ * UNIQUE passerelle : aucune vue ne reconstruit ce mapping elle-même.
+ */
+export function saleRateRowOf(e: PilotEntry) {
+  return {
+    amount_ht: e.amount_ht,
+    hours: e.hours_raw ?? (e.intervention_type === "sst" ? 0 : null),
+    intervention_type: e.intervention_type,
+  };
 }
 
 export interface PilotCharge {
@@ -125,7 +142,8 @@ async function fetchCaRows<T>(columns: string, kind: "vente" | "charge"): Promis
 type CaVenteRow = {
   id: string; user_id: string; year: number; month: number; designation: string | null;
   category: string | null; amount_ht: number | null; hours: number | null;
-  client_id: string | null; sale_status?: string | null; created_at: string; updated_at: string;
+  client_id: string | null; sale_status?: string | null; intervention_type?: string | null;
+  created_at: string; updated_at: string;
 };
 
 type CaChargeRow = {
@@ -136,7 +154,7 @@ type CaChargeRow = {
 
 async function bridgeCaEntries(): Promise<PilotEntry[]> {
   const rows = await fetchCaRows<CaVenteRow>(
-    "id,user_id,year,month,kind,designation,category,amount_ht,hours,client_id,sale_status,created_at,updated_at",
+    "id,user_id,year,month,kind,designation,category,amount_ht,hours,client_id,sale_status,intervention_type,created_at,updated_at",
     "vente",
   );
   return rows.map((r) => {
@@ -153,6 +171,8 @@ async function bridgeCaEntries(): Promise<PilotEntry[]> {
       amount_ht: ht,
       amount_ttc: ht * 1.2,
       hours: Number(r.hours) || 0,
+      hours_raw: r.hours == null ? null : Number(r.hours),
+      intervention_type: r.intervention_type ?? null,
       observation: null,
       sale_status: r.sale_status ?? "realise",
       created_at: r.created_at,
@@ -326,12 +346,11 @@ export function computeKpis(params: {
   const fraction = isCurrentYear ? Math.max(dayOfYear / 365, 0.02) : 1;
   const projection = isCurrentYear ? caYear / fraction : caYear;
 
-  const totalHours = sum(yearEntries.filter((e) => (Number(e.hours) || 0) > 0).map((e) => e.hours));
+  // Heures d'intervention de l'exercice = Temps des lignes de vente retenues.
   // Taux horaire brut : CA de TOUTES les ventes de l'exercice (ventes SST à
   // 0 h incluses) ÷ temps de travail interne de ces ventes.
-  const caRatedLines = hourlyRateFromSales(
-    yearEntries.map((e) => ({ amount_ht: e.amount_ht, hours: e.hours })),
-  );
+  const caRatedLines = saleRateScope(yearEntries.map(saleRateRowOf));
+  const totalHours = caRatedLines.hours;
   const workedDays = new Set(yearEntries.map((e) => e.entry_date)).size;
   const nbEntries = yearEntries.length;
   const panierMoyen = nbEntries > 0 ? caYear / nbEntries : 0;
@@ -372,7 +391,7 @@ export function computeKpis(params: {
     projection,
     totalHours,
     /** CA HT des seules lignes de vente porteuses de temps (indicateur qualité). */
-    caHeuresVendues: caRatedLines.caRated,
+    caHeuresVendues: caRatedLines.caTimed,
     workedDays,
     nbEntries,
     panierMoyen,
@@ -473,7 +492,8 @@ export function clientStatsWithHours(
         clientId: e.client_id ?? null,
       };
     cur.ca += e.amount_ht;
-    if ((Number(e.hours) || 0) > 0) {
+    // Périmètre unique du taux horaire : CA et Temps de la MÊME ligne retenue.
+    if (saleRateEligible(saleRateRowOf(e))) {
       cur.hours += Number(e.hours) || 0;
       cur.caRated += Number(e.amount_ht) || 0;
     }
