@@ -318,7 +318,6 @@ export function analyzeTimeValue(params: {
       const picked = prestPicked.get(prestation)!;
       const ca = prestCa.get(prestation);
       const caHt = ca?.ca ?? 0;
-      const caRated = ca?.caRated ?? 0;
       const charges = cost.costPerHour != null ? cost.costPerHour * picked.hours : null;
       const resultat = charges != null ? caHt - charges : null;
       return {
@@ -392,7 +391,6 @@ export function analyzeTimeValue(params: {
     if (b.vendues === 0) b.vendues = ca?.hoursVenduesCa ?? 0;
     const { hours, basis } = pickHours(b);
     const caHt = ca?.ca ?? 0;
-    const caRated = ca?.caRated ?? 0;
     const charges = cost.costPerHour != null ? cost.costPerHour * hours : null;
     const resultat = charges != null ? caHt - charges : null;
     const mainPrestation =
