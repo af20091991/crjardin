@@ -1,4 +1,5 @@
-import type { PilotEntry } from "@/lib/pilot";
+import { saleRateRowOf, type PilotEntry } from "@/lib/pilot";
+import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
 import type { ClientScore } from "@/lib/client-score";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 import {
