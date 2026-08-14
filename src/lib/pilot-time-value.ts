@@ -16,7 +16,8 @@
 // mêmes lignes (périmètre strictement identique au numérateur).
 // -----------------------------------------------------------------------------
 
-import type { PilotEntry } from "@/lib/pilot";
+import { saleRateRowOf, type PilotEntry } from "@/lib/pilot";
+import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
 import { canonicalPrestation } from "@/lib/pilot-ca-designation";
 import { operatingCharges, type ChargeRow } from "@/lib/pilot-charges";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
