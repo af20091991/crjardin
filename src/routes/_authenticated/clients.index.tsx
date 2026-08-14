@@ -18,7 +18,6 @@ import { listFavoriteClientIds, toggleFavoriteClient } from "@/lib/client-favori
 import { findSuspectClients } from "@/lib/client-cleanup";
 import { useRole } from "@/hooks/use-role";
 import { listAllRecommendations, staleClientIds } from "@/lib/garden";
-import { listAllInterventions } from "@/lib/interventions";
 import { listEntries, formatEuro } from "@/lib/pilot";
 import { saleRateEligible } from "@/lib/pilot-sale-time";
 import { useThresholds } from "@/lib/pilot-thresholds";
@@ -91,7 +90,6 @@ function ClientsPage() {
 
   const { data: clients, isLoading } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: recos } = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
-  const interventionsQ = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
   const entriesQ = useQuery({ queryKey: ["pilot-entries"], queryFn: listEntries, enabled: canEdit });
   const favoritesQ = useQuery({ queryKey: ["favorite-clients"], queryFn: listFavoriteClientIds });
 
