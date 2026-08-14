@@ -228,7 +228,7 @@ async function fetchAggregates() {
   // opp peut échouer si vue absente : on tolère
   return {
     // Règle de comptabilisation Facturé/Réglé appliquée dès la lecture.
-    ca: (caRes.data ?? []).map((r) => accountedSale(r as never)),
+    ca: (caRes.data ?? []).map((r) => accountedSale(r)),
     opps: (oppRes.error ? [] : (oppRes.data as unknown as Array<{
       client_id: string;
       estimated_value: number | null;
@@ -409,7 +409,7 @@ export async function getClientEconomicScore(
   if (caRes.error) throw caRes.error;
   if (clientRes.error) throw clientRes.error;
 
-  const ca = (caRes.data ?? []).map((r) => accountedSale(r as never));
+  const ca = (caRes.data ?? []).map((r) => accountedSale(r));
   const opps = (oppRes.error
     ? []
     : ((oppRes.data as unknown as Array<{
