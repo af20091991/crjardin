@@ -105,49 +105,44 @@ function ClientsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Agrégats par client — uniquement des données déjà enregistrées.
+  // Agrégats économiques par client — source unique Chiffre d'affaires → Ventes.
   const rows = useMemo<Row[]>(() => {
     const caByClient = new Map<string, number>();
-    // Taux horaire (règle absolue) : CA des lignes de vente porteuses de
-    // temps ÷ temps de ces mêmes lignes (Vente → Temps, source unique).
-    // Périmètre verrouillé sur l'exercice courant : ni CA ni heures d'un
-    // autre exercice n'entrent dans ces indicateurs.
-    const ratedByClient = new Map<string, { ca: number; hours: number }>();
+    // Taux horaire BRUT : CA de toutes les ventes de l'exercice ÷ temps de
+    // travail interne (Vente → Temps > 0). Une vente SST à 0 h compte dans le
+    // CA sans ajouter d'heure. Périmètre verrouillé sur l'exercice courant.
+    const hoursByClient = new Map<string, number>();
+    const salesByClient = new Map<string, number>();
+    const lastSale = new Map<string, string>();
     for (const e of entriesQ.data ?? []) {
       if (!e.client_id) continue;
       if (new Date(e.entry_date).getFullYear() !== pilotYear) continue;
       caByClient.set(e.client_id, (caByClient.get(e.client_id) ?? 0) + (Number(e.amount_ht) || 0));
+      salesByClient.set(e.client_id, (salesByClient.get(e.client_id) ?? 0) + 1);
+      const prevDate = lastSale.get(e.client_id);
+      if (!prevDate || e.entry_date > prevDate) lastSale.set(e.client_id, e.entry_date);
       if (saleRateEligible(e)) {
-        const cur = ratedByClient.get(e.client_id) ?? { ca: 0, hours: 0 };
-        cur.ca += Number(e.amount_ht) || 0;
-        cur.hours += Number(e.hours) || 0;
-        ratedByClient.set(e.client_id, cur);
+        hoursByClient.set(
+          e.client_id,
+          (hoursByClient.get(e.client_id) ?? 0) + (Number(e.hours) || 0),
+        );
       }
-    }
-    const ivCount = new Map<string, number>();
-    const last = new Map<string, string>();
-    for (const iv of interventionsQ.data ?? []) {
-      const id = iv.client_id;
-      if (!id) continue;
-      const prev = last.get(id);
-      if (!prev || iv.intervention_date > prev) last.set(id, iv.intervention_date);
-      if (new Date(iv.intervention_date).getFullYear() !== pilotYear) continue;
-      ivCount.set(id, (ivCount.get(id) ?? 0) + 1);
     }
     return (clients ?? []).map((client) => {
       const ca = caByClient.get(client.id) ?? 0;
-      const rated = ratedByClient.get(client.id);
-      const h = rated?.hours ?? 0;
+      const h = hoursByClient.get(client.id) ?? 0;
       return {
         client,
         ca,
-        interventions: ivCount.get(client.id) ?? 0,
+        // Nombre d'interventions économiques = lignes de vente de l'exercice
+        // (jamais le nombre de comptes rendus de chantier).
+        interventions: salesByClient.get(client.id) ?? 0,
         hours: h,
-        lastDate: last.get(client.id) ?? null,
-        hourlyRate: h > 0 && (rated?.ca ?? 0) > 0 ? (rated as { ca: number }).ca / h : null,
+        lastDate: lastSale.get(client.id) ?? null,
+        hourlyRate: h > 0 && ca > 0 ? ca / h : null,
       };
     });
-  }, [clients, entriesQ.data, interventionsQ.data, pilotYear]);
+  }, [clients, entriesQ.data, pilotYear]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
