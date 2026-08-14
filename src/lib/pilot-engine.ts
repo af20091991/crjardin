@@ -26,6 +26,7 @@ import {
   getSettings,
   listEntries,
   monthlySeries,
+  saleRateRowOf,
   type PilotEntry,
   type PilotSettings,
 } from "@/lib/pilot";
