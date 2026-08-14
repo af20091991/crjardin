@@ -86,6 +86,18 @@ export interface ClientScore {
 const currentYear = _currentYear;
 const daysBetween = _daysBetween;
 
+/**
+ * Date économique d'une ligne de vente (année/mois du suivi CA).
+ * Sert d'unique référence d'ancienneté : aucun compte rendu de chantier ni
+ * mission SST n'alimente cette notion.
+ */
+function saleDateOf(row: { year?: number | null; month?: number | null }): string | null {
+  const y = Number(row.year);
+  if (!Number.isFinite(y) || y <= 0) return null;
+  const m = Math.min(Math.max(Number(row.month) || 1, 1), 12);
+  return `${y}-${String(m).padStart(2, "0")}-01`;
+}
+
 export function computeConfidenceLevel(
   salesCount: number,
   hoursConfirmed: number,
