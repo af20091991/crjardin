@@ -164,23 +164,29 @@ async function bridgeCaEntries(): Promise<PilotEntry[]> {
     "vente",
   );
   return rows.map((r) => {
-    const mm = String(r.month).padStart(2, "0");
     const ht = Number(r.amount_ht) || 0;
+    const status = saleStatusOf(r.sale_status);
+    const hoursIn = r.hours == null ? null : Number(r.hours);
+    // Règle de comptabilisation : Temps dès Facturé, CA à partir de Réglé.
+    const countedHours = hoursCounted(status) ? hoursIn : null;
+    const countedHt = revenueCounted(status) ? ht : 0;
     return {
       id: r.id,
       user_id: r.user_id,
-      entry_date: `${r.year}-${mm}-15`,
+      entry_date: rowDateFromYearMonth(r.year, r.month),
       client_id: r.client_id ?? null,
       client_name: r.designation,
       family: categoryToFamily(r.category as never),
       nature: r.category,
-      amount_ht: ht,
-      amount_ttc: ht * 1.2,
-      hours: Number(r.hours) || 0,
-      hours_raw: r.hours == null ? null : Number(r.hours),
+      amount_ht: countedHt,
+      amount_ttc: countedHt * 1.2,
+      hours: countedHours ?? 0,
+      hours_raw: countedHours,
+      amount_ht_raw: ht,
+      hours_input: hoursIn,
       intervention_type: r.intervention_type ?? null,
       observation: null,
-      sale_status: r.sale_status ?? "realise",
+      sale_status: status,
       created_at: r.created_at,
       updated_at: r.updated_at,
     } as PilotEntry;
