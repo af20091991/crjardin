@@ -219,7 +219,7 @@ async function bridgeCaCharges(): Promise<PilotCharge[]> {
       kind: "variable" as const,
       amount: Number(r.amount_ht) || 0,
       period: "ponctuel" as const,
-      charge_date: `${r.year}-${mm}-15`,
+      charge_date: rowDateFromYearMonth(r.year, r.month),
       is_investment: Boolean(r.is_investment),
       created_at: r.created_at,
       updated_at: r.updated_at,
