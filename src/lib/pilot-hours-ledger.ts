@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { parseDesignation } from "@/lib/pilot-ca-designation";
 import { isRealizedMonth, todayIso } from "@/lib/pilot-realized";
+import { hoursCounted } from "@/lib/pilot-sale-accounting";
 
 /**
  * Couche unique d'analyse des heures (Pilot Pro).
@@ -73,14 +74,21 @@ async function fetchCaHoursRows(year?: number, options?: { mode?: "reel" | "proj
   for (let from = 0; ; from += pageSize) {
     let q = supabase
       .from("pilot_ca_entries")
-      .select("id,year,month,hours,designation,category,client_id,raw_client_text,match_status")
+      .select("id,year,month,hours,designation,category,client_id,raw_client_text,match_status,sale_status")
       .eq("kind", "vente")
       .gt("hours", 0);
     if (year != null) q = q.eq("year", year);
     const { data, error } = await q.range(from, from + pageSize - 1);
     if (error) throw error;
     const chunk = (data ?? []) as unknown as CaRow[];
-    rows.push(...chunk.filter((r) => options?.mode === "projection" || isRealizedMonth(r.year, r.month)));
+    rows.push(
+      ...chunk.filter(
+        (r) =>
+          // Temps comptabilisé dès 🟠 Facturé, jamais sur une ligne planifiée.
+          hoursCounted((r as unknown as { sale_status?: string | null }).sale_status) &&
+          (options?.mode === "projection" || isRealizedMonth(r.year, r.month)),
+      ),
+    );
     if (chunk.length < pageSize) break;
   }
   return rows;
