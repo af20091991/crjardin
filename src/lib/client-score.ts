@@ -344,15 +344,16 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
     ) {
       continue;
     }
-    // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
-    const realRate = hourlyRate(e.revenueRatedHt, e.hoursConfirmed);
+    // Taux horaire BRUT = CA de toutes les ventes de l'exercice (ventes SST à
+    // 0 h incluses) ÷ temps de travail interne de l'exercice.
+    const realRate = hourlyRate(e.revenueYearHt, e.hoursConfirmed);
     const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
     const hoursConfirmedRatio =
       e.caLines > 0 ? e.caLinesWithHours / e.caLines : 0;
     const days = daysBetween(e.lastInterventionAt);
 
     const confidenceLevel = computeConfidenceLevel(
-      Math.max(e.interventionsCount, e.caLines),
+      e.caLines,
       e.hoursConfirmed,
       hoursConfirmedRatio,
     );
