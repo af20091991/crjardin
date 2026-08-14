@@ -4,6 +4,8 @@ import { entriesForMode, isRealizedMonth, realizedEntries } from "@/lib/pilot-re
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
 import { saleRateScope, saleRateEligible } from "@/lib/pilot-sale-time";
+import { hoursCounted, revenueCounted, saleStatusOf } from "@/lib/pilot-sale-accounting";
+import { rowDateFromYearMonth } from "@/lib/pilot-realized";
 
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser();
@@ -38,6 +40,10 @@ export interface PilotEntry {
   hours_raw: number | null;
   /** Type de réalisation : `sst` = 0 h interne valide. */
   intervention_type: string | null;
+  /** CA HT saisi sur la ligne, avant règle de comptabilisation Facturé/Réglé. */
+  amount_ht_raw: number;
+  /** Temps saisi sur la ligne, avant règle de comptabilisation. */
+  hours_input: number | null;
   observation: string | null;
   sale_status?: string;
   created_at: string;
