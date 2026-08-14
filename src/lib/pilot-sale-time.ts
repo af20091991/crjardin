@@ -74,17 +74,20 @@ export const SALE_TIME_STATE_LABEL: Record<SaleTimeState, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// TAUX HORAIRE BRUT — règle absolue et unique
+// TAUX HORAIRE — règle absolue et unique
 //
-// Taux horaire brut = CA HT de TOUTES les ventes du périmètre
-//                     ÷ temps de travail INTERNE de ces ventes.
+// Taux horaire = Σ CA HT des lignes de vente RETENUES
+//                ÷ Σ Temps de CES MÊMES lignes de vente.
 //
-// Le temps interne est la somme des Temps > 0 des lignes de vente
-// (Chiffre d'affaires → Ventes → Temps), et rien d'autre.
+// Ligne RETENUE = ligne dont le Temps est documenté :
+//   - Temps > 0 (temps de travail interne) ;
+//   - Temps = 0 sur une ligne sous-traitée (donnée complète et valide).
+// Ligne ÉCARTÉE = Temps absent (vide, ou 0 h sans qualification SST) : son CA
+// ne peut pas entrer au numérateur, sinon le taux explose artificiellement.
 //
-// Une vente sous-traitée à 0 h est une donnée complète : son CA compte au
-// numérateur, elle n'ajoute aucune heure au dénominateur, et son coût
-// sous-traitant reste une charge variable (jamais converti en heures).
+// Une vente sous-traitée à 0 h compte donc son CA au numérateur sans ajouter
+// d'heure au dénominateur ; son coût sous-traitant reste une charge variable
+// (jamais converti en heures).
 //
 // Aucune durée n'est jamais recherchée ailleurs (CR Chantier, missions SST,
 // interventions.hours_spent, heures historiques, estimations, projections).
@@ -96,41 +99,66 @@ export interface SaleRateRow {
   intervention_type?: string | null;
 }
 
-/** true = la ligne apporte du temps de travail interne (Temps > 0 saisi). */
+/**
+ * true = la ligne est RETENUE dans le calcul du taux horaire (Temps documenté).
+ * Unique définition du périmètre : numérateur et dénominateur en découlent.
+ */
 export function saleRateEligible(row: SaleRateRow): boolean {
-  const h = row.hours == null ? null : Number(row.hours);
-  return h != null && Number.isFinite(h) && h > 0;
+  return saleTimeKnown(row);
+}
+
+export interface SaleRateScope {
+  /** CA HT de TOUTES les lignes du périmètre (indicateur de couverture). */
+  ca: number;
+  /** CA HT des seules lignes retenues (numérateur du taux horaire). */
+  caTimed: number;
+  /** CA HT écarté faute de Temps documenté (à corriger en qualité). */
+  caUntimed: number;
+  /** Temps interne des lignes retenues (dénominateur). */
+  hours: number;
+  lines: number;
+  linesTimed: number;
+  rate: number | null;
 }
 
 /**
- * Taux horaire brut agrégé : CA de toutes les ventes ÷ temps interne.
- * `ca` = CA total du périmètre (ventes SST à 0 h incluses).
- * `caRated` = CA des seules lignes porteuses de temps (information de qualité).
- * `hours` = temps de travail interne.
+ * PÉRIMÈTRE UNIQUE DU TAUX HORAIRE.
+ * Toute vue économique passe par ici : CA et Temps proviennent exactement du
+ * même ensemble de lignes de vente.
  */
-export function hourlyRateFromSales(rows: SaleRateRow[]): {
-  ca: number;
-  caRated: number;
-  hours: number;
-  rate: number | null;
-} {
+export function saleRateScope(rows: SaleRateRow[]): SaleRateScope {
   let ca = 0;
-  let caRated = 0;
+  let caTimed = 0;
   let hours = 0;
+  let lines = 0;
+  let linesTimed = 0;
   for (const r of rows) {
     const amount = Number(r.amount_ht) || 0;
     ca += amount;
+    lines += 1;
     if (!saleRateEligible(r)) continue;
-    caRated += amount;
+    caTimed += amount;
+    linesTimed += 1;
     hours += Number(r.hours) || 0;
   }
-  return { ca, caRated, hours, rate: hours > 0 ? ca / hours : null };
+  return {
+    ca,
+    caTimed,
+    caUntimed: ca - caTimed,
+    hours,
+    lines,
+    linesTimed,
+    rate: hours > 0 ? caTimed / hours : null,
+  };
 }
 
+/** Alias historique — même périmètre unique. */
+export const hourlyRateFromSales = saleRateScope;
+
 /**
- * Taux horaire brut à partir de totaux déjà agrégés sur le même périmètre :
- * CA total des ventes ÷ temps de travail interne.
+ * Taux horaire à partir de totaux déjà agrégés sur le MÊME périmètre de lignes :
+ * `caTimed` (CA des lignes retenues) ÷ `internalHours` (Temps de ces lignes).
  */
-export function hourlyRate(caTotal: number, internalHours: number): number | null {
-  return internalHours > 0 ? caTotal / internalHours : null;
+export function hourlyRate(caTimed: number, internalHours: number): number | null {
+  return internalHours > 0 ? caTimed / internalHours : null;
 }
