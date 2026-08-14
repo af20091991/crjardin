@@ -5,6 +5,7 @@ import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 // Règle métier centrale UNIQUE (aucune logique de confiance recréée ici).
 import { entityEligibility } from "@/lib/pilot-entity-rules";
 import { hourlyRate, saleRateEligible, type SaleRateRow } from "@/lib/pilot-sale-time";
+import { accountedSale } from "@/lib/pilot-sale-accounting";
 
 // ---------- Règles de classement (ajustables) ----------
 export const SCORE_RULES = {
