@@ -217,7 +217,7 @@ function ClientsPage() {
             </div>
             <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
               <span>
-                {r.interventions} intervention{r.interventions > 1 ? "s" : ""} en {pilotYear}
+                {r.interventions} vente{r.interventions > 1 ? "s" : ""} en {pilotYear}
               </span>
               {canEdit && (
                 <span>
