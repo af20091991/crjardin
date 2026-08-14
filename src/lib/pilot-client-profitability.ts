@@ -16,6 +16,8 @@ import {
   type Reliability,
 } from "@/lib/pilot-entity-rules";
 import type { EntityStatus } from "@/lib/pilot-referential";
+import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
+import { saleRateRowOf } from "@/lib/pilot";
 
 export type ClientProfitClass =
   | "tres_rentable"
@@ -146,7 +148,7 @@ export function classifyClients(params: {
     // Chiffre d'affaires → Ventes → Temps). Le registre d'heures ne sert plus
     // qu'à qualifier la source affichée.
     const heures = a?.timedHours ?? 0;
-    const source: HoursSource = heures > 0 ? "vente_temps" : (h?.reellesSource ?? "aucune");
+    const source: ClientProfitability["hoursSource"] = heures > 0 ? "vente_temps" : (h?.reellesSource ?? "aucune");
     // Taux horaire = CA des lignes retenues ÷ Temps de ces mêmes lignes.
     const taux = hourlyRate(a?.rated ?? 0, heures);
 
