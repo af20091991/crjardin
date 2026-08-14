@@ -215,7 +215,7 @@ async function fetchAggregates() {
   const [caRes, oppRes, clientsRes] = await Promise.all([
     supabase
       .from("pilot_ca_entries")
-      .select("client_id,year,month,amount_ht,hours")
+      .select("client_id,year,month,amount_ht,hours,intervention_type")
       .eq("kind", "vente"),
     supabase
       .from("v_client_next_best_offers" as never)
@@ -318,8 +318,9 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
     e.caLines += 1;
     // Nombre d'interventions économiques = lignes de vente de l'exercice.
     e.interventionsCount += 1;
-    const h = Number((r as { hours?: number | null }).hours) || 0;
-    if (h > 0) {
+    // Ligne RETENUE = Temps documenté (> 0 h, ou 0 h qualifié SST).
+    if (saleRateEligible(saleRateRowLike(r))) {
+      const h = Number((r as { hours?: number | null }).hours) || 0;
       e.caLinesWithHours += 1;
       e.hoursConfirmed += h;
       e.interventionsWithHours += 1;
@@ -344,9 +345,9 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
     ) {
       continue;
     }
-    // Taux horaire BRUT = CA de toutes les ventes de l'exercice (ventes SST à
-    // 0 h incluses) ÷ temps de travail interne de l'exercice.
-    const realRate = hourlyRate(e.revenueYearHt, e.hoursConfirmed);
+    // Taux horaire = CA des lignes RETENUES de l'exercice ÷ Temps de ces mêmes
+    // lignes (mêmes lignes au numérateur et au dénominateur).
+    const realRate = hourlyRate(e.revenueRatedHt, e.hoursConfirmed);
     const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
     const hoursConfirmedRatio =
       e.caLines > 0 ? e.caLinesWithHours / e.caLines : 0;
@@ -393,7 +394,7 @@ export async function getClientEconomicScore(
   const [caRes, oppRes, clientRes, settings] = await Promise.all([
     supabase
       .from("pilot_ca_entries")
-      .select("client_id,year,month,amount_ht,hours")
+      .select("client_id,year,month,amount_ht,hours,intervention_type")
       .eq("kind", "vente")
       .eq("client_id", clientId),
     supabase
@@ -444,8 +445,9 @@ export async function getClientEconomicScore(
     revenueYearHt += ht;
     // Même exercice = même périmètre (CA + Temps de l'exercice courant).
     caLines += 1;
-    const h = Number((r as { hours?: number | null }).hours) || 0;
-    if (h > 0) {
+    // Ligne RETENUE = Temps documenté (> 0 h, ou 0 h qualifié SST).
+    if (saleRateEligible(saleRateRowLike(r))) {
+      const h = Number((r as { hours?: number | null }).hours) || 0;
       caLinesWithHours += 1;
       hoursConfirmed += h;
       revenueRatedHt += ht;
@@ -463,8 +465,8 @@ export async function getClientEconomicScore(
     opportunitiesValue += Number(o.estimated_value) || 0;
   }
 
-  // Taux horaire BRUT = CA de toutes les ventes de l'exercice ÷ temps interne.
-  const realRate = hourlyRate(revenueYearHt, hoursConfirmed);
+  // Taux horaire = CA des lignes RETENUES de l'exercice ÷ Temps de ces lignes.
+  const realRate = hourlyRate(revenueRatedHt, hoursConfirmed);
   const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
   const hoursConfirmedRatio =
     caLines > 0 ? caLinesWithHours / caLines : 0;
