@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isRealizedMonth } from "@/lib/pilot-realized";
+import { hoursCounted, revenueCounted } from "@/lib/pilot-sale-accounting";
 
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser();
