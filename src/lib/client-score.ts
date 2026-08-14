@@ -390,16 +390,11 @@ export async function getClientEconomicScore(
   clientId: string,
 ): Promise<ClientScore | null> {
   // Requêtes ciblées sur un seul client — ne charge jamais tout le portefeuille.
-  const [caRes, ivRes, oppRes, clientRes, settings] = await Promise.all([
+  const [caRes, oppRes, clientRes, settings] = await Promise.all([
     supabase
       .from("pilot_ca_entries")
-      .select("client_id,year,amount_ht,hours")
+      .select("client_id,year,month,amount_ht,hours")
       .eq("kind", "vente")
-      .eq("client_id", clientId),
-    supabase
-      .from("interventions")
-      .select("client_id,hours_spent,intervention_date,status")
-      .eq("status", "terminee")
       .eq("client_id", clientId),
     supabase
       .from("v_client_next_best_offers" as never)
@@ -409,11 +404,9 @@ export async function getClientEconomicScore(
     getSettings().catch(() => null),
   ]);
   if (caRes.error) throw caRes.error;
-  if (ivRes.error) throw ivRes.error;
   if (clientRes.error) throw clientRes.error;
 
   const ca = caRes.data ?? [];
-  const interventions = ivRes.data ?? [];
   const opps = (oppRes.error
     ? []
     : ((oppRes.data as unknown as Array<{
@@ -425,7 +418,7 @@ export async function getClientEconomicScore(
     (clientRes.data as { id: string; name: string | null; entity_status?: string } | null) ?? null;
 
   // Aucune trace économique : renvoyer null (fiche gérera l'affichage "données absentes").
-  if (ca.length === 0 && interventions.length === 0 && opps.length === 0) {
+  if (ca.length === 0 && opps.length === 0) {
     return null;
   }
 
@@ -439,9 +432,14 @@ export async function getClientEconomicScore(
   let hoursConfirmed = 0;
   let caLines = 0;
   let caLinesWithHours = 0;
+  let lastInterventionAt: string | null = null;
   for (const r of ca) {
     const ht = Number(r.amount_ht) || 0;
     revenueTotalHt += ht;
+    const saleDate = saleDateOf(r);
+    if (saleDate && (!lastInterventionAt || saleDate > lastInterventionAt)) {
+      lastInterventionAt = saleDate;
+    }
     if (Number(r.year) !== yr) continue;
     revenueYearHt += ht;
     // Même exercice = même périmètre (CA + Temps de l'exercice courant).
@@ -454,14 +452,8 @@ export async function getClientEconomicScore(
     }
   }
 
-  let interventionsCount = 0;
-  let lastInterventionAt: string | null = null;
-  for (const iv of interventions) {
-    interventionsCount += 1;
-    if (iv.intervention_date && (!lastInterventionAt || iv.intervention_date > lastInterventionAt)) {
-      lastInterventionAt = iv.intervention_date;
-    }
-  }
+  // Nombre d'interventions économiques = lignes de vente de l'exercice.
+  const interventionsCount = caLines;
   const interventionsWithHours = caLinesWithHours;
 
   let opportunitiesCount = 0;
@@ -471,17 +463,13 @@ export async function getClientEconomicScore(
     opportunitiesValue += Number(o.estimated_value) || 0;
   }
 
-  // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
-  const realRate = hourlyRate(revenueRatedHt, hoursConfirmed);
+  // Taux horaire BRUT = CA de toutes les ventes de l'exercice ÷ temps interne.
+  const realRate = hourlyRate(revenueYearHt, hoursConfirmed);
   const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
   const hoursConfirmedRatio =
     caLines > 0 ? caLinesWithHours / caLines : 0;
   const days = daysBetween(lastInterventionAt);
-  const confidenceLevel = computeConfidenceLevel(
-    Math.max(interventionsCount, caLines),
-    hoursConfirmed,
-    hoursConfirmedRatio,
-  );
+  const confidenceLevel = computeConfidenceLevel(caLines, hoursConfirmed, hoursConfirmedRatio);
 
   const base = {
     client_id: clientId,
