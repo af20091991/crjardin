@@ -332,10 +332,11 @@ export function analyzeTimeValue(params: {
         hoursPct: hoursTotal > 0 ? (picked.hours / hoursTotal) * 100 : 0,
         charges,
         resultatBrut: resultat,
-        caPerHour: picked.hours > 0 && caRated > 0 ? caRated / picked.hours : null,
+        // Taux horaire brut : CA total de la prestation / temps interne.
+        caPerHour: picked.hours > 0 && caHt > 0 ? caHt / picked.hours : null,
         resultPerHour:
-          picked.hours > 0 && caRated > 0 && cost.costPerHour != null
-            ? caRated / picked.hours - cost.costPerHour
+          picked.hours > 0 && caHt > 0 && cost.costPerHour != null
+            ? caHt / picked.hours - cost.costPerHour
             : null,
         lignes: ca?.lignes ?? 0,
         clients: ca?.clients.size ?? 0,
@@ -406,10 +407,11 @@ export function analyzeTimeValue(params: {
       interventions: params.interventionsByClient?.get(clientId) ?? 0,
       charges,
       resultatBrut: resultat,
-      caPerHour: hours > 0 && caRated > 0 ? caRated / hours : null,
+      // Taux horaire brut : CA total du client / temps interne.
+      caPerHour: hours > 0 && caHt > 0 ? caHt / hours : null,
       resultPerHour:
-        hours > 0 && caRated > 0 && cost.costPerHour != null
-          ? caRated / hours - cost.costPerHour
+        hours > 0 && caHt > 0 && cost.costPerHour != null
+          ? caHt / hours - cost.costPerHour
           : null,
       mainPrestation,
       zone: "non_classe",
