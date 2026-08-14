@@ -233,7 +233,10 @@ function PilotClient360() {
   })();
 
   const caCumule = score?.revenueTotalHt ?? (caQ.data ?? []).reduce((s, r) => s + (Number(r.amount_ht) || 0), 0);
-  const totalHours = (interventionsQ.data ?? []).reduce((s, iv) => s + (iv.hours_spent ?? 0), 0);
+  // Heures cumulées = temps de travail interne issu de Chiffre d'affaires →
+  // Ventes → Temps (source unique). Les heures des comptes rendus de chantier
+  // restent affichées ligne à ligne, mais n'alimentent aucun indicateur.
+  const totalHours = (caQ.data ?? []).reduce((s, r) => s + (Number(r.hours) || 0), 0);
   // Anomalie de temps = ligne de vente sans Temps (source unique). Les
   // comptes-rendus sans heures ne sont plus une anomalie.
   const missingHours = (caQ.data ?? []).filter((r) => !saleTimeKnown(r)).length;

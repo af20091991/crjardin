@@ -91,7 +91,7 @@ export function classifyClients(params: {
 
   const agg = new Map<
     string,
-    { name: string; total: number; y: number; prev: number; rated: number }
+    { name: string; total: number; y: number; prev: number; rated: number; linesYear: number }
   >();
   for (const e of entries) {
     if (!e.client_id) continue;
@@ -102,6 +102,7 @@ export function classifyClients(params: {
       y: 0,
       prev: 0,
       rated: 0,
+      linesYear: 0,
     };
     if (e.client_name) cur.name = e.client_name;
     const amount = Number(e.amount_ht) || 0;
@@ -109,7 +110,10 @@ export function classifyClients(params: {
     // Indicateur de qualité : CA des lignes de l'exercice porteuses de temps
     // (jamais le numérateur du taux horaire brut).
     if (yy === year && (Number(e.hours) || 0) > 0) cur.rated += amount;
-    if (yy === year) cur.y += amount;
+    if (yy === year) {
+      cur.y += amount;
+      cur.linesYear += 1;
+    }
     if (yy === year - 1) cur.prev += amount;
     agg.set(e.client_id, cur);
   }
@@ -181,7 +185,9 @@ export function classifyClients(params: {
       evolutionPct: a && a.prev > 0 ? ((a.y - a.prev) / a.prev) * 100 : null,
       hours: heures,
       hoursSource: source,
-      interventions: params.interventionsByClient?.get(clientId) ?? 0,
+      // Interventions ÉCONOMIQUES = lignes de vente de l'exercice (jamais
+      // le nombre de comptes rendus de chantier ni de missions SST).
+      interventions: a?.linesYear ?? 0,
       tauxHoraire: taux,
       classe,
       confidence,

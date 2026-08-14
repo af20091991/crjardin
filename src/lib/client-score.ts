@@ -86,6 +86,18 @@ export interface ClientScore {
 const currentYear = _currentYear;
 const daysBetween = _daysBetween;
 
+/**
+ * Date économique d'une ligne de vente (année/mois du suivi CA).
+ * Sert d'unique référence d'ancienneté : aucun compte rendu de chantier ni
+ * mission SST n'alimente cette notion.
+ */
+function saleDateOf(row: { year?: number | null; month?: number | null }): string | null {
+  const y = Number(row.year);
+  if (!Number.isFinite(y) || y <= 0) return null;
+  const m = Math.min(Math.max(Number(row.month) || 1, 1), 12);
+  return `${y}-${String(m).padStart(2, "0")}-01`;
+}
+
 export function computeConfidenceLevel(
   salesCount: number,
   hoursConfirmed: number,
@@ -293,32 +305,25 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
     const e = ensure(r.client_id, null);
     const ht = Number(r.amount_ht) || 0;
     e.revenueTotalHt += ht;
+    // Dernière activité ÉCONOMIQUE = dernière vente enregistrée (jamais un CR).
+    const saleDate = saleDateOf(r);
+    if (saleDate && (!e.lastInterventionAt || saleDate > e.lastInterventionAt)) {
+      e.lastInterventionAt = saleDate;
+    }
     if (Number(r.year) !== yr) continue;
     e.revenueYearHt += ht;
     // Périmètre temporel verrouillé : heures ET CA du taux horaire portent sur
     // les seules lignes de vente de l'exercice courant (source unique
     // Chiffre d'affaires → Ventes → Temps). Aucun mélange d'exercices.
     e.caLines += 1;
+    // Nombre d'interventions économiques = lignes de vente de l'exercice.
+    e.interventionsCount += 1;
     const h = Number((r as { hours?: number | null }).hours) || 0;
     if (h > 0) {
       e.caLinesWithHours += 1;
       e.hoursConfirmed += h;
       e.interventionsWithHours += 1;
       e.revenueRatedHt += ht;
-    }
-  }
-
-  for (const iv of interventions) {
-    if (!iv.client_id) continue;
-    const e = ensure(iv.client_id, null);
-    e.interventionsCount += 1;
-    if (iv.intervention_date) {
-      if (
-        !e.lastInterventionAt ||
-        iv.intervention_date > e.lastInterventionAt
-      ) {
-        e.lastInterventionAt = iv.intervention_date;
-      }
     }
   }
 
@@ -339,15 +344,16 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
     ) {
       continue;
     }
-    // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
-    const realRate = hourlyRate(e.revenueRatedHt, e.hoursConfirmed);
+    // Taux horaire BRUT = CA de toutes les ventes de l'exercice (ventes SST à
+    // 0 h incluses) ÷ temps de travail interne de l'exercice.
+    const realRate = hourlyRate(e.revenueYearHt, e.hoursConfirmed);
     const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
     const hoursConfirmedRatio =
       e.caLines > 0 ? e.caLinesWithHours / e.caLines : 0;
     const days = daysBetween(e.lastInterventionAt);
 
     const confidenceLevel = computeConfidenceLevel(
-      Math.max(e.interventionsCount, e.caLines),
+      e.caLines,
       e.hoursConfirmed,
       hoursConfirmedRatio,
     );
@@ -384,16 +390,11 @@ export async function getClientEconomicScore(
   clientId: string,
 ): Promise<ClientScore | null> {
   // Requêtes ciblées sur un seul client — ne charge jamais tout le portefeuille.
-  const [caRes, ivRes, oppRes, clientRes, settings] = await Promise.all([
+  const [caRes, oppRes, clientRes, settings] = await Promise.all([
     supabase
       .from("pilot_ca_entries")
-      .select("client_id,year,amount_ht,hours")
+      .select("client_id,year,month,amount_ht,hours")
       .eq("kind", "vente")
-      .eq("client_id", clientId),
-    supabase
-      .from("interventions")
-      .select("client_id,hours_spent,intervention_date,status")
-      .eq("status", "terminee")
       .eq("client_id", clientId),
     supabase
       .from("v_client_next_best_offers" as never)
@@ -403,11 +404,9 @@ export async function getClientEconomicScore(
     getSettings().catch(() => null),
   ]);
   if (caRes.error) throw caRes.error;
-  if (ivRes.error) throw ivRes.error;
   if (clientRes.error) throw clientRes.error;
 
   const ca = caRes.data ?? [];
-  const interventions = ivRes.data ?? [];
   const opps = (oppRes.error
     ? []
     : ((oppRes.data as unknown as Array<{
@@ -419,7 +418,7 @@ export async function getClientEconomicScore(
     (clientRes.data as { id: string; name: string | null; entity_status?: string } | null) ?? null;
 
   // Aucune trace économique : renvoyer null (fiche gérera l'affichage "données absentes").
-  if (ca.length === 0 && interventions.length === 0 && opps.length === 0) {
+  if (ca.length === 0 && opps.length === 0) {
     return null;
   }
 
@@ -433,9 +432,14 @@ export async function getClientEconomicScore(
   let hoursConfirmed = 0;
   let caLines = 0;
   let caLinesWithHours = 0;
+  let lastInterventionAt: string | null = null;
   for (const r of ca) {
     const ht = Number(r.amount_ht) || 0;
     revenueTotalHt += ht;
+    const saleDate = saleDateOf(r);
+    if (saleDate && (!lastInterventionAt || saleDate > lastInterventionAt)) {
+      lastInterventionAt = saleDate;
+    }
     if (Number(r.year) !== yr) continue;
     revenueYearHt += ht;
     // Même exercice = même périmètre (CA + Temps de l'exercice courant).
@@ -448,14 +452,8 @@ export async function getClientEconomicScore(
     }
   }
 
-  let interventionsCount = 0;
-  let lastInterventionAt: string | null = null;
-  for (const iv of interventions) {
-    interventionsCount += 1;
-    if (iv.intervention_date && (!lastInterventionAt || iv.intervention_date > lastInterventionAt)) {
-      lastInterventionAt = iv.intervention_date;
-    }
-  }
+  // Nombre d'interventions économiques = lignes de vente de l'exercice.
+  const interventionsCount = caLines;
   const interventionsWithHours = caLinesWithHours;
 
   let opportunitiesCount = 0;
@@ -465,17 +463,13 @@ export async function getClientEconomicScore(
     opportunitiesValue += Number(o.estimated_value) || 0;
   }
 
-  // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
-  const realRate = hourlyRate(revenueRatedHt, hoursConfirmed);
+  // Taux horaire BRUT = CA de toutes les ventes de l'exercice ÷ temps interne.
+  const realRate = hourlyRate(revenueYearHt, hoursConfirmed);
   const rateRatio = realRate !== null && target > 0 ? realRate / target : null;
   const hoursConfirmedRatio =
     caLines > 0 ? caLinesWithHours / caLines : 0;
   const days = daysBetween(lastInterventionAt);
-  const confidenceLevel = computeConfidenceLevel(
-    Math.max(interventionsCount, caLines),
-    hoursConfirmed,
-    hoursConfirmedRatio,
-  );
+  const confidenceLevel = computeConfidenceLevel(caLines, hoursConfirmed, hoursConfirmedRatio);
 
   const base = {
     client_id: clientId,

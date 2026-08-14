@@ -318,7 +318,6 @@ export function analyzeTimeValue(params: {
       const picked = prestPicked.get(prestation)!;
       const ca = prestCa.get(prestation);
       const caHt = ca?.ca ?? 0;
-      const caRated = ca?.caRated ?? 0;
       const charges = cost.costPerHour != null ? cost.costPerHour * picked.hours : null;
       const resultat = charges != null ? caHt - charges : null;
       return {
@@ -359,6 +358,7 @@ export function analyzeTimeValue(params: {
       name: string;
       prest: Map<string, number>;
       hoursVenduesCa: number;
+      lignes: number;
     }
   >();
   for (const e of scopedEntries) {
@@ -369,9 +369,11 @@ export function analyzeTimeValue(params: {
       name: params.clientNames?.get(e.client_id) ?? "Client",
       prest: new Map<string, number>(),
       hoursVenduesCa: 0,
+      lignes: 0,
     };
     const amount = Number(e.amount_ht) || 0;
     cur.ca += amount;
+    cur.lignes += 1;
     if ((Number(e.hours) || 0) > 0) {
       cur.hoursVenduesCa += Number(e.hours) || 0;
       cur.caRated += amount;
@@ -389,7 +391,6 @@ export function analyzeTimeValue(params: {
     if (b.vendues === 0) b.vendues = ca?.hoursVenduesCa ?? 0;
     const { hours, basis } = pickHours(b);
     const caHt = ca?.ca ?? 0;
-    const caRated = ca?.caRated ?? 0;
     const charges = cost.costPerHour != null ? cost.costPerHour * hours : null;
     const resultat = charges != null ? caHt - charges : null;
     const mainPrestation =
@@ -404,15 +405,14 @@ export function analyzeTimeValue(params: {
       caHt,
       hours,
       hoursBasis: basis,
-      interventions: params.interventionsByClient?.get(clientId) ?? 0,
+      // Interventions ÉCONOMIQUES = lignes de vente du périmètre analysé.
+      interventions: ca?.lignes ?? 0,
       charges,
       resultatBrut: resultat,
       // Taux horaire brut : CA total du client / temps interne.
       caPerHour: hours > 0 && caHt > 0 ? caHt / hours : null,
       resultPerHour:
-        hours > 0 && caHt > 0 && cost.costPerHour != null
-          ? caHt / hours - cost.costPerHour
-          : null,
+        hours > 0 && caHt > 0 && cost.costPerHour != null ? caHt / hours - cost.costPerHour : null,
       mainPrestation,
       zone: "non_classe",
       rank: null,
