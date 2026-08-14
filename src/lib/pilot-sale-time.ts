@@ -41,7 +41,7 @@ export type SaleTimeState =
   | "absent";
 
 export interface SaleTimeRow {
-  hours: number | null | undefined;
+  hours?: number | null;
   intervention_type?: string | null;
 }
 
