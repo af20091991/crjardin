@@ -19,7 +19,9 @@ export function todayIso(now = new Date()): string {
 }
 
 export function rowDateFromYearMonth(year: number, month: number): string {
-  return `${year}-${String(month).padStart(2, "0")}-15`;
+  // 1er du mois : un mois EN COURS contient des données comptabilisables
+  // (une vente facturée le 12 août 2026 est réelle dès août, sans clôture).
+  return `${year}-${String(month).padStart(2, "0")}-01`;
 }
 
 export type RealProjectionMode = "reel" | "projection";
