@@ -76,7 +76,7 @@ export function buildPortfolio(params: {
       cur.linesYear += 1;
     }
     // CA des seules lignes de vente de l'exercice porteuses de temps
-    // (numérateur du taux horaire).
+    // (indicateur de qualité, jamais le numérateur du taux horaire brut).
     if (y === year && (Number(e.hours) || 0) > 0) cur.caRated += amount;
     cur.lines += 1;
     agg.set(e.client_id, cur);
@@ -138,8 +138,8 @@ export function buildPortfolio(params: {
       // Panier moyen de l'exercice analysé (CA de l'exercice / lignes de l'exercice).
       panierMoyen: linesYear > 0 ? caYear / linesYear : null,
       prestations: h ? [...h.prestations].slice(0, 4) : [],
-      // Taux horaire = CA des lignes de vente avec temps / temps de ces lignes.
-      rentabilite: hours > 0 && (a?.caRated ?? 0) > 0 ? (a?.caRated ?? 0) / hours : null,
+      // Taux horaire brut = CA de toutes les ventes de l'exercice / temps interne.
+      rentabilite: hours > 0 && caYear > 0 ? caYear / hours : null,
       score: s?.score ?? null,
       recommendation: s?.recommendation ?? null,
       entityStatus,

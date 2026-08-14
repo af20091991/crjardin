@@ -74,12 +74,20 @@ export const SALE_TIME_STATE_LABEL: Record<SaleTimeState, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Taux horaire — règle absolue et unique
+// TAUX HORAIRE BRUT — règle absolue et unique
 //
-// Taux horaire = Montant HT de la ligne de vente ÷ Temps de cette même ligne.
-// Agrégé : somme des montants HT des lignes porteuses de temps ÷ somme de ces
-// temps. Une ligne sans temps (SST à 0 h, temps absent) n'entre NI au
-// numérateur NI au dénominateur : on ne va jamais chercher une durée ailleurs.
+// Taux horaire brut = CA HT de TOUTES les ventes du périmètre
+//                     ÷ temps de travail INTERNE de ces ventes.
+//
+// Le temps interne est la somme des Temps > 0 des lignes de vente
+// (Chiffre d'affaires → Ventes → Temps), et rien d'autre.
+//
+// Une vente sous-traitée à 0 h est une donnée complète : son CA compte au
+// numérateur, elle n'ajoute aucune heure au dénominateur, et son coût
+// sous-traitant reste une charge variable (jamais converti en heures).
+//
+// Aucune durée n'est jamais recherchée ailleurs (CR Chantier, missions SST,
+// interventions.hours_spent, heures historiques, estimations, projections).
 // ---------------------------------------------------------------------------
 
 export interface SaleRateRow {
@@ -88,29 +96,41 @@ export interface SaleRateRow {
   intervention_type?: string | null;
 }
 
-/** true = la ligne participe au calcul d'un taux horaire (temps > 0 saisi). */
+/** true = la ligne apporte du temps de travail interne (Temps > 0 saisi). */
 export function saleRateEligible(row: SaleRateRow): boolean {
   const h = row.hours == null ? null : Number(row.hours);
   return h != null && Number.isFinite(h) && h > 0;
 }
 
-/** Taux horaire agrégé de lignes de vente (CA des lignes avec temps / ce temps). */
+/**
+ * Taux horaire brut agrégé : CA de toutes les ventes ÷ temps interne.
+ * `ca` = CA total du périmètre (ventes SST à 0 h incluses).
+ * `caRated` = CA des seules lignes porteuses de temps (information de qualité).
+ * `hours` = temps de travail interne.
+ */
 export function hourlyRateFromSales(rows: SaleRateRow[]): {
   ca: number;
+  caRated: number;
   hours: number;
   rate: number | null;
 } {
   let ca = 0;
+  let caRated = 0;
   let hours = 0;
   for (const r of rows) {
+    const amount = Number(r.amount_ht) || 0;
+    ca += amount;
     if (!saleRateEligible(r)) continue;
-    ca += Number(r.amount_ht) || 0;
+    caRated += amount;
     hours += Number(r.hours) || 0;
   }
-  return { ca, hours, rate: hours > 0 ? ca / hours : null };
+  return { ca, caRated, hours, rate: hours > 0 ? ca / hours : null };
 }
 
-/** Taux horaire à partir de totaux déjà agrégés sur les mêmes lignes. */
-export function hourlyRate(caOfRatedLines: number, ratedHours: number): number | null {
-  return ratedHours > 0 ? caOfRatedLines / ratedHours : null;
+/**
+ * Taux horaire brut à partir de totaux déjà agrégés sur le même périmètre :
+ * CA total des ventes ÷ temps de travail interne.
+ */
+export function hourlyRate(caTotal: number, internalHours: number): number | null {
+  return internalHours > 0 ? caTotal / internalHours : null;
 }

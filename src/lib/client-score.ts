@@ -87,19 +87,19 @@ const currentYear = _currentYear;
 const daysBetween = _daysBetween;
 
 export function computeConfidenceLevel(
-  interventionsCount: number,
+  salesCount: number,
   hoursConfirmed: number,
   hoursConfirmedRatio: number,
 ): "HIGH" | "MEDIUM" | "LOW" {
   if (
-    interventionsCount >= CONFIDENCE_RULES.HIGH.minInterventions &&
+    salesCount >= CONFIDENCE_RULES.HIGH.minInterventions &&
     hoursConfirmedRatio >= CONFIDENCE_RULES.HIGH.minConfirmedHoursRatio &&
     hoursConfirmed > 0
   ) {
     return "HIGH";
   }
   if (
-    interventionsCount >= CONFIDENCE_RULES.MEDIUM.minInterventions &&
+    salesCount >= CONFIDENCE_RULES.MEDIUM.minInterventions &&
     hoursConfirmedRatio >= CONFIDENCE_RULES.MEDIUM.minConfirmedHoursRatio &&
     hoursConfirmed > 0
   ) {
@@ -196,28 +196,25 @@ function classify(
 }
 
 // ---------- Requêtes ----------
+// SOURCE ÉCONOMIQUE UNIQUE : Chiffre d'affaires → Ventes.
+// Les interventions / CR Chantier ne sont plus lus ici : ils documentent
+// l'opérationnel mais ne créent aucune donnée économique.
 async function fetchAggregates() {
-  const [caRes, ivRes, oppRes, clientsRes] = await Promise.all([
+  const [caRes, oppRes, clientsRes] = await Promise.all([
     supabase
       .from("pilot_ca_entries")
-      .select("client_id,year,amount_ht,hours")
+      .select("client_id,year,month,amount_ht,hours")
       .eq("kind", "vente"),
-    supabase
-      .from("interventions")
-      .select("client_id,hours_spent,intervention_date,status")
-      .eq("status", "terminee"),
     supabase
       .from("v_client_next_best_offers" as never)
       .select("client_id,estimated_value,score_opportunity"),
     supabase.from("clients").select("id,name,entity_status"),
   ]);
   if (caRes.error) throw caRes.error;
-  if (ivRes.error) throw ivRes.error;
   if (clientsRes.error) throw clientsRes.error;
   // opp peut échouer si vue absente : on tolère
   return {
     ca: caRes.data ?? [],
-    interventions: ivRes.data ?? [],
     opps: (oppRes.error ? [] : (oppRes.data as unknown as Array<{
       client_id: string;
       estimated_value: number | null;
@@ -228,7 +225,7 @@ async function fetchAggregates() {
 }
 
 export async function getClientEconomicScores(): Promise<ClientScore[]> {
-  const [{ ca, interventions, opps, clients }, settings] = await Promise.all([
+  const [{ ca, opps, clients }, settings] = await Promise.all([
     fetchAggregates(),
     getSettings().catch(() => null),
   ]);

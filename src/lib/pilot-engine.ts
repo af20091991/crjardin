@@ -395,9 +395,9 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const chargesComplete = chargesTotal > 0;
   const margePct = yearHt > 0 && chargesComplete ? (beneficeBrut / yearHt) * 100 : null;
 
-  // Taux horaire : montant HT de la ligne de vente ÷ temps de cette même
-  // ligne. Agrégé sur les seules lignes porteuses de temps (une ligne SST à
-  // 0 h reste à 0 h et n'entre pas dans le calcul).
+  // Taux horaire brut : CA de toutes les ventes du périmètre ÷ temps de
+  // travail interne de ces ventes. Une vente SST à 0 h compte par son CA et
+  // n'ajoute aucune heure interne.
   const ratedAll = hourlyRateFromSales(
     yearEntries.map((e) => ({ amount_ht: e.amount_ht, hours: e.hours })),
   );

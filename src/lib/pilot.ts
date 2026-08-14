@@ -327,8 +327,8 @@ export function computeKpis(params: {
   const projection = isCurrentYear ? caYear / fraction : caYear;
 
   const totalHours = sum(yearEntries.filter((e) => (Number(e.hours) || 0) > 0).map((e) => e.hours));
-  // Numérateur du taux horaire : CA des SEULES lignes de vente porteuses de
-  // temps (règle : montant HT de la ligne ÷ temps de cette même ligne).
+  // Taux horaire brut : CA de TOUTES les ventes de l'exercice (ventes SST à
+  // 0 h incluses) ÷ temps de travail interne de ces ventes.
   const caRatedLines = hourlyRateFromSales(
     yearEntries.map((e) => ({ amount_ht: e.amount_ht, hours: e.hours })),
   );
@@ -336,7 +336,7 @@ export function computeKpis(params: {
   const nbEntries = yearEntries.length;
   const panierMoyen = nbEntries > 0 ? caYear / nbEntries : 0;
   const tjm = workedDays > 0 ? caYear / workedDays : 0;
-  // Taux horaire vendu = CA des lignes de vente avec temps / temps de ces lignes
+  // Taux horaire brut (source unique Chiffre d'affaires → Ventes)
   const tauxHoraireVendu = caRatedLines.rate ?? 0;
   // Atteinte de la cible : taux horaire vendu / taux horaire cible.
   const objectifPct = target > 0 && tauxHoraireVendu > 0 ? (tauxHoraireVendu / target) * 100 : 0;
@@ -371,8 +371,8 @@ export function computeKpis(params: {
     objectifPct,
     projection,
     totalHours,
-    /** CA HT des seules lignes de vente porteuses de temps (base du taux horaire). */
-    caHeuresVendues: caRatedLines.ca,
+    /** CA HT des seules lignes de vente porteuses de temps (indicateur qualité). */
+    caHeuresVendues: caRatedLines.caRated,
     workedDays,
     nbEntries,
     panierMoyen,
