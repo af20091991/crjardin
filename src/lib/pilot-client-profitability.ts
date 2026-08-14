@@ -106,8 +106,8 @@ export function classifyClients(params: {
     if (e.client_name) cur.name = e.client_name;
     const amount = Number(e.amount_ht) || 0;
     cur.total += amount;
-    // Numérateur du taux horaire : montant HT des lignes de vente de
-    // l'exercice analysé porteuses de temps (même périmètre que les heures).
+    // Indicateur de qualité : CA des lignes de l'exercice porteuses de temps
+    // (jamais le numérateur du taux horaire brut).
     if (yy === year && (Number(e.hours) || 0) > 0) cur.rated += amount;
     if (yy === year) cur.y += amount;
     if (yy === year - 1) cur.prev += amount;
@@ -127,9 +127,9 @@ export function classifyClients(params: {
     const caYear = a?.y ?? 0;
     const heures = h?.reelles ?? 0;
     const source = h?.reellesSource ?? "aucune";
-    // Taux horaire = CA des lignes de vente porteuses de temps / ces heures.
-    const caRated = a?.rated ?? 0;
-    const taux = heures > 0 && caRated > 0 ? caRated / heures : null;
+    // Taux horaire BRUT = CA de toutes les ventes de l'exercice (ventes SST à
+    // 0 h incluses) ÷ temps de travail interne de l'exercice.
+    const taux = heures > 0 && caYear > 0 ? caYear / heures : null;
 
     const entityStatus = statusOf(params.statuses, clientId);
     const eligibility = entityEligibility(entityStatus);
