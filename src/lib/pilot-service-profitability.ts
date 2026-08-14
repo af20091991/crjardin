@@ -4,7 +4,8 @@
 // pour le chiffre d'affaires et les heures vendues, ledger d'heures pour les
 // heures réalisées. Aucune donnée n'est créée ni estimée.
 
-import type { PilotEntry } from "@/lib/pilot";
+import { saleRateRowOf, type PilotEntry } from "@/lib/pilot";
+import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
 import { canonicalPrestation, PRESTATIONS } from "@/lib/pilot-ca-designation";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 import { getThresholds, type PilotThresholds } from "@/lib/pilot-thresholds";
