@@ -412,9 +412,7 @@ export function analyzeTimeValue(params: {
       // Taux horaire brut : CA total du client / temps interne.
       caPerHour: hours > 0 && caHt > 0 ? caHt / hours : null,
       resultPerHour:
-        hours > 0 && caHt > 0 && cost.costPerHour != null
-          ? caHt / hours - cost.costPerHour
-          : null,
+        hours > 0 && caHt > 0 && cost.costPerHour != null ? caHt / hours - cost.costPerHour : null,
       mainPrestation,
       zone: "non_classe",
       rank: null,
