@@ -4,7 +4,7 @@ import { daysBetween as _daysBetween, currentYear as _currentYear } from "@/lib/
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 // Règle métier centrale UNIQUE (aucune logique de confiance recréée ici).
 import { entityEligibility } from "@/lib/pilot-entity-rules";
-import { hourlyRate } from "@/lib/pilot-sale-time";
+import { hourlyRate, saleRateEligible, type SaleRateRow } from "@/lib/pilot-sale-time";
 
 // ---------- Règles de classement (ajustables) ----------
 export const SCORE_RULES = {
@@ -319,7 +319,7 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
     // Nombre d'interventions économiques = lignes de vente de l'exercice.
     e.interventionsCount += 1;
     // Ligne RETENUE = Temps documenté (> 0 h, ou 0 h qualifié SST).
-    if (saleRateEligible(saleRateRowLike(r))) {
+    if (saleRateEligible(r as SaleRateRow)) {
       const h = Number((r as { hours?: number | null }).hours) || 0;
       e.caLinesWithHours += 1;
       e.hoursConfirmed += h;
@@ -446,7 +446,7 @@ export async function getClientEconomicScore(
     // Même exercice = même périmètre (CA + Temps de l'exercice courant).
     caLines += 1;
     // Ligne RETENUE = Temps documenté (> 0 h, ou 0 h qualifié SST).
-    if (saleRateEligible(saleRateRowLike(r))) {
+    if (saleRateEligible(r as SaleRateRow)) {
       const h = Number((r as { hours?: number | null }).hours) || 0;
       caLinesWithHours += 1;
       hoursConfirmed += h;
