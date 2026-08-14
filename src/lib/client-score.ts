@@ -293,32 +293,25 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
     const e = ensure(r.client_id, null);
     const ht = Number(r.amount_ht) || 0;
     e.revenueTotalHt += ht;
+    // Dernière activité ÉCONOMIQUE = dernière vente enregistrée (jamais un CR).
+    const saleDate = saleDateOf(r);
+    if (saleDate && (!e.lastInterventionAt || saleDate > e.lastInterventionAt)) {
+      e.lastInterventionAt = saleDate;
+    }
     if (Number(r.year) !== yr) continue;
     e.revenueYearHt += ht;
     // Périmètre temporel verrouillé : heures ET CA du taux horaire portent sur
     // les seules lignes de vente de l'exercice courant (source unique
     // Chiffre d'affaires → Ventes → Temps). Aucun mélange d'exercices.
     e.caLines += 1;
+    // Nombre d'interventions économiques = lignes de vente de l'exercice.
+    e.interventionsCount += 1;
     const h = Number((r as { hours?: number | null }).hours) || 0;
     if (h > 0) {
       e.caLinesWithHours += 1;
       e.hoursConfirmed += h;
       e.interventionsWithHours += 1;
       e.revenueRatedHt += ht;
-    }
-  }
-
-  for (const iv of interventions) {
-    if (!iv.client_id) continue;
-    const e = ensure(iv.client_id, null);
-    e.interventionsCount += 1;
-    if (iv.intervention_date) {
-      if (
-        !e.lastInterventionAt ||
-        iv.intervention_date > e.lastInterventionAt
-      ) {
-        e.lastInterventionAt = iv.intervention_date;
-      }
     }
   }
 
