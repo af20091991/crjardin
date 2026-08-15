@@ -1,28 +1,19 @@
 // ---------------------------------------------------------------------------
-// KPI « projection_annuelle » — statut du contrat : À DOCUMENTER.
+// KPI « projection_annuelle » — contrat NORMALISÉ.
 //
-// Deux lectures coexistent aujourd'hui, et ce chantier NE LES CORRIGE PAS :
+// `projectYear` reçoit désormais son mode EXPLICITEMENT (jamais déduit de
+// `new Date()` ni d'un état secondaire) :
+//   · mode "reel"       → uniquement les données jusqu'à la date de référence,
+//                         aucun mois futur, aucune extrapolation ;
+//   · mode "projection" → réalisé à date (identique au mode réel) + règle de
+//                         projection existante sur les mois restants.
 //
-//  1. `projectYear(...)` (src/lib/pilot-projection.ts)
-//     · filtre TOUJOURS ses entrées et ses charges en mode « réel »
-//       (entriesForMode / chargeRowsForMode, donc date ≤ aujourd'hui) ;
-//     · exclut la rémunération dirigeant (kind = "remuneration") ;
-//     · extrapole jusqu'au 31/12 par saisonnalité, sinon par moyenne mensuelle.
+// Base réelle commune aux deux modes : entriesForMode / chargeRowsForMode en
+// « reel » avec la date de référence transmise. Une saisie future ne devient
+// donc jamais du réalisé, même en mode projection.
 //
-//  2. `buildAnalytics(...).projection` (src/lib/pilot-engine.ts, l. 446-451)
-//     · appelle `projectYear` avec `inputs.entries` BRUTES (non filtrées par le
-//       mode du périmètre) et les charges hors investissements uniquement ;
-//     · dans un même écran, `kpis.ca_annuel` peut donc reposer sur un périmètre
-//       filtré (mode réel : date ≤ aujourd'hui) tandis que `projection` repart
-//       d'un jeu de lignes plus large avant re-filtrage interne.
-//
-// Différence observée et protégée par les tests ci-dessous :
-//   · investissements : exclus dans l'appel du moteur, PAS exclus lors d'un
-//     appel direct à `projectYear` (seule la rémunération l'est) ;
-//   · le filtre « réel » interne de `projectYear` s'appuie désormais sur la
-//     DATE DE RÉFÉRENCE transmise par l'appelant (`now`), comme tous les
-//     indicateurs réalisés. Reste à documenter : le nombre de mois observés
-//     est déduit de cette date de référence et non du mode du périmètre.
+// Investissements : EXCLUS dans les deux chemins d'appel (règle du moteur
+// analytique officiel `buildAnalytics`), comme la rémunération dirigeant.
 // ---------------------------------------------------------------------------
 import { describe, expect, test } from "bun:test";
 import { projectYear } from "@/lib/pilot-projection";
@@ -67,10 +58,10 @@ describe("projectYear — extrapolation d'exercice", () => {
     expect(p.monthly.filter((m) => m.projected)).toHaveLength(10);
   });
 
-  test("la rémunération dirigeant est exclue des charges projetées", () => {
+  test("rémunération dirigeant ET investissements exclus des charges", () => {
     const p = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "projection", currentMonth: 2 });
-    // 400 + 400 + 5 000 d'investissement = 5 800 € réels (rémunération exclue).
-    expect(p.chargesReelles).toBe(5_800);
+    // 400 + 400 = 800 € (rémunération et investissement exclus).
+    expect(p.chargesReelles).toBe(800);
   });
 
   test("mois sans donnée : aucun montant réel inventé", () => {
@@ -81,7 +72,7 @@ describe("projectYear — extrapolation d'exercice", () => {
   });
 });
 
-describe("projection_annuelle — divergence de périmètre (à documenter)", () => {
+describe("projection_annuelle — cohérence des deux chemins d'appel", () => {
   const direct = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "projection", currentMonth: 2 });
   const snap = buildAnalytics(
     engineInputs({
@@ -98,23 +89,81 @@ describe("projection_annuelle — divergence de périmètre (à documenter)", ()
     expect(snap.projection.caReel).toBe(direct.caReel);
   });
 
-  test("DIVERGENCE : les investissements sont exclus côté moteur, pas en appel direct", () => {
-    expect(direct.chargesReelles).toBe(5_800); // 800 € + 5 000 € d'investissement
-    expect(snap.projection.chargesReelles).toBe(800); // investissement retiré
-    expect(snap.projection.chargesReelles).not.toBe(direct.chargesReelles);
+  test("les investissements suivent la même règle dans les deux chemins", () => {
+    expect(direct.chargesReelles).toBe(800);
+    expect(snap.projection.chargesReelles).toBe(direct.chargesReelles);
   });
 
   test("le KPI CA et la projection partagent la date de référence", () => {
-    // KPI : périmètre du mode demandé (ici projection ⇒ 12 mois de l'exercice).
     expect(snap.kpis.ca_annuel.value).toBe(2_000);
-    // Projection : re-filtrage interne « réel » relatif à la date de référence
-    // injectée (15/08), indépendant du mode transmis par l'écran.
     expect(snap.projection.caReel).toBe(2_000);
     expect(snap.projection.method).toBe("moyenne");
-    // Mois observés : mois de la date de référence (août ⇒ 8), le moteur
-    // extrapole donc les 4 mois restants. Écart restant à documenter : le mode
-    // « projection » de l'écran ne change pas ce périmètre interne.
+    // Mois observés : mois de la date de référence (août ⇒ 8).
     expect(snap.projection.monthsObserved).toBe(8);
     expect(snap.projection.caProjete).toBe(3_000);
+  });
+
+  test("mode réel : réalisé identique au chemin central, sans extrapolation", () => {
+    const directReel = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "reel", now: NOW });
+    const snapReel = buildAnalytics(
+      engineInputs({
+        scope: scope({ mode: "reel" }),
+        entries: ENTRIES,
+        chargeRows: CHARGES,
+        ledger: [ledgerSale({ id: "l1", year: YEAR, hours: 20, month: 1, clientId: "c1" })],
+        statuses: statuses({ c1: "certified_client" }),
+      }),
+      NOW,
+    );
+    expect(directReel.caReel).toBe(snapReel.projection.caReel);
+    expect(directReel.chargesReelles).toBe(snapReel.projection.chargesReelles);
+    expect(directReel.caProjete).toBe(directReel.caReel);
+    expect(directReel.monthly.every((m) => !m.projected)).toBe(true);
+  });
+});
+
+describe("projectYear — séparation réalisé / projection (date de référence fixe)", () => {
+  const WITH_FUTURE = [
+    ...ENTRIES,
+    // Saisie future du mois en cours (août) et d'un mois futur (octobre).
+    sale({ id: "f1", entry_date: `${YEAR}-08-31`, amount_ht: 9_000, hours: 1, client_id: "c1" }),
+    sale({ id: "f2", entry_date: `${YEAR}-10-10`, amount_ht: 7_000, hours: 1, client_id: "c1" }),
+  ];
+
+  test("mode réel : dates futures du mois en cours exclues", () => {
+    const p = projectYear({ entries: WITH_FUTURE, charges: [], year: YEAR, mode: "reel", now: NOW });
+    expect(p.caReel).toBe(2_000);
+    expect(p.monthly[7].ca).toBe(0);
+  });
+
+  test("mode réel : aucun mois futur comptabilisé", () => {
+    const p = projectYear({ entries: WITH_FUTURE, charges: [], year: YEAR, mode: "reel", now: NOW });
+    expect(p.monthly[9].ca).toBe(0);
+    expect(p.caProjete).toBe(p.caReel);
+    expect(p.method).toBe("aucune");
+  });
+
+  test("mode projection : une saisie future ne devient jamais du réalisé", () => {
+    const p = projectYear({ entries: WITH_FUTURE, charges: [], year: YEAR, mode: "projection", now: NOW });
+    expect(p.caReel).toBe(2_000);
+    expect(p.monthly[9].projected).toBe(true);
+    expect(p.monthly[9].ca).not.toBe(7_000);
+  });
+
+  test("la projection ne modifie pas la valeur du réalisé", () => {
+    const reel = projectYear({ entries: WITH_FUTURE, charges: CHARGES, year: YEAR, mode: "reel", now: NOW });
+    const proj = projectYear({ entries: WITH_FUTURE, charges: CHARGES, year: YEAR, mode: "projection", now: NOW });
+    expect(proj.caReel).toBe(reel.caReel);
+    expect(proj.chargesReelles).toBe(reel.chargesReelles);
+    expect(proj.caProjete > proj.caReel).toBe(true);
+  });
+
+  test("un vrai zéro reste zéro dans les deux modes", () => {
+    const reel = projectYear({ entries: [], charges: [], year: YEAR, mode: "reel", now: NOW });
+    const proj = projectYear({ entries: [], charges: [], year: YEAR, mode: "projection", now: NOW });
+    expect(reel.caReel).toBe(0);
+    expect(reel.caProjete).toBe(0);
+    expect(proj.caReel).toBe(0);
+    expect(proj.caProjete).toBe(0);
   });
 });
