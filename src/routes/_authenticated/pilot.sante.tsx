@@ -8,6 +8,7 @@ import { fetchClientActivityRows } from "@/lib/client-activity";
 import { listChargeRows, listSalesByYear, listChargeCategories, analyzeCharges } from "@/lib/pilot-charges";
 import { annualSummary } from "@/lib/pilot-annual";
 import { pragmaticHealth, margeHealthScore, HEALTH_THEME_META, HEALTH_LEVEL_META } from "@/lib/pilot-health";
+import { usePilotPeriod } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { askPilotAi, type AiChartSpec } from "@/lib/pilot-ai.functions";
 import { AiChart } from "@/components/pilot/AiChart";
