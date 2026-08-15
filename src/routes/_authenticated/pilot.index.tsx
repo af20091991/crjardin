@@ -1112,37 +1112,47 @@ function TodayPage() {
         <DashboardCustomizer defs={dashboardDefs} layout={layout} />
       </div>
 
+      {/* Fiabilité des chargements : erreurs et données périmées explicites */}
+      <DataHealthBar states={dashboardStates} />
+
       {/* 1 — Synthèse du mois en cours : premier bloc (données enregistrées) */}
       <DashboardBlock id="mois" layout={layout}>
         <SectionTitle question="Vue mois" label={moisPeriodeLabel} />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <PilotCard
             label="CA réalisé du mois"
-            value={formatEuro(k.caMonth)}
+            value={safeValue(caSources, () => formatEuro(k.caMonth)).value}
             icon={Euro}
             to="/pilot/ca"
             help="Somme des lignes CA facturées du 1er du mois à aujourd'hui. Aucune projection."
             sub={
-              objectifMois > 0
+              states.entries.status === "error"
+                ? "Comparaison indisponible : lignes CA non chargées"
+                : objectifMois > 0
                 ? `${avancement.toFixed(0)} % du même mois ${year - 1} (${formatEuro(objectifMois)})`
                 : `Aucune référence en ${year - 1}`
             }
           />
           <PilotCard
             label="Interventions réalisées"
-            value={String(interventionsMois)}
+            value={safeValue(itvSources, () => String(interventionsMois)).value}
             icon={Leaf}
             to="/interventions"
             help="Interventions terminées et enregistrées sur le mois en cours."
           />
           <PilotCard
             label="Heures d'intervention"
-            value={heuresRealiseesMois > 0 ? formatHours(heuresRealiseesMois) : "Non renseignées"}
+            value={
+              safeValue(hoursSources, () =>
+                heuresRealiseesMois > 0 ? formatHours(heuresRealiseesMois) : "Non renseignées",
+              ).value
+            }
             icon={Clock}
             to="/pilot/temps"
             help="Heures issues de la colonne Vente → Temps des lignes de vente du mois (source unique)."
           />
         </div>
+        {states.entries.status === "error" && <DataStateNotice state={states.entries} />}
         {missingHours.length > 0 && (
           <Card className="border-amber-300/70 bg-amber-50/40 p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2">
