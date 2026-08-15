@@ -229,11 +229,10 @@ function ClientsPage() {
   const renderRow = (r: Row) => {
     const c = r.client;
     const isFav = favorites.has(c.id);
-    const lifecycle = LIFECYCLE_META[c.lifecycle_status ?? "actif"];
     return (
       <Card
         key={c.id}
-        className="flex items-center gap-3 p-3 transition-colors hover:border-primary/40 hover:bg-accent/10"
+        className="flex items-center gap-3 p-3.5 transition-colors hover:border-primary/40 hover:bg-accent/10"
       >
         <button
           type="button"
@@ -254,9 +253,15 @@ function ClientsPage() {
                 {c.civility ? <span className="text-muted-foreground">{c.civility} </span> : null}
                 {c.name}
               </p>
-              {(c.lifecycle_status ?? "actif") === "perdu" && (
-                <Badge variant="outline" className={`shrink-0 text-[10px] ${lifecycle.badge}`}>
-                  {lifecycle.label}
+              <Badge
+                variant="outline"
+                className={`shrink-0 text-[10px] ${ACTIVITY_BADGE[r.activity].badge}`}
+              >
+                {ACTIVITY_BADGE[r.activity].label}
+              </Badge>
+              {(c.report_policy ?? "a_confirmer") === "a_confirmer" && (
+                <Badge variant="outline" className="shrink-0 text-[10px] border-sky-200 bg-sky-50 text-sky-700">
+                  CR à qualifier
                 </Badge>
               )}
               {c.contract_type && (
@@ -293,24 +298,82 @@ function ClientsPage() {
           </div>
           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </Link>
-        {canEdit && clients && (
-          <ClientMergeDialog
-            source={c}
-            clients={clients}
-            trigger={
-              <Button variant="ghost" size="icon" title="Fusionner / rattacher à un client existant">
-                <Merge className="h-4 w-4" />
-              </Button>
-            }
-          />
-        )}
+        <div className="flex shrink-0 items-center gap-0.5">
+          {canEdit && (
+            <Button variant="ghost" size="icon" asChild title="Ouvrir la fiche 360° (Pilotage)">
+              <Link to="/pilot/fiche/$clientId" params={{ clientId: c.id }}>
+                <BarChart3 className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+          {canEdit && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" title="Modifier rapidement les statuts">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72 space-y-3 text-sm">
+                <div>
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Cycle de vie
+                  </p>
+                  {(["actif", "perdu"] as ClientLifecycle[]).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      disabled={statusMut.isPending}
+                      onClick={() => statusMut.mutate({ client: c, patch: { lifecycle_status: v } })}
+                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left hover:bg-accent/40"
+                    >
+                      <span>{LIFECYCLE_META[v].label}</span>
+                      {(c.lifecycle_status ?? "actif") === v && <Check className="h-4 w-4 text-primary" />}
+                    </button>
+                  ))}
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Compte-rendu client
+                  </p>
+                  {(["oui", "non", "a_confirmer"] as ReportPolicy[]).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      disabled={statusMut.isPending}
+                      onClick={() => statusMut.mutate({ client: c, patch: { report_policy: v } })}
+                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left hover:bg-accent/40"
+                    >
+                      <span>{REPORT_POLICY_META[v].short}</span>
+                      {(c.report_policy ?? "a_confirmer") === v && <Check className="h-4 w-4 text-primary" />}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  Les statuts « à relancer » et « dormant » sont déduits de la dernière activité
+                  réelle : ils ne se modifient pas à la main.
+                </p>
+              </PopoverContent>
+            </Popover>
+          )}
+          {canEdit && clients && (
+            <ClientMergeDialog
+              source={c}
+              clients={clients}
+              trigger={
+                <Button variant="ghost" size="icon" title="Fusionner / rattacher à un client existant">
+                  <Merge className="h-4 w-4" />
+                </Button>
+              }
+            />
+          )}
+        </div>
       </Card>
     );
   };
 
   return (
     <AppShell title="Clients">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -325,8 +388,11 @@ function ClientsPage() {
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les clients</SelectItem>
-              <SelectItem value="actif">Clients suivis</SelectItem>
+              <SelectItem value="actif">Actifs</SelectItem>
+              <SelectItem value="a_relancer">À relancer</SelectItem>
+              <SelectItem value="dormant">Dormants</SelectItem>
               <SelectItem value="perdu">Clients perdus</SelectItem>
+              <SelectItem value="cr_a_qualifier">CR à qualifier</SelectItem>
             </SelectContent>
           </Select>
           <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
