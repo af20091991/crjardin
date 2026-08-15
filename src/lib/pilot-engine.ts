@@ -78,7 +78,12 @@ import {
   type EntityStatusMap,
   type ReferentialCoverage,
 } from "@/lib/pilot-entity-rules";
-import { chargeRowsForMode, entriesForMode, hoursLedgerForMode, type RealProjectionMode } from "@/lib/pilot-realized";
+import {
+  chargeRowsForMode,
+  entriesForMode,
+  hoursLedgerForMode,
+  type RealProjectionMode,
+} from "@/lib/pilot-realized";
 import type { KpiAudit } from "@/lib/pilot-kpi-audit";
 import { employerCost } from "@/lib/pilot-remuneration";
 import { saleRateScope } from "@/lib/pilot-sale-time";
@@ -479,7 +484,9 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const monthsObserved = yearCharges?.monthsObserved ?? 0;
   const currentAnnualRow = annual.find((a) => a.year === year);
   const outlookCa = isProjection ? projection.caProjete : (currentAnnualRow?.caHt ?? yearHt);
-  const outlookCharges = isProjection ? projection.chargesProjetees : (currentAnnualRow?.charges ?? chargesTotal);
+  const outlookCharges = isProjection
+    ? projection.chargesProjetees
+    : (currentAnnualRow?.charges ?? chargesTotal);
   const outlookBenefice = isProjection
     ? outlookCa - outlookCharges
     : (currentAnnualRow?.beneficeBrut ?? beneficeBrut);
@@ -520,7 +527,10 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   if (prevYearRow && prevYearRow.charges > 0) {
     const evo = ((chargesTotal - prevYearRow.charges) / prevYearRow.charges) * 100;
     if (evo > 15)
-      financeAlerts.push({ tone: "warn", text: `Charges en hausse de ${evo.toFixed(0)} % vs ${year - 1}.` });
+      financeAlerts.push({
+        tone: "warn",
+        text: `Charges en hausse de ${evo.toFixed(0)} % vs ${year - 1}.`,
+      });
   }
   const negMonths = financeMonths.filter((m) => m.CA > 0 && m.Bénéfice < 0);
   if (negMonths.length > 0)
@@ -549,7 +559,9 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     );
   }
   if (certification.unlinkedLines > 0) {
-    certifReasons.push(`${certification.unlinkedLines} ligne(s) CA sans entité économique rattachée.`);
+    certifReasons.push(
+      `${certification.unlinkedLines} ligne(s) CA sans entité économique rattachée.`,
+    );
   }
   if (coverage.toValidate > 0) {
     certifReasons.push(`${coverage.toValidate} fiche(s) en attente de certification.`);
@@ -563,8 +575,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     audit: KpiAudit,
     reasons: string[] = [],
   ): Kpi => {
-    const status: Kpi["status"] =
-      value == null ? "indisponible" : strictPending(reasons);
+    const status: Kpi["status"] = value == null ? "indisponible" : strictPending(reasons);
     return {
       key,
       label,
@@ -589,18 +600,25 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     }),
     ca_analytique: kpi("ca_analytique", "CA HT certifié", analyticalCa, "eur", {
       sources: ["pilot_ca_entries", "clients.entity_status"],
-      calcul: "CA porté par des entités économiques exploitables (certification appliquée avant agrégation).",
+      calcul:
+        "CA porté par des entités économiques exploitables (certification appliquée avant agrégation).",
       periode,
       fiabilite:
         certification.caCoveragePct != null
           ? `${certification.caCoveragePct.toFixed(1)} % du CA certifié`
           : undefined,
     }),
-    heures_vendues: kpi("heures_vendues", "Heures d'intervention (Vente → Temps)", hoursRes.vendues, "heures", {
-      sources: ["pilot_ca_entries.hours"],
-      calcul: "Somme de la colonne Temps des lignes de vente — source unique des heures.",
-      periode,
-    }),
+    heures_vendues: kpi(
+      "heures_vendues",
+      "Heures d'intervention (Vente → Temps)",
+      hoursRes.vendues,
+      "heures",
+      {
+        sources: ["pilot_ca_entries.hours"],
+        calcul: "Somme de la colonne Temps des lignes de vente — source unique des heures.",
+        periode,
+      },
+    ),
     heures_reelles: kpi(
       "heures_reelles",
       "Heures d'intervention retenues",
@@ -629,7 +647,9 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
         sources: ["pilot_ca_entries"],
         calcul: "CA HT − charges d'exploitation de l'exercice.",
         periode,
-        fiabilite: chargesComplete ? undefined : "Aucune charge enregistrée : bénéfice non calculable.",
+        fiabilite: chargesComplete
+          ? undefined
+          : "Aucune charge enregistrée : bénéfice non calculable.",
       },
     ),
     marge: kpi("marge", "Marge brute", margePct, "pct", {
@@ -685,11 +705,18 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
       },
       certifReasons,
     ),
-    score_client: kpi("score_client", "Scores économiques", inputs.scores.length, "nombre", {
-      sources: ["clients", "pilot_ca_entries", "interventions"],
-      calcul: "Score économique calculé après certification du référentiel.",
-      periode,
-    }, certifReasons),
+    score_client: kpi(
+      "score_client",
+      "Scores économiques",
+      inputs.scores.length,
+      "nombre",
+      {
+        sources: ["clients", "pilot_ca_entries", "interventions"],
+        calcul: "Score économique calculé après certification du référentiel.",
+        periode,
+      },
+      certifReasons,
+    ),
   };
 
   return {

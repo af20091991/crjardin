@@ -7,7 +7,16 @@ import { annualSummary } from "@/lib/pilot-annual";
 import { projectYear } from "@/lib/pilot-projection";
 import { monthlyChargeTotals } from "@/lib/pilot-charges";
 import { computeKpis, DEFAULT_SETTINGS } from "@/lib/pilot";
-import { charge, engineInputs, ledgerSale, NOW, sale, scope, statuses, YEAR } from "./pilot-fixtures";
+import {
+  charge,
+  engineInputs,
+  ledgerSale,
+  NOW,
+  sale,
+  scope,
+  statuses,
+  YEAR,
+} from "./pilot-fixtures";
 
 const line = (id: string, date: string, amount: number) =>
   sale({
@@ -112,9 +121,13 @@ describe("réalisé à date — charges, marge et heures", () => {
 
 describe("réalisé à date — moteurs appelés avec la même date de référence", () => {
   test("annualSummary borne l'exercice en cours à la date de référence", () => {
-    const rows = annualSummary(DATED, [charge({ id: "ch9", year: YEAR, month: 9, amount_ht: 500 })], {
-      now: NOW,
-    });
+    const rows = annualSummary(
+      DATED,
+      [charge({ id: "ch9", year: YEAR, month: 9, amount_ht: 500 })],
+      {
+        now: NOW,
+      },
+    );
     const row = rows.find((r) => r.year === YEAR);
     expect(row?.caHt).toBe(3_000);
     expect(row?.charges).toBe(0);
@@ -244,14 +257,25 @@ describe("borne annuelle explicite — 15 août 2024", () => {
       0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0,
     ]);
     expect(monthlyChargeTotals(datedCharges, 2023, { mode: "reel", now: NOW })[11]).toBe(80);
-    expect(monthlyChargeTotals(datedCharges, 2025, { mode: "reel", now: NOW }).reduce((a, b) => a + b, 0)).toBe(0);
+    expect(
+      monthlyChargeTotals(datedCharges, 2025, { mode: "reel", now: NOW }).reduce(
+        (a, b) => a + b,
+        0,
+      ),
+    ).toBe(0);
   });
 
   test("un montant nul reste nul et la projection ne modifie pas le réalisé", () => {
     const zero = line("zero", "2024-08-15", 0);
     expect(annualSummary([zero], [], { mode: "reel", now: NOW })[0]?.caHt).toBe(0);
 
-    const reel = projectYear({ entries: boundaryEntries, charges: [], year: 2024, mode: "reel", now: NOW });
+    const reel = projectYear({
+      entries: boundaryEntries,
+      charges: [],
+      year: 2024,
+      mode: "reel",
+      now: NOW,
+    });
     const projection = projectYear({
       entries: boundaryEntries,
       charges: [],

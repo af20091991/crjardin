@@ -50,12 +50,7 @@ import {
   type ActionStatus,
 } from "@/lib/pilot-action-status";
 import { listCeevContracts } from "@/lib/ceev";
-import {
-  entriesForMode,
-  goalsForMode,
-  hoursLedgerForMode,
-  todayIso,
-} from "@/lib/pilot-realized";
+import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
 import { annualSummary } from "@/lib/pilot-annual";
 import {
   listAlertFeedback,
@@ -218,16 +213,20 @@ function TodayPage() {
   // États typés des ressources du tableau de bord : aucune requête n'est
   // convertie silencieusement en liste vide, chaque échec reste visible et
   // peut être relancé de façon ciblée.
-  const interventionsState = resourceState(
-    "interventions-all",
-    "Interventions",
-    interventions,
-  );
+  const interventionsState = resourceState("interventions-all", "Interventions", interventions);
   const recosState = resourceState("recommendations-all", "Recommandations", recos);
   const goalsState = resourceState("pilot-goals", "Objectifs", goals);
-  const hoursLedgerState = resourceState("pilot-hours-ledger", "Heures (Vente → Temps)", hoursLedger);
+  const hoursLedgerState = resourceState(
+    "pilot-hours-ledger",
+    "Heures (Vente → Temps)",
+    hoursLedger,
+  );
   const chargeRowsState = resourceState("pilot-charge-rows", "Lignes de charges", chargeRows);
-  const clientActivityState = resourceState("client-activity-rows", "Activité clients", clientActivity);
+  const clientActivityState = resourceState(
+    "client-activity-rows",
+    "Activité clients",
+    clientActivity,
+  );
   const ceevState = resourceState("ceev-contracts", "Contrats CEEV", ceevContracts);
   const offersState = resourceState("nbo-priority", "Opportunités (offres)", priorityOffers);
   const historicHoursState = resourceState(
@@ -235,7 +234,12 @@ function TodayPage() {
     "Heures historiques (consultation)",
     historicHours,
   );
-  const orphanState = resourceState("pilot-ca-orphan-count", "Rapprochement CA", orphanCount, () => false);
+  const orphanState = resourceState(
+    "pilot-ca-orphan-count",
+    "Rapprochement CA",
+    orphanCount,
+    () => false,
+  );
   const dashboardStates: DataState[] = [
     states.entries,
     states.charges,
@@ -268,7 +272,10 @@ function TodayPage() {
     (clientId ? reportPolicyById.get(clientId) : undefined) ?? "a_confirmer";
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], "reel", now), [entries.data, now]);
+  const realEntries = useMemo(
+    () => entriesForMode(entries.data ?? [], "reel", now),
+    [entries.data, now],
+  );
   const ledgerRows = useMemo(
     () => (hoursLedger.data ? hoursLedgerForMode(hoursLedger.data, "reel", now) : []),
     [hoursLedger.data, now],
@@ -725,7 +732,20 @@ function TodayPage() {
     // investissements et rémunération dirigeant).
     const monthlyCharges = monthlyChargeTotals(chargeRows.data ?? [], year, { mode });
     for (let i = 0; i < 12; i++) chargesByMonth[i] = monthlyCharges[i] ?? 0;
-    const labels = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
+    const labels = [
+      "Janv.",
+      "Févr.",
+      "Mars",
+      "Avr.",
+      "Mai",
+      "Juin",
+      "Juil.",
+      "Août",
+      "Sept.",
+      "Oct.",
+      "Nov.",
+      "Déc.",
+    ];
     return labels
       .slice(0, month + 1)
       .map((mois, i) => ({
@@ -1146,8 +1166,8 @@ function TodayPage() {
               states.entries.status === "error"
                 ? "Comparaison indisponible : lignes CA non chargées"
                 : objectifMois > 0
-                ? `${avancement.toFixed(0)} % du même mois ${year - 1} (${formatEuro(objectifMois)})`
-                : `Aucune référence en ${year - 1}`
+                  ? `${avancement.toFixed(0)} % du même mois ${year - 1} (${formatEuro(objectifMois)})`
+                  : `Aucune référence en ${year - 1}`
             }
           />
           <PilotCard
@@ -1189,10 +1209,7 @@ function TodayPage() {
 
       {/* 2 — Synthèse depuis le début de l'exercice */}
       <DashboardBlock id="exercice" layout={layout}>
-        <SectionTitle
-          question="Vue exercice"
-          label={`Depuis le 1er janvier ${year}`}
-        />
+        <SectionTitle question="Vue exercice" label={`Depuis le 1er janvier ${year}`} />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <PilotCard
             label={`CA cumulé ${year}`}
@@ -1204,8 +1221,8 @@ function TodayPage() {
               states.entries.status === "error"
                 ? "Comparaison indisponible : lignes CA non chargées"
                 : toDateCompare.deltaPct != null
-                ? `${toDateCompare.deltaPct >= 0 ? "+" : ""}${toDateCompare.deltaPct.toFixed(0)} % ${toDateCompare.label}`
-                : `Aucune référence à la même date en ${year - 1}`
+                  ? `${toDateCompare.deltaPct >= 0 ? "+" : ""}${toDateCompare.deltaPct.toFixed(0)} % ${toDateCompare.label}`
+                  : `Aucune référence à la même date en ${year - 1}`
             }
           />
           <PilotCard
@@ -1218,10 +1235,10 @@ function TodayPage() {
               beneficeSources.some((s) => s.unreliable)
                 ? "default"
                 : resultatLecture <= 0
-                ? "warning"
-                : margeLecture != null && margeLecture >= thresholds.margeMin
-                  ? "positive"
-                  : "default"
+                  ? "warning"
+                  : margeLecture != null && margeLecture >= thresholds.margeMin
+                    ? "positive"
+                    : "default"
             }
             sub={
               beneficeSources.some((s) => s.status === "error")

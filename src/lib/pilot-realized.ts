@@ -43,7 +43,10 @@ export function accountingDateFromYearMonth(year: number, month: number): string
 }
 
 /** Règle unique Réel / Projection : Réel = date comptable <= aujourd'hui. */
-export function isRealizedAccountingDate(iso: string | null | undefined, now = new Date()): boolean {
+export function isRealizedAccountingDate(
+  iso: string | null | undefined,
+  now = new Date(),
+): boolean {
   if (!iso) return false;
   return iso.slice(0, 10) <= todayIso(now);
 }
@@ -59,7 +62,11 @@ export function isVisibleInMode(params: {
 
 /** Vrai si le couple année/mois est déjà réalisé à la date du jour. */
 export function isRealizedMonth(year: number, month: number, now = new Date()): boolean {
-  return month >= 1 && month <= 12 && isRealizedAccountingDate(accountingDateFromYearMonth(year, month), now);
+  return (
+    month >= 1 &&
+    month <= 12 &&
+    isRealizedAccountingDate(accountingDateFromYearMonth(year, month), now)
+  );
 }
 
 /**
@@ -110,7 +117,10 @@ export function chargeRowsForMode(
 }
 
 /** Heures réellement exploitables à date : aucune ligne CA/intervention future. */
-export function realizedHoursLedger(rows: HoursLedgerEntry[], now = new Date()): HoursLedgerEntry[] {
+export function realizedHoursLedger(
+  rows: HoursLedgerEntry[],
+  now = new Date(),
+): HoursLedgerEntry[] {
   const today = todayIso(now);
   return rows.filter((r) => {
     if (r.date) return isRealizedAccountingDate(r.date, now);
@@ -139,6 +149,10 @@ export function realizedGoals(goals: Goal[], now = new Date()): Goal[] {
   });
 }
 
-export function goalsForMode(goals: Goal[], mode: RealProjectionMode = "reel", now = new Date()): Goal[] {
+export function goalsForMode(
+  goals: Goal[],
+  mode: RealProjectionMode = "reel",
+  now = new Date(),
+): Goal[] {
   return mode === "projection" ? goals : realizedGoals(goals, now);
 }
