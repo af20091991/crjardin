@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
+import { fetchAllCaRows } from "@/lib/pilot-ca-fetch";
 import { entriesForMode, isRealizedMonth, realizedEntries } from "@/lib/pilot-realized";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
@@ -123,26 +124,11 @@ function categoryToFamily(cat: string | null): PilotFamily {
 }
 
 /**
- * Lecture paginée de pilot_ca_entries : au-delà de 1 000 lignes, l'API tronque
- * silencieusement le résultat et fausse tous les KPI (CA annuel, CA du mois).
+ * Lecture paginée de pilot_ca_entries : implémentation partagée
+ * (`fetchAllCaRows`) pour ne jamais dépendre de la limite de 1 000 lignes.
  */
 async function fetchCaRows<T>(columns: string, kind: "vente" | "charge"): Promise<T[]> {
-  const out: T[] = [];
-  const pageSize = 1000;
-  let from = 0;
-  for (;;) {
-    const { data, error } = await supabase
-      .from("pilot_ca_entries")
-      .select(columns)
-      .eq("kind", kind)
-      .range(from, from + pageSize - 1);
-    if (error) throw error;
-    const chunk = (data ?? []) as unknown as T[];
-    out.push(...chunk);
-    if (chunk.length < pageSize) break;
-    from += pageSize;
-  }
-  return out;
+  return fetchAllCaRows<T>(columns, { kind });
 }
 
 type CaVenteRow = {
