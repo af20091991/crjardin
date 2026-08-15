@@ -16,6 +16,7 @@ import { ReferentialPanel } from "@/components/pilot/panels/ReferentialPanel";
 import { EnginePanel } from "@/components/pilot/panels/EnginePanel";
 import { DoublonsPanel } from "@/components/pilot/panels/DoublonsPanel";
 import { KpiContractPanel } from "@/components/pilot/panels/KpiContractPanel";
+import { KpiReliabilityPanel } from "@/components/pilot/panels/KpiReliabilityPanel";
 
 type Section =
   | "qualite"
@@ -25,12 +26,13 @@ type Section =
   | "referentiel"
   | "moteur"
   | "doublons"
-  | "contrat";
+  | "contrat"
+  | "fiabilite";
 
 export const Route = createFileRoute("/_authenticated/pilot/controle")({
   validateSearch: (search: Record<string, unknown>): { section?: Section; sub?: string } => ({
     section: (
-      ["qualite", "validation", "corrections", "sources", "referentiel", "moteur", "doublons", "contrat"] as const
+      ["qualite", "validation", "corrections", "sources", "referentiel", "moteur", "doublons", "contrat", "fiabilite"] as const
     ).includes(search.section as never)
       ? (search.section as Section)
       : undefined,
@@ -107,6 +109,11 @@ function ControlCenterPage() {
           <TabsTrigger value="contrat" asChild>
             <Link to="/pilot/controle" search={{ section: "contrat" }} className="gap-1.5">
               <FileText className="h-4 w-4" /> Contrat des KPI
+            </Link>
+          </TabsTrigger>
+          <TabsTrigger value="fiabilite" asChild>
+            <Link to="/pilot/controle" search={{ section: "fiabilite" }} className="gap-1.5">
+              <ShieldCheck className="h-4 w-4" /> Fiabilité des KPI
             </Link>
           </TabsTrigger>
           <TabsTrigger value="moteur" asChild>
@@ -187,6 +194,14 @@ function ControlCenterPage() {
             données, sa période, son périmètre et sa règle en cas de donnée absente (lecture seule).
           </p>
           <KpiContractPanel />
+        </TabsContent>
+
+        <TabsContent value="fiabilite" className="mt-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Fiabilité — pour chaque indicateur du contrat : peut-il être utilisé avec confiance,
+            et sinon pourquoi (lecture seule, aucun recalcul).
+          </p>
+          <KpiReliabilityPanel />
         </TabsContent>
 
         <TabsContent value="moteur" className="mt-4">
