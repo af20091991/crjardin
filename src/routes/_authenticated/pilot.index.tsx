@@ -376,7 +376,7 @@ function TodayPage() {
 
   // ---- Lecture unique : données réelles enregistrées (aucune extrapolation) ----
   const projection = useMemo(
-    () => projectYear({ entries: entries.data ?? [], charges: chargeRows.data ?? [], year }),
+    () => projectYear({ entries: entries.data ?? [], charges: chargeRows.data ?? [], year, mode: "reel" }),
     [entries.data, chargeRows.data, year],
   );
   const caLecture = projection.caReel;

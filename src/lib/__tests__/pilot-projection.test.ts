@@ -51,7 +51,7 @@ const CHARGES = [
 
 describe("projectYear — extrapolation d'exercice", () => {
   test("aucune donnée : aucune projection produite", () => {
-    const p = projectYear({ entries: [], charges: [], year: YEAR });
+    const p = projectYear({ entries: [], charges: [], year: YEAR, mode: "projection" });
     expect(p.method).toBe("aucune");
     expect(p.confidence).toBe("faible");
     expect(p.caProjete).toBe(0);
@@ -59,7 +59,7 @@ describe("projectYear — extrapolation d'exercice", () => {
   });
 
   test("sans historique saisonnier : moyenne mensuelle des mois observés", () => {
-    const p = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, currentMonth: 2 });
+    const p = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "projection", currentMonth: 2 });
     expect(p.method).toBe("moyenne");
     expect(p.monthsObserved).toBe(2);
     expect(p.caReel).toBe(2_000);
@@ -68,13 +68,13 @@ describe("projectYear — extrapolation d'exercice", () => {
   });
 
   test("la rémunération dirigeant est exclue des charges projetées", () => {
-    const p = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, currentMonth: 2 });
+    const p = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "projection", currentMonth: 2 });
     // 400 + 400 + 5 000 d'investissement = 5 800 € réels (rémunération exclue).
     expect(p.chargesReelles).toBe(5_800);
   });
 
   test("mois sans donnée : aucun montant réel inventé", () => {
-    const p = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, currentMonth: 2 });
+    const p = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "projection", currentMonth: 2 });
     expect(p.monthly[2].projected).toBe(true);
     expect(p.monthly[0].ca).toBe(1_000);
     expect(p.monthly[0].projected).toBe(false);
@@ -82,7 +82,7 @@ describe("projectYear — extrapolation d'exercice", () => {
 });
 
 describe("projection_annuelle — divergence de périmètre (à documenter)", () => {
-  const direct = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, currentMonth: 2 });
+  const direct = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "projection", currentMonth: 2 });
   const snap = buildAnalytics(
     engineInputs({
       scope: scope({ mode: "projection" }),

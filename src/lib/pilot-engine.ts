@@ -447,10 +447,14 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const tjmResult = inputs.tjmSettings ? computeTjm(inputs.tjmSettings) : null;
 
   // --- projection d'exercice (mode projection) ---
+  // Mode transmis explicitement : « reel » = réalisé à date sans extrapolation,
+  // « projection » = réalisé à date + règle de projection. Les investissements
+  // sont exclus par `projectYear` lui-même (règle unique du moteur).
   const projection = projectYear({
     entries: inputs.entries,
-    charges: inputs.chargeRows.filter((r) => !r.is_investment),
+    charges: inputs.chargeRows,
     year,
+    mode,
     now,
   });
   const isProjection = mode === "projection";
