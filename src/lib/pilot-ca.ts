@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllCaRows } from "@/lib/pilot-ca-fetch";
 import type { InterventionKind } from "@/lib/pilot-sale-time";
 import { hoursCounted, revenueCounted } from "@/lib/pilot-sale-accounting";
 
