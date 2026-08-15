@@ -44,10 +44,14 @@ describe("périmètre temporel par défaut « à date »", () => {
   });
 
   test("annualSummary borne le CA au jour de référence", () => {
-    const aDate = annualSummary(all, [], { mode: "reel", now: NOW });
-    const complet = annualSummary(all, [], { mode: "reel", now: NOW, period: "exercice_complet" });
-    expect(aDate.caTotal).toBe(1000);
-    expect(complet.caTotal).toBe(2200);
+    const aDate = annualSummary(all, [], { mode: "reel", now: NOW }).find((r) => r.year === YEAR);
+    const complet = annualSummary(all, [], {
+      mode: "reel",
+      now: NOW,
+      period: "exercice_complet",
+    }).find((r) => r.year === YEAR);
+    expect(aDate?.caHt).toBe(1000);
+    expect(complet?.caHt).toBe(2200);
   });
 
   test("keepRealizedYearMonth borne au jour près", () => {
