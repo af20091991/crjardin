@@ -1,6 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { parseDesignation } from "@/lib/pilot-ca-designation";
-import { keepRealizedYearMonth, todayIso, type AsOfOptions } from "@/lib/pilot-realized";
+import {
+  isUnboundedPeriod,
+  keepRealizedYearMonth,
+  todayIso,
+  type AsOfOptions,
+} from "@/lib/pilot-realized";
 import { hoursCounted } from "@/lib/pilot-sale-accounting";
 
 /**
