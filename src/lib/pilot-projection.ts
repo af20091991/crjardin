@@ -48,8 +48,12 @@ function monthlyCa(entries: PilotEntry[], year: number): number[] {
 
 function monthlyCharges(rows: ChargeRow[], year: number): number[] {
   const arr = new Array(12).fill(0);
-  // Charges d'exploitation uniquement (rémunération dirigeant suivie à part).
-  for (const r of rows.filter((x) => x.kind !== "remuneration")) {
+  // Charges d'exploitation uniquement :
+  //  · rémunération dirigeant suivie à part (kind = "remuneration") ;
+  //  · investissements exclus — règle du moteur analytique officiel
+  //    (buildAnalytics), appliquée ici pour que l'appel direct et l'appel
+  //    central produisent exactement les mêmes charges.
+  for (const r of rows.filter((x) => x.kind !== "remuneration" && !x.is_investment)) {
     if (r.year !== year) continue;
     const m = Math.min(12, Math.max(1, r.month || 1));
     arr[m - 1] += r.amount_ht;
@@ -86,15 +90,23 @@ export function projectYear(params: {
   entries: PilotEntry[];
   charges: ChargeRow[];
   year: number;
+  /**
+   * Mode demandé par l'écran appelant. TOUJOURS transmis explicitement :
+   *  · "reel"       → réalisé à date uniquement, aucune extrapolation ;
+   *  · "projection" → réalisé à date + règle de projection existante.
+   * Jamais déduit de `new Date()` ni d'un état secondaire.
+   */
+  mode: PilotMode;
   /** Mois courant 1-12 (par défaut : mois réel si l'année est en cours). */
   currentMonth?: number;
   /** Date de référence du réalisé (injectable pour les tests). */
   now?: Date;
 }): ProjectionResult {
-  const { year } = params;
+  const { year, mode } = params;
   const now = params.now ?? new Date();
-  // Base RÉELLE de la projection : filtre « à date » unique, même date de
-  // référence que les indicateurs réalisés.
+  // Base RÉELLE (dans les deux modes) : filtre « à date » unique, même date de
+  // référence que les indicateurs réalisés. Une saisie future ne devient jamais
+  // du réalisé, même lorsque le mode projection est actif.
   const entries = entriesForMode(params.entries, "reel", now);
   const charges = chargeRowsForMode(params.charges, "reel", now);
   const isCurrentYear = now.getFullYear() === year;
@@ -125,7 +137,12 @@ export function projectYear(params: {
 
   const chargeAvg = monthsObserved > 0 ? chargesReelles / monthsObserved : 0;
 
-  if (monthsObserved >= 12 || caReel <= 0) {
+  if (mode === "reel") {
+    // Mode réalisé : lecture stricte à date, aucun mois futur comptabilisé.
+    method = "aucune";
+    for (let i = 0; i < 12; i++)
+      monthly.push({ month: i + 1, ca: ca[i], charges: ch[i], projected: false });
+  } else if (monthsObserved >= 12 || caReel <= 0) {
     method = caReel <= 0 ? "aucune" : "moyenne";
     for (let i = 0; i < 12; i++)
       monthly.push({ month: i + 1, ca: ca[i], charges: ch[i], projected: false });
@@ -157,16 +174,22 @@ export function projectYear(params: {
   }
 
   const confidence: ProjectionResult["confidence"] =
-    method === "saisonnalite" && monthsObserved >= 4
-      ? "haute"
-      : method === "aucune"
-        ? "faible"
-        : monthsObserved >= 3
-          ? "moyenne"
-          : "faible";
+    mode === "reel"
+      ? caReel > 0
+        ? "haute"
+        : "faible"
+      : method === "saisonnalite" && monthsObserved >= 4
+        ? "haute"
+        : method === "aucune"
+          ? "faible"
+          : monthsObserved >= 3
+            ? "moyenne"
+            : "faible";
 
   const explanation =
-    method === "saisonnalite"
+    mode === "reel"
+      ? `Mode réalisé : lecture des seules données enregistrées jusqu'à la date de référence (aucune extrapolation).`
+      : method === "saisonnalite"
       ? `Projection basée sur la saisonnalité des exercices précédents et sur ${monthsObserved} mois observés en ${year}.`
       : method === "moyenne"
         ? `Projection basée sur la moyenne mensuelle des ${monthsObserved} mois observés (pas d'historique saisonnier exploitable).`
