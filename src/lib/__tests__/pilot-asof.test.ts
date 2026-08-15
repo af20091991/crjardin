@@ -193,7 +193,7 @@ describe("borne annuelle explicite — 15 août 2024", () => {
   test("année passée complète conservée et année future sans réalisé", () => {
     const rows = annualSummary(boundaryEntries, [], { mode: "reel", now: NOW });
     expect(rows.find((row) => row.year === 2023)?.caHt).toBe(3_200);
-    expect(rows.find((row) => row.year === 2025)).toBeUndefined();
+    expect(rows.find((row) => row.year === 2025) == null).toBe(true);
   });
 
   test("computeKpis, buildAnalytics, annualSummary et projectYear partagent la même borne", () => {
