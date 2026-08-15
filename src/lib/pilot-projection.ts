@@ -88,11 +88,15 @@ export function projectYear(params: {
   year: number;
   /** Mois courant 1-12 (par défaut : mois réel si l'année est en cours). */
   currentMonth?: number;
+  /** Date de référence du réalisé (injectable pour les tests). */
+  now?: Date;
 }): ProjectionResult {
   const { year } = params;
-  const entries = entriesForMode(params.entries, "reel");
-  const charges = chargeRowsForMode(params.charges, "reel");
-  const now = new Date();
+  const now = params.now ?? new Date();
+  // Base RÉELLE de la projection : filtre « à date » unique, même date de
+  // référence que les indicateurs réalisés.
+  const entries = entriesForMode(params.entries, "reel", now);
+  const charges = chargeRowsForMode(params.charges, "reel", now);
   const isCurrentYear = now.getFullYear() === year;
   const ca = monthlyCa(entries, year);
   const ch = monthlyCharges(charges, year);

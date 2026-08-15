@@ -26,6 +26,17 @@ export function rowDateFromYearMonth(year: number, month: number): string {
 
 export type RealProjectionMode = "reel" | "projection";
 
+/**
+ * Options communes à TOUS les calculs du réalisé : mode de lecture et date de
+ * référence injectable (tests, rapports antidatés). Aucun moteur ne doit
+ * réintroduire son propre `new Date()` : la date de référence descend depuis
+ * l'appelant, jusqu'au filtre central ci-dessous.
+ */
+export interface AsOfOptions {
+  mode?: RealProjectionMode;
+  now?: Date;
+}
+
 /** Date comptable unique pour toutes les lignes mensuelles PP. */
 export function accountingDateFromYearMonth(year: number, month: number): string {
   return rowDateFromYearMonth(year, month);
@@ -49,6 +60,20 @@ export function isVisibleInMode(params: {
 /** Vrai si le couple année/mois est déjà réalisé à la date du jour. */
 export function isRealizedMonth(year: number, month: number, now = new Date()): boolean {
   return month >= 1 && month <= 12 && isRealizedAccountingDate(accountingDateFromYearMonth(year, month), now);
+}
+
+/**
+ * FILTRE CENTRAL UNIQUE pour toute ligne mensuelle (charges, heures, ventes
+ * agrégées) : en mode réel, seuls les couples année/mois dont la date
+ * comptable est ≤ date de référence sont retenus. Les mois futurs de
+ * l'exercice en cours sont donc toujours exclus du réalisé.
+ */
+export function keepRealizedYearMonth(
+  row: { year: number; month: number },
+  options?: AsOfOptions,
+): boolean {
+  if (options?.mode === "projection") return true;
+  return isRealizedMonth(row.year, row.month, options?.now);
 }
 
 /** Lignes de CA réellement facturées à date (exclut toute date future). */

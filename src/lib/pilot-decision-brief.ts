@@ -48,14 +48,16 @@ export function buildDecisionBrief(params: {
   targetHourlyRate: number;
   objectifAnnuel?: number | null;
   statuses?: EntityStatusMap;
+  /** Date de référence du réalisé (injectable ; par défaut la date du jour). */
+  now?: Date;
 }): DecisionBrief {
   const t = getThresholds();
   const { entries, charges, ledger, year, targetHourlyRate } = params;
 
   const clients = classifyClients({ entries, ledger, year, targetHourlyRate, statuses: params.statuses });
   const prestations = analyzeServices({ entries, ledger, year, targetHourlyRate });
-  const projection = projectYear({ entries, charges, year });
-  const annuel = annualSummary(entries, charges);
+  const projection = projectYear({ entries, charges, year, now: params.now });
+  const annuel = annualSummary(entries, charges, { now: params.now });
 
   // 1) Clients à contacter : dormants/à relancer du référentiel + clients rentables en recul.
   const clientsAContacter: DecisionBrief["clientsAContacter"] = [];

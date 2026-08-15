@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllCaRows } from "@/lib/pilot-ca-fetch";
-import { isRealizedMonth } from "@/lib/pilot-realized";
+import { keepRealizedYearMonth, type AsOfOptions } from "@/lib/pilot-realized";
 import { hoursCounted, revenueCounted } from "@/lib/pilot-sale-accounting";
 
 async function uid(): Promise<string> {
@@ -78,7 +78,7 @@ export async function saveTjmSettings(input: TjmSettingsInput): Promise<void> {
 }
 
 /** CA HT mensuel réel agrégé depuis les ventes saisies (pilot_ca_entries). */
-export async function monthlyCa(year: number, options?: { mode?: "reel" | "projection" }): Promise<number[]> {
+export async function monthlyCa(year: number, options?: AsOfOptions): Promise<number[]> {
   // Lecture paginée : toutes les lignes de l'exercice, au-delà de 1 000.
   const data = await fetchAllCaRows<{ month: number; amount_ht: number; sale_status?: string | null }>(
     "month, amount_ht, kind, sale_status",
@@ -86,7 +86,7 @@ export async function monthlyCa(year: number, options?: { mode?: "reel" | "proje
   );
   const totals = Array(12).fill(0) as number[];
   for (const r of (data ?? []) as unknown as { month: number; amount_ht: number; sale_status?: string | null }[]) {
-    if (options?.mode !== "projection" && !isRealizedMonth(year, r.month)) continue;
+    if (!keepRealizedYearMonth({ year, month: r.month }, options)) continue;
     // CA comptabilisé uniquement à partir de 🟢 Réglé.
     if (!revenueCounted(r.sale_status)) continue;
     if (r.month >= 1 && r.month <= 12) totals[r.month - 1] += Number(r.amount_ht) || 0;
@@ -98,7 +98,7 @@ export async function monthlyCa(year: number, options?: { mode?: "reel" | "proje
  * Heures terrain mensuelles récupérées automatiquement depuis les lignes de
  * vente du suivi CA. Jamais saisies manuellement : l'information existe déjà.
  */
-export async function monthlyFieldHours(year: number, options?: { mode?: "reel" | "projection" }): Promise<number[]> {
+export async function monthlyFieldHours(year: number, options?: AsOfOptions): Promise<number[]> {
   // Lecture paginée : toutes les lignes de vente de l'exercice.
   const data = await fetchAllCaRows<{ month: number; hours: number | null; sale_status?: string | null }>(
     "month, hours, sale_status",
@@ -106,7 +106,7 @@ export async function monthlyFieldHours(year: number, options?: { mode?: "reel" 
   );
   const totals = Array(12).fill(0) as number[];
   for (const r of (data ?? []) as unknown as { month: number; hours: number | null; sale_status?: string | null }[]) {
-    if (options?.mode !== "projection" && !isRealizedMonth(year, r.month)) continue;
+    if (!keepRealizedYearMonth({ year, month: r.month }, options)) continue;
     // Temps comptabilisé dès 🟠 Facturé.
     if (!hoursCounted(r.sale_status)) continue;
     if (r.month >= 1 && r.month <= 12) totals[r.month - 1] += Number(r.hours) || 0;

@@ -107,7 +107,7 @@ export function auditCoherence(
   );
 
   // 2. Synthèse annuelle (Direction / Finance)
-  const annual = annualSummary(inputs.entries, inputs.chargeRows, { mode: scope.mode }).find(
+  const annual = annualSummary(inputs.entries, inputs.chargeRows, { mode: scope.mode, now }).find(
     (r) => r.year === scope.year,
   );
   checks.push(numeric("ca_annuel", "CA HT de l'exercice", "pilot-annual · annualSummary", snapshot.ca.yearHt, annual?.caHt ?? null));
