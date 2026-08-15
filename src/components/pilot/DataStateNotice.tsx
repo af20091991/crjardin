@@ -86,8 +86,10 @@ export function DataHealthBar({ states }: { states: DataState[] }) {
     <section aria-label="Fiabilité des données du tableau de bord" className="flex flex-col gap-2">
       {errors.length > 0 && (
         <p className="text-sm font-medium text-destructive">
-          {errors.length} ressource{errors.length > 1 ? "s" : ""} n'a pas pu être chargée : les
-          indicateurs concernés sont marqués « Indisponible » et non comme 0.
+          {errors.length > 1
+            ? `${errors.length} ressources n'ont pas pu être chargées`
+            : "1 ressource n'a pas pu être chargée"}{" "}
+          : les indicateurs concernés sont marqués « Indisponible » et non comme 0.
         </p>
       )}
       <div className="grid gap-2 sm:grid-cols-2">
