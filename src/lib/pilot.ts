@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
+import { fetchAllCaRows } from "@/lib/pilot-ca-fetch";
 import { entriesForMode, isRealizedMonth, realizedEntries } from "@/lib/pilot-realized";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
