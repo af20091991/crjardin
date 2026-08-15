@@ -28,6 +28,8 @@ export interface ChargeRow {
   id: string;
   year: number;
   month: number;
+  /** Date comptable précise si la source la fournit. */
+  entry_date?: string | null;
   designation: string | null;
   amount_ht: number;
   charge_class: ChargeClass;
@@ -42,6 +44,7 @@ type RawRow = {
   id: string;
   year: number;
   month: number;
+  entry_date: string;
   kind: string;
   designation: string | null;
   amount_ht: number | null;
@@ -57,7 +60,9 @@ async function fetchAll(kinds: string[]): Promise<RawRow[]> {
   for (;;) {
     const { data, error } = await supabase
       .from("pilot_ca_entries")
-      .select("id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment")
+      .select(
+        "id,year,month,entry_date,kind,designation,amount_ht,charge_class,charge_category,is_investment",
+      )
       .in("kind", kinds)
       .range(from, from + pageSize - 1);
     if (error) throw error;
@@ -77,6 +82,7 @@ export async function listChargeRows(): Promise<ChargeRow[]> {
     id: r.id,
     year: r.year,
     month: r.month,
+    entry_date: r.entry_date,
     designation: r.designation,
     amount_ht: Number(r.amount_ht) || 0,
     charge_class: (r.charge_class as ChargeClass) ?? "a_classer",
@@ -329,7 +335,9 @@ export function projectionBase(
 ): ProjectionBase {
   const yr = operatingChargesForYear(allRows, year, { now: options?.now });
   const invest = allRows
-    .filter((r) => r.year === year && r.is_investment && keepRealizedYearMonth(r, { now: options?.now }))
+    .filter(
+      (r) => r.year === year && r.is_investment && keepRealizedYearMonth(r, { now: options?.now }),
+    )
     .reduce((s, r) => s + r.amount_ht, 0);
   const sum = (cls: ChargeClass) =>
     yr.filter((r) => r.charge_class === cls).reduce((s, r) => s + r.amount_ht, 0);
@@ -426,11 +434,7 @@ export function monthlyChargeTotals(
 }
 
 /** Investissements qualifiés d'un exercice, selon le mode d'analyse. */
-export function investmentsForYear(
-  rows: ChargeRow[],
-  year: number,
-  options?: AsOfOptions,
-): number {
+export function investmentsForYear(rows: ChargeRow[], year: number, options?: AsOfOptions): number {
   const scoped = rows.filter((r) => keepRealizedYearMonth(r, options));
   return scoped
     .filter((r) => r.year === year && r.is_investment)

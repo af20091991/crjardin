@@ -21,23 +21,24 @@ import { hoursCounted } from "@/lib/pilot-sale-accounting";
 export type HoursType = "vendue" | "realisee" | "historique";
 export type HoursConfidence = "haute" | "moyenne" | "faible";
 
-export const HOURS_TYPE_META: Record<HoursType, { label: string; origin: string; badge: string }> = {
-  vendue: {
-    label: "Heures d'intervention (Vente → Temps)",
-    origin: "Suivi CA — colonne Temps des lignes de vente (source unique)",
-    badge: "border-sky-200 bg-sky-50 text-sky-700",
-  },
-  realisee: {
-    label: "Heures comptes-rendus (historique)",
-    origin: "Interventions terminées — informatif, hors calculs",
-    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  },
-  historique: {
-    label: "Heures historiques (import Excel)",
-    origin: "Import Excel rattaché au référentiel client — informatif, hors calculs",
-    badge: "border-amber-200 bg-amber-50 text-amber-700",
-  },
-};
+export const HOURS_TYPE_META: Record<HoursType, { label: string; origin: string; badge: string }> =
+  {
+    vendue: {
+      label: "Heures d'intervention (Vente → Temps)",
+      origin: "Suivi CA — colonne Temps des lignes de vente (source unique)",
+      badge: "border-sky-200 bg-sky-50 text-sky-700",
+    },
+    realisee: {
+      label: "Heures comptes-rendus (historique)",
+      origin: "Interventions terminées — informatif, hors calculs",
+      badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    },
+    historique: {
+      label: "Heures historiques (import Excel)",
+      origin: "Import Excel rattaché au référentiel client — informatif, hors calculs",
+      badge: "border-amber-200 bg-amber-50 text-amber-700",
+    },
+  };
 
 export interface HoursLedgerEntry {
   id: string;
@@ -48,6 +49,8 @@ export interface HoursLedgerEntry {
   rawLabel: string | null;
   year: number;
   month: number | null;
+  /** Date comptable précise, lorsqu'elle existe, pour la borne au jour. */
+  date?: string | null;
   hours: number;
   prestation: string | null;
   confidence: HoursConfidence;
@@ -59,6 +62,7 @@ type CaRow = {
   id: string;
   year: number;
   month: number;
+  entry_date: string;
   hours: number | null;
   designation: string | null;
   category: string | null;
@@ -74,7 +78,9 @@ async function fetchCaHoursRows(year?: number, options?: AsOfOptions): Promise<C
   for (let from = 0; ; from += pageSize) {
     let q = supabase
       .from("pilot_ca_entries")
-      .select("id,year,month,hours,designation,category,client_id,raw_client_text,match_status,sale_status")
+      .select(
+        "id,year,month,entry_date,hours,designation,category,client_id,raw_client_text,match_status,sale_status",
+      )
       .eq("kind", "vente")
       .gt("hours", 0);
     if (year != null) q = q.eq("year", year);
@@ -100,16 +106,24 @@ function prestationFromCa(designation: string | null, category: string | null): 
 }
 
 /** Charge l'intégralité des heures connues, toutes sources confondues. */
-export async function fetchHoursLedger(year?: number, options?: { mode?: "reel" | "projection" }): Promise<HoursLedgerEntry[]> {
+export async function fetchHoursLedger(
+  year?: number,
+  options?: { mode?: "reel" | "projection" },
+): Promise<HoursLedgerEntry[]> {
   const today = todayIso();
   let interventionsQuery = supabase
     .from("interventions")
-    .select("id,client_id,intervention_date,hours_spent,status,intervention_type,title,ai_metadata");
-  if (options?.mode !== "projection") interventionsQuery = interventionsQuery.lte("intervention_date", today);
+    .select(
+      "id,client_id,intervention_date,hours_spent,status,intervention_type,title,ai_metadata",
+    );
+  if (options?.mode !== "projection")
+    interventionsQuery = interventionsQuery.lte("intervention_date", today);
   const [caRows, interventionsRes, historicRes, clientsRes] = await Promise.all([
     fetchCaHoursRows(year, options),
     interventionsQuery,
-    supabase.from("pilot_historic_hours").select("id,year,hours,client_id,raw_client_text,confidence,status"),
+    supabase
+      .from("pilot_historic_hours")
+      .select("id,year,hours,client_id,raw_client_text,confidence,status"),
     supabase.from("clients").select("id,name"),
   ]);
 
@@ -118,7 +132,8 @@ export async function fetchHoursLedger(year?: number, options?: { mode?: "reel" 
   if (clientsRes.error) throw clientsRes.error;
 
   const names = new Map<string, string>();
-  for (const c of (clientsRes.data ?? []) as { id: string; name: string }[]) names.set(c.id, c.name);
+  for (const c of (clientsRes.data ?? []) as { id: string; name: string }[])
+    names.set(c.id, c.name);
 
   const out: HoursLedgerEntry[] = [];
 
@@ -136,6 +151,7 @@ export async function fetchHoursLedger(year?: number, options?: { mode?: "reel" 
       rawLabel: r.designation ?? r.raw_client_text,
       year: r.year,
       month: r.month,
+      date: r.entry_date,
       hours: h,
       prestation: prestationFromCa(r.designation, r.category),
       confidence: r.client_id ? (r.match_status === "validation" ? "moyenne" : "haute") : "faible",
@@ -172,6 +188,7 @@ export async function fetchHoursLedger(year?: number, options?: { mode?: "reel" 
       rawLabel: r.title,
       year: y,
       month: Number(r.intervention_date.slice(5, 7)),
+      date: r.intervention_date,
       hours: h,
       prestation: r.intervention_type ?? null,
       confidence: estimated ? "faible" : "haute",
@@ -218,12 +235,12 @@ export interface ClientHours {
   clientId: string;
   clientName: string;
   vendues: number;
-  realisees: number;      // interventions confirmées, hors estimations
+  realisees: number; // interventions confirmées, hors estimations
   historiques: number;
   /** Heures réelles retenues selon les règles de priorité. */
   reelles: number;
   reellesSource: "vente_temps" | "aucune";
-  ecart: number;          // vendues - réelles retenues
+  ecart: number; // vendues - réelles retenues
 }
 
 /**
@@ -234,18 +251,16 @@ export function aggregateHoursByClient(entries: HoursLedgerEntry[]): Map<string,
   const map = new Map<string, ClientHours>();
   for (const e of entries) {
     if (!e.clientId) continue;
-    const cur =
-      map.get(e.clientId) ??
-      {
-        clientId: e.clientId,
-        clientName: e.clientName ?? "Client",
-        vendues: 0,
-        realisees: 0,
-        historiques: 0,
-        reelles: 0,
-        reellesSource: "aucune" as const,
-        ecart: 0,
-      };
+    const cur = map.get(e.clientId) ?? {
+      clientId: e.clientId,
+      clientName: e.clientName ?? "Client",
+      vendues: 0,
+      realisees: 0,
+      historiques: 0,
+      reelles: 0,
+      reellesSource: "aucune" as const,
+      ecart: 0,
+    };
     if (e.clientName) cur.clientName = e.clientName;
     if (e.type === "vendue") cur.vendues += e.hours;
     else if (e.type === "realisee") {
@@ -296,7 +311,10 @@ export interface HoursQuality {
   interventionsToConfirm: number;
 }
 
-export function hoursQuality(entries: HoursLedgerEntry[], interventionsToConfirm = 0): HoursQuality {
+export function hoursQuality(
+  entries: HoursLedgerEntry[],
+  interventionsToConfirm = 0,
+): HoursQuality {
   const types: HoursType[] = ["vendue", "realisee", "historique"];
   const bySource = types.map((type) => {
     const rows = entries.filter((e) => e.type === type);

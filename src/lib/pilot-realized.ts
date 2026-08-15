@@ -43,7 +43,10 @@ export function accountingDateFromYearMonth(year: number, month: number): string
 }
 
 /** Règle unique Réel / Projection : Réel = date comptable <= aujourd'hui. */
-export function isRealizedAccountingDate(iso: string | null | undefined, now = new Date()): boolean {
+export function isRealizedAccountingDate(
+  iso: string | null | undefined,
+  now = new Date(),
+): boolean {
   if (!iso) return false;
   return iso.slice(0, 10) <= todayIso(now);
 }
@@ -59,7 +62,11 @@ export function isVisibleInMode(params: {
 
 /** Vrai si le couple année/mois est déjà réalisé à la date du jour. */
 export function isRealizedMonth(year: number, month: number, now = new Date()): boolean {
-  return month >= 1 && month <= 12 && isRealizedAccountingDate(accountingDateFromYearMonth(year, month), now);
+  return (
+    month >= 1 &&
+    month <= 12 &&
+    isRealizedAccountingDate(accountingDateFromYearMonth(year, month), now)
+  );
 }
 
 /**
@@ -69,10 +76,14 @@ export function isRealizedMonth(year: number, month: number, now = new Date()): 
  * l'exercice en cours sont donc toujours exclus du réalisé.
  */
 export function keepRealizedYearMonth(
-  row: { year: number; month: number },
+  row: { year: number; month: number; entry_date?: string | null },
   options?: AsOfOptions,
 ): boolean {
   if (options?.mode === "projection") return true;
+  // Les lignes de vente/charge qui portent leur date réelle doivent être
+  // bornées au JOUR de référence. Le couple année/mois reste le repli pour les
+  // sources réellement mensuelles qui ne disposent d'aucune date plus précise.
+  if (row.entry_date) return isRealizedAccountingDate(row.entry_date, options?.now);
   return isRealizedMonth(row.year, row.month, options?.now);
 }
 
@@ -106,9 +117,13 @@ export function chargeRowsForMode(
 }
 
 /** Heures réellement exploitables à date : aucune ligne CA/intervention future. */
-export function realizedHoursLedger(rows: HoursLedgerEntry[], now = new Date()): HoursLedgerEntry[] {
+export function realizedHoursLedger(
+  rows: HoursLedgerEntry[],
+  now = new Date(),
+): HoursLedgerEntry[] {
   const today = todayIso(now);
   return rows.filter((r) => {
+    if (r.date) return isRealizedAccountingDate(r.date, now);
     if (r.year < now.getFullYear()) return true;
     if (r.year > now.getFullYear()) return false;
     if (r.month == null) return true;
@@ -134,6 +149,10 @@ export function realizedGoals(goals: Goal[], now = new Date()): Goal[] {
   });
 }
 
-export function goalsForMode(goals: Goal[], mode: RealProjectionMode = "reel", now = new Date()): Goal[] {
+export function goalsForMode(
+  goals: Goal[],
+  mode: RealProjectionMode = "reel",
+  now = new Date(),
+): Goal[] {
   return mode === "projection" ? goals : realizedGoals(goals, now);
 }
