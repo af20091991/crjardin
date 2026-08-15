@@ -213,22 +213,27 @@ function classify(
 // Les interventions / CR Chantier ne sont plus lus ici : ils documentent
 // l'opérationnel mais ne créent aucune donnée économique.
 async function fetchAggregates() {
-  const [caRes, oppRes, clientsRes] = await Promise.all([
-    supabase
-      .from("pilot_ca_entries")
-      .select("client_id,year,month,amount_ht,hours,intervention_type,sale_status")
-      .eq("kind", "vente"),
+  const [caRows, oppRes, clientsRes] = await Promise.all([
+    // Lecture paginée : tout le portefeuille de ventes, au-delà de 1 000 lignes.
+    fetchAllCaRows<{
+      client_id: string | null;
+      year: number;
+      month: number;
+      amount_ht: number | null;
+      hours: number | null;
+      intervention_type: string | null;
+      sale_status: string | null;
+    }>("client_id,year,month,amount_ht,hours,intervention_type,sale_status", { kind: "vente" }),
     supabase
       .from("v_client_next_best_offers" as never)
       .select("client_id,estimated_value,score_opportunity"),
     supabase.from("clients").select("id,name,entity_status"),
   ]);
-  if (caRes.error) throw caRes.error;
   if (clientsRes.error) throw clientsRes.error;
   // opp peut échouer si vue absente : on tolère
   return {
     // Règle de comptabilisation Facturé/Réglé appliquée dès la lecture.
-    ca: (caRes.data ?? []).map((r) => accountedSale(r)),
+    ca: (caRows ?? []).map((r) => accountedSale(r)),
     opps: (oppRes.error ? [] : (oppRes.data as unknown as Array<{
       client_id: string;
       estimated_value: number | null;
