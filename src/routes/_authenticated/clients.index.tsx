@@ -13,7 +13,17 @@ import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
 import { ClientImportDialog } from "@/components/ClientImportDialog";
 import { ClientMergeDialog } from "@/components/clients/ClientMergeDialog";
-import { LIFECYCLE_META, listClients, type Client } from "@/lib/clients";
+import {
+  LIFECYCLE_META,
+  REPORT_POLICY_META,
+  listClients,
+  updateClient,
+  type Client,
+  type ClientLifecycle,
+  type ReportPolicy,
+} from "@/lib/clients";
+import { getClientActivityStatus, type ClientActivityStatus } from "@/lib/client-activity";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { listFavoriteClientIds, toggleFavoriteClient } from "@/lib/client-favorites";
 import { findSuspectClients } from "@/lib/client-cleanup";
 import { useRole } from "@/hooks/use-role";
@@ -42,6 +52,9 @@ import {
   Star,
   Merge,
   Sparkles,
+  BarChart3,
+  Pencil,
+  Check,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/clients/")({
@@ -66,7 +79,19 @@ export const Route = createFileRoute("/_authenticated/clients/")({
 });
 
 type SortKey = "name" | "ca" | "interventions" | "recent";
-type StatusFilter = "all" | "actif" | "perdu";
+/**
+ * Filtre de lecture : « perdu » est une décision du dirigeant (lifecycle),
+ * « actif / à relancer / dormant » sont DÉDUITS de la dernière activité réelle
+ * via `getClientActivityStatus()` — aucun seuil recopié ici.
+ */
+type StatusFilter = "all" | "actif" | "a_relancer" | "dormant" | "perdu" | "cr_a_qualifier";
+
+const ACTIVITY_BADGE: Record<ClientActivityStatus, { label: string; badge: string }> = {
+  actif: { label: "Actif", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  a_relancer: { label: "À relancer", badge: "border-amber-200 bg-amber-50 text-amber-800" },
+  dormant: { label: "Dormant", badge: "border-slate-200 bg-slate-100 text-slate-600" },
+  perdu: { label: "Client perdu", badge: "border-rose-200 bg-rose-50 text-rose-700" },
+};
 
 interface Row {
   client: Client;
@@ -75,6 +100,7 @@ interface Row {
   hours: number;
   lastDate: string | null;
   hourlyRate: number | null;
+  activity: ClientActivityStatus;
 }
 
 function ClientsPage() {
@@ -100,6 +126,19 @@ function ClientsPage() {
     mutationFn: (p: { clientId: string; favorite: boolean }) =>
       toggleFavoriteClient(p.clientId, p.favorite),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["favorite-clients"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Modification rapide des badges : seules les décisions du dirigeant sont
+  // modifiables (cycle de vie, politique de compte-rendu). Les statuts déduits
+  // de l'activité réelle ne sont jamais forçables à la main.
+  const statusMut = useMutation({
+    mutationFn: (p: { client: Client; patch: { lifecycle_status?: ClientLifecycle; report_policy?: ReportPolicy } }) =>
+      updateClient(p.client.id, { name: p.client.name, ...p.patch }),
+    onSuccess: () => {
+      toast.success("Fiche client mise à jour");
+      void qc.invalidateQueries({ queryKey: ["clients"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -135,8 +174,13 @@ function ClientsPage() {
     return (clients ?? []).map((client) => {
       const ca = caByClient.get(client.id) ?? 0;
       const h = hoursByClient.get(client.id) ?? 0;
+      const last = lastSale.get(client.id) ?? null;
       return {
         client,
+        activity:
+          (client.lifecycle_status ?? "actif") === "perdu"
+            ? ("perdu" as ClientActivityStatus)
+            : getClientActivityStatus(last),
         ca,
         // Nombre d'interventions économiques = lignes de vente de l'exercice
         // (jamais le nombre de comptes rendus de chantier).
@@ -153,7 +197,9 @@ function ClientsPage() {
     const q = search.trim().toLowerCase();
     const list = rows.filter((r) => {
       const c = r.client;
-      if (status !== "all" && (c.lifecycle_status ?? "actif") !== status) return false;
+      if (status === "cr_a_qualifier") {
+        if ((c.report_policy ?? "a_confirmer") !== "a_confirmer") return false;
+      } else if (status !== "all" && r.activity !== status) return false;
       if (!q) return true;
       return [c.name, c.address, c.email, c.phone, c.contract_type]
         .filter(Boolean)

@@ -23,7 +23,7 @@ import { countOrphanEntries } from "@/lib/pilot-ca-matching";
 import { listHistoricHours } from "@/lib/pilot-historic-hours";
 import { listChargeRows, chargesTotalForYear, monthlyChargeTotals } from "@/lib/pilot-charges";
 import { projectYear } from "@/lib/pilot-projection";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { classifyClients, strategicClients } from "@/lib/pilot-client-profitability";
 import { useEntityStatuses } from "@/lib/pilot-entity-rules";
@@ -61,17 +61,9 @@ import {
   type AlertFeedback,
 } from "@/lib/pilot-alert-feedback";
 import { toast } from "sonner";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { PP_COLORS } from "@/lib/pilot-colors";
+import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
+import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
+import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import {
   Euro,
   Wallet,
@@ -132,6 +124,7 @@ const PRIORITY_META: Record<Priority, { dot: string; label: string; badge: strin
 function TodayPage() {
   const { entries, charges, settings, clients, states } = usePilotData();
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const thresholds = useThresholds();
   const now = new Date();
   const year = now.getFullYear();
@@ -715,23 +708,14 @@ function TodayPage() {
   const heuresRealiseesMois = comparatifs.mois.find((i) => i.key === "h")?.current ?? 0;
   const heuresRealiseesAnnee = comparatifs.annee.find((i) => i.key === "h")?.current ?? 0;
 
+
   /**
-   * Évolution mensuelle réelle depuis le 1er janvier : CA HT enregistré et
-   * bénéfice (CA − charges d'exploitation enregistrées, hors investissements).
-   * Seuls les mois écoulés sont présents : aucune projection, aucune estimation.
+   * Séries prêtes à l'affichage pour le graphique flexible du Centre de
+   * décision. AUCUN nouveau calcul métier : chaque série reprend des valeurs
+   * déjà produites ci-dessus (lignes de vente réelles filtrées par le mode et
+   * la période, charges via `monthlyChargeTotals`, KPI via `computeKpis`).
    */
-  const monthlyPerformance = useMemo(() => {
-    const caByMonth = new Array(12).fill(0) as number[];
-    for (const e of realEntries) {
-      const d = new Date(e.entry_date);
-      if (!Number.isFinite(d.getTime()) || d.getFullYear() !== year) continue;
-      caByMonth[d.getMonth()] += Number(e.amount_ht) || 0;
-    }
-    const chargesByMonth = new Array(12).fill(0) as number[];
-    // Périmètre unique : fonction métier commune (exercice + mode, hors
-    // investissements et rémunération dirigeant).
-    const monthlyCharges = monthlyChargeTotals(chargeRows.data ?? [], year, { mode });
-    for (let i = 0; i < 12; i++) chargesByMonth[i] = monthlyCharges[i] ?? 0;
+  const flexDatasets = useMemo<FlexDataset[]>(() => {
     const labels = [
       "Janv.",
       "Févr.",
@@ -746,15 +730,161 @@ function TodayPage() {
       "Nov.",
       "Déc.",
     ];
-    return labels
-      .slice(0, month + 1)
-      .map((mois, i) => ({
-        mois,
-        "CA HT": caByMonth[i],
-        Bénéfice: caByMonth[i] - chargesByMonth[i],
-      }))
-      .filter((r, i) => caByMonth[i] !== 0 || chargesByMonth[i] !== 0);
-  }, [realEntries, chargeRows.data, mode, year, month]);
+    const zeros = () => new Array(12).fill(0) as number[];
+    const caN = zeros();
+    const caN1 = zeros();
+    const hN = zeros();
+    const nbN = zeros();
+    for (const e of realEntries) {
+      const d = new Date(e.entry_date);
+      if (!Number.isFinite(d.getTime())) continue;
+      const amount = Number(e.amount_ht) || 0;
+      if (d.getFullYear() === year) {
+        caN[d.getMonth()] += amount;
+        hN[d.getMonth()] += Number(e.hours) || 0;
+        nbN[d.getMonth()] += 1;
+      } else if (d.getFullYear() === year - 1) {
+        caN1[d.getMonth()] += amount;
+      }
+    }
+    const chargesN = monthlyChargeTotals(chargeRows.data ?? [], year, { mode, period });
+    const monthsCount = month + 1;
+    const kept = labels
+      .slice(0, monthsCount)
+      .map((mois, i) => ({ mois, i }))
+      .filter(({ i }) => caN[i] !== 0 || (chargesN[i] ?? 0) !== 0 || hN[i] !== 0);
+
+    const periodeNote =
+      period === "exercice_complet"
+        ? `Exercice ${year} complet (sélection explicite).`
+        : `Réalisé arrêté au ${new Date().toLocaleDateString("fr-FR")} : aucune donnée future, aucune projection.`;
+
+    const monthly = (
+      id: string,
+      label: string,
+      unit: FlexDataset["unit"],
+      series: FlexDataset["series"],
+      pick: (i: number) => Record<string, number>,
+      note: string,
+    ): FlexDataset => ({
+      id,
+      label,
+      unit,
+      categoryLabel: "Mois",
+      series,
+      rows: kept.map(({ mois, i }) => ({ name: mois, ...pick(i) })),
+      note: `${note} ${periodeNote}`,
+    });
+
+    const out: FlexDataset[] = [
+      monthly(
+        "ca",
+        "CA réalisé à date",
+        "euro",
+        [{ key: "ca", label: "CA HT", color: PP_COLORS.primary }],
+        (i) => ({ ca: caN[i] }),
+        "CA HT des lignes de vente enregistrées (Chiffre d'affaires → Ventes).",
+      ),
+      monthly(
+        "charges",
+        "Charges à date",
+        "euro",
+        [{ key: "charges", label: "Charges d'exploitation", color: PP_COLORS.charges }],
+        (i) => ({ charges: chargesN[i] ?? 0 }),
+        "Charges d'exploitation enregistrées (investissements et rémunération dirigeant exclus).",
+      ),
+      monthly(
+        "ca-charges",
+        "CA et charges à date",
+        "euro",
+        [
+          { key: "ca", label: "CA HT", color: PP_COLORS.primary },
+          { key: "charges", label: "Charges", color: PP_COLORS.charges },
+        ],
+        (i) => ({ ca: caN[i], charges: chargesN[i] ?? 0 }),
+        "CA HT des ventes enregistrées et charges d'exploitation du même mois.",
+      ),
+      monthly(
+        "resultat",
+        "Résultat mensuel (CA − charges)",
+        "euro",
+        [{ key: "benefice", label: "Bénéfice", color: PP_COLORS.sales }],
+        (i) => ({ benefice: caN[i] - (chargesN[i] ?? 0) }),
+        "Bénéfice = CA HT − charges d'exploitation du mois (investissements exclus).",
+      ),
+      monthly(
+        "marge",
+        "Marge mensuelle (%)",
+        "pourcent",
+        [{ key: "marge", label: "Marge", color: PP_COLORS.mid }],
+        (i) => ({ marge: caN[i] > 0 ? ((caN[i] - (chargesN[i] ?? 0)) / caN[i]) * 100 : 0 }),
+        "Marge = (CA HT − charges) ÷ CA HT du mois.",
+      ),
+      monthly(
+        "heures",
+        "Heures d'intervention",
+        "heure",
+        [{ key: "heures", label: "Heures", color: PP_COLORS.business }],
+        (i) => ({ heures: hN[i] }),
+        "Source unique des heures : colonne Vente → Temps des lignes de vente.",
+      ),
+      monthly(
+        "rentabilite",
+        "Rentabilité horaire (€/h)",
+        "euro",
+        [{ key: "taux", label: "Taux horaire", color: PP_COLORS.special }],
+        (i) => ({ taux: hN[i] > 0 ? caN[i] / hN[i] : 0 }),
+        "Taux horaire = CA HT du mois ÷ temps interne du même mois (Vente → Temps).",
+      ),
+      monthly(
+        "compare",
+        `Comparaison ${year} / ${year - 1}`,
+        "euro",
+        [
+          { key: "n", label: `CA ${year}`, color: PP_COLORS.primary },
+          { key: "n1", label: `CA ${year - 1}`, color: PP_COLORS.neutral },
+        ],
+        (i) => ({ n: caN[i], n1: caN1[i] }),
+        "CA HT enregistré mois par mois sur les deux exercices, à date équivalente.",
+      ),
+      monthly(
+        "volume",
+        "Volume de lignes de vente",
+        "nombre",
+        [{ key: "lignes", label: "Lignes de vente", color: PP_COLORS.warning }],
+        (i) => ({ lignes: nbN[i] }),
+        "Nombre de lignes de vente enregistrées (jamais le nombre de comptes rendus).",
+      ),
+    ];
+
+    const familles = (k.byFamily ?? []).filter((f) => f.value > 0);
+    if (familles.length > 0) {
+      out.push({
+        id: "familles",
+        label: "Répartition du CA par famille",
+        unit: "euro",
+        categoryLabel: "Famille",
+        series: [{ key: "ca", label: "CA HT", color: PP_COLORS.primary }],
+        rows: familles.map((f) => ({ name: f.label, ca: f.value })),
+        note: `Répartition issue de computeKpis (familles des lignes de vente). ${periodeNote}`,
+      });
+    }
+    if (targetHR > 0 && k.tauxHoraireVendu > 0) {
+      out.push({
+        id: "objectif",
+        label: "Objectif vs réalisé — taux horaire",
+        unit: "euro",
+        categoryLabel: "Indicateur",
+        series: [
+          { key: "realise", label: "Réalisé", color: PP_SERIES[0] },
+          { key: "cible", label: "Cible", color: PP_SERIES[1] },
+        ],
+        rows: [{ name: "Taux horaire (€/h)", realise: k.tauxHoraireVendu, cible: targetHR }],
+        note: `Taux horaire Vente → Temps comparé à la cible des Paramètres PP. ${periodeNote}`,
+      });
+    }
+    return out;
+  }, [realEntries, chargeRows.data, mode, period, year, month, k.byFamily, k.tauxHoraireVendu, targetHR]);
 
   // Priorités du jour — classées par volume, ne montre que les non-vides.
   const priorities: Array<{
@@ -1277,7 +1407,24 @@ function TodayPage() {
             }
           />
         </div>
-        <MonthlyPerformanceChart data={monthlyPerformance} year={year} />
+        <PilotFlexChart
+          title={`Lecture graphique de l'exercice ${year}`}
+          subtitle="Choisissez l'indicateur et la forme de visualisation : seules les données réellement enregistrées sont représentées."
+          datasets={flexDatasets}
+          storageKey="pp-decision-chart"
+          isLoading={entries.isLoading || chargeRows.isLoading}
+          error={
+            chargeRows.isError
+              ? `Charges indisponibles : ${(chargeRows.error as Error).message}`
+              : entries.isError
+                ? `Ventes indisponibles : ${(entries.error as Error).message}`
+                : null
+          }
+          onRetry={() => {
+            if (chargeRows.isError) void chargeRows.refetch();
+            if (entries.isError) void entries.refetch();
+          }}
+        />
       </DashboardBlock>
 
       {/* 3 — Situation actuelle : deux niveaux de lecture */}
@@ -1383,44 +1530,6 @@ function SectionTitle({ question, label }: { question: string; label: string }) 
         {label}
       </span>
     </div>
-  );
-}
-
-/**
- * Évolution mensuelle réelle de l'exercice : CA HT enregistré et bénéfice
- * (CA − charges d'exploitation enregistrées). Seuls les mois écoulés avec des
- * données réellement présentes sont affichés. Aucune projection.
- */
-function MonthlyPerformanceChart({
-  data,
-  year,
-}: {
-  data: Array<{ mois: string; "CA HT": number; Bénéfice: number }>;
-  year: number;
-}) {
-  if (data.length === 0) return null;
-  return (
-    <Card className="p-4">
-      <p className="text-sm font-medium">Évolution mensuelle {year} — CA HT et bénéfice réels</p>
-      <div className="mt-3 h-[280px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="mois" tick={{ fontSize: 11 }} interval={0} />
-            <YAxis tick={{ fontSize: 11 }} unit="€" />
-            <Tooltip formatter={(v: number | string) => formatEuro(Number(v))} />
-            <Legend />
-            <Bar dataKey="CA HT" fill={PP_COLORS.primary} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Bénéfice" fill={PP_COLORS.charges} radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <p className="mt-2 text-xs text-muted-foreground">
-        Mois écoulés uniquement. CA HT = lignes de vente enregistrées ; bénéfice = CA HT − charges
-        d'exploitation enregistrées du mois (investissements exclus). Aucune projection ni
-        estimation.
-      </p>
-    </Card>
   );
 }
 
