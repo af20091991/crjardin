@@ -726,7 +726,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
       repartition: categoryBreakdown(analysis),
       priority: priorityCategories(analysis),
       priorityTrend: priorityTrend(analysis),
-      projectionBase: projectionBase(inputs.chargeRows, year, inputs.salesByYear),
+      projectionBase: projectionBase(inputs.chargeRows, year, inputs.salesByYear, { now }),
     },
     resultat: {
       beneficeBrut,
