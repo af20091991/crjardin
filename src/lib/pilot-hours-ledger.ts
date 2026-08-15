@@ -67,7 +67,8 @@ type CaRow = {
   id: string;
   year: number;
   month: number;
-  entry_date: string;
+  /** pilot_ca_entries n'a pas de colonne date : repli sur year/month. */
+  entry_date?: string | null;
   hours: number | null;
   designation: string | null;
   category: string | null;
@@ -84,7 +85,7 @@ async function fetchCaHoursRows(year?: number, options?: AsOfOptions): Promise<C
     let q = supabase
       .from("pilot_ca_entries")
       .select(
-        "id,year,month,entry_date,hours,designation,category,client_id,raw_client_text,match_status,sale_status",
+        "id,year,month,hours,designation,category,client_id,raw_client_text,match_status,sale_status",
       )
       .eq("kind", "vente")
       .gt("hours", 0);
@@ -158,7 +159,7 @@ export async function fetchHoursLedger(
       rawLabel: r.designation ?? r.raw_client_text,
       year: r.year,
       month: r.month,
-      date: r.entry_date,
+      date: r.entry_date ?? null,
       hours: h,
       prestation: prestationFromCa(r.designation, r.category),
       confidence: r.client_id ? (r.match_status === "validation" ? "moyenne" : "haute") : "faible",
