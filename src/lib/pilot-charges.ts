@@ -44,7 +44,6 @@ type RawRow = {
   id: string;
   year: number;
   month: number;
-  entry_date: string;
   kind: string;
   designation: string | null;
   amount_ht: number | null;
@@ -61,7 +60,9 @@ async function fetchAll(kinds: string[]): Promise<RawRow[]> {
     const { data, error } = await supabase
       .from("pilot_ca_entries")
       .select(
-        "id,year,month,entry_date,kind,designation,amount_ht,charge_class,charge_category,is_investment",
+        // pilot_ca_entries ne possède PAS de colonne entry_date : la date de
+        // référence d'une charge est son couple year/month (règle centrale).
+        "id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment",
       )
       .in("kind", kinds)
       .range(from, from + pageSize - 1);
@@ -82,7 +83,6 @@ export async function listChargeRows(): Promise<ChargeRow[]> {
     id: r.id,
     year: r.year,
     month: r.month,
-    entry_date: r.entry_date,
     designation: r.designation,
     amount_ht: Number(r.amount_ht) || 0,
     charge_class: (r.charge_class as ChargeClass) ?? "a_classer",
