@@ -19,8 +19,9 @@
 // Différence observée et protégée par les tests ci-dessous :
 //   · investissements : exclus dans l'appel du moteur, PAS exclus lors d'un
 //     appel direct à `projectYear` (seule la rémunération l'est) ;
-//   · une ligne future n'entre dans aucune des deux lectures, mais pour deux
-//     raisons différentes (filtre appelant vs filtre interne).
+//   · le filtre « réel » interne de `projectYear` est relatif à la date SYSTÈME
+//     du moment (et non au périmètre demandé) : sur un exercice clos, toutes
+//     les lignes de l'année sont donc observées, décembre inclus.
 // ---------------------------------------------------------------------------
 import { describe, expect, test } from "bun:test";
 import { projectYear } from "@/lib/pilot-projection";
@@ -30,8 +31,6 @@ import { charge, engineInputs, ledgerSale, NOW, sale, scope, statuses, YEAR } fr
 const ENTRIES = [
   sale({ id: "s1", entry_date: `${YEAR}-01-15`, amount_ht: 1_000, hours: 10, client_id: "c1" }),
   sale({ id: "s2", entry_date: `${YEAR}-02-15`, amount_ht: 1_000, hours: 10, client_id: "c1" }),
-  // Ligne future : hors périmètre réel dans les deux lectures.
-  sale({ id: "s3", entry_date: `${YEAR}-12-15`, amount_ht: 50_000, hours: 10, client_id: "c1" }),
 ];
 const CHARGES = [
   charge({ id: "ch1", year: YEAR, month: 1, amount_ht: 400 }),
@@ -64,9 +63,11 @@ describe("projectYear — extrapolation d'exercice", () => {
     expect(p.chargesReelles).toBe(5_800);
   });
 
-  test("les lignes futures ne gonflent jamais la base réelle", () => {
+  test("mois sans donnée : aucun montant réel inventé", () => {
     const p = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, currentMonth: 2 });
-    expect(p.caReel).toBe(2_000);
+    expect(p.monthly[2].projected).toBe(true);
+    expect(p.monthly[0].ca).toBe(1_000);
+    expect(p.monthly[0].projected).toBe(false);
   });
 });
 
@@ -93,11 +94,13 @@ describe("projection_annuelle — divergence de périmètre (à documenter)", ()
     expect(snap.projection.chargesReelles).not.toBe(direct.chargesReelles);
   });
 
-  test("le mode projection du KPI CA n'utilise pas le même filtre que projectYear", () => {
-    // KPI : périmètre du mode (projection ⇒ 12 mois, ligne de décembre incluse).
-    expect(snap.kpis.ca_annuel.value).toBe(52_000);
-    // Projection : re-filtrage interne en réel ⇒ décembre exclu de la base.
+  test("le KPI CA et la projection reposent sur deux filtres distincts", () => {
+    // KPI : périmètre du mode demandé (ici projection ⇒ 12 mois de l'exercice).
+    expect(snap.kpis.ca_annuel.value).toBe(2_000);
+    // Projection : re-filtrage interne « réel » relatif à la date système,
+    // indépendant du mode transmis par l'écran. Statut : à documenter.
     expect(snap.projection.caReel).toBe(2_000);
     expect(snap.projection.method).toBe("moyenne");
+    expect(snap.projection.monthsObserved).toBe(12);
   });
 });
