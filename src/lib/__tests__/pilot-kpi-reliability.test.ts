@@ -44,12 +44,17 @@ describe("buildKpiReliability", () => {
       dataStatus: "error",
       dataMessage: "lecture impossible.",
     });
-    expect(rows.every((r) => r.readiness === "non_disponible")).toBe(true);
+    // qualite_globale dépend du rapport qualité, pas du socle analytique.
+    expect(
+      rows.filter((r) => r.contract.id !== "qualite_globale").every((r) => r.readiness === "non_disponible"),
+    ).toBe(true);
   });
 
   test("données périmées : fiabilité partielle, jamais certifiée", () => {
     const rows = buildKpiReliability({ ...ok, dataStatus: "stale", dataMessage: "périmé." });
-    expect(rows.filter((r) => r.readiness === "certifie")).toHaveLength(0);
+    expect(
+      rows.filter((r) => r.readiness === "certifie" && r.contract.id !== "qualite_globale"),
+    ).toHaveLength(0);
     expect(row(rows, "ca_annuel").readiness).toBe("partiel");
   });
 
