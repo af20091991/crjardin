@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_SETTINGS, getSettings } from "@/lib/pilot";
 import { daysBetween as _daysBetween, currentYear as _currentYear } from "@/lib/date-utils";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
+import { fetchAllCaRows } from "@/lib/pilot-ca-fetch";
 // Règle métier centrale UNIQUE (aucune logique de confiance recréée ici).
 import { entityEligibility } from "@/lib/pilot-entity-rules";
 import { hourlyRate, saleRateEligible, type SaleRateRow } from "@/lib/pilot-sale-time";
