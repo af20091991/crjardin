@@ -126,7 +126,7 @@ describe("réalisé à date — moteurs appelés avec la même date de référen
 
   test("la projection n'est jamais mélangée au réalisé du moteur", () => {
     const s = snap();
-    expect(s.projection.caProjete).toBeGreaterThanOrEqual(s.ca.yearHt);
+    expect(s.projection.caProjete >= s.ca.yearHt).toBe(true);
     expect(s.ca.yearHt).toBe(3_000);
     const proj = buildAnalytics(
       engineInputs({
