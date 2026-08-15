@@ -18,13 +18,16 @@ describe("annualSummary", () => {
     expect(row.margePct).toBeNull();
   });
 
-  test("charge enregistrée à 0 € : exercice exploitable, marge réelle de 100 %", () => {
+  test("charge enregistrée à 0 € : exercice toujours jugé incomplet (marge non calculée)", () => {
+    // Règle en place : `chargesComplete` exige un montant de charges > 0.
+    // Une ligne de charge à 0 € ne suffit donc pas à rendre la marge fiable.
     const [row] = annualSummary(
       [sale({ id: "s1", entry_date: `${YEAR}-04-15`, amount_ht: 1_000, hours: 10 })],
       [charge({ id: "c0", year: YEAR, month: 4, amount_ht: 0 })],
     );
-    expect(row.chargesComplete).toBe(true);
-    expect(row.margePct).toBe(100);
+    expect(row.charges).toBe(0);
+    expect(row.chargesComplete).toBe(false);
+    expect(row.margePct).toBeNull();
   });
 
   test("investissements exclus du bénéfice brut et suivis séparément", () => {
