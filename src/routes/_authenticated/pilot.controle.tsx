@@ -6,7 +6,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { BadgeCheck, ClipboardList, Copy, Cpu, Database, Gauge, Link2, MapPin, ShieldCheck, Wrench } from "lucide-react";
+import { BadgeCheck, ClipboardList, Copy, Cpu, Database, FileText, Gauge, Link2, MapPin, ShieldCheck, Wrench } from "lucide-react";
 import { QualityPage } from "@/components/pilot/panels/QualityPanel";
 import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
 import { RapprochementPage } from "@/components/pilot/panels/RapprochementPanel";
@@ -15,13 +15,22 @@ import { SourcesPanel } from "@/components/pilot/panels/SourcesPanel";
 import { ReferentialPanel } from "@/components/pilot/panels/ReferentialPanel";
 import { EnginePanel } from "@/components/pilot/panels/EnginePanel";
 import { DoublonsPanel } from "@/components/pilot/panels/DoublonsPanel";
+import { KpiContractPanel } from "@/components/pilot/panels/KpiContractPanel";
 
-type Section = "qualite" | "validation" | "corrections" | "sources" | "referentiel" | "moteur" | "doublons";
+type Section =
+  | "qualite"
+  | "validation"
+  | "corrections"
+  | "sources"
+  | "referentiel"
+  | "moteur"
+  | "doublons"
+  | "contrat";
 
 export const Route = createFileRoute("/_authenticated/pilot/controle")({
   validateSearch: (search: Record<string, unknown>): { section?: Section; sub?: string } => ({
     section: (
-      ["qualite", "validation", "corrections", "sources", "referentiel", "moteur", "doublons"] as const
+      ["qualite", "validation", "corrections", "sources", "referentiel", "moteur", "doublons", "contrat"] as const
     ).includes(search.section as never)
       ? (search.section as Section)
       : undefined,
@@ -95,6 +104,11 @@ function ControlCenterPage() {
               <Database className="h-4 w-4" /> Sources & états
             </Link>
           </TabsTrigger>
+          <TabsTrigger value="contrat" asChild>
+            <Link to="/pilot/controle" search={{ section: "contrat" }} className="gap-1.5">
+              <FileText className="h-4 w-4" /> Contrat des KPI
+            </Link>
+          </TabsTrigger>
           <TabsTrigger value="moteur" asChild>
             <Link to="/pilot/controle" search={{ section: "moteur" }} className="gap-1.5">
               <Cpu className="h-4 w-4" /> Moteur analytique
@@ -165,6 +179,14 @@ function ControlCenterPage() {
             validations manuelles (lecture seule).
           </p>
           <SourcesPanel />
+        </TabsContent>
+
+        <TabsContent value="contrat" className="mt-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Contrat de vérité — pour chaque indicateur stratégique : sa fonction source, sa source de
+            données, sa période, son périmètre et sa règle en cas de donnée absente (lecture seule).
+          </p>
+          <KpiContractPanel />
         </TabsContent>
 
         <TabsContent value="moteur" className="mt-4">
