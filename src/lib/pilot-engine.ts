@@ -145,7 +145,7 @@ export async function loadEngineInputs(scope: EngineScope): Promise<EngineInputs
     listEntries(),
     listChargeRows(),
     fetchHoursLedger(undefined, asOf),
-    getClientEconomicScores(),
+    getClientEconomicScores(asOf),
     fetchEntityStatuses(),
     listSalesByYear(asOf),
     getSettings(),
