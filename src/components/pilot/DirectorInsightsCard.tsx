@@ -14,7 +14,7 @@ import { buildPortfolio } from "@/lib/pilot-portfolio";
 import { useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { getClientEconomicScores } from "@/lib/client-score";
 import { buildDirectorInsights, type InsightTone } from "@/lib/pilot-director-insights";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 
 const TONE_STYLE: Record<InsightTone, string> = {
   positive: "bg-emerald-500",
@@ -46,7 +46,7 @@ export function DirectorInsightsCard({
   const chargesQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   const salesQ = useQuery({ queryKey: ["pilot-sales-by-year", mode], queryFn: () => listSalesByYear({ mode }) });
   const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year, mode], queryFn: () => fetchHoursLedger(year, { mode }) });
-  const scoresQ = useQuery({ queryKey: ["client-economic-scores"], queryFn: getClientEconomicScores });
+  const scoresQ = useQuery({ queryKey: ["client-economic-scores", period], queryFn: () => getClientEconomicScores({ mode: mode, period }) });
   const statusesQ = useEntityStatuses();
 
   const loading = chargesQ.isLoading || salesQ.isLoading || ledgerQ.isLoading || scoresQ.isLoading;
