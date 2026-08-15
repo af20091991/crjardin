@@ -1,6 +1,6 @@
 import type { PilotEntry } from "@/lib/pilot";
 import { operatingCharges, type ChargeRow } from "@/lib/pilot-charges";
-import { chargeRowsForMode, entriesForMode } from "@/lib/pilot-realized";
+import { chargeRowsForMode, entriesForMode, type AsOfOptions } from "@/lib/pilot-realized";
 
 /**
  * Synthèse annuelle multi-exercices : une ligne par année réellement présente
@@ -28,9 +28,17 @@ export interface AnnualRow {
   chargesComplete: boolean;
 }
 
-export function annualSummary(entries: PilotEntry[], allChargeRows: ChargeRow[], options?: { mode?: "reel" | "projection" }): AnnualRow[] {
-  const scopedEntries = entriesForMode(entries, options?.mode ?? "reel");
-  const scopedCharges = operatingCharges(chargeRowsForMode(allChargeRows, options?.mode ?? "reel"));
+export function annualSummary(
+  entries: PilotEntry[],
+  allChargeRows: ChargeRow[],
+  options?: AsOfOptions,
+): AnnualRow[] {
+  // Filtre « à date » unique : aucune ligne ni aucun mois futur n'entre dans le
+  // réalisé annuel (la date de référence est injectable pour les tests).
+  const scopedEntries = entriesForMode(entries, options?.mode ?? "reel", options?.now);
+  const scopedCharges = operatingCharges(
+    chargeRowsForMode(allChargeRows, options?.mode ?? "reel", options?.now),
+  );
   const chargeRows = scopedCharges.filter((c) => !c.is_investment);
   const years = new Set<number>();
   const ca = new Map<number, number>();

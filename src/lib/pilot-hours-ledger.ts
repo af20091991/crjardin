@@ -86,7 +86,7 @@ async function fetchCaHoursRows(year?: number, options?: { mode?: "reel" | "proj
         (r) =>
           // Temps comptabilisé dès 🟠 Facturé, jamais sur une ligne planifiée.
           hoursCounted((r as unknown as { sale_status?: string | null }).sale_status) &&
-          (options?.mode === "projection" || isRealizedMonth(r.year, r.month)),
+          keepRealizedYearMonth(r, options),
       ),
     );
     if (chunk.length < pageSize) break;
