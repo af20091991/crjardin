@@ -119,7 +119,13 @@ describe("réalisé à date — moteurs appelés avec la même date de référen
   });
 
   test("projectYear calcule son réalisé avec la date de référence injectée", () => {
-    const p = projectYear({ entries: DATED, charges: [], year: YEAR, mode: "projection", now: NOW });
+    const p = projectYear({
+      entries: DATED,
+      charges: [],
+      year: YEAR,
+      mode: "projection",
+      now: NOW,
+    });
     expect(p.caReel).toBe(3_000);
     expect(p.monthly[8].projected).toBe(true);
   });
