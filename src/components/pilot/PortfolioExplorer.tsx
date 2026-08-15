@@ -12,7 +12,7 @@ import type { PilotEntry } from "@/lib/pilot";
 import { getClientEconomicScores, SCORE_META, type ClientScoreLabel } from "@/lib/client-score";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { buildPortfolio, searchPortfolio, sortByProfitability } from "@/lib/pilot-portfolio";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { EntityStatusBadge, ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
 
@@ -32,8 +32,9 @@ type Mode = "top100" | "tous";
  */
 export function PortfolioExplorer({ entries, year }: { entries: PilotEntry[]; year: number }) {
   const { mode: pilotMode } = usePilotMode();
-  const scoresQ = useQuery({ queryKey: ["client-economic-scores"], queryFn: getClientEconomicScores });
-  const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year, pilotMode], queryFn: () => fetchHoursLedger(year, { mode: pilotMode }) });
+  const { period } = usePilotPeriod();
+  const scoresQ = useQuery({ queryKey: ["client-economic-scores", period], queryFn: () => getClientEconomicScores({ mode: pilotMode, period }) });
+  const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year, pilotMode, period], queryFn: () => fetchHoursLedger(year, { mode: pilotMode, period }) });
   const statusesQ = useEntityStatuses();
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("top100");

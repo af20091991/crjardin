@@ -11,7 +11,7 @@ import { usePilotData } from "@/components/pilot/usePilotData";
 import { listChargeRows } from "@/lib/pilot-charges";
 import { annualSummary } from "@/lib/pilot-annual";
 import { formatEuro } from "@/lib/pilot";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { currentYear } from "@/lib/date-utils";
 import { PilotCard } from "@/components/pilot/PilotCard";
@@ -43,6 +43,7 @@ const DEFAULTS = { tarif: 0, heures: 0, ca: 0, charges: 0, sstCout: 0, sstCa: 0 
 function SimulationsPage() {
   const { entries } = usePilotData();
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const thresholds = useThresholds();
   const year = currentYear();
   const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
@@ -51,8 +52,8 @@ function SimulationsPage() {
   const upd = (k: keyof typeof DEFAULTS, v: number) => setP((prev) => ({ ...prev, [k]: v }));
 
   const annualRows = useMemo(
-    () => annualSummary(entries.data ?? [], chargeRowsQ.data ?? [], { mode }),
-    [entries.data, chargeRowsQ.data, mode],
+    () => annualSummary(entries.data ?? [], chargeRowsQ.data ?? [], { mode, period }),
+    [entries.data, chargeRowsQ.data, mode, period],
   );
   const base = useMemo(
     () => annualRows.find((r) => r.year === year) ?? annualRows[0] ?? null,

@@ -17,7 +17,7 @@ import {
 } from "@/lib/pilot";
 import { entriesForMode } from "@/lib/pilot-realized";
 import { PP_COLORS } from "@/lib/pilot-colors";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { useAnalytics } from "@/lib/pilot-analytics";
 import { CoverageHistoryCard } from "@/components/pilot/CoverageBanner";
 import {
@@ -38,6 +38,7 @@ const SHOW_HOURS_YOY_FROM = new Date("2027-01-01");
 function PilotDashboard() {
   const { entries, charges, settings } = usePilotData();
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const { snapshot } = useAnalytics();
   const now = new Date();
   const year = now.getFullYear();
@@ -48,8 +49,8 @@ function PilotDashboard() {
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode, now), [entries.data, mode, now]);
   const confirmedHours = useQuery({
-    queryKey: ["confirmed-hours-by-client", year, mode],
-    queryFn: () => fetchConfirmedHoursByClient(year, { mode }),
+    queryKey: ["confirmed-hours-by-client", year, mode, period],
+    queryFn: () => fetchConfirmedHoursByClient(year, { mode, period }),
   });
   const k = useMemo(
     () =>
@@ -62,7 +63,7 @@ function PilotDashboard() {
         confirmedHoursByClient: confirmedHours.data,
         mode,
       }),
-    [entries.data, charges.data, set, year, month, confirmedHours.data, mode],
+    [entries.data, charges.data, set, year, month, confirmedHours.data, mode, period],
   );
   const health = useMemo(() => healthScore(k, set), [k, set]);
   const series = snapshot?.monthly.caSeries ?? [];

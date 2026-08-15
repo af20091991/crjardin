@@ -8,6 +8,7 @@ import { fetchClientActivityRows } from "@/lib/client-activity";
 import { listChargeRows, listSalesByYear, listChargeCategories, analyzeCharges } from "@/lib/pilot-charges";
 import { annualSummary } from "@/lib/pilot-annual";
 import { pragmaticHealth, margeHealthScore, HEALTH_THEME_META, HEALTH_LEVEL_META } from "@/lib/pilot-health";
+import { usePilotPeriod } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { askPilotAi, type AiChartSpec } from "@/lib/pilot-ai.functions";
 import { AiChart } from "@/components/pilot/AiChart";
@@ -36,15 +37,16 @@ function SantePage() {
    * global Réel/Projection n'est volontairement pas lu ici.
    */
   const mode = "reel" as const;
+  const { period } = usePilotPeriod();
   const thresholds = useThresholds();
   const year = currentYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
 
-  const confirmed = useQuery({ queryKey: ["confirmed-hours-by-client", year, mode], queryFn: () => fetchConfirmedHoursByClient(year, { mode }) });
+  const confirmed = useQuery({ queryKey: ["confirmed-hours-by-client", year, mode, period], queryFn: () => fetchConfirmedHoursByClient(year, { mode, period }) });
   const goalsQ = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
   const activityQ = useQuery({ queryKey: ["client-activity-rows"], queryFn: fetchClientActivityRows });
   const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year", mode], queryFn: () => listSalesByYear({ mode }) });
+  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year", mode, period], queryFn: () => listSalesByYear({ mode, period }) });
   const catsQ = useQuery({ queryKey: ["pilot-charge-categories"], queryFn: listChargeCategories });
 
   const k = useMemo(
@@ -52,20 +54,20 @@ function SantePage() {
       entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
       year, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data, mode,
     }),
-    [entries.data, charges.data, set, year, confirmed.data, mode],
+    [entries.data, charges.data, set, year, confirmed.data, mode, period],
   );
 
   // Source unique du bénéfice/de la marge : annualSummary().
   const annualRows = useMemo(
-    () => annualSummary(entries.data ?? [], chargeRowsQ.data ?? [], { mode }),
-    [entries.data, chargeRowsQ.data, mode],
+    () => annualSummary(entries.data ?? [], chargeRowsQ.data ?? [], { mode, period }),
+    [entries.data, chargeRowsQ.data, mode, period],
   );
   const currentAnnual = useMemo(() => annualRows.find((r) => r.year === year) ?? null, [annualRows, year]);
 
   const chargesAnalysis = useMemo(() => {
     if (!chargeRowsQ.data || !salesQ.data) return null;
-    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label), { mode });
-  }, [chargeRowsQ.data, salesQ.data, catsQ.data, mode]);
+    return analyzeCharges(chargeRowsQ.data, salesQ.data, (catsQ.data ?? []).map((c) => c.label), { mode, period });
+  }, [chargeRowsQ.data, salesQ.data, catsQ.data, mode, period]);
 
   const topClientSharePct = useMemo(() => {
     // Concentration client : le bucket « ventes non rattachées » n'est pas un

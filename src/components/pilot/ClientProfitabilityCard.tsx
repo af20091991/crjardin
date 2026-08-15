@@ -10,7 +10,7 @@ import { classifyClients, PROFIT_CLASS_META } from "@/lib/pilot-client-profitabi
 import { suggestCrossSell, formatMonths } from "@/lib/pilot-cross-sell";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { currentYear } from "@/lib/date-utils";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { AnalysisTraceability, EntityStatusBadge } from "@/components/pilot/ReliabilityBadge";
 
@@ -28,11 +28,12 @@ export function ClientProfitabilityCard({
 }) {
   const year = currentYear();
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const thresholds = useThresholds();
   const entriesQ = useQuery({ queryKey: ["pilot-entries"], queryFn: listEntries });
   const ledgerQ = useQuery({
-    queryKey: ["pilot-hours-ledger-all", mode],
-    queryFn: () => fetchHoursLedger(undefined, { mode }),
+    queryKey: ["pilot-hours-ledger-all", mode, period],
+    queryFn: () => fetchHoursLedger(undefined, { mode, period }),
   });
   const settingsQ = useQuery({ queryKey: ["pilot-settings"], queryFn: getSettings });
   const statusesQ = useEntityStatuses();

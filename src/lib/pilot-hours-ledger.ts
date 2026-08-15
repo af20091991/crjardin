@@ -1,6 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import { parseDesignation } from "@/lib/pilot-ca-designation";
-import { keepRealizedYearMonth, todayIso, type AsOfOptions } from "@/lib/pilot-realized";
+import {
+  isUnboundedPeriod,
+  keepRealizedYearMonth,
+  todayIso,
+  type AsOfOptions,
+} from "@/lib/pilot-realized";
 import { hoursCounted } from "@/lib/pilot-sale-accounting";
 
 /**
@@ -108,15 +113,17 @@ function prestationFromCa(designation: string | null, category: string | null): 
 /** Charge l'intégralité des heures connues, toutes sources confondues. */
 export async function fetchHoursLedger(
   year?: number,
-  options?: { mode?: "reel" | "projection" },
+  options?: AsOfOptions,
 ): Promise<HoursLedgerEntry[]> {
-  const today = todayIso();
+  const today = todayIso(options?.now);
   let interventionsQuery = supabase
     .from("interventions")
     .select(
       "id,client_id,intervention_date,hours_spent,status,intervention_type,title,ai_metadata",
     );
-  if (options?.mode !== "projection")
+  // Borne au jour : levée uniquement sur choix explicite « exercice complet »
+  // (ou en lecture de projection).
+  if (!isUnboundedPeriod(options))
     interventionsQuery = interventionsQuery.lte("intervention_date", today);
   const [caRows, interventionsRes, historicRes, clientsRes] = await Promise.all([
     fetchCaHoursRows(year, options),

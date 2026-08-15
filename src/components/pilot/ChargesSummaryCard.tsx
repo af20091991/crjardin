@@ -5,16 +5,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Receipt } from "lucide-react";
 import { formatEuro } from "@/lib/pilot";
 import { listChargeRows, listSalesByYear, projectionBase, analyzeCharges } from "@/lib/pilot-charges";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 
 /** Synthèse charges fixes / variables de l'année, avec lien vers l'analyse détaillée. */
 export function ChargesSummaryCard({ year }: { year: number }) {
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const q = useQuery({
-    queryKey: ["pilot-charges-summary", year, mode],
+    queryKey: ["pilot-charges-summary", year, mode, period],
     queryFn: async () => {
-      const [rows, sales] = await Promise.all([listChargeRows(), listSalesByYear({ mode })]);
-      const analysis = analyzeCharges(rows, sales, [], { mode });
+      const [rows, sales] = await Promise.all([listChargeRows(), listSalesByYear({ mode, period })]);
+      const analysis = analyzeCharges(rows, sales, [], { mode, period });
       return {
         year: analysis.years.find((y) => y.year === year) ?? null,
         proj: projectionBase(rows, year, sales),

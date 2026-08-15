@@ -16,7 +16,7 @@ import {
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { currentYear } from "@/lib/date-utils";
 import { entriesForMode, hoursLedgerForMode } from "@/lib/pilot-realized";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { signalFromServiceClass } from "@/lib/pilot-profit-signal";
 
@@ -31,16 +31,17 @@ const FILTERS: { key: ServiceClass | "all"; label: string }[] = [
 export function ProfitabilityServicesView() {
   const year = currentYear();
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const { entries, settings } = usePilotData();
   const thresholds = useThresholds();
   const ledger = useQuery({
-    queryKey: ["pilot-hours-ledger-all", mode],
-    queryFn: () => fetchHoursLedger(undefined, { mode }),
+    queryKey: ["pilot-hours-ledger-all", mode, period],
+    queryFn: () => fetchHoursLedger(undefined, { mode, period }),
   });
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<ServiceClass | "all">("all");
-  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode]);
-  const realLedger = useMemo(() => hoursLedgerForMode(ledger.data ?? [], mode), [ledger.data, mode]);
+  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode, period]);
+  const realLedger = useMemo(() => hoursLedgerForMode(ledger.data ?? [], mode), [ledger.data, mode, period]);
 
   const target = settings.data?.target_hourly_rate ?? DEFAULT_SETTINGS.target_hourly_rate;
 

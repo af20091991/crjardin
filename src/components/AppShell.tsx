@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 import { useAppearance } from "@/lib/appearance";
-import { usePilotYear } from "@/lib/pilot-mode";
+import { usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
+import { PERIOD_LABELS, type PeriodMode } from "@/lib/pilot-realized";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Tooltip,
@@ -302,6 +303,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </div>
           <div className="flex items-center gap-4">
             <GlobalSearch collapsed />
+            {isPilot && <PilotPeriodSwitcher compact />}
             {isPilot && <PilotYearSwitcher compact />}
             <NotificationBell />
             <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
@@ -315,6 +317,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             <h1 className="font-serif text-2xl font-semibold">{title}</h1>
             {isPilot && (
               <div className="flex items-center gap-2">
+                <PilotPeriodSwitcher />
                 <PilotYearSwitcher />
               </div>
             )}
@@ -415,6 +418,28 @@ function PilotYearSwitcher({ compact = false }: { compact?: boolean }) {
             {y}
           </SelectItem>
         ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+/**
+ * Périmètre temporel partagé : « À date » (défaut, arrêté à aujourd'hui) ou
+ * « Exercice complet », choix explicite et visible de l'utilisateur.
+ */
+function PilotPeriodSwitcher({ compact = false }: { compact?: boolean }) {
+  const { period, setPeriod } = usePilotPeriod();
+  return (
+    <Select value={period} onValueChange={(v) => setPeriod(v as PeriodMode)}>
+      <SelectTrigger
+        className={compact ? "h-8 w-[104px] text-xs" : "h-9 w-[164px]"}
+        title="Périmètre de lecture : arrêté à aujourd'hui ou exercice complet"
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="a_date">{PERIOD_LABELS.a_date}</SelectItem>
+        <SelectItem value="exercice_complet">{PERIOD_LABELS.exercice_complet}</SelectItem>
       </SelectContent>
     </Select>
   );

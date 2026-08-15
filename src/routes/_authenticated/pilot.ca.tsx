@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { usePilotYear } from "@/lib/pilot-mode";
+import { usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
 import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -60,6 +60,7 @@ function StatBox({ label, value, icon: Icon, tone }: { label: string; value: str
 function CaPage() {
   const qc = useQueryClient();
   const { year } = usePilotYear();
+  const { period } = usePilotPeriod();
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
   const [displayMode, setDisplayMode] = useState<"exercice" | "annee">("exercice");
   const [pending, setPending] = useState<number | null>(null);
@@ -107,8 +108,8 @@ function CaPage() {
     if (month > monthsVisible) setMonth(monthsVisible);
   }, [monthsVisible]);
 
-  const yt = useMemo(() => yearTotals(entries), [entries]);
-  const mt = useMemo(() => monthTotals(entries, month), [entries, month]);
+  const yt = useMemo(() => yearTotals(entries, { period }), [entries, period]);
+  const mt = useMemo(() => monthTotals(entries, month, { period }), [entries, month, period]);
   const catTotals = useMemo(() => categoryTotals(entries, month), [entries, month]);
 
   const monthRows = (kind: CaKind) => entries.filter((e) => e.month === month && e.kind === kind);

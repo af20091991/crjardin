@@ -1,7 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import { fetchAllCaRows } from "@/lib/pilot-ca-fetch";
-import { entriesForMode, isRealizedMonth, realizedEntries } from "@/lib/pilot-realized";
+import {
+  entriesForMode,
+  isRealizedMonth,
+  realizedEntries,
+  type AsOfOptions,
+  type PeriodMode,
+} from "@/lib/pilot-realized";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
 import { saleRateScope, saleRateEligible } from "@/lib/pilot-sale-time";
@@ -310,11 +316,13 @@ export function computeKpis(params: {
   confirmedHoursByClient?: Map<string, number>;
   mode?: "reel" | "projection";
   now?: Date;
+  /** Périmètre temporel explicite (`a_date` par défaut). */
+  period?: PeriodMode;
 }) {
   const { charges, settings, year, month, confirmedHoursByClient } = params;
   const now = params.now ?? new Date();
   const realMode = params.mode !== "projection";
-  const entries = entriesForMode(params.entries, params.mode ?? "reel", now);
+  const entries = entriesForMode(params.entries, params.mode ?? "reel", now, params.period);
 
   const yearEntries = entries.filter((e) => y(e.entry_date) === year);
   const prevYearEntries = entries.filter((e) => y(e.entry_date) === year - 1);
@@ -404,8 +412,8 @@ export function computeKpis(params: {
 }
 
 /** Série mensuelle du CA HT pour une année (comparée à N-1). */
-export function monthlySeries(entries: PilotEntry[], year: number, options?: { mode?: "reel" | "projection"; now?: Date }) {
-  const scoped = entriesForMode(entries, options?.mode ?? "reel", options?.now);
+export function monthlySeries(entries: PilotEntry[], year: number, options?: AsOfOptions) {
+  const scoped = entriesForMode(entries, options?.mode ?? "reel", options?.now, options?.period);
   return MONTHS.map((label, i) => ({
     month: label,
     current: sum(scoped.filter((e) => y(e.entry_date) === year && m(e.entry_date) === i).map((e) => e.amount_ht)),
@@ -544,10 +552,13 @@ export function clientStatsWithHours(
  */
 export async function fetchConfirmedHoursByClient(
   yearFilter?: number,
-  options?: { mode?: "reel" | "projection" },
+  options?: AsOfOptions,
 ): Promise<Map<string, number>> {
-  const mode = options?.mode ?? "reel";
-  const ledger = await fetchHoursLedger(yearFilter, { mode });
+  const ledger = await fetchHoursLedger(yearFilter, {
+    mode: options?.mode ?? "reel",
+    now: options?.now,
+    period: options?.period,
+  });
   const resolved = resolveRealHours(ledger, yearFilter ?? new Date().getFullYear());
   // Aucun fallback : si aucune heure Vente → Temps n'existe, la map est vide.
   return resolved.byClient;

@@ -30,7 +30,7 @@ import {
 import { Trophy, AlertTriangle, UserX, TrendingUp } from "lucide-react";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import { entriesForMode } from "@/lib/pilot-realized";
-import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotYear, usePilotPeriod } from "@/lib/pilot-mode";
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { signalFromHourlyRate } from "@/lib/pilot-profit-signal";
 import { useThresholds } from "@/lib/pilot-thresholds";
@@ -74,6 +74,7 @@ const NATURE_TONE: Record<string, string> = {
 export function ProfitabilityClientsView() {
   const { entries } = usePilotData();
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const layout = useDashboardLayout(BLOCKS, "rentabilite-clients");
   const thresholds = useThresholds();
   const targetHourlyRate = thresholds.tauxHoraireCibleMin;
@@ -83,14 +84,14 @@ export function ProfitabilityClientsView() {
   const scope = allTimeScope ? "all" : String(year);
 
   const yearFilter = scope === "all" ? undefined : Number(scope);
-  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode]);
+  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode, period]);
   const confirmed = useQuery({
-    queryKey: ["confirmed-hours-by-client", yearFilter ?? "all", mode],
-    queryFn: () => fetchConfirmedHoursByClient(yearFilter, { mode }),
+    queryKey: ["confirmed-hours-by-client", yearFilter ?? "all", mode, period],
+    queryFn: () => fetchConfirmedHoursByClient(yearFilter, { mode, period }),
   });
   const allConfirmed = useQuery({
-    queryKey: ["confirmed-hours-by-client", "all", mode],
-    queryFn: () => fetchConfirmedHoursByClient(undefined, { mode }),
+    queryKey: ["confirmed-hours-by-client", "all", mode, period],
+    queryFn: () => fetchConfirmedHoursByClient(undefined, { mode, period }),
   });
 
   const stats = useMemo(

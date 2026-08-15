@@ -16,7 +16,7 @@ import { FOCUS_META, isFocusTopic, type FocusTopic } from "@/lib/pilot-focus";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { interventionsNeedingHours } from "@/lib/pilot-real-hours";
 import { entriesForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { ArrowLeft, ArrowRight, BellOff } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/focus/$topic")({
@@ -51,6 +51,7 @@ function FocusPage() {
   const meta = FOCUS_META[topic];
   const { entries, settings } = usePilotData();
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const qc = useQueryClient();
   const now = new Date();
   const year = now.getFullYear();
@@ -60,14 +61,14 @@ function FocusPage() {
   const interventions = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
   const recos = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
   const confirmedHours = useQuery({
-    queryKey: ["confirmed-hours-by-client", year, mode],
-    queryFn: () => fetchConfirmedHoursByClient(year, { mode }),
+    queryKey: ["confirmed-hours-by-client", year, mode, period],
+    queryFn: () => fetchConfirmedHoursByClient(year, { mode, period }),
   });
   // Ledger consolidé : une intervention n'est listée que si aucune heure
   // n'existe déjà dans Pilot Pro pour ce client sur l'année.
   const hoursLedger = useQuery({
-    queryKey: ["pilot-hours-ledger", year, mode],
-    queryFn: () => fetchHoursLedger(year, { mode }),
+    queryKey: ["pilot-hours-ledger", year, mode, period],
+    queryFn: () => fetchHoursLedger(year, { mode, period }),
     enabled: topic === "heures-manquantes",
   });
   const priorityOffers = useQuery({
@@ -363,7 +364,7 @@ function FocusPage() {
     }
 
     return [];
-  }, [topic, loading, entries.data, interventions.data, recos.data, confirmedHours.data, hoursLedger.data, priorityOffers.data, targetHR, year, mode]);
+  }, [topic, loading, entries.data, interventions.data, recos.data, confirmedHours.data, hoursLedger.data, priorityOffers.data, targetHR, year, mode, period]);
 
   return (
     <div className="space-y-4">

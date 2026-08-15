@@ -35,9 +35,14 @@ export function annualSummary(
 ): AnnualRow[] {
   // Filtre « à date » unique : aucune ligne ni aucun mois futur n'entre dans le
   // réalisé annuel (la date de référence est injectable pour les tests).
-  const scopedEntries = entriesForMode(entries, options?.mode ?? "reel", options?.now);
+  const scopedEntries = entriesForMode(
+    entries,
+    options?.mode ?? "reel",
+    options?.now,
+    options?.period,
+  );
   const scopedCharges = operatingCharges(
-    chargeRowsForMode(allChargeRows, options?.mode ?? "reel", options?.now),
+    chargeRowsForMode(allChargeRows, options?.mode ?? "reel", options?.now, options?.period),
   );
   const chargeRows = scopedCharges.filter((c) => !c.is_investment);
   const years = new Set<number>();
