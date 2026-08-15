@@ -135,7 +135,7 @@ const PRIORITY_META: Record<Priority, { dot: string; label: string; badge: strin
   };
 
 function TodayPage() {
-  const { entries, charges, settings, clients } = usePilotData();
+  const { entries, charges, settings, clients, states } = usePilotData();
   const { mode } = usePilotMode();
   const thresholds = useThresholds();
   const now = new Date();
