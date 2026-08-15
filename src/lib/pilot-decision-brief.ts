@@ -56,7 +56,13 @@ export function buildDecisionBrief(params: {
 
   const clients = classifyClients({ entries, ledger, year, targetHourlyRate, statuses: params.statuses });
   const prestations = analyzeServices({ entries, ledger, year, targetHourlyRate });
-  const projection = projectYear({ entries, charges, year, now: params.now });
+  const projection = projectYear({
+    entries,
+    charges,
+    year,
+    mode: "projection",
+    now: params.now,
+  });
   const annuel = annualSummary(entries, charges, { now: params.now });
 
   // 1) Clients à contacter : dormants/à relancer du référentiel + clients rentables en recul.

@@ -95,7 +95,8 @@ const CONTRACTS: KpiContract[] = [
     excludes: ["Lignes de charge", "Investissements", "Rémunération dirigeant"],
     unit: "eur",
     calculationReference: "buildAnalytics → kpis.ca_annuel (src/lib/pilot-engine.ts)",
-    missingDataRule: "Aucune ligne : l'indicateur est affiché comme indisponible, jamais forcé à 0.",
+    missingDataRule:
+      "Aucune ligne : l'indicateur est affiché comme indisponible, jamais forcé à 0.",
     reliabilityStatus: "certifie",
   },
   {
@@ -118,12 +119,14 @@ const CONTRACTS: KpiContract[] = [
     category: "chiffre_affaires",
     source: ["pilot_ca_entries", "clients.entity_status"],
     period: FISCAL_YEAR,
-    scope: "CA porté par une entité économique exploitable (certification appliquée avant agrégation).",
+    scope:
+      "CA porté par une entité économique exploitable (certification appliquée avant agrégation).",
     filters: [REAL_FILTER, "Entité économique certifiée"],
     excludes: ["Ventes non rattachées à un client", "Fiches en attente de certification"],
     unit: "eur",
     calculationReference: "buildAnalytics → kpis.ca_analytique (src/lib/pilot-engine.ts)",
-    missingDataRule: "Certification incomplète : le KPI expose ses motifs et peut passer en attente de certification.",
+    missingDataRule:
+      "Certification incomplète : le KPI expose ses motifs et peut passer en attente de certification.",
     reliabilityStatus: "certifie",
   },
   {
@@ -136,8 +139,10 @@ const CONTRACTS: KpiContract[] = [
     filters: [REAL_FILTER],
     excludes: ["Mois postérieurs à aujourd'hui"],
     unit: "pct",
-    calculationReference: "buildAnalytics → ca.progressionPct (src/lib/pilot-engine.ts) ; comparaison : toDateVsSameDateLastYear (src/lib/pilot-compare.ts)",
-    missingDataRule: "Exercice précédent sans CA : progression non calculée (null), aucune valeur substituée.",
+    calculationReference:
+      "buildAnalytics → ca.progressionPct (src/lib/pilot-engine.ts) ; comparaison : toDateVsSameDateLastYear (src/lib/pilot-compare.ts)",
+    missingDataRule:
+      "Exercice précédent sans CA : progression non calculée (null), aucune valeur substituée.",
     reliabilityStatus: "certifie",
   },
   {
@@ -150,8 +155,10 @@ const CONTRACTS: KpiContract[] = [
     filters: [REAL_FILTER, "operatingCharges : charges d'exploitation uniquement"],
     excludes: ["Investissements (is_investment)", "Rémunération dirigeant"],
     unit: "eur",
-    calculationReference: "buildAnalytics → kpis.charges (src/lib/pilot-engine.ts) ; normalisation : operatingCharges (src/lib/pilot-charges.ts)",
-    missingDataRule: "Aucune charge enregistrée : l'exercice est signalé comme incomplet (chargesComplete = false).",
+    calculationReference:
+      "buildAnalytics → kpis.charges (src/lib/pilot-engine.ts) ; normalisation : operatingCharges (src/lib/pilot-charges.ts)",
+    missingDataRule:
+      "Aucune charge enregistrée : l'exercice est signalé comme incomplet (chargesComplete = false).",
     reliabilityStatus: "certifie",
   },
   {
@@ -165,7 +172,8 @@ const CONTRACTS: KpiContract[] = [
     excludes: ["Investissements"],
     unit: "eur",
     calculationReference: "buildAnalytics → kpis.benefice_brut (src/lib/pilot-engine.ts)",
-    missingDataRule: "Aucune charge enregistrée : bénéfice non calculable (null) plutôt qu'égal au CA.",
+    missingDataRule:
+      "Aucune charge enregistrée : bénéfice non calculable (null) plutôt qu'égal au CA.",
     reliabilityStatus: "certifie",
   },
   {
@@ -192,7 +200,8 @@ const CONTRACTS: KpiContract[] = [
     filters: [REAL_FILTER],
     excludes: ["Charges non qualifiées d'investissement"],
     unit: "eur",
-    calculationReference: "buildAnalytics → kpis.resultat_apres_investissements (src/lib/pilot-engine.ts)",
+    calculationReference:
+      "buildAnalytics → kpis.resultat_apres_investissements (src/lib/pilot-engine.ts)",
     missingDataRule: "Charges absentes : résultat non calculable (null).",
     reliabilityStatus: "certifie",
   },
@@ -207,7 +216,8 @@ const CONTRACTS: KpiContract[] = [
     excludes: ["Années sans donnée (jamais inventées)"],
     unit: "eur",
     calculationReference: "annualSummary (src/lib/pilot-annual.ts)",
-    missingDataRule: "Exercice sans charge : marqué chargesComplete = false et exclu des lectures de marge.",
+    missingDataRule:
+      "Exercice sans charge : marqué chargesComplete = false et exclu des lectures de marge.",
     reliabilityStatus: "certifie",
   },
   {
@@ -218,10 +228,15 @@ const CONTRACTS: KpiContract[] = [
     period: FISCAL_YEAR,
     scope: "Colonne Temps des lignes de vente de l'exercice — source unique des heures.",
     filters: [REAL_FILTER, "Temps comptabilisé dès le statut Facturé"],
-    excludes: ["interventions.hours_spent", "pilot_historic_hours", "Heures estimées ou reconstituées"],
+    excludes: [
+      "interventions.hours_spent",
+      "pilot_historic_hours",
+      "Heures estimées ou reconstituées",
+    ],
     unit: "heures",
     calculationReference: "resolveRealHours → vendues (src/lib/pilot-real-hours.ts)",
-    missingDataRule: "Aucune heure saisie : 0 h est une valeur métier valide (ventes SST), pas une absence de donnée.",
+    missingDataRule:
+      "Aucune heure saisie : 0 h est une valeur métier valide (ventes SST), pas une absence de donnée.",
     reliabilityStatus: "certifie",
   },
   {
@@ -235,7 +250,8 @@ const CONTRACTS: KpiContract[] = [
     excludes: ["Toute autre source d'heures"],
     unit: "heures",
     calculationReference: "resolveRealHours → hours (src/lib/pilot-real-hours.ts)",
-    missingDataRule: "Aucune heure Vente → Temps : indicateur indisponible (null), aucun repli sur l'historique.",
+    missingDataRule:
+      "Aucune heure Vente → Temps : indicateur indisponible (null), aucun repli sur l'historique.",
     reliabilityStatus: "certifie",
   },
   {
@@ -248,7 +264,8 @@ const CONTRACTS: KpiContract[] = [
     filters: [REAL_FILTER, "saleRateScope : CA et temps issus des mêmes lignes"],
     excludes: ["Lignes hors périmètre du taux", "Charges"],
     unit: "eur_heure",
-    calculationReference: "buildAnalytics → kpis.taux_horaire_vendu (src/lib/pilot-engine.ts) ; périmètre : saleRateScope (src/lib/pilot-sale-time.ts)",
+    calculationReference:
+      "buildAnalytics → kpis.taux_horaire_vendu (src/lib/pilot-engine.ts) ; périmètre : saleRateScope (src/lib/pilot-sale-time.ts)",
     missingDataRule: "Temps interne nul : taux non produit (null) plutôt qu'une division forcée.",
     reliabilityStatus: "certifie",
   },
@@ -258,12 +275,14 @@ const CONTRACTS: KpiContract[] = [
     category: "rentabilite",
     source: ["pilot_ca_entries", "pilot_ca_entries.hours (Vente → Temps)"],
     period: FISCAL_YEAR,
-    scope: "CA du périmètre ÷ temps interne du même périmètre (ventes SST à 0 h : CA compté, 0 h ajoutée).",
+    scope:
+      "CA du périmètre ÷ temps interne du même périmètre (ventes SST à 0 h : CA compté, 0 h ajoutée).",
     filters: [REAL_FILTER, "Certification du référentiel en mode strict"],
     excludes: ["Heures hors Vente → Temps"],
     unit: "eur_heure",
     calculationReference: "buildAnalytics → kpis.taux_horaire_reel (src/lib/pilot-engine.ts)",
-    missingDataRule: "Référentiel non certifié en mode strict : indicateur mis en attente de certification.",
+    missingDataRule:
+      "Référentiel non certifié en mode strict : indicateur mis en attente de certification.",
     reliabilityStatus: "certifie",
   },
   {
@@ -276,8 +295,10 @@ const CONTRACTS: KpiContract[] = [
     filters: [REAL_FILTER, "Entités économiques certifiées"],
     excludes: ["Ventes non rattachées", "Fiches non certifiées"],
     unit: "nombre",
-    calculationReference: "buildAnalytics → kpis.classement_clients (src/lib/pilot-engine.ts) ; portefeuille : buildPortfolio (src/lib/pilot-portfolio.ts)",
-    missingDataRule: "Aucune entité certifiée : classement vide et motifs de certification affichés.",
+    calculationReference:
+      "buildAnalytics → kpis.classement_clients (src/lib/pilot-engine.ts) ; portefeuille : buildPortfolio (src/lib/pilot-portfolio.ts)",
+    missingDataRule:
+      "Aucune entité certifiée : classement vide et motifs de certification affichés.",
     reliabilityStatus: "certifie",
   },
   {
@@ -290,7 +311,8 @@ const CONTRACTS: KpiContract[] = [
     filters: ["Certification du référentiel"],
     excludes: ["Clients non certifiés"],
     unit: "nombre",
-    calculationReference: "buildAnalytics → kpis.score_client (src/lib/pilot-engine.ts) ; score : src/lib/client-score.ts",
+    calculationReference:
+      "buildAnalytics → kpis.score_client (src/lib/pilot-engine.ts) ; score : src/lib/client-score.ts",
     missingDataRule: "Référentiel incomplet : score mis en attente de certification.",
     reliabilityStatus: "certifie",
   },
@@ -300,13 +322,20 @@ const CONTRACTS: KpiContract[] = [
     category: "chiffre_affaires",
     source: ["pilot_ca_entries (kind = vente)"],
     period: "Exercice en cours, extrapolé à partir des mois écoulés.",
-    scope: "Périmètre exact de l'extrapolation à confirmer selon l'écran appelant (projectYear vs computeKpis.projection).",
+    scope:
+      "Mode transmis explicitement à projectYear : « reel » = réalisé à date sans extrapolation ; « projection » = réalisé à date + extrapolation des mois restants. Base réelle identique dans les deux modes (date ≤ date de référence).",
     filters: [REAL_FILTER],
-    excludes: ["Mode réel : la projection n'est pas un indicateur réalisé"],
+    excludes: [
+      "Mode réel : la projection n'est pas un indicateur réalisé",
+      "Investissements (is_investment) — exclus dans les deux chemins d'appel (règle buildAnalytics)",
+      "Rémunération dirigeant (kind = remuneration), suivie séparément",
+      "Saisies datées après la date de référence (jamais comptées comme réalisé)",
+    ],
     unit: "eur",
-    calculationReference: "projectYear (src/lib/pilot-projection.ts) ; variante historique : computeKpis → projection (src/lib/pilot.ts)",
+    calculationReference:
+      "projectYear (src/lib/pilot-projection.ts) ; variante historique : computeKpis → projection (src/lib/pilot.ts)",
     missingDataRule: "Données insuffisantes : projection non affichée en mode réel.",
-    reliabilityStatus: "a_documenter",
+    reliabilityStatus: "certifie",
   },
   {
     id: "sante_globale",
@@ -355,7 +384,8 @@ const CONTRACTS: KpiContract[] = [
     excludes: ["Aucune exclusion : le rapport couvre l'ensemble du référentiel"],
     unit: "pct",
     calculationReference: "buildDataQualityReport (src/lib/pilot-data-quality.ts)",
-    missingDataRule: "Lecture en erreur : le panneau affiche l'erreur et propose une nouvelle tentative, sans score de repli.",
+    missingDataRule:
+      "Lecture en erreur : le panneau affiche l'erreur et propose une nouvelle tentative, sans score de repli.",
     reliabilityStatus: "certifie",
   },
 ];
