@@ -32,8 +32,9 @@ type Mode = "top100" | "tous";
  */
 export function PortfolioExplorer({ entries, year }: { entries: PilotEntry[]; year: number }) {
   const { mode: pilotMode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const scoresQ = useQuery({ queryKey: ["client-economic-scores", period], queryFn: () => getClientEconomicScores({ mode: pilotMode, period }) });
-  const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year, pilotMode], queryFn: () => fetchHoursLedger(year, { mode: pilotMode }) });
+  const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year, pilotMode, period], queryFn: () => fetchHoursLedger(year, { mode: pilotMode, period }) });
   const statusesQ = useEntityStatuses();
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("top100");

@@ -41,11 +41,12 @@ export function DirectorInsightsCard({
   opportunities?: { pendingValue: number; acceptedValue: number; invoicedCa: number } | null;
 }) {
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const [expanded, setExpanded] = useState(false);
 
   const chargesQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year", mode], queryFn: () => listSalesByYear({ mode }) });
-  const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year, mode], queryFn: () => fetchHoursLedger(year, { mode }) });
+  const salesQ = useQuery({ queryKey: ["pilot-sales-by-year", mode, period], queryFn: () => listSalesByYear({ mode, period }) });
+  const ledgerQ = useQuery({ queryKey: ["pilot-hours-ledger", year, mode, period], queryFn: () => fetchHoursLedger(year, { mode, period }) });
   const scoresQ = useQuery({ queryKey: ["client-economic-scores", period], queryFn: () => getClientEconomicScores({ mode: mode, period }) });
   const statusesQ = useEntityStatuses();
 
@@ -58,8 +59,8 @@ export function DirectorInsightsCard({
     return buildDirectorInsights({
       k,
       settings,
-      annual: annualSummary(entries, chargeRows, { mode }),
-      charges: chargeRows.length > 0 ? analyzeCharges(chargeRows, sales, [], { mode }) : null,
+      annual: annualSummary(entries, chargeRows, { mode, period }),
+      charges: chargeRows.length > 0 ? analyzeCharges(chargeRows, sales, [], { mode, period }) : null,
       projection: chargeRows.length > 0 ? projectionBase(chargeRows, year, sales) : null,
       portfolio: buildPortfolio({ entries, ledger, scores: scoresQ.data ?? [], year, statuses: statusesQ.data }),
       hours: ledger.length > 0 ? resolveRealHours(ledger, year) : null,
