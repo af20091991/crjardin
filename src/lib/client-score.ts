@@ -7,6 +7,7 @@ import { fetchAllCaRows } from "@/lib/pilot-ca-fetch";
 import { entityEligibility } from "@/lib/pilot-entity-rules";
 import { hourlyRate, saleRateEligible, type SaleRateRow } from "@/lib/pilot-sale-time";
 import { accountedSale } from "@/lib/pilot-sale-accounting";
+import { keepRealizedYearMonth, type AsOfOptions } from "@/lib/pilot-realized";
 
 // ---------- Règles de classement (ajustables) ----------
 export const SCORE_RULES = {
@@ -244,14 +245,14 @@ async function fetchAggregates() {
   };
 }
 
-export async function getClientEconomicScores(): Promise<ClientScore[]> {
+export async function getClientEconomicScores(options?: AsOfOptions): Promise<ClientScore[]> {
   const [{ ca, opps, clients }, settings] = await Promise.all([
     fetchAggregates(),
     getSettings().catch(() => null),
   ]);
   const target =
     settings?.target_hourly_rate ?? DEFAULT_SETTINGS.target_hourly_rate;
-  const yr = currentYear();
+  const yr = currentYear(options?.now);
 
   const map = new Map<
     string,
@@ -319,6 +320,9 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
       e.lastInterventionAt = saleDate;
     }
     if (Number(r.year) !== yr) continue;
+    // Périmètre temporel central : « à date » par défaut, exercice complet
+    // uniquement sur choix explicite de l'utilisateur.
+    if (!keepRealizedYearMonth({ year: Number(r.year), month: Number(r.month) }, options)) continue;
     e.revenueYearHt += ht;
     // Périmètre temporel verrouillé : heures ET CA du taux horaire portent sur
     // les seules lignes de vente de l'exercice courant (source unique
@@ -397,6 +401,7 @@ export async function getClientEconomicScores(): Promise<ClientScore[]> {
 
 export async function getClientEconomicScore(
   clientId: string,
+  options?: AsOfOptions,
 ): Promise<ClientScore | null> {
   // Requêtes ciblées sur un seul client — ne charge jamais tout le portefeuille.
   const [caRes, oppRes, clientRes, settings] = await Promise.all([
@@ -433,7 +438,7 @@ export async function getClientEconomicScore(
 
   const target =
     settings?.target_hourly_rate ?? DEFAULT_SETTINGS.target_hourly_rate;
-  const yr = currentYear();
+  const yr = currentYear(options?.now);
 
   let revenueTotalHt = 0;
   let revenueYearHt = 0;
@@ -450,6 +455,7 @@ export async function getClientEconomicScore(
       lastInterventionAt = saleDate;
     }
     if (Number(r.year) !== yr) continue;
+    if (!keepRealizedYearMonth({ year: Number(r.year), month: Number(r.month) }, options)) continue;
     revenueYearHt += ht;
     // Même exercice = même périmètre (CA + Temps de l'exercice courant).
     caLines += 1;
