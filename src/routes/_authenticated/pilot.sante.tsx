@@ -130,6 +130,31 @@ function SantePage() {
   });
 
   if (entries.isLoading) return <Skeleton className="h-64 rounded-xl" />;
+  if (chargeRowsQ.isLoading) return <Skeleton className="h-64 rounded-xl" />;
+  // Une erreur de chargement des charges ne doit JAMAIS devenir « 0 € de
+  // charges » : sans charges fiables, aucun score financier n'est publié.
+  if (chargeRowsQ.isError)
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <AlertTriangle className="h-4 w-4 text-destructive" /> Score Santé indisponible
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            Les lignes de charges n'ont pas pu être chargées : le score ne peut pas être calculé
+            sans elles (aucun calcul sur une base de charges vide).
+          </p>
+          <p className="rounded-md border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
+            {(chargeRowsQ.error as Error).message}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => void chargeRowsQ.refetch()}>
+            Réessayer
+          </Button>
+        </CardContent>
+      </Card>
+    );
 
   const meta = HEALTH_LEVEL_META[health.level];
   const R = 54;
