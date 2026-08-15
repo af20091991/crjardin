@@ -383,7 +383,10 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const hoursRes = resolveRealHours(ledger, year);
 
   // --- charges (source unique : pilot-charges) ---
-  const analysis = analyzeCharges(chargeAll, inputs.salesByYear, inputs.chargeCategories, { mode });
+  const analysis = analyzeCharges(chargeAll, inputs.salesByYear, inputs.chargeCategories, {
+    mode,
+    now,
+  });
   const yearCharges = analysis.years.find((y) => y.year === year);
   const operatingYear = operatingCharges(chargeAll).filter(
     (c) => c.year === year && !c.is_investment,
@@ -430,7 +433,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     unlinkedLines: yearEntries.filter((e) => !e.client_id).length,
   };
 
-  const annual = annualSummary(inputs.entries, inputs.chargeRows, { mode });
+  const annual = annualSummary(inputs.entries, inputs.chargeRows, { mode, now });
 
   // --- référentiel temps mensuel (taux horaire, jours, gestion) ---
   const gestionDefaut = inputs.tjmSettings?.heures_gestion ?? 60;
@@ -448,11 +451,12 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     entries: inputs.entries,
     charges: inputs.chargeRows.filter((r) => !r.is_investment),
     year,
+    now,
   });
   const isProjection = mode === "projection";
 
   // --- séries financières mensuelles ---
-  const chargesByMonth = monthlyChargeTotals(inputs.chargeRows, year, { mode });
+  const chargesByMonth = monthlyChargeTotals(inputs.chargeRows, year, { mode, now });
   const financeMonths = monthRows.map((m, i) => {
     const ca = Math.round(isProjection ? projection.monthly[i].ca : m.ca);
     const ch = Math.round(isProjection ? projection.monthly[i].charges : chargesByMonth[i]);
