@@ -1083,7 +1083,10 @@ function TodayPage() {
   const crToQualifyCount = crToQualify.size;
 
   // Écran de chargement : placé après tous les hooks (ordre des hooks stable).
-  if (loading) {
+  // Une ressource en erreur n'immobilise jamais l'écran : la page s'affiche
+  // avec l'état d'erreur explicite plutôt qu'un squelette permanent.
+  const anyError = dashboardStates.some((s) => s.status === "error");
+  if (loading && !anyError) {
     return (
       <div className="flex flex-col gap-3" aria-busy="true" role="status">
         <p className="text-sm text-muted-foreground">
