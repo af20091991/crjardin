@@ -67,13 +67,15 @@ describe("suggestClients", () => {
     expect(best.score).toBe(1);
   });
 
-  test("historique validé : rattachement de confiance haute", () => {
+  test("historique validé (alias sans ressemblance) : confiance haute", () => {
+    // L'index d'historique porte sur la désignation brute normalisée ; les
+    // suggestions le consultent après nettoyage des codes prestation.
     const index = buildDesignationIndex([
-      { designation: "REE 12 Adagios", client_id: "c1" },
-      { designation: "REE 12 Adagios", client_id: "c1" },
+      { designation: "Mairie du Bourg", client_id: "c1" },
+      { designation: "Mairie du Bourg", client_id: "c1" },
     ]);
-    expect(index.get("ree 12 adagios")).toEqual({ clientId: "c1", count: 2 });
-    const [best] = suggestClients({ designation: "REE 12 Adagios" }, CLIENTS, index);
+    expect(index.get("mairie du bourg")).toEqual({ clientId: "c1", count: 2 });
+    const [best] = suggestClients({ designation: "Mairie du Bourg" }, CLIENTS, index);
     expect(best.client.id).toBe("c1");
     expect(best.reason).toBe("historique");
     expect(best.confidence).toBe("haute");
