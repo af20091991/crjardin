@@ -1179,41 +1179,53 @@ function TodayPage() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <PilotCard
             label={`CA cumulé ${year}`}
-            value={formatEuro(caLecture)}
+            value={safeValue(caSources, () => formatEuro(caLecture)).value}
             icon={Euro}
             to="/pilot/ca"
             help="Cumul des lignes CA facturées depuis le 1er janvier, à date."
             sub={
-              toDateCompare.deltaPct != null
+              states.entries.status === "error"
+                ? "Comparaison indisponible : lignes CA non chargées"
+                : toDateCompare.deltaPct != null
                 ? `${toDateCompare.deltaPct >= 0 ? "+" : ""}${toDateCompare.deltaPct.toFixed(0)} % ${toDateCompare.label}`
                 : `Aucune référence à la même date en ${year - 1}`
             }
           />
           <PilotCard
             label="Bénéfice"
-            value={formatEuro(resultatLecture)}
+            value={safeValue(beneficeSources, () => formatEuro(resultatLecture)).value}
             icon={Wallet}
             to="/pilot/finance"
             help="Bénéfice = CA − charges d'exploitation hors investissements (moteur annualSummary)."
             tone={
-              resultatLecture <= 0
+              beneficeSources.some((s) => s.unreliable)
+                ? "default"
+                : resultatLecture <= 0
                 ? "warning"
                 : margeLecture != null && margeLecture >= thresholds.margeMin
                   ? "positive"
                   : "default"
             }
-            sub={`Charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`}
+            sub={
+              beneficeSources.some((s) => s.status === "error")
+                ? "Charges ou CA non chargés — valeur non calculable"
+                : `Charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`
+            }
           />
           <PilotCard
             label="Interventions réalisées"
-            value={String(interventionsAnnee)}
+            value={safeValue(itvSources, () => String(interventionsAnnee)).value}
             icon={Leaf}
             to="/interventions"
             help="Interventions terminées et enregistrées depuis le début de l'exercice."
           />
           <PilotCard
             label="Taux horaire réel"
-            value={realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible"}
+            value={
+              safeValue([states.entries, hoursLedgerState], () =>
+                realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible",
+              ).value
+            }
             icon={Gauge}
             to="/pilot/taux"
             help={realRate.available ? realRate.note : realRate.detail}
