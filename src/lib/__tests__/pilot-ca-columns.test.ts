@@ -8,13 +8,43 @@ import { charge, sale, NOW, YEAR } from "./pilot-fixtures";
 
 /** Colonnes réellement livrées par la table pilot_ca_entries. */
 const PILOT_CA_COLUMNS = new Set([
-  "id", "user_id", "year", "month", "kind", "designation", "amount_ht", "hours",
-  "is_fixed", "position", "created_at", "updated_at", "category", "note",
-  "client_id", "intervention_id", "raw_designation", "raw_category",
-  "raw_client_text", "source_file", "source_sheet", "source_row", "fiscal_tag",
-  "match_status", "match_score", "match_method", "matched_at", "charge_class",
-  "charge_category", "is_investment", "sale_status", "validation_status",
-  "validation_note", "validated_at", "site_id", "intervention_type", "*",
+  "id",
+  "user_id",
+  "year",
+  "month",
+  "kind",
+  "designation",
+  "amount_ht",
+  "hours",
+  "is_fixed",
+  "position",
+  "created_at",
+  "updated_at",
+  "category",
+  "note",
+  "client_id",
+  "intervention_id",
+  "raw_designation",
+  "raw_category",
+  "raw_client_text",
+  "source_file",
+  "source_sheet",
+  "source_row",
+  "fiscal_tag",
+  "match_status",
+  "match_score",
+  "match_method",
+  "matched_at",
+  "charge_class",
+  "charge_category",
+  "is_investment",
+  "sale_status",
+  "validation_status",
+  "validation_note",
+  "validated_at",
+  "site_id",
+  "intervention_type",
+  "*",
 ]);
 
 type Row = Record<string, unknown>;
@@ -69,7 +99,17 @@ describe("requêtes pilot_ca_entries", () => {
     errorTables = new Set();
     dataByTable = {
       pilot_ca_entries: [
-        { id: "c1", year: YEAR, month: 3, kind: "charge", designation: "Assurance", amount_ht: 1000, charge_class: "fixe", charge_category: "Assurances", is_investment: false },
+        {
+          id: "c1",
+          year: YEAR,
+          month: 3,
+          kind: "charge",
+          designation: "Assurance",
+          amount_ht: 1000,
+          charge_class: "fixe",
+          charge_category: "Assurances",
+          is_investment: false,
+        },
       ],
     };
     const rows = await chargesLib.listChargeRows();
@@ -79,7 +119,12 @@ describe("requêtes pilot_ca_entries", () => {
     expect(cols).not.toContain("entry_date");
     // Une ligne kind = charge est bien transformée en ChargeRow.
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ id: "c1", kind: "charge", amount_ht: 1000, charge_class: "fixe" });
+    expect(rows[0]).toMatchObject({
+      id: "c1",
+      kind: "charge",
+      amount_ht: 1000,
+      charge_class: "fixe",
+    });
   });
 
   test("fetchHoursLedger n'envoie aucune colonne inexistante et alimente Vente → Temps", async () => {
@@ -87,7 +132,18 @@ describe("requêtes pilot_ca_entries", () => {
     errorTables = new Set();
     dataByTable = {
       pilot_ca_entries: [
-        { id: "s1", year: YEAR, month: 3, hours: 12, designation: "Tonte", category: null, client_id: "cl1", raw_client_text: null, match_status: "auto", sale_status: "regle" },
+        {
+          id: "s1",
+          year: YEAR,
+          month: 3,
+          hours: 12,
+          designation: "Tonte",
+          category: null,
+          client_id: "cl1",
+          raw_client_text: null,
+          match_status: "auto",
+          sale_status: "regle",
+        },
       ],
       interventions: [],
       pilot_historic_hours: [],
@@ -111,17 +167,33 @@ describe("requêtes pilot_ca_entries", () => {
 });
 
 describe("charges réelles dans le calcul économique", () => {
-  const entries = [sale({ id: "v1", entry_date: `${YEAR}-03-10`, amount_ht: 10_000, hours: 100, client_id: "cl1" })];
+  const entries = [
+    sale({
+      id: "v1",
+      entry_date: `${YEAR}-03-10`,
+      amount_ht: 10_000,
+      hours: 100,
+      client_id: "cl1",
+    }),
+  ];
 
   test("une charge de 1 000 € apparaît dans annualSummary().charges", () => {
-    const rows = annualSummary(entries, [charge({ id: "c1", year: YEAR, month: 3, amount_ht: 1000 })], { mode: "reel", now: NOW });
+    const rows = annualSummary(
+      entries,
+      [charge({ id: "c1", year: YEAR, month: 3, amount_ht: 1000 })],
+      { mode: "reel", now: NOW },
+    );
     const y = rows.find((r) => r.year === YEAR)!;
     expect(y.charges).toBe(1000);
     expect(y.chargesComplete).toBe(true);
   });
 
   test("la marge n'est pas calculée comme si les charges étaient nulles", () => {
-    const y = annualSummary(entries, [charge({ id: "c1", year: YEAR, month: 3, amount_ht: 1000 })], { mode: "reel", now: NOW }).find((r) => r.year === YEAR)!;
+    const y = annualSummary(
+      entries,
+      [charge({ id: "c1", year: YEAR, month: 3, amount_ht: 1000 })],
+      { mode: "reel", now: NOW },
+    ).find((r) => r.year === YEAR)!;
     expect(y.beneficeBrut).toBe(9000);
     expect(y.margePct).toBeCloseTo(90, 5);
   });
@@ -141,7 +213,10 @@ describe("charges réelles dans le calcul économique", () => {
   test("une charge future est exclue de la photographie à date", () => {
     const y = annualSummary(
       entries,
-      [charge({ id: "c1", year: YEAR, month: 3, amount_ht: 1000 }), charge({ id: "c2", year: YEAR, month: 12, amount_ht: 5000 })],
+      [
+        charge({ id: "c1", year: YEAR, month: 3, amount_ht: 1000 }),
+        charge({ id: "c2", year: YEAR, month: 12, amount_ht: 5000 }),
+      ],
       { mode: "reel", now: NOW },
     ).find((r) => r.year === YEAR)!;
     expect(y.charges).toBe(1000);
@@ -150,7 +225,10 @@ describe("charges réelles dans le calcul économique", () => {
   test("les investissements restent hors charges d'exploitation", () => {
     const y = annualSummary(
       entries,
-      [charge({ id: "c1", year: YEAR, month: 3, amount_ht: 1000 }), charge({ id: "i1", year: YEAR, month: 3, amount_ht: 3000, is_investment: true })],
+      [
+        charge({ id: "c1", year: YEAR, month: 3, amount_ht: 1000 }),
+        charge({ id: "i1", year: YEAR, month: 3, amount_ht: 3000, is_investment: true }),
+      ],
       { mode: "reel", now: NOW },
     ).find((r) => r.year === YEAR)!;
     expect(y.charges).toBe(1000);
@@ -161,7 +239,10 @@ describe("charges réelles dans le calcul économique", () => {
   test("la rémunération dirigeant reste hors charges d'exploitation", () => {
     const y = annualSummary(
       entries,
-      [charge({ id: "c1", year: YEAR, month: 3, amount_ht: 1000 }), charge({ id: "r1", year: YEAR, month: 3, amount_ht: 2000, kind: "remuneration" })],
+      [
+        charge({ id: "c1", year: YEAR, month: 3, amount_ht: 1000 }),
+        charge({ id: "r1", year: YEAR, month: 3, amount_ht: 2000, kind: "remuneration" }),
+      ],
       { mode: "reel", now: NOW },
     ).find((r) => r.year === YEAR)!;
     expect(y.charges).toBe(1000);
