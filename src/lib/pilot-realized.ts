@@ -26,6 +26,17 @@ export function rowDateFromYearMonth(year: number, month: number): string {
 
 export type RealProjectionMode = "reel" | "projection";
 
+/**
+ * Options communes à TOUS les calculs du réalisé : mode de lecture et date de
+ * référence injectable (tests, rapports antidatés). Aucun moteur ne doit
+ * réintroduire son propre `new Date()` : la date de référence descend depuis
+ * l'appelant, jusqu'au filtre central ci-dessous.
+ */
+export interface AsOfOptions {
+  mode?: RealProjectionMode;
+  now?: Date;
+}
+
 /** Date comptable unique pour toutes les lignes mensuelles PP. */
 export function accountingDateFromYearMonth(year: number, month: number): string {
   return rowDateFromYearMonth(year, month);
