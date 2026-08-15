@@ -19,9 +19,10 @@
 // Différence observée et protégée par les tests ci-dessous :
 //   · investissements : exclus dans l'appel du moteur, PAS exclus lors d'un
 //     appel direct à `projectYear` (seule la rémunération l'est) ;
-//   · le filtre « réel » interne de `projectYear` est relatif à la date SYSTÈME
-//     du moment (et non au périmètre demandé) : sur un exercice clos, toutes
-//     les lignes de l'année sont donc observées, décembre inclus.
+//   · le filtre « réel » interne de `projectYear` s'appuie désormais sur la
+//     DATE DE RÉFÉRENCE transmise par l'appelant (`now`), comme tous les
+//     indicateurs réalisés. Reste à documenter : le nombre de mois observés
+//     est déduit de cette date de référence et non du mode du périmètre.
 // ---------------------------------------------------------------------------
 import { describe, expect, test } from "bun:test";
 import { projectYear } from "@/lib/pilot-projection";
@@ -103,16 +104,17 @@ describe("projection_annuelle — divergence de périmètre (à documenter)", ()
     expect(snap.projection.chargesReelles).not.toBe(direct.chargesReelles);
   });
 
-  test("le KPI CA et la projection reposent sur deux filtres distincts", () => {
+  test("le KPI CA et la projection partagent la date de référence", () => {
     // KPI : périmètre du mode demandé (ici projection ⇒ 12 mois de l'exercice).
     expect(snap.kpis.ca_annuel.value).toBe(2_000);
-    // Projection : re-filtrage interne « réel » relatif à la date système,
-    // indépendant du mode transmis par l'écran. Statut : à documenter.
+    // Projection : re-filtrage interne « réel » relatif à la date de référence
+    // injectée (15/08), indépendant du mode transmis par l'écran.
     expect(snap.projection.caReel).toBe(2_000);
     expect(snap.projection.method).toBe("moyenne");
-    // Mois observés : dernier mois portant une donnée (2), et non 12, alors que
-    // l'exercice est clos — le moteur extrapole donc 10 mois inexistants.
-    expect(snap.projection.monthsObserved).toBe(2);
-    expect(snap.projection.caProjete).toBe(12_000);
+    // Mois observés : mois de la date de référence (août ⇒ 8), le moteur
+    // extrapole donc les 4 mois restants. Écart restant à documenter : le mode
+    // « projection » de l'écran ne change pas ce périmètre interne.
+    expect(snap.projection.monthsObserved).toBe(8);
+    expect(snap.projection.caProjete).toBe(3_000);
   });
 });
