@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { isRealizedMonth } from "@/lib/pilot-realized";
+import { keepRealizedYearMonth, type AsOfOptions } from "@/lib/pilot-realized";
 import { employerCost, splitRemuneration } from "@/lib/pilot-remuneration";
 
 /** Nature d'une charge. `a_classer` = non reconnue automatiquement, jamais devinée. */
@@ -112,11 +112,11 @@ export function investmentsByYear(rows: ChargeRow[]): Map<number, number> {
 }
 
 /** CA HT (ventes) par année — sert au poids des charges dans le CA. */
-export async function listSalesByYear(options?: { mode?: "reel" | "projection" }): Promise<Map<number, number>> {
+export async function listSalesByYear(options?: AsOfOptions): Promise<Map<number, number>> {
   const raw = await fetchAll(["vente"]);
   const m = new Map<number, number>();
   for (const r of raw) {
-    if (options?.mode !== "projection" && !isRealizedMonth(r.year, r.month)) continue;
+    if (!keepRealizedYearMonth(r, options)) continue;
     m.set(r.year, (m.get(r.year) ?? 0) + (Number(r.amount_ht) || 0));
   }
   return m;
@@ -197,9 +197,9 @@ function monthsIn(rows: ChargeRow[]): number {
 export function operatingChargesForYear(
   rows: ChargeRow[],
   year: number,
-  options?: { mode?: "reel" | "projection" },
+  options?: AsOfOptions,
 ): ChargeRow[] {
-  const scoped = options?.mode === "projection" ? rows : rows.filter((r) => isRealizedMonth(r.year, r.month));
+  const scoped = rows.filter((r) => keepRealizedYearMonth(r, options));
   return splitRemuneration(scoped.filter((r) => r.year === year && !r.is_investment)).charges;
 }
 
@@ -207,7 +207,7 @@ export function operatingChargesForYear(
 export function chargesTotalForYear(
   rows: ChargeRow[],
   year: number,
-  options?: { mode?: "reel" | "projection" },
+  options?: AsOfOptions,
 ): number {
   return operatingChargesForYear(rows, year, options).reduce((s, r) => s + r.amount_ht, 0);
 }
@@ -216,9 +216,9 @@ export function analyzeCharges(
   allRows: ChargeRow[],
   salesByYear: Map<number, number>,
   categoryLabels: string[],
-  options?: { mode?: "reel" | "projection" },
+  options?: AsOfOptions,
 ): ChargesAnalysis {
-  const scopedRows = options?.mode === "projection" ? allRows : allRows.filter((r) => isRealizedMonth(r.year, r.month));
+  const scopedRows = allRows.filter((r) => keepRealizedYearMonth(r, options));
   const nonInvest = scopedRows.filter((r) => !r.is_investment);
   // La rémunération dirigeant sort du classement charges fixes / variables.
   const { charges: rows, remuneration: remuRows } = splitRemuneration(nonInvest);
@@ -325,10 +325,11 @@ export function projectionBase(
   allRows: ChargeRow[],
   year: number,
   salesByYear: Map<number, number>,
+  options?: AsOfOptions,
 ): ProjectionBase {
-  const yr = operatingChargesForYear(allRows, year);
+  const yr = operatingChargesForYear(allRows, year, { now: options?.now });
   const invest = allRows
-    .filter((r) => r.year === year && r.is_investment && isRealizedMonth(r.year, r.month))
+    .filter((r) => r.year === year && r.is_investment && keepRealizedYearMonth(r, { now: options?.now }))
     .reduce((s, r) => s + r.amount_ht, 0);
   const sum = (cls: ChargeClass) =>
     yr.filter((r) => r.charge_class === cls).reduce((s, r) => s + r.amount_ht, 0);
@@ -415,7 +416,7 @@ export function priorityTrend(analysis: ChargesAnalysis): Array<Record<string, s
 export function monthlyChargeTotals(
   rows: ChargeRow[],
   year: number,
-  options?: { mode?: "reel" | "projection" },
+  options?: AsOfOptions,
 ): number[] {
   const arr = Array(12).fill(0) as number[];
   for (const r of operatingChargesForYear(rows, year, options)) {
@@ -428,9 +429,9 @@ export function monthlyChargeTotals(
 export function investmentsForYear(
   rows: ChargeRow[],
   year: number,
-  options?: { mode?: "reel" | "projection" },
+  options?: AsOfOptions,
 ): number {
-  const scoped = options?.mode === "projection" ? rows : rows.filter((r) => isRealizedMonth(r.year, r.month));
+  const scoped = rows.filter((r) => keepRealizedYearMonth(r, options));
   return scoped
     .filter((r) => r.year === year && r.is_investment)
     .reduce((s, r) => s + r.amount_ht, 0);
