@@ -215,6 +215,49 @@ function TodayPage() {
     clientActivity.isLoading ||
     hoursLedger.isLoading;
 
+  // États typés des ressources du tableau de bord : aucune requête n'est
+  // convertie silencieusement en liste vide, chaque échec reste visible et
+  // peut être relancé de façon ciblée.
+  const interventionsState = resourceState(
+    "interventions-all",
+    "Interventions",
+    interventions,
+  );
+  const recosState = resourceState("recommendations-all", "Recommandations", recos);
+  const goalsState = resourceState("pilot-goals", "Objectifs", goals);
+  const hoursLedgerState = resourceState("pilot-hours-ledger", "Heures (Vente → Temps)", hoursLedger);
+  const chargeRowsState = resourceState("pilot-charge-rows", "Lignes de charges", chargeRows);
+  const clientActivityState = resourceState("client-activity-rows", "Activité clients", clientActivity);
+  const ceevState = resourceState("ceev-contracts", "Contrats CEEV", ceevContracts);
+  const offersState = resourceState("nbo-priority", "Opportunités (offres)", priorityOffers);
+  const historicHoursState = resourceState(
+    "pilot-historic-hours",
+    "Heures historiques (consultation)",
+    historicHours,
+  );
+  const orphanState = resourceState("pilot-ca-orphan-count", "Rapprochement CA", orphanCount, () => false);
+  const dashboardStates: DataState[] = [
+    states.entries,
+    states.charges,
+    states.settings,
+    states.clients,
+    interventionsState,
+    recosState,
+    goalsState,
+    hoursLedgerState,
+    chargeRowsState,
+    clientActivityState,
+    ceevState,
+    offersState,
+    historicHoursState,
+    orphanState,
+  ];
+  // Indicateurs : valeur affichée uniquement si ses sources sont disponibles.
+  const caSources = [states.entries];
+  const beneficeSources = [states.entries, chargeRowsState];
+  const itvSources = [interventionsState];
+  const hoursSources = [states.entries];
+
   // Politique compte-rendu par client : seul un client « Oui » génère une action CR.
   const reportPolicyById = useMemo(() => {
     const map = new Map<string, string>();
