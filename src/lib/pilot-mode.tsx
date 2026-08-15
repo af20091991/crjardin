@@ -5,11 +5,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { RealProjectionMode } from "@/lib/pilot-realized";
+import { DEFAULT_PERIOD_MODE, type PeriodMode } from "@/lib/pilot-realized";
 
 export type PilotMode = RealProjectionMode;
 
 const YEAR_KEY = "pp.year.v1";
 const STRICT_KEY = "pp.strict.v1";
+const PERIOD_KEY = "pp.period.v1";
 
 interface PilotCtx {
   /** Toujours « reel » : Pilot Pro n'affiche que des données enregistrées. */
@@ -19,6 +21,12 @@ interface PilotCtx {
   /** Certification stricte : aucun KPI stratégique sur données non certifiées. */
   strict: boolean;
   setStrict: (v: boolean) => void;
+  /**
+   * Périmètre temporel de lecture. `a_date` par défaut : jamais l'exercice
+   * complet sans choix explicite de l'utilisateur.
+   */
+  period: PeriodMode;
+  setPeriod: (p: PeriodMode) => void;
 }
 
 export const RealProjectionContext = createContext<PilotCtx>({
@@ -27,11 +35,14 @@ export const RealProjectionContext = createContext<PilotCtx>({
   setYear: () => {},
   strict: false,
   setStrict: () => {},
+  period: DEFAULT_PERIOD_MODE,
+  setPeriod: () => {},
 });
 
 export function PilotModeProvider({ children }: { children: ReactNode }) {
   const [year, setYearState] = useState<number>(() => new Date().getFullYear());
   const [strict, setStrictState] = useState(false);
+  const [period, setPeriodState] = useState<PeriodMode>(DEFAULT_PERIOD_MODE);
 
   useEffect(() => {
     try {
@@ -40,6 +51,13 @@ export function PilotModeProvider({ children }: { children: ReactNode }) {
       const rawYear = Number(window.localStorage.getItem(YEAR_KEY));
       if (rawYear >= 2015 && rawYear <= 2100) setYearState(rawYear);
       setStrictState(window.localStorage.getItem(STRICT_KEY) === "1");
+      // Le périmètre « exercice complet » n'est restauré que s'il a été choisi
+      // explicitement : toute autre valeur retombe sur « à date ».
+      setPeriodState(
+        window.localStorage.getItem(PERIOD_KEY) === "exercice_complet"
+          ? "exercice_complet"
+          : "a_date",
+      );
     } catch {
       /* stockage indisponible */
     }
@@ -63,9 +81,18 @@ export function PilotModeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setPeriod = useCallback((p: PeriodMode) => {
+    setPeriodState(p);
+    try {
+      window.localStorage.setItem(PERIOD_KEY, p);
+    } catch {
+      /* stockage indisponible */
+    }
+  }, []);
+
   const value = useMemo(
-    () => ({ mode: "reel" as PilotMode, year, setYear, strict, setStrict }),
-    [year, setYear, strict, setStrict],
+    () => ({ mode: "reel" as PilotMode, year, setYear, strict, setStrict, period, setPeriod }),
+    [year, setYear, strict, setStrict, period, setPeriod],
   );
   return <RealProjectionContext.Provider value={value}>{children}</RealProjectionContext.Provider>;
 }
@@ -86,8 +113,14 @@ export function usePilotStrict() {
   return { strict, setStrict };
 }
 
+/** Périmètre temporel partagé (« à date » par défaut / « exercice complet »). */
+export function usePilotPeriod() {
+  const { period, setPeriod } = useContext(RealProjectionContext);
+  return { period, setPeriod };
+}
+
 /** Périmètre d'analyse unique (exercice + mode + certification). */
 export function usePilotScope() {
-  const { year, mode, strict } = useContext(RealProjectionContext);
-  return { year, mode, strict };
+  const { year, mode, strict, period } = useContext(RealProjectionContext);
+  return { year, mode, strict, period };
 }

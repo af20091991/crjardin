@@ -27,6 +27,27 @@ export function rowDateFromYearMonth(year: number, month: number): string {
 export type RealProjectionMode = "reel" | "projection";
 
 /**
+ * MODÈLE DE PÉRIODE CENTRAL (unique dans tout Pilot Pro).
+ *
+ * - `a_date` (défaut partout) : du 1er janvier jusqu'à AUJOURD'HUI inclus.
+ *   Aucune donnée postérieure au jour de consultation n'est comptabilisée,
+ *   aucun mois futur n'apparaît dans le réalisé.
+ * - `exercice_complet` : lecture intégrale de l'exercice sélectionné, activable
+ *   UNIQUEMENT par un choix explicite et visible de l'utilisateur.
+ *
+ * Une projection reste un objet séparé (`projectYear`, mode « projection ») :
+ * elle n'est jamais fusionnée avec le réalisé.
+ */
+export type PeriodMode = "a_date" | "exercice_complet";
+
+export const DEFAULT_PERIOD_MODE: PeriodMode = "a_date";
+
+export const PERIOD_LABELS: Record<PeriodMode, string> = {
+  a_date: "À date",
+  exercice_complet: "Exercice complet",
+};
+
+/**
  * Options communes à TOUS les calculs du réalisé : mode de lecture et date de
  * référence injectable (tests, rapports antidatés). Aucun moteur ne doit
  * réintroduire son propre `new Date()` : la date de référence descend depuis
@@ -35,6 +56,29 @@ export type RealProjectionMode = "reel" | "projection";
 export interface AsOfOptions {
   mode?: RealProjectionMode;
   now?: Date;
+  /** Périmètre temporel demandé par l'écran (défaut : `a_date`). */
+  period?: PeriodMode;
+}
+
+/**
+ * Vrai quand la lecture n'est PAS bornée au jour courant : soit l'utilisateur a
+ * explicitement demandé l'exercice complet, soit on lit une projection.
+ * Jamais déduit d'une simple sélection d'année.
+ */
+export function isUnboundedPeriod(options?: AsOfOptions): boolean {
+  return options?.mode === "projection" || options?.period === "exercice_complet";
+}
+
+/** Libellé visible du périmètre temporel appliqué à un exercice. */
+export function periodScopeLabel(
+  year: number,
+  period: PeriodMode = DEFAULT_PERIOD_MODE,
+  now = new Date(),
+): string {
+  if (period === "exercice_complet") return `Exercice ${year} complet (1er janvier → 31 décembre)`;
+  if (year < now.getFullYear()) return `Exercice ${year} clôturé`;
+  if (year > now.getFullYear()) return `Exercice ${year} à venir — aucun réalisé`;
+  return `Exercice ${year} à date (1er janvier → ${now.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} inclus)`;
 }
 
 /** Date comptable unique pour toutes les lignes mensuelles PP. */
@@ -55,8 +99,9 @@ export function isVisibleInMode(params: {
   date: string | null | undefined;
   mode?: RealProjectionMode;
   now?: Date;
+  period?: PeriodMode;
 }): boolean {
-  if (params.mode === "projection") return true;
+  if (isUnboundedPeriod(params)) return true;
   return isRealizedAccountingDate(params.date, params.now);
 }
 
@@ -79,7 +124,7 @@ export function keepRealizedYearMonth(
   row: { year: number; month: number; entry_date?: string | null },
   options?: AsOfOptions,
 ): boolean {
-  if (options?.mode === "projection") return true;
+  if (isUnboundedPeriod(options)) return true;
   // Les lignes de vente/charge qui portent leur date réelle doivent être
   // bornées au JOUR de référence. Le couple année/mois reste le repli pour les
   // sources réellement mensuelles qui ne disposent d'aucune date plus précise.
@@ -99,8 +144,9 @@ export function entriesForMode<T extends Pick<PilotEntry, "entry_date">>(
   entries: T[],
   mode: RealProjectionMode = "reel",
   now = new Date(),
+  period: PeriodMode = DEFAULT_PERIOD_MODE,
 ): T[] {
-  return mode === "projection" ? entries : realizedEntries(entries, now);
+  return isUnboundedPeriod({ mode, period }) ? entries : realizedEntries(entries, now);
 }
 
 /** Lignes de charges réellement constatées à date (exclut les mois futurs). */
@@ -112,8 +158,9 @@ export function chargeRowsForMode(
   rows: ChargeRow[],
   mode: RealProjectionMode = "reel",
   now = new Date(),
+  period: PeriodMode = DEFAULT_PERIOD_MODE,
 ): ChargeRow[] {
-  return mode === "projection" ? rows : realizedChargeRows(rows, now);
+  return isUnboundedPeriod({ mode, period }) ? rows : realizedChargeRows(rows, now);
 }
 
 /** Heures réellement exploitables à date : aucune ligne CA/intervention future. */
@@ -135,8 +182,9 @@ export function hoursLedgerForMode(
   rows: HoursLedgerEntry[],
   mode: RealProjectionMode = "reel",
   now = new Date(),
+  period: PeriodMode = DEFAULT_PERIOD_MODE,
 ): HoursLedgerEntry[] {
-  return mode === "projection" ? rows : realizedHoursLedger(rows, now);
+  return isUnboundedPeriod({ mode, period }) ? rows : realizedHoursLedger(rows, now);
 }
 
 /** Objectifs visibles dans le réel : aucun objectif futur ne pénalise le score. */
@@ -153,6 +201,7 @@ export function goalsForMode(
   goals: Goal[],
   mode: RealProjectionMode = "reel",
   now = new Date(),
+  period: PeriodMode = DEFAULT_PERIOD_MODE,
 ): Goal[] {
-  return mode === "projection" ? goals : realizedGoals(goals, now);
+  return isUnboundedPeriod({ mode, period }) ? goals : realizedGoals(goals, now);
 }

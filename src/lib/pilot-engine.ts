@@ -80,8 +80,11 @@ import {
 } from "@/lib/pilot-entity-rules";
 import {
   chargeRowsForMode,
+  DEFAULT_PERIOD_MODE,
   entriesForMode,
   hoursLedgerForMode,
+  periodScopeLabel,
+  type PeriodMode,
   type RealProjectionMode,
 } from "@/lib/pilot-realized";
 import type { KpiAudit } from "@/lib/pilot-kpi-audit";
@@ -95,6 +98,11 @@ export interface EngineScope {
   mode: EngineMode;
   /** Certification stricte : aucune analyse stratégique sur données non certifiées. */
   strict: boolean;
+  /**
+   * Périmètre temporel : `a_date` (défaut, borné à aujourd'hui inclus) ou
+   * `exercice_complet` uniquement sur choix explicite de l'utilisateur.
+   */
+  period?: PeriodMode;
 }
 
 export interface EngineInputs {
@@ -118,6 +126,7 @@ export interface EngineInputs {
 
 /** ÉTAPE 1-2 : lecture des sources officielles (une seule fois, pour tous les écrans). */
 export async function loadEngineInputs(scope: EngineScope): Promise<EngineInputs> {
+  const asOf = { mode: scope.mode, period: scope.period };
   const [
     entries,
     chargeRows,
@@ -135,17 +144,17 @@ export async function loadEngineInputs(scope: EngineScope): Promise<EngineInputs
   ] = await Promise.all([
     listEntries(),
     listChargeRows(),
-    fetchHoursLedger(undefined, { mode: scope.mode }),
+    fetchHoursLedger(undefined, asOf),
     getClientEconomicScores(),
     fetchEntityStatuses(),
-    listSalesByYear({ mode: scope.mode }),
+    listSalesByYear(asOf),
     getSettings(),
     listHours(scope.year),
-    monthlyCaTotals(scope.year, { mode: scope.mode }),
-    monthlyFieldHours(scope.year, { mode: scope.mode }),
+    monthlyCaTotals(scope.year, asOf),
+    monthlyFieldHours(scope.year, asOf),
     getTjmSettings(),
     listChargeCategories(),
-    fetchConfirmedHoursByClient(scope.year - 1, { mode: "reel" }),
+    fetchConfirmedHoursByClient(scope.year - 1, { mode: "reel", period: "exercice_complet" }),
   ]);
   return {
     scope,
@@ -329,7 +338,8 @@ export interface AnalyticsSnapshot {
 const MONTH_COUNT = 12;
 
 function ytdLimit(scope: EngineScope, now: Date): number {
-  if (scope.mode === "projection") return 12;
+  // Exercice complet explicite ou projection : lecture 12 mois.
+  if (scope.mode === "projection" || scope.period === "exercice_complet") return 12;
   if (scope.year < now.getFullYear()) return 12;
   if (scope.year > now.getFullYear()) return 0;
   return now.getMonth() + 1;
@@ -345,10 +355,11 @@ const monthOf = (iso: string) => Number(iso.slice(5, 7));
 export function buildAnalytics(inputs: EngineInputs, now = new Date()): AnalyticsSnapshot {
   const { scope, statuses } = inputs;
   const { year, mode, strict } = scope;
+  const period: PeriodMode = scope.period ?? DEFAULT_PERIOD_MODE;
 
   // --- validation des sources (réel = date comptable ≤ aujourd'hui) ---
-  const entries = entriesForMode(inputs.entries, mode, now);
-  const chargeAll = chargeRowsForMode(inputs.chargeRows, mode, now);
+  const entries = entriesForMode(inputs.entries, mode, now, period);
+  const chargeAll = chargeRowsForMode(inputs.chargeRows, mode, now, period);
 
   // --- certification AVANT calcul ---
   const eligible = (clientId: string | null) =>
@@ -384,7 +395,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   }));
 
   // --- heures consolidées (source unique : ledger) ---
-  const ledger = hoursLedgerForMode(inputs.ledger, mode, now).filter(
+  const ledger = hoursLedgerForMode(inputs.ledger, mode, now, period).filter(
     (l) => !strict || l.clientId == null || eligible(l.clientId),
   );
   const hoursRes = resolveRealHours(ledger, year);
@@ -393,6 +404,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const analysis = analyzeCharges(chargeAll, inputs.salesByYear, inputs.chargeCategories, {
     mode,
     now,
+    period,
   });
   const yearCharges = analysis.years.find((y) => y.year === year);
   const operatingYear = operatingCharges(chargeAll).filter(
@@ -440,7 +452,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     unlinkedLines: yearEntries.filter((e) => !e.client_id).length,
   };
 
-  const annual = annualSummary(inputs.entries, inputs.chargeRows, { mode, now });
+  const annual = annualSummary(inputs.entries, inputs.chargeRows, { mode, now, period });
 
   // --- référentiel temps mensuel (taux horaire, jours, gestion) ---
   const gestionDefaut = inputs.tjmSettings?.heures_gestion ?? 60;
@@ -467,7 +479,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const isProjection = mode === "projection";
 
   // --- séries financières mensuelles ---
-  const chargesByMonth = monthlyChargeTotals(inputs.chargeRows, year, { mode, now });
+  const chargesByMonth = monthlyChargeTotals(inputs.chargeRows, year, { mode, now, period });
   const financeMonths = monthRows.map((m, i) => {
     const ca = Math.round(isProjection ? projection.monthly[i].ca : m.ca);
     const ch = Math.round(isProjection ? projection.monthly[i].charges : chargesByMonth[i]);
@@ -545,9 +557,9 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     });
 
   const periode =
-    mode === "reel"
-      ? `Exercice ${year} — réel à date (mois ≤ ${limit || 0})`
-      : `Exercice ${year} — projection (12 mois)`;
+    mode === "projection"
+      ? `Exercice ${year} — projection (12 mois)`
+      : periodScopeLabel(year, period, now);
 
   const strictPending = (reasons: string[]): Kpi["status"] =>
     strict && reasons.length > 0 ? "en_attente_certification" : "ok";
