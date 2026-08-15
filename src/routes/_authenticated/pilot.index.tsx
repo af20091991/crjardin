@@ -1085,10 +1085,16 @@ function TodayPage() {
   // Écran de chargement : placé après tous les hooks (ordre des hooks stable).
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
-        ))}
+      <div className="flex flex-col gap-3" aria-busy="true" role="status">
+        <p className="text-sm text-muted-foreground">
+          Chargement des données de pilotage en cours — aucun indicateur n'est affiché avant
+          disponibilité complète des sources.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
