@@ -1294,6 +1294,11 @@ function TodayPage() {
 
       {/* Priorités du jour */}
       <DashboardBlock id="priorites" layout={layout}>
+        {[interventionsState, recosState, goalsState, clientActivityState]
+          .filter((s) => s.status === "error")
+          .map((s) => (
+            <DataStateNotice key={s.id} state={s} className="mb-2" />
+          ))}
         {priorities.length === 0 ? null : (
           <>
             <SectionTitle question="Priorités" label="Actions fiables du jour" />
