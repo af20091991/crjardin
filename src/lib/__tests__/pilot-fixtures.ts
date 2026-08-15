@@ -14,7 +14,7 @@ export const YEAR = 2024;
 
 export function sale(over: Partial<PilotEntry> & { id: string; entry_date: string }): PilotEntry {
   const amount = over.amount_ht ?? 0;
-  const hoursRaw = over.hours_raw ?? (over.hours ?? null);
+  const hoursRaw = over.hours_raw ?? over.hours ?? null;
   return {
     user_id: "u1",
     client_id: null,
@@ -36,7 +36,9 @@ export function sale(over: Partial<PilotEntry> & { id: string; entry_date: strin
   };
 }
 
-export function charge(over: Partial<ChargeRow> & { id: string; year: number; month: number }): ChargeRow {
+export function charge(
+  over: Partial<ChargeRow> & { id: string; year: number; month: number },
+): ChargeRow {
   return {
     designation: "Charge test",
     amount_ht: 0,

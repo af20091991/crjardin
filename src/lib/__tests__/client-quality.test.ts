@@ -54,7 +54,10 @@ describe("computeClientQuality", () => {
 
   test("temps connu uniquement via Vente → Temps (historique exclu du score)", () => {
     const withHistoric = computeClientQuality(input({ caLines: 1, historicHours: 120 }), "c1");
-    const withSaleTime = computeClientQuality(input({ caLines: 1, interventionsWithHours: 1 }), "c1");
+    const withSaleTime = computeClientQuality(
+      input({ caLines: 1, interventionsWithHours: 1 }),
+      "c1",
+    );
     expect(withSaleTime.completeness).toBeGreaterThan(withHistoric.completeness);
     expect(withHistoric.hasAnyData).toBe(true);
   });

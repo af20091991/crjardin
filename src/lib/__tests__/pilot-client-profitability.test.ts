@@ -18,8 +18,26 @@ describe("classifyClients", () => {
   test("client rentable : taux horaire au-dessus de la cible", () => {
     const rows = classifyClients({
       ...BASE,
-      entries: [sale({ id: "s1", entry_date: `${YEAR}-04-15`, amount_ht: 5_500, hours: 100, client_id: "c1", client_name: "Adagios" })],
-      ledger: [ledgerSale({ id: "l1", year: YEAR, hours: 100, month: 4, clientId: "c1", clientName: "Adagios" })],
+      entries: [
+        sale({
+          id: "s1",
+          entry_date: `${YEAR}-04-15`,
+          amount_ht: 5_500,
+          hours: 100,
+          client_id: "c1",
+          client_name: "Adagios",
+        }),
+      ],
+      ledger: [
+        ledgerSale({
+          id: "l1",
+          year: YEAR,
+          hours: 100,
+          month: 4,
+          clientId: "c1",
+          clientName: "Adagios",
+        }),
+      ],
       statuses: statuses({ c1: "certified_client" }),
     });
     expect(rows).toHaveLength(1);
@@ -33,7 +51,16 @@ describe("classifyClients", () => {
   test("client chronophage : taux très en dessous de la cible", () => {
     const rows = classifyClients({
       ...BASE,
-      entries: [sale({ id: "s1", entry_date: `${YEAR}-04-15`, amount_ht: 1_000, hours: 100, client_id: "c1", client_name: "Adagios" })],
+      entries: [
+        sale({
+          id: "s1",
+          entry_date: `${YEAR}-04-15`,
+          amount_ht: 1_000,
+          hours: 100,
+          client_id: "c1",
+          client_name: "Adagios",
+        }),
+      ],
       ledger: [ledgerSale({ id: "l1", year: YEAR, hours: 100, month: 4, clientId: "c1" })],
       statuses: statuses({ c1: "certified_client" }),
     });
@@ -44,7 +71,17 @@ describe("classifyClients", () => {
   test("heures inconnues : aucun classement, aucun taux inventé", () => {
     const rows = classifyClients({
       ...BASE,
-      entries: [sale({ id: "s1", entry_date: `${YEAR}-04-15`, amount_ht: 8_000, hours: 0, hours_raw: null, client_id: "c1", client_name: "Adagios" })],
+      entries: [
+        sale({
+          id: "s1",
+          entry_date: `${YEAR}-04-15`,
+          amount_ht: 8_000,
+          hours: 0,
+          hours_raw: null,
+          client_id: "c1",
+          client_name: "Adagios",
+        }),
+      ],
       ledger: [],
       statuses: statuses({ c1: "certified_client" }),
     });
@@ -58,7 +95,16 @@ describe("classifyClients", () => {
   test("heures insuffisantes (< seuil) : non classé malgré un taux calculable", () => {
     const rows = classifyClients({
       ...BASE,
-      entries: [sale({ id: "s1", entry_date: `${YEAR}-04-15`, amount_ht: 900, hours: 2, client_id: "c1", client_name: "Adagios" })],
+      entries: [
+        sale({
+          id: "s1",
+          entry_date: `${YEAR}-04-15`,
+          amount_ht: 900,
+          hours: 2,
+          client_id: "c1",
+          client_name: "Adagios",
+        }),
+      ],
       ledger: [ledgerSale({ id: "l1", year: YEAR, hours: 2, month: 4, clientId: "c1" })],
       statuses: statuses({ c1: "certified_client" }),
     });
@@ -70,16 +116,41 @@ describe("classifyClients", () => {
     const rows = classifyClients({
       ...BASE,
       entries: [
-        sale({ id: "a", entry_date: `${YEAR}-04-15`, amount_ht: 6_000, hours: 100, client_id: "c1", client_name: "Adagios" }),
-        sale({ id: "b", entry_date: `${YEAR}-04-15`, amount_ht: 9_000, hours: 100, client_id: "c2", client_name: "Adagios (doublon)" }),
-        sale({ id: "c", entry_date: `${YEAR}-04-15`, amount_ht: 7_000, hours: 100, client_id: "c3", client_name: "M. Dupont" }),
+        sale({
+          id: "a",
+          entry_date: `${YEAR}-04-15`,
+          amount_ht: 6_000,
+          hours: 100,
+          client_id: "c1",
+          client_name: "Adagios",
+        }),
+        sale({
+          id: "b",
+          entry_date: `${YEAR}-04-15`,
+          amount_ht: 9_000,
+          hours: 100,
+          client_id: "c2",
+          client_name: "Adagios (doublon)",
+        }),
+        sale({
+          id: "c",
+          entry_date: `${YEAR}-04-15`,
+          amount_ht: 7_000,
+          hours: 100,
+          client_id: "c3",
+          client_name: "M. Dupont",
+        }),
       ],
       ledger: [
         ledgerSale({ id: "l1", year: YEAR, hours: 100, month: 4, clientId: "c1" }),
         ledgerSale({ id: "l2", year: YEAR, hours: 100, month: 4, clientId: "c2" }),
         ledgerSale({ id: "l3", year: YEAR, hours: 100, month: 4, clientId: "c3" }),
       ],
-      statuses: statuses({ c1: "certified_client", c2: "duplicate_candidate", c3: "probable_contact" }),
+      statuses: statuses({
+        c1: "certified_client",
+        c2: "duplicate_candidate",
+        c3: "probable_contact",
+      }),
     });
     expect(strategicClients(rows).map((r) => r.clientId)).toEqual(["c1"]);
     const dup = rows.find((r) => r.clientId === "c2")!;
@@ -92,8 +163,22 @@ describe("classifyClients", () => {
     const rows = classifyClients({
       ...BASE,
       entries: [
-        sale({ id: "s1", entry_date: `${YEAR}-04-15`, amount_ht: 1_200, hours: 20, client_id: "c1", client_name: "Adagios" }),
-        sale({ id: "s0", entry_date: `${YEAR - 1}-04-15`, amount_ht: 1_000, hours: 20, client_id: "c1", client_name: "Adagios" }),
+        sale({
+          id: "s1",
+          entry_date: `${YEAR}-04-15`,
+          amount_ht: 1_200,
+          hours: 20,
+          client_id: "c1",
+          client_name: "Adagios",
+        }),
+        sale({
+          id: "s0",
+          entry_date: `${YEAR - 1}-04-15`,
+          amount_ht: 1_000,
+          hours: 20,
+          client_id: "c1",
+          client_name: "Adagios",
+        }),
       ],
       ledger: [ledgerSale({ id: "l1", year: YEAR, hours: 20, month: 4, clientId: "c1" })],
       statuses: statuses({ c1: "certified_client" }),
@@ -104,7 +189,15 @@ describe("classifyClients", () => {
 
     const noPrev = classifyClients({
       ...BASE,
-      entries: [sale({ id: "s1", entry_date: `${YEAR}-04-15`, amount_ht: 1_200, hours: 20, client_id: "c1" })],
+      entries: [
+        sale({
+          id: "s1",
+          entry_date: `${YEAR}-04-15`,
+          amount_ht: 1_200,
+          hours: 20,
+          client_id: "c1",
+        }),
+      ],
       ledger: [ledgerSale({ id: "l1", year: YEAR, hours: 20, month: 4, clientId: "c1" })],
       statuses: statuses({ c1: "certified_client" }),
     });

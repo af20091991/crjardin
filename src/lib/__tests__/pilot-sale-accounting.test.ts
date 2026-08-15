@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { accountedSale, hoursCounted, revenueCounted, saleStatusOf } from "@/lib/pilot-sale-accounting";
+import {
+  accountedSale,
+  hoursCounted,
+  revenueCounted,
+  saleStatusOf,
+} from "@/lib/pilot-sale-accounting";
 import { hourlyRateFromSales, saleRateScope, saleTimeKnown } from "@/lib/pilot-sale-time";
 
 describe("règle Facturé / Réglé", () => {

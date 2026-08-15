@@ -26,7 +26,16 @@
 import { describe, expect, test } from "bun:test";
 import { projectYear } from "@/lib/pilot-projection";
 import { buildAnalytics } from "@/lib/pilot-engine";
-import { charge, engineInputs, ledgerSale, NOW, sale, scope, statuses, YEAR } from "./pilot-fixtures";
+import {
+  charge,
+  engineInputs,
+  ledgerSale,
+  NOW,
+  sale,
+  scope,
+  statuses,
+  YEAR,
+} from "./pilot-fixtures";
 
 const ENTRIES = [
   sale({ id: "s1", entry_date: `${YEAR}-01-15`, amount_ht: 1_000, hours: 10, client_id: "c1" }),

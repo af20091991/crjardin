@@ -41,8 +41,22 @@ describe("resolveRealHours — source unique Vente → Temps", () => {
   test("historique et interventions restent informatifs, hors calcul métier", () => {
     const r = resolveRealHours(
       [
-        ledgerSale({ id: "h", year: YEAR, hours: 40, clientId: "c1", type: "historique", source: "import_excel" }),
-        ledgerSale({ id: "i", year: YEAR, hours: 30, clientId: "c1", type: "realisee", source: "interventions" }),
+        ledgerSale({
+          id: "h",
+          year: YEAR,
+          hours: 40,
+          clientId: "c1",
+          type: "historique",
+          source: "import_excel",
+        }),
+        ledgerSale({
+          id: "i",
+          year: YEAR,
+          hours: 30,
+          clientId: "c1",
+          type: "realisee",
+          source: "interventions",
+        }),
       ],
       YEAR,
     );
@@ -54,13 +68,19 @@ describe("resolveRealHours — source unique Vente → Temps", () => {
   });
 
   test("0 h documenté (SST) n'ajoute aucune heure et ne crée pas de client", () => {
-    const r = resolveRealHours([ledgerSale({ id: "sst", year: YEAR, hours: 0, clientId: "c1" })], YEAR);
+    const r = resolveRealHours(
+      [ledgerSale({ id: "sst", year: YEAR, hours: 0, clientId: "c1" })],
+      YEAR,
+    );
     expect(r.hours).toBe(0);
     expect(r.byClient.has("c1")).toBe(false);
   });
 
   test("heures vendues non rattachées : comptées globalement, pas par client", () => {
-    const r = resolveRealHours([ledgerSale({ id: "orphan", year: YEAR, hours: 7, clientId: null })], YEAR);
+    const r = resolveRealHours(
+      [ledgerSale({ id: "orphan", year: YEAR, hours: 7, clientId: null })],
+      YEAR,
+    );
     expect(r.vendues).toBe(7);
     expect(r.venduesIdentifiees).toBe(0);
     expect(r.byClient.size).toBe(0);

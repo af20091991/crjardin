@@ -2,7 +2,16 @@
 // n'est recopiée ici : les tests vérifient les valeurs produites par le moteur.
 import { describe, expect, test } from "bun:test";
 import { buildAnalytics } from "@/lib/pilot-engine";
-import { charge, engineInputs, ledgerSale, NOW, sale, scope, statuses, YEAR } from "./pilot-fixtures";
+import {
+  charge,
+  engineInputs,
+  ledgerSale,
+  NOW,
+  sale,
+  scope,
+  statuses,
+  YEAR,
+} from "./pilot-fixtures";
 
 describe("buildAnalytics — absence de données", () => {
   const snap = buildAnalytics(engineInputs(), NOW);
@@ -31,12 +40,41 @@ describe("buildAnalytics — absence de données", () => {
 
 describe("buildAnalytics — exercice en cours incomplet", () => {
   const entries = [
-    sale({ id: "s1", entry_date: `${YEAR}-03-15`, amount_ht: 10_000, hours: 100, client_id: "c1", client_name: "Adagios" }),
-    sale({ id: "s2", entry_date: `${YEAR}-07-15`, amount_ht: 5_000, hours: 0, client_id: "c1", client_name: "Adagios", intervention_type: "sst" }),
+    sale({
+      id: "s1",
+      entry_date: `${YEAR}-03-15`,
+      amount_ht: 10_000,
+      hours: 100,
+      client_id: "c1",
+      client_name: "Adagios",
+    }),
+    sale({
+      id: "s2",
+      entry_date: `${YEAR}-07-15`,
+      amount_ht: 5_000,
+      hours: 0,
+      client_id: "c1",
+      client_name: "Adagios",
+      intervention_type: "sst",
+    }),
     // Ligne future : exclue du mode réel (date > NOW).
-    sale({ id: "s3", entry_date: `${YEAR}-11-15`, amount_ht: 90_000, hours: 10, client_id: "c1", client_name: "Adagios" }),
+    sale({
+      id: "s3",
+      entry_date: `${YEAR}-11-15`,
+      amount_ht: 90_000,
+      hours: 10,
+      client_id: "c1",
+      client_name: "Adagios",
+    }),
     // Exercice précédent (comparatif).
-    sale({ id: "s0", entry_date: `${YEAR - 1}-03-15`, amount_ht: 4_000, hours: 50, client_id: "c1", client_name: "Adagios" }),
+    sale({
+      id: "s0",
+      entry_date: `${YEAR - 1}-03-15`,
+      amount_ht: 4_000,
+      hours: 50,
+      client_id: "c1",
+      client_name: "Adagios",
+    }),
   ];
   const chargeRows = [
     charge({ id: "ch1", year: YEAR, month: 3, amount_ht: 3_000 }),
@@ -44,7 +82,14 @@ describe("buildAnalytics — exercice en cours incomplet", () => {
     charge({ id: "inv", year: YEAR, month: 4, amount_ht: 2_000, is_investment: true }),
   ];
   const ledger = [
-    ledgerSale({ id: "l1", year: YEAR, hours: 100, month: 3, clientId: "c1", clientName: "Adagios" }),
+    ledgerSale({
+      id: "l1",
+      year: YEAR,
+      hours: 100,
+      month: 3,
+      clientId: "c1",
+      clientName: "Adagios",
+    }),
     ledgerSale({ id: "l2", year: YEAR, hours: 0, month: 7, clientId: "c1", clientName: "Adagios" }),
   ];
   const snap = buildAnalytics(
@@ -95,7 +140,14 @@ describe("buildAnalytics — lignes orphelines et charges nulles", () => {
     engineInputs({
       entries: [
         sale({ id: "orphan", entry_date: `${YEAR}-05-15`, amount_ht: 2_000, hours: 20 }),
-        sale({ id: "linked", entry_date: `${YEAR}-05-15`, amount_ht: 1_000, hours: 10, client_id: "c1", client_name: "Adagios" }),
+        sale({
+          id: "linked",
+          entry_date: `${YEAR}-05-15`,
+          amount_ht: 1_000,
+          hours: 10,
+          client_id: "c1",
+          client_name: "Adagios",
+        }),
       ],
       ledger: [ledgerSale({ id: "l1", year: YEAR, hours: 10, month: 5, clientId: "c1" })],
       statuses: statuses({ c1: "certified_client" }),
@@ -119,8 +171,22 @@ describe("buildAnalytics — lignes orphelines et charges nulles", () => {
     const withDuplicate = buildAnalytics(
       engineInputs({
         entries: [
-          sale({ id: "a", entry_date: `${YEAR}-05-15`, amount_ht: 1_000, hours: 10, client_id: "c1", client_name: "Adagios" }),
-          sale({ id: "b", entry_date: `${YEAR}-05-15`, amount_ht: 900, hours: 9, client_id: "c2", client_name: "Adagios (bis)" }),
+          sale({
+            id: "a",
+            entry_date: `${YEAR}-05-15`,
+            amount_ht: 1_000,
+            hours: 10,
+            client_id: "c1",
+            client_name: "Adagios",
+          }),
+          sale({
+            id: "b",
+            entry_date: `${YEAR}-05-15`,
+            amount_ht: 900,
+            hours: 9,
+            client_id: "c2",
+            client_name: "Adagios (bis)",
+          }),
         ],
         ledger: [
           ledgerSale({ id: "l1", year: YEAR, hours: 10, month: 5, clientId: "c1" }),
