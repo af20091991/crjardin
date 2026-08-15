@@ -53,6 +53,13 @@ export function formatFreshness(updatedAt: Date | null): string {
 function errorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message;
   if (typeof error === "string" && error) return error;
+  // Les erreurs Supabase (PostgrestError) ne sont pas des instances d'Error.
+  if (error && typeof error === "object") {
+    const o = error as { message?: unknown; details?: unknown; hint?: unknown };
+    if (typeof o.message === "string" && o.message) return o.message;
+    if (typeof o.details === "string" && o.details) return o.details;
+    if (typeof o.hint === "string" && o.hint) return o.hint;
+  }
   return "erreur inconnue";
 }
 
