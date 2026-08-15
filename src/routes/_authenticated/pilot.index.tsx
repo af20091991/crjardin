@@ -40,6 +40,8 @@ import { DecisionCenter } from "@/components/pilot/DecisionCenter";
 import { buildCommercialOpportunities } from "@/lib/pilot-opportunities";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import { DashboardCustomizer, DashboardBlock } from "@/components/pilot/DashboardCustomizer";
+import { DataHealthBar, DataStateNotice } from "@/components/pilot/DataStateNotice";
+import { resourceState, safeValue, type DataState } from "@/lib/pilot-data-state";
 import { explainPriority } from "@/lib/pilot-priorities";
 import {
   ACTION_STATUS_BADGE,
@@ -133,7 +135,7 @@ const PRIORITY_META: Record<Priority, { dot: string; label: string; badge: strin
   };
 
 function TodayPage() {
-  const { entries, charges, settings, clients } = usePilotData();
+  const { entries, charges, settings, clients, states } = usePilotData();
   const { mode } = usePilotMode();
   const thresholds = useThresholds();
   const now = new Date();
@@ -212,6 +214,49 @@ function TodayPage() {
     goals.isLoading ||
     clientActivity.isLoading ||
     hoursLedger.isLoading;
+
+  // États typés des ressources du tableau de bord : aucune requête n'est
+  // convertie silencieusement en liste vide, chaque échec reste visible et
+  // peut être relancé de façon ciblée.
+  const interventionsState = resourceState(
+    "interventions-all",
+    "Interventions",
+    interventions,
+  );
+  const recosState = resourceState("recommendations-all", "Recommandations", recos);
+  const goalsState = resourceState("pilot-goals", "Objectifs", goals);
+  const hoursLedgerState = resourceState("pilot-hours-ledger", "Heures (Vente → Temps)", hoursLedger);
+  const chargeRowsState = resourceState("pilot-charge-rows", "Lignes de charges", chargeRows);
+  const clientActivityState = resourceState("client-activity-rows", "Activité clients", clientActivity);
+  const ceevState = resourceState("ceev-contracts", "Contrats CEEV", ceevContracts);
+  const offersState = resourceState("nbo-priority", "Opportunités (offres)", priorityOffers);
+  const historicHoursState = resourceState(
+    "pilot-historic-hours",
+    "Heures historiques (consultation)",
+    historicHours,
+  );
+  const orphanState = resourceState("pilot-ca-orphan-count", "Rapprochement CA", orphanCount, () => false);
+  const dashboardStates: DataState[] = [
+    states.entries,
+    states.charges,
+    states.settings,
+    states.clients,
+    interventionsState,
+    recosState,
+    goalsState,
+    hoursLedgerState,
+    chargeRowsState,
+    clientActivityState,
+    ceevState,
+    offersState,
+    historicHoursState,
+    orphanState,
+  ];
+  // Indicateurs : valeur affichée uniquement si ses sources sont disponibles.
+  const caSources = [states.entries];
+  const beneficeSources = [states.entries, chargeRowsState];
+  const itvSources = [interventionsState];
+  const hoursSources = [states.entries];
 
   // Politique compte-rendu par client : seul un client « Oui » génère une action CR.
   const reportPolicyById = useMemo(() => {
@@ -1040,10 +1085,16 @@ function TodayPage() {
   // Écran de chargement : placé après tous les hooks (ordre des hooks stable).
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
-        ))}
+      <div className="flex flex-col gap-3" aria-busy="true" role="status">
+        <p className="text-sm text-muted-foreground">
+          Chargement des données de pilotage en cours — aucun indicateur n'est affiché avant
+          disponibilité complète des sources.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -1067,37 +1118,47 @@ function TodayPage() {
         <DashboardCustomizer defs={dashboardDefs} layout={layout} />
       </div>
 
+      {/* Fiabilité des chargements : erreurs et données périmées explicites */}
+      <DataHealthBar states={dashboardStates} />
+
       {/* 1 — Synthèse du mois en cours : premier bloc (données enregistrées) */}
       <DashboardBlock id="mois" layout={layout}>
         <SectionTitle question="Vue mois" label={moisPeriodeLabel} />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <PilotCard
             label="CA réalisé du mois"
-            value={formatEuro(k.caMonth)}
+            value={safeValue(caSources, () => formatEuro(k.caMonth)).value}
             icon={Euro}
             to="/pilot/ca"
             help="Somme des lignes CA facturées du 1er du mois à aujourd'hui. Aucune projection."
             sub={
-              objectifMois > 0
+              states.entries.status === "error"
+                ? "Comparaison indisponible : lignes CA non chargées"
+                : objectifMois > 0
                 ? `${avancement.toFixed(0)} % du même mois ${year - 1} (${formatEuro(objectifMois)})`
                 : `Aucune référence en ${year - 1}`
             }
           />
           <PilotCard
             label="Interventions réalisées"
-            value={String(interventionsMois)}
+            value={safeValue(itvSources, () => String(interventionsMois)).value}
             icon={Leaf}
             to="/interventions"
             help="Interventions terminées et enregistrées sur le mois en cours."
           />
           <PilotCard
             label="Heures d'intervention"
-            value={heuresRealiseesMois > 0 ? formatHours(heuresRealiseesMois) : "Non renseignées"}
+            value={
+              safeValue(hoursSources, () =>
+                heuresRealiseesMois > 0 ? formatHours(heuresRealiseesMois) : "Non renseignées",
+              ).value
+            }
             icon={Clock}
             to="/pilot/temps"
             help="Heures issues de la colonne Vente → Temps des lignes de vente du mois (source unique)."
           />
         </div>
+        {states.entries.status === "error" && <DataStateNotice state={states.entries} />}
         {missingHours.length > 0 && (
           <Card className="border-amber-300/70 bg-amber-50/40 p-3 text-sm">
             <div className="flex flex-wrap items-center gap-2">
@@ -1124,41 +1185,53 @@ function TodayPage() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <PilotCard
             label={`CA cumulé ${year}`}
-            value={formatEuro(caLecture)}
+            value={safeValue(caSources, () => formatEuro(caLecture)).value}
             icon={Euro}
             to="/pilot/ca"
             help="Cumul des lignes CA facturées depuis le 1er janvier, à date."
             sub={
-              toDateCompare.deltaPct != null
+              states.entries.status === "error"
+                ? "Comparaison indisponible : lignes CA non chargées"
+                : toDateCompare.deltaPct != null
                 ? `${toDateCompare.deltaPct >= 0 ? "+" : ""}${toDateCompare.deltaPct.toFixed(0)} % ${toDateCompare.label}`
                 : `Aucune référence à la même date en ${year - 1}`
             }
           />
           <PilotCard
             label="Bénéfice"
-            value={formatEuro(resultatLecture)}
+            value={safeValue(beneficeSources, () => formatEuro(resultatLecture)).value}
             icon={Wallet}
             to="/pilot/finance"
             help="Bénéfice = CA − charges d'exploitation hors investissements (moteur annualSummary)."
             tone={
-              resultatLecture <= 0
+              beneficeSources.some((s) => s.unreliable)
+                ? "default"
+                : resultatLecture <= 0
                 ? "warning"
                 : margeLecture != null && margeLecture >= thresholds.margeMin
                   ? "positive"
                   : "default"
             }
-            sub={`Charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`}
+            sub={
+              beneficeSources.some((s) => s.status === "error")
+                ? "Charges ou CA non chargés — valeur non calculable"
+                : `Charges ${formatEuro(chargesLecture)}${margeLecture != null ? ` · marge ${margeLecture.toFixed(0)} %` : ""}`
+            }
           />
           <PilotCard
             label="Interventions réalisées"
-            value={String(interventionsAnnee)}
+            value={safeValue(itvSources, () => String(interventionsAnnee)).value}
             icon={Leaf}
             to="/interventions"
             help="Interventions terminées et enregistrées depuis le début de l'exercice."
           />
           <PilotCard
             label="Taux horaire réel"
-            value={realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible"}
+            value={
+              safeValue([states.entries, hoursLedgerState], () =>
+                realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible",
+              ).value
+            }
             icon={Gauge}
             to="/pilot/taux"
             help={realRate.available ? realRate.note : realRate.detail}
@@ -1227,6 +1300,11 @@ function TodayPage() {
 
       {/* Priorités du jour */}
       <DashboardBlock id="priorites" layout={layout}>
+        {[interventionsState, recosState, goalsState, clientActivityState]
+          .filter((s) => s.status === "error")
+          .map((s) => (
+            <DataStateNotice key={s.id} state={s} className="mb-2" />
+          ))}
         {priorities.length === 0 ? null : (
           <>
             <SectionTitle question="Priorités" label="Actions fiables du jour" />
