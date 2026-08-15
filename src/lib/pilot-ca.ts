@@ -74,15 +74,11 @@ export type CaEntryInput = {
 };
 
 export async function listCaEntries(year: number): Promise<CaEntry[]> {
-  const { data, error } = await supabase
-    .from("pilot_ca_entries")
-    .select("*")
-    .eq("year", year)
-    .order("month", { ascending: true })
-    .order("position", { ascending: true })
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as unknown as CaEntry[];
+  return fetchAllCaRows<CaEntry>("*", { year }, [
+    { column: "month", ascending: true },
+    { column: "position", ascending: true },
+    { column: "created_at", ascending: true },
+  ]);
 }
 
 export async function createCaEntry(input: CaEntryInput): Promise<CaEntry> {
