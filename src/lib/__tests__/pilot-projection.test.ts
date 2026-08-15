@@ -50,7 +50,13 @@ describe("projectYear — extrapolation d'exercice", () => {
   });
 
   test("sans historique saisonnier : moyenne mensuelle des mois observés", () => {
-    const p = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "projection", currentMonth: 2 });
+    const p = projectYear({
+      entries: ENTRIES,
+      charges: CHARGES,
+      year: YEAR,
+      mode: "projection",
+      currentMonth: 2,
+    });
     expect(p.method).toBe("moyenne");
     expect(p.monthsObserved).toBe(2);
     expect(p.caReel).toBe(2_000);
@@ -59,13 +65,25 @@ describe("projectYear — extrapolation d'exercice", () => {
   });
 
   test("rémunération dirigeant ET investissements exclus des charges", () => {
-    const p = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "projection", currentMonth: 2 });
+    const p = projectYear({
+      entries: ENTRIES,
+      charges: CHARGES,
+      year: YEAR,
+      mode: "projection",
+      currentMonth: 2,
+    });
     // 400 + 400 = 800 € (rémunération et investissement exclus).
     expect(p.chargesReelles).toBe(800);
   });
 
   test("mois sans donnée : aucun montant réel inventé", () => {
-    const p = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "projection", currentMonth: 2 });
+    const p = projectYear({
+      entries: ENTRIES,
+      charges: CHARGES,
+      year: YEAR,
+      mode: "projection",
+      currentMonth: 2,
+    });
     expect(p.monthly[2].projected).toBe(true);
     expect(p.monthly[0].ca).toBe(1_000);
     expect(p.monthly[0].projected).toBe(false);
@@ -73,7 +91,13 @@ describe("projectYear — extrapolation d'exercice", () => {
 });
 
 describe("projection_annuelle — cohérence des deux chemins d'appel", () => {
-  const direct = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "projection", currentMonth: 2 });
+  const direct = projectYear({
+    entries: ENTRIES,
+    charges: CHARGES,
+    year: YEAR,
+    mode: "projection",
+    currentMonth: 2,
+  });
   const snap = buildAnalytics(
     engineInputs({
       scope: scope({ mode: "projection" }),
@@ -104,7 +128,13 @@ describe("projection_annuelle — cohérence des deux chemins d'appel", () => {
   });
 
   test("mode réel : réalisé identique au chemin central, sans extrapolation", () => {
-    const directReel = projectYear({ entries: ENTRIES, charges: CHARGES, year: YEAR, mode: "reel", now: NOW });
+    const directReel = projectYear({
+      entries: ENTRIES,
+      charges: CHARGES,
+      year: YEAR,
+      mode: "reel",
+      now: NOW,
+    });
     const snapReel = buildAnalytics(
       engineInputs({
         scope: scope({ mode: "reel" }),
@@ -131,28 +161,58 @@ describe("projectYear — séparation réalisé / projection (date de référenc
   ];
 
   test("mode réel : dates futures du mois en cours exclues", () => {
-    const p = projectYear({ entries: WITH_FUTURE, charges: [], year: YEAR, mode: "reel", now: NOW });
+    const p = projectYear({
+      entries: WITH_FUTURE,
+      charges: [],
+      year: YEAR,
+      mode: "reel",
+      now: NOW,
+    });
     expect(p.caReel).toBe(2_000);
     expect(p.monthly[7].ca).toBe(0);
   });
 
   test("mode réel : aucun mois futur comptabilisé", () => {
-    const p = projectYear({ entries: WITH_FUTURE, charges: [], year: YEAR, mode: "reel", now: NOW });
+    const p = projectYear({
+      entries: WITH_FUTURE,
+      charges: [],
+      year: YEAR,
+      mode: "reel",
+      now: NOW,
+    });
     expect(p.monthly[9].ca).toBe(0);
     expect(p.caProjete).toBe(p.caReel);
     expect(p.method).toBe("aucune");
   });
 
   test("mode projection : une saisie future ne devient jamais du réalisé", () => {
-    const p = projectYear({ entries: WITH_FUTURE, charges: [], year: YEAR, mode: "projection", now: NOW });
+    const p = projectYear({
+      entries: WITH_FUTURE,
+      charges: [],
+      year: YEAR,
+      mode: "projection",
+      now: NOW,
+    });
     expect(p.caReel).toBe(2_000);
     expect(p.monthly[9].projected).toBe(true);
     expect(p.monthly[9].ca).not.toBe(7_000);
   });
 
   test("la projection ne modifie pas la valeur du réalisé", () => {
-    const reel = projectYear({ entries: WITH_FUTURE, charges: CHARGES, year: YEAR, mode: "reel", now: NOW });
-    const proj = projectYear({ entries: WITH_FUTURE, charges: CHARGES, year: YEAR, mode: "projection", now: NOW });
+    const reel = projectYear({
+      entries: WITH_FUTURE,
+      charges: CHARGES,
+      year: YEAR,
+      mode: "reel",
+      now: NOW,
+    });
+    const proj = projectYear({
+      entries: WITH_FUTURE,
+      charges: CHARGES,
+      year: YEAR,
+      mode: "projection",
+      now: NOW,
+    });
     expect(proj.caReel).toBe(reel.caReel);
     expect(proj.chargesReelles).toBe(reel.chargesReelles);
     expect(proj.caProjete > proj.caReel).toBe(true);
@@ -160,7 +220,13 @@ describe("projectYear — séparation réalisé / projection (date de référenc
 
   test("un vrai zéro reste zéro dans les deux modes", () => {
     const reel = projectYear({ entries: [], charges: [], year: YEAR, mode: "reel", now: NOW });
-    const proj = projectYear({ entries: [], charges: [], year: YEAR, mode: "projection", now: NOW });
+    const proj = projectYear({
+      entries: [],
+      charges: [],
+      year: YEAR,
+      mode: "projection",
+      now: NOW,
+    });
     expect(reel.caReel).toBe(0);
     expect(reel.caProjete).toBe(0);
     expect(proj.caReel).toBe(0);

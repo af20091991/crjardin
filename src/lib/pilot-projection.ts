@@ -190,10 +190,10 @@ export function projectYear(params: {
     mode === "reel"
       ? `Mode réalisé : lecture des seules données enregistrées jusqu'à la date de référence (aucune extrapolation).`
       : method === "saisonnalite"
-      ? `Projection basée sur la saisonnalité des exercices précédents et sur ${monthsObserved} mois observés en ${year}.`
-      : method === "moyenne"
-        ? `Projection basée sur la moyenne mensuelle des ${monthsObserved} mois observés (pas d'historique saisonnier exploitable).`
-        : "Aucune donnée suffisante pour projeter cet exercice.";
+        ? `Projection basée sur la saisonnalité des exercices précédents et sur ${monthsObserved} mois observés en ${year}.`
+        : method === "moyenne"
+          ? `Projection basée sur la moyenne mensuelle des ${monthsObserved} mois observés (pas d'historique saisonnier exploitable).`
+          : "Aucune donnée suffisante pour projeter cet exercice.";
 
   return {
     year,
