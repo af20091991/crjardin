@@ -17,7 +17,17 @@ export interface CaFetchFilters {
   clientId?: string;
 }
 
-export async function fetchAllCaRows<T>(columns: string, filters: CaFetchFilters = {}): Promise<T[]> {
+export interface CaFetchOrder {
+  column: string;
+  ascending?: boolean;
+  nullsFirst?: boolean;
+}
+
+export async function fetchAllCaRows<T>(
+  columns: string,
+  filters: CaFetchFilters = {},
+  orderBy?: CaFetchOrder[],
+): Promise<T[]> {
   const out: T[] = [];
   let from = 0;
   for (;;) {
@@ -25,6 +35,14 @@ export async function fetchAllCaRows<T>(columns: string, filters: CaFetchFilters
     if (filters.kind) q = q.eq("kind", filters.kind);
     if (filters.year != null) q = q.eq("year", filters.year);
     if (filters.clientId) q = q.eq("client_id", filters.clientId);
+    if (orderBy) {
+      for (const o of orderBy) {
+        q = q.order(o.column, {
+          ascending: o.ascending ?? true,
+          nullsFirst: o.nullsFirst ?? false,
+        });
+      }
+    }
     const { data, error } = await q.range(from, from + CA_PAGE_SIZE - 1);
     if (error) throw error;
     const chunk = (data ?? []) as unknown as T[];
