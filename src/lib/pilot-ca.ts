@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAllCaRows } from "@/lib/pilot-ca-fetch";
 import type { InterventionKind } from "@/lib/pilot-sale-time";
 import { hoursCounted, revenueCounted } from "@/lib/pilot-sale-accounting";
+import { keepRealizedYearMonth, type AsOfOptions } from "@/lib/pilot-realized";
 
 export { INTERVENTION_KINDS, INTERVENTION_KIND_META, interventionKind } from "@/lib/pilot-sale-time";
 export type { InterventionKind } from "@/lib/pilot-sale-time";
@@ -54,6 +55,8 @@ export interface CaEntry {
   intervention_type?: InterventionKind | null;
   match_status?: MatchStatusValue | null;
   sale_status?: SaleStatusValue;
+  /** Date comptable de la ligne, quand elle est connue (borne au jour près). */
+  entry_date?: string | null;
   created_at: string;
   updated_at: string;
 }
