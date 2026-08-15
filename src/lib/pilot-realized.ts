@@ -62,6 +62,20 @@ export function isRealizedMonth(year: number, month: number, now = new Date()): 
   return month >= 1 && month <= 12 && isRealizedAccountingDate(accountingDateFromYearMonth(year, month), now);
 }
 
+/**
+ * FILTRE CENTRAL UNIQUE pour toute ligne mensuelle (charges, heures, ventes
+ * agrégées) : en mode réel, seuls les couples année/mois dont la date
+ * comptable est ≤ date de référence sont retenus. Les mois futurs de
+ * l'exercice en cours sont donc toujours exclus du réalisé.
+ */
+export function keepRealizedYearMonth(
+  row: { year: number; month: number },
+  options?: AsOfOptions,
+): boolean {
+  if (options?.mode === "projection") return true;
+  return isRealizedMonth(row.year, row.month, options?.now);
+}
+
 /** Lignes de CA réellement facturées à date (exclut toute date future). */
 export function realizedEntries<T extends Pick<PilotEntry, "entry_date">>(
   entries: T[],
