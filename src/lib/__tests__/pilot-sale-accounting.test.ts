@@ -33,7 +33,9 @@ describe("règle Facturé / Réglé", () => {
     const r = accountedSale({ amount_ht: 500, hours: 0, sale_status: "regle" });
     expect(r.amount_ht).toBe(500);
     expect(r.hours).toBe(0);
-    expect(saleTimeKnown({ hours: 0 })).toBe(true);
+    // 0 h n'est une donnée valide que sur une ligne qualifiée sous-traitée.
+    expect(saleTimeKnown({ hours: 0, intervention_type: "sst" })).toBe(true);
+    expect(saleTimeKnown({ hours: 0 })).toBe(false);
     expect(saleTimeKnown({ hours: null })).toBe(false);
   });
 });
@@ -47,15 +49,26 @@ describe("taux horaire — périmètre unique CA / Temps", () => {
     ];
     const s = saleRateScope(rows);
     expect(s.hours).toBe(10);
-    expect(s.ca).toBe(1_500); // ligne sans temps exclue du périmètre
-    expect(hourlyRateFromSales(rows)).toBe(150);
+    expect(s.ca).toBe(1_800); // couverture : toutes les lignes du périmètre
+    expect(s.caTimed).toBe(1_500); // numérateur : lignes au temps documenté
+    expect(s.caUntimed).toBe(300); // ligne sans temps : écartée du taux
+    expect(s.linesTimed).toBe(2);
+    expect(s.rate).toBe(150);
+    expect(hourlyRateFromSales(rows).rate).toBe(150);
   });
 
   test("aucune heure documentée : taux horaire non calculable (jamais 0)", () => {
-    expect(hourlyRateFromSales([{ amount_ht: 1_000, hours: null }])).toBeNull();
+    const s = hourlyRateFromSales([{ amount_ht: 1_000, hours: null }]);
+    expect(s.rate).toBeNull();
+    expect(s.hours).toBe(0);
+    expect(s.caUntimed).toBe(1_000);
   });
 
   test("uniquement des lignes à 0 h (SST) : taux non calculable", () => {
-    expect(hourlyRateFromSales([{ amount_ht: 1_000, hours: 0, intervention_type: "sst" }])).toBeNull();
+    // Le CA sous-traité est bien retenu, mais sans heure au dénominateur.
+    const s = hourlyRateFromSales([{ amount_ht: 1_000, hours: 0, intervention_type: "sst" }]);
+    expect(s.caTimed).toBe(1_000);
+    expect(s.hours).toBe(0);
+    expect(s.rate).toBeNull();
   });
 });
