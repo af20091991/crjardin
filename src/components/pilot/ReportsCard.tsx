@@ -9,15 +9,16 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
 import { entriesForMode } from "@/lib/pilot-realized";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 
 /** Exports dirigeant (PDF / Excel) — intégrés aux Paramètres PP. */
 export function ReportsCard() {
   const { entries, charges, settings } = usePilotData();
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const year = new Date().getFullYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode]);
+  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode, period]);
   const confirmed = useQuery({
     queryKey: ["confirmed-hours-by-client", year],
     queryFn: () => fetchConfirmedHoursByClient(year),
@@ -29,9 +30,9 @@ export function ReportsCard() {
       confirmedHoursByClient: confirmed.data,
       mode,
     }),
-    [entries.data, charges.data, set, year, confirmed.data, mode],
+    [entries.data, charges.data, set, year, confirmed.data, mode, period],
   );
-  const series = useMemo(() => monthlySeries(entries.data ?? [], year, { mode }), [entries.data, year, mode]);
+  const series = useMemo(() => monthlySeries(entries.data ?? [], year, { mode, period }), [entries.data, year, mode, period]);
   const cstats = useMemo(
     () => clientStatsWithHours(realEntries, year, confirmed.data),
     [realEntries, year, confirmed.data],

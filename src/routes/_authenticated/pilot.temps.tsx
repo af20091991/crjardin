@@ -48,7 +48,7 @@ import {
 import { AlertTriangle, Clock, Info, Timer, TrendingUp } from "lucide-react";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { PilotCard } from "@/components/pilot/PilotCard";
-import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotYear, usePilotPeriod } from "@/lib/pilot-mode";
 import { DEFAULT_SETTINGS, formatEuro } from "@/lib/pilot";
 import { formatHours } from "@/lib/format-utils";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
@@ -167,12 +167,13 @@ function euroPerHour(n: number | null | undefined): string {
 
 function TimeValueAnalysis() {
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const { year: pilotYear } = usePilotYear();
   const { entries, settings, clients } = usePilotData();
 
   const ledger = useQuery({
-    queryKey: ["pilot-hours-ledger-all", mode],
-    queryFn: () => fetchHoursLedger(undefined, { mode }),
+    queryKey: ["pilot-hours-ledger-all", mode, period],
+    queryFn: () => fetchHoursLedger(undefined, { mode, period }),
   });
   const charges = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   const interventions = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });
@@ -182,14 +183,14 @@ function TimeValueAnalysis() {
   const [clientSort, setClientSort] = useState<ClientSort>("best_euro_h");
   const [q, setQ] = useState("");
 
-  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode]);
+  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode, period]);
   const realLedger = useMemo(
     () => hoursLedgerForMode(ledger.data ?? [], mode),
-    [ledger.data, mode],
+    [ledger.data, mode, period],
   );
   const realCharges = useMemo(
     () => chargeRowsForMode(charges.data ?? [], mode),
-    [charges.data, mode],
+    [charges.data, mode, period],
   );
 
   const years = useMemo(

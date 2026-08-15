@@ -24,7 +24,7 @@ import {
   type ChargeRow,
 } from "@/lib/pilot-charges";
 import { isRealizedMonth } from "@/lib/pilot-realized";
-import { usePilotMode, usePilotYear } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotYear, usePilotPeriod } from "@/lib/pilot-mode";
 import { useAnalytics } from "@/lib/pilot-analytics";
 import { ANALYTICS_QUERY_ROOT } from "@/lib/pilot-engine";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
@@ -48,6 +48,7 @@ function ChargesPage() {
   // Source unique : moteur analytique central.
   const { snapshot, isLoading } = useAnalytics();
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const { year: detailYear, setYear: setDetailYear } = usePilotYear();
   const [search, setSearch] = useState("");
   const [showAllHistory, setShowAllHistory] = useState(false);
@@ -61,7 +62,7 @@ function ChargesPage() {
     snapshot.sources.chargeRows.filter((r) => r.year === YEAR),
     salesByYear,
     snapshot.sources.chargeCategories,
-    { mode },
+    { mode, period },
   );
   const analysis = showAllHistory ? fullAnalysis : yearAnalysis;
   const proj = snapshot.charges.projectionBase;

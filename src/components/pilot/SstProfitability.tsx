@@ -38,7 +38,7 @@ import { signalFromMarginPct } from "@/lib/pilot-profit-signal";
 import { PilotCard } from "@/components/pilot/PilotCard";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 import { formatEuro, formatHours } from "@/lib/format-utils";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import {
   listMissionPnl,
@@ -87,6 +87,7 @@ const pct = (n: number | null | undefined) => (n == null ? "—" : `${n.toFixed(
 export function SstProfitabilityTab() {
   const qc = useQueryClient();
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const [year, setYear] = useState<number | "all">(new Date().getFullYear());
   const [search, setSearch] = useState("");
   const [sstFilter, setSstFilter] = useState("all");
@@ -110,8 +111,8 @@ export function SstProfitabilityTab() {
   const { data: chargeRows = [] } = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   const { data: labelMap = [] } = useQuery({ queryKey: ["sst-label-map"], queryFn: listSstLabelMap });
   const { data: salesByYear } = useQuery({
-    queryKey: ["pilot-sales-by-year", mode],
-    queryFn: () => listSalesByYear({ mode }),
+    queryKey: ["pilot-sales-by-year", mode, period],
+    queryFn: () => listSalesByYear({ mode, period }),
   });
 
   const refresh = () => {

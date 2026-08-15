@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Scale } from "lucide-react";
 import { PilotCard } from "@/components/pilot/PilotCard";
-import { usePilotMode } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import {
   aggregateHoursByClient,
   aggregateHoursByPrestation,
@@ -13,10 +13,11 @@ import {
 /** Écarts heures vendues / réalisées, par prestation et par client. */
 export function HoursGapCard({ year }: { year: number }) {
   const { mode } = usePilotMode();
+  const { period } = usePilotPeriod();
   const q = useQuery({
-    queryKey: ["pilot-hours-gap", year, mode],
+    queryKey: ["pilot-hours-gap", year, mode, period],
     queryFn: async () => {
-      const entries = await fetchHoursLedger(year, { mode });
+      const entries = await fetchHoursLedger(year, { mode, period });
       const prestations = aggregateHoursByPrestation(entries).slice(0, 6);
       const clients = [...aggregateHoursByClient(entries).values()]
         .filter((c) => c.reelles > 0 && c.vendues > 0)
