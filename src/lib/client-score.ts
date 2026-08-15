@@ -252,7 +252,7 @@ export async function getClientEconomicScores(options?: AsOfOptions): Promise<Cl
   ]);
   const target =
     settings?.target_hourly_rate ?? DEFAULT_SETTINGS.target_hourly_rate;
-  const yr = currentYear(options?.now);
+  const yr = options?.now ? options.now.getFullYear() : currentYear();
 
   const map = new Map<
     string,
