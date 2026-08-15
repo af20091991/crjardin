@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { parseDesignation } from "@/lib/pilot-ca-designation";
-import { isRealizedMonth, todayIso } from "@/lib/pilot-realized";
+import { keepRealizedYearMonth, todayIso, type AsOfOptions } from "@/lib/pilot-realized";
 import { hoursCounted } from "@/lib/pilot-sale-accounting";
 
 /**
@@ -68,7 +68,7 @@ type CaRow = {
 };
 
 /** Lecture paginée des lignes CA porteuses d'heures (limite PostgREST = 1000). */
-async function fetchCaHoursRows(year?: number, options?: { mode?: "reel" | "projection" }): Promise<CaRow[]> {
+async function fetchCaHoursRows(year?: number, options?: AsOfOptions): Promise<CaRow[]> {
   const rows: CaRow[] = [];
   const pageSize = 1000;
   for (let from = 0; ; from += pageSize) {
