@@ -125,8 +125,24 @@ export type MonthTotals = {
   tauxHoraire: number;
 };
 
-export function monthTotals(entries: CaEntry[], month: number): MonthTotals {
-  const rows = entries.filter((e) => e.month === month);
+/**
+ * Totaux d'un mois. Périmètre temporel central : « à date » par défaut
+ * (aucune ligne postérieure au jour de consultation), « exercice complet »
+ * uniquement sur choix explicite de l'utilisateur.
+ */
+export function monthTotals(
+  entries: CaEntry[],
+  month: number,
+  options?: AsOfOptions,
+): MonthTotals {
+  const rows = entries.filter(
+    (e) =>
+      e.month === month &&
+      keepRealizedYearMonth(
+        { year: Number(e.year), month: Number(e.month), entry_date: e.entry_date },
+        options,
+      ),
+  );
   const ventes = rows.filter((e) => e.kind === "vente");
   // Périmètre identique au moteur analytique : charges d'exploitation seules
   // (les investissements qualifiés sont suivis à part, jamais dans le bénéfice).
@@ -161,8 +177,8 @@ export type YearTotals = {
   months: MonthTotals[];
 };
 
-export function yearTotals(entries: CaEntry[]): YearTotals {
-  const months = Array.from({ length: 12 }, (_, i) => monthTotals(entries, i + 1));
+export function yearTotals(entries: CaEntry[], options?: AsOfOptions): YearTotals {
+  const months = Array.from({ length: 12 }, (_, i) => monthTotals(entries, i + 1, options));
   return {
     ventesHt: months.reduce((s, m) => s + m.ventesHt, 0),
     ventesTtc: months.reduce((s, m) => s + m.ventesTtc, 0),
