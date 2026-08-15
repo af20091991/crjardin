@@ -101,6 +101,9 @@ describe("projection_annuelle — divergence de périmètre (à documenter)", ()
     // indépendant du mode transmis par l'écran. Statut : à documenter.
     expect(snap.projection.caReel).toBe(2_000);
     expect(snap.projection.method).toBe("moyenne");
-    expect(snap.projection.monthsObserved).toBe(12);
+    // Mois observés : dernier mois portant une donnée (2), et non 12, alors que
+    // l'exercice est clos — le moteur extrapole donc 10 mois inexistants.
+    expect(snap.projection.monthsObserved).toBe(2);
+    expect(snap.projection.caProjete).toBe(12_000);
   });
 });
