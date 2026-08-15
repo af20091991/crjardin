@@ -552,10 +552,13 @@ export function clientStatsWithHours(
  */
 export async function fetchConfirmedHoursByClient(
   yearFilter?: number,
-  options?: { mode?: "reel" | "projection" },
+  options?: AsOfOptions,
 ): Promise<Map<string, number>> {
-  const mode = options?.mode ?? "reel";
-  const ledger = await fetchHoursLedger(yearFilter, { mode });
+  const ledger = await fetchHoursLedger(yearFilter, {
+    mode: options?.mode ?? "reel",
+    now: options?.now,
+    period: options?.period,
+  });
   const resolved = resolveRealHours(ledger, yearFilter ?? new Date().getFullYear());
   // Aucun fallback : si aucune heure Vente → Temps n'existe, la map est vide.
   return resolved.byClient;
