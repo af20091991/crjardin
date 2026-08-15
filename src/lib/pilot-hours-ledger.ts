@@ -48,6 +48,8 @@ export interface HoursLedgerEntry {
   rawLabel: string | null;
   year: number;
   month: number | null;
+  /** Date comptable précise, lorsqu'elle existe, pour la borne au jour. */
+  date?: string | null;
   hours: number;
   prestation: string | null;
   confidence: HoursConfidence;
@@ -59,6 +61,7 @@ type CaRow = {
   id: string;
   year: number;
   month: number;
+  entry_date: string;
   hours: number | null;
   designation: string | null;
   category: string | null;
@@ -74,7 +77,7 @@ async function fetchCaHoursRows(year?: number, options?: AsOfOptions): Promise<C
   for (let from = 0; ; from += pageSize) {
     let q = supabase
       .from("pilot_ca_entries")
-      .select("id,year,month,hours,designation,category,client_id,raw_client_text,match_status,sale_status")
+      .select("id,year,month,entry_date,hours,designation,category,client_id,raw_client_text,match_status,sale_status")
       .eq("kind", "vente")
       .gt("hours", 0);
     if (year != null) q = q.eq("year", year);
@@ -136,6 +139,7 @@ export async function fetchHoursLedger(year?: number, options?: { mode?: "reel" 
       rawLabel: r.designation ?? r.raw_client_text,
       year: r.year,
       month: r.month,
+      date: r.entry_date,
       hours: h,
       prestation: prestationFromCa(r.designation, r.category),
       confidence: r.client_id ? (r.match_status === "validation" ? "moyenne" : "haute") : "faible",
@@ -172,6 +176,7 @@ export async function fetchHoursLedger(year?: number, options?: { mode?: "reel" 
       rawLabel: r.title,
       year: y,
       month: Number(r.intervention_date.slice(5, 7)),
+      date: r.intervention_date,
       hours: h,
       prestation: r.intervention_type ?? null,
       confidence: estimated ? "faible" : "haute",

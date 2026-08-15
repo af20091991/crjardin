@@ -69,10 +69,14 @@ export function isRealizedMonth(year: number, month: number, now = new Date()): 
  * l'exercice en cours sont donc toujours exclus du réalisé.
  */
 export function keepRealizedYearMonth(
-  row: { year: number; month: number },
+  row: { year: number; month: number; entry_date?: string | null },
   options?: AsOfOptions,
 ): boolean {
   if (options?.mode === "projection") return true;
+  // Les lignes de vente/charge qui portent leur date réelle doivent être
+  // bornées au JOUR de référence. Le couple année/mois reste le repli pour les
+  // sources réellement mensuelles qui ne disposent d'aucune date plus précise.
+  if (row.entry_date) return isRealizedAccountingDate(row.entry_date, options?.now);
   return isRealizedMonth(row.year, row.month, options?.now);
 }
 
@@ -109,6 +113,7 @@ export function chargeRowsForMode(
 export function realizedHoursLedger(rows: HoursLedgerEntry[], now = new Date()): HoursLedgerEntry[] {
   const today = todayIso(now);
   return rows.filter((r) => {
+    if (r.date) return isRealizedAccountingDate(r.date, now);
     if (r.year < now.getFullYear()) return true;
     if (r.year > now.getFullYear()) return false;
     if (r.month == null) return true;

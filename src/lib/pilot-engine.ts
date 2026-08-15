@@ -78,7 +78,7 @@ import {
   type EntityStatusMap,
   type ReferentialCoverage,
 } from "@/lib/pilot-entity-rules";
-import { chargeRowsForMode, entriesForMode, type RealProjectionMode } from "@/lib/pilot-realized";
+import { chargeRowsForMode, entriesForMode, hoursLedgerForMode, type RealProjectionMode } from "@/lib/pilot-realized";
 import type { KpiAudit } from "@/lib/pilot-kpi-audit";
 import { employerCost } from "@/lib/pilot-remuneration";
 import { saleRateScope } from "@/lib/pilot-sale-time";
@@ -379,7 +379,9 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   }));
 
   // --- heures consolidées (source unique : ledger) ---
-  const ledger = inputs.ledger.filter((l) => !strict || l.clientId == null || eligible(l.clientId));
+  const ledger = hoursLedgerForMode(inputs.ledger, mode, now).filter(
+    (l) => !strict || l.clientId == null || eligible(l.clientId),
+  );
   const hoursRes = resolveRealHours(ledger, year);
 
   // --- charges (source unique : pilot-charges) ---

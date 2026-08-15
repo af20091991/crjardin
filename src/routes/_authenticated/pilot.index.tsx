@@ -268,10 +268,10 @@ function TodayPage() {
     (clientId ? reportPolicyById.get(clientId) : undefined) ?? "a_confirmer";
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode]);
+  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], "reel", now), [entries.data, now]);
   const ledgerRows = useMemo(
-    () => (hoursLedger.data ? hoursLedgerForMode(hoursLedger.data, mode) : []),
-    [hoursLedger.data, mode],
+    () => (hoursLedger.data ? hoursLedgerForMode(hoursLedger.data, "reel", now) : []),
+    [hoursLedger.data, now],
   );
   const hoursResolution = useMemo(
     () => (hoursLedger.data ? resolveRealHours(ledgerRows, year) : undefined),
@@ -291,9 +291,10 @@ function TodayPage() {
         year,
         month,
         confirmedHoursByClient,
-        mode,
+        mode: "reel",
+        now,
       }),
-    [entries.data, charges.data, set, year, month, confirmedHoursByClient, mode],
+    [entries.data, charges.data, set, year, month, confirmedHoursByClient, now],
   );
 
   // Objectif du mois = CA du même mois N-1 (référentiel factuel, aucune nouvelle donnée)
@@ -382,15 +383,16 @@ function TodayPage() {
         charges: chargeRows.data ?? [],
         year,
         mode: "reel",
+        now,
       }),
-    [entries.data, chargeRows.data, year],
+    [entries.data, chargeRows.data, year, now],
   );
   const caLecture = projection.caReel;
   // Bénéfice = CA − charges d'exploitation hors investissements, via le moteur
   // annualSummary (référentiel unique du bénéfice dans tout Pilot Pro).
   const annualRows = useMemo(
-    () => annualSummary(entries.data ?? [], chargeRows.data ?? [], { mode }),
-    [entries.data, chargeRows.data, mode],
+    () => annualSummary(entries.data ?? [], chargeRows.data ?? [], { mode: "reel", now }),
+    [entries.data, chargeRows.data, now],
   );
   const annualCurrent = annualRows.find((r) => r.year === year);
   const chargesLecture = annualCurrent?.charges ?? 0;
