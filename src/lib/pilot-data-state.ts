@@ -35,6 +35,13 @@ export interface QueryLike<T> {
   refetch: () => unknown;
 }
 
+/**
+ * Âge au-delà duquel une donnée est signalée comme potentiellement périmée.
+ * React Query marque `isStale` immédiatement (staleTime 0) : ce délai évite de
+ * qualifier de « périmée » une donnée fraîchement chargée.
+ */
+export const STALE_AFTER_MS = 5 * 60 * 1000;
+
 export function formatFreshness(updatedAt: Date | null): string {
   if (!updatedAt) return "fraîcheur non disponible";
   return `actualisé à ${updatedAt.toLocaleTimeString("fr-FR", {
@@ -46,6 +53,13 @@ export function formatFreshness(updatedAt: Date | null): string {
 function errorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message;
   if (typeof error === "string" && error) return error;
+  // Les erreurs Supabase (PostgrestError) ne sont pas des instances d'Error.
+  if (error && typeof error === "object") {
+    const o = error as { message?: unknown; details?: unknown; hint?: unknown };
+    if (typeof o.message === "string" && o.message) return o.message;
+    if (typeof o.details === "string" && o.details) return o.details;
+    if (typeof o.hint === "string" && o.hint) return o.hint;
+  }
   return "erreur inconnue";
 }
 
@@ -86,7 +100,12 @@ export function resourceState<T>(
   if (isEmpty(query.data)) {
     return { ...base, status: "empty", message: `${label} : aucune donnée.`, unreliable: false };
   }
-  if (query.isStale && !query.isFetching) {
+  if (
+    query.isStale &&
+    !query.isFetching &&
+    updatedAt !== null &&
+    Date.now() - updatedAt.getTime() > STALE_AFTER_MS
+  ) {
     return {
       ...base,
       status: "stale",
