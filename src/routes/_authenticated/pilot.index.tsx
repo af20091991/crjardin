@@ -40,6 +40,8 @@ import { DecisionCenter } from "@/components/pilot/DecisionCenter";
 import { buildCommercialOpportunities } from "@/lib/pilot-opportunities";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import { DashboardCustomizer, DashboardBlock } from "@/components/pilot/DashboardCustomizer";
+import { DataHealthBar, DataStateNotice } from "@/components/pilot/DataStateNotice";
+import { resourceState, safeValue, type DataState } from "@/lib/pilot-data-state";
 import { explainPriority } from "@/lib/pilot-priorities";
 import {
   ACTION_STATUS_BADGE,
