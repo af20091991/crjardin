@@ -438,7 +438,7 @@ export async function getClientEconomicScore(
 
   const target =
     settings?.target_hourly_rate ?? DEFAULT_SETTINGS.target_hourly_rate;
-  const yr = currentYear(options?.now);
+  const yr = options?.now ? options.now.getFullYear() : currentYear();
 
   let revenueTotalHt = 0;
   let revenueYearHt = 0;
