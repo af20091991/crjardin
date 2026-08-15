@@ -18,12 +18,12 @@ describe("classifyClients", () => {
   test("client rentable : taux horaire au-dessus de la cible", () => {
     const rows = classifyClients({
       ...BASE,
-      entries: [sale({ id: "s1", entry_date: `${YEAR}-04-15`, amount_ht: 6_000, hours: 100, client_id: "c1", client_name: "Adagios" })],
+      entries: [sale({ id: "s1", entry_date: `${YEAR}-04-15`, amount_ht: 5_500, hours: 100, client_id: "c1", client_name: "Adagios" })],
       ledger: [ledgerSale({ id: "l1", year: YEAR, hours: 100, month: 4, clientId: "c1", clientName: "Adagios" })],
       statuses: statuses({ c1: "certified_client" }),
     });
     expect(rows).toHaveLength(1);
-    expect(rows[0].tauxHoraire).toBe(60);
+    expect(rows[0].tauxHoraire).toBe(55);
     expect(rows[0].classe).toBe("rentable");
     expect(rows[0].hoursSource).toBe("vente_temps");
     expect(rows[0].confidence).toBe("haute");
