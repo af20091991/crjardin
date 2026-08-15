@@ -35,6 +35,13 @@ export interface QueryLike<T> {
   refetch: () => unknown;
 }
 
+/**
+ * Âge au-delà duquel une donnée est signalée comme potentiellement périmée.
+ * React Query marque `isStale` immédiatement (staleTime 0) : ce délai évite de
+ * qualifier de « périmée » une donnée fraîchement chargée.
+ */
+export const STALE_AFTER_MS = 5 * 60 * 1000;
+
 export function formatFreshness(updatedAt: Date | null): string {
   if (!updatedAt) return "fraîcheur non disponible";
   return `actualisé à ${updatedAt.toLocaleTimeString("fr-FR", {
@@ -86,7 +93,12 @@ export function resourceState<T>(
   if (isEmpty(query.data)) {
     return { ...base, status: "empty", message: `${label} : aucune donnée.`, unreliable: false };
   }
-  if (query.isStale && !query.isFetching) {
+  if (
+    query.isStale &&
+    !query.isFetching &&
+    updatedAt !== null &&
+    Date.now() - updatedAt.getTime() > STALE_AFTER_MS
+  ) {
     return {
       ...base,
       status: "stale",
