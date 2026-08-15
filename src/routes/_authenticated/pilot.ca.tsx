@@ -107,8 +107,8 @@ function CaPage() {
     if (month > monthsVisible) setMonth(monthsVisible);
   }, [monthsVisible]);
 
-  const yt = useMemo(() => yearTotals(entries), [entries]);
-  const mt = useMemo(() => monthTotals(entries, month), [entries, month]);
+  const yt = useMemo(() => yearTotals(entries, { period }), [entries, period]);
+  const mt = useMemo(() => monthTotals(entries, month, { period }), [entries, month, period]);
   const catTotals = useMemo(() => categoryTotals(entries, month), [entries, month]);
 
   const monthRows = (kind: CaKind) => entries.filter((e) => e.month === month && e.kind === kind);
