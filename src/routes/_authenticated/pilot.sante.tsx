@@ -36,6 +36,7 @@ function SantePage() {
    * global Réel/Projection n'est volontairement pas lu ici.
    */
   const mode = "reel" as const;
+  const { period } = usePilotPeriod();
   const thresholds = useThresholds();
   const year = currentYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
