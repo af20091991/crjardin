@@ -32,7 +32,7 @@ type Section =
 export const Route = createFileRoute("/_authenticated/pilot/controle")({
   validateSearch: (search: Record<string, unknown>): { section?: Section; sub?: string } => ({
     section: (
-      ["qualite", "validation", "corrections", "sources", "referentiel", "moteur", "doublons", "contrat"] as const
+      ["qualite", "validation", "corrections", "sources", "referentiel", "moteur", "doublons", "contrat", "fiabilite"] as const
     ).includes(search.section as never)
       ? (search.section as Section)
       : undefined,
