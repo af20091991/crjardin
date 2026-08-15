@@ -13,7 +13,17 @@ import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
 import { ClientImportDialog } from "@/components/ClientImportDialog";
 import { ClientMergeDialog } from "@/components/clients/ClientMergeDialog";
-import { LIFECYCLE_META, listClients, type Client } from "@/lib/clients";
+import {
+  LIFECYCLE_META,
+  REPORT_POLICY_META,
+  listClients,
+  updateClient,
+  type Client,
+  type ClientLifecycle,
+  type ReportPolicy,
+} from "@/lib/clients";
+import { getClientActivityStatus, type ClientActivityStatus } from "@/lib/client-activity";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { listFavoriteClientIds, toggleFavoriteClient } from "@/lib/client-favorites";
 import { findSuspectClients } from "@/lib/client-cleanup";
 import { useRole } from "@/hooks/use-role";
@@ -42,6 +52,9 @@ import {
   Star,
   Merge,
   Sparkles,
+  BarChart3,
+  Pencil,
+  Check,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/clients/")({
@@ -66,7 +79,19 @@ export const Route = createFileRoute("/_authenticated/clients/")({
 });
 
 type SortKey = "name" | "ca" | "interventions" | "recent";
-type StatusFilter = "all" | "actif" | "perdu";
+/**
+ * Filtre de lecture : « perdu » est une décision du dirigeant (lifecycle),
+ * « actif / à relancer / dormant » sont DÉDUITS de la dernière activité réelle
+ * via `getClientActivityStatus()` — aucun seuil recopié ici.
+ */
+type StatusFilter = "all" | "actif" | "a_relancer" | "dormant" | "perdu" | "cr_a_qualifier";
+
+const ACTIVITY_BADGE: Record<ClientActivityStatus, { label: string; badge: string }> = {
+  actif: { label: "Actif", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  a_relancer: { label: "À relancer", badge: "border-amber-200 bg-amber-50 text-amber-800" },
+  dormant: { label: "Dormant", badge: "border-slate-200 bg-slate-100 text-slate-600" },
+  perdu: { label: "Client perdu", badge: "border-rose-200 bg-rose-50 text-rose-700" },
+};
 
 interface Row {
   client: Client;
@@ -75,6 +100,7 @@ interface Row {
   hours: number;
   lastDate: string | null;
   hourlyRate: number | null;
+  activity: ClientActivityStatus;
 }
 
 function ClientsPage() {
@@ -100,6 +126,19 @@ function ClientsPage() {
     mutationFn: (p: { clientId: string; favorite: boolean }) =>
       toggleFavoriteClient(p.clientId, p.favorite),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["favorite-clients"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Modification rapide des badges : seules les décisions du dirigeant sont
+  // modifiables (cycle de vie, politique de compte-rendu). Les statuts déduits
+  // de l'activité réelle ne sont jamais forçables à la main.
+  const statusMut = useMutation({
+    mutationFn: (p: { client: Client; patch: { lifecycle_status?: ClientLifecycle; report_policy?: ReportPolicy } }) =>
+      updateClient(p.client.id, { name: p.client.name, ...p.patch }),
+    onSuccess: () => {
+      toast.success("Fiche client mise à jour");
+      void qc.invalidateQueries({ queryKey: ["clients"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -135,8 +174,13 @@ function ClientsPage() {
     return (clients ?? []).map((client) => {
       const ca = caByClient.get(client.id) ?? 0;
       const h = hoursByClient.get(client.id) ?? 0;
+      const last = lastSale.get(client.id) ?? null;
       return {
         client,
+        activity:
+          (client.lifecycle_status ?? "actif") === "perdu"
+            ? ("perdu" as ClientActivityStatus)
+            : getClientActivityStatus(last),
         ca,
         // Nombre d'interventions économiques = lignes de vente de l'exercice
         // (jamais le nombre de comptes rendus de chantier).
@@ -153,7 +197,9 @@ function ClientsPage() {
     const q = search.trim().toLowerCase();
     const list = rows.filter((r) => {
       const c = r.client;
-      if (status !== "all" && (c.lifecycle_status ?? "actif") !== status) return false;
+      if (status === "cr_a_qualifier") {
+        if ((c.report_policy ?? "a_confirmer") !== "a_confirmer") return false;
+      } else if (status !== "all" && r.activity !== status) return false;
       if (!q) return true;
       return [c.name, c.address, c.email, c.phone, c.contract_type]
         .filter(Boolean)
@@ -183,11 +229,10 @@ function ClientsPage() {
   const renderRow = (r: Row) => {
     const c = r.client;
     const isFav = favorites.has(c.id);
-    const lifecycle = LIFECYCLE_META[c.lifecycle_status ?? "actif"];
     return (
       <Card
         key={c.id}
-        className="flex items-center gap-3 p-3 transition-colors hover:border-primary/40 hover:bg-accent/10"
+        className="flex items-center gap-3 p-3.5 transition-colors hover:border-primary/40 hover:bg-accent/10"
       >
         <button
           type="button"
@@ -208,9 +253,15 @@ function ClientsPage() {
                 {c.civility ? <span className="text-muted-foreground">{c.civility} </span> : null}
                 {c.name}
               </p>
-              {(c.lifecycle_status ?? "actif") === "perdu" && (
-                <Badge variant="outline" className={`shrink-0 text-[10px] ${lifecycle.badge}`}>
-                  {lifecycle.label}
+              <Badge
+                variant="outline"
+                className={`shrink-0 text-[10px] ${ACTIVITY_BADGE[r.activity].badge}`}
+              >
+                {ACTIVITY_BADGE[r.activity].label}
+              </Badge>
+              {(c.report_policy ?? "a_confirmer") === "a_confirmer" && (
+                <Badge variant="outline" className="shrink-0 text-[10px] border-sky-200 bg-sky-50 text-sky-700">
+                  CR à qualifier
                 </Badge>
               )}
               {c.contract_type && (
@@ -247,24 +298,82 @@ function ClientsPage() {
           </div>
           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </Link>
-        {canEdit && clients && (
-          <ClientMergeDialog
-            source={c}
-            clients={clients}
-            trigger={
-              <Button variant="ghost" size="icon" title="Fusionner / rattacher à un client existant">
-                <Merge className="h-4 w-4" />
-              </Button>
-            }
-          />
-        )}
+        <div className="flex shrink-0 items-center gap-0.5">
+          {canEdit && (
+            <Button variant="ghost" size="icon" asChild title="Ouvrir la fiche 360° (Pilotage)">
+              <Link to="/pilot/fiche/$clientId" params={{ clientId: c.id }}>
+                <BarChart3 className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+          {canEdit && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" title="Modifier rapidement les statuts">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72 space-y-3 text-sm">
+                <div>
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Cycle de vie
+                  </p>
+                  {(["actif", "perdu"] as ClientLifecycle[]).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      disabled={statusMut.isPending}
+                      onClick={() => statusMut.mutate({ client: c, patch: { lifecycle_status: v } })}
+                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left hover:bg-accent/40"
+                    >
+                      <span>{LIFECYCLE_META[v].label}</span>
+                      {(c.lifecycle_status ?? "actif") === v && <Check className="h-4 w-4 text-primary" />}
+                    </button>
+                  ))}
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Compte-rendu client
+                  </p>
+                  {(["oui", "non", "a_confirmer"] as ReportPolicy[]).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      disabled={statusMut.isPending}
+                      onClick={() => statusMut.mutate({ client: c, patch: { report_policy: v } })}
+                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left hover:bg-accent/40"
+                    >
+                      <span>{REPORT_POLICY_META[v].short}</span>
+                      {(c.report_policy ?? "a_confirmer") === v && <Check className="h-4 w-4 text-primary" />}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  Les statuts « à relancer » et « dormant » sont déduits de la dernière activité
+                  réelle : ils ne se modifient pas à la main.
+                </p>
+              </PopoverContent>
+            </Popover>
+          )}
+          {canEdit && clients && (
+            <ClientMergeDialog
+              source={c}
+              clients={clients}
+              trigger={
+                <Button variant="ghost" size="icon" title="Fusionner / rattacher à un client existant">
+                  <Merge className="h-4 w-4" />
+                </Button>
+              }
+            />
+          )}
+        </div>
       </Card>
     );
   };
 
   return (
     <AppShell title="Clients">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -279,8 +388,11 @@ function ClientsPage() {
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les clients</SelectItem>
-              <SelectItem value="actif">Clients suivis</SelectItem>
+              <SelectItem value="actif">Actifs</SelectItem>
+              <SelectItem value="a_relancer">À relancer</SelectItem>
+              <SelectItem value="dormant">Dormants</SelectItem>
               <SelectItem value="perdu">Clients perdus</SelectItem>
+              <SelectItem value="cr_a_qualifier">CR à qualifier</SelectItem>
             </SelectContent>
           </Select>
           <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>

@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Send, Bot, HeartPulse, CheckCircle2, AlertTriangle, MinusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
-import { goalsForMode } from "@/lib/pilot-realized";
+import { goalsForMode, periodScopeLabel, PERIOD_LABELS } from "@/lib/pilot-realized";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, ReferenceLine } from "recharts";
 import { PP_COLORS } from "@/lib/pilot-colors";
@@ -52,7 +52,7 @@ function SantePage() {
   const k = useMemo(
     () => computeKpis({
       entries: entries.data ?? [], charges: charges.data ?? [], settings: set,
-      year, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data, mode,
+      year, month: new Date().getMonth(), confirmedHoursByClient: confirmed.data, mode, period,
     }),
     [entries.data, charges.data, set, year, confirmed.data, mode, period],
   );
@@ -130,10 +130,11 @@ function SantePage() {
   });
 
   if (entries.isLoading) return <Skeleton className="h-64 rounded-xl" />;
-  if (chargeRowsQ.isLoading) return <Skeleton className="h-64 rounded-xl" />;
+  if (chargeRowsQ.isLoading || salesQ.isLoading) return <Skeleton className="h-64 rounded-xl" />;
   // Une erreur de chargement des charges ne doit JAMAIS devenir « 0 € de
   // charges » : sans charges fiables, aucun score financier n'est publié.
-  if (chargeRowsQ.isError)
+  if (chargeRowsQ.isError || salesQ.isError) {
+    const failed = (chargeRowsQ.error ?? salesQ.error) as Error;
     return (
       <Card>
         <CardHeader>
@@ -143,18 +144,26 @@ function SantePage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
-            Les lignes de charges n'ont pas pu être chargées : le score ne peut pas être calculé
-            sans elles (aucun calcul sur une base de charges vide).
+            Les charges (ou le CA de référence) n'ont pas pu être chargées : le score financier ne
+            peut pas être calculé sans elles. Aucun score n'est publié sur une base de charges vide.
           </p>
           <p className="rounded-md border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
-            {(chargeRowsQ.error as Error).message}
+            {failed?.message ?? "Erreur de chargement"}
           </p>
-          <Button variant="outline" size="sm" onClick={() => void chargeRowsQ.refetch()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (chargeRowsQ.isError) void chargeRowsQ.refetch();
+              if (salesQ.isError) void salesQ.refetch();
+            }}
+          >
             Réessayer
           </Button>
         </CardContent>
       </Card>
     );
+  }
 
   const meta = HEALTH_LEVEL_META[health.level];
   const R = 54;
@@ -171,10 +180,17 @@ function SantePage() {
           Quatre questions simples : est-ce que je gagne de l'argent, est-ce que je vends assez,
           est-ce que mon temps est bien employé, est-ce que j'avance sur mes priorités ?
         </p>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-primary/30 bg-primary/5 px-2.5 py-0.5 text-xs font-medium text-primary">
+            Période : {PERIOD_LABELS[period]}
+          </span>
+          <span className="text-xs text-muted-foreground">{periodScopeLabel(year, period)}</span>
+        </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Photographie réelle au {new Date().toLocaleDateString("fr-FR")} : uniquement le CA, les
-          charges et l'activité déjà enregistrés. Aucune projection de fin d'exercice. Un axe sans
-          donnée exploitable affiche « Données insuffisantes ».
+          {period === "exercice_complet"
+            ? "Lecture intégrale de l'exercice demandée explicitement : les charges et ventes postérieures à aujourd'hui sont incluses."
+            : `Photographie réelle au ${new Date().toLocaleDateString("fr-FR")} : CA, charges, marge, bénéfice et poids des charges sont arrêtés à cette date. Aucune donnée future, aucune projection.`}{" "}
+          Un axe sans donnée exploitable affiche « Données insuffisantes ».
         </p>
       </div>
 
