@@ -17,6 +17,7 @@ import { EnginePanel } from "@/components/pilot/panels/EnginePanel";
 import { DoublonsPanel } from "@/components/pilot/panels/DoublonsPanel";
 import { KpiContractPanel } from "@/components/pilot/panels/KpiContractPanel";
 import { KpiReliabilityPanel } from "@/components/pilot/panels/KpiReliabilityPanel";
+import { IntegrityPanel } from "@/components/pilot/panels/IntegrityPanel";
 
 type Section =
   | "qualite"
@@ -27,12 +28,24 @@ type Section =
   | "moteur"
   | "doublons"
   | "contrat"
-  | "fiabilite";
+  | "fiabilite"
+  | "integrite";
 
 export const Route = createFileRoute("/_authenticated/pilot/controle")({
   validateSearch: (search: Record<string, unknown>): { section?: Section; sub?: string } => ({
     section: (
-      ["qualite", "validation", "corrections", "sources", "referentiel", "moteur", "doublons", "contrat", "fiabilite"] as const
+      [
+        "qualite",
+        "validation",
+        "corrections",
+        "sources",
+        "referentiel",
+        "moteur",
+        "doublons",
+        "contrat",
+        "fiabilite",
+        "integrite",
+      ] as const
     ).includes(search.section as never)
       ? (search.section as Section)
       : undefined,
@@ -116,6 +129,11 @@ function ControlCenterPage() {
               <ShieldCheck className="h-4 w-4" /> Fiabilité des KPI
             </Link>
           </TabsTrigger>
+          <TabsTrigger value="integrite" asChild>
+            <Link to="/pilot/controle" search={{ section: "integrite" }} className="gap-1.5">
+              <ShieldAlert className="h-4 w-4" /> Intégrité des données
+            </Link>
+          </TabsTrigger>
           <TabsTrigger value="moteur" asChild>
             <Link to="/pilot/controle" search={{ section: "moteur" }} className="gap-1.5">
               <Cpu className="h-4 w-4" /> Moteur analytique
@@ -171,6 +189,14 @@ function ControlCenterPage() {
               <RapprochementPage />
             </TabsContent>
           </Tabs>
+        </TabsContent>
+
+        <TabsContent value="integrite" className="mt-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Contrôle avant affichage — existence des colonnes, complétude des périodes, bornes « à
+            date », doublons, rattachements et cohérence arithmétique (lecture seule).
+          </p>
+          <IntegrityPanel />
         </TabsContent>
 
         <TabsContent value="corrections" className="mt-4">
