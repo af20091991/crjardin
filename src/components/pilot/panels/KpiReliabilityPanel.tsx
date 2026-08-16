@@ -16,6 +16,7 @@ import { DataStateNotice } from "@/components/pilot/DataStateNotice";
 import { resourceState, worstStatus } from "@/lib/pilot-data-state";
 import { buildDataQualityReport } from "@/lib/pilot-data-quality";
 import { KPI_CATEGORY_LABEL, KPI_CONTRACTS, type KpiCategory } from "@/lib/pilot-kpi-contract";
+import { worstIntegrity } from "@/lib/pilot-integrity";
 import {
   KPI_READINESS_LABEL,
   MONTHS_OBSERVED_LABEL,
