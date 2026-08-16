@@ -203,6 +203,8 @@ function DirectionPage() {
         title="Pilotage financier"
         subtitle={label}
         datasets={datasets}
+        defaultDatasetId="ca-charges"
+        defaultType="barres_groupees"
         storageKey="pp.direction.principal"
       />
 
@@ -212,12 +214,16 @@ function DirectionPage() {
           title="Activité et rentabilité"
           subtitle={label}
           datasets={datasets}
+          defaultDatasetId="taux"
+          defaultType="courbe"
           storageKey="pp.direction.secondaire1"
         />
         <PilotFlexChart
           title="Comparaisons"
           subtitle={label}
           datasets={datasets}
+          defaultDatasetId="compare"
+          defaultType="barres_groupees"
           storageKey="pp.direction.secondaire2"
         />
       </div>
