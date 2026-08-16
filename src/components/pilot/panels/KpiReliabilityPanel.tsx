@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, BadgeCheck, HelpCircle, Search, ShieldCheck } from "lucide-react";
 import { useAnalytics } from "@/lib/pilot-analytics";
 import { usePilotData } from "@/components/pilot/usePilotData";
+import { usePilotIntegrity } from "@/components/pilot/usePilotIntegrity";
 import { DataStateNotice } from "@/components/pilot/DataStateNotice";
 import { resourceState, worstStatus } from "@/lib/pilot-data-state";
 import { buildDataQualityReport } from "@/lib/pilot-data-quality";
@@ -45,6 +46,7 @@ export function KpiReliabilityPanel() {
   const { snapshot, ...analytics } = useAnalytics();
   const { states } = usePilotData();
   const quality = useQuery({ queryKey: ["pilot-data-quality"], queryFn: buildDataQualityReport });
+  const { report: integrity } = usePilotIntegrity();
 
   const engineState = useMemo(
     () => resourceState("pilot-analytics", "Moteur analytique", analytics, () => false),
@@ -70,8 +72,11 @@ export function KpiReliabilityPanel() {
           baseStates.find((s) => s.status !== "success")?.message ?? "socle de données disponible.",
         qualityStatus: qualityState.status,
         qualityMessage: qualityState.message,
+        // Plafond : aucun KPI certifié si une source critique ne l'est pas.
+        integrityStatus: integrity.status,
+        integrityMessage: integrity.message,
       }),
-    [snapshot, baseStates, qualityState],
+    [snapshot, baseStates, qualityState, integrity],
   );
 
   const filtered = useMemo(() => {
