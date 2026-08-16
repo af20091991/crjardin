@@ -15,6 +15,7 @@ import {
   buildReconciliationReport,
   type ReconciliationReport,
 } from "@/lib/pilot-reconciliation";
+import { saleRateScope } from "@/lib/pilot-sale-time";
 
 export function usePilotIntegrity(): {
   report: IntegrityReport;
