@@ -40,8 +40,14 @@ export function ProfitabilityServicesView() {
   });
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<ServiceClass | "all">("all");
-  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode, period]);
-  const realLedger = useMemo(() => hoursLedgerForMode(ledger.data ?? [], mode), [ledger.data, mode, period]);
+  const realEntries = useMemo(
+    () => entriesForMode(entries.data ?? [], mode, undefined, period),
+    [entries.data, mode, period],
+  );
+  const realLedger = useMemo(
+    () => hoursLedgerForMode(ledger.data ?? [], mode, undefined, period),
+    [ledger.data, mode, period],
+  );
 
   const target = settings.data?.target_hourly_rate ?? DEFAULT_SETTINGS.target_hourly_rate;
 

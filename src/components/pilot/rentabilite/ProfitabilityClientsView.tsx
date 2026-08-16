@@ -86,7 +86,10 @@ export function ProfitabilityClientsView() {
   const scope = allTimeScope ? "all" : String(year);
 
   const yearFilter = scope === "all" ? undefined : Number(scope);
-  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode, period]);
+  const realEntries = useMemo(
+    () => entriesForMode(entries.data ?? [], mode, undefined, period),
+    [entries.data, mode, period],
+  );
   const confirmed = useQuery({
     queryKey: ["confirmed-hours-by-client", yearFilter ?? "all", mode, period],
     queryFn: () => fetchConfirmedHoursByClient(yearFilter, { mode, period }),

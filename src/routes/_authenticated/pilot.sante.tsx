@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Send, Bot, HeartPulse, CheckCircle2, AlertTriangle, MinusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
-import { goalsForMode, periodScopeLabel, PERIOD_LABELS } from "@/lib/pilot-realized";
+import { entriesForMode, goalsForMode, periodScopeLabel, PERIOD_LABELS } from "@/lib/pilot-realized";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, ReferenceLine } from "recharts";
 import { PP_COLORS } from "@/lib/pilot-colors";
@@ -72,9 +72,13 @@ function SantePage() {
   const topClientSharePct = useMemo(() => {
     // Concentration client : le bucket « ventes non rattachées » n'est pas un
     // client et ne peut donc jamais être le 1er client du portefeuille.
-    const stats = clientStats(entries.data ?? [], year).filter((s) => !s.unassigned);
+    // Concentration client : même périmètre temporel que le reste de l'écran.
+    const stats = clientStats(
+      entriesForMode(entries.data ?? [], mode, undefined, period),
+      year,
+    ).filter((s) => !s.unassigned);
     return stats.length ? stats[0].share : null;
-  }, [entries.data, year]);
+  }, [entries.data, year, mode, period]);
 
   const health = useMemo(() => {
     const rows = activityQ.data ?? [];
@@ -82,14 +86,14 @@ function SantePage() {
       k,
       annual: currentAnnual,
       settings: set,
-      goals: goalsForMode(goalsQ.data ?? [], mode),
+      goals: goalsForMode(goalsQ.data ?? [], mode, undefined, period),
       charges: chargesAnalysis,
       dormantClients: rows.filter((r) => r.status === "dormant").length,
       activeClients: rows.filter((r) => r.status === "actif").length,
       topClientSharePct,
       thresholds,
     });
-  }, [k, currentAnnual, set, goalsQ.data, chargesAnalysis, activityQ.data, mode, topClientSharePct, thresholds]);
+  }, [k, currentAnnual, set, goalsQ.data, chargesAnalysis, activityQ.data, mode, period, topClientSharePct, thresholds]);
 
   // Graphique 1 : scores par thématique (histogramme horizontal).
   const themeChartData = useMemo(

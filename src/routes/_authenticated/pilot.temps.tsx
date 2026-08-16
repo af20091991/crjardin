@@ -183,13 +183,18 @@ function TimeValueAnalysis() {
   const [clientSort, setClientSort] = useState<ClientSort>("best_euro_h");
   const [q, setQ] = useState("");
 
-  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode, period]);
+  // Le périmètre temporel choisi (à date / exercice complet) doit descendre
+  // jusqu'au filtre central : sans lui, « exercice complet » restait ignoré.
+  const realEntries = useMemo(
+    () => entriesForMode(entries.data ?? [], mode, undefined, period),
+    [entries.data, mode, period],
+  );
   const realLedger = useMemo(
-    () => hoursLedgerForMode(ledger.data ?? [], mode),
+    () => hoursLedgerForMode(ledger.data ?? [], mode, undefined, period),
     [ledger.data, mode, period],
   );
   const realCharges = useMemo(
-    () => chargeRowsForMode(charges.data ?? [], mode),
+    () => chargeRowsForMode(charges.data ?? [], mode, undefined, period),
     [charges.data, mode, period],
   );
 
