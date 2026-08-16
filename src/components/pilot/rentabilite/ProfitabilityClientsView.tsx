@@ -40,7 +40,9 @@ import {
   statusOf,
   useEntityStatuses,
 } from "@/lib/pilot-entity-rules";
-import { EntityStatusBadge, ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
+import { ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
+import { EntityStatusQuickEdit } from "@/components/pilot/rentabilite/EntityStatusQuickEdit";
+import { topClients } from "@/lib/pilot-top-clients";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import {
   DashboardBlock,
@@ -140,7 +142,28 @@ export function ProfitabilityClientsView() {
     (c) =>
       c.lastDate && now - new Date(c.lastDate).getTime() > CLIENT_ACTIVITY_RULES.DORMANT_DAYS * DAY,
   );
-  const top = rankable.slice(0, 3);
+  // TOP 5 composite : 50 % CA HT vendu, 30 % part du CA HT total, 20 % taux
+  // horaire (jamais inventé : null si aucune heure Vente → Temps fiable).
+  const top = useMemo(
+    () =>
+      topClients(
+        rankable.map((c) => ({
+          key: c.key,
+          clientId: c.clientId,
+          name: c.name,
+          ca: c.ca,
+          share: c.share,
+          hourlyRate:
+            c.hours > 0 && reliabilityOf(c).profitabilityTrusted && c.hourlyRate > 0
+              ? c.hourlyRate
+              : null,
+        })),
+        5,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rankable, statusesQ.data, thresholds],
+  );
+  const statsByKey = useMemo(() => new Map(stats.map((s) => [s.key, s])), [stats]);
 
   const years = Array.from(
     new Set(realEntries.map((e) => new Date(e.entry_date).getFullYear())),
@@ -189,9 +212,12 @@ export function ProfitabilityClientsView() {
 
         {/* Top clients */}
         <DashboardBlock id="top" layout={layout}>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {top.map((c, i) => (
-              <Card key={c.key}>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {top.map((t) => {
+              const c = statsByKey.get(t.key)!;
+              const i = t.rank - 1;
+              return (
+              <Card key={t.key}>
                 <CardContent className="pt-5">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Trophy
@@ -214,11 +240,19 @@ export function ProfitabilityClientsView() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {c.share.toFixed(0)} % du CA · {formatEuro(c.hourlyRate)}/h
+                    {c.share.toFixed(0)} % du CA ·{" "}
+                    {t.hourlyRate == null ? "taux/h non documenté" : `${formatEuro(t.hourlyRate)}/h`}
+                  </p>
+                  <p
+                    className="mt-1 text-[11px] text-muted-foreground"
+                    title={`Score composite : CA ${t.caPoints.toFixed(0)}/50 · part ${t.sharePoints.toFixed(0)}/30 · taux horaire ${t.ratePoints.toFixed(0)}/20`}
+                  >
+                    Score {t.score.toFixed(0)}/100
                   </p>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
             {top.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 Aucun TOP client exploitable : les identités économiques doivent d'abord être
@@ -303,7 +337,11 @@ export function ProfitabilityClientsView() {
                           <ClientLink clientId={c.clientId} clientKey={c.key} name={c.name} />
                         </TableCell>
                         <TableCell>
-                          <EntityStatusBadge status={statusOf(statusesQ.data, c.clientId)} />
+                          <EntityStatusQuickEdit
+                            clientId={c.clientId}
+                            clientName={c.name}
+                            status={statusOf(statusesQ.data, c.clientId)}
+                          />
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge className={NATURE_TONE[c.nature] ?? NATURE_TONE.Autre}>
