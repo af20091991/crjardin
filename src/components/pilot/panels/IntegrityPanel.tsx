@@ -8,6 +8,7 @@ import { AlertTriangle, BadgeCheck, HelpCircle, ShieldAlert, ShieldCheck } from 
 import { usePilotIntegrity } from "@/components/pilot/usePilotIntegrity";
 import { INTEGRITY_LABEL, type IntegrityStatus } from "@/lib/pilot-integrity";
 import { DIFF_KIND_LABEL } from "@/lib/pilot-reconciliation";
+import { SstReconciliationPanel } from "@/components/pilot/panels/SstReconciliationPanel";
 
 const TONE: Record<IntegrityStatus, string> = {
   certifie: "border-primary/30 bg-primary/5 text-primary",
@@ -107,6 +108,8 @@ export function IntegrityPanel() {
           </ul>
         </CardContent>
       </Card>
+
+      <SstReconciliationPanel />
     </div>
   );
 }
