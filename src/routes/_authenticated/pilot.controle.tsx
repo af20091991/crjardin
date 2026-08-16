@@ -13,6 +13,7 @@ import { RapprochementPage } from "@/components/pilot/panels/RapprochementPanel"
 import { CorrectionsPage } from "@/components/pilot/panels/CorrectionsPanel";
 import { SourcesPanel } from "@/components/pilot/panels/SourcesPanel";
 import { ReferentialPanel } from "@/components/pilot/panels/ReferentialPanel";
+import { AttachmentCertificationPanel } from "@/components/pilot/panels/AttachmentCertificationPanel";
 import { EnginePanel } from "@/components/pilot/panels/EnginePanel";
 import { DoublonsPanel } from "@/components/pilot/panels/DoublonsPanel";
 import { KpiContractPanel } from "@/components/pilot/panels/KpiContractPanel";
