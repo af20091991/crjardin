@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { buildSstReconciliation, missionRef } from "@/lib/sst-reconciliation";
 import { isSubcontractingLabel } from "@/lib/sst-charges";
 import type { SstChargeLine } from "@/lib/sst-charges";
@@ -26,7 +26,7 @@ const m = (o: { id: string; date: string; amount: number; sst: string; client?: 
 describe("rapprochement SST", () => {
   const period = "exercice_complet" as const;
 
-  it("rapproche mois + montant identiques", () => {
+  test("rapproche mois + montant identiques", () => {
     const r = buildSstReconciliation({
       missions: [m({ id: "m1", date: "2026-03-10", amount: 300, sst: "Chloé" })],
       chargeLines: [charge({ id: "c1", month: 3, amount: 300, designation: "Sous-traitance Chloé" })],
@@ -39,7 +39,7 @@ describe("rapprochement SST", () => {
     expect(r.gap).toBe(0);
   });
 
-  it("classe une charge sans mission et une mission sans charge", () => {
+  test("classe une charge sans mission et une mission sans charge", () => {
     const r = buildSstReconciliation({
       missions: [m({ id: "m1", date: "2026-03-10", amount: 300, sst: "Chloé" })],
       chargeLines: [charge({ id: "c1", month: 5, amount: 120, designation: "Sous-traitance Lozza" })],
@@ -54,7 +54,7 @@ describe("rapprochement SST", () => {
     expect(r.status).toBe("incomplet");
   });
 
-  it("détecte un décalage de période sur montant identique", () => {
+  test("détecte un décalage de période sur montant identique", () => {
     const r = buildSstReconciliation({
       missions: [m({ id: "m1", date: "2026-06-10", amount: 250, sst: "Fanny" })],
       chargeLines: [charge({ id: "c1", month: 2, amount: 250, designation: "Sous-traitance Fanny" })],
@@ -64,7 +64,7 @@ describe("rapprochement SST", () => {
     expect(r.rows[0]!.kind).toBe("difference_periode");
   });
 
-  it("signale un doublon strict côté charges", () => {
+  test("signale un doublon strict côté charges", () => {
     const r = buildSstReconciliation({
       missions: [],
       chargeLines: [
@@ -78,7 +78,7 @@ describe("rapprochement SST", () => {
     expect(r.status).toBe("suspect");
   });
 
-  it("chaque ligne est comptée une seule fois", () => {
+  test("chaque ligne est comptée une seule fois", () => {
     const r = buildSstReconciliation({
       missions: [
         m({ id: "m1", date: "2026-03-10", amount: 300, sst: "Chloé" }),
@@ -92,7 +92,7 @@ describe("rapprochement SST", () => {
     expect(r.matchedChargeTotal + r.unmatchedChargeTotal).toBe(r.chargeTotal);
   });
 
-  it("filtre les deux côtés sur le même exercice", () => {
+  test("filtre les deux côtés sur le même exercice", () => {
     const r = buildSstReconciliation({
       missions: [m({ id: "m1", date: "2025-03-10", amount: 300, sst: "Chloé" })],
       chargeLines: [charge({ id: "c1", year: 2025, month: 3, amount: 300 })],
@@ -104,7 +104,7 @@ describe("rapprochement SST", () => {
     expect(r.chargeTotal).toBe(0);
   });
 
-  it("détecte la variante « Ss-traitance » dans les libellés", () => {
+  test("détecte la variante « Ss-traitance » dans les libellés", () => {
     expect(isSubcontractingLabel("Ss-traitance d'Aboville")).toBe(true);
     expect(isSubcontractingLabel("Carburant")).toBe(false);
   });
