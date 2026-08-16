@@ -96,7 +96,10 @@ describe("réalisé à date — CA du mois et de l'exercice", () => {
 describe("réalisé à date — charges, marge et heures", () => {
   const s = snap({
     chargeRows: [
-      charge({ id: "ch8", year: YEAR, month: 8, amount_ht: 1_000 }), // mois en cours : inclus
+      // Mois passé daté : seule charge démontrablement échue.
+      charge({ id: "ch7", year: YEAR, month: 7, amount_ht: 1_000 }),
+      // Mois EN COURS sans date précise : non datable, exclu de la photo à date.
+      charge({ id: "ch8", year: YEAR, month: 8, amount_ht: 4_000 }),
       charge({ id: "ch9", year: YEAR, month: 9, amount_ht: 5_000 }), // mois futur : exclu
       charge({ id: "ch12", year: YEAR, month: 12, amount_ht: 9_000 }), // mois futur : exclu
     ],
