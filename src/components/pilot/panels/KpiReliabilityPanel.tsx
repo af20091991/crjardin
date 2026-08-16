@@ -46,7 +46,7 @@ export function KpiReliabilityPanel() {
   const { snapshot, ...analytics } = useAnalytics();
   const { states } = usePilotData();
   const quality = useQuery({ queryKey: ["pilot-data-quality"], queryFn: buildDataQualityReport });
-  const { report: integrity } = usePilotIntegrity();
+  const { report: integrity, reconciliation } = usePilotIntegrity();
 
   const engineState = useMemo(
     () => resourceState("pilot-analytics", "Moteur analytique", analytics, () => false),
@@ -73,10 +73,12 @@ export function KpiReliabilityPanel() {
         qualityStatus: qualityState.status,
         qualityMessage: qualityState.message,
         // Plafond : aucun KPI certifié si une source critique ne l'est pas.
-        integrityStatus: integrity.status,
-        integrityMessage: integrity.message,
+        // Plafond combiné : intégrité des sources ET réconciliation des calculs.
+        integrityStatus: worstIntegrity([integrity.status, reconciliation.status]),
+        integrityMessage:
+          reconciliation.status !== "certifie" ? reconciliation.message : integrity.message,
       }),
-    [snapshot, baseStates, qualityState, integrity],
+    [snapshot, baseStates, qualityState, integrity, reconciliation],
   );
 
   const filtered = useMemo(() => {
