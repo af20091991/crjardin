@@ -82,8 +82,16 @@ export function SstProfitabilityTab() {
   const [marginTarget, setMarginTarget] = useState(25);
   const [editing, setEditing] = useState<SubcontractorMission | null>(null);
 
-  const { data: missions = [] } = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
-  const { data: pnl = [] } = useQuery({ queryKey: ["sst-pnl"], queryFn: listMissionPnl });
+  const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
+  const pnlQ = useQuery({ queryKey: ["sst-pnl"], queryFn: listMissionPnl });
+  const missions = missionsQ.data ?? [];
+  const pnl = pnlQ.data ?? [];
+  // États explicites des graphiques : une erreur n'est jamais montrée comme un zéro.
+  const chartsLoading = missionsQ.isLoading || pnlQ.isLoading;
+  const chartsError =
+    missionsQ.error || pnlQ.error
+      ? "Chargement des missions sous-traitées impossible : les graphiques ne peuvent pas être calculés."
+      : null;
   const { data: ssts = [] } = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: lists = [] } = useQuery({
