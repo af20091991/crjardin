@@ -65,6 +65,10 @@ interface Props {
   datasets: FlexDataset[];
   /** Clé de persistance locale du choix d'affichage (préférence d'écran). */
   storageKey: string;
+  /** Indicateur proposé par défaut (avant tout choix mémorisé de l'utilisateur). */
+  defaultDatasetId?: string;
+  /** Type de graphique proposé par défaut (avant tout choix mémorisé). */
+  defaultType?: FlexChartType;
   isLoading?: boolean;
   error?: string | null;
   onRetry?: () => void;
@@ -96,15 +100,17 @@ export function PilotFlexChart({
   subtitle,
   datasets,
   storageKey,
+  defaultDatasetId,
+  defaultType,
   isLoading,
   error,
   onRetry,
 }: Props) {
   const [datasetId, setDatasetId] = usePersisted(
     `${storageKey}:indicateur`,
-    datasets[0]?.id ?? "",
+    datasets.some((d) => d.id === defaultDatasetId) ? defaultDatasetId! : (datasets[0]?.id ?? ""),
   );
-  const [wantedType, setWantedType] = usePersisted(`${storageKey}:type`, "barres");
+  const [wantedType, setWantedType] = usePersisted(`${storageKey}:type`, defaultType ?? "barres");
 
   const dataset = datasets.find((d) => d.id === datasetId) ?? datasets[0] ?? null;
   const type = useMemo(
