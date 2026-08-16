@@ -18,7 +18,10 @@ export function ReportsCard() {
   const { period } = usePilotPeriod();
   const year = new Date().getFullYear();
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode), [entries.data, mode, period]);
+  const realEntries = useMemo(
+    () => entriesForMode(entries.data ?? [], mode, undefined, period),
+    [entries.data, mode, period],
+  );
   const confirmed = useQuery({
     queryKey: ["confirmed-hours-by-client", year],
     queryFn: () => fetchConfirmedHoursByClient(year),
@@ -29,6 +32,7 @@ export function ReportsCard() {
       year, month: new Date().getMonth(),
       confirmedHoursByClient: confirmed.data,
       mode,
+      period,
     }),
     [entries.data, charges.data, set, year, confirmed.data, mode, period],
   );

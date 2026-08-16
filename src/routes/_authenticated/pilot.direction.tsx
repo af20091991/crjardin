@@ -47,7 +47,10 @@ function PilotDashboard() {
   const loading = entries.isLoading || charges.isLoading || settings.isLoading;
 
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const realEntries = useMemo(() => entriesForMode(entries.data ?? [], mode, now), [entries.data, mode, now]);
+  const realEntries = useMemo(
+    () => entriesForMode(entries.data ?? [], mode, now, period),
+    [entries.data, mode, now, period],
+  );
   const confirmedHours = useQuery({
     queryKey: ["confirmed-hours-by-client", year, mode, period],
     queryFn: () => fetchConfirmedHoursByClient(year, { mode, period }),
@@ -62,6 +65,7 @@ function PilotDashboard() {
         month,
         confirmedHoursByClient: confirmedHours.data,
         mode,
+        period,
       }),
     [entries.data, charges.data, set, year, month, confirmedHours.data, mode, period],
   );
