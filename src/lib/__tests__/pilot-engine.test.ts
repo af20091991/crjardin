@@ -201,3 +201,20 @@ describe("buildAnalytics — lignes orphelines et charges nulles", () => {
     expect(withDuplicate.clients.excluded.map((r) => r.clientId)).toEqual(["c2"]);
   });
 });
+
+describe("auditCoherence — vérifications additionnelles", () => {
+  test("les 5 nouvelles clés de cohérence sont produites", () => {
+    const inputs = engineInputs();
+    const snap = buildAnalytics(inputs, NOW);
+    const keys = auditCoherence(inputs, snap, [], NOW).map((c) => c.key);
+    for (const key of [
+      "marge",
+      "taux_horaire_reel",
+      "panier_moyen",
+      "progression",
+      "concentration_premier_client",
+    ]) {
+      expect(keys).toContain(key);
+    }
+  });
+});
