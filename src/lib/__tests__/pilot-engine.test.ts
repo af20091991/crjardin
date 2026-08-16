@@ -2,6 +2,7 @@
 // n'est recopiée ici : les tests vérifient les valeurs produites par le moteur.
 import { describe, expect, test } from "bun:test";
 import { buildAnalytics } from "@/lib/pilot-engine";
+import { auditCoherence } from "@/lib/pilot-engine-audit";
 import {
   charge,
   engineInputs,
