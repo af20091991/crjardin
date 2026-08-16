@@ -9,10 +9,20 @@ import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { listChargeRows } from "@/lib/pilot-charges";
 import { resourceState } from "@/lib/pilot-data-state";
 import { buildIntegrityReport, type IntegrityReport } from "@/lib/pilot-integrity";
+import { useAnalytics } from "@/lib/pilot-analytics";
+import { entriesForMode, chargeRowsForMode, hoursLedgerForMode } from "@/lib/pilot-realized";
+import {
+  buildReconciliationReport,
+  type ReconciliationReport,
+} from "@/lib/pilot-reconciliation";
 
-export function usePilotIntegrity(): { report: IntegrityReport } {
+export function usePilotIntegrity(): {
+  report: IntegrityReport;
+  reconciliation: ReconciliationReport;
+} {
   const { entries, clients, states } = usePilotData();
   const { year, mode, period } = usePilotScope();
+  const { snapshot } = useAnalytics();
   // Les lignes de charges analytiques (ChargeRow) sont la source utilisée par
   // les moteurs : la ressource « charges » du socle est un autre modèle.
   const chargeRows = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
