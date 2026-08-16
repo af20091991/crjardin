@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, BadgeCheck, HelpCircle, ShieldAlert, ShieldCheck } from "lucide-react";
 import { usePilotIntegrity } from "@/components/pilot/usePilotIntegrity";
 import { INTEGRITY_LABEL, type IntegrityStatus } from "@/lib/pilot-integrity";
+import { DIFF_KIND_LABEL } from "@/lib/pilot-reconciliation";
 
 const TONE: Record<IntegrityStatus, string> = {
   certifie: "border-primary/30 bg-primary/5 text-primary",
@@ -32,7 +33,7 @@ function StatusBadge({ status }: { status: IntegrityStatus }) {
 }
 
 export function IntegrityPanel() {
-  const { report } = usePilotIntegrity();
+  const { report, reconciliation } = usePilotIntegrity();
 
   return (
     <div className="space-y-4">
@@ -81,6 +82,31 @@ export function IntegrityPanel() {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex flex-wrap items-center gap-2 text-sm">
+            Réconciliation des calculs
+            <StatusBadge status={reconciliation.status} />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-xs text-muted-foreground">{reconciliation.message}</p>
+          <ul className="space-y-1.5">
+            {reconciliation.rows.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-start gap-2 text-xs">
+                <StatusBadge status={r.status} />
+                <span className="min-w-0 flex-1">
+                  <span className="font-medium">{r.label}</span> — {r.message}
+                </span>
+                <Badge variant="outline" className="font-normal">
+                  {DIFF_KIND_LABEL[r.kind]}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   );
 }

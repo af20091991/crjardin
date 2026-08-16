@@ -101,6 +101,8 @@ export function pragmaticHealth(params: {
   /** Part du CA du 1er client (%), issue de `clientStats()` — pour la concentration client. */
   topClientSharePct?: number | null;
   thresholds?: PilotThresholds;
+  /** Date de référence injectable : aucun moteur critique ne lit l'horloge. */
+  now?: Date;
 }): PragmaticHealth {
   const {
     k, annual, settings, goals, dormantClients = 0, activeClients = 0,
@@ -220,7 +222,7 @@ export function pragmaticHealth(params: {
   {
     const actifs = goals.filter((g) => g.status !== "abandonne");
     const done = actifs.filter((g) => g.status === "termine").length;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = (params.now ?? new Date()).toISOString().slice(0, 10);
     const retard = actifs.filter((g) => g.status === "en_cours" && g.deadline && g.deadline < today).length;
     const details: ThemeScore["details"] = actifs.length
       ? [
