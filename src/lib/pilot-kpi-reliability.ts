@@ -10,6 +10,7 @@
 import type { AnalyticsSnapshot, KpiKey } from "@/lib/pilot-engine";
 import type { DataStatus } from "@/lib/pilot-data-state";
 import type { KpiContract, KpiContractId } from "@/lib/pilot-kpi-contract";
+import type { IntegrityStatus } from "@/lib/pilot-integrity";
 
 /** Aptitude d'usage d'un KPI, du point de vue du dirigeant. */
 export type KpiReadiness =
@@ -72,6 +73,13 @@ export interface KpiReliabilityInput {
   /** État de la lecture du rapport de qualité des données. */
   qualityStatus: DataStatus;
   qualityMessage: string;
+  /**
+   * État d'intégrité global des sources critiques (contrôles de fiabilité).
+   * Un KPI ne peut jamais être présenté comme certifié si ses sources ne le
+   * sont pas : ce plafond s'applique après les contrôles du moteur.
+   */
+  integrityStatus?: IntegrityStatus;
+  integrityMessage?: string;
 }
 
 /** État de chargement traduit en aptitude d'usage, si celui-ci est bloquant. */
@@ -94,8 +102,9 @@ export function buildKpiReliability(input: KpiReliabilityInput): KpiReliabilityR
   const { contracts, snapshot, dataStatus, dataMessage, qualityStatus, qualityMessage } = input;
   const loadIssue = readinessFromStatus(dataStatus, dataMessage);
   const qualityIssue = readinessFromStatus(qualityStatus, qualityMessage);
+  const integrityCap = integrityIssue(input.integrityStatus, input.integrityMessage);
 
-  return contracts.map<KpiReliabilityRow>((contract) => {
+  const rows = contracts.map<KpiReliabilityRow>((contract) => {
     // Indicateur documenté comme non produit : l'état du chargement n'y change rien.
     if (contract.reliabilityStatus === "non_disponible") {
       return {
@@ -157,6 +166,29 @@ export function buildKpiReliability(input: KpiReliabilityInput): KpiReliabilityR
     }
     return { contract, readiness: "certifie", explanation: "", details: [] };
   });
+
+  if (!integrityCap) return rows;
+  // Plafond de certification : aucun badge « Certifié » sur des sources
+  // incomplètes, suspectes ou indisponibles.
+  return rows.map((row) =>
+    row.readiness === "certifie"
+      ? { ...row, readiness: integrityCap.readiness, explanation: integrityCap.explanation }
+      : row,
+  );
+}
+
+/** Traduction de l'intégrité des sources en plafond d'aptitude d'usage. */
+function integrityIssue(
+  status: IntegrityStatus | undefined,
+  message: string | undefined,
+): { readiness: KpiReadiness; explanation: string } | null {
+  if (!status || status === "certifie") return null;
+  const why = message ?? "Contrôles de fiabilité des sources non passés.";
+  if (status === "indisponible")
+    return { readiness: "non_disponible", explanation: `Sources indisponibles — ${why}` };
+  if (status === "suspect")
+    return { readiness: "a_confirmer", explanation: `Sources suspectes — ${why}` };
+  return { readiness: "partiel", explanation: `Sources incomplètes — ${why}` };
 }
 
 /**
