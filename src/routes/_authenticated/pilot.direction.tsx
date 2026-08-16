@@ -11,11 +11,7 @@ import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
 import { DirectorFinancialTable } from "@/components/pilot/DirectorFinancialTable";
 import { ChargesSummaryCard } from "@/components/pilot/ChargesSummaryCard";
@@ -272,7 +268,11 @@ function KpiTile({ kpi }: { kpi: DirectionKpi }) {
     <>
       <div className="flex items-start justify-between gap-1">
         <p className="text-xs font-medium text-muted-foreground">{kpi.label}</p>
-        <span title={certified ? kpi.audit : `${KPI_READINESS_LABEL[kpi.readiness]} — ${kpi.explanation}`}>
+        <span
+          title={
+            certified ? kpi.audit : `${KPI_READINESS_LABEL[kpi.readiness]} — ${kpi.explanation}`
+          }
+        >
           {certified ? (
             <BadgeCheck className="h-3.5 w-3.5 text-emerald-600" />
           ) : (
@@ -316,7 +316,10 @@ function KpiTile({ kpi }: { kpi: DirectionKpi }) {
   return (
     <Card className="h-full p-3">
       {kpi.to ? (
-        <Link to={kpi.to} className="block focus:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+        <Link
+          to={kpi.to}
+          className="block focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
           {body}
         </Link>
       ) : (

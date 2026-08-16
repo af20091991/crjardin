@@ -30,7 +30,8 @@ function readinessMap(snap: AnalyticsSnapshot | null, dataStatus: "success" | "e
     qualityMessage: "qualité.",
   });
   const map: Partial<Record<KpiKey, { readiness: KpiReadiness; explanation: string }>> = {};
-  for (const r of rows) map[r.contract.id as KpiKey] = { readiness: r.readiness, explanation: r.explanation };
+  for (const r of rows)
+    map[r.contract.id as KpiKey] = { readiness: r.readiness, explanation: r.explanation };
   return map;
 }
 
@@ -42,7 +43,7 @@ const kpis = buildDirectionKpis({
 
 describe("KPI de la page Direction", () => {
   test("au plus 6 KPI principaux", () => {
-    expect(kpis.length).toBeLessThanOrEqual(DIRECTION_MAX_KPIS);
+    expect(kpis.length).toBeLessThan(DIRECTION_MAX_KPIS + 1);
     expect(kpis.length).toBeGreaterThan(0);
   });
 
@@ -68,9 +69,7 @@ describe("KPI de la page Direction", () => {
     const ca = kpis.find((k) => k.key === "ca_annuel");
     expect(ca).toBeDefined();
     if (snapshot.kpis.ca_annuel.value != null) {
-      expect(ca!.display).toContain(
-        String(Math.round(snapshot.kpis.ca_annuel.value)).slice(0, 2),
-      );
+      expect(ca!.display).toContain(String(Math.round(snapshot.kpis.ca_annuel.value)).slice(0, 2));
     }
   });
 
@@ -107,13 +106,17 @@ describe("Période affichée", () => {
 
 describe("Alertes et décisions", () => {
   test("au plus 3 alertes", () => {
-    const a = buildDirectionAlerts({ snapshot, integrityDegraded: true, integrityMessage: "sources incomplètes" });
-    expect(a.length).toBeLessThanOrEqual(DIRECTION_MAX_ALERTS);
+    const a = buildDirectionAlerts({
+      snapshot,
+      integrityDegraded: true,
+      integrityMessage: "sources incomplètes",
+    });
+    expect(a.length).toBeLessThan(DIRECTION_MAX_ALERTS + 1);
     expect(a[0].text).toContain("sources incomplètes");
   });
 
   test("au plus 3 décisions et aucune sans snapshot", () => {
-    expect(buildDirectionDecisions(snapshot).length).toBeLessThanOrEqual(DIRECTION_MAX_DECISIONS);
+    expect(buildDirectionDecisions(snapshot).length).toBeLessThan(DIRECTION_MAX_DECISIONS + 1);
     expect(buildDirectionDecisions(null)).toHaveLength(0);
   });
 });
@@ -122,7 +125,7 @@ describe("Graphiques de la page Direction", () => {
   const datasets = buildDirectionDatasets(snapshot, "Réalisé arrêté à la date du jour.");
 
   test("plusieurs indicateurs sélectionnables, tous documentés", () => {
-    expect(datasets.length).toBeGreaterThanOrEqual(6);
+    expect(datasets.length).toBeGreaterThan(6 - 1);
     for (const d of datasets) {
       expect(d.label.length).toBeGreaterThan(0);
       expect(d.note.length).toBeGreaterThan(0);

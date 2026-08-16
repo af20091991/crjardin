@@ -82,18 +82,27 @@ export function periodLabel(period: string, year: number, now = new Date()): str
 }
 
 /** Variation N vs N-1 déjà produite par le moteur (jamais recalculée ici). */
-function variationOf(key: KpiKey, snapshot: AnalyticsSnapshot): { text: string; tone: DirectionTone } | null {
+function variationOf(
+  key: KpiKey,
+  snapshot: AnalyticsSnapshot,
+): { text: string; tone: DirectionTone } | null {
   if (key === "ca_annuel") {
     const p = snapshot.ca.progressionPct;
     if (p == null || snapshot.ca.prevYtdHt <= 0) return null;
-    return { text: `${p >= 0 ? "+" : ""}${p.toFixed(1)} % vs N-1`, tone: p >= 0 ? "positive" : "negative" };
+    return {
+      text: `${p >= 0 ? "+" : ""}${p.toFixed(1)} % vs N-1`,
+      tone: p >= 0 ? "positive" : "negative",
+    };
   }
   if (key === "taux_horaire_reel") {
     const prev = snapshot.prevYear.hourlyRate;
     const cur = snapshot.rates.tauxHoraireReel;
     if (prev == null || prev <= 0 || cur == null || cur <= 0) return null;
     const p = ((cur - prev) / prev) * 100;
-    return { text: `${p >= 0 ? "+" : ""}${p.toFixed(1)} % vs N-1`, tone: p >= 0 ? "positive" : "negative" };
+    return {
+      text: `${p >= 0 ? "+" : ""}${p.toFixed(1)} % vs N-1`,
+      tone: p >= 0 ? "positive" : "negative",
+    };
   }
   return null;
 }
@@ -127,7 +136,9 @@ export function buildDirectionKpis(input: {
       variationTone: variation?.tone ?? "neutral",
       readiness: resolved,
       explanation:
-        resolved === "certifie" ? "" : (kpi.reasons[0] ?? r?.explanation ?? "Fiabilité limitée par les sources."),
+        resolved === "certifie"
+          ? ""
+          : (kpi.reasons[0] ?? r?.explanation ?? "Fiabilité limitée par les sources."),
       audit: `${kpi.audit.sources.join(" · ")} — ${kpi.audit.calcul}`,
       to,
     };
@@ -182,7 +193,11 @@ export function buildDirectionDecisions(snapshot: AnalyticsSnapshot | null): Dir
     });
   }
   if (resultat.margePct != null && resultat.margePct < 0) {
-    out.push({ id: "marge", text: "Marge négative sur la période : arbitrer les charges d'exploitation.", to: "/pilot/charges" });
+    out.push({
+      id: "marge",
+      text: "Marge négative sur la période : arbitrer les charges d'exploitation.",
+      to: "/pilot/charges",
+    });
   }
   if (certification.caCoveragePct != null && certification.caCoveragePct < 100) {
     out.push({
@@ -192,16 +207,28 @@ export function buildDirectionDecisions(snapshot: AnalyticsSnapshot | null): Dir
     });
   }
   if (charges.aClasser > 0) {
-    out.push({ id: "classer", text: "Classer les charges en attente pour fiabiliser la marge.", to: "/pilot/charges" });
+    out.push({
+      id: "classer",
+      text: "Classer les charges en attente pour fiabiliser la marge.",
+      to: "/pilot/charges",
+    });
   }
   if (out.length === 0 && snapshot.ca.yearHt > 0) {
-    out.push({ id: "ok", text: "Aucun écart bloquant détecté sur la période : poursuivre le suivi mensuel.", to: "/pilot/ca" });
+    out.push({
+      id: "ok",
+      text: "Aucun écart bloquant détecté sur la période : poursuivre le suivi mensuel.",
+      to: "/pilot/ca",
+    });
   }
   return out.slice(0, DIRECTION_MAX_DECISIONS);
 }
 
 function eur(n: number): string {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(n);
 }
 
 /**
@@ -339,7 +366,12 @@ export function buildDirectionDatasets(
       ],
       rows: [...exercices]
         .sort((a, b) => a.year - b.year)
-        .map((a) => ({ name: String(a.year), ca: a.caHt, charges: a.charges, benefice: a.beneficeBrut })),
+        .map((a) => ({
+          name: String(a.year),
+          ca: a.caHt,
+          charges: a.charges,
+          benefice: a.beneficeBrut,
+        })),
       note: note("Synthèse annuelle du moteur (`annualSummary`)."),
     });
   }
@@ -355,7 +387,13 @@ export function buildDirectionDatasets(
         { key: "realise", label: "Réalisé", color: PP_SERIES[0] },
         { key: "cible", label: "Cible", color: PP_SERIES[1] },
       ],
-      rows: [{ name: "Taux horaire (€/h)", realise: snapshot.rates.tauxHoraireVendu, cible: snapshot.rates.cible }],
+      rows: [
+        {
+          name: "Taux horaire (€/h)",
+          realise: snapshot.rates.tauxHoraireVendu,
+          cible: snapshot.rates.cible,
+        },
+      ],
       note: note("Taux horaire Vente → Temps comparé à la cible enregistrée dans les paramètres."),
     });
   }
