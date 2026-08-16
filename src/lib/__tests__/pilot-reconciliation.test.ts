@@ -108,3 +108,40 @@ describe("buildReconciliationReport", () => {
     expect(report.blocking).toBe(false);
   });
 });
+describe("taux horaire — périmètre des lignes retenues", () => {
+  const base = {
+    salesLinesHt: 59075.1,
+    engineCaHt: 59075.1,
+    engineCaByMonthHt: 59075.1,
+    chargeLinesHt: 100,
+    engineChargesHt: 100,
+    engineChargeParts: [100],
+    engineBeneficeHt: 58975.1,
+    engineMargePct: (58975.1 / 59075.1) * 100,
+    ledgerSaleHours: 516.75,
+    engineHoursVendues: 516.75,
+    engineHoursReelles: 516.75,
+  };
+
+  it("compare le taux au CA des lignes retenues, pas au CA total", () => {
+    const report = buildReconciliationReport({
+      ...base,
+      salesTimedLinesHt: 55848.38,
+      engineTauxHoraireReel: 55848.38 / 516.75,
+    });
+    const taux = report.rows.find((r) => r.id === "taux_horaire_vs_ca_heures");
+    expect(taux?.status).toBe("certifie");
+  });
+
+  it("classe l'écart CA retenu / CA total comme périmètre documenté", () => {
+    const report = buildReconciliationReport({
+      ...base,
+      salesTimedLinesHt: 55848.38,
+      engineTauxHoraireReel: 55848.38 / 516.75,
+    });
+    const couverture = report.rows.find((r) => r.id === "ca_retenu_vs_ca_total");
+    expect(couverture?.kind).toBe("perimetre_documente");
+    expect(couverture?.status).toBe("incomplet");
+    expect(report.blocking).toBe(false);
+  });
+});
