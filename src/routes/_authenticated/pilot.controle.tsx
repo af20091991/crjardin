@@ -13,6 +13,7 @@ import { RapprochementPage } from "@/components/pilot/panels/RapprochementPanel"
 import { CorrectionsPage } from "@/components/pilot/panels/CorrectionsPanel";
 import { SourcesPanel } from "@/components/pilot/panels/SourcesPanel";
 import { ReferentialPanel } from "@/components/pilot/panels/ReferentialPanel";
+import { AttachmentCertificationPanel } from "@/components/pilot/panels/AttachmentCertificationPanel";
 import { EnginePanel } from "@/components/pilot/panels/EnginePanel";
 import { DoublonsPanel } from "@/components/pilot/panels/DoublonsPanel";
 import { KpiContractPanel } from "@/components/pilot/panels/KpiContractPanel";
@@ -141,12 +142,13 @@ function ControlCenterPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="referentiel" className="mt-4">
+        <TabsContent value="referentiel" className="mt-4 space-y-4">
           <p className="mb-3 text-xs text-muted-foreground">
             Certification — quelles fiches sont de véritables clients économiques (préalable
             obligatoire à tout indicateur stratégique).
           </p>
           <ReferentialPanel />
+          <AttachmentCertificationPanel />
         </TabsContent>
 
         <TabsContent value="doublons" className="mt-4">
