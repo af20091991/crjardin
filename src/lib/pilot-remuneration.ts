@@ -7,10 +7,14 @@ import type { ChargeRow } from "@/lib/pilot-charges";
 
 export { SOCIAL_CONTRIBUTION_RATE, remunerationBreakdown };
 
+// Le repli par libellé ne vise QUE la rémunération du DIRIGEANT. Un libellé
+// contenant seulement « rémunération » (ex. « Rémunération stagiaire ») est une
+// charge de personnel : la sortir des charges creusait le total affiché sur
+// /pilot/charges (59 676 €) par rapport au total canonique publié ailleurs
+// (59 896 €). Les lignes de rémunération dirigeant sont typées en base.
 const REMU_MARKERS = [
-  "remuneration",
-  "rémunération",
   "remuneration dirigeant",
+  "remuneration gerant",
   "salaire dirigeant",
   "salaire gerant",
   "salaire gérant",

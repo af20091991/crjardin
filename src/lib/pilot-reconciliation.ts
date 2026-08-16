@@ -148,6 +148,12 @@ export interface ReconciliationInput {
   engineHoursVendues: number | null;
   /** Heures réelles retenues pour la rentabilité. */
   engineHoursReelles: number | null;
+  /**
+   * CA HT des seules lignes de vente RETENUES au taux horaire (Temps documenté).
+   * C'est le numérateur canonique du taux horaire : le CA total inclut aussi des
+   * lignes sans Temps, qui sont écartées du calcul par règle métier.
+   */
+  salesTimedLinesHt?: number | null;
   /** Taux horaire réel publié (€/h). */
   engineTauxHoraireReel: number | null;
   /** Coût de sous-traitance issu des missions SST. */
@@ -236,17 +242,31 @@ export function buildReconciliationReport(input: ReconciliationInput): Reconcili
   rows.push(
     reconcile({
       id: "taux_horaire_vs_ca_heures",
-      label: "Taux horaire réel = CA ÷ heures retenues",
+      label: "Taux horaire réel = CA des lignes retenues ÷ heures retenues",
       unit: "€/h",
       tolerance: 0.05,
       expected:
-        input.engineCaHt !== null && input.engineHoursReelles
-          ? input.engineCaHt / input.engineHoursReelles
+        (input.salesTimedLinesHt ?? input.engineCaHt) !== null && input.engineHoursReelles
+          ? (input.salesTimedLinesHt ?? input.engineCaHt)! / input.engineHoursReelles
           : null,
       actual: input.engineTauxHoraireReel,
       kindWhenGap: "calcul",
     }),
   );
+  if (input.salesTimedLinesHt != null && input.engineCaHt != null) {
+    rows.push(
+      reconcile({
+        id: "ca_retenu_vs_ca_total",
+        label: "CA des lignes retenues au taux horaire = CA publié",
+        // Écart normal et documenté : les lignes sans Temps renseigné sortent du
+        // taux horaire mais restent dans le CA. L'écart mesure la couverture.
+        expected: input.engineCaHt,
+        actual: input.salesTimedLinesHt,
+        kindWhenGap: "perimetre_documente",
+        statusWhenGap: "incomplet",
+      }),
+    );
+  }
   if (input.sstMissionCost !== undefined || input.sstChargeCost !== undefined) {
     rows.push(
       reconcile({
