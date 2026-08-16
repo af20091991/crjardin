@@ -5,8 +5,18 @@
 import type { ChargeRow } from "@/lib/pilot-charges";
 import type { SubcontractorMission } from "@/lib/subcontractors";
 
-/** Marqueurs de sous-traitance rencontrés dans les libellés importés. */
-const SST_MARKERS = ["sous-trait", "sous trait", "soustrait", "sst"];
+// Marqueurs de sous-traitance rencontrés dans les libellés importés.
+// « ss-trait » / « ss trait » sont ajoutés sur cause démontrée : la charge
+// « Ss-traitance d'Aboville » (278,55 € — 02/2026) échappait à la détection et
+// n'apparaissait donc ni dans le Journal SST ni dans le rapprochement.
+const SST_MARKERS = [
+  "sous-trait",
+  "sous trait",
+  "soustrait",
+  "ss-trait",
+  "ss trait",
+  "sst",
+];
 
 export function isSubcontractingLabel(label: string | null): boolean {
   const l = (label ?? "").toLowerCase();
@@ -31,6 +41,7 @@ export interface SstChargeLine {
 function cleanLabel(designation: string): string {
   return designation
     .replace(/sous[-\s]?trait\w*/gi, " ")
+    .replace(/\bss[-\s]?trait\w*/gi, " ")
     .replace(/\bsst\b/gi, " ")
     .replace(/\b(19|20)\d{2}\b/g, " ")
     .replace(/\s+/g, " ")
