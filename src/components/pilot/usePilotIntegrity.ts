@@ -99,6 +99,9 @@ export function usePilotIntegrity(): {
       ledgerSaleHours: sum(ledgerRows?.map((r) => r.hours) ?? null),
       engineHoursVendues: snapshot?.hours.vendues ?? null,
       engineHoursReelles: snapshot?.hours.reelles ?? null,
+      // Numérateur canonique du taux horaire : CA des seules lignes dont le
+      // Temps est documenté (Temps > 0, ou 0 h qualifié SST).
+      salesTimedLinesHt: sales ? saleRateScope(sales).caTimed : null,
       engineTauxHoraireReel: snapshot?.rates.tauxHoraireReel ?? null,
     });
   }, [entries.data, chargeRows.data, ledger.data, snapshot, mode, period, year]);
