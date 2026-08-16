@@ -545,6 +545,45 @@ export async function applyEntityDecision(params: {
   if (logError) throw logError;
 }
 
+/**
+ * Édition rapide du statut référentiel depuis un écran d'analyse (classement
+ * ABC). Même règle métier que `applyEntityDecision` : écriture sur
+ * `clients.entity_status` + journalisation obligatoire dans
+ * `referential_audit_log`. Aucun CA, aucune heure n'est déplacé.
+ */
+export async function setEntityStatusQuick(params: {
+  clientId: string;
+  clientName: string;
+  status: EntityStatus;
+  previousStatus: EntityStatus;
+  reason?: string;
+}): Promise<void> {
+  const { clientId, clientName, status, previousStatus } = params;
+  const reason = (params.reason ?? "Édition rapide depuis le classement ABC").trim();
+
+  const { data: auth } = await supabase.auth.getUser();
+  const patch: Record<string, unknown> = {
+    entity_status: status,
+    entity_status_source: "manuel",
+    entity_certified_at: status === "certified_client" ? new Date().toISOString() : null,
+    entity_certified_by: status === "certified_client" ? (auth.user?.id ?? null) : null,
+  };
+
+  const { error } = await db.from("clients").update(patch).eq("id", clientId);
+  if (error) throw error;
+
+  const { error: logError } = await db.from("referential_audit_log").insert({
+    user_id: auth.user?.id ?? null,
+    client_id: clientId,
+    client_name: clientName,
+    action: `statut_referentiel:${status}`,
+    before_value: { entity_status: previousStatus },
+    after_value: patch,
+    reason,
+  });
+  if (logError) throw logError;
+}
+
 export async function listReferentialLog(limit = 200): Promise<ReferentialLogEntry[]> {
   const { data, error } = await db
     .from("referential_audit_log")
