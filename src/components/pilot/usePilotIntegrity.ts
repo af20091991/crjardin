@@ -62,5 +62,46 @@ export function usePilotIntegrity(): {
     ],
   );
 
-  return { report };
+  // Réconciliation : lignes retenues (même périmètre que les écrans) contre les
+  // valeurs publiées par le moteur unique. Aucun indicateur n'est recalculé.
+  const reconciliation = useMemo(() => {
+    const sales = entries.data
+      ? entriesForMode(entries.data, mode, undefined, period).filter(
+          (e) => Number(e.entry_date.slice(0, 4)) === year,
+        )
+      : null;
+    const charges = chargeRows.data
+      ? chargeRowsForMode(chargeRows.data, mode, undefined, period).filter(
+          (c) => c.year === year && c.kind === "charge" && !c.is_investment,
+        )
+      : null;
+    const ledgerRows = ledger.data
+      ? hoursLedgerForMode(ledger.data, mode, undefined, period).filter(
+          (r) => r.year === year && r.source === "pilot_ca_entries" && !r.estimated,
+        )
+      : null;
+    const sum = (list: readonly number[] | null) =>
+      list ? list.reduce((a, b) => a + b, 0) : null;
+
+    return buildReconciliationReport({
+      salesLinesHt: sum(sales?.map((s) => s.amount_ht) ?? null),
+      engineCaHt: snapshot?.ca.yearHt ?? null,
+      engineCaByMonthHt: snapshot
+        ? snapshot.ca.byMonth.reduce((s, m) => s + m.current, 0)
+        : null,
+      chargeLinesHt: sum(charges?.map((c) => c.amount_ht) ?? null),
+      engineChargesHt: snapshot?.charges.total ?? null,
+      engineChargeParts: snapshot
+        ? [snapshot.charges.fixe, snapshot.charges.variable, snapshot.charges.aClasser]
+        : null,
+      engineBeneficeHt: snapshot?.resultat.beneficeBrut ?? null,
+      engineMargePct: snapshot?.resultat.margePct ?? null,
+      ledgerSaleHours: sum(ledgerRows?.map((r) => r.hours) ?? null),
+      engineHoursVendues: snapshot?.hours.vendues ?? null,
+      engineHoursReelles: snapshot?.hours.reelles ?? null,
+      engineTauxHoraireReel: snapshot?.rates.tauxHoraireReel ?? null,
+    });
+  }, [entries.data, chargeRows.data, ledger.data, snapshot, mode, period, year]);
+
+  return { report, reconciliation };
 }
