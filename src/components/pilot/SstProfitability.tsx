@@ -3,21 +3,6 @@
 // Marge nette HT calculée exclusivement via computeMissionFinancials (src/lib/sst-analytics.ts).
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Line,
-  ComposedChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +21,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { signalFromMarginPct } from "@/lib/pilot-profit-signal";
 import { PilotCard } from "@/components/pilot/PilotCard";
+import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
+import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 import { formatEuro, formatHours } from "@/lib/format-utils";
 import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
@@ -95,8 +82,16 @@ export function SstProfitabilityTab() {
   const [marginTarget, setMarginTarget] = useState(25);
   const [editing, setEditing] = useState<SubcontractorMission | null>(null);
 
-  const { data: missions = [] } = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
-  const { data: pnl = [] } = useQuery({ queryKey: ["sst-pnl"], queryFn: listMissionPnl });
+  const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
+  const pnlQ = useQuery({ queryKey: ["sst-pnl"], queryFn: listMissionPnl });
+  const missions = missionsQ.data ?? [];
+  const pnl = pnlQ.data ?? [];
+  // États explicites des graphiques : une erreur n'est jamais montrée comme un zéro.
+  const chartsLoading = missionsQ.isLoading || pnlQ.isLoading;
+  const chartsError =
+    missionsQ.error || pnlQ.error
+      ? "Chargement des missions sous-traitées impossible : les graphiques ne peuvent pas être calculés."
+      : null;
   const { data: ssts = [] } = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: lists = [] } = useQuery({
@@ -143,6 +138,117 @@ export function SstProfitabilityTab() {
   const perSst = useMemo(() => bySubcontractor(rows), [rows]);
   const perPresta = useMemo(() => byPrestation(rows), [rows]);
   const insights = useMemo(() => sstInsights(rows, totals, marginTarget), [rows, totals, marginTarget]);
+
+  // Séries des graphiques configurables : AUCUN recalcul, uniquement une mise en
+  // forme des agrégats déjà produits par sst-analytics (byMonth / bySubcontractor
+  // / byPrestation).
+  const monthlyDatasets = useMemo<FlexDataset[]>(
+    () => [
+      {
+        id: "cout-ca-marge",
+        label: "Coût, CA et marge",
+        unit: "euro",
+        categoryLabel: "Mois",
+        series: [
+          { key: "cost", label: "Coût SST", color: PP_COLORS.charges },
+          { key: "revenue", label: "CA client", color: PP_COLORS.sales },
+          { key: "margin", label: "Marge", color: PP_COLORS.primary },
+        ],
+        rows: monthly.map((g) => ({ name: g.key, cost: g.cost, revenue: g.revenue, margin: g.margin })),
+        note: "Missions sous-traitées (subcontractor_missions), marge nette HT calculée par le moteur SST.",
+      },
+      {
+        id: "marge-mois",
+        label: "Marge seule",
+        unit: "euro",
+        categoryLabel: "Mois",
+        series: [{ key: "margin", label: "Marge nette HT", color: PP_COLORS.primary }],
+        rows: monthly.map((g) => ({ name: g.key, margin: g.margin })),
+        note: "Marge nette HT par mois, missions sous-traitées.",
+      },
+      {
+        id: "heures-mois",
+        label: "Heures sous-traitées",
+        unit: "heure",
+        categoryLabel: "Mois",
+        series: [{ key: "hours", label: "Heures", color: PP_SERIES[2] }],
+        rows: monthly.map((g) => ({ name: g.key, hours: g.hours })),
+        note: "Heures déclarées sur les missions sous-traitées.",
+      },
+    ],
+    [monthly],
+  );
+
+  const perSstDatasets = useMemo<FlexDataset[]>(
+    () => [
+      {
+        id: "marge-sst",
+        label: "Marge nette HT",
+        unit: "euro",
+        categoryLabel: "Sous-traitant",
+        series: [{ key: "margin", label: "Marge", color: PP_COLORS.primary }],
+        rows: perSst.map((g) => ({ name: g.key, margin: g.margin })),
+        note: "Marge nette HT par sous-traitant, missions de la période sélectionnée.",
+      },
+      {
+        id: "ca-cout-sst",
+        label: "CA et coût",
+        unit: "euro",
+        categoryLabel: "Sous-traitant",
+        series: [
+          { key: "revenue", label: "CA client", color: PP_COLORS.sales },
+          { key: "cost", label: "Coût SST", color: PP_COLORS.charges },
+        ],
+        rows: perSst.map((g) => ({ name: g.key, revenue: g.revenue, cost: g.cost })),
+        note: "CA facturé au client et coût sous-traitant par prestataire.",
+      },
+      {
+        id: "taux-marge-sst",
+        label: "Taux de marge",
+        unit: "pourcent",
+        categoryLabel: "Sous-traitant",
+        series: [{ key: "marginPct", label: "Taux de marge", color: PP_SERIES[1] }],
+        rows: perSst
+          .filter((g) => g.marginPct != null)
+          .map((g) => ({ name: g.key, marginPct: g.marginPct as number })),
+        note: "Taux de marge affiché uniquement quand un CA client est renseigné.",
+      },
+    ],
+    [perSst],
+  );
+
+  const perPrestaDatasets = useMemo<FlexDataset[]>(
+    () => [
+      {
+        id: "ca-presta",
+        label: "CA sous-traité",
+        unit: "euro",
+        categoryLabel: "Prestation",
+        series: [{ key: "revenue", label: "CA client", color: PP_COLORS.sales }],
+        rows: perPresta.filter((g) => g.revenue > 0).map((g) => ({ name: g.key, revenue: g.revenue })),
+        note: "CA client des missions sous-traitées, réparti par prestation.",
+      },
+      {
+        id: "marge-presta",
+        label: "Marge par prestation",
+        unit: "euro",
+        categoryLabel: "Prestation",
+        series: [{ key: "margin", label: "Marge", color: PP_COLORS.primary }],
+        rows: perPresta.map((g) => ({ name: g.key, margin: g.margin })),
+        note: "Marge nette HT par prestation sous-traitée.",
+      },
+      {
+        id: "missions-presta",
+        label: "Nombre de missions",
+        unit: "nombre",
+        categoryLabel: "Prestation",
+        series: [{ key: "missions", label: "Missions", color: PP_SERIES[3] }],
+        rows: perPresta.map((g) => ({ name: g.key, missions: g.missions })),
+        note: "Nombre de missions sous-traitées par prestation.",
+      },
+    ],
+    [perPresta],
+  );
 
   // Sous-traitance déjà enregistrée en charges (aucune saisie supplémentaire demandée).
   const chargeLines = useMemo(
@@ -720,72 +826,37 @@ export function SstProfitabilityTab() {
         </CardContent>
       </Card>
 
-      {/* C — Graphiques */}
+      {/* C — Graphiques configurables (indicateur + type de visualisation) */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Coût, CA et marge par mois</CardTitle>
-          </CardHeader>
-          <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={monthly}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis dataKey="key" fontSize={11} />
-                <YAxis fontSize={11} />
-                <Tooltip formatter={(v: number) => formatEuro(v)} />
-                <Legend />
-                <Bar dataKey="cost" name="Coût SST" fill={PP_COLORS.charges} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="revenue" name="CA client" fill={PP_COLORS.sales} radius={[4, 4, 0, 0]} />
-                <Line type="monotone" dataKey="margin" name="Marge" stroke={PP_COLORS.primary} strokeWidth={2} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Marge par sous-traitant</CardTitle>
-          </CardHeader>
-          <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={perSst} layout="vertical" margin={{ left: 24 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis type="number" fontSize={11} />
-                <YAxis type="category" dataKey="key" width={110} fontSize={11} />
-                <Tooltip formatter={(v: number) => formatEuro(v)} />
-                <Bar dataKey="margin" name="Marge" radius={[0, 4, 4, 0]}>
-                  {perSst.map((g) => (
-                    <Cell key={g.key} fill={g.margin >= 0 ? PP_COLORS.primary : PP_COLORS.charges} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Répartition du CA sous-traité par prestation</CardTitle>
-          </CardHeader>
-          <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={perPresta.filter((g) => g.revenue > 0)}
-                  dataKey="revenue"
-                  nameKey="key"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={90}
-                  label={(e: { name?: string }) => e.name ?? ""}
-                >
-                  {perPresta.map((g, i) => (
-                    <Cell key={g.key} fill={PP_SERIES[i % PP_SERIES.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v: number) => formatEuro(v)} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <PilotFlexChart
+          title="Coût, CA et marge par mois"
+          subtitle="Missions sous-traitées de la période sélectionnée"
+          datasets={monthlyDatasets}
+          storageKey="sst-journal:mois"
+          isLoading={chartsLoading}
+          error={chartsError}
+          onRetry={refresh}
+        />
+        <PilotFlexChart
+          title="Marge par sous-traitant"
+          subtitle="Classement par prestataire"
+          datasets={perSstDatasets}
+          storageKey="sst-journal:sous-traitant"
+          isLoading={chartsLoading}
+          error={chartsError}
+          onRetry={refresh}
+        />
+        <div className="lg:col-span-2">
+          <PilotFlexChart
+            title="Répartition du CA sous-traité par prestation"
+            subtitle="Nature des missions confiées"
+            datasets={perPrestaDatasets}
+            storageKey="sst-journal:prestation"
+            isLoading={chartsLoading}
+            error={chartsError}
+            onRetry={refresh}
+          />
+        </div>
       </div>
 
       {/* D — Analyse */}

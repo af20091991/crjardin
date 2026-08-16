@@ -242,16 +242,20 @@ function ClientsPage() {
         >
           <Star className={`h-4 w-4 ${isFav ? "fill-amber-400 text-amber-500" : ""}`} />
         </button>
-        <Link
-          to="/clients/$clientId"
-          params={{ clientId: c.id }}
-          className="flex min-w-0 flex-1 items-center gap-3"
-        >
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
+              {/* Clic sur le nom : ouverture directe de la fiche 360° (Pilotage). */}
               <p className="truncate font-medium">
-                {c.civility ? <span className="text-muted-foreground">{c.civility} </span> : null}
-                {c.name}
+                <Link
+                  to={canEdit ? "/pilot/fiche/$clientId" : "/clients/$clientId"}
+                  params={{ clientId: c.id }}
+                  className="hover:underline"
+                  title={canEdit ? "Ouvrir la fiche 360° (Pilotage)" : "Ouvrir la fiche client"}
+                >
+                  {c.civility ? <span className="text-muted-foreground">{c.civility} </span> : null}
+                  {c.name}
+                </Link>
               </p>
               <Badge
                 variant="outline"
@@ -296,8 +300,15 @@ function ClientsPage() {
               )}
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-        </Link>
+          <Link
+            to="/clients/$clientId"
+            params={{ clientId: c.id }}
+            title="Ouvrir la fiche client"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
         <div className="flex shrink-0 items-center gap-0.5">
           {canEdit && (
             <Button variant="ghost" size="icon" asChild title="Ouvrir la fiche 360° (Pilotage)">
