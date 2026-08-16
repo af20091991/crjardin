@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { keepRealizedYearMonth, type AsOfOptions } from "@/lib/pilot-realized";
+import { keepRealizedYearMonth, keepRealizedCharge, type AsOfOptions } from "@/lib/pilot-realized";
 import { employerCost, splitRemuneration } from "@/lib/pilot-remuneration";
 
 /** Nature d'une charge. `a_classer` = non reconnue automatiquement, jamais devinée. */
@@ -122,7 +122,7 @@ export async function listSalesByYear(options?: AsOfOptions): Promise<Map<number
   const raw = await fetchAll(["vente"]);
   const m = new Map<number, number>();
   for (const r of raw) {
-    if (!keepRealizedYearMonth(r, options)) continue;
+    if (!keepRealizedCharge(r, options)) continue;
     m.set(r.year, (m.get(r.year) ?? 0) + (Number(r.amount_ht) || 0));
   }
   return m;
@@ -205,7 +205,7 @@ export function operatingChargesForYear(
   year: number,
   options?: AsOfOptions,
 ): ChargeRow[] {
-  const scoped = rows.filter((r) => keepRealizedYearMonth(r, options));
+  const scoped = rows.filter((r) => keepRealizedCharge(r, options));
   return splitRemuneration(scoped.filter((r) => r.year === year && !r.is_investment)).charges;
 }
 
@@ -224,7 +224,7 @@ export function analyzeCharges(
   categoryLabels: string[],
   options?: AsOfOptions,
 ): ChargesAnalysis {
-  const scopedRows = allRows.filter((r) => keepRealizedYearMonth(r, options));
+  const scopedRows = allRows.filter((r) => keepRealizedCharge(r, options));
   const nonInvest = scopedRows.filter((r) => !r.is_investment);
   // La rémunération dirigeant sort du classement charges fixes / variables.
   const { charges: rows, remuneration: remuRows } = splitRemuneration(nonInvest);
@@ -336,7 +336,7 @@ export function projectionBase(
   const yr = operatingChargesForYear(allRows, year, { now: options?.now });
   const invest = allRows
     .filter(
-      (r) => r.year === year && r.is_investment && keepRealizedYearMonth(r, { now: options?.now }),
+      (r) => r.year === year && r.is_investment && keepRealizedCharge(r, { now: options?.now, period: options?.period }),
     )
     .reduce((s, r) => s + r.amount_ht, 0);
   const sum = (cls: ChargeClass) =>
@@ -435,7 +435,7 @@ export function monthlyChargeTotals(
 
 /** Investissements qualifiés d'un exercice, selon le mode d'analyse. */
 export function investmentsForYear(rows: ChargeRow[], year: number, options?: AsOfOptions): number {
-  const scoped = rows.filter((r) => keepRealizedYearMonth(r, options));
+  const scoped = rows.filter((r) => keepRealizedCharge(r, options));
   return scoped
     .filter((r) => r.year === year && r.is_investment)
     .reduce((s, r) => s + r.amount_ht, 0);
