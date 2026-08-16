@@ -122,7 +122,7 @@ export async function listSalesByYear(options?: AsOfOptions): Promise<Map<number
   const raw = await fetchAll(["vente"]);
   const m = new Map<number, number>();
   for (const r of raw) {
-    if (!keepRealizedCharge(r, options)) continue;
+    if (!keepRealizedYearMonth(r, options)) continue;
     m.set(r.year, (m.get(r.year) ?? 0) + (Number(r.amount_ht) || 0));
   }
   return m;
