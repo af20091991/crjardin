@@ -3,21 +3,6 @@
 // Marge nette HT calculée exclusivement via computeMissionFinancials (src/lib/sst-analytics.ts).
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Line,
-  ComposedChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +21,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { signalFromMarginPct } from "@/lib/pilot-profit-signal";
 import { PilotCard } from "@/components/pilot/PilotCard";
+import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
+import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 import { formatEuro, formatHours } from "@/lib/format-utils";
 import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
