@@ -2,6 +2,7 @@
 // n'est recopiée ici : les tests vérifient les valeurs produites par le moteur.
 import { describe, expect, test } from "bun:test";
 import { buildAnalytics } from "@/lib/pilot-engine";
+import { auditCoherence } from "@/lib/pilot-engine-audit";
 import {
   charge,
   engineInputs,
@@ -198,5 +199,22 @@ describe("buildAnalytics — lignes orphelines et charges nulles", () => {
     );
     expect(withDuplicate.clients.ranking.map((r) => r.clientId)).toEqual(["c1"]);
     expect(withDuplicate.clients.excluded.map((r) => r.clientId)).toEqual(["c2"]);
+  });
+});
+
+describe("auditCoherence — vérifications additionnelles", () => {
+  test("les 5 nouvelles clés de cohérence sont produites", () => {
+    const inputs = engineInputs();
+    const snap = buildAnalytics(inputs, NOW);
+    const keys = auditCoherence(inputs, snap, [], NOW).map((c) => c.key);
+    for (const key of [
+      "marge",
+      "taux_horaire_reel",
+      "panier_moyen",
+      "progression",
+      "concentration_premier_client",
+    ]) {
+      expect(keys).toContain(key);
+    }
   });
 });

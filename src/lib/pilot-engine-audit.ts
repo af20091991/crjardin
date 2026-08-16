@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { useQuery } from "@tanstack/react-query";
-import { computeKpis, listCharges, type PilotCharge } from "@/lib/pilot";
+import { clientStats, computeKpis, listCharges, type PilotCharge } from "@/lib/pilot";
 import { annualSummary } from "@/lib/pilot-annual";
 import { aggregateHoursByClient } from "@/lib/pilot-hours-ledger";
 import { buildPortfolio, sortByProfitability, strategicRows } from "@/lib/pilot-portfolio";
@@ -179,6 +179,74 @@ export function auditCoherence(
     .reduce((s, c) => s + c.amount_ht, 0);
   checks.push(
     numeric("charges_scope", "Charges de l'exercice", "pilot-charges · lignes brutes", snapshot.charges.total, scopedCharges),
+  );
+
+  // 6. Marge nette (%) — moteur vs recalcul depuis computeKpis
+  const legacyMargePct =
+    legacyKpis.caYear > 0 ? (legacyKpis.benefice / legacyKpis.caYear) * 100 : null;
+  checks.push(
+    numeric(
+      "marge",
+      "Marge nette (%)",
+      "pilot.ts · computeKpis (bénéfice / CA)",
+      snapshot.resultat.margePct,
+      snapshot.resultat.margePct == null ? null : legacyMargePct,
+    ),
+  );
+
+  // 7. Taux horaire réel
+  checks.push(
+    numeric(
+      "taux_horaire_reel",
+      "Taux horaire réel",
+      "pilot.ts · computeKpis",
+      snapshot.rates.tauxHoraireReel,
+      snapshot.rates.tauxHoraireReel == null ? null : legacyKpis.tauxHoraireReel,
+    ),
+  );
+
+  // 8. Panier moyen — portefeuille clients vs computeKpis
+  const portfolio = buildPortfolio({
+    entries: entriesForMode(inputs.entries, scope.mode, now),
+    ledger: inputs.ledger,
+    scores: inputs.scores,
+    year: scope.year,
+    statuses: inputs.statuses,
+  });
+  const portfolioCa = portfolio.reduce((s, r) => s + r.caYear, 0);
+  const portfolioLines = portfolio.reduce((s, r) => s + r.interventions, 0);
+  checks.push(
+    numeric(
+      "panier_moyen",
+      "Panier moyen",
+      "pilot.ts · computeKpis",
+      portfolioLines > 0 ? portfolioCa / portfolioLines : null,
+      portfolioLines > 0 ? legacyKpis.panierMoyen : null,
+    ),
+  );
+
+  // 9. Progression du CA vs l'an dernier (%)
+  checks.push(
+    numeric(
+      "progression",
+      "Progression du CA vs N-1 (%)",
+      "pilot.ts · computeKpis",
+      snapshot.ca.progressionPct,
+      snapshot.ca.progressionPct == null ? null : legacyKpis.progression,
+    ),
+  );
+
+  // 10. Concentration : part du 1er client (périmètre moteur vs lecture brute)
+  const scopedStats = clientStats(entriesForMode(inputs.entries, scope.mode, now), scope.year);
+  const rawStats = clientStats(inputs.entries, scope.year);
+  checks.push(
+    numeric(
+      "concentration_premier_client",
+      "Part du 1er client dans le CA (%)",
+      "pilot.ts · clientStats (sans filtre de période)",
+      scopedStats[0]?.share ?? null,
+      rawStats[0]?.share ?? null,
+    ),
   );
 
   return checks;
