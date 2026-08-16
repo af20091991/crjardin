@@ -123,7 +123,7 @@ describe("taux horaire — périmètre des lignes retenues", () => {
     engineHoursReelles: 516.75,
   };
 
-  it("compare le taux au CA des lignes retenues, pas au CA total", () => {
+  test("compare le taux au CA des lignes retenues, pas au CA total", () => {
     const report = buildReconciliationReport({
       ...base,
       salesTimedLinesHt: 55848.38,
@@ -133,7 +133,7 @@ describe("taux horaire — périmètre des lignes retenues", () => {
     expect(taux?.status).toBe("certifie");
   });
 
-  it("classe l'écart CA retenu / CA total comme périmètre documenté", () => {
+  test("classe l'écart CA retenu / CA total comme périmètre documenté", () => {
     const report = buildReconciliationReport({
       ...base,
       salesTimedLinesHt: 55848.38,
