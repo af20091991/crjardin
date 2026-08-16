@@ -173,7 +173,7 @@ export function classifySale(
   clientsByKey: Map<string, CertificationClient[]>,
 ): SaleVerdict {
   const amountHt = Number(sale.amount_ht) || 0;
-  const designationName = clientNameFromDesignation(sale.designation) ?? null;
+  const designationName = clientNameFromDesignation(sale.designation) || null;
   const client = sale.client_id ? clientsById.get(sale.client_id) : undefined;
 
   const base = {
