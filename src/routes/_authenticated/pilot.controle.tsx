@@ -6,7 +6,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { BadgeCheck, ClipboardList, Copy, Cpu, Database, FileText, Gauge, Link2, MapPin, ShieldCheck, Wrench } from "lucide-react";
+import { BadgeCheck, ClipboardList, Copy, Cpu, Database, FileText, Gauge, Link2, MapPin, ShieldAlert, ShieldCheck, Wrench } from "lucide-react";
 import { QualityPage } from "@/components/pilot/panels/QualityPanel";
 import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
 import { RapprochementPage } from "@/components/pilot/panels/RapprochementPanel";
