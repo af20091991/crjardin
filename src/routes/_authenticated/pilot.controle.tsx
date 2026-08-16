@@ -141,12 +141,13 @@ function ControlCenterPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="referentiel" className="mt-4">
+        <TabsContent value="referentiel" className="mt-4 space-y-4">
           <p className="mb-3 text-xs text-muted-foreground">
             Certification — quelles fiches sont de véritables clients économiques (préalable
             obligatoire à tout indicateur stratégique).
           </p>
           <ReferentialPanel />
+          <AttachmentCertificationPanel />
         </TabsContent>
 
         <TabsContent value="doublons" className="mt-4">
