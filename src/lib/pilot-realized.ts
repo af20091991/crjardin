@@ -151,7 +151,46 @@ export function entriesForMode<T extends Pick<PilotEntry, "entry_date">>(
 
 /** Lignes de charges réellement constatées à date (exclut les mois futurs). */
 export function realizedChargeRows(rows: ChargeRow[], now = new Date()): ChargeRow[] {
-  return rows.filter((r) => isRealizedMonth(r.year, r.month, now));
+  return rows.filter((r) => isChargeRealizedAsOf(r, now));
+}
+
+/**
+ * PHOTOGRAPHIE FINANCIÈRE À DATE — RÈGLE UNIQUE DES CHARGES.
+ *
+ * En lecture « à date », une charge n'entre dans le réalisé que si elle est
+ * DÉMONTRABLEMENT échue :
+ *  - date précise → uniquement si elle est ≤ aujourd'hui ;
+ *  - mois passé → échue ;
+ *  - mois EN COURS sans date précise → NON datable : jamais comptabilisée
+ *    intégralement (sinon la marge devient artificiellement négative en début
+ *    de mois, le CA du mois n'étant pas encore réalisé) ;
+ *  - mois futur → exclue.
+ */
+export function isChargeRealizedAsOf(
+  row: { year: number; month: number; entry_date?: string | null },
+  now = new Date(),
+): boolean {
+  if (row.entry_date) return isRealizedAccountingDate(row.entry_date, now);
+  if (isUndatableCurrentMonthCharge(row, now)) return false;
+  return isRealizedMonth(row.year, row.month, now);
+}
+
+/** Charge du mois en cours sans date précise : « incomplet / non datable ». */
+export function isUndatableCurrentMonthCharge(
+  row: { year: number; month: number; entry_date?: string | null },
+  now = new Date(),
+): boolean {
+  if (row.entry_date) return false;
+  return row.year === now.getFullYear() && row.month === now.getMonth() + 1;
+}
+
+/** Filtre de charge respectant le périmètre temporel demandé par l'écran. */
+export function keepRealizedCharge(
+  row: { year: number; month: number; entry_date?: string | null },
+  options?: AsOfOptions,
+): boolean {
+  if (isUnboundedPeriod(options)) return true;
+  return isChargeRealizedAsOf(row, options?.now);
 }
 
 export function chargeRowsForMode(

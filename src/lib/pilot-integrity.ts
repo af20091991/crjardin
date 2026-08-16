@@ -27,6 +27,7 @@ import {
   hoursLedgerForMode,
   isRealizedAccountingDate,
   isRealizedMonth,
+  isUndatableCurrentMonthCharge,
   periodScopeLabel,
   type PeriodMode,
 } from "@/lib/pilot-realized";
@@ -378,6 +379,24 @@ export function buildIntegrityReport(input: IntegrityInput): IntegrityReport {
         ),
       ),
     );
+    // Photographie à date : les charges du mois en cours sans date précise ne
+    // sont pas comptabilisées (règle centrale). On le déclare explicitement.
+    if (period !== "exercice_complet") {
+      const undated = input.charges.rows.filter(
+        (c) => c.year === input.year && isUndatableCurrentMonthCharge(c, now),
+      );
+      if (undated.length > 0) {
+        const total = undated.reduce((s, c) => s + (Number(c.amount_ht) || 0), 0);
+        chargeChecks.push(
+          check(
+            "completude",
+            "Charges du mois en cours non datables",
+            "incomplet",
+            `${undated.length} charge(s) du mois en cours (${total.toFixed(2)} € HT) ne portent aucune date précise : elles sont exclues de la photographie à date pour ne pas dégrader artificiellement la marge.`,
+          ),
+        );
+      }
+    }
   }
   datasets.push(
     datasetFrom("charges", "Charges et investissements", ["pilot_ca_entries (kind = charge)"], periode, chargeChecks),
