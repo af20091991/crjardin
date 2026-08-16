@@ -16,6 +16,7 @@ import {
   type ReconciliationReport,
 } from "@/lib/pilot-reconciliation";
 import { saleRateScope } from "@/lib/pilot-sale-time";
+import { useSstReconciliation } from "@/components/pilot/useSstReconciliation";
 
 export function usePilotIntegrity(): {
   report: IntegrityReport;
@@ -24,6 +25,9 @@ export function usePilotIntegrity(): {
   const { entries, clients, states } = usePilotData();
   const { year, mode, period } = usePilotScope();
   const { snapshot } = useAnalytics();
+  // Rapprochement SST : les deux totaux comparés proviennent du moteur dédié,
+  // qui rapproche les lignes une à une (aucun total recalculé ici).
+  const sst = useSstReconciliation();
   // Les lignes de charges analytiques (ChargeRow) sont la source utilisée par
   // les moteurs : la ressource « charges » du socle est un autre modèle.
   const chargeRows = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
@@ -104,8 +108,10 @@ export function usePilotIntegrity(): {
       // Temps est documenté (Temps > 0, ou 0 h qualifié SST).
       salesTimedLinesHt: sales ? saleRateScope(sales).caTimed : null,
       engineTauxHoraireReel: snapshot?.rates.tauxHoraireReel ?? null,
+      sstMissionCost: sst.report?.missionTotal ?? null,
+      sstChargeCost: sst.report?.chargeTotal ?? null,
     });
-  }, [entries.data, chargeRows.data, ledger.data, snapshot, mode, period, year]);
+  }, [entries.data, chargeRows.data, ledger.data, snapshot, mode, period, year, sst.report]);
 
   return { report, reconciliation };
 }
