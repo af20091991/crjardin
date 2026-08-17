@@ -115,7 +115,7 @@ export function ProfitabilityClientsView() {
   // proposer la certification d'une fiche démontrable.
   const certifQ = useAttachmentCertification();
   const certifByClient = useMemo(() => {
-    const m = new Map<string, (typeof certifQ.report)["clients"][number]>();
+    const m = new Map<string, ClientCertification>();
     for (const c of certifQ.report?.clients ?? []) m.set(c.clientId, c);
     return m;
   }, [certifQ.report]);
