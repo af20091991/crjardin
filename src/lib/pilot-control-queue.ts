@@ -234,6 +234,8 @@ export interface ControlQueueSummary {
   uncertifiedKpi: number;
   /** Anomalies déjà traitées (état final). */
   handled: number;
+  /** Éléments écartés car antérieurs au périmètre de certification (< 2026). */
+  outOfScope: number;
 }
 
 export interface ControlQueue {
@@ -537,6 +539,7 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
 
   const actions = all.filter((a) => !CLOSED_STATES.includes(a.state)).sort(compareActions);
   const closed = all.filter((a) => CLOSED_STATES.includes(a.state)).sort(compareActions);
+  const outOfScope = closed.filter((a) => a.state === "hors_perimetre").length;
 
   return {
     actions,
@@ -548,6 +551,7 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       unavailableSources,
       uncertifiedKpi,
       handled: closed.length,
+      outOfScope,
     },
   };
 }
