@@ -8,6 +8,16 @@ import {
   splitByCertificationScope,
 } from "@/lib/pilot-history-scope";
 import { buildKpiReliability } from "@/lib/pilot-kpi-reliability";
+import { KPI_CONTRACTS } from "@/lib/pilot-kpi-contract";
+
+const baseInput = {
+  contracts: KPI_CONTRACTS,
+  snapshot: null,
+  dataStatus: "ready" as const,
+  dataMessage: "",
+  qualityStatus: "ready" as const,
+  qualityMessage: "",
+};
 
 describe("périmètre de certification (< 2026 non requis)", () => {
   it("qualifie l'historique antérieur à 2026 comme hors périmètre", () => {
@@ -34,12 +44,12 @@ describe("périmètre de certification (< 2026 non requis)", () => {
 
   it("affiche le message unique et ne bloque pas un KPI 2026", () => {
     expect(HISTORY_OUT_OF_SCOPE_MESSAGE).toContain("hors périmètre de certification");
-    const past = buildKpiReliability({ year: 2025 });
+    const past = buildKpiReliability({ ...baseInput, year: 2025 });
     expect(past.length).toBeGreaterThan(0);
     expect(past.every((r) => r.readiness === "non_requis")).toBe(true);
-    expect(past.every((r) => r.detail.includes("hors périmètre de certification"))).toBe(true);
+    expect(past.every((r) => r.explanation === HISTORY_OUT_OF_SCOPE_MESSAGE)).toBe(true);
 
-    const current = buildKpiReliability({ year: 2026 });
+    const current = buildKpiReliability({ ...baseInput, year: 2026 });
     expect(current.some((r) => r.readiness === "non_requis")).toBe(false);
   });
 });
