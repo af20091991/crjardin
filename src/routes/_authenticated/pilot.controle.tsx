@@ -6,7 +6,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { BadgeCheck, ClipboardList, Copy, Cpu, Database, FileText, Gauge, Link2, MapPin, ShieldAlert, ShieldCheck, Wrench } from "lucide-react";
+import { BadgeCheck, ClipboardList, ListChecks, Copy, Cpu, Database, FileText, Gauge, Link2, MapPin, ShieldAlert, ShieldCheck, Wrench } from "lucide-react";
 import { QualityPage } from "@/components/pilot/panels/QualityPanel";
 import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
 import { RapprochementPage } from "@/components/pilot/panels/RapprochementPanel";
@@ -19,8 +19,10 @@ import { DoublonsPanel } from "@/components/pilot/panels/DoublonsPanel";
 import { KpiContractPanel } from "@/components/pilot/panels/KpiContractPanel";
 import { KpiReliabilityPanel } from "@/components/pilot/panels/KpiReliabilityPanel";
 import { IntegrityPanel } from "@/components/pilot/panels/IntegrityPanel";
+import { ActionQueuePanel } from "@/components/pilot/panels/ActionQueuePanel";
 
 type Section =
+  | "actions"
   | "qualite"
   | "validation"
   | "corrections"
@@ -36,6 +38,7 @@ export const Route = createFileRoute("/_authenticated/pilot/controle")({
   validateSearch: (search: Record<string, unknown>): { section?: Section; sub?: string } => ({
     section: (
       [
+        "actions",
         "qualite",
         "validation",
         "corrections",
@@ -73,7 +76,7 @@ export const Route = createFileRoute("/_authenticated/pilot/controle")({
 });
 
 function ControlCenterPage() {
-  const { section = "referentiel", sub } = Route.useSearch();
+  const { section = "actions", sub } = Route.useSearch();
 
   return (
     <div className="space-y-5">
@@ -90,6 +93,11 @@ function ControlCenterPage() {
 
       <Tabs value={section}>
         <TabsList className="flex h-auto flex-wrap justify-start">
+          <TabsTrigger value="actions" asChild>
+            <Link to="/pilot/controle" search={{ section: "actions" }} className="gap-1.5">
+              <ListChecks className="h-4 w-4" /> À traiter
+            </Link>
+          </TabsTrigger>
           <TabsTrigger value="referentiel" asChild>
             <Link to="/pilot/controle" search={{ section: "referentiel" }} className="gap-1.5">
               <BadgeCheck className="h-4 w-4" /> Référentiel client
@@ -141,6 +149,14 @@ function ControlCenterPage() {
             </Link>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="actions" className="mt-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            File d'actions — ce qui peut être corrigé automatiquement, ce qui est proposé et attend
+            votre confirmation, et ce qui exige une décision humaine (avec la raison).
+          </p>
+          <ActionQueuePanel />
+        </TabsContent>
 
         <TabsContent value="referentiel" className="mt-4 space-y-4">
           <p className="mb-3 text-xs text-muted-foreground">
