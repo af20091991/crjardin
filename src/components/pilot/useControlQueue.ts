@@ -77,16 +77,25 @@ export function useControlQueue(): {
   }, [orphans.data, clients.data, linked.data]);
 
   const kpi = useMemo(() => {
-    if (!dataQuality.data) return null;
     const engineState = resourceState("pilot-analytics", "Moteur analytique", analytics, () => false);
+    const base = worstStatus([engineState, states.entries, states.clients]);
+    const qualityState = resourceState(
+      "pilot-data-quality",
+      "Rapport de qualité des données",
+      dataQuality,
+      () => false,
+    );
     return buildKpiReliability({
       contracts: KPI_CONTRACTS,
       snapshot: snapshot ?? null,
-      quality: dataQuality.data,
-      integrity: worstIntegrity([integrity.status, reconciliation.status]),
-      dataStatus: worstStatus([engineState, states.entries, states.clients]).status,
-    } as never);
-  }, [dataQuality.data, snapshot, integrity.status, reconciliation.status, analytics, states]);
+      dataStatus: base.status,
+      dataMessage: base.message,
+      qualityStatus: qualityState.status,
+      qualityMessage: qualityState.message,
+      integrityStatus: worstIntegrity([integrity.status, reconciliation.status]),
+      integrityMessage: integrity.message,
+    });
+  }, [dataQuality, snapshot, integrity, reconciliation.status, analytics, states]);
 
   const stateMap = useMemo<Record<string, ControlState>>(() => {
     const out: Record<string, ControlState> = {};
