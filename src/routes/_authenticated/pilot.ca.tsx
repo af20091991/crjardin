@@ -272,7 +272,9 @@ function CaPage() {
                   {charges.length === 0 && <TableRow><TableCell colSpan={3} className="py-6 text-center text-sm text-muted-foreground">Aucune charge — ajoutez une ligne</TableCell></TableRow>}
                   {charges.map((row) => {
                     const hasNote = !!row.note;
-                    const opened = openNote[row.id] || hasNote;
+                    // Commentaire replié par défaut : aucune donnée perdue,
+                    // ouverture en un clic via « Voir le commentaire ».
+                    const opened = !!openNote[row.id];
                     return (
                     <Fragment key={row.id}>
                     <TableRow>
@@ -283,10 +285,23 @@ function CaPage() {
                         <Input defaultValue={row.amount_ht || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title="Commentaire" onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title={hasNote ? "Voir le commentaire" : "Ajouter un commentaire"} onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(row.id)}><Trash2 className="h-4 w-4" /></Button>
                       </TableCell>
                     </TableRow>
+                    {hasNote && !opened && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="py-1">
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-primary hover:underline"
+                            onClick={() => toggleNote(row.id)}
+                          >
+                            Voir le commentaire
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    )}
                     {opened && (
                       <TableRow>
                         <TableCell colSpan={3} className="bg-muted/20 py-2">
@@ -395,7 +410,9 @@ function CaPage() {
                   {ventes.length === 0 && <TableRow><TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">Aucune vente — ajoutez une ligne</TableCell></TableRow>}
                   {ventes.map((row) => {
                     const hasNote = !!row.note;
-                    const opened = openNote[row.id] || hasNote;
+                    // Commentaire replié par défaut : aucune donnée perdue,
+                    // ouverture en un clic via « Voir le commentaire ».
+                    const opened = !!openNote[row.id];
                     const status = ((row.sale_status as SaleStatus | undefined) ?? "realise") as SaleStatus;
                     const kind = interventionKind(row.intervention_type);
                     const timeState = saleTimeState(row);
@@ -485,10 +502,23 @@ function CaPage() {
                         >
                           <Link2 className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title="Commentaire" onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title={hasNote ? "Voir le commentaire" : "Ajouter un commentaire"} onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(row.id)}><Trash2 className="h-4 w-4" /></Button>
                       </TableCell>
                     </TableRow>
+                    {hasNote && !opened && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="py-1">
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-primary hover:underline"
+                            onClick={() => toggleNote(row.id)}
+                          >
+                            Voir le commentaire
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    )}
                     {opened && (
                       <TableRow>
                         <TableCell colSpan={8} className="bg-muted/20 py-2">
