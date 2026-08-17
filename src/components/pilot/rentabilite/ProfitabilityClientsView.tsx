@@ -42,6 +42,8 @@ import {
 } from "@/lib/pilot-entity-rules";
 import { ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
 import { EntityStatusQuickEdit } from "@/components/pilot/rentabilite/EntityStatusQuickEdit";
+import { CertifyReferentialAction } from "@/components/pilot/rentabilite/CertifyReferentialAction";
+import { useAttachmentCertification } from "@/components/pilot/useAttachmentCertification";
 import { topClients } from "@/lib/pilot-top-clients";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import {
@@ -109,6 +111,14 @@ export function ProfitabilityClientsView() {
   );
 
   const statusesQ = useEntityStatuses();
+  // Verdicts de rattachement (moteur existant) : seule source autorisée pour
+  // proposer la certification d'une fiche démontrable.
+  const certifQ = useAttachmentCertification();
+  const certifByClient = useMemo(() => {
+    const m = new Map<string, (typeof certifQ.report)["clients"][number]>();
+    for (const c of certifQ.report?.clients ?? []) m.set(c.clientId, c);
+    return m;
+  }, [certifQ.report]);
   // Règle centrale : un classement stratégique ne contient que des entités
   // économiques exploitables (ni contact, ni doublon possible).
   const rankable = useMemo(
@@ -340,11 +350,21 @@ export function ProfitabilityClientsView() {
                           <ClientLink clientId={c.clientId} clientKey={c.key} name={c.name} />
                         </TableCell>
                         <TableCell>
-                          <EntityStatusQuickEdit
-                            clientId={c.clientId}
-                            clientName={c.name}
-                            status={statusOf(statusesQ.data, c.clientId)}
-                          />
+                          <div className="flex flex-wrap items-center gap-2">
+                            <EntityStatusQuickEdit
+                              clientId={c.clientId}
+                              clientName={c.name}
+                              status={statusOf(statusesQ.data, c.clientId)}
+                            />
+                            <CertifyReferentialAction
+                              clientId={c.clientId}
+                              clientName={c.name}
+                              certification={
+                                c.clientId ? certifByClient.get(c.clientId) : undefined
+                              }
+                              onCertified={certifQ.refetch}
+                            />
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge className={NATURE_TONE[c.nature] ?? NATURE_TONE.Autre}>
