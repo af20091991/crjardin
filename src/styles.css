@@ -272,7 +272,7 @@
   font-weight: 650;
   letter-spacing: -0.015em;
 }
-[data-skin="modern"] [data-slot="card"],
+[data-skin="modern"] .shadow,
 [data-skin="modern"] .shadow-lg,
 [data-skin="modern"] .shadow-md {
   box-shadow: var(--shadow-soft);
