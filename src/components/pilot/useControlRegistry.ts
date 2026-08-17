@@ -24,9 +24,6 @@ import {
 const loadError = (q: UseQueryResult<unknown>): string | null =>
   q.isError ? ((q.error as Error)?.message ?? "Erreur de lecture inconnue") : null;
 
-const metric = (report: ReturnType<typeof Number> extends never ? never : unknown) => report;
-void metric;
-
 export function useControlRegistry(): {
   report: RegistryReport;
   loading: boolean;
@@ -62,11 +59,11 @@ export function useControlRegistry(): {
     });
     out.push({
       id: "finance.ventes.montant",
-      analysed: ref ? ref.totals.caLines : null,
-      failing: ref ? 0 : null,
+      analysed: q ? q.siteCoverage.caLines : null,
+      failing: q ? 0 : null,
       amountAnalysed: ref ? ref.totals.caTotal : null,
       amountFailing: ref ? 0 : null,
-      loadError: refErr,
+      loadError: refErr ?? qErr,
       evidence: ref ? [`CA analysé : ${Math.round(ref.totals.caTotal).toLocaleString("fr-FR")} €`] : [],
     });
 
@@ -92,7 +89,13 @@ export function useControlRegistry(): {
     // ── Référentiel clients ─────────────────────────────────────────────────
     out.push({
       id: "clients.rattachement.ca",
-      analysed: ref ? ref.totals.caLines : null,
+      analysed: ref
+        ? ref.caAttachment.ok +
+          ref.caAttachment.onContact +
+          ref.caAttachment.onDuplicate +
+          ref.caAttachment.toValidate +
+          ref.caAttachment.unattached
+        : null,
       failing: ref ? ref.caAttachment.unattached + ref.caAttachment.toValidate : null,
       amountFailing: ref ? ref.caAttachment.unattachedAmount : null,
       confirmable: ref ? ref.caAttachment.toValidate > 0 : false,
@@ -184,7 +187,7 @@ export function useControlRegistry(): {
     });
 
     // ── Moteurs ─────────────────────────────────────────────────────────────
-    const rows = reconciliation.report?.rows ?? null;
+    const rows = reconciliation.rows ?? null;
     out.push({
       id: "moteurs.reconciliation",
       analysed: rows ? rows.length : null,
@@ -194,18 +197,18 @@ export function useControlRegistry(): {
             .filter((r) => r.status !== "certifie" && r.unit === "€")
             .reduce((s, r) => s + Math.abs(r.gap ?? 0), 0)
         : null,
-      contradictory: reconciliation.report?.blocking ?? false,
-      loadError: reconciliation.status === "error" ? reconciliation.message : null,
+      contradictory: reconciliation.blocking,
+      loadError: reconciliation.status === "indisponible" ? reconciliation.message : null,
       evidence: rows ? rows.filter((r) => r.status !== "certifie").map((r) => `${r.label} — ${r.message}`) : [],
     });
-    const datasets = integrity.report?.datasets ?? null;
+    const datasets = integrity.datasets ?? null;
     const checks = datasets?.flatMap((d) => d.checks) ?? null;
     out.push({
       id: "moteurs.coherence",
       analysed: checks ? checks.length : null,
       failing: checks ? checks.filter((c) => c.status === "suspect").length : null,
       contradictory: checks ? checks.some((c) => c.status === "suspect") : false,
-      loadError: integrity.status === "error" ? integrity.message : null,
+      loadError: integrity.status === "indisponible" ? integrity.message : null,
       evidence: datasets ? datasets.map((d) => `${d.label} : ${d.status}`) : [],
     });
 
