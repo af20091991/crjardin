@@ -188,7 +188,7 @@ export function KpiReliabilityPanel() {
 
       <div className="grid gap-3 lg:grid-cols-2">
         {filtered.map((r) => (
-          <Card key={r.contract.id}>
+          <Card key={r.contract.id} data-readiness={r.readiness}>
             <CardHeader className="pb-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <CardTitle className="text-sm">{r.contract.label}</CardTitle>
