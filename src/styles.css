@@ -219,3 +219,75 @@
 [data-density="compact"] .space-y-5 > * + * {
   margin-top: 0.85rem;
 }
+
+/* ============================================================
+   Apparence moderne (skin alternatif, réversible)
+   Couche de tokens uniquement : aucune duplication de composant,
+   aucun impact sur les données ou les calculs.
+   ============================================================ */
+[data-skin="modern"] {
+  --background: oklch(0.985 0.002 250);
+  --foreground: oklch(0.22 0.012 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.012 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.012 255);
+  --secondary: oklch(0.965 0.004 250);
+  --secondary-foreground: oklch(0.30 0.012 255);
+  --muted: oklch(0.968 0.004 250);
+  --muted-foreground: oklch(0.50 0.012 255);
+  --border: oklch(0.915 0.005 250);
+  --input: oklch(0.905 0.005 250);
+  /* Couleurs fonctionnelles nettes : succès, attention, erreur, information */
+  --destructive: oklch(0.55 0.19 25);
+  --pp-sales: oklch(0.56 0.14 250);
+  --pp-charges: oklch(0.55 0.19 25);
+  --pp-warning: oklch(0.75 0.15 80);
+  --pp-neutral: oklch(0.60 0.01 255);
+  --shadow-soft: 0 1px 2px 0 color-mix(in oklab, var(--foreground) 8%, transparent);
+  --shadow-elegant: 0 8px 24px -16px color-mix(in oklab, var(--foreground) 30%, transparent);
+}
+
+[data-skin="modern"].dark {
+  --background: oklch(0.19 0.01 255);
+  --foreground: oklch(0.97 0.003 250);
+  --card: oklch(0.235 0.012 255);
+  --card-foreground: oklch(0.97 0.003 250);
+  --popover: oklch(0.235 0.012 255);
+  --popover-foreground: oklch(0.97 0.003 250);
+  --secondary: oklch(0.28 0.012 255);
+  --secondary-foreground: oklch(0.97 0.003 250);
+  --muted: oklch(0.28 0.012 255);
+  --muted-foreground: oklch(0.72 0.01 255);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 16%);
+}
+
+/* Hiérarchie et respiration — surfaces, tableaux et listes */
+[data-skin="modern"] h1,
+[data-skin="modern"] h2,
+[data-skin="modern"] h3,
+[data-skin="modern"] .font-serif {
+  font-family: var(--font-sans);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+[data-skin="modern"] .shadow,
+[data-skin="modern"] .shadow-lg,
+[data-skin="modern"] .shadow-md {
+  box-shadow: var(--shadow-soft);
+}
+[data-skin="modern"] table th {
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+[data-skin="modern"] table td,
+[data-skin="modern"] table th {
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+[data-skin="modern"] table tbody tr:hover {
+  background-color: color-mix(in oklab, var(--muted) 60%, transparent);
+}

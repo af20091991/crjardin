@@ -42,6 +42,9 @@ import {
 } from "@/lib/pilot-entity-rules";
 import { ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
 import { EntityStatusQuickEdit } from "@/components/pilot/rentabilite/EntityStatusQuickEdit";
+import { CertifyReferentialAction } from "@/components/pilot/rentabilite/CertifyReferentialAction";
+import { useAttachmentCertification } from "@/components/pilot/useAttachmentCertification";
+import type { ClientCertification } from "@/lib/pilot-attachment-certification";
 import { topClients } from "@/lib/pilot-top-clients";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import {
@@ -109,6 +112,14 @@ export function ProfitabilityClientsView() {
   );
 
   const statusesQ = useEntityStatuses();
+  // Verdicts de rattachement (moteur existant) : seule source autorisée pour
+  // proposer la certification d'une fiche démontrable.
+  const certifQ = useAttachmentCertification();
+  const certifByClient = useMemo(() => {
+    const m = new Map<string, ClientCertification>();
+    for (const c of certifQ.report?.clients ?? []) m.set(c.clientId, c);
+    return m;
+  }, [certifQ.report]);
   // Règle centrale : un classement stratégique ne contient que des entités
   // économiques exploitables (ni contact, ni doublon possible).
   const rankable = useMemo(
@@ -220,40 +231,42 @@ export function ProfitabilityClientsView() {
               const c = statsByKey.get(t.key)!;
               const i = t.rank - 1;
               return (
-              <Card key={t.key}>
-                <CardContent className="pt-5">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Trophy
-                      className={`h-4 w-4 ${i === 0 ? "text-amber-500" : "text-muted-foreground"}`}
-                    />{" "}
-                    Top {i + 1}
-                  </div>
-                  <p className="mt-1 truncate font-medium">
-                    <ClientLink clientId={c.clientId} clientKey={c.key} name={c.name} />
-                  </p>
-                  <p className="font-serif text-xl font-semibold">{formatEuro(c.ca)}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                    {reliabilityOf(c).profitabilityTrusted ? (
-                      <ProfitSignal
-                        level={signalFromHourlyRate(c.hourlyRate, targetHourlyRate, thresholds)}
-                        title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
-                      />
-                    ) : (
-                      <ReliabilityBadge reliability={reliabilityOf(c)} compact />
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {c.share.toFixed(0)} % du CA ·{" "}
-                    {t.hourlyRate == null ? "taux/h non documenté" : `${formatEuro(t.hourlyRate)}/h`}
-                  </p>
-                  <p
-                    className="mt-1 text-[11px] text-muted-foreground"
-                    title={`Score composite : CA ${t.caPoints.toFixed(0)}/50 · part ${t.sharePoints.toFixed(0)}/30 · taux horaire ${t.ratePoints.toFixed(0)}/20`}
-                  >
-                    Score {t.score.toFixed(0)}/100
-                  </p>
-                </CardContent>
-              </Card>
+                <Card key={t.key}>
+                  <CardContent className="pt-5">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Trophy
+                        className={`h-4 w-4 ${i === 0 ? "text-amber-500" : "text-muted-foreground"}`}
+                      />{" "}
+                      Top {i + 1}
+                    </div>
+                    <p className="mt-1 truncate font-medium">
+                      <ClientLink clientId={c.clientId} clientKey={c.key} name={c.name} />
+                    </p>
+                    <p className="font-serif text-xl font-semibold">{formatEuro(c.ca)}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {reliabilityOf(c).profitabilityTrusted ? (
+                        <ProfitSignal
+                          level={signalFromHourlyRate(c.hourlyRate, targetHourlyRate, thresholds)}
+                          title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
+                        />
+                      ) : (
+                        <ReliabilityBadge reliability={reliabilityOf(c)} compact />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {c.share.toFixed(0)} % du CA ·{" "}
+                      {t.hourlyRate == null
+                        ? "taux/h non documenté"
+                        : `${formatEuro(t.hourlyRate)}/h`}
+                    </p>
+                    <p
+                      className="mt-1 text-[11px] text-muted-foreground"
+                      title={`Score composite : CA ${t.caPoints.toFixed(0)}/50 · part ${t.sharePoints.toFixed(0)}/30 · taux horaire ${t.ratePoints.toFixed(0)}/20`}
+                    >
+                      Score {t.score.toFixed(0)}/100
+                    </p>
+                  </CardContent>
+                </Card>
               );
             })}
             {top.length === 0 && (
@@ -340,11 +353,21 @@ export function ProfitabilityClientsView() {
                           <ClientLink clientId={c.clientId} clientKey={c.key} name={c.name} />
                         </TableCell>
                         <TableCell>
-                          <EntityStatusQuickEdit
-                            clientId={c.clientId}
-                            clientName={c.name}
-                            status={statusOf(statusesQ.data, c.clientId)}
-                          />
+                          <div className="flex flex-wrap items-center gap-2">
+                            <EntityStatusQuickEdit
+                              clientId={c.clientId}
+                              clientName={c.name}
+                              status={statusOf(statusesQ.data, c.clientId)}
+                            />
+                            <CertifyReferentialAction
+                              clientId={c.clientId}
+                              clientName={c.name}
+                              certification={
+                                c.clientId ? certifByClient.get(c.clientId) : undefined
+                              }
+                              onCertified={certifQ.refetch}
+                            />
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge className={NATURE_TONE[c.nature] ?? NATURE_TONE.Autre}>

@@ -7,21 +7,63 @@ import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { GlobalSearch } from "@/components/pilot/GlobalSearch";
-import { LayoutDashboard, Users, LogOut, Settings, CalendarDays, BarChart3, History, Mail, MoreHorizontal, ClipboardList, FileText, ChevronDown, Database, BookOpen, Compass, Palette, PanelLeftClose, PanelLeftOpen, HardHat, Home, Euro, Target, Calculator, CalendarRange, Receipt, Activity, LineChart, Clock, HeartPulse, Settings2, ShieldCheck, MapPin, Leaf } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import {
+  LayoutDashboard,
+  Users,
+  LogOut,
+  Settings,
+  CalendarDays,
+  BarChart3,
+  History,
+  Mail,
+  MoreHorizontal,
+  ClipboardList,
+  FileText,
+  ChevronDown,
+  Database,
+  BookOpen,
+  Compass,
+  Palette,
+  PanelLeftClose,
+  PanelLeftOpen,
+  HardHat,
+  Home,
+  Euro,
+  Target,
+  Calculator,
+  CalendarRange,
+  Receipt,
+  Activity,
+  LineChart,
+  Clock,
+  HeartPulse,
+  Settings2,
+  ShieldCheck,
+  MapPin,
+  Leaf,
+} from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 import { useAppearance } from "@/lib/appearance";
 import { usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
 import { PERIOD_LABELS, type PeriodMode } from "@/lib/pilot-realized";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type NavItem = {
   to: string;
@@ -74,34 +116,32 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     {
       label: "Aujourd'hui",
       items: [
-        { to: "/pilot", label: "Centre de décision", short: "Accueil", icon: Home, exact: true, primary: true },
+        {
+          to: "/pilot",
+          label: "Centre de décision",
+          short: "Accueil",
+          icon: Home,
+          exact: true,
+          primary: true,
+        },
         ...(canEdit
           ? [
-              { to: "/pilot/sante", label: "Santé de l'activité", short: "Santé", icon: HeartPulse, exact: false, primary: false },
-            ]
-          : []),
-      ],
-    },
-    {
-      label: "Clients",
-      items: [
-        { to: "/clients", label: "Fiches clients", short: "Clients", icon: Users, exact: false, primary: true },
-        ...(canEdit
-          ? [
-              { to: "/pilot/rentabilite", label: "Rentabilité", short: "Rentab.", icon: LineChart, exact: false, primary: false },
-            ]
-          : []),
-      ],
-    },
-    {
-      label: "Activité",
-      items: [
-        { to: "/interventions", label: "CR chantier", short: "CR", icon: FileText, exact: false, primary: true },
-        ...(canEdit
-          ? [
-              { to: "/fiches", label: "Fiches SST", short: "Fiches", icon: ClipboardList, exact: false, primary: false },
-              { to: "/sst", label: "SST", short: "SST", icon: HardHat, exact: false, primary: false },
-              { to: "/journal-sst", label: "Journal SST", short: "Journal", icon: ClipboardList, exact: false, primary: false },
+              {
+                to: "/pilot/ca",
+                label: "Chiffre d'affaires",
+                short: "CA",
+                icon: Euro,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/pilot/sante",
+                label: "Santé de l'activité",
+                short: "Santé",
+                icon: HeartPulse,
+                exact: false,
+                primary: false,
+              },
             ]
           : []),
       ],
@@ -110,37 +150,221 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Pilotage",
       items: canEdit
         ? [
-            { to: "/pilot/direction", label: "Direction", short: "Direction", icon: BarChart3, exact: false, primary: false },
-            { to: "/pilot/ca", label: "Chiffre d'affaires", short: "CA", icon: Euro, exact: false, primary: false },
-            { to: "/pilot/ceev", label: "Rentabilité CEEV", short: "CEEV €", icon: ClipboardList, exact: false, primary: false },
-            { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
-            { to: "/pilot/benchmark", label: "Comparatifs et prévisions", short: "Compar.", icon: CalendarRange, exact: false, primary: false },
-            { to: "/pilot/temps", label: "Analyse temps & rentabilité", short: "Temps", icon: Clock, exact: false, primary: false },
-            { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
-            { to: "/pilot/charges", label: "Charges & investissements", short: "Charges", icon: Receipt, exact: false, primary: false },
-            { to: "/pilot/simulations", label: "Simulations", short: "Simul.", icon: Calculator, exact: false, primary: false },
+            {
+              to: "/pilot/direction",
+              label: "Direction",
+              short: "Direction",
+              icon: BarChart3,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/ceev",
+              label: "Rentabilité CEEV",
+              short: "CEEV €",
+              icon: ClipboardList,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/objectifs",
+              label: "Objectifs",
+              short: "Objectifs",
+              icon: Target,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/benchmark",
+              label: "Comparatifs et prévisions",
+              short: "Compar.",
+              icon: CalendarRange,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/temps",
+              label: "Analyse temps & rentabilité",
+              short: "Temps",
+              icon: Clock,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/finance",
+              label: "Finance",
+              short: "Finance",
+              icon: Calculator,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/charges",
+              label: "Charges & investissements",
+              short: "Charges",
+              icon: Receipt,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/simulations",
+              label: "Simulations",
+              short: "Simul.",
+              icon: Calculator,
+              exact: false,
+              primary: false,
+            },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Réservé",
+    },
+    {
+      label: "Clients",
+      items: [
+        {
+          to: "/clients",
+          label: "Fiches clients",
+          short: "Clients",
+          icon: Users,
+          exact: false,
+          primary: true,
+        },
+        ...(canEdit
+          ? [
+              {
+                to: "/pilot/rentabilite",
+                label: "Rentabilité",
+                short: "Rentab.",
+                icon: LineChart,
+                exact: false,
+                primary: false,
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      label: "Activité",
+      items: [
+        {
+          to: "/interventions",
+          label: "CR chantier",
+          short: "CR",
+          icon: FileText,
+          exact: false,
+          primary: true,
+        },
+        ...(canEdit
+          ? [
+              {
+                to: "/fiches",
+                label: "Fiches SST",
+                short: "Fiches",
+                icon: ClipboardList,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/sst",
+                label: "SST",
+                short: "SST",
+                icon: HardHat,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/journal-sst",
+                label: "Journal SST",
+                short: "Journal",
+                icon: ClipboardList,
+                exact: false,
+                primary: false,
+              },
+            ]
+          : []),
+      ],
     },
     {
       label: "Paramètres",
       items: [
         ...(canEdit
           ? [
-              { to: "/pilot/controle", label: "Centre de contrôle des données", short: "Contrôle", icon: ShieldCheck, exact: false, primary: false },
-              { to: "/pilot/donnees", label: "Classeur de données", short: "Classeur", icon: ClipboardList, exact: false, primary: false },
-              { to: "/pilot/sites", label: "Sites & contacts", short: "Sites", icon: MapPin, exact: false, primary: false },
-              { to: "/pilot/parametres", label: "Règles de calcul", short: "Règles", icon: Settings2, exact: false, primary: false },
+              {
+                to: "/pilot/controle",
+                label: "Centre de contrôle des données",
+                short: "Contrôle",
+                icon: ShieldCheck,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/pilot/donnees",
+                label: "Classeur de données",
+                short: "Classeur",
+                icon: ClipboardList,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/pilot/sites",
+                label: "Sites & contacts",
+                short: "Sites",
+                icon: MapPin,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/pilot/parametres",
+                label: "Règles de calcul",
+                short: "Règles",
+                icon: Settings2,
+                exact: false,
+                primary: false,
+              },
             ]
           : []),
-        { to: "/settings", label: "Paramètres généraux", short: "Réglages", icon: Settings, exact: false, primary: false },
-        { to: "/personnalisation", label: "Personnalisation", short: "Apparence", icon: Palette, exact: false, primary: false },
+        {
+          to: "/settings",
+          label: "Paramètres généraux",
+          short: "Réglages",
+          icon: Settings,
+          exact: false,
+          primary: false,
+        },
+        {
+          to: "/personnalisation",
+          label: "Personnalisation",
+          short: "Apparence",
+          icon: Palette,
+          exact: false,
+          primary: false,
+        },
         ...(isAdmin
           ? [
-              { to: "/versions", label: "Version", short: "Version", icon: History, exact: false, primary: false },
-              { to: "/emails", label: "Suivi des emails", short: "E-mails", icon: Mail, exact: false, primary: false },
-              { to: "/backend", label: "Backend", short: "Backend", icon: Database, exact: false, primary: false },
+              {
+                to: "/versions",
+                label: "Version",
+                short: "Version",
+                icon: History,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/emails",
+                label: "Suivi des emails",
+                short: "E-mails",
+                icon: Mail,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/backend",
+                label: "Backend",
+                short: "Backend",
+                icon: Database,
+                exact: false,
+                primary: false,
+              },
             ]
           : []),
       ],
@@ -177,120 +401,138 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     <div className="min-h-screen bg-secondary/30">
       {/* Sidebar desktop */}
       <TooltipProvider delayDuration={150}>
-      <aside
-        className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card transition-[width] duration-200 md:flex ${
-          collapsed ? "w-16" : "w-60"
-        }`}
-      >
-        <div className={`flex items-center gap-2 py-5 ${collapsed ? "flex-col px-2" : "justify-between px-4"}`}>
-          <div className="flex min-w-0 items-center gap-2.5">
-            <img src={logo} alt="De la graine au jardin" className="h-10 w-10 shrink-0 object-contain" />
-            {!collapsed && (
-              <div className="min-w-0 leading-tight">
-                <p className="font-serif text-base font-semibold leading-tight text-primary">{APP_NAME}</p>
-                <p className="truncate text-[11px] text-muted-foreground">Version {APP_VERSION}</p>
-              </div>
-            )}
-          </div>
-          {!collapsed && <NotificationBell />}
-        </div>
-        <div className={collapsed ? "px-2 pb-2" : "px-3 pb-2"}>
-          <GlobalSearch collapsed={collapsed} />
-        </div>
-        <nav className={`flex-1 space-y-4 overflow-y-auto pb-3 ${collapsed ? "px-2" : "px-3"}`}>
-          {groups.map((group) => (
-            <div key={group.label} className="space-y-1">
-              {collapsed ? (
-                <div className="mx-2 my-1 border-t border-border/60" />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => toggleGroup(group.label)}
-                  className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 transition-colors hover:text-foreground"
-                >
-                  <span>{group.label}</span>
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${isGroupOpen(group.label) ? "" : "-rotate-90"}`}
-                  />
-                </button>
-              )}
-              {(collapsed || isGroupOpen(group.label)) && (
-                <div className="space-y-1">
-                  {group.items.map((item) =>
-                    collapsed ? (
-                      <Tooltip key={item.to}>
-                        <TooltipTrigger asChild>
-                          <Link
-                            to={item.to}
-                            className={`flex items-center justify-center rounded-lg p-2.5 transition-colors ${
-                              isActive(item.to, item.exact)
-                                ? "bg-primary/10 text-primary"
-                                : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-                            }`}
-                          >
-                            <item.icon className="h-5 w-5" />
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">{item.label}</TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive(item.to, item.exact)
-                            ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-                        }`}
-                      >
-                        <item.icon className="h-5 w-5" />
-                        {item.label}
-                      </Link>
-                    ),
-                  )}
-                  {!collapsed && group.items.length === 0 && group.emptyLabel && (
-                    <p className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/60">
-                      {(() => {
-                        const Icon = groupIcon[group.label];
-                        return Icon ? <Icon className="h-5 w-5" /> : null;
-                      })()}
-                      {group.emptyLabel}
-                    </p>
-                  )}
+        <aside
+          className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card transition-[width] duration-200 md:flex ${
+            collapsed ? "w-16" : "w-60"
+          }`}
+        >
+          <div
+            className={`flex items-center gap-2 py-5 ${collapsed ? "flex-col px-2" : "justify-between px-4"}`}
+          >
+            <div className="flex min-w-0 items-center gap-2.5">
+              <img
+                src={logo}
+                alt="De la graine au jardin"
+                className="h-10 w-10 shrink-0 object-contain"
+              />
+              {!collapsed && (
+                <div className="min-w-0 leading-tight">
+                  <p className="font-serif text-base font-semibold leading-tight text-primary">
+                    {APP_NAME}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    Version {APP_VERSION}
+                  </p>
                 </div>
               )}
             </div>
-          ))}
-        </nav>
-        <div className="border-t border-border p-3">
-          <button
-            onClick={toggleCollapsed}
-            className={`mb-2 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground ${
-              collapsed ? "justify-center" : ""
-            }`}
-            title={collapsed ? "Déplier le menu" : "Replier le menu"}
-          >
-            {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-            {!collapsed && <span>Replier</span>}
-          </button>
-          {!collapsed ? (
-            <div className="flex items-center justify-between gap-2 px-1">
-              <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
-              <button onClick={signOut} className="shrink-0 text-muted-foreground hover:text-destructive" title="Déconnexion">
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
+            {!collapsed && <NotificationBell />}
+          </div>
+          <div className={collapsed ? "px-2 pb-2" : "px-3 pb-2"}>
+            <GlobalSearch collapsed={collapsed} />
+          </div>
+          <nav className={`flex-1 space-y-4 overflow-y-auto pb-3 ${collapsed ? "px-2" : "px-3"}`}>
+            {groups.map((group) => (
+              <div key={group.label} className="space-y-1">
+                {collapsed ? (
+                  <div className="mx-2 my-1 border-t border-border/60" />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.label)}
+                    className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 transition-colors hover:text-foreground"
+                  >
+                    <span>{group.label}</span>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${isGroupOpen(group.label) ? "" : "-rotate-90"}`}
+                    />
+                  </button>
+                )}
+                {(collapsed || isGroupOpen(group.label)) && (
+                  <div className="space-y-1">
+                    {group.items.map((item) =>
+                      collapsed ? (
+                        <Tooltip key={item.to}>
+                          <TooltipTrigger asChild>
+                            <Link
+                              to={item.to}
+                              className={`flex items-center justify-center rounded-lg p-2.5 transition-colors ${
+                                isActive(item.to, item.exact)
+                                  ? "bg-primary/10 text-primary"
+                                  : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                              }`}
+                            >
+                              <item.icon className="h-5 w-5" />
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">{item.label}</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                            isActive(item.to, item.exact)
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                          }`}
+                        >
+                          <item.icon className="h-5 w-5" />
+                          {item.label}
+                        </Link>
+                      ),
+                    )}
+                    {!collapsed && group.items.length === 0 && group.emptyLabel && (
+                      <p className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/60">
+                        {(() => {
+                          const Icon = groupIcon[group.label];
+                          return Icon ? <Icon className="h-5 w-5" /> : null;
+                        })()}
+                        {group.emptyLabel}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </nav>
+          <div className="border-t border-border p-3">
             <button
-              onClick={signOut}
-              className="flex w-full justify-center rounded-lg p-2 text-muted-foreground hover:text-destructive"
-              title="Déconnexion"
+              onClick={toggleCollapsed}
+              className={`mb-2 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground ${
+                collapsed ? "justify-center" : ""
+              }`}
+              title={collapsed ? "Déplier le menu" : "Replier le menu"}
             >
-              <LogOut className="h-5 w-5" />
+              {collapsed ? (
+                <PanelLeftOpen className="h-5 w-5" />
+              ) : (
+                <PanelLeftClose className="h-5 w-5" />
+              )}
+              {!collapsed && <span>Replier</span>}
             </button>
-          )}
-        </div>
-      </aside>
+            {!collapsed ? (
+              <div className="flex items-center justify-between gap-2 px-1">
+                <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
+                <button
+                  onClick={signOut}
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  title="Déconnexion"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={signOut}
+                className="flex w-full justify-center rounded-lg p-2 text-muted-foreground hover:text-destructive"
+                title="Déconnexion"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+        </aside>
       </TooltipProvider>
 
       {/* Main */}
@@ -298,8 +540,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         {/* Mobile header */}
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2">
-            <img src={logo} alt="De la graine au jardin" className="h-8 w-8 shrink-0 object-contain" />
-            <span className="truncate font-serif text-base font-semibold text-primary">{title ?? `${APP_NAME} v${APP_VERSION}`}</span>
+            <img
+              src={logo}
+              alt="De la graine au jardin"
+              className="h-8 w-8 shrink-0 object-contain"
+            />
+            <span className="truncate font-serif text-base font-semibold text-primary">
+              {title ?? `${APP_NAME} v${APP_VERSION}`}
+            </span>
           </div>
           <div className="flex items-center gap-4">
             <GlobalSearch collapsed />
@@ -346,7 +594,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             <SheetTrigger asChild>
               <button
                 className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 text-[10px] font-medium ${
-                  moreItems.some((i) => isActive(i.to, i.exact)) ? "text-primary" : "text-muted-foreground"
+                  moreItems.some((i) => isActive(i.to, i.exact))
+                    ? "text-primary"
+                    : "text-muted-foreground"
                 }`}
               >
                 <MoreHorizontal className="h-5 w-5 shrink-0" />
@@ -359,7 +609,11 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               </SheetHeader>
               <div className="mt-2 space-y-4 pb-[env(safe-area-inset-bottom)]">
                 {groups
-                  .map((g) => ({ label: g.label, emptyLabel: g.emptyLabel, items: g.items.filter((i) => !i.primary) }))
+                  .map((g) => ({
+                    label: g.label,
+                    emptyLabel: g.emptyLabel,
+                    items: g.items.filter((i) => !i.primary),
+                  }))
                   .filter((g) => g.items.length > 0 || g.emptyLabel)
                   .map((group) => (
                     <div key={group.label} className="space-y-2">
@@ -371,21 +625,23 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                           {group.emptyLabel}
                         </p>
                       ) : (
-                      <div className="grid grid-cols-2 gap-2">
-                        {group.items.map((item) => (
-                          <SheetClose asChild key={item.to}>
-                            <Link
-                              to={item.to}
-                              className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
-                                isActive(item.to, item.exact) ? "bg-primary/10 text-primary" : "text-foreground"
-                              }`}
-                            >
-                              <item.icon className="h-5 w-5 shrink-0" />
-                              <span className="truncate">{item.label}</span>
-                            </Link>
-                          </SheetClose>
-                        ))}
-                      </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {group.items.map((item) => (
+                            <SheetClose asChild key={item.to}>
+                              <Link
+                                to={item.to}
+                                className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
+                                  isActive(item.to, item.exact)
+                                    ? "bg-primary/10 text-primary"
+                                    : "text-foreground"
+                                }`}
+                              >
+                                <item.icon className="h-5 w-5 shrink-0" />
+                                <span className="truncate">{item.label}</span>
+                              </Link>
+                            </SheetClose>
+                          ))}
+                        </div>
                       )}
                     </div>
                   ))}

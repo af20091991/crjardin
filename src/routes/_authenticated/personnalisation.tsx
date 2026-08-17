@@ -10,6 +10,7 @@ import {
   ACCENT_PRESETS,
   type ThemeMode,
   type Density,
+  type Skin,
 } from "@/lib/appearance";
 import { Palette, Sun, Moon, Monitor, RotateCcw, Check } from "lucide-react";
 
@@ -56,6 +57,18 @@ function PersonnalisationPage() {
     { value: "comfortable", label: "Confortable" },
     { value: "compact", label: "Compact" },
   ];
+  const skinOptions: { value: Skin; label: string; hint: string }[] = [
+    {
+      value: "classic",
+      label: "Apparence actuelle",
+      hint: "Identité végétale, surfaces chaleureuses et arrondies.",
+    },
+    {
+      value: "modern",
+      label: "Apparence moderne",
+      hint: "Surfaces sobres, contraste renforcé, tableaux plus respirants.",
+    },
+  ];
 
   const toggleGroup = (g: string) => {
     const hidden = appearance.hiddenGroups.includes(g)
@@ -79,6 +92,40 @@ function PersonnalisationPage() {
             </p>
           </div>
         </div>
+
+        {/* Apparence globale (skin) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-serif text-base">Apparence générale</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {skinOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  aria-pressed={appearance.skin === opt.value}
+                  onClick={() => setAppearance({ skin: opt.value })}
+                  className={`rounded-xl border p-3 text-left text-sm transition-colors ${
+                    appearance.skin === opt.value
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:bg-accent/30"
+                  }`}
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    {appearance.skin === opt.value && <Check className="h-4 w-4 text-primary" />}
+                    {opt.label}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">{opt.hint}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Le changement est immédiat et réversible : aucune donnée, aucun calcul ni aucun statut
+              de fiabilité n'est modifié.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Thème */}
         <Card>
@@ -183,7 +230,9 @@ function PersonnalisationPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>Arrondis des coins</Label>
-                <span className="text-sm text-muted-foreground">{appearance.radius.toFixed(2)} rem</span>
+                <span className="text-sm text-muted-foreground">
+                  {appearance.radius.toFixed(2)} rem
+                </span>
               </div>
               <Slider
                 min={0}
@@ -217,9 +266,7 @@ function PersonnalisationPage() {
                     type="button"
                     onClick={() => toggleGroup(g)}
                     className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                      visible
-                        ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground"
+                      visible ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {visible ? "Affiché" : "Masqué"}
