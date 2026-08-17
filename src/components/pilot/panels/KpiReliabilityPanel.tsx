@@ -30,6 +30,7 @@ const TONE: Record<KpiReadiness, string> = {
   a_confirmer: "border-amber-300 bg-amber-50 text-amber-800",
   non_exploitable: "border-destructive/40 bg-destructive/5 text-destructive",
   non_disponible: "border-border bg-muted/40 text-muted-foreground",
+  non_requis: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
 function ReadinessIcon({ readiness }: { readiness: KpiReadiness }) {
@@ -102,6 +103,7 @@ export function KpiReliabilityPanel() {
       a_confirmer: 0,
       non_exploitable: 0,
       non_disponible: 0,
+      non_requis: 0,
     };
     for (const r of rows) c[r.readiness] += 1;
     return c;

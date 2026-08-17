@@ -68,6 +68,7 @@ const READINESS_TONE: Record<KpiReadiness, string> = {
   a_confirmer: "border-amber-200 bg-amber-50 text-amber-800",
   non_exploitable: "border-red-200 bg-red-50 text-red-700",
   non_disponible: "border-muted bg-muted/40 text-muted-foreground",
+  non_requis: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
 function DirectionPage() {
