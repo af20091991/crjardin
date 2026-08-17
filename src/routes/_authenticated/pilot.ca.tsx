@@ -354,7 +354,7 @@ function CaPage() {
           </p>
         </div>
 
-        <div className="order-1 min-w-0 space-y-4">
+        <div data-testid="ca-ventes-column" className="min-w-0 space-y-4">
 
           {/* Ventes — source de vérité unique */}
           <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-sales) 7%, transparent)" }}>
