@@ -337,11 +337,11 @@ function SubcontractorDialog({ editing, onDone }: { editing: Subcontractor | nul
   }
 
   return (
-    <DialogContent className="max-w-lg">
-      <DialogHeader>
+    <DialogContent className="grid max-h-[calc(100dvh-2rem)] max-w-lg grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+      <DialogHeader className="shrink-0">
         <DialogTitle>{editing ? "Modifier" : "Nouveau sous-traitant"}</DialogTitle>
       </DialogHeader>
-      <div className="space-y-3">
+      <div className="min-h-0 space-y-3 overflow-y-auto overflow-x-hidden pr-1">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label>Nom *</Label>
@@ -396,7 +396,7 @@ function SubcontractorDialog({ editing, onDone }: { editing: Subcontractor | nul
           Actif
         </label>
       </div>
-      <DialogFooter>
+      <DialogFooter className="shrink-0 border-t border-border pt-3">
         <Button onClick={submit} disabled={saving}>
           {editing ? "Enregistrer" : "Créer"}
         </Button>
@@ -732,11 +732,11 @@ function MissionDialog({
   }
 
   return (
-    <DialogContent className="max-w-2xl">
-      <DialogHeader>
+    <DialogContent className="grid max-h-[calc(100dvh-2rem)] max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+      <DialogHeader className="shrink-0">
         <DialogTitle>{editing ? "Modifier la mission" : "Nouvelle mission SST"}</DialogTitle>
       </DialogHeader>
-      <div className="space-y-3">
+      <div className="min-h-0 space-y-3 overflow-y-auto overflow-x-hidden pr-1">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label>Sous-traitant *</Label>
@@ -891,7 +891,7 @@ function MissionDialog({
           )}
         </div>
       </div>
-      <DialogFooter>
+      <DialogFooter className="shrink-0 border-t border-border pt-3">
         <Button onClick={submit} disabled={saving}>
           {editing ? "Enregistrer" : "Créer"}
         </Button>
