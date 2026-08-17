@@ -20,6 +20,8 @@ const DB_STATUS: Record<ControlState, string> = {
   en_attente: "open",
   non_resolue: "in_progress",
   indisponible: "in_progress",
+  // Hors périmètre : classé comme ignoré volontairement, jamais « en erreur ».
+  hors_perimetre: "ignored",
 };
 
 export interface ControlLogRow {
