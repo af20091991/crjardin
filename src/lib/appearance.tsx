@@ -63,10 +63,10 @@ export function applyAppearance(a: Appearance) {
   root.style.setProperty("--sidebar-primary", a.primary);
   root.style.setProperty("--sidebar-ring", a.primary);
   root.style.setProperty("--accent", a.accent);
-  // Le skin moderne resserre les rayons pour une hiérarchie plus nette.
+  // Le skin moderne resserre nettement les rayons pour une hiérarchie plus franche.
   root.style.setProperty(
     "--radius",
-    `${a.skin === "modern" ? Math.min(a.radius, 0.5) : a.radius}rem`,
+    `${a.skin === "modern" ? Math.min(a.radius, 0.375) : a.radius}rem`,
   );
   root.setAttribute("data-density", a.density);
   root.setAttribute("data-skin", a.skin);
