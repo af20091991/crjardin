@@ -77,10 +77,27 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         { to: "/pilot", label: "Centre de décision", short: "Accueil", icon: Home, exact: true, primary: true },
         ...(canEdit
           ? [
+              { to: "/pilot/ca", label: "Chiffre d'affaires", short: "CA", icon: Euro, exact: false, primary: false },
               { to: "/pilot/sante", label: "Santé de l'activité", short: "Santé", icon: HeartPulse, exact: false, primary: false },
             ]
           : []),
       ],
+    },
+    {
+      label: "Pilotage",
+      items: canEdit
+        ? [
+            { to: "/pilot/direction", label: "Direction", short: "Direction", icon: BarChart3, exact: false, primary: false },
+            { to: "/pilot/ceev", label: "Rentabilité CEEV", short: "CEEV €", icon: ClipboardList, exact: false, primary: false },
+            { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
+            { to: "/pilot/benchmark", label: "Comparatifs et prévisions", short: "Compar.", icon: CalendarRange, exact: false, primary: false },
+            { to: "/pilot/temps", label: "Analyse temps & rentabilité", short: "Temps", icon: Clock, exact: false, primary: false },
+            { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
+            { to: "/pilot/charges", label: "Charges & investissements", short: "Charges", icon: Receipt, exact: false, primary: false },
+            { to: "/pilot/simulations", label: "Simulations", short: "Simul.", icon: Calculator, exact: false, primary: false },
+          ]
+        : [],
+      emptyLabel: canEdit ? undefined : "Réservé",
     },
     {
       label: "Clients",
@@ -105,23 +122,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             ]
           : []),
       ],
-    },
-    {
-      label: "Pilotage",
-      items: canEdit
-        ? [
-            { to: "/pilot/direction", label: "Direction", short: "Direction", icon: BarChart3, exact: false, primary: false },
-            { to: "/pilot/ca", label: "Chiffre d'affaires", short: "CA", icon: Euro, exact: false, primary: false },
-            { to: "/pilot/ceev", label: "Rentabilité CEEV", short: "CEEV €", icon: ClipboardList, exact: false, primary: false },
-            { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
-            { to: "/pilot/benchmark", label: "Comparatifs et prévisions", short: "Compar.", icon: CalendarRange, exact: false, primary: false },
-            { to: "/pilot/temps", label: "Analyse temps & rentabilité", short: "Temps", icon: Clock, exact: false, primary: false },
-            { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
-            { to: "/pilot/charges", label: "Charges & investissements", short: "Charges", icon: Receipt, exact: false, primary: false },
-            { to: "/pilot/simulations", label: "Simulations", short: "Simul.", icon: Calculator, exact: false, primary: false },
-          ]
-        : [],
-      emptyLabel: canEdit ? undefined : "Réservé",
     },
     {
       label: "Paramètres",
