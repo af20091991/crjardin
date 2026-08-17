@@ -431,7 +431,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           <div className={collapsed ? "px-2 pb-2" : "px-3 pb-2"}>
             <GlobalSearch collapsed={collapsed} />
           </div>
-          <nav data-shell="nav" className={`flex-1 space-y-4 overflow-y-auto pb-3 ${collapsed ? "px-2" : "px-3"}`}>
+          <nav
+            data-shell="nav"
+            className={`flex-1 space-y-4 overflow-y-auto pb-3 ${collapsed ? "px-2" : "px-3"}`}
+          >
             {groups.map((group) => (
               <div key={group.label} data-nav-group={group.label} className="space-y-1">
                 {collapsed ? (
@@ -562,7 +565,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         </header>
 
         {title && (
-          <div data-shell="page-header" className="hidden px-6 pt-6 md:flex md:items-start md:justify-between md:gap-4">
+          <div
+            data-shell="page-header"
+            className="hidden px-6 pt-6 md:flex md:items-start md:justify-between md:gap-4"
+          >
             <h1 className="font-serif text-2xl font-semibold">{title}</h1>
             {isPilot && (
               <div className="flex items-center gap-2">
@@ -573,7 +579,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </div>
         )}
 
-        <main data-shell="main" className="px-4 pb-28 pt-4 md:px-6 md:pb-10">{children}</main>
+        <main data-shell="main" className="px-4 pb-28 pt-4 md:px-6 md:pb-10">
+          {children}
+        </main>
       </div>
 
       {/* Mobile bottom nav */}

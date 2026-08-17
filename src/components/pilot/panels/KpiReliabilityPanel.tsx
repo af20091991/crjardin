@@ -55,7 +55,8 @@ export function KpiReliabilityPanel() {
     [analytics],
   );
   const qualityState = useMemo(
-    () => resourceState("pilot-data-quality", "Rapport de qualité des données", quality, () => false),
+    () =>
+      resourceState("pilot-data-quality", "Rapport de qualité des données", quality, () => false),
     [quality],
   );
 
@@ -125,8 +126,8 @@ export function KpiReliabilityPanel() {
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Peut-on utiliser cet indicateur avec confiance ? Lecture seule : aucune valeur n'est
-            recalculée ici. Les statuts proviennent du contrat de vérité, de l'état de chargement des
-            ressources et du statut des indicateurs déjà produits par le moteur unique.
+            recalculée ici. Les statuts proviennent du contrat de vérité, de l'état de chargement
+            des ressources et du statut des indicateurs déjà produits par le moteur unique.
           </p>
           <div className="flex flex-wrap gap-1.5">
             {(Object.keys(KPI_READINESS_LABEL) as KpiReadiness[]).map((k) => (

@@ -261,9 +261,7 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
     // Périmètre de certification : un exercice antérieur à 2026 ne sera jamais
     // complété. L'élément est qualifié « non requis » (état final, tracé) au
     // lieu d'être présenté comme une anomalie à traiter.
-    const scoped: ControlState | null = isOutOfCertificationScope(a.year)
-      ? "hors_perimetre"
-      : null;
+    const scoped: ControlState | null = isOutOfCertificationScope(a.year) ? "hors_perimetre" : null;
     all.push({ ...a, state: states[a.key] ?? scoped ?? a.state ?? "en_attente" });
   };
 
@@ -274,7 +272,8 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       domain: "ca",
       level: "info",
       title: `Source indisponible : ${e.label}`,
-      reason: "La lecture des données a échoué : aucun indicateur ne peut être certifié sur cette source.",
+      reason:
+        "La lecture des données a échoué : aucun indicateur ne peut être certifié sur cette source.",
       amount: null,
       count: 1,
       kpi: ["Tous les KPI de cette source"],
@@ -282,7 +281,8 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       confidence: "inconnue",
       found: `Source « ${e.label} » interrogée.`,
       missing: "Réponse exploitable de la base de données.",
-      whyNotAuto: "Une erreur de chargement n'est pas une anomalie de donnée : rien ne doit être corrigé à l'aveugle.",
+      whyNotAuto:
+        "Une erreur de chargement n'est pas une anomalie de donnée : rien ne doit être corrigé à l'aveugle.",
       candidates: [],
       expectedAction: "Réessayer la lecture",
       afterConfirm: "Les contrôles repartent sur des données réellement lues.",
@@ -297,7 +297,10 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
   // 2. Lignes de CA sans client : certain → auto, probable → suggestion, ambigu → manuel.
   for (const o of input.orphans ?? []) {
     const best = o.best;
-    const proven = !!best && best.confidence === "haute" && (best.reason === "exact" || best.reason === "historique");
+    const proven =
+      !!best &&
+      best.confidence === "haute" &&
+      (best.reason === "exact" || best.reason === "historique");
     const probable = !!best && !proven;
     const ambiguous = o.others.length > 0;
     // Une correspondance démontrée MAIS ambiguë redescend en suggestion :
@@ -333,8 +336,14 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
             ? "moyenne"
             : "faible"
           : "faible",
-      found: best ? `Client « ${best.clientName} » (score ${Math.round(best.score * 100)} %).` : "Aucun client correspondant.",
-      missing: best ? (proven ? "Rien : la correspondance est démontrée." : "Une preuve formelle (nom identique ou rattachement déjà validé).") : "Un client identifiable dans le libellé de la ligne.",
+      found: best
+        ? `Client « ${best.clientName} » (score ${Math.round(best.score * 100)} %).`
+        : "Aucun client correspondant.",
+      missing: best
+        ? proven
+          ? "Rien : la correspondance est démontrée."
+          : "Une preuve formelle (nom identique ou rattachement déjà validé)."
+        : "Un client identifiable dans le libellé de la ligne.",
       whyNotAuto:
         level === "auto"
           ? ""
@@ -387,17 +396,30 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       kpi: ["Charges fixes / variables", "Bénéfice", "Marge"],
       blocksKpi: true,
       confidence: hasSuggestion ? "moyenne" : "faible",
-      found: hasSuggestion ? `${c.suggestion!.category} — ${c.suggestion!.why}.` : "Aucun mot-clé connu dans le libellé.",
-      missing: hasSuggestion ? "Votre confirmation : le classement modifie un indicateur financier." : "La nature de la dépense (fixe, variable, investissement, rémunération).",
-      whyNotAuto: "Le classement d'une charge modifie le bénéfice : c'est un choix métier, jamais automatique.",
+      found: hasSuggestion
+        ? `${c.suggestion!.category} — ${c.suggestion!.why}.`
+        : "Aucun mot-clé connu dans le libellé.",
+      missing: hasSuggestion
+        ? "Votre confirmation : le classement modifie un indicateur financier."
+        : "La nature de la dépense (fixe, variable, investissement, rémunération).",
+      whyNotAuto:
+        "Le classement d'une charge modifie le bénéfice : c'est un choix métier, jamais automatique.",
       candidates: hasSuggestion ? [c.suggestion!.category] : [],
       expectedAction: hasSuggestion ? "Confirmer le classement proposé" : "Classer la charge",
       afterConfirm: `${euro(c.amount)} rejoindront la catégorie retenue et le bénéfice sera recalculé par le moteur.`,
-      detail: [`Charge ${c.id} — exercice ${c.year}`, hasSuggestion ? `Proposition : ${c.suggestion!.target}` : "Aucune proposition"],
+      detail: [
+        `Charge ${c.id} — exercice ${c.year}`,
+        hasSuggestion ? `Proposition : ${c.suggestion!.target}` : "Aucune proposition",
+      ],
       to: "/pilot/controle",
       year: c.year,
       operation: c.suggestion
-        ? { kind: "classify_charge", chargeId: c.id, category: c.suggestion.category, target: c.suggestion.target }
+        ? {
+            kind: "classify_charge",
+            chargeId: c.id,
+            category: c.suggestion.category,
+            target: c.suggestion.target,
+          }
         : { kind: "none" },
     });
   }
@@ -409,7 +431,8 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       domain: "heures",
       level: "manuel",
       title: `Temps manquant sur « ${s.label} » (${s.clientName})`,
-      reason: "Sans temps saisi sur la ligne de vente, aucun taux horaire n'est calculable sur ce chiffre d'affaires.",
+      reason:
+        "Sans temps saisi sur la ligne de vente, aucun taux horaire n'est calculable sur ce chiffre d'affaires.",
       amount: s.amount,
       count: 1,
       kpi: ["Taux horaire réel", "Rentabilité"],
@@ -420,8 +443,12 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       whyNotAuto: "Estimer un temps fausserait le taux horaire : seule votre saisie fait foi.",
       candidates: [],
       expectedAction: "Saisir le temps réel",
-      afterConfirm: "Le taux horaire de la ligne et de la période sera calculé sur une durée réelle.",
-      detail: [`Ligne ${s.id} — exercice ${s.year}`, "0 h reste valide uniquement pour une ligne sous-traitée."],
+      afterConfirm:
+        "Le taux horaire de la ligne et de la période sera calculé sur une durée réelle.",
+      detail: [
+        `Ligne ${s.id} — exercice ${s.year}`,
+        "0 h reste valide uniquement pour une ligne sous-traitée.",
+      ],
       to: "/pilot/controle",
       year: s.year,
       operation: { kind: "none" },
@@ -435,7 +462,8 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       domain: "sst",
       level: "manuel",
       title: `Mission « ${m.label} » sans client (${m.subcontractor})`,
-      reason: "Le coût de sous-traitance n'est imputé à aucun client : la rentabilité client est incomplète.",
+      reason:
+        "Le coût de sous-traitance n'est imputé à aucun client : la rentabilité client est incomplète.",
       amount: m.cost,
       count: 1,
       kpi: ["Rentabilité client", "Marge de sous-traitance"],
@@ -470,7 +498,8 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       confidence: "inconnue",
       found: `${a.count} élément(s) détecté(s) par le contrôle de qualité.`,
       missing: "Une décision par élément dans l'écran de traitement dédié.",
-      whyNotAuto: "Chaque élément peut avoir une explication différente : le traitement reste ligne par ligne.",
+      whyNotAuto:
+        "Chaque élément peut avoir une explication différente : le traitement reste ligne par ligne.",
       candidates: [],
       expectedAction: a.actionLabel,
       afterConfirm: "Le contrôle de qualité repart après traitement des éléments.",
@@ -498,7 +527,8 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       confidence: "inconnue",
       found: `Somme des lignes : ${r.expected ?? "indisponible"} ${r.unit}.`,
       missing: `Correspondance avec la valeur publiée : ${r.actual ?? "indisponible"} ${r.unit}.`,
-      whyNotAuto: "Un écart de total peut venir du périmètre, d'un doublon ou d'un rattachement : la cause doit être identifiée avant toute correction.",
+      whyNotAuto:
+        "Un écart de total peut venir du périmètre, d'un doublon ou d'un rattachement : la cause doit être identifiée avant toute correction.",
       candidates: [],
       expectedAction: manual ? "Analyser l'écart" : "Marquer comme justifié",
       afterConfirm: "L'indicateur pourra être certifié une fois l'écart expliqué ou corrigé.",
@@ -515,7 +545,13 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       if (c.status === "certifie") continue;
       push({
         key: `integrity:${d.id}:${c.id}`,
-        domain: d.id.includes("charge") ? "charges" : d.id.includes("heure") ? "heures" : d.id.includes("client") ? "clients" : "ca",
+        domain: d.id.includes("charge")
+          ? "charges"
+          : d.id.includes("heure")
+            ? "heures"
+            : d.id.includes("client")
+              ? "clients"
+              : "ca",
         level: c.status === "indisponible" ? "info" : "manuel",
         title: `${d.label} — ${c.label}`,
         reason: c.message,
@@ -526,9 +562,11 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
         confidence: "inconnue",
         found: `Contrôle « ${c.label} » exécuté sur ${d.sources.join(", ")}.`,
         missing: c.message,
-        whyNotAuto: "Ce contrôle décrit l'état de la source : il n'existe pas de correction unique applicable sans analyse.",
+        whyNotAuto:
+          "Ce contrôle décrit l'état de la source : il n'existe pas de correction unique applicable sans analyse.",
         candidates: [],
-        expectedAction: c.status === "indisponible" ? "Vérifier la source" : "Compléter la donnée source",
+        expectedAction:
+          c.status === "indisponible" ? "Vérifier la source" : "Compléter la donnée source",
         afterConfirm: "Le jeu de données pourra passer en « certifié » au prochain contrôle.",
         detail: [`Période contrôlée : ${d.periode}`, `Sources : ${d.sources.join(", ")}`],
         to: "/pilot/controle",

@@ -11,10 +11,7 @@ import type { AnalyticsSnapshot, KpiKey } from "@/lib/pilot-engine";
 import type { DataStatus } from "@/lib/pilot-data-state";
 import type { KpiContract, KpiContractId } from "@/lib/pilot-kpi-contract";
 import type { IntegrityStatus } from "@/lib/pilot-integrity";
-import {
-  HISTORY_OUT_OF_SCOPE_MESSAGE,
-  isOutOfCertificationScope,
-} from "@/lib/pilot-history-scope";
+import { HISTORY_OUT_OF_SCOPE_MESSAGE, isOutOfCertificationScope } from "@/lib/pilot-history-scope";
 
 /** Aptitude d'usage d'un KPI, du point de vue du dirigeant. */
 export type KpiReadiness =
@@ -67,7 +64,11 @@ function isEngineKpi(id: KpiContractId): id is KpiKey {
 }
 
 const eur = (n: number) =>
-  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+  new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(n);
 
 export interface KpiReliabilityInput {
   contracts: readonly KpiContract[];
@@ -159,8 +160,7 @@ export function buildKpiReliability(input: KpiReliabilityInput): KpiReliabilityR
         return {
           contract,
           readiness: "a_confirmer",
-          explanation:
-            kpi.reasons[0] ?? "En attente de certification du référentiel client.",
+          explanation: kpi.reasons[0] ?? "En attente de certification du référentiel client.",
           details: kpi.reasons.slice(1),
         };
       }
@@ -216,7 +216,10 @@ function integrityIssue(
  * `projectYear`. Le réalisé à date, la projection et les mois calendaires
  * écoulés restent trois informations distinctes.
  */
-function projectionRow(contract: KpiContract, snapshot: AnalyticsSnapshot | null): KpiReliabilityRow {
+function projectionRow(
+  contract: KpiContract,
+  snapshot: AnalyticsSnapshot | null,
+): KpiReliabilityRow {
   const p = snapshot?.projection ?? null;
   if (!p) {
     return {
@@ -237,8 +240,7 @@ function projectionRow(contract: KpiContract, snapshot: AnalyticsSnapshot | null
     return {
       contract,
       readiness: "a_confirmer",
-      explanation:
-        "Seul le réalisé à date est disponible : aucune extrapolation n'est produite.",
+      explanation: "Seul le réalisé à date est disponible : aucune extrapolation n'est produite.",
       details,
     };
   }

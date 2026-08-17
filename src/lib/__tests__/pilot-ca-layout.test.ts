@@ -26,7 +26,15 @@ describe("page Chiffre d'affaires — agencement", () => {
   });
 
   it("conserve toutes les colonnes essentielles", () => {
-    for (const col of ["Désignation", "Montant HT", "Statut", "Client", "Catégorie", "Type", "Temps"]) {
+    for (const col of [
+      "Désignation",
+      "Montant HT",
+      "Statut",
+      "Client",
+      "Catégorie",
+      "Type",
+      "Temps",
+    ]) {
       expect(src).toContain(col);
     }
   });

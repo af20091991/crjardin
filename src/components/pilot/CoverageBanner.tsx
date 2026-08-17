@@ -37,8 +37,7 @@ export function CoverageBanner({
     return <Skeleton className={compact ? "h-14 rounded-lg" : "h-24 rounded-xl"} />;
   }
 
-  const scope =
-    year != null ? data.years.find((y) => y.year === year) : null;
+  const scope = year != null ? data.years.find((y) => y.year === year) : null;
 
   // Exercice antérieur à 2026 : aucune donnée n'existera jamais. On l'annonce
   // explicitement au lieu d'afficher une couverture dégradée.
@@ -68,12 +67,7 @@ export function CoverageBanner({
   const linesLinked = scope ? scope.linesLinked : data.certifiableLinesLinked;
   const linesTotal = scope ? scope.linesTotal : data.certifiableLines;
 
-  const tone =
-    pct >= 80
-      ? "text-emerald-600"
-      : pct >= 40
-        ? "text-amber-600"
-        : "text-rose-600";
+  const tone = pct >= 80 ? "text-emerald-600" : pct >= 40 ? "text-amber-600" : "text-rose-600";
 
   return (
     <Card className="border-dashed">
@@ -98,18 +92,22 @@ export function CoverageBanner({
               </p>
             )}
             {!compact && year == null && data.scope !== "certifiable" && (
-              <p className="mt-0.5 text-xs text-muted-foreground">{coverageScopeNote(data.scope)}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {coverageScopeNote(data.scope)}
+              </p>
             )}
           </div>
         </div>
-        {!compact && (
-          <Progress value={pct} className="h-1.5" />
-        )}
-        <div className={compact ? "" : "flex items-center justify-between text-xs text-muted-foreground"}>
+        {!compact && <Progress value={pct} className="h-1.5" />}
+        <div
+          className={
+            compact ? "" : "flex items-center justify-between text-xs text-muted-foreground"
+          }
+        >
           {!compact && (
             <span>
-              Les données non attribuées restent visibles partout — les rattachements
-              se font par lots.
+              Les données non attribuées restent visibles partout — les rattachements se font par
+              lots.
             </span>
           )}
           <Link
@@ -182,8 +180,8 @@ export function CoverageHistoryCard() {
           </table>
         </div>
         <p className="text-xs text-muted-foreground">
-          Les CA historiques non rattachés restent comptabilisés. Le rattachement
-          client se fait progressivement dans « Rapprochement ».
+          Les CA historiques non rattachés restent comptabilisés. Le rattachement client se fait
+          progressivement dans « Rapprochement ».
         </p>
       </CardContent>
     </Card>
