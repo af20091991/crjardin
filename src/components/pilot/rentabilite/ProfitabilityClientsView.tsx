@@ -44,6 +44,7 @@ import { ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
 import { EntityStatusQuickEdit } from "@/components/pilot/rentabilite/EntityStatusQuickEdit";
 import { CertifyReferentialAction } from "@/components/pilot/rentabilite/CertifyReferentialAction";
 import { useAttachmentCertification } from "@/components/pilot/useAttachmentCertification";
+import type { ClientCertification } from "@/lib/pilot-attachment-certification";
 import { topClients } from "@/lib/pilot-top-clients";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import {
