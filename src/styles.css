@@ -331,8 +331,7 @@
   font-weight: 700;
   letter-spacing: -0.03em;
 }
-[data-skin="modern"] .bg-card > .text-xs.font-medium,
-[data-skin="modern"] .bg-card .text-xs.text-muted-foreground:first-child {
+[data-skin="modern"] .bg-card > div > .text-xs.font-medium.text-muted-foreground {
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
