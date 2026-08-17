@@ -81,10 +81,10 @@ function CaPage() {
 
   // Largeurs de colonnes du tableau des ventes (ajustables à la souris).
   const salesCols = useColumnWidths("pilot-ca-ventes", {
-    statut: 36, client: 200, designation: 260, categorie: 110, type: 130, montant: 130, temps: 96, actions: 120,
+    statut: 36, client: 168, designation: 190, categorie: 96, type: 124, montant: 112, temps: 84, actions: 116,
   });
   const chargeCols = useColumnWidths("pilot-ca-charges", {
-    designation: 300, montant: 150, actions: 84,
+    designation: 240, montant: 130, actions: 84,
   });
 
   const createMut = useMutation({ mutationFn: createCaEntry, onSuccess: invalidate, onError: (e: Error) => toast.error(e.message) });
