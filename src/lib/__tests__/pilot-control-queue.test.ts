@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
   buildControlQueue,
   canAutoApply,
@@ -35,21 +35,21 @@ const base = {
 };
 
 describe("file d'actions du Centre de contrôle", () => {
-  it("classe une correspondance exacte et haute confiance en correction automatique", () => {
+  test("classe une correspondance exacte et haute confiance en correction automatique", () => {
     const q = buildControlQueue({ ...base, orphans: [orphan()] });
     expect(q.actions[0].level).toBe("auto");
     expect(q.summary.autoCount).toBe(1);
     expect(canAutoApply(q.actions[0])).toBe(true);
   });
 
-  it("refuse l'automatisme dès qu'un autre client est possible", () => {
+  test("refuse l'automatisme dès qu'un autre client est possible", () => {
     const q = buildControlQueue({ ...base, orphans: [orphan({ others: ["Bodard Père et Fils"] })] });
     expect(q.actions[0].level).toBe("suggestion");
     expect(canAutoApply(q.actions[0])).toBe(false);
     expect(q.actions[0].whyNotAuto.length).toBeGreaterThan(0);
   });
 
-  it("passe une ressemblance simple en suggestion, et une absence en action manuelle", () => {
+  test("passe une ressemblance simple en suggestion, et une absence en action manuelle", () => {
     const sugg = buildControlQueue({
       ...base,
       orphans: [orphan({ best: { clientId: "c1", clientName: "Bodar", confidence: "moyenne", reason: "similarite", score: 0.8 } })],
@@ -60,7 +60,7 @@ describe("file d'actions du Centre de contrôle", () => {
     expect(none.actions[0].operation.kind).toBe("none");
   });
 
-  it("ne classe jamais une charge automatiquement (le bénéfice est impacté)", () => {
+  test("ne classe jamais une charge automatiquement (le bénéfice est impacté)", () => {
     const q = buildControlQueue({
       ...base,
       charges: [
@@ -71,7 +71,7 @@ describe("file d'actions du Centre de contrôle", () => {
     expect(q.summary.autoCount).toBe(0);
   });
 
-  it("distingue une erreur de lecture d'une absence de donnée", () => {
+  test("distingue une erreur de lecture d'une absence de donnée", () => {
     const q = buildControlQueue({
       ...base,
       loadErrors: [{ key: "clients", label: "Référentiel clients", message: "timeout" }],
@@ -82,7 +82,7 @@ describe("file d'actions du Centre de contrôle", () => {
     expect(q.summary.unavailableSources).toBe(1);
   });
 
-  it("priorise les montants élevés puis les blocages de KPI", () => {
+  test("priorise les montants élevés puis les blocages de KPI", () => {
     const q = buildControlQueue({
       ...base,
       orphans: [
@@ -93,7 +93,7 @@ describe("file d'actions du Centre de contrôle", () => {
     expect(q.actions[0].key).toContain("big");
   });
 
-  it("sort de la file active une anomalie ayant un état final, sans la perdre", () => {
+  test("sort de la file active une anomalie ayant un état final, sans la perdre", () => {
     const q = buildControlQueue({
       ...base,
       orphans: [orphan()],
@@ -104,7 +104,7 @@ describe("file d'actions du Centre de contrôle", () => {
     expect(q.summary.handled).toBe(1);
   });
 
-  it("filtre par domaine, niveau et impact", () => {
+  test("filtre par domaine, niveau et impact", () => {
     const q = buildControlQueue({
       ...base,
       orphans: [orphan()],
