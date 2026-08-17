@@ -48,9 +48,14 @@ export function useControlRegistry(): {
     // ── Finance ─────────────────────────────────────────────────────────────
     const chargeCount = charges.data?.length ?? null;
     const chargeAmount = charges.data?.reduce((s, c) => s + c.amount, 0) ?? null;
+    // « X / Y lignes » : Y est le nombre total de charges réellement examinées.
+    const chargeHint = q?.domains.find((d) => d.key === "finance")?.metrics[0]?.hint ?? null;
+    const chargeTotal = chargeHint
+      ? Number(chargeHint.split("/")[1]?.replace(/\D/g, "") || Number.NaN)
+      : Number.NaN;
     out.push({
       id: "finance.charges.classement",
-      analysed: qErr ? null : (q ? Number(q.domains.find((d) => d.key === "finance")?.metrics[0]?.hint?.split("/")[1]?.replace(/\D/g, "") ?? 0) || (chargeCount ?? 0) : null),
+      analysed: Number.isFinite(chargeTotal) ? chargeTotal : null,
       failing: chargeCount,
       amountFailing: chargeAmount,
       confirmable: (charges.data ?? []).some((c) => c.suggestion != null),
