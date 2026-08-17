@@ -338,7 +338,9 @@ export async function listSalesMissingTime(): Promise<SaleMissingTime[]> {
 
 /**
  * Renseigne le temps d'une ligne de vente — seule saisie de temps ayant une
- * valeur métier. 0 h n'est accepté que pour une ligne SST (réalisée par un tiers).
+ * valeur métier. 0 h est accepté pour TOUTE ligne (interne comme SST) : c'est
+ * une valeur connue et valide signifiant « aucune intervention présentielle ».
+ * Seules les valeurs négatives, non numériques ou infinies sont refusées.
  */
 export async function confirmSaleTime(
   row: SaleMissingTime,
@@ -346,9 +348,6 @@ export async function confirmSaleTime(
   note: string,
 ): Promise<void> {
   if (!Number.isFinite(hours) || hours < 0) throw new Error("Saisissez un nombre d'heures valide.");
-  if (hours === 0 && row.kind !== "sst") {
-    throw new Error("0 h n'est valide que pour une ligne de type SST (sous-traitance).");
-  }
   const { error } = await db.from("pilot_ca_entries").update({ hours }).eq("id", row.id);
   if (error) throw error;
   await logEdit({

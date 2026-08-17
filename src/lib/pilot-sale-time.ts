@@ -35,8 +35,10 @@ export function interventionKind(value: string | null | undefined): Intervention
 export type SaleTimeState =
   /** Temps > 0 saisi : exploitable dans tous les calculs. */
   | "renseigne"
-  /** Temps = 0 sur une ligne SST : valeur valide, aucune alerte, aucune recherche ailleurs. */
-  | "sst_sans_heures"
+  /** Temps = 0 explicitement saisi : valeur CONNUE et VALIDE, quel que soit le type. */
+  | "zero_saisi"
+  /** Valeur négative, non numérique ou infinie : donnée invalide, à corriger. */
+  | "invalide"
   /** Temps vide (null) : donnée réellement absente, à identifier en qualité. */
   | "absent";
 
@@ -47,29 +49,32 @@ export interface SaleTimeRow {
 
 /**
  * État du temps d'une ligne de vente.
- * `0` + type SST = donnée existante. `0` sans type SST ou valeur vide = absente.
+ * `0` numérique = donnée existante et valide (interne comme SST).
+ * Vide / `null` = absente. Négatif, non numérique ou infini = invalide.
+ * Le type d'intervention ne détermine JAMAIS à lui seul la validité de 0 h.
  */
 export function saleTimeState(row: SaleTimeRow): SaleTimeState {
-  const kind = interventionKind(row.intervention_type);
-  const h = row.hours == null ? null : Number(row.hours);
-  if (h != null && Number.isFinite(h) && h > 0) return "renseigne";
-  if (kind === "sst" && h === 0) return "sst_sans_heures";
-  return "absent";
+  if (row.hours == null) return "absent";
+  const h = Number(row.hours);
+  if (!Number.isFinite(h) || h < 0) return "invalide";
+  return h === 0 ? "zero_saisi" : "renseigne";
 }
 
-/** true = le temps de cette ligne doit être complété par l'utilisateur. */
+/** true = le temps de cette ligne doit être complété (absent) ou corrigé (invalide). */
 export function saleTimeMissing(row: SaleTimeRow): boolean {
-  return saleTimeState(row) === "absent";
+  const s = saleTimeState(row);
+  return s === "absent" || s === "invalide";
 }
 
-/** true = la ligne est considérée comme documentée côté temps (0 h SST inclus). */
+/** true = la ligne est documentée côté temps (0 h explicite inclus). */
 export function saleTimeKnown(row: SaleTimeRow): boolean {
   return !saleTimeMissing(row);
 }
 
 export const SALE_TIME_STATE_LABEL: Record<SaleTimeState, string> = {
   renseigne: "Temps renseigné",
-  sst_sans_heures: "Sous-traitée — 0 h interne (valide)",
+  zero_saisi: "0 h — aucune intervention présentielle sur cette ligne, valeur saisie valide",
+  invalide: "Temps invalide (valeur négative ou non numérique)",
   absent: "Temps non renseigné",
 };
 
