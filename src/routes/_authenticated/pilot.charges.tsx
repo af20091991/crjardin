@@ -11,8 +11,20 @@ import { Landmark, Undo2 } from "lucide-react";
 import { formatEuro } from "@/lib/pilot";
 import { currentYear } from "@/lib/date-utils";
 import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, ComposedChart,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  ComposedChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
 } from "recharts";
 import {
   analyzeCharges,
@@ -24,6 +36,8 @@ import {
   type ChargeRow,
 } from "@/lib/pilot-charges";
 import { isRealizedMonth } from "@/lib/pilot-realized";
+import { isRemunerationLabel } from "@/lib/pilot-remuneration";
+import { AddInvestmentDialog } from "@/components/pilot/AddInvestmentDialog";
 import { usePilotMode, usePilotYear, usePilotPeriod } from "@/lib/pilot-mode";
 import { useAnalytics } from "@/lib/pilot-analytics";
 import { ANALYTICS_QUERY_ROOT } from "@/lib/pilot-engine";
@@ -33,7 +47,10 @@ export const Route = createFileRoute("/_authenticated/pilot/charges")({
   head: () => ({
     meta: [
       { title: "Analyse des charges — Pilot Pro" },
-      { name: "description", content: "Charges fixes et variables, poids dans le CA et historique annuel." },
+      {
+        name: "description",
+        content: "Charges fixes et variables, poids dans le CA et historique annuel.",
+      },
     ],
   }),
   component: ChargesPage,
@@ -66,7 +83,9 @@ function ChargesPage() {
   );
   const analysis = showAllHistory ? fullAnalysis : yearAnalysis;
   const proj = snapshot.charges.projectionBase;
-  const weight = showAllHistory ? snapshot.charges.weightPct : chargesWeightPct(yearAnalysis, salesByYear.get(YEAR) ?? 0);
+  const weight = showAllHistory
+    ? snapshot.charges.weightPct
+    : chargesWeightPct(yearAnalysis, salesByYear.get(YEAR) ?? 0);
   // Historique toujours complet, quelle que soit la vue sélectionnée.
   const priority = snapshot.charges.priority;
   const evolutionData = chargesEvolution(analysis);
@@ -84,11 +103,29 @@ function ChargesPage() {
     }
   }
   const caBeneficeData = showAllHistory
-    ? snapshot.annual.map((a) => ({ label: String(a.year), CA: Math.round(a.caHt), "Bénéfice net": Math.round(a.beneficeBrut) }))
-    : monthlyFinance.map((m) => ({ label: m.mois, CA: Math.round(m.CA), "Bénéfice net": Math.round(m.Bénéfice) }));
+    ? snapshot.annual.map((a) => ({
+        label: String(a.year),
+        CA: Math.round(a.caHt),
+        "Bénéfice net": Math.round(a.beneficeBrut),
+      }))
+    : monthlyFinance.map((m) => ({
+        label: m.mois,
+        CA: Math.round(m.CA),
+        "Bénéfice net": Math.round(m.Bénéfice),
+      }));
   const margeInvestData = showAllHistory
-    ? snapshot.annual.filter((a) => a.margePct != null).map((a) => ({ label: String(a.year), Marge: Number((a.margePct ?? 0).toFixed(1)), Investissements: Math.round(a.investissements) }))
-    : monthlyFinance.map((m, i) => ({ label: m.mois, Marge: m.CA > 0 ? Number(((m.Bénéfice / m.CA) * 100).toFixed(1)) : 0, Investissements: Math.round(monthlyInvest[i] ?? 0) }));
+    ? snapshot.annual
+        .filter((a) => a.margePct != null)
+        .map((a) => ({
+          label: String(a.year),
+          Marge: Number((a.margePct ?? 0).toFixed(1)),
+          Investissements: Math.round(a.investissements),
+        }))
+    : monthlyFinance.map((m, i) => ({
+        label: m.mois,
+        Marge: m.CA > 0 ? Number(((m.Bénéfice / m.CA) * 100).toFixed(1)) : 0,
+        Investissements: Math.round(monthlyInvest[i] ?? 0),
+      }));
 
   return (
     <div className="space-y-5">
@@ -102,11 +139,16 @@ function ChargesPage() {
         <Kpi label="Charges fixes" value={formatEuro(analysis.totals.fixe)} />
         <Kpi label="Charges variables" value={formatEuro(analysis.totals.variable)} />
         <Kpi
-          label={analysis.unclassifiedCount > 0 ? "Charges globales (au moins)" : "Charges globales"}
+          label={
+            analysis.unclassifiedCount > 0 ? "Charges globales (au moins)" : "Charges globales"
+          }
           value={formatEuro(analysis.totals.total)}
         />
         <Kpi label="Investissements" value={formatEuro(analysis.investmentsTotal)} />
-        <Kpi label="Poids des charges dans le CA" value={weight == null ? "—" : `${weight.toFixed(1)} %`} />
+        <Kpi
+          label="Poids des charges dans le CA"
+          value={weight == null ? "—" : `${weight.toFixed(1)} %`}
+        />
       </div>
       {analysis.unclassifiedCount > 0 && (
         <Card className="border-amber-300/60">
@@ -121,10 +163,13 @@ function ChargesPage() {
             </span>
             <span className="flex items-center gap-3">
               <span className="text-muted-foreground">
-                Comptées dans le total, exclues du partage fixe / variable : le seuil de rentabilité et le TJM
-                restent approximatifs tant que ces lignes ne sont pas classées.
+                Comptées dans le total, exclues du partage fixe / variable : le seuil de rentabilité
+                et le TJM restent approximatifs tant que ces lignes ne sont pas classées.
               </span>
-              <Link to="/pilot/validation" className="whitespace-nowrap font-medium text-primary underline">
+              <Link
+                to="/pilot/validation"
+                className="whitespace-nowrap font-medium text-primary underline"
+              >
                 Classer maintenant
               </Link>
             </span>
@@ -133,7 +178,9 @@ function ChargesPage() {
       )}
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          {showAllHistory ? "Historique complet depuis le début d'activité." : `Année en cours (${YEAR}), réel à date.`}
+          {showAllHistory
+            ? "Historique complet depuis le début d'activité."
+            : `Année en cours (${YEAR}), réel à date.`}
         </p>
         <Button variant="outline" size="sm" onClick={() => setShowAllHistory((v) => !v)}>
           {showAllHistory ? "Revenir à l'année en cours" : "Afficher tout l'historique"}
@@ -142,41 +189,87 @@ function ChargesPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">CA / bénéfice net {showAllHistory ? "— tous exercices" : `${YEAR}`}</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">
+              CA / bénéfice net {showAllHistory ? "— tous exercices" : `${YEAR}`}
+            </CardTitle>
+          </CardHeader>
           <CardContent>
             {caBeneficeData.length === 0 ? (
-              <p className="py-16 text-center text-sm text-muted-foreground">Données insuffisantes</p>
+              <p className="py-16 text-center text-sm text-muted-foreground">
+                Données insuffisantes
+              </p>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={caBeneficeData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                <LineChart
+                  data={caBeneficeData}
+                  margin={{ top: 8, right: 12, left: -8, bottom: 0 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="label" fontSize={12} />
                   <YAxis fontSize={12} unit="€" />
                   <Tooltip formatter={(v: number) => formatEuro(v)} />
                   <Legend />
-                  <Line type="monotone" dataKey="CA" stroke={PP_COLORS.sales} strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Bénéfice net" stroke={PP_COLORS.primary} strokeWidth={2} dot={false} />
+                  <Line
+                    type="monotone"
+                    dataKey="CA"
+                    stroke={PP_COLORS.sales}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="Bénéfice net"
+                    stroke={PP_COLORS.primary}
+                    strokeWidth={2}
+                    dot={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Marge et investissements réalisés {showAllHistory ? "— tous exercices" : `${YEAR}`}</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">
+              Marge et investissements réalisés {showAllHistory ? "— tous exercices" : `${YEAR}`}
+            </CardTitle>
+          </CardHeader>
           <CardContent>
             {margeInvestData.length === 0 ? (
-              <p className="py-16 text-center text-sm text-muted-foreground">Données insuffisantes</p>
+              <p className="py-16 text-center text-sm text-muted-foreground">
+                Données insuffisantes
+              </p>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
-                <ComposedChart data={margeInvestData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+                <ComposedChart
+                  data={margeInvestData}
+                  margin={{ top: 8, right: 12, left: -8, bottom: 0 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="label" fontSize={12} />
                   <YAxis yAxisId="left" fontSize={12} unit="%" />
                   <YAxis yAxisId="right" orientation="right" fontSize={12} unit="€" />
-                  <Tooltip formatter={(v: number, name: string) => (name === "Marge" ? `${v} %` : formatEuro(v))} />
+                  <Tooltip
+                    formatter={(v: number, name: string) =>
+                      name === "Marge" ? `${v} %` : formatEuro(v)
+                    }
+                  />
                   <Legend />
-                  <Bar yAxisId="right" dataKey="Investissements" fill={PP_COLORS.business} radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="left" type="monotone" dataKey="Marge" stroke={PP_COLORS.primary} strokeWidth={2} dot />
+                  <Bar
+                    yAxisId="right"
+                    dataKey="Investissements"
+                    fill={PP_COLORS.business}
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="Marge"
+                    stroke={PP_COLORS.primary}
+                    strokeWidth={2}
+                    dot
+                  />
                 </ComposedChart>
               </ResponsiveContainer>
             )}
@@ -186,10 +279,14 @@ function ChargesPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Évolution des charges par exercice</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Évolution des charges par exercice</CardTitle>
+          </CardHeader>
           <CardContent>
             {evolutionData.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">Aucune charge enregistrée.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Aucune charge enregistrée.
+              </p>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={evolutionData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
@@ -199,22 +296,40 @@ function ChargesPage() {
                   <Tooltip formatter={(v: number) => formatEuro(v)} />
                   <Legend />
                   <Bar dataKey="Fixes" stackId="c" fill={PP_COLORS.primary} />
-                  <Bar dataKey="Variables" stackId="c" fill={PP_COLORS.charges} radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="Variables"
+                    stackId="c"
+                    fill={PP_COLORS.charges}
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Répartition par catégorie</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Répartition par catégorie</CardTitle>
+          </CardHeader>
           <CardContent>
             {repartition.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">Aucune catégorie exploitable.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Aucune catégorie exploitable.
+              </p>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={repartition} dataKey="value" nameKey="name" innerRadius={55} outerRadius={95} paddingAngle={2}>
-                    {repartition.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                  <Pie
+                    data={repartition}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={55}
+                    outerRadius={95}
+                    paddingAngle={2}
+                  >
+                    {repartition.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
                   </Pie>
                   <Tooltip formatter={(v: number) => formatEuro(v)} />
                   <Legend />
@@ -227,7 +342,9 @@ function ChargesPage() {
       {priority.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Suivi historique : Alimentaire, Carburant, Déchèterie</CardTitle>
+            <CardTitle className="text-base">
+              Suivi historique : Alimentaire, Carburant, Déchèterie
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
@@ -238,7 +355,13 @@ function ChargesPage() {
                 <Tooltip formatter={(v: number) => formatEuro(v)} />
                 <Legend />
                 {priority.map((c, i) => (
-                  <Line key={c.label} type="monotone" dataKey={c.label} stroke={PIE_COLORS[i % PIE_COLORS.length]} strokeWidth={2} />
+                  <Line
+                    key={c.label}
+                    type="monotone"
+                    dataKey={c.label}
+                    stroke={PIE_COLORS[i % PIE_COLORS.length]}
+                    strokeWidth={2}
+                  />
                 ))}
               </LineChart>
             </ResponsiveContainer>
@@ -320,9 +443,13 @@ function ChargesPage() {
                   <td className="py-1.5 font-medium">{y.year}</td>
                   <td className="py-1.5 text-right">{formatEuro(y.fixe)}</td>
                   <td className="py-1.5 text-right">{formatEuro(y.variable)}</td>
-                  <td className="py-1.5 text-right text-muted-foreground">{formatEuro(y.aClasser)}</td>
+                  <td className="py-1.5 text-right text-muted-foreground">
+                    {formatEuro(y.aClasser)}
+                  </td>
                   <td className="py-1.5 text-right font-medium">{formatEuro(y.total)}</td>
-                  <td className="py-1.5 text-right text-muted-foreground">{formatEuro(y.monthlyAverage)}</td>
+                  <td className="py-1.5 text-right text-muted-foreground">
+                    {formatEuro(y.monthlyAverage)}
+                  </td>
                   <td className="py-1.5 text-right">
                     {y.weightPct == null ? "—" : `${y.weightPct.toFixed(0)} %`}
                   </td>
@@ -355,8 +482,9 @@ function ChargesPage() {
             value={`${formatEuro(proj.monthlyAverage)} (${proj.monthsObserved} mois)`}
           />
           <p className="text-xs text-muted-foreground sm:col-span-4">
-            Lecture réelle : uniquement ce qui est facturé et constaté à date. Les investissements sont exclus
-            des charges d'exploitation et déduits seulement du résultat après investissements.
+            Lecture réelle : uniquement ce qui est facturé et constaté à date. Les investissements
+            sont exclus des charges d'exploitation et déduits seulement du résultat après
+            investissements.
           </p>
         </CardContent>
       </Card>
@@ -368,6 +496,10 @@ function ChargesPage() {
               Détail des charges {detailYear} — qualification investissement
             </span>
             <span className="flex items-center gap-2">
+              <AddInvestmentDialog
+                year={detailYear}
+                onCreated={() => qc.invalidateQueries({ queryKey: [ANALYTICS_QUERY_ROOT] })}
+              />
               <select
                 className="h-9 rounded-md border border-border bg-background px-2 text-sm"
                 value={detailYear}
@@ -376,7 +508,9 @@ function ChargesPage() {
                 {[...new Set([currentYear(), ...analysis.years.map((y) => y.year)])]
                   .sort((a, b) => b - a)
                   .map((y) => (
-                    <option key={y} value={y}>{y}</option>
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
                   ))}
               </select>
               <Input
@@ -433,7 +567,11 @@ function ChargeDetailTable({
     .filter((r) => (term ? (r.designation ?? "").toLowerCase().includes(term) : true))
     .sort((a, b) => a.month - b.month || b.amount_ht - a.amount_ht);
   if (list.length === 0)
-    return <p className="py-6 text-center text-sm text-muted-foreground">Aucune charge sur cet exercice.</p>;
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        Aucune charge sur cet exercice.
+      </p>
+    );
   return (
     <div className="max-h-[28rem] overflow-auto">
       <table className="w-full min-w-max text-sm">
@@ -442,6 +580,7 @@ function ChargeDetailTable({
             <th className="py-1 text-left font-medium">Mois</th>
             <th className="py-1 text-left font-medium">Désignation</th>
             <th className="py-1 text-left font-medium">Catégorie</th>
+            <th className="py-1 text-left font-medium">Type</th>
             <th className="py-1 text-right font-medium">Montant HT</th>
             <th className="py-1 text-right font-medium">Nature</th>
           </tr>
@@ -452,16 +591,28 @@ function ChargeDetailTable({
               <td className="py-1.5">{String(r.month).padStart(2, "0")}</td>
               <td className="py-1.5">{r.designation ?? "—"}</td>
               <td className="py-1.5 text-muted-foreground">{r.charge_category}</td>
+              <td className="py-1.5">
+                <NatureBadge row={r} />
+              </td>
               <td className="py-1.5 text-right tabular-nums">{formatEuro(r.amount_ht)}</td>
               <td className="py-1.5 text-right">
                 {r.is_investment ? (
-                  <Button size="sm" variant="outline" disabled={m.isPending}
-                    onClick={() => m.mutate({ id: r.id, value: false })}>
-                    <Undo2 className="mr-1 h-3.5 w-3.5" />Investissement
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={m.isPending}
+                    onClick={() => m.mutate({ id: r.id, value: false })}
+                  >
+                    <Undo2 className="mr-1 h-3.5 w-3.5" />
+                    Investissement
                   </Button>
                 ) : (
-                  <Button size="sm" variant="ghost" disabled={m.isPending}
-                    onClick={() => m.mutate({ id: r.id, value: true })}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={m.isPending}
+                    onClick={() => m.mutate({ id: r.id, value: true })}
+                  >
                     Marquer investissement
                   </Button>
                 )}
@@ -472,4 +623,17 @@ function ChargeDetailTable({
       </table>
     </div>
   );
+}
+
+/** Distingue visuellement charge d'exploitation, investissement et rémunération. */
+function NatureBadge({ row }: { row: ChargeRow }) {
+  if (row.is_investment)
+    return <Badge className="bg-primary/15 text-primary hover:bg-primary/15">Investissement</Badge>;
+  if (
+    row.kind === "remuneration" ||
+    isRemunerationLabel(row.designation) ||
+    isRemunerationLabel(row.charge_category)
+  )
+    return <Badge variant="outline">Rémunération</Badge>;
+  return <Badge variant="secondary">Charge d'exploitation</Badge>;
 }
