@@ -7,6 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Database, ArrowRight } from "lucide-react";
 import { getCoverageSummary } from "@/lib/pilot-coverage";
 import { formatEuro } from "@/lib/pilot";
+import {
+  HISTORY_OUT_OF_SCOPE_MESSAGE,
+  coverageScopeNote,
+  isOutOfCertificationScope,
+} from "@/lib/pilot-history-scope";
 
 /**
  * Indicateur transverse "Couverture des données" : quelle part du CA est
@@ -35,14 +40,33 @@ export function CoverageBanner({
   const scope =
     year != null ? data.years.find((y) => y.year === year) : null;
 
-  const pct = scope
-    ? scope.coverageAmountPct
-    : data.overallAmountPct;
-  const linked = scope ? scope.ventesLinkedHt : data.totalVentesLinkedHt;
-  const total = scope ? scope.ventesHt : data.totalVentesHt;
+  // Exercice antérieur à 2026 : aucune donnée n'existera jamais. On l'annonce
+  // explicitement au lieu d'afficher une couverture dégradée.
+  if (isOutOfCertificationScope(year)) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex items-center gap-3 py-3">
+          <Database className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Exercice {year} — non requis</p>
+            <p className="text-xs text-muted-foreground">{HISTORY_OUT_OF_SCOPE_MESSAGE}</p>
+          </div>
+          <Badge variant="outline" className="ml-auto text-[10px] font-normal">
+            Hors périmètre
+          </Badge>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Vue « toutes années » : la couverture lue est celle du périmètre
+  // certifiable (≥ 2026). L'historique non requis est indiqué à part.
+  const pct = scope ? scope.coverageAmountPct : data.certifiableAmountPct;
+  const linked = scope ? scope.ventesLinkedHt : data.certifiableVentesLinkedHt;
+  const total = scope ? scope.ventesHt : data.certifiableVentesHt;
   const missing = Math.max(0, total - linked);
-  const linesLinked = scope ? scope.linesLinked : data.totalLinesLinked;
-  const linesTotal = scope ? scope.linesTotal : data.totalLines;
+  const linesLinked = scope ? scope.linesLinked : data.certifiableLinesLinked;
+  const linesTotal = scope ? scope.linesTotal : data.certifiableLines;
 
   const tone =
     pct >= 80
@@ -72,6 +96,9 @@ export function CoverageBanner({
               <p className="mt-0.5 text-xs text-muted-foreground">
                 CA rattaché : {formatEuro(linked)} · À compléter : {formatEuro(missing)}
               </p>
+            )}
+            {!compact && year == null && data.scope !== "certifiable" && (
+              <p className="mt-0.5 text-xs text-muted-foreground">{coverageScopeNote(data.scope)}</p>
             )}
           </div>
         </div>
