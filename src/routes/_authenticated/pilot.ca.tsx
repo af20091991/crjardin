@@ -180,6 +180,14 @@ function CaPage() {
           {pending != null && (
             <Badge variant="secondary" className="gap-1">Résultat prêt : {formatEuro(pending)} — cliquez « + Ligne »</Badge>
           )}
+          {/* Densité locale de la zone de saisie (mémorisée pour cette page) */}
+          <Select value={density} onValueChange={(v) => changeDensity(v as CaDensity)}>
+            <SelectTrigger className="h-8 w-[150px]" aria-label="Densité d'affichage"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="normal">Densité normale</SelectItem>
+              <SelectItem value="compact">Densité compacte</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -228,9 +236,17 @@ function CaPage() {
         <StatBox label="Taux horaire" value={mt.hours ? `${formatEuro(mt.tauxHoraire)}/h` : "—"} icon={TrendingUp} />
       </div>
 
-      {/* Corps : Ventes (source de vérité) et Charges côte à côte dès XL, empilés en dessous */}
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
-        <div className="order-2 min-w-0 space-y-4">
+      {/*
+       * Corps de saisie : CHARGES à gauche, VENTES à droite.
+       * Ordre DOM = ordre visuel (aucune inversion CSS), deux colonnes dès
+       * 1280 px, empilement Charges puis Ventes en dessous.
+       */}
+      <div
+        data-testid="ca-workbench"
+        data-density={density}
+        className={`grid grid-cols-1 items-start gap-4 lg:grid-cols-2 ${CA_DENSITY_CLASS[density]}`}
+      >
+        <div data-testid="ca-charges-column" className="min-w-0 space-y-4">
           {/* Charges */}
           <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-charges) 7%, transparent)" }}>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
