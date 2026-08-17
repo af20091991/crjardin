@@ -96,7 +96,7 @@ export const euro = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €
 /** Rapport complet : indicateurs par domaine, anomalies priorisées, couverture Site. */
 export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   const [ca, iv, sst, sites, aliases, proposals] = await Promise.all([
-    paged("pilot_ca_entries", "id,kind,charge_class,amount_ht,client_id,site_id,year,match_status,hours,intervention_type"),
+    paged("pilot_ca_entries", "id,kind,charge_class,amount_ht,client_id,site_id,year,match_status,hours,intervention_type,is_investment"),
     paged("interventions", "id,status,hours_spent,client_id,site_id"),
     paged("subcontractor_missions", "id,client_id,site_id,status,mission_date"),
     paged("sites", "id"),
@@ -105,7 +105,9 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   ]);
 
   // ── Finance ────────────────────────────────────────────────────────────────
-  const charges = ca.filter((r) => r.kind === "charge");
+  // Charges d'exploitation seules : les investissements qualifiés sont suivis
+  // à part et n'entrent pas dans le classement fixe / variable.
+  const charges = ca.filter((r) => r.kind === "charge" && !r.is_investment);
   const classed = charges.filter((r) => r.charge_class === "fixe" || r.charge_class === "variable");
   const toClass = charges.filter((r) => !r.charge_class || r.charge_class === "a_classer");
   const toClassAmount = toClass.reduce((s, r) => s + num(r.amount_ht), 0);

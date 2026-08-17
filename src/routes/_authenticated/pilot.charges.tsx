@@ -24,6 +24,8 @@ import {
   type ChargeRow,
 } from "@/lib/pilot-charges";
 import { isRealizedMonth } from "@/lib/pilot-realized";
+import { isRemunerationLabel } from "@/lib/pilot-remuneration";
+import { AddInvestmentDialog } from "@/components/pilot/AddInvestmentDialog";
 import { usePilotMode, usePilotYear, usePilotPeriod } from "@/lib/pilot-mode";
 import { useAnalytics } from "@/lib/pilot-analytics";
 import { ANALYTICS_QUERY_ROOT } from "@/lib/pilot-engine";
@@ -368,6 +370,10 @@ function ChargesPage() {
               Détail des charges {detailYear} — qualification investissement
             </span>
             <span className="flex items-center gap-2">
+              <AddInvestmentDialog
+                year={detailYear}
+                onCreated={() => qc.invalidateQueries({ queryKey: [ANALYTICS_QUERY_ROOT] })}
+              />
               <select
                 className="h-9 rounded-md border border-border bg-background px-2 text-sm"
                 value={detailYear}
@@ -442,6 +448,7 @@ function ChargeDetailTable({
             <th className="py-1 text-left font-medium">Mois</th>
             <th className="py-1 text-left font-medium">Désignation</th>
             <th className="py-1 text-left font-medium">Catégorie</th>
+            <th className="py-1 text-left font-medium">Type</th>
             <th className="py-1 text-right font-medium">Montant HT</th>
             <th className="py-1 text-right font-medium">Nature</th>
           </tr>
@@ -452,6 +459,9 @@ function ChargeDetailTable({
               <td className="py-1.5">{String(r.month).padStart(2, "0")}</td>
               <td className="py-1.5">{r.designation ?? "—"}</td>
               <td className="py-1.5 text-muted-foreground">{r.charge_category}</td>
+              <td className="py-1.5">
+                <NatureBadge row={r} />
+              </td>
               <td className="py-1.5 text-right tabular-nums">{formatEuro(r.amount_ht)}</td>
               <td className="py-1.5 text-right">
                 {r.is_investment ? (
@@ -472,4 +482,13 @@ function ChargeDetailTable({
       </table>
     </div>
   );
+}
+
+/** Distingue visuellement charge d'exploitation, investissement et rémunération. */
+function NatureBadge({ row }: { row: ChargeRow }) {
+  if (row.is_investment)
+    return <Badge className="bg-primary/15 text-primary hover:bg-primary/15">Investissement</Badge>;
+  if (row.kind === "remuneration" || isRemunerationLabel(row.designation) || isRemunerationLabel(row.charge_category))
+    return <Badge variant="outline">Rémunération</Badge>;
+  return <Badge variant="secondary">Charge d'exploitation</Badge>;
 }

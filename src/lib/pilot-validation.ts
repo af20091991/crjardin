@@ -39,17 +39,29 @@ export interface PendingValidationLine {
   match_status: string | null;
   validation_status: ValidationStatus;
   validation_note: string | null;
+  /** Investissement qualifié : hors classement fixe / variable. */
+  is_investment?: boolean | null;
   reasons: ValidationReason[];
 }
 
 type Raw = Omit<PendingValidationLine, "reasons" | "amount_ht"> & { amount_ht: number | null };
 
-function reasonsFor(r: Raw): ValidationReason[] {
+/** Motifs de validation d'une ligne financière (règle unique, testable). */
+export function reasonsForLine(r: {
+  kind: string;
+  designation: string | null;
+  charge_class: string | null;
+  charge_category: string | null;
+  match_status: string | null;
+  is_investment?: boolean | null;
+}): ValidationReason[] {
   const out: ValidationReason[] = [];
   if (r.kind === "remuneration" || isRemunerationLabel(r.designation) || isRemunerationLabel(r.charge_category)) {
     return ["remuneration_dirigeant"];
   }
   if (r.kind === "charge" && (!r.charge_class || r.charge_class === "a_classer")) {
+    // Un investissement n'est jamais une charge d'exploitation « à classer ».
+    if (r.is_investment) return [];
     out.push("charge_a_classer");
   }
   if (!r.charge_category || r.charge_category === "À classer") out.push("categorie_incertaine");
@@ -57,12 +69,14 @@ function reasonsFor(r: Raw): ValidationReason[] {
   return out;
 }
 
+const reasonsFor = (r: Raw): ValidationReason[] => reasonsForLine(r);
+
 /** Lignes en attente d'une décision utilisateur. Lecture seule. */
 export async function listPendingValidation(limit = 500): Promise<PendingValidationLine[]> {
   const { data, error } = await supabase
     .from("pilot_ca_entries")
     .select(
-      "id,year,month,kind,designation,amount_ht,charge_class,charge_category,match_status,validation_status,validation_note",
+      "id,year,month,kind,designation,amount_ht,charge_class,charge_category,match_status,validation_status,validation_note,is_investment",
     )
     .neq("validation_status", "valide")
     .order("year", { ascending: false })

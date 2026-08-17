@@ -101,6 +101,140 @@ export async function setChargeInvestment(id: string, isInvestment: boolean): Pr
   if (error) throw error;
 }
 
+// ---------------------------------------------------------------------------
+// Saisie manuelle d'un investissement de l'exercice.
+// Aucune table parallèle : la ligne est créée dans la source unique
+// `pilot_ca_entries`, typée `charge` + `is_investment`, donc automatiquement
+// exclue des charges d'exploitation par les fonctions existantes
+// (`operatingChargesForYear`, `analyzeCharges`) et comptée une seule fois par
+// `investmentsByYear` / `investmentsForYear` / `projectionBase`.
+// ---------------------------------------------------------------------------
+
+/** Catégorie réservée aux investissements : jamais une charge « à classer ». */
+export const INVESTMENT_CATEGORY = "Investissement";
+
+export interface InvestmentDraft {
+  designation: string;
+  /** Montant HT saisi (chaîne acceptée : virgule décimale, espaces). */
+  amountHt: string | number;
+  year: number | string;
+  month: number | string;
+  note?: string | null;
+}
+
+export interface InvestmentValues {
+  designation: string;
+  amount_ht: number;
+  year: number;
+  month: number;
+  note: string | null;
+}
+
+export type InvestmentValidation =
+  | { ok: true; value: InvestmentValues }
+  | { ok: false; error: string };
+
+function parseAmount(raw: string | number): number {
+  if (typeof raw === "number") return raw;
+  const cleaned = String(raw).replace(/\s/g, "").replace(",", ".");
+  return cleaned === "" ? Number.NaN : Number(cleaned);
+}
+
+/** Validation métier stricte (pure, testable) — aucune écriture ici. */
+export function validateInvestment(draft: InvestmentDraft): InvestmentValidation {
+  const designation = (draft.designation ?? "").trim();
+  if (!designation) return { ok: false, error: "La désignation est obligatoire." };
+  if (designation.length > 200)
+    return { ok: false, error: "La désignation ne doit pas dépasser 200 caractères." };
+
+  const amount = parseAmount(draft.amountHt);
+  if (!Number.isFinite(amount))
+    return { ok: false, error: "Le montant HT doit être un nombre valide." };
+  if (amount <= 0) return { ok: false, error: "Le montant HT doit être strictement supérieur à 0." };
+
+  const year = Number(draft.year);
+  if (!Number.isInteger(year) || year < 2000 || year > 2100)
+    return { ok: false, error: "L'exercice est invalide." };
+
+  const month = Number(draft.month);
+  if (!Number.isInteger(month) || month < 1 || month > 12)
+    return { ok: false, error: "Le mois doit être compris entre 1 et 12." };
+
+  const note = (draft.note ?? "").trim();
+  return {
+    ok: true,
+    value: { designation, amount_ht: amount, year, month, note: note || null },
+  };
+}
+
+/** Ligne financière à écrire pour un investissement validé. */
+export function investmentEntryPayload(value: InvestmentValues) {
+  return {
+    year: value.year,
+    month: value.month,
+    kind: "charge" as const,
+    designation: value.designation,
+    amount_ht: value.amount_ht,
+    note: value.note,
+    is_investment: true,
+    // Jamais fixe ni variable : un investissement ne fait pas partie du
+    // partage des charges d'exploitation.
+    charge_class: "a_classer" as const,
+    charge_category: INVESTMENT_CATEGORY,
+    // Saisie manuelle explicite : ligne assumée par l'utilisateur.
+    validation_status: "valide" as const,
+    // Aucun client à rapprocher sur un investissement.
+    match_status: "non_applicable" as const,
+  };
+}
+
+/**
+ * Crée un investissement dans l'exercice demandé. Valide avant écriture,
+ * journalise la création (pilot_edit_log) et remonte toute erreur telle quelle.
+ */
+export async function createInvestment(draft: InvestmentDraft): Promise<ChargeRow> {
+  const checked = validateInvestment(draft);
+  if (!checked.ok) throw new Error(checked.error);
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Non authentifié");
+  const payload = investmentEntryPayload(checked.value);
+  const { data, error } = await supabase
+    .from("pilot_ca_entries")
+    .insert({ ...payload, user_id: auth.user.id } as never)
+    .select("id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment,note")
+    .single();
+  if (error) throw error;
+  const row = data as unknown as RawRow & { note: string | null };
+  const { error: logError } = await (
+    supabase as unknown as { from: (t: string) => any }
+  )
+    .from("pilot_edit_log")
+    .insert({
+      entity: "pilot_ca_entries",
+      entity_id: row.id,
+      label: checked.value.designation,
+      field: "creation_investissement",
+      before_value: null,
+      after_value: String(checked.value.amount_ht),
+      reason: `Investissement saisi manuellement (exercice ${checked.value.year}, mois ${String(checked.value.month).padStart(2, "0")})`,
+    });
+  if (logError)
+    throw new Error(
+      `Investissement enregistré mais la journalisation a échoué : ${logError.message}`,
+    );
+  return {
+    id: row.id,
+    year: Number(row.year),
+    month: Number(row.month),
+    designation: row.designation,
+    amount_ht: Number(row.amount_ht) || 0,
+    charge_class: (row.charge_class as ChargeClass) ?? "a_classer",
+    charge_category: row.charge_category ?? INVESTMENT_CATEGORY,
+    kind: "charge",
+    is_investment: true,
+  };
+}
+
 /** Total des investissements par exercice (jamais compté dans les charges). */
 export function operatingCharges(rows: ChargeRow[]): ChargeRow[] {
   // Charges d'exploitation seules : la rémunération dirigeant est suivie à part

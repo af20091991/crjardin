@@ -185,7 +185,8 @@ export async function listChargesToClassify(): Promise<ChargeToClassify[]> {
   const ignored = new Set((await listIgnored("charges")).map((i) => i.targetId));
 
   return ((rows ?? []) as Record<string, unknown>[])
-    .filter((r) => !r.charge_class || r.charge_class === "a_classer")
+    // Les investissements qualifiés ne sont pas des charges à classer.
+    .filter((r) => (!r.charge_class || r.charge_class === "a_classer") && !r.is_investment)
     .filter((r) => !ignored.has(str(r.id)))
     .map((r) => {
       const label = normalize(str(r.designation));
@@ -530,7 +531,11 @@ export interface ActionPlanItem {
 /** Vision « plan d'action » : impact, volume, progression, accès direct. */
 export async function buildActionPlan(): Promise<ActionPlanItem[]> {
   const [charges, ca, sst] = await Promise.all([
-    db.from("pilot_ca_entries").select("id,charge_class,amount_ht").eq("kind", "charge").limit(5000),
+    db
+      .from("pilot_ca_entries")
+      .select("id,charge_class,amount_ht,is_investment")
+      .eq("kind", "charge")
+      .limit(5000),
     db
       .from("pilot_ca_entries")
       .select("id,site_id,amount_ht,match_status,hours,intervention_type")
@@ -541,7 +546,9 @@ export async function buildActionPlan(): Promise<ActionPlanItem[]> {
   for (const r of [charges, ca, sst]) if (r.error) throw r.error;
 
   const chargeRows = (charges.data ?? []) as Record<string, unknown>[];
-  const toClass = chargeRows.filter((r) => !r.charge_class || r.charge_class === "a_classer");
+  const toClass = chargeRows.filter(
+    (r) => (!r.charge_class || r.charge_class === "a_classer") && !r.is_investment,
+  );
   const toClassAmount = toClass.reduce((s, r) => s + num(r.amount_ht), 0);
 
   const sales = ((ca.data ?? []) as Record<string, unknown>[]).filter((r) => r.match_status !== "non_applicable");
