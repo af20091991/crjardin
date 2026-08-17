@@ -70,7 +70,8 @@ export type ControlState =
   | "justifiee"
   | "en_attente"
   | "non_resolue"
-  | "indisponible";
+  | "indisponible"
+  | "hors_perimetre";
 
 export const CONTROL_STATE_LABEL: Record<ControlState, string> = {
   corrigee_auto: "Corrigée automatiquement",
@@ -80,6 +81,7 @@ export const CONTROL_STATE_LABEL: Record<ControlState, string> = {
   en_attente: "En attente",
   non_resolue: "Non résolue",
   indisponible: "Indisponible",
+  hors_perimetre: "Non requis — hors périmètre (avant 2026)",
 };
 
 /** États pour lesquels l'anomalie est traitée (elle quitte la file active). */
@@ -88,6 +90,8 @@ export const CLOSED_STATES: readonly ControlState[] = [
   "confirmee",
   "refusee",
   "justifiee",
+  // L'historique antérieur à 2026 ne sera jamais complété : rien à traiter.
+  "hors_perimetre",
 ];
 
 export type Confidence = "certaine" | "haute" | "moyenne" | "faible" | "inconnue";
