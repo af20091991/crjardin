@@ -208,7 +208,12 @@ export async function createInvestment(draft: InvestmentDraft): Promise<ChargeRo
     .single();
   if (error) throw error;
   const row = data as unknown as RawRow & { note: string | null };
-  const { error: logError } = await (supabase as unknown as { from: (t: string) => any })
+  const logDb = supabase as unknown as {
+    from: (t: string) => {
+      insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+    };
+  };
+  const { error: logError } = await logDb
     .from("pilot_edit_log")
     .insert({
       entity: "pilot_ca_entries",
