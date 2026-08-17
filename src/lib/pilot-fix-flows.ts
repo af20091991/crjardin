@@ -9,11 +9,7 @@
 //   • « ignorer » exige une justification, conservée dans pilot_quality_checks.
 
 import { supabase } from "@/integrations/supabase/client";
-import {
-  interventionKind,
-  saleTimeMissing,
-  type InterventionKind,
-} from "@/lib/pilot-sale-time";
+import { interventionKind, saleTimeMissing, type InterventionKind } from "@/lib/pilot-sale-time";
 
 const db = supabase as unknown as { from: (t: string) => any };
 
@@ -95,7 +91,8 @@ export async function ignoreFixItem(params: {
   reason: string;
 }): Promise<void> {
   const reason = params.reason.trim();
-  if (reason.length < 3) throw new Error("Une justification est obligatoire pour ignorer une anomalie.");
+  if (reason.length < 3)
+    throw new Error("Une justification est obligatoire pour ignorer une anomalie.");
   const { data: auth } = await supabase.auth.getUser();
   const existing = await db
     .from(CHECK_TABLE)
@@ -181,40 +178,44 @@ export async function listChargesToClassify(): Promise<ChargeToClassify[]> {
   if (error) throw error;
   if (e2) throw e2;
 
-  const categories = ((cats ?? []) as Record<string, unknown>[]).filter((c) => c.is_active !== false);
+  const categories = ((cats ?? []) as Record<string, unknown>[]).filter(
+    (c) => c.is_active !== false,
+  );
   const ignored = new Set((await listIgnored("charges")).map((i) => i.targetId));
 
-  return ((rows ?? []) as Record<string, unknown>[])
-    // Les investissements qualifiés ne sont pas des charges à classer.
-    .filter((r) => (!r.charge_class || r.charge_class === "a_classer") && !r.is_investment)
-    .filter((r) => !ignored.has(str(r.id)))
-    .map((r) => {
-      const label = normalize(str(r.designation));
-      let suggestion: ChargeToClassify["suggestion"] = null;
-      for (const c of categories) {
-        const kws = (Array.isArray(c.keywords) ? c.keywords : []) as string[];
-        const hit = kws.find((k) => k && label.includes(normalize(String(k))));
-        if (hit) {
-          suggestion = {
-            target: (str(c.charge_class) === "variable" ? "variable" : "fixe") as ChargeTarget,
-            category: str(c.label),
-            why: `Le libellé contient « ${hit} »`,
-          };
-          break;
+  return (
+    ((rows ?? []) as Record<string, unknown>[])
+      // Les investissements qualifiés ne sont pas des charges à classer.
+      .filter((r) => (!r.charge_class || r.charge_class === "a_classer") && !r.is_investment)
+      .filter((r) => !ignored.has(str(r.id)))
+      .map((r) => {
+        const label = normalize(str(r.designation));
+        let suggestion: ChargeToClassify["suggestion"] = null;
+        for (const c of categories) {
+          const kws = (Array.isArray(c.keywords) ? c.keywords : []) as string[];
+          const hit = kws.find((k) => k && label.includes(normalize(String(k))));
+          if (hit) {
+            suggestion = {
+              target: (str(c.charge_class) === "variable" ? "variable" : "fixe") as ChargeTarget,
+              category: str(c.label),
+              why: `Le libellé contient « ${hit} »`,
+            };
+            break;
+          }
         }
-      }
-      return {
-        id: str(r.id),
-        year: num(r.year),
-        month: num(r.month),
-        designation: str(r.designation) || "(sans libellé)",
-        amount: num(r.amount_ht),
-        currentClass: str(r.charge_class) || "a_classer",
-        currentCategory: str(r.charge_category),
-        kind: str(r.kind),
-        suggestion,
-      };
-    });
+        return {
+          id: str(r.id),
+          year: num(r.year),
+          month: num(r.month),
+          designation: str(r.designation) || "(sans libellé)",
+          amount: num(r.amount_ht),
+          currentClass: str(r.charge_class) || "a_classer",
+          currentCategory: str(r.charge_category),
+          kind: str(r.kind),
+          suggestion,
+        };
+      })
+  );
 }
 
 /** Applique le classement validé par l'utilisateur. Une trace par champ modifié. */
@@ -244,7 +245,8 @@ export async function classifyCharge(
   const { error } = await db.from("pilot_ca_entries").update(patch).eq("id", row.id);
   if (error) throw error;
 
-  const motive = reason.trim() || `Classement validé manuellement : ${CHARGE_TARGET_LABELS[target]}`;
+  const motive =
+    reason.trim() || `Classement validé manuellement : ${CHARGE_TARGET_LABELS[target]}`;
   await logEdit({
     entity: "pilot_ca_entries",
     entityId: row.id,
@@ -308,7 +310,9 @@ export async function listSalesMissingTime(): Promise<SaleMissingTime[]> {
   ]);
   for (const r of [ca, clients]) if (r.error) throw r.error;
 
-  const clientName = new Map(((clients.data ?? []) as Record<string, unknown>[]).map((c) => [str(c.id), str(c.name)]));
+  const clientName = new Map(
+    ((clients.data ?? []) as Record<string, unknown>[]).map((c) => [str(c.id), str(c.name)]),
+  );
   const ignored = new Set((await listIgnored("heures")).map((i) => i.targetId));
 
   return ((ca.data ?? []) as Record<string, unknown>[])
@@ -324,7 +328,9 @@ export async function listSalesMissingTime(): Promise<SaleMissingTime[]> {
       year: num(r.year),
       month: num(r.month),
       designation: str(r.designation) || "Ligne de vente",
-      clientName: r.client_id ? (clientName.get(str(r.client_id)) ?? "Client inconnu") : "Client non rattaché",
+      clientName: r.client_id
+        ? (clientName.get(str(r.client_id)) ?? "Client inconnu")
+        : "Client non rattaché",
       kind: interventionKind(r.intervention_type == null ? null : str(r.intervention_type)),
       amount: num(r.amount_ht),
     }));
@@ -334,7 +340,11 @@ export async function listSalesMissingTime(): Promise<SaleMissingTime[]> {
  * Renseigne le temps d'une ligne de vente — seule saisie de temps ayant une
  * valeur métier. 0 h n'est accepté que pour une ligne SST (réalisée par un tiers).
  */
-export async function confirmSaleTime(row: SaleMissingTime, hours: number, note: string): Promise<void> {
+export async function confirmSaleTime(
+  row: SaleMissingTime,
+  hours: number,
+  note: string,
+): Promise<void> {
   if (!Number.isFinite(hours) || hours < 0) throw new Error("Saisissez un nombre d'heures valide.");
   if (hours === 0 && row.kind !== "sst") {
     throw new Error("0 h n'est valide que pour une ligne de type SST (sous-traitance).");
@@ -387,7 +397,9 @@ export async function listSiteQualificationTargets(limit = 40): Promise<SiteQual
   ]);
   for (const r of [ca, iv, clients, sites]) if (r.error) throw r.error;
 
-  const clientName = new Map(((clients.data ?? []) as Record<string, unknown>[]).map((c) => [str(c.id), str(c.name)]));
+  const clientName = new Map(
+    ((clients.data ?? []) as Record<string, unknown>[]).map((c) => [str(c.id), str(c.name)]),
+  );
   const sitesByClient = new Map<string, { id: string; name: string; primary: boolean }[]>();
   for (const s of (sites.data ?? []) as Record<string, unknown>[]) {
     const k = str(s.client_id);
@@ -471,14 +483,18 @@ export async function listSstMissingClient(): Promise<SstToAttach[]> {
   const [ms, subs] = await Promise.all([
     db
       .from("subcontractor_missions")
-      .select("id,mission_date,service_requested,prestation,subcontractor_id,agreed_price,client_price,client_id")
+      .select(
+        "id,mission_date,service_requested,prestation,subcontractor_id,agreed_price,client_price,client_id",
+      )
       .is("client_id", null)
       .order("mission_date", { ascending: false })
       .limit(500),
     db.from("subcontractors").select("id,name"),
   ]);
   for (const r of [ms, subs]) if (r.error) throw r.error;
-  const subName = new Map(((subs.data ?? []) as Record<string, unknown>[]).map((s) => [str(s.id), str(s.name)]));
+  const subName = new Map(
+    ((subs.data ?? []) as Record<string, unknown>[]).map((s) => [str(s.id), str(s.name)]),
+  );
   const ignored = new Set((await listIgnored("sst")).map((i) => i.targetId));
 
   return ((ms.data ?? []) as Record<string, unknown>[])
@@ -501,7 +517,10 @@ export async function attachSstClient(
   note: string,
 ): Promise<void> {
   if (!clientId) throw new Error("Sélectionnez un client.");
-  const { error } = await db.from("subcontractor_missions").update({ client_id: clientId }).eq("id", row.id);
+  const { error } = await db
+    .from("subcontractor_missions")
+    .update({ client_id: clientId })
+    .eq("id", row.id);
   if (error) throw error;
   await logEdit({
     entity: "subcontractor_missions",
@@ -551,7 +570,9 @@ export async function buildActionPlan(): Promise<ActionPlanItem[]> {
   );
   const toClassAmount = toClass.reduce((s, r) => s + num(r.amount_ht), 0);
 
-  const sales = ((ca.data ?? []) as Record<string, unknown>[]).filter((r) => r.match_status !== "non_applicable");
+  const sales = ((ca.data ?? []) as Record<string, unknown>[]).filter(
+    (r) => r.match_status !== "non_applicable",
+  );
   const salesAmount = sales.reduce((s, r) => s + num(r.amount_ht), 0);
   const salesWithSite = sales.filter((r) => r.site_id).reduce((s, r) => s + num(r.amount_ht), 0);
   const noHours = sales.filter((r) =>
@@ -564,14 +585,16 @@ export async function buildActionPlan(): Promise<ActionPlanItem[]> {
   const missions = (sst.data ?? []) as Record<string, unknown>[];
   const sstNoClient = missions.filter((r) => !r.client_id);
 
-  const pct = (done_: number, total: number) => (total > 0 ? Math.round((done_ / total) * 100) : 100);
+  const pct = (done_: number, total: number) =>
+    total > 0 ? Math.round((done_ / total) * 100) : 100;
 
   return [
     {
       key: "charges",
       dot: toClass.length ? "🔴" : "🟢",
       title: `Classer ${euroFix(toClassAmount)} de charges`,
-      impact: "Bénéfice, marge et rentabilité par prestation faussés tant que ces lignes ne sont pas classées.",
+      impact:
+        "Bénéfice, marge et rentabilité par prestation faussés tant que ces lignes ne sont pas classées.",
       volume: `${toClass.length} ligne(s) sur ${chargeRows.length}`,
       progress: pct(chargeRows.length - toClass.length, chargeRows.length),
       to: "/pilot/corrections",
@@ -601,7 +624,8 @@ export async function buildActionPlan(): Promise<ActionPlanItem[]> {
       key: "sites",
       dot: pct(salesWithSite, salesAmount) >= 80 ? "🟢" : "🟠",
       title: `Qualifier les Sites représentant ${100 - pct(salesWithSite, salesAmount)} % du CA`,
-      impact: "Préparation de l'analyse par lieu d'intervention. Aucun calcul n'est basculé aujourd'hui.",
+      impact:
+        "Préparation de l'analyse par lieu d'intervention. Aucun calcul n'est basculé aujourd'hui.",
       volume: `${euroFix(salesWithSite)} / ${euroFix(salesAmount)} rattachés`,
       progress: pct(salesWithSite, salesAmount),
       to: "/pilot/corrections",

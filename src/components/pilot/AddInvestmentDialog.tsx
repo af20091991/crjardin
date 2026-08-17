@@ -5,7 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
@@ -17,13 +23,7 @@ import { createInvestment, validateInvestment } from "@/lib/pilot-charges";
  * Aucun calcul ici : la ligne est écrite dans la source unique et les moteurs
  * existants l'excluent des charges d'exploitation.
  */
-export function AddInvestmentDialog({
-  year,
-  onCreated,
-}: {
-  year: number;
-  onCreated: () => void;
-}) {
+export function AddInvestmentDialog({ year, onCreated }: { year: number; onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [designation, setDesignation] = useState("");
   const [amount, setAmount] = useState("");
@@ -56,7 +56,13 @@ export function AddInvestmentDialog({
   });
 
   function submit() {
-    const checked = validateInvestment({ designation, amountHt: amount, year: entryYear, month, note });
+    const checked = validateInvestment({
+      designation,
+      amountHt: amount,
+      year: entryYear,
+      month,
+      note,
+    });
     if (!checked.ok) {
       setError(checked.error);
       return;
@@ -153,12 +159,20 @@ export function AddInvestmentDialog({
             />
           </div>
           {error && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
               {error}
             </p>
           )}
           <DialogFooter className="gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={m.isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={m.isPending}
+            >
               Annuler
             </Button>
             <Button type="submit" disabled={m.isPending}>

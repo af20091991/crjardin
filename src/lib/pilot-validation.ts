@@ -56,7 +56,11 @@ export function reasonsForLine(r: {
   is_investment?: boolean | null;
 }): ValidationReason[] {
   const out: ValidationReason[] = [];
-  if (r.kind === "remuneration" || isRemunerationLabel(r.designation) || isRemunerationLabel(r.charge_category)) {
+  if (
+    r.kind === "remuneration" ||
+    isRemunerationLabel(r.designation) ||
+    isRemunerationLabel(r.charge_category)
+  ) {
     return ["remuneration_dirigeant"];
   }
   if (r.kind === "charge" && (!r.charge_class || r.charge_class === "a_classer")) {

@@ -96,7 +96,10 @@ export const euro = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €
 /** Rapport complet : indicateurs par domaine, anomalies priorisées, couverture Site. */
 export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   const [ca, iv, sst, sites, aliases, proposals] = await Promise.all([
-    paged("pilot_ca_entries", "id,kind,charge_class,amount_ht,client_id,site_id,year,match_status,hours,intervention_type,is_investment"),
+    paged(
+      "pilot_ca_entries",
+      "id,kind,charge_class,amount_ht,client_id,site_id,year,match_status,hours,intervention_type,is_investment",
+    ),
     paged("interventions", "id,status,hours_spent,client_id,site_id"),
     paged("subcontractor_missions", "id,client_id,site_id,status,mission_date"),
     paged("sites", "id"),
@@ -119,7 +122,8 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   );
 
   const financeScore = Math.round(
-    0.7 * pct(classed.length, charges.length) + 0.3 * pct(years.length - incompleteYears.length, years.length),
+    0.7 * pct(classed.length, charges.length) +
+      0.3 * pct(years.length - incompleteYears.length, years.length),
   );
 
   // ── Activité ───────────────────────────────────────────────────────────────
@@ -149,15 +153,20 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   const salesWithSite = salesLinkable.filter((r) => r.client_id);
   const caAmount = salesLinkable.reduce((s, r) => s + num(r.amount_ht), 0);
   const caAmountWithSite = salesWithSite.reduce((s, r) => s + num(r.amount_ht), 0);
-  const pendingProposals = proposals.filter((r) => r.status === "pending" || r.status === "en_attente");
+  const pendingProposals = proposals.filter(
+    (r) => r.status === "pending" || r.status === "en_attente",
+  );
   const unvalidatedAliases = aliases.filter((r) => r.origin === "migration" || r.origin === "auto");
   const clientsScore = pct(salesWithSite.length, salesLinkable.length);
 
   // ── SST ────────────────────────────────────────────────────────────────────
   const sstNoClient = sst.filter((r) => !r.client_id);
-  const sstToValidate = sst.filter((r) => r.status === "a_valider" || r.status === "brouillon" || !r.status);
+  const sstToValidate = sst.filter(
+    (r) => r.status === "a_valider" || r.status === "brouillon" || !r.status,
+  );
   const sstScore = Math.round(
-    0.6 * pct(sst.length - sstNoClient.length, sst.length) + 0.4 * pct(sst.length - sstToValidate.length, sst.length),
+    0.6 * pct(sst.length - sstNoClient.length, sst.length) +
+      0.4 * pct(sst.length - sstToValidate.length, sst.length),
   );
 
   // ── Couverture analytique Site (préparation, aucune migration) ─────────────
@@ -178,7 +187,10 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
     interventions: iv.length,
     interventionsWithSite: ivWithSite,
     readiness: Math.round(
-      (pct(caAmountWithSite, caAmount) + pct(hoursWithSite, hoursTotal) + pct(ivWithSite, iv.length)) / 3,
+      (pct(caAmountWithSite, caAmount) +
+        pct(hoursWithSite, hoursTotal) +
+        pct(ivWithSite, iv.length)) /
+        3,
     ),
   };
 
@@ -310,7 +322,8 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
     domain: "activite",
     priority: 1,
     title: `${salesTimeMissing.length} ligne(s) de vente sans temps`,
-    impact: "Sans temps saisi dans le suivi CA, aucun taux horaire ni rentabilité calculable sur ces lignes.",
+    impact:
+      "Sans temps saisi dans le suivi CA, aucun taux horaire ni rentabilité calculable sur ces lignes.",
     count: salesTimeMissing.length,
     amount: salesTimeMissingAmount,
     to: "/pilot/ca",
@@ -352,7 +365,8 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
     domain: "activite",
     priority: 3,
     title: `${ivNoClient.length} intervention(s) sans client`,
-    impact: "Historique technique absent de la fiche client (suivi opérationnel, sans effet sur les calculs).",
+    impact:
+      "Historique technique absent de la fiche client (suivi opérationnel, sans effet sur les calculs).",
     count: ivNoClient.length,
     to: "/interventions",
     actionLabel: "Ouvrir les interventions",
@@ -388,7 +402,9 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
     actionLabel: "Ouvrir Sites & contacts",
   });
 
-  anomalies.sort((a, b) => a.priority - b.priority || (b.amount ?? 0) - (a.amount ?? 0) || b.count - a.count);
+  anomalies.sort(
+    (a, b) => a.priority - b.priority || (b.amount ?? 0) - (a.amount ?? 0) || b.count - a.count,
+  );
 
   const globalScore = Math.round(domains.reduce((s, d) => s + d.score, 0) / domains.length);
 
@@ -421,7 +437,9 @@ const PREFIX = "phase6:";
 export async function listQualityTracking(): Promise<QualityTracking[]> {
   const { data, error } = await supabase
     .from(CHECK_TABLE)
-    .select("id,check_type,status,severity,message,resolved_at,resolved_by,resolution_note,updated_at")
+    .select(
+      "id,check_type,status,severity,message,resolved_at,resolved_by,resolution_note,updated_at",
+    )
     .like("check_type", `${PREFIX}%`)
     .order("updated_at", { ascending: false });
   if (error) throw error;
@@ -448,7 +466,11 @@ export async function setAnomalyStatus(
   const userId = auth.user?.id ?? null;
   const checkType = `${PREFIX}${anomaly.key}`;
 
-  const existing = await supabase.from(CHECK_TABLE).select("id").eq("check_type", checkType).maybeSingle();
+  const existing = await supabase
+    .from(CHECK_TABLE)
+    .select("id")
+    .eq("check_type", checkType)
+    .maybeSingle();
   const payload = {
     status,
     severity: anomaly.priority === 1 ? "critical" : anomaly.priority === 2 ? "warning" : "info",
@@ -471,6 +493,11 @@ export async function setAnomalyStatus(
   }
   const { error } = await supabase
     .from(CHECK_TABLE)
-    .insert({ ...payload, check_type: checkType, target_table: "pilot", detected_by: "quality-center" });
+    .insert({
+      ...payload,
+      check_type: checkType,
+      target_table: "pilot",
+      detected_by: "quality-center",
+    });
   if (error) throw error;
 }

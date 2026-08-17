@@ -20,10 +20,7 @@ import { reasonsForLine } from "@/lib/pilot-validation";
 const NOW = new Date("2026-08-16T12:00:00Z");
 const YEAR = 2026;
 
-function rowFromDraft(
-  draft: Parameters<typeof validateInvestment>[0],
-  id = "inv-1",
-): ChargeRow {
+function rowFromDraft(draft: Parameters<typeof validateInvestment>[0], id = "inv-1"): ChargeRow {
   const checked = validateInvestment(draft);
   if (!checked.ok) throw new Error(checked.error);
   const p = investmentEntryPayload(checked.value);
@@ -85,13 +82,17 @@ describe("investissement — validation de la saisie", () => {
 
   test("3. montant nul, négatif ou invalide refusé", () => {
     for (const amountHt of [0, -5, "", "abc"]) {
-      expect(validateInvestment({ designation: "X", amountHt, year: YEAR, month: 1 }).ok).toBe(false);
+      expect(validateInvestment({ designation: "X", amountHt, year: YEAR, month: 1 }).ok).toBe(
+        false,
+      );
     }
   });
 
   test("4. mois hors intervalle refusé", () => {
     for (const month of [0, 13, 1.5, "" as unknown as number]) {
-      expect(validateInvestment({ designation: "X", amountHt: 10, year: YEAR, month }).ok).toBe(false);
+      expect(validateInvestment({ designation: "X", amountHt: 10, year: YEAR, month }).ok).toBe(
+        false,
+      );
     }
   });
 
@@ -99,7 +100,9 @@ describe("investissement — validation de la saisie", () => {
     const r = validateInvestment({ designation: "X", amountHt: 10, year: "2025", month: "7" });
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.value).toMatchObject({ year: 2025, month: 7 });
-    expect(validateInvestment({ designation: "X", amountHt: 10, year: 1900, month: 1 }).ok).toBe(false);
+    expect(validateInvestment({ designation: "X", amountHt: 10, year: 1900, month: 1 }).ok).toBe(
+      false,
+    );
   });
 });
 
@@ -141,17 +144,25 @@ describe("investissement — intégration aux calculs existants", () => {
   });
 
   test("11. investissement futur exclu du réalisé à date", () => {
-    const future = rowFromDraft({ designation: "Camion", amountHt: 20_000, year: YEAR, month: 12 }, "inv-2");
+    const future = rowFromDraft(
+      { designation: "Camion", amountHt: 20_000, year: YEAR, month: 12 },
+      "inv-2",
+    );
     expect(investmentsForYear([...rows, future], YEAR, { now: NOW })).toBe(5_000);
     expect(projectionBase([...rows, future], YEAR, sales, { now: NOW }).investments).toBe(5_000);
   });
 
   test("12. inclus en mode Exercice complet / Projection", () => {
-    const future = rowFromDraft({ designation: "Camion", amountHt: 20_000, year: YEAR, month: 12 }, "inv-2");
+    const future = rowFromDraft(
+      { designation: "Camion", amountHt: 20_000, year: YEAR, month: 12 },
+      "inv-2",
+    );
     expect(
       investmentsForYear([...rows, future], YEAR, { now: NOW, period: "exercice_complet" }),
     ).toBe(25_000);
-    expect(investmentsForYear([...rows, future], YEAR, { now: NOW, mode: "projection" })).toBe(25_000);
+    expect(investmentsForYear([...rows, future], YEAR, { now: NOW, mode: "projection" })).toBe(
+      25_000,
+    );
   });
 
   test("16. statut explicite : ni charge à classer, ni rémunération", () => {

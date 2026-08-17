@@ -150,7 +150,8 @@ export function validateInvestment(draft: InvestmentDraft): InvestmentValidation
   const amount = parseAmount(draft.amountHt);
   if (!Number.isFinite(amount))
     return { ok: false, error: "Le montant HT doit être un nombre valide." };
-  if (amount <= 0) return { ok: false, error: "Le montant HT doit être strictement supérieur à 0." };
+  if (amount <= 0)
+    return { ok: false, error: "Le montant HT doit être strictement supérieur à 0." };
 
   const year = Number(draft.year);
   if (!Number.isInteger(year) || year < 2000 || year > 2100)
@@ -201,13 +202,13 @@ export async function createInvestment(draft: InvestmentDraft): Promise<ChargeRo
   const { data, error } = await supabase
     .from("pilot_ca_entries")
     .insert({ ...payload, user_id: auth.user.id } as never)
-    .select("id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment,note")
+    .select(
+      "id,year,month,kind,designation,amount_ht,charge_class,charge_category,is_investment,note",
+    )
     .single();
   if (error) throw error;
   const row = data as unknown as RawRow & { note: string | null };
-  const { error: logError } = await (
-    supabase as unknown as { from: (t: string) => any }
-  )
+  const { error: logError } = await (supabase as unknown as { from: (t: string) => any })
     .from("pilot_edit_log")
     .insert({
       entity: "pilot_ca_entries",
@@ -470,7 +471,10 @@ export function projectionBase(
   const yr = operatingChargesForYear(allRows, year, { now: options?.now });
   const invest = allRows
     .filter(
-      (r) => r.year === year && r.is_investment && keepRealizedCharge(r, { now: options?.now, period: options?.period }),
+      (r) =>
+        r.year === year &&
+        r.is_investment &&
+        keepRealizedCharge(r, { now: options?.now, period: options?.period }),
     )
     .reduce((s, r) => s + r.amount_ht, 0);
   const sum = (cls: ChargeClass) =>
