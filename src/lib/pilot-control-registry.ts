@@ -17,10 +17,7 @@
 //   • aucun statut « certifié » sans preuve chiffrée.
 
 import type { ControlDomain } from "@/lib/pilot-control-queue";
-import {
-  HISTORY_OUT_OF_SCOPE_MESSAGE,
-  isOutOfCertificationScope,
-} from "@/lib/pilot-history-scope";
+import { HISTORY_OUT_OF_SCOPE_MESSAGE, isOutOfCertificationScope } from "@/lib/pilot-history-scope";
 
 // ── Statuts ─────────────────────────────────────────────────────────────────
 
@@ -46,7 +43,8 @@ export const CONTROL_STATUS_LABEL: Record<ControlStatus, string> = {
 export const CONTROL_STATUS_HELP: Record<ControlStatus, string> = {
   certifie: "Contrôle exécuté sur des données réelles, sans écart : la donnée peut être utilisée.",
   partiel: "Une partie des éléments est fiable, le reste manque ou diverge.",
-  a_confirmer: "Une proposition existe mais elle engage un choix métier : rien n'est appliqué seul.",
+  a_confirmer:
+    "Une proposition existe mais elle engage un choix métier : rien n'est appliqué seul.",
   non_exploitable: "Les données se contredisent : l'indicateur ne doit pas être utilisé.",
   indisponible: "La source n'a pas pu être lue : ce n'est pas une absence de donnée.",
   non_requis: HISTORY_OUT_OF_SCOPE_MESSAGE,
@@ -96,14 +94,7 @@ export const CONTROL_CAUSE_LABEL: Record<ControlCause, string> = {
   aucune: "Aucun écart",
 };
 
-export type ControlFamily =
-  | "finance"
-  | "temps"
-  | "clients"
-  | "sites"
-  | "ceev"
-  | "sst"
-  | "moteurs";
+export type ControlFamily = "finance" | "temps" | "clients" | "sites" | "ceev" | "sst" | "moteurs";
 
 export const CONTROL_FAMILY_LABEL: Record<ControlFamily, string> = {
   finance: "Finance",
@@ -591,7 +582,8 @@ export interface ControlResult {
   blocksKpi: boolean;
 }
 
-const pctOf = (ok: number, total: number) => (total > 0 ? Math.round((ok / total) * 1000) / 10 : 100);
+const pctOf = (ok: number, total: number) =>
+  total > 0 ? Math.round((ok / total) * 1000) / 10 : 100;
 const euro = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €`;
 
 /** Évalue un contrôle : un statut explicite, jamais un vide silencieux. */
@@ -650,7 +642,8 @@ export function evaluateControl(
       ...base,
       status: "indisponible",
       cause: "source_indisponible",
-      message: "Mesure incomplète : le nombre d'éléments examinés n'est pas connu (aucune valeur n'est supposée).",
+      message:
+        "Mesure incomplète : le nombre d'éléments examinés n'est pas connu (aucune valeur n'est supposée).",
     };
   }
 
@@ -747,7 +740,8 @@ export function buildRegistryReport(
   let unquantified = 0;
   for (const r of results) {
     counts[r.status] += 1;
-    const risky = r.status === "partiel" || r.status === "a_confirmer" || r.status === "non_exploitable";
+    const risky =
+      r.status === "partiel" || r.status === "a_confirmer" || r.status === "non_exploitable";
     if (!risky) continue;
     if (r.amountFailing == null) unquantified += 1;
     else amountAtRisk = (amountAtRisk ?? 0) + Math.abs(r.amountFailing);
@@ -782,11 +776,18 @@ export function buildRegistryReport(
     (r) => r.status !== "non_requis" && r.status !== "non_applicable",
   ).length;
   const certifiedPct = required > 0 ? pctOf(counts.certifie, required) : 100;
-  const blocking = results.some(
-    (r) => r.blocksKpi && BLOCKING_STATUSES.includes(r.status),
-  );
+  const blocking = results.some((r) => r.blocksKpi && BLOCKING_STATUSES.includes(r.status));
 
-  return { results, families, counts, certifiedPct, required, amountAtRisk, unquantified, blocking };
+  return {
+    results,
+    families,
+    counts,
+    certifiedPct,
+    required,
+    amountAtRisk,
+    unquantified,
+    blocking,
+  };
 }
 
 // ── Preuve de réconciliation de bout en bout ────────────────────────────────
@@ -901,6 +902,8 @@ export function buildChainProof(params: {
     unit,
     links,
     status,
-    certifiable: links.length > 0 && links.every((l) => l.status === "certifie" || l.status === "non_applicable"),
+    certifiable:
+      links.length > 0 &&
+      links.every((l) => l.status === "certifie" || l.status === "non_applicable"),
   };
 }

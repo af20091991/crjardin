@@ -30,8 +30,14 @@ export function useControlRegistry(): {
   refetchAll: () => void;
 } {
   const { report: integrity, reconciliation } = usePilotIntegrity();
-  const quality = useQuery({ queryKey: ["pilot-quality-center"], queryFn: buildQualityCenterReport });
-  const referential = useQuery({ queryKey: ["pilot-referential-audit"], queryFn: runReferentialAudit });
+  const quality = useQuery({
+    queryKey: ["pilot-quality-center"],
+    queryFn: buildQualityCenterReport,
+  });
+  const referential = useQuery({
+    queryKey: ["pilot-referential-audit"],
+    queryFn: runReferentialAudit,
+  });
   const clients = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const ceev = useQuery({ queryKey: ["ceev-contracts"], queryFn: listCeevContracts });
   const charges = useQuery({ queryKey: ["fix-charges"], queryFn: listChargesToClassify });
@@ -69,7 +75,9 @@ export function useControlRegistry(): {
       amountAnalysed: ref ? ref.totals.caTotal : null,
       amountFailing: ref ? 0 : null,
       loadError: refErr ?? qErr,
-      evidence: ref ? [`CA analysé : ${Math.round(ref.totals.caTotal).toLocaleString("fr-FR")} €`] : [],
+      evidence: ref
+        ? [`CA analysé : ${Math.round(ref.totals.caTotal).toLocaleString("fr-FR")} €`]
+        : [],
     });
 
     // ── Temps ───────────────────────────────────────────────────────────────
@@ -120,7 +128,9 @@ export function useControlRegistry(): {
       amountFailing: ref ? ref.totals.caAtRisk : null,
       confirmable: ref ? ref.totals.proposals > 0 : false,
       loadError: refErr ?? loadError(clients),
-      evidence: ref ? [`${ref.totals.certified} / ${ref.totals.analysed} fiche(s) certifiée(s)`] : [],
+      evidence: ref
+        ? [`${ref.totals.certified} / ${ref.totals.analysed} fiche(s) certifiée(s)`]
+        : [],
     });
     out.push({
       id: "clients.doublons",
@@ -168,7 +178,9 @@ export function useControlRegistry(): {
       analysed: contracts ? contracts.length : null,
       failing: contracts ? contracts.filter((c) => !c.pv_ht || !c.year).length : null,
       loadError: loadError(ceev),
-      evidence: contracts ? [`${contracts.filter((c) => !c.pv_ht).length} contrat(s) sans montant`] : [],
+      evidence: contracts
+        ? [`${contracts.filter((c) => !c.pv_ht).length} contrat(s) sans montant`]
+        : [],
     });
 
     // ── Sous-traitance ──────────────────────────────────────────────────────
@@ -204,7 +216,9 @@ export function useControlRegistry(): {
         : null,
       contradictory: reconciliation.blocking,
       loadError: reconciliation.status === "indisponible" ? reconciliation.message : null,
-      evidence: rows ? rows.filter((r) => r.status !== "certifie").map((r) => `${r.label} — ${r.message}`) : [],
+      evidence: rows
+        ? rows.filter((r) => r.status !== "certifie").map((r) => `${r.label} — ${r.message}`)
+        : [],
     });
     const datasets = integrity.datasets ?? null;
     const checks = datasets?.flatMap((d) => d.checks) ?? null;

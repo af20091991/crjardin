@@ -54,7 +54,9 @@ describe("registre exhaustif des contrôles", () => {
   test("statuts certifie / partiel / a_confirmer / non_exploitable", () => {
     expect(evaluateControl(anyDef(), obs()).status).toBe("certifie");
     expect(evaluateControl(anyDef(), obs({ failing: 3 })).status).toBe("partiel");
-    expect(evaluateControl(anyDef(), obs({ failing: 3, confirmable: true })).status).toBe("a_confirmer");
+    expect(evaluateControl(anyDef(), obs({ failing: 3, confirmable: true })).status).toBe(
+      "a_confirmer",
+    );
     expect(evaluateControl(anyDef(), obs({ failing: 1, contradictory: true })).status).toBe(
       "non_exploitable",
     );

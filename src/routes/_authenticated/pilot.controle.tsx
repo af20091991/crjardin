@@ -6,7 +6,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { BadgeCheck, ClipboardList, ListChecks, ListTree, Copy, Cpu, Database, FileText, Gauge, Link2, MapPin, ShieldAlert, ShieldCheck, Wrench } from "lucide-react";
+import {
+  BadgeCheck,
+  ClipboardList,
+  ListChecks,
+  ListTree,
+  Copy,
+  Cpu,
+  Database,
+  FileText,
+  Gauge,
+  Link2,
+  MapPin,
+  ShieldAlert,
+  ShieldCheck,
+  Wrench,
+} from "lucide-react";
 import { QualityPage } from "@/components/pilot/panels/QualityPanel";
 import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
 import { RapprochementPage } from "@/components/pilot/panels/RapprochementPanel";
@@ -250,16 +265,17 @@ function ControlCenterPage() {
 
         <TabsContent value="contrat" className="mt-4">
           <p className="mb-3 text-xs text-muted-foreground">
-            Contrat de vérité — pour chaque indicateur stratégique : sa fonction source, sa source de
-            données, sa période, son périmètre et sa règle en cas de donnée absente (lecture seule).
+            Contrat de vérité — pour chaque indicateur stratégique : sa fonction source, sa source
+            de données, sa période, son périmètre et sa règle en cas de donnée absente (lecture
+            seule).
           </p>
           <KpiContractPanel />
         </TabsContent>
 
         <TabsContent value="fiabilite" className="mt-4">
           <p className="mb-3 text-xs text-muted-foreground">
-            Fiabilité — pour chaque indicateur du contrat : peut-il être utilisé avec confiance,
-            et sinon pourquoi (lecture seule, aucun recalcul).
+            Fiabilité — pour chaque indicateur du contrat : peut-il être utilisé avec confiance, et
+            sinon pourquoi (lecture seule, aucun recalcul).
           </p>
           <KpiReliabilityPanel />
         </TabsContent>
@@ -276,10 +292,16 @@ function ControlCenterPage() {
       <Card>
         <CardContent className="flex flex-wrap items-center gap-3 py-4 text-sm">
           <span className="text-muted-foreground">Outils conservés séparément :</span>
-          <Link to="/pilot/donnees" className="flex items-center gap-1.5 font-medium text-primary underline">
+          <Link
+            to="/pilot/donnees"
+            className="flex items-center gap-1.5 font-medium text-primary underline"
+          >
             <ClipboardList className="h-4 w-4" /> Classeur de données
           </Link>
-          <Link to="/pilot/sites" className="flex items-center gap-1.5 font-medium text-primary underline">
+          <Link
+            to="/pilot/sites"
+            className="flex items-center gap-1.5 font-medium text-primary underline"
+          >
             <MapPin className="h-4 w-4" /> Sites & contacts
           </Link>
         </CardContent>

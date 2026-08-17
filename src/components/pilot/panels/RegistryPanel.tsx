@@ -13,7 +13,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { AlertTriangle, BadgeCheck, HelpCircle, MinusCircle, RefreshCw, ShieldAlert } from "lucide-react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  HelpCircle,
+  MinusCircle,
+  RefreshCw,
+  ShieldAlert,
+} from "lucide-react";
 import { useControlRegistry } from "@/components/pilot/useControlRegistry";
 import {
   CONTROL_CAUSE_LABEL,
@@ -45,7 +52,11 @@ function StatusIcon({ status }: { status: ControlStatus }) {
 
 function StatusBadge({ status }: { status: ControlStatus }) {
   return (
-    <Badge variant="outline" className={`font-normal ${TONE[status]}`} title={CONTROL_STATUS_HELP[status]}>
+    <Badge
+      variant="outline"
+      className={`font-normal ${TONE[status]}`}
+      title={CONTROL_STATUS_HELP[status]}
+    >
       <StatusIcon status={status} />
       <span className="ml-1">{CONTROL_STATUS_LABEL[status]}</span>
     </Badge>
@@ -78,15 +89,22 @@ export function RegistryPanel() {
             <Badge variant="outline" className="font-normal">
               {report.counts.certifie} / {report.required} certifiés ({report.certifiedPct} %)
             </Badge>
-            <Button variant="ghost" size="sm" onClick={refetchAll} disabled={loading} className="ml-auto gap-1.5">
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Relancer les contrôles
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refetchAll}
+              disabled={loading}
+              className="ml-auto gap-1.5"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Relancer les
+              contrôles
             </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
-            Chaque donnée exploitée porte un statut explicite : aucune donnée latente, aucune absence
-            transformée en zéro, aucune erreur de lecture présentée comme un vide.
+            Chaque donnée exploitée porte un statut explicite : aucune donnée latente, aucune
+            absence transformée en zéro, aucune erreur de lecture présentée comme un vide.
           </p>
           <p className="text-xs text-muted-foreground">
             Impact financier chiffré des écarts :{" "}
@@ -131,20 +149,38 @@ export function RegistryPanel() {
 
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="text-muted-foreground">Filtres :</span>
-        <Button variant={family === "all" ? "secondary" : "ghost"} size="sm" onClick={() => setFamily("all")}>
+        <Button
+          variant={family === "all" ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => setFamily("all")}
+        >
           Tous les domaines
         </Button>
         {(Object.keys(CONTROL_FAMILY_LABEL) as ControlFamily[]).map((f) => (
-          <Button key={f} variant={family === f ? "secondary" : "ghost"} size="sm" onClick={() => setFamily(f)}>
+          <Button
+            key={f}
+            variant={family === f ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setFamily(f)}
+          >
             {CONTROL_FAMILY_LABEL[f]}
           </Button>
         ))}
         <span className="ml-3 text-muted-foreground">Statut :</span>
-        <Button variant={status === "all" ? "secondary" : "ghost"} size="sm" onClick={() => setStatus("all")}>
+        <Button
+          variant={status === "all" ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => setStatus("all")}
+        >
           Tous
         </Button>
         {(Object.keys(CONTROL_STATUS_LABEL) as ControlStatus[]).map((s) => (
-          <Button key={s} variant={status === s ? "secondary" : "ghost"} size="sm" onClick={() => setStatus(s)}>
+          <Button
+            key={s}
+            variant={status === s ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setStatus(s)}
+          >
             {CONTROL_STATUS_LABEL[s]} ({report.counts[s]})
           </Button>
         ))}
@@ -152,7 +188,11 @@ export function RegistryPanel() {
 
       <Accordion type="multiple" className="space-y-2">
         {rows.map((r) => (
-          <AccordionItem key={r.definition.id} value={r.definition.id} className="rounded-md border px-3">
+          <AccordionItem
+            key={r.definition.id}
+            value={r.definition.id}
+            className="rounded-md border px-3"
+          >
             <AccordionTrigger className="gap-2 py-3 text-left text-sm hover:no-underline">
               <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                 <StatusBadge status={r.status} />
@@ -221,14 +261,16 @@ export function RegistryPanel() {
                   ))}
                 </ul>
               )}
-              {r.status !== "certifie" && r.status !== "non_requis" && r.status !== "non_applicable" && (
-                <p className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">Action attendue :</span> {r.definition.action}
-                  <Link to={r.definition.to} className="font-medium text-primary underline">
-                    Ouvrir l'écran de traitement
-                  </Link>
-                </p>
-              )}
+              {r.status !== "certifie" &&
+                r.status !== "non_requis" &&
+                r.status !== "non_applicable" && (
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">Action attendue :</span> {r.definition.action}
+                    <Link to={r.definition.to} className="font-medium text-primary underline">
+                      Ouvrir l'écran de traitement
+                    </Link>
+                  </p>
+                )}
             </AccordionContent>
           </AccordionItem>
         ))}
