@@ -78,7 +78,9 @@ export function useControlQueue(): {
 
   const kpi = useMemo(() => {
     const engineState = resourceState("pilot-analytics", "Moteur analytique", analytics, () => false);
-    const base = worstStatus([engineState, states.entries, states.clients]);
+    const pool = [engineState, states.entries, states.clients];
+    const baseStatus = worstStatus(pool);
+    const base = pool.find((p) => p.status === baseStatus) ?? engineState;
     const qualityState = resourceState(
       "pilot-data-quality",
       "Rapport de qualité des données",
@@ -88,7 +90,7 @@ export function useControlQueue(): {
     return buildKpiReliability({
       contracts: KPI_CONTRACTS,
       snapshot: snapshot ?? null,
-      dataStatus: base.status,
+      dataStatus: baseStatus,
       dataMessage: base.message,
       qualityStatus: qualityState.status,
       qualityMessage: qualityState.message,

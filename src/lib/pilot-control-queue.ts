@@ -307,7 +307,7 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       amount: o.amount,
       count: 1,
       kpi: ["CA par client", "Rentabilité client", "Score client"],
-      blocksKpi: level !== "info",
+      blocksKpi: true,
       confidence: proven ? "certaine" : probable ? (best!.confidence === "moyenne" ? "moyenne" : "faible") : "faible",
       found: best ? `Client « ${best.clientName} » (score ${Math.round(best.score * 100)} %).` : "Aucun client correspondant.",
       missing: best ? (proven ? "Rien : la correspondance est démontrée." : "Une preuve formelle (nom identique ou rattachement déjà validé).") : "Un client identifiable dans le libellé de la ligne.",
