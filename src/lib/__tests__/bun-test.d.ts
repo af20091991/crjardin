@@ -8,6 +8,7 @@ declare module "bun:test" {
     toBeDefined(): void;
     toBeCloseTo(expected: number, precision?: number): void;
     toBeGreaterThan(expected: number): void;
+    toBeGreaterThanOrEqual(expected: number): void;
     toBeLessThan(expected: number): void;
     toContain(expected: unknown): void;
     toHaveLength(expected: number): void;
@@ -16,6 +17,7 @@ declare module "bun:test" {
     readonly rejects: { toThrow(expected?: unknown): Promise<void> };
   }
   export function describe(label: string, fn: () => void): void;
+  export function it(label: string, fn: () => void | Promise<void>): void;
   export function test(label: string, fn: () => void | Promise<void>): void;
   export function beforeAll(fn: () => void | Promise<void>): void;
   export const mock: {

@@ -9,13 +9,14 @@ import {
 } from "@/lib/pilot-history-scope";
 import { buildKpiReliability } from "@/lib/pilot-kpi-reliability";
 import { KPI_CONTRACTS } from "@/lib/pilot-kpi-contract";
+import type { DataStatus } from "@/lib/pilot-data-state";
 
 const baseInput = {
   contracts: KPI_CONTRACTS,
   snapshot: null,
-  dataStatus: "ready" as const,
+  dataStatus: "success" as DataStatus,
   dataMessage: "",
-  qualityStatus: "ready" as const,
+  qualityStatus: "success" as DataStatus,
   qualityMessage: "",
 };
 
