@@ -76,8 +76,9 @@ describe("file d'actions du Centre de contrôle", () => {
       ...base,
       loadErrors: [{ key: "clients", label: "Référentiel clients", message: "timeout" }],
     });
-    expect(q.actions.length).toBe(0);
-    expect(q.closed.length).toBe(0);
+    expect(q.actions.length).toBe(1);
+    expect(q.actions[0].level).toBe("info");
+    expect(q.actions[0].state).toBe("indisponible");
     expect(q.summary.unavailableSources).toBe(1);
   });
 

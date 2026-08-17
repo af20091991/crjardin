@@ -287,7 +287,10 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
     const proven = !!best && best.confidence === "haute" && (best.reason === "exact" || best.reason === "historique");
     const probable = !!best && !proven;
     const ambiguous = o.others.length > 0;
-    const level: ActionLevel = proven && !ambiguous ? "auto" : probable ? "suggestion" : "manuel";
+    // Une correspondance démontrée MAIS ambiguë redescend en suggestion :
+    // Pilot Pro ne tranche jamais seul entre deux clients possibles.
+    const level: ActionLevel =
+      proven && !ambiguous ? "auto" : best && (proven || !ambiguous) ? "suggestion" : "manuel";
     push({
       key: `ca_orphan:${o.id}`,
       domain: "ca",
@@ -308,7 +311,15 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
       count: 1,
       kpi: ["CA par client", "Rentabilité client", "Score client"],
       blocksKpi: true,
-      confidence: proven ? "certaine" : probable ? (best!.confidence === "moyenne" ? "moyenne" : "faible") : "faible",
+      confidence: proven
+        ? ambiguous
+          ? "haute"
+          : "certaine"
+        : probable
+          ? best!.confidence === "moyenne"
+            ? "moyenne"
+            : "faible"
+          : "faible",
       found: best ? `Client « ${best.clientName} » (score ${Math.round(best.score * 100)} %).` : "Aucun client correspondant.",
       missing: best ? (proven ? "Rien : la correspondance est démontrée." : "Une preuve formelle (nom identique ou rattachement déjà validé).") : "Un client identifiable dans le libellé de la ligne.",
       whyNotAuto:
