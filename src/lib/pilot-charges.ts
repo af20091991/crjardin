@@ -213,17 +213,15 @@ export async function createInvestment(draft: InvestmentDraft): Promise<ChargeRo
       insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
     };
   };
-  const { error: logError } = await logDb
-    .from("pilot_edit_log")
-    .insert({
-      entity: "pilot_ca_entries",
-      entity_id: row.id,
-      label: checked.value.designation,
-      field: "creation_investissement",
-      before_value: null,
-      after_value: String(checked.value.amount_ht),
-      reason: `Investissement saisi manuellement (exercice ${checked.value.year}, mois ${String(checked.value.month).padStart(2, "0")})`,
-    });
+  const { error: logError } = await logDb.from("pilot_edit_log").insert({
+    entity: "pilot_ca_entries",
+    entity_id: row.id,
+    label: checked.value.designation,
+    field: "creation_investissement",
+    before_value: null,
+    after_value: String(checked.value.amount_ht),
+    reason: `Investissement saisi manuellement (exercice ${checked.value.year}, mois ${String(checked.value.month).padStart(2, "0")})`,
+  });
   if (logError)
     throw new Error(
       `Investissement enregistré mais la journalisation a échoué : ${logError.message}`,
