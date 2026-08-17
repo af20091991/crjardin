@@ -13,6 +13,7 @@ import type { IntegrityReport } from "@/lib/pilot-integrity";
 import type { ReconciliationReport } from "@/lib/pilot-reconciliation";
 import type { KpiReliabilityRow } from "@/lib/pilot-kpi-reliability";
 import type { QualityAnomaly, QualityDomainKey } from "@/lib/pilot-quality-center";
+import { isOutOfCertificationScope } from "@/lib/pilot-history-scope";
 
 /** Niveau d'action unique attribué à chaque anomalie. */
 export type ActionLevel = "auto" | "suggestion" | "manuel" | "info";
