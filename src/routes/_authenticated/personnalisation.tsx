@@ -57,6 +57,18 @@ function PersonnalisationPage() {
     { value: "comfortable", label: "Confortable" },
     { value: "compact", label: "Compact" },
   ];
+  const skinOptions: { value: Skin; label: string; hint: string }[] = [
+    {
+      value: "classic",
+      label: "Apparence actuelle",
+      hint: "Identité végétale, surfaces chaleureuses et arrondies.",
+    },
+    {
+      value: "modern",
+      label: "Apparence moderne",
+      hint: "Surfaces sobres, contraste renforcé, tableaux plus respirants.",
+    },
+  ];
 
   const toggleGroup = (g: string) => {
     const hidden = appearance.hiddenGroups.includes(g)
