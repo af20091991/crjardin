@@ -30,6 +30,7 @@ const TONE: Record<KpiReadiness, string> = {
   a_confirmer: "border-amber-300 bg-amber-50 text-amber-800",
   non_exploitable: "border-destructive/40 bg-destructive/5 text-destructive",
   non_disponible: "border-border bg-muted/40 text-muted-foreground",
+  non_requis: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
 function ReadinessIcon({ readiness }: { readiness: KpiReadiness }) {
@@ -54,7 +55,8 @@ export function KpiReliabilityPanel() {
     [analytics],
   );
   const qualityState = useMemo(
-    () => resourceState("pilot-data-quality", "Rapport de qualité des données", quality, () => false),
+    () =>
+      resourceState("pilot-data-quality", "Rapport de qualité des données", quality, () => false),
     [quality],
   );
 
@@ -102,6 +104,7 @@ export function KpiReliabilityPanel() {
       a_confirmer: 0,
       non_exploitable: 0,
       non_disponible: 0,
+      non_requis: 0,
     };
     for (const r of rows) c[r.readiness] += 1;
     return c;
@@ -123,8 +126,8 @@ export function KpiReliabilityPanel() {
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Peut-on utiliser cet indicateur avec confiance ? Lecture seule : aucune valeur n'est
-            recalculée ici. Les statuts proviennent du contrat de vérité, de l'état de chargement des
-            ressources et du statut des indicateurs déjà produits par le moteur unique.
+            recalculée ici. Les statuts proviennent du contrat de vérité, de l'état de chargement
+            des ressources et du statut des indicateurs déjà produits par le moteur unique.
           </p>
           <div className="flex flex-wrap gap-1.5">
             {(Object.keys(KPI_READINESS_LABEL) as KpiReadiness[]).map((k) => (
@@ -186,7 +189,7 @@ export function KpiReliabilityPanel() {
 
       <div className="grid gap-3 lg:grid-cols-2">
         {filtered.map((r) => (
-          <Card key={r.contract.id}>
+          <Card key={r.contract.id} data-readiness={r.readiness}>
             <CardHeader className="pb-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <CardTitle className="text-sm">{r.contract.label}</CardTitle>

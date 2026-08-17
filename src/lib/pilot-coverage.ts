@@ -1,4 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  historyScopeForYears,
+  isOutOfCertificationScope,
+  splitByCertificationScope,
+  type HistoryScope,
+} from "@/lib/pilot-history-scope";
 
 export interface YearCoverage {
   year: number;
@@ -9,6 +15,8 @@ export interface YearCoverage {
   ventesLinkedHt: number;
   coverageAmountPct: number;
   coverageLinesPct: number;
+  /** Exercice antérieur à 2026 : absence assumée, hors certification. */
+  outOfScope: boolean;
 }
 
 export interface CoverageSummary {
@@ -20,6 +28,18 @@ export interface CoverageSummary {
   totalVentesLinkedHt: number;
   overallAmountPct: number;
   overallLinesPct: number;
+  /** Qualification du périmètre couvert par les exercices présents. */
+  scope: HistoryScope;
+  /**
+   * Couverture calculée UNIQUEMENT sur les exercices certifiables (≥ 2026) :
+   * l'historique manquant ne dégrade jamais ces valeurs.
+   */
+  certifiableVentesHt: number;
+  certifiableVentesLinkedHt: number;
+  certifiableLines: number;
+  certifiableLinesLinked: number;
+  certifiableAmountPct: number;
+  certifiableLinesPct: number;
 }
 
 type Row = {
@@ -66,6 +86,7 @@ export async function getCoverageSummary(): Promise<CoverageSummary> {
         ventesLinkedHt: 0,
         coverageAmountPct: 0,
         coverageLinesPct: 0,
+        outOfScope: isOutOfCertificationScope(y),
       });
     }
     const bucket = byYear.get(y)!;
@@ -93,6 +114,11 @@ export async function getCoverageSummary(): Promise<CoverageSummary> {
   });
 
   const years = Array.from(byYear.values()).sort((a, b) => a.year - b.year);
+  const { certifiable } = splitByCertificationScope(years);
+  const certifiableVentesHt = certifiable.reduce((s, y) => s + y.ventesHt, 0);
+  const certifiableVentesLinkedHt = certifiable.reduce((s, y) => s + y.ventesLinkedHt, 0);
+  const certifiableLines = certifiable.reduce((s, y) => s + y.linesTotal, 0);
+  const certifiableLinesLinked = certifiable.reduce((s, y) => s + y.linesLinked, 0);
 
   return {
     years,
@@ -103,5 +129,14 @@ export async function getCoverageSummary(): Promise<CoverageSummary> {
     totalVentesLinkedHt,
     overallAmountPct: totalVentesHt > 0 ? (totalVentesLinkedHt / totalVentesHt) * 100 : 0,
     overallLinesPct: totalLines > 0 ? (totalLinesLinked / totalLines) * 100 : 0,
+    scope: historyScopeForYears(years.map((y) => y.year)),
+    certifiableVentesHt,
+    certifiableVentesLinkedHt,
+    certifiableLines,
+    certifiableLinesLinked,
+    certifiableAmountPct:
+      certifiableVentesHt > 0 ? (certifiableVentesLinkedHt / certifiableVentesHt) * 100 : 0,
+    certifiableLinesPct:
+      certifiableLines > 0 ? (certifiableLinesLinked / certifiableLines) * 100 : 0,
   };
 }

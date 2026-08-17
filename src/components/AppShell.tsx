@@ -398,7 +398,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   };
 
   return (
-    <div className="min-h-screen bg-secondary/30">
+    <div data-shell="root" className="min-h-screen bg-secondary/30">
       {/* Sidebar desktop */}
       <TooltipProvider delayDuration={150}>
         <aside
@@ -431,15 +431,19 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           <div className={collapsed ? "px-2 pb-2" : "px-3 pb-2"}>
             <GlobalSearch collapsed={collapsed} />
           </div>
-          <nav className={`flex-1 space-y-4 overflow-y-auto pb-3 ${collapsed ? "px-2" : "px-3"}`}>
+          <nav
+            data-shell="nav"
+            className={`flex-1 space-y-4 overflow-y-auto pb-3 ${collapsed ? "px-2" : "px-3"}`}
+          >
             {groups.map((group) => (
-              <div key={group.label} className="space-y-1">
+              <div key={group.label} data-nav-group={group.label} className="space-y-1">
                 {collapsed ? (
                   <div className="mx-2 my-1 border-t border-border/60" />
                 ) : (
                   <button
                     type="button"
                     onClick={() => toggleGroup(group.label)}
+                    data-shell="nav-group-title"
                     className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 transition-colors hover:text-foreground"
                   >
                     <span>{group.label}</span>
@@ -561,7 +565,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         </header>
 
         {title && (
-          <div className="hidden px-6 pt-6 md:flex md:items-start md:justify-between md:gap-4">
+          <div
+            data-shell="page-header"
+            className="hidden px-6 pt-6 md:flex md:items-start md:justify-between md:gap-4"
+          >
             <h1 className="font-serif text-2xl font-semibold">{title}</h1>
             {isPilot && (
               <div className="flex items-center gap-2">
@@ -572,7 +579,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </div>
         )}
 
-        <main className="px-4 pb-28 pt-4 md:px-6 md:pb-10">{children}</main>
+        <main data-shell="main" className="px-4 pb-28 pt-4 md:px-6 md:pb-10">
+          {children}
+        </main>
       </div>
 
       {/* Mobile bottom nav */}

@@ -68,6 +68,7 @@ const READINESS_TONE: Record<KpiReadiness, string> = {
   a_confirmer: "border-amber-200 bg-amber-50 text-amber-800",
   non_exploitable: "border-red-200 bg-red-50 text-red-700",
   non_disponible: "border-muted bg-muted/40 text-muted-foreground",
+  non_requis: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
 function DirectionPage() {
@@ -90,13 +91,15 @@ function DirectionPage() {
       qualityMessage: "rapport de qualité",
       integrityStatus: report.status,
       integrityMessage: report.message,
+      // Exercice antérieur à 2026 : absence assumée, statut « non requis ».
+      year,
     });
     const map: Partial<Record<KpiKey, { readiness: KpiReadiness; explanation: string }>> = {};
     for (const r of rows) {
       map[r.contract.id as KpiKey] = { readiness: r.readiness, explanation: r.explanation };
     }
     return map;
-  }, [snapshot, dataStatus, report.status, report.message]);
+  }, [snapshot, dataStatus, report.status, report.message, year]);
 
   const kpis = useMemo(
     () => buildDirectionKpis({ snapshot, readiness, periodLabel: label }),

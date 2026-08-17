@@ -443,3 +443,178 @@
   fill: var(--muted-foreground);
   font-size: 11px;
 }
+
+/* ============================================================
+   Apparence moderne — refondation de l'enveloppe (suite)
+   Structure, élévations, hiérarchie typographique, états.
+   Aucune donnée, aucune route, aucun calcul n'est modifié.
+   ============================================================ */
+
+/* ---------- Structure : grille de contenu et respiration ---------- */
+[data-skin="modern"] [data-shell="root"] {
+  background:
+    radial-gradient(
+      120% 60% at 50% 0%,
+      color-mix(in oklab, var(--primary) 5%, transparent),
+      transparent 60%
+    ),
+    var(--background);
+}
+[data-skin="modern"] [data-shell="main"] {
+  width: 100%;
+  max-width: 1360px;
+  margin-inline: auto;
+  padding-top: 1.25rem;
+}
+@media (min-width: 768px) {
+  [data-skin="modern"] [data-shell="main"] {
+    padding-inline: 2rem;
+    padding-top: 1.5rem;
+  }
+  [data-skin="modern"] [data-shell="page-header"] {
+    max-width: 1360px;
+    margin-inline: auto;
+    padding-inline: 2rem;
+    padding-bottom: 0.25rem;
+  }
+}
+
+/* ---------- Titre de page : hiérarchie principale nette ---------- */
+[data-skin="modern"] [data-shell="page-header"] h1 {
+  font-size: 1.6rem;
+  line-height: 1.15;
+  letter-spacing: -0.028em;
+}
+[data-skin="modern"] [data-shell="page-header"] h1::after {
+  content: "";
+  display: block;
+  width: 2.25rem;
+  height: 3px;
+  margin-top: 0.5rem;
+  border-radius: 999px;
+  background: var(--m-rail);
+}
+
+/* ---------- Navigation : rubriques réellement hiérarchisées ---------- */
+[data-skin="modern"] [data-shell="nav"] {
+  gap: 0;
+}
+[data-skin="modern"] [data-shell="nav"] > div + div {
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid color-mix(in oklab, white 10%, transparent);
+}
+[data-skin="modern"] [data-shell="nav-group-title"] {
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  color: color-mix(in oklab, var(--m-nav-fg) 55%, var(--m-nav));
+}
+[data-skin="modern"] [data-shell="nav-group-title"]:hover {
+  color: var(--m-nav-fg);
+}
+/* Rubriques structurantes : repère de couleur par famille */
+[data-skin="modern"] [data-nav-group="Aujourd'hui"] [data-shell="nav-group-title"] {
+  color: color-mix(in oklab, var(--m-rail) 78%, var(--m-nav-fg));
+}
+[data-skin="modern"] [data-nav-group="Pilotage"] [data-shell="nav-group-title"] {
+  color: color-mix(in oklab, var(--pp-sales) 65%, var(--m-nav-fg));
+}
+[data-skin="modern"] [data-nav-group="Données"] [data-shell="nav-group-title"],
+[data-skin="modern"] [data-nav-group="Paramètres"] [data-shell="nav-group-title"] {
+  color: color-mix(in oklab, var(--m-nav-fg) 68%, var(--m-nav));
+}
+
+/* ---------- Cartes : trois niveaux d'élévation lisibles ---------- */
+[data-skin="modern"] {
+  --m-elev-1: 0 1px 2px -1px color-mix(in oklab, var(--foreground) 10%, transparent);
+  --m-elev-2:
+    0 2px 4px -2px color-mix(in oklab, var(--foreground) 12%, transparent),
+    0 8px 20px -16px color-mix(in oklab, var(--foreground) 30%, transparent);
+  --m-elev-3: 0 18px 44px -28px color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+[data-skin="modern"] .bg-card {
+  box-shadow: var(--m-elev-1);
+}
+[data-skin="modern"] .bg-card:hover {
+  box-shadow: var(--m-elev-2);
+}
+[data-skin="modern"] [role="dialog"],
+[data-skin="modern"] [role="menu"],
+[data-skin="modern"] [role="listbox"] {
+  box-shadow: var(--m-elev-3);
+  border-radius: calc(var(--radius) + 2px);
+}
+
+/* ---------- Actions : hiérarchie primaire / secondaire / discrète ---------- */
+[data-skin="modern"] button:not([role="combobox"]):not([data-shell="nav-group-title"]) {
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+[data-skin="modern"] .bg-primary:not(.bg-primary\/10):not(.bg-primary\/5) {
+  box-shadow: var(--m-elev-1);
+}
+[data-skin="modern"] .bg-primary:not(.bg-primary\/10):not(.bg-primary\/5):hover {
+  box-shadow: var(--m-elev-2);
+  filter: saturate(1.05);
+}
+[data-skin="modern"] .border.bg-background:hover {
+  border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+}
+
+/* ---------- Tableaux : aération et en-têtes persistants ---------- */
+[data-skin="modern"] table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: color-mix(in oklab, var(--card) 94%, var(--muted));
+  backdrop-filter: blur(4px);
+  box-shadow: inset 0 -1px 0 var(--m-line);
+}
+[data-skin="modern"] [data-density="compact"] table td,
+[data-skin="modern"] [data-density="compact"] table th {
+  padding-top: 0.28rem;
+  padding-bottom: 0.28rem;
+}
+
+/* ---------- États explicites : vide, chargement, périmé, non requis ---------- */
+[data-skin="modern"] .border-dashed {
+  background-image: linear-gradient(
+    color-mix(in oklab, var(--muted) 55%, transparent),
+    color-mix(in oklab, var(--muted) 55%, transparent)
+  );
+  border-color: color-mix(in oklab, var(--foreground) 16%, transparent);
+}
+[data-skin="modern"] [data-state-kind="loading"],
+[data-skin="modern"] .animate-pulse {
+  border-radius: calc(var(--radius) - 2px);
+}
+[data-skin="modern"] [data-readiness="certifie"] {
+  box-shadow: inset 2px 0 0 color-mix(in oklab, var(--primary) 80%, transparent);
+}
+[data-skin="modern"] [data-readiness="non_requis"] {
+  box-shadow: inset 2px 0 0 var(--pp-neutral);
+  opacity: 0.92;
+}
+[data-skin="modern"] [data-readiness="non_exploitable"] {
+  box-shadow: inset 2px 0 0 var(--destructive);
+}
+[data-skin="modern"] [data-readiness="partiel"],
+[data-skin="modern"] [data-readiness="a_confirmer"] {
+  box-shadow: inset 2px 0 0 var(--pp-warning);
+}
+
+/* ---------- Responsive : jamais de débordement horizontal ---------- */
+[data-skin="modern"] [data-shell="main"] > * {
+  min-width: 0;
+}
+@media (max-width: 767px) {
+  [data-skin="modern"] [data-shell="main"] {
+    padding-inline: 1rem;
+  }
+  [data-skin="modern"] h1 {
+    font-size: 1.3rem;
+  }
+  [data-skin="modern"] .space-y-5 > * + * {
+    margin-top: 1.1rem;
+  }
+}

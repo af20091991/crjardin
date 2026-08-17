@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listCaEntries, createCaEntry, updateCaEntry, deleteCaEntry,
@@ -45,6 +45,25 @@ export const Route = createFileRoute("/_authenticated/pilot/ca")({
 
 const num = (v: string) => Number(v.replace(",", ".")) || 0;
 
+/** Densité locale à cette page uniquement (aucun effet global, aucun calcul). */
+type CaDensity = "normal" | "compact";
+const CA_DENSITY_KEY = "pilot-ca-density";
+
+function loadCaDensity(): CaDensity {
+  if (typeof window === "undefined") return "compact";
+  return window.localStorage.getItem(CA_DENSITY_KEY) === "normal" ? "normal" : "compact";
+}
+
+/**
+ * Compactage strictement visuel de la zone de saisie : espacements, hauteurs
+ * de champ et typographie. Aucune colonne masquée, aucune valeur tronquée.
+ */
+const CA_DENSITY_CLASS: Record<CaDensity, string> = {
+  normal: "",
+  compact:
+    "text-[13px] [&_td]:py-1 [&_th]:py-1.5 [&_td]:px-2 [&_th]:px-2 [&_input]:h-7 [&_input]:text-[13px] [&_button[role=combobox]]:h-7 [&_button[role=combobox]]:text-[13px] [&_textarea]:min-h-[48px]",
+};
+
 function StatBox({ label, value, icon: Icon, tone }: { label: string; value: string; icon: React.ComponentType<{ className?: string }>; tone?: string }) {
   return (
     <Card className="p-3">
@@ -67,6 +86,18 @@ function CaPage() {
   const [openNote, setOpenNote] = useState<Record<string, boolean>>({});
   const toggleNote = (id: string) => setOpenNote((s) => ({ ...s, [id]: !s[id] }));
   const [originFor, setOriginFor] = useState<CaEntry | null>(null);
+  const [density, setDensity] = useState<CaDensity>("compact");
+
+  // Réglage mémorisé uniquement pour cette page (localStorage, après montage).
+  useEffect(() => setDensity(loadCaDensity()), []);
+  const changeDensity = (d: CaDensity) => {
+    setDensity(d);
+    try {
+      window.localStorage.setItem(CA_DENSITY_KEY, d);
+    } catch {
+      /* stockage indisponible : le réglage reste valable pour la session */
+    }
+  };
 
   const entriesQ = useQuery({ queryKey: ["pilot-ca", year], queryFn: () => listCaEntries(year) });
   const entries = entriesQ.data ?? [];
@@ -149,6 +180,14 @@ function CaPage() {
           {pending != null && (
             <Badge variant="secondary" className="gap-1">Résultat prêt : {formatEuro(pending)} — cliquez « + Ligne »</Badge>
           )}
+          {/* Densité locale de la zone de saisie (mémorisée pour cette page) */}
+          <Select value={density} onValueChange={(v) => changeDensity(v as CaDensity)}>
+            <SelectTrigger className="h-8 w-[150px]" aria-label="Densité d'affichage"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="normal">Densité normale</SelectItem>
+              <SelectItem value="compact">Densité compacte</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -197,9 +236,17 @@ function CaPage() {
         <StatBox label="Taux horaire" value={mt.hours ? `${formatEuro(mt.tauxHoraire)}/h` : "—"} icon={TrendingUp} />
       </div>
 
-      {/* Corps : Ventes (source de vérité) et Charges côte à côte dès XL, empilés en dessous */}
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
-        <div className="order-2 min-w-0 space-y-4">
+      {/*
+       * Corps de saisie : CHARGES à gauche, VENTES à droite.
+       * Ordre DOM = ordre visuel (aucune inversion CSS), deux colonnes dès
+       * 1280 px, empilement Charges puis Ventes en dessous.
+       */}
+      <div
+        data-testid="ca-workbench"
+        data-density={density}
+        className={`grid grid-cols-1 items-start gap-4 lg:grid-cols-2 ${CA_DENSITY_CLASS[density]}`}
+      >
+        <div data-testid="ca-charges-column" className="min-w-0 space-y-4">
           {/* Charges */}
           <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-charges) 7%, transparent)" }}>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
@@ -225,7 +272,9 @@ function CaPage() {
                   {charges.length === 0 && <TableRow><TableCell colSpan={3} className="py-6 text-center text-sm text-muted-foreground">Aucune charge — ajoutez une ligne</TableCell></TableRow>}
                   {charges.map((row) => {
                     const hasNote = !!row.note;
-                    const opened = openNote[row.id] || hasNote;
+                    // Commentaire replié par défaut : aucune donnée perdue,
+                    // ouverture en un clic via « Voir le commentaire ».
+                    const opened = !!openNote[row.id];
                     return (
                     <Fragment key={row.id}>
                     <TableRow>
@@ -236,10 +285,23 @@ function CaPage() {
                         <Input defaultValue={row.amount_ht || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title="Commentaire" onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title={hasNote ? "Voir le commentaire" : "Ajouter un commentaire"} onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(row.id)}><Trash2 className="h-4 w-4" /></Button>
                       </TableCell>
                     </TableRow>
+                    {hasNote && !opened && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="py-1">
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-primary hover:underline"
+                            onClick={() => toggleNote(row.id)}
+                          >
+                            Voir le commentaire
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    )}
                     {opened && (
                       <TableRow>
                         <TableCell colSpan={3} className="bg-muted/20 py-2">
@@ -307,7 +369,7 @@ function CaPage() {
           </p>
         </div>
 
-        <div className="order-1 min-w-0 space-y-4">
+        <div data-testid="ca-ventes-column" className="min-w-0 space-y-4">
 
           {/* Ventes — source de vérité unique */}
           <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-sales) 7%, transparent)" }}>
@@ -348,7 +410,9 @@ function CaPage() {
                   {ventes.length === 0 && <TableRow><TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">Aucune vente — ajoutez une ligne</TableCell></TableRow>}
                   {ventes.map((row) => {
                     const hasNote = !!row.note;
-                    const opened = openNote[row.id] || hasNote;
+                    // Commentaire replié par défaut : aucune donnée perdue,
+                    // ouverture en un clic via « Voir le commentaire ».
+                    const opened = !!openNote[row.id];
                     const status = ((row.sale_status as SaleStatus | undefined) ?? "realise") as SaleStatus;
                     const kind = interventionKind(row.intervention_type);
                     const timeState = saleTimeState(row);
@@ -438,10 +502,23 @@ function CaPage() {
                         >
                           <Link2 className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title="Commentaire" onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title={hasNote ? "Voir le commentaire" : "Ajouter un commentaire"} onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(row.id)}><Trash2 className="h-4 w-4" /></Button>
                       </TableCell>
                     </TableRow>
+                    {hasNote && !opened && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="py-1">
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-primary hover:underline"
+                            onClick={() => toggleNote(row.id)}
+                          >
+                            Voir le commentaire
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    )}
                     {opened && (
                       <TableRow>
                         <TableCell colSpan={8} className="bg-muted/20 py-2">
