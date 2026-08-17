@@ -230,7 +230,9 @@ function PersonnalisationPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>Arrondis des coins</Label>
-                <span className="text-sm text-muted-foreground">{appearance.radius.toFixed(2)} rem</span>
+                <span className="text-sm text-muted-foreground">
+                  {appearance.radius.toFixed(2)} rem
+                </span>
               </div>
               <Slider
                 min={0}
@@ -264,9 +266,7 @@ function PersonnalisationPage() {
                     type="button"
                     onClick={() => toggleGroup(g)}
                     className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                      visible
-                        ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground"
+                      visible ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {visible ? "Affiché" : "Masqué"}

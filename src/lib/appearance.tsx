@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 export type ThemeMode = "light" | "dark" | "auto";
 export type Density = "comfortable" | "compact";
@@ -122,7 +130,10 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     applyAppearance(DEFAULT_APPEARANCE);
   }, []);
 
-  const value = useMemo(() => ({ appearance, setAppearance, reset }), [appearance, setAppearance, reset]);
+  const value = useMemo(
+    () => ({ appearance, setAppearance, reset }),
+    [appearance, setAppearance, reset],
+  );
 
   return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;
 }
