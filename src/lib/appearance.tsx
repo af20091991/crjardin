@@ -2,9 +2,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 
 export type ThemeMode = "light" | "dark" | "auto";
 export type Density = "comfortable" | "compact";
+/** Couche d'apparence réversible : "classic" = existant, "modern" = alternative épurée. */
+export type Skin = "classic" | "modern";
 
 export type Appearance = {
   theme: ThemeMode;
+  skin: Skin;
   primary: string;
   accent: string;
   density: Density;
@@ -15,6 +18,7 @@ export type Appearance = {
 
 export const DEFAULT_APPEARANCE: Appearance = {
   theme: "light",
+  skin: "classic",
   primary: "#4F8E33",
   accent: "#EE8627",
   density: "comfortable",
@@ -51,8 +55,13 @@ export function applyAppearance(a: Appearance) {
   root.style.setProperty("--sidebar-primary", a.primary);
   root.style.setProperty("--sidebar-ring", a.primary);
   root.style.setProperty("--accent", a.accent);
-  root.style.setProperty("--radius", `${a.radius}rem`);
+  // Le skin moderne resserre les rayons pour une hiérarchie plus nette.
+  root.style.setProperty(
+    "--radius",
+    `${a.skin === "modern" ? Math.min(a.radius, 0.5) : a.radius}rem`,
+  );
   root.setAttribute("data-density", a.density);
+  root.setAttribute("data-skin", a.skin);
 }
 
 type Ctx = {
