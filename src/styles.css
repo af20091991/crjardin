@@ -226,68 +226,221 @@
    aucun impact sur les données ou les calculs.
    ============================================================ */
 [data-skin="modern"] {
-  --background: oklch(0.985 0.002 250);
-  --foreground: oklch(0.22 0.012 255);
+  /* Canevas froid très structuré, cartes blanches, navigation encre */
+  --background: oklch(0.968 0.006 250);
+  --foreground: oklch(0.20 0.014 258);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.012 255);
+  --card-foreground: oklch(0.20 0.014 258);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.012 255);
-  --secondary: oklch(0.965 0.004 250);
-  --secondary-foreground: oklch(0.30 0.012 255);
-  --muted: oklch(0.968 0.004 250);
-  --muted-foreground: oklch(0.50 0.012 255);
-  --border: oklch(0.915 0.005 250);
-  --input: oklch(0.905 0.005 250);
+  --popover-foreground: oklch(0.20 0.014 258);
+  --secondary: oklch(0.945 0.006 250);
+  --secondary-foreground: oklch(0.28 0.014 258);
+  --muted: oklch(0.958 0.005 250);
+  --muted-foreground: oklch(0.505 0.014 258);
+  --border: oklch(0.902 0.007 250);
+  --input: oklch(0.895 0.007 250);
   /* Couleurs fonctionnelles nettes : succès, attention, erreur, information */
   --destructive: oklch(0.55 0.19 25);
   --pp-sales: oklch(0.56 0.14 250);
   --pp-charges: oklch(0.55 0.19 25);
   --pp-warning: oklch(0.75 0.15 80);
   --pp-neutral: oklch(0.60 0.01 255);
-  --shadow-soft: 0 1px 2px 0 color-mix(in oklab, var(--foreground) 8%, transparent);
-  --shadow-elegant: 0 8px 24px -16px color-mix(in oklab, var(--foreground) 30%, transparent);
+  --pp-planned: oklch(0.90 0.02 250);
+  /* Surfaces propres au skin moderne */
+  --m-nav: oklch(0.24 0.026 258);
+  --m-nav-fg: oklch(0.93 0.008 250);
+  --m-rail: color-mix(in oklab, var(--primary) 85%, white);
+  --m-line: oklch(0.902 0.007 250);
+  --shadow-soft: 0 1px 1px 0 color-mix(in oklab, var(--foreground) 6%, transparent);
+  --shadow-elegant: 0 10px 30px -22px color-mix(in oklab, var(--foreground) 40%, transparent);
 }
 
 [data-skin="modern"].dark {
-  --background: oklch(0.19 0.01 255);
+  --background: oklch(0.17 0.012 258);
   --foreground: oklch(0.97 0.003 250);
-  --card: oklch(0.235 0.012 255);
+  --card: oklch(0.225 0.014 258);
   --card-foreground: oklch(0.97 0.003 250);
-  --popover: oklch(0.235 0.012 255);
+  --popover: oklch(0.225 0.014 258);
   --popover-foreground: oklch(0.97 0.003 250);
-  --secondary: oklch(0.28 0.012 255);
+  --secondary: oklch(0.27 0.014 258);
   --secondary-foreground: oklch(0.97 0.003 250);
-  --muted: oklch(0.28 0.012 255);
-  --muted-foreground: oklch(0.72 0.01 255);
-  --border: oklch(1 0 0 / 14%);
+  --muted: oklch(0.27 0.014 258);
+  --muted-foreground: oklch(0.73 0.01 255);
+  --border: oklch(1 0 0 / 13%);
   --input: oklch(1 0 0 / 16%);
+  --m-nav: oklch(0.145 0.012 258);
+  --m-nav-fg: oklch(0.95 0.004 250);
+  --m-line: oklch(1 0 0 / 13%);
 }
 
-/* Hiérarchie et respiration — surfaces, tableaux et listes */
+/* ---------- Typographie et titres : sans-serif structuré ---------- */
 [data-skin="modern"] h1,
 [data-skin="modern"] h2,
 [data-skin="modern"] h3,
 [data-skin="modern"] .font-serif {
   font-family: var(--font-sans);
-  font-weight: 650;
-  letter-spacing: -0.015em;
+  font-weight: 660;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+[data-skin="modern"] h1 {
+  font-size: 1.45rem;
+}
+
+/* ---------- Respiration : rythme vertical plus large ---------- */
+[data-skin="modern"] .space-y-5 > * + * {
+  margin-top: 1.6rem;
+}
+[data-skin="modern"] .space-y-4 > * + * {
+  margin-top: 1.15rem;
+}
+
+/* ---------- Surfaces : cartes plates, bord net, élévation au survol ---------- */
+[data-skin="modern"] .bg-card {
+  border-radius: calc(var(--radius) + 1px);
+  border-color: var(--m-line);
+  box-shadow: var(--shadow-soft);
+  transition:
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+[data-skin="modern"] .bg-card:hover {
+  box-shadow: var(--shadow-elegant);
 }
 [data-skin="modern"] .shadow,
-[data-skin="modern"] .shadow-lg,
-[data-skin="modern"] .shadow-md {
+[data-skin="modern"] .shadow-md,
+[data-skin="modern"] .shadow-lg {
   box-shadow: var(--shadow-soft);
 }
-[data-skin="modern"] table th {
-  font-size: 0.78rem;
-  letter-spacing: 0.02em;
+
+/* Titres de carte : étiquette de section, hiérarchie principale/secondaire */
+[data-skin="modern"] .leading-none.tracking-tight {
   text-transform: uppercase;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
   color: var(--muted-foreground);
+}
+
+/* ---------- KPI : modules de décision (rail d'accent + chiffre dominant) ---------- */
+[data-skin="modern"] .bg-card > .font-serif,
+[data-skin="modern"] .bg-card .font-serif.text-2xl,
+[data-skin="modern"] .bg-card .font-serif.text-xl {
+  font-size: 1.7rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+[data-skin="modern"] .bg-card > .text-xs.font-medium,
+[data-skin="modern"] .bg-card .text-xs.text-muted-foreground:first-child {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Tableaux : en-têtes discrets, lignes lisibles, actions calées ---------- */
+[data-skin="modern"] table th {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  background-color: color-mix(in oklab, var(--muted) 75%, transparent);
 }
 [data-skin="modern"] table td,
 [data-skin="modern"] table th {
-  padding-top: 0.7rem;
-  padding-bottom: 0.7rem;
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+[data-skin="modern"] table td {
+  font-variant-numeric: tabular-nums;
+  border-color: color-mix(in oklab, var(--m-line) 70%, transparent);
 }
 [data-skin="modern"] table tbody tr:hover {
-  background-color: color-mix(in oklab, var(--muted) 60%, transparent);
+  background-color: color-mix(in oklab, var(--primary) 6%, transparent);
+}
+
+/* ---------- Badges et pastilles : pilules nettes ---------- */
+[data-skin="modern"] .rounded-full.border,
+[data-skin="modern"] .rounded-md.border.px-2\.5 {
+  border-radius: 999px;
+}
+
+/* ---------- Champs : surface douce, focus franc ---------- */
+[data-skin="modern"] input,
+[data-skin="modern"] textarea,
+[data-skin="modern"] [role="combobox"] {
+  border-radius: calc(var(--radius) - 1px);
+}
+[data-skin="modern"] input:focus-visible,
+[data-skin="modern"] textarea:focus-visible,
+[data-skin="modern"] button:focus-visible,
+[data-skin="modern"] a:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--primary) 70%, transparent);
+  outline-offset: 2px;
+}
+
+/* ---------- Navigation latérale encre : plus lisible, plus aérée ---------- */
+[data-skin="modern"] aside {
+  background-color: var(--m-nav);
+  border-color: color-mix(in oklab, white 10%, var(--m-nav));
+  box-shadow: none;
+}
+[data-skin="modern"] aside .text-primary,
+[data-skin="modern"] aside .text-foreground {
+  color: var(--m-nav-fg);
+}
+[data-skin="modern"] aside .text-muted-foreground,
+[data-skin="modern"] aside .text-muted-foreground\/70,
+[data-skin="modern"] aside .text-muted-foreground\/60 {
+  color: color-mix(in oklab, var(--m-nav-fg) 62%, var(--m-nav));
+}
+[data-skin="modern"] aside .border-border,
+[data-skin="modern"] aside .border-border\/60 {
+  border-color: color-mix(in oklab, white 12%, var(--m-nav));
+}
+[data-skin="modern"] aside nav a {
+  min-height: 44px;
+  border-radius: calc(var(--radius) - 1px);
+  color: color-mix(in oklab, var(--m-nav-fg) 74%, var(--m-nav));
+  letter-spacing: -0.005em;
+}
+[data-skin="modern"] aside nav a:hover {
+  background-color: color-mix(in oklab, white 9%, transparent);
+  color: var(--m-nav-fg);
+}
+[data-skin="modern"] aside nav a[data-status="active"] {
+  background-color: color-mix(in oklab, white 14%, transparent);
+  color: var(--m-nav-fg);
+  box-shadow: inset 3px 0 0 var(--m-rail);
+}
+[data-skin="modern"] aside input {
+  background-color: color-mix(in oklab, white 8%, transparent);
+  border-color: color-mix(in oklab, white 14%, transparent);
+  color: var(--m-nav-fg);
+}
+[data-skin="modern"] aside button:hover {
+  color: var(--m-nav-fg);
+}
+
+/* Barre de navigation mobile : mêmes codes, zones tactiles préservées */
+[data-skin="modern"] nav.fixed {
+  background-color: color-mix(in oklab, var(--card) 96%, transparent);
+  border-color: var(--m-line);
+}
+[data-skin="modern"] nav.fixed a {
+  min-height: 48px;
+}
+
+/* ---------- Graphiques : zone dédiée, grille discrète ---------- */
+[data-skin="modern"] .recharts-wrapper {
+  border-radius: calc(var(--radius) - 1px);
+  background-color: color-mix(in oklab, var(--muted) 45%, transparent);
+  padding-top: 0.35rem;
+}
+[data-skin="modern"] .recharts-cartesian-grid line {
+  stroke: color-mix(in oklab, var(--foreground) 9%, transparent);
+}
+[data-skin="modern"] .recharts-cartesian-axis-tick text {
+  fill: var(--muted-foreground);
+  font-size: 11px;
 }
