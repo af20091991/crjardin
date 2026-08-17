@@ -91,13 +91,15 @@ function DirectionPage() {
       qualityMessage: "rapport de qualité",
       integrityStatus: report.status,
       integrityMessage: report.message,
+      // Exercice antérieur à 2026 : absence assumée, statut « non requis ».
+      year,
     });
     const map: Partial<Record<KpiKey, { readiness: KpiReadiness; explanation: string }>> = {};
     for (const r of rows) {
       map[r.contract.id as KpiKey] = { readiness: r.readiness, explanation: r.explanation };
     }
     return map;
-  }, [snapshot, dataStatus, report.status, report.message]);
+  }, [snapshot, dataStatus, report.status, report.message, year]);
 
   const kpis = useMemo(
     () => buildDirectionKpis({ snapshot, readiness, periodLabel: label }),
