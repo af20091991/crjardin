@@ -257,7 +257,13 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
   const states = input.states ?? {};
   const all: ControlAction[] = [];
   const push = (a: Omit<ControlAction, "state"> & { state?: ControlState }) => {
-    all.push({ ...a, state: states[a.key] ?? a.state ?? "en_attente" });
+    // Périmètre de certification : un exercice antérieur à 2026 ne sera jamais
+    // complété. L'élément est qualifié « non requis » (état final, tracé) au
+    // lieu d'être présenté comme une anomalie à traiter.
+    const scoped: ControlState | null = isOutOfCertificationScope(a.year)
+      ? "hors_perimetre"
+      : null;
+    all.push({ ...a, state: states[a.key] ?? scoped ?? a.state ?? "en_attente" });
   };
 
   // 1. Sources indisponibles (erreur de lecture) — jamais confondues avec un vide.
@@ -532,7 +538,10 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
     }
   }
 
-  const uncertifiedKpi = (input.kpi ?? []).filter((k) => k.readiness !== "certifie").length;
+  // Un KPI « non requis » (historique hors périmètre) n'est pas un KPI non certifié.
+  const uncertifiedKpi = (input.kpi ?? []).filter(
+    (k) => k.readiness !== "certifie" && k.readiness !== "non_requis",
+  ).length;
   const unavailableSources =
     (input.loadErrors ?? []).length +
     (input.integrity?.datasets ?? []).filter((d) => d.status === "indisponible").length;
