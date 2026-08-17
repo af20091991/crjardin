@@ -491,13 +491,11 @@ export async function setAnomalyStatus(
     if (error) throw error;
     return;
   }
-  const { error } = await supabase
-    .from(CHECK_TABLE)
-    .insert({
-      ...payload,
-      check_type: checkType,
-      target_table: "pilot",
-      detected_by: "quality-center",
-    });
+  const { error } = await supabase.from(CHECK_TABLE).insert({
+    ...payload,
+    check_type: checkType,
+    target_table: "pilot",
+    detected_by: "quality-center",
+  });
   if (error) throw error;
 }
