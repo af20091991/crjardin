@@ -10,6 +10,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as unknown as { from: (t: string) => any };
 
 // ── Normalisations (comparaison uniquement, jamais d'écriture) ──────────────
