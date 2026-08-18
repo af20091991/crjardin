@@ -38,9 +38,9 @@ describe("règle Facturé / Réglé", () => {
     const r = accountedSale({ amount_ht: 500, hours: 0, sale_status: "regle" });
     expect(r.amount_ht).toBe(500);
     expect(r.hours).toBe(0);
-    // 0 h n'est une donnée valide que sur une ligne qualifiée sous-traitée.
+    // 0 h explicitement saisi est une donnée valide, quel que soit le type.
     expect(saleTimeKnown({ hours: 0, intervention_type: "sst" })).toBe(true);
-    expect(saleTimeKnown({ hours: 0 })).toBe(false);
+    expect(saleTimeKnown({ hours: 0 })).toBe(true);
     expect(saleTimeKnown({ hours: null })).toBe(false);
   });
 });
