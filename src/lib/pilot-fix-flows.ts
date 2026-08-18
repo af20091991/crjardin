@@ -285,7 +285,7 @@ export async function classifyCharge(
 // Le temps métier provient EXCLUSIVEMENT de Chiffre d'affaires → Ventes → Temps.
 // Les heures des comptes-rendus (interventions.hours_spent) ne sont plus
 // corrigées ici : elles ne participent à aucun calcul.
-// Rappel : 0 h est une valeur VALIDE pour une ligne de type SST.
+// Rappel : 0 h explicitement saisi est une valeur VALIDE (interne comme SST).
 
 export interface SaleMissingTime {
   id: string;

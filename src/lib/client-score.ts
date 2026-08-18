@@ -330,7 +330,7 @@ export async function getClientEconomicScores(options?: AsOfOptions): Promise<Cl
     e.caLines += 1;
     // Nombre d'interventions économiques = lignes de vente de l'exercice.
     e.interventionsCount += 1;
-    // Ligne RETENUE = Temps documenté (> 0 h, ou 0 h qualifié SST).
+    // Ligne RETENUE = Temps documenté (> 0 h, ou 0 h explicitement saisi).
     if (saleRateEligible(r as SaleRateRow)) {
       const h = Number((r as { hours?: number | null }).hours) || 0;
       e.caLinesWithHours += 1;
@@ -459,7 +459,7 @@ export async function getClientEconomicScore(
     revenueYearHt += ht;
     // Même exercice = même périmètre (CA + Temps de l'exercice courant).
     caLines += 1;
-    // Ligne RETENUE = Temps documenté (> 0 h, ou 0 h qualifié SST).
+    // Ligne RETENUE = Temps documenté (> 0 h, ou 0 h explicitement saisi).
     if (saleRateEligible(r as SaleRateRow)) {
       const h = Number((r as { hours?: number | null }).hours) || 0;
       caLinesWithHours += 1;

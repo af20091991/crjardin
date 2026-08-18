@@ -105,7 +105,7 @@ export function usePilotIntegrity(): {
       engineHoursVendues: snapshot?.hours.vendues ?? null,
       engineHoursReelles: snapshot?.hours.reelles ?? null,
       // Numérateur canonique du taux horaire : CA des seules lignes dont le
-      // Temps est documenté (Temps > 0, ou 0 h qualifié SST).
+      // Temps est documenté (Temps > 0, ou 0 h explicitement saisi).
       salesTimedLinesHt: sales ? saleRateScope(sales).caTimed : null,
       engineTauxHoraireReel: snapshot?.rates.tauxHoraireReel ?? null,
       sstMissionCost: sst.report?.missionTotal ?? null,

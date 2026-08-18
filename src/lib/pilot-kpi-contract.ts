@@ -236,7 +236,7 @@ const CONTRACTS: KpiContract[] = [
     unit: "heures",
     calculationReference: "resolveRealHours → vendues (src/lib/pilot-real-hours.ts)",
     missingDataRule:
-      "Aucune heure saisie : 0 h est une valeur métier valide (ventes SST), pas une absence de donnée.",
+      "Aucune heure saisie : 0 h explicitement saisi est une valeur métier valide, pas une absence de donnée.",
     reliabilityStatus: "certifie",
   },
   {
