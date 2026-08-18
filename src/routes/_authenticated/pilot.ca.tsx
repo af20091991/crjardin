@@ -237,139 +237,15 @@ function CaPage() {
       </div>
 
       {/*
-       * Corps de saisie : CHARGES à gauche, VENTES à droite.
-       * Ordre DOM = ordre visuel (aucune inversion CSS), deux colonnes dès
-       * 1280 px, empilement Charges puis Ventes en dessous.
+       * Corps de saisie : VENTES en haut, CHARGES en bas.
+       * Ordre DOM = ordre visuel, disposition verticale à toutes les largeurs.
        */}
       <div
         data-testid="ca-workbench"
         data-density={density}
-        className={`grid grid-cols-1 items-start gap-4 lg:grid-cols-2 ${CA_DENSITY_CLASS[density]}`}
+        className={`flex flex-col gap-4 ${CA_DENSITY_CLASS[density]}`}
       >
-        <div data-testid="ca-charges-column" className="min-w-0 space-y-4">
-          {/* Charges */}
-          <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-charges) 7%, transparent)" }}>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
-              <CardTitle className="text-base">Détails des charges</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => addRow("charge")}><Plus className="mr-1 h-4 w-4" />Ligne</Button>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-              <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
-                <colgroup>
-                  <col style={{ width: chargeCols.widths.designation }} />
-                  <col style={{ width: chargeCols.widths.montant }} />
-                  <col style={{ width: chargeCols.widths.actions }} />
-                </colgroup>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="relative">Désignation<ResizeHandle width={chargeCols.widths.designation} onResize={(w) => chargeCols.setWidth("designation", w)} /></TableHead>
-                    <TableHead className="relative text-right">Montant HT<ResizeHandle width={chargeCols.widths.montant} onResize={(w) => chargeCols.setWidth("montant", w)} /></TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {charges.length === 0 && <TableRow><TableCell colSpan={3} className="py-6 text-center text-sm text-muted-foreground">Aucune charge — ajoutez une ligne</TableCell></TableRow>}
-                  {charges.map((row) => {
-                    const hasNote = !!row.note;
-                    // Commentaire replié par défaut : aucune donnée perdue,
-                    // ouverture en un clic via « Voir le commentaire ».
-                    const opened = !!openNote[row.id];
-                    return (
-                    <Fragment key={row.id}>
-                    <TableRow>
-                      <TableCell>
-                        <Input defaultValue={row.designation ?? ""} placeholder="Désignation" title={row.designation ?? undefined} className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Input defaultValue={row.amount_ht || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }} />
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title={hasNote ? "Voir le commentaire" : "Ajouter un commentaire"} onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(row.id)}><Trash2 className="h-4 w-4" /></Button>
-                      </TableCell>
-                    </TableRow>
-                    {hasNote && !opened && (
-                      <TableRow>
-                        <TableCell colSpan={3} className="py-1">
-                          <button
-                            type="button"
-                            className="text-xs font-medium text-primary hover:underline"
-                            onClick={() => toggleNote(row.id)}
-                          >
-                            Voir le commentaire
-                          </button>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {opened && (
-                      <TableRow>
-                        <TableCell colSpan={3} className="bg-muted/20 py-2">
-                          <Textarea
-                            defaultValue={row.note ?? ""}
-                            placeholder="Commentaire (optionnel)…"
-                            className="min-h-[60px] text-sm"
-                            onBlur={(e) => {
-                              const v = e.target.value;
-                              if (v !== (row.note ?? "")) save(row.id, { note: v });
-                            }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    </Fragment>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-              </div>
-              <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
-                <span className="font-medium">Total charges {MONTH_NAMES[month - 1]}</span>
-                <span className="font-semibold text-rose-600">{formatEuro(mt.chargesHt)}</span>
-              </div>
-              {/* Rémunération */}
-            </CardContent>
-          </Card>
-
-          {/* Rémunération — séparée des charges d'exploitation */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
-              <CardTitle className="text-base">Rémunération {MONTH_NAMES[month - 1]}</CardTitle>
-              {remus.length === 0 && (
-                <Button size="sm" variant="outline" onClick={() => addRow("remuneration")}>
-                  <Plus className="mr-1 h-4 w-4" />Définir
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {remus.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune rémunération saisie pour ce mois.</p>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="flex-1 text-sm">Rémunération nette</span>
-                    <Input defaultValue={remus[0].amount_ht || ""} type="number" inputMode="decimal" className="h-8 w-32 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== remus[0].amount_ht) save(remus[0].id, { amount_ht: v }); }} />
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(remus[0].id)}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                  <RemunerationBreakdown net={remus[0].amount_ht} />
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/*
-           * Panneau « charges fixes » legacy retiré (audit V2.3+, anomalie 3) :
-           * il lisait la table `pilot_fixed_charges`, doublon des charges du
-           * classeur. Source unique désormais : pilot_ca_entries.
-           * La table est conservée en base, aucune donnée supprimée.
-           */}
-          <p className="rounded-lg border border-dashed border-border/70 px-3 py-2 text-xs text-muted-foreground">
-            Source unique des charges : le classeur CA / charges ci-contre. L'ancien tableau de charges fixes
-            mensuelles a été retiré pour éviter tout double comptage.
-          </p>
-        </div>
-
-        <div data-testid="ca-ventes-column" className="min-w-0 space-y-4">
+<div data-testid="ca-ventes-column" className="min-w-0 space-y-4">
 
           {/* Ventes — source de vérité unique */}
           <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-sales) 7%, transparent)" }}>
@@ -575,6 +451,129 @@ function CaPage() {
 
           <Calculators onUse={(v) => { setPending(v); toast.success(`Résultat prêt : ${formatEuro(v)}`); }} />
         </div>
+<div data-testid="ca-charges-column" className="min-w-0 space-y-4">
+          {/* Charges */}
+          <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-charges) 7%, transparent)" }}>
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
+              <CardTitle className="text-base">Détails des charges</CardTitle>
+              <Button size="sm" variant="outline" onClick={() => addRow("charge")}><Plus className="mr-1 h-4 w-4" />Ligne</Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+              <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
+                <colgroup>
+                  <col style={{ width: chargeCols.widths.designation }} />
+                  <col style={{ width: chargeCols.widths.montant }} />
+                  <col style={{ width: chargeCols.widths.actions }} />
+                </colgroup>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="relative">Désignation<ResizeHandle width={chargeCols.widths.designation} onResize={(w) => chargeCols.setWidth("designation", w)} /></TableHead>
+                    <TableHead className="relative text-right">Montant HT<ResizeHandle width={chargeCols.widths.montant} onResize={(w) => chargeCols.setWidth("montant", w)} /></TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {charges.length === 0 && <TableRow><TableCell colSpan={3} className="py-6 text-center text-sm text-muted-foreground">Aucune charge — ajoutez une ligne</TableCell></TableRow>}
+                  {charges.map((row) => {
+                    const hasNote = !!row.note;
+                    // Commentaire replié par défaut : aucune donnée perdue,
+                    // ouverture en un clic via « Voir le commentaire ».
+                    const opened = !!openNote[row.id];
+                    return (
+                    <Fragment key={row.id}>
+                    <TableRow>
+                      <TableCell>
+                        <Input defaultValue={row.designation ?? ""} placeholder="Désignation" title={row.designation ?? undefined} className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input" onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Input defaultValue={row.amount_ht || ""} type="number" inputMode="decimal" className="h-8 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }} />
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Button size="icon" variant="ghost" className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`} title={hasNote ? "Voir le commentaire" : "Ajouter un commentaire"} onClick={() => toggleNote(row.id)}><MessageSquare className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(row.id)}><Trash2 className="h-4 w-4" /></Button>
+                      </TableCell>
+                    </TableRow>
+                    {hasNote && !opened && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="py-1">
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-primary hover:underline"
+                            onClick={() => toggleNote(row.id)}
+                          >
+                            Voir le commentaire
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {opened && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="bg-muted/20 py-2">
+                          <Textarea
+                            defaultValue={row.note ?? ""}
+                            placeholder="Commentaire (optionnel)…"
+                            className="min-h-[60px] text-sm"
+                            onBlur={(e) => {
+                              const v = e.target.value;
+                              if (v !== (row.note ?? "")) save(row.id, { note: v });
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              </div>
+              <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
+                <span className="font-medium">Total charges {MONTH_NAMES[month - 1]}</span>
+                <span className="font-semibold text-rose-600">{formatEuro(mt.chargesHt)}</span>
+              </div>
+              {/* Rémunération */}
+            </CardContent>
+          </Card>
+
+          {/* Rémunération — séparée des charges d'exploitation */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
+              <CardTitle className="text-base">Rémunération {MONTH_NAMES[month - 1]}</CardTitle>
+              {remus.length === 0 && (
+                <Button size="sm" variant="outline" onClick={() => addRow("remuneration")}>
+                  <Plus className="mr-1 h-4 w-4" />Définir
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {remus.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucune rémunération saisie pour ce mois.</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 text-sm">Rémunération nette</span>
+                    <Input defaultValue={remus[0].amount_ht || ""} type="number" inputMode="decimal" className="h-8 w-32 text-right" onBlur={(e) => { const v = num(e.target.value); if (v !== remus[0].amount_ht) save(remus[0].id, { amount_ht: v }); }} />
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(remus[0].id)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                  <RemunerationBreakdown net={remus[0].amount_ht} />
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/*
+           * Panneau « charges fixes » legacy retiré (audit V2.3+, anomalie 3) :
+           * il lisait la table `pilot_fixed_charges`, doublon des charges du
+           * classeur. Source unique désormais : pilot_ca_entries.
+           * La table est conservée en base, aucune donnée supprimée.
+           */}
+          <p className="rounded-lg border border-dashed border-border/70 px-3 py-2 text-xs text-muted-foreground">
+            Source unique des charges : le classeur CA / charges ci-contre. L'ancien tableau de charges fixes
+            mensuelles a été retiré pour éviter tout double comptage.
+          </p>
+        </div>
+      </div>
       </div>
 
       <OriginDialog
