@@ -55,7 +55,10 @@ export function parseExcelHours(raw: unknown): ExcelTime {
   }
   const s = String(raw).trim();
   if (s === "") return { kind: "inconnu", raw: s };
-  const cleaned = s.replace(/\u00a0|\s/g, "").replace(/h$/i, "").replace(",", ".");
+  const cleaned = s
+    .replace(/\u00a0|\s/g, "")
+    .replace(/h$/i, "")
+    .replace(",", ".");
   if (!/^-?\d+(\.\d+)?$/.test(cleaned)) return { kind: "inconnu", raw: s };
   const n = Number(cleaned);
   if (!Number.isFinite(n) || n < 0) return { kind: "invalide", raw: s };
@@ -389,9 +392,7 @@ export function excelRowsFromMatrix(matrix: unknown[][]): ExcelSaleRow[] {
       designation,
       amountHt: normalizeAmount(at("amountHt")),
       interventionType:
-        map.interventionType == null
-          ? null
-          : String(at("interventionType") ?? "").trim() || null,
+        map.interventionType == null ? null : String(at("interventionType") ?? "").trim() || null,
       time: parseExcelHours(at("time")),
     });
   }

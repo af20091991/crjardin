@@ -10,7 +10,13 @@ import {
   type CaSaleRow,
   type ExcelSaleRow,
 } from "@/lib/pilot-excel-time";
-import { saleTimeKnown, saleTimeMissing, saleTimeState, saleRateEligible, saleRateScope } from "@/lib/pilot-sale-time";
+import {
+  saleTimeKnown,
+  saleTimeMissing,
+  saleTimeState,
+  saleRateEligible,
+  saleRateScope,
+} from "@/lib/pilot-sale-time";
 
 const sale = (over: Partial<CaSaleRow> = {}): CaSaleRow => ({
   id: "s1",
@@ -94,8 +100,9 @@ describe("lecture stricte du Temps Excel", () => {
 
 describe("rapprochement sûr", () => {
   test("clé déterministe : période + identité + montant", () => {
-    expect(matchKey({ year: 2026, month: 3, client: "Bodard", designation: "Taille", amountHt: 1200 }))
-      .toBe("2026|03|bodard|taille|1200.00");
+    expect(
+      matchKey({ year: 2026, month: 3, client: "Bodard", designation: "Taille", amountHt: 1200 }),
+    ).toBe("2026|03|bodard|taille|1200.00");
   });
 
   test("correspondance unique à 0 : restauration démontrable et journalisable", () => {
@@ -151,14 +158,21 @@ describe("rapprochement sûr", () => {
   });
 
   test("type de prestation divergent : pas de correspondance", () => {
-    const p = buildTimeProof(sale({ interventionType: "sst" }), [xl({ interventionType: "interne" })], true);
+    const p = buildTimeProof(
+      sale({ interventionType: "sst" }),
+      [xl({ interventionType: "interne" })],
+      true,
+    );
     expect(p.verdict).toBe("absent_excel");
   });
 
   test("synthèse : chaque ligne est comptée une seule fois", () => {
     const r = reconcileSaleTimes({
       sales: [sale(), sale({ id: "s2", designation: "Tonte", amountHt: 300 })],
-      excel: [xl(), xl({ rowIndex: 20, designation: "Tonte", amountHt: 300, time: parseExcelHours("2") })],
+      excel: [
+        xl(),
+        xl({ rowIndex: 20, designation: "Tonte", amountHt: 300, time: parseExcelHours("2") }),
+      ],
     });
     expect(r.proofs).toHaveLength(2);
     expect(r.counts.zero_confirme).toBe(1);
