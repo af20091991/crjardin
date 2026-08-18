@@ -574,7 +574,6 @@ function CaPage() {
           </p>
         </div>
       </div>
-      </div>
 
       <OriginDialog
         entry={originFor}
