@@ -49,15 +49,23 @@ describe("page Chiffre d'affaires — agencement", () => {
     }
     // Sélecteur de client, inputs montant/temps, actions commentaire/lien/suppression.
     expect(src).toContain("<ClientPicker");
-    expect(src).toContain('onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }}');
-    expect(src).toContain('onBlur={(e) => {\n                            const raw = e.target.value.trim();');
+    expect(src).toContain(
+      "onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }}",
+    );
+    expect(src).toContain(
+      "onBlur={(e) => {\n                            const raw = e.target.value.trim();",
+    );
   });
 
   it("conserve toutes les colonnes et champs de saisie Charges", () => {
     expect(src).toContain("Détails des charges");
     expect(src).toContain('onClick={() => addRow("charge")');
-    expect(src).toContain('onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }}');
-    expect(src).toContain('onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }}');
+    expect(src).toContain(
+      'onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }}',
+    );
+    expect(src).toContain(
+      "onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }}",
+    );
   });
 
   it("replie le commentaire par défaut avec une ouverture en un clic", () => {
