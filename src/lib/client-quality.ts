@@ -10,7 +10,7 @@ export interface ClientQualityInput {
   interventions: number;
   /**
    * Nombre de lignes de vente (Chiffre d'affaires → Ventes) dont le Temps est
-   * documenté — source UNIQUE des heures. 0 h sur une ligne SST compte comme
+   * documenté — source UNIQUE des heures. 0 h explicitement saisi compte comme
    * documenté. Les heures des comptes-rendus n'entrent pas dans ce compte.
    */
   interventionsWithHours: number;
