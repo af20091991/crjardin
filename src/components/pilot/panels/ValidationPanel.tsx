@@ -18,6 +18,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { PilotCard } from "@/components/pilot/PilotCard";
+import { SaleTimeExcelPanel } from "@/components/pilot/panels/SaleTimeExcelPanel";
 import { CHARGE_CLASS_LABELS, listChargeCategories, type ChargeClass } from "@/lib/pilot-charges";
 import {
   classifyAsOtherVariable,
@@ -354,6 +355,8 @@ export function ValidationPage() {
       </Card>
         </TabsContent>
       </Tabs>
+
+      <SaleTimeExcelPanel />
     </div>
   );
 }
