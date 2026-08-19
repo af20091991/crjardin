@@ -72,8 +72,8 @@ describe("page Chiffre d'affaires — agencement", () => {
     expect(src).toContain("Densité compacte");
   });
 
-  it("conserve la création directe d'investissement", () => {
-    expect(src).toContain("is_investment");
+  it("conserve le bouton d'ajout de ligne charge", () => {
+    expect(src).toContain("Détails des charges");
     expect(src).toContain('onClick={() => addRow("charge")');
   });
 });
