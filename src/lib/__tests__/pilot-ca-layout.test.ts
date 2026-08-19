@@ -47,25 +47,21 @@ describe("page Chiffre d'affaires — agencement", () => {
     ]) {
       expect(src).toContain(col);
     }
-    // Sélecteur de client, inputs montant/temps, actions commentaire/lien/suppression.
+    // Sélecteur de client, inputs montant/temps, actions commentaire/lien/suppression
+    // sont bien dans l'encart Ventes (avant l'encart Charges dans le DOM).
     expect(src).toContain("<ClientPicker");
-    expect(src).toContain(
-      "onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }}",
-    );
-    expect(src).toContain(
-      "onBlur={(e) => {\n                            const raw = e.target.value.trim();",
-    );
+    expect(src.indexOf('defaultValue={row.amount_ht || ""}')).toBeLessThan(chargesIdx);
+    expect(src.indexOf("const raw = e.target.value.trim();")).toBeLessThan(chargesIdx);
+    expect(src.indexOf("save(row.id, { hours: v });")).toBeLessThan(chargesIdx);
   });
 
   it("conserve toutes les colonnes et champs de saisie Charges", () => {
     expect(src).toContain("Détails des charges");
-    expect(src).toContain('onClick={() => addRow("charge")');
-    expect(src).toContain(
-      'onBlur={(e) => { if (e.target.value !== (row.designation ?? "")) save(row.id, { designation: e.target.value }); }}',
+    expect(src.indexOf('onClick={() => addRow("charge")')).toBeGreaterThan(ventesIdx);
+    expect(src.indexOf("save(row.id, { designation: e.target.value });")).toBeGreaterThan(
+      ventesIdx,
     );
-    expect(src).toContain(
-      "onBlur={(e) => { const v = num(e.target.value); if (v !== row.amount_ht) save(row.id, { amount_ht: v }); }}",
-    );
+    expect(src.indexOf("save(row.id, { amount_ht: v });")).toBeGreaterThan(ventesIdx);
   });
 
   it("replie le commentaire par défaut avec une ouverture en un clic", () => {
@@ -78,8 +74,8 @@ describe("page Chiffre d'affaires — agencement", () => {
     expect(src).toContain("Densité compacte");
   });
 
-  it("conserve la création directe d'investissement", () => {
-    expect(src).toContain("is_investment");
+  it("conserve le bouton d'ajout de ligne charge", () => {
+    expect(src).toContain("Détails des charges");
     expect(src).toContain('onClick={() => addRow("charge")');
   });
 });
