@@ -50,15 +50,17 @@ describe("page Chiffre d'affaires — agencement", () => {
     // Sélecteur de client, inputs montant/temps, actions commentaire/lien/suppression
     // sont bien dans l'encart Ventes (avant l'encart Charges dans le DOM).
     expect(src).toContain("<ClientPicker");
-    expect(src.indexOf("defaultValue={row.amount_ht || \"\"}")).toBeLessThan(chargesIdx);
+    expect(src.indexOf('defaultValue={row.amount_ht || ""}')).toBeLessThan(chargesIdx);
     expect(src.indexOf("const raw = e.target.value.trim();")).toBeLessThan(chargesIdx);
-    expect(src.indexOf('save(row.id, { hours: v });')).toBeLessThan(chargesIdx);
+    expect(src.indexOf("save(row.id, { hours: v });")).toBeLessThan(chargesIdx);
   });
 
   it("conserve toutes les colonnes et champs de saisie Charges", () => {
     expect(src).toContain("Détails des charges");
     expect(src.indexOf('onClick={() => addRow("charge")')).toBeGreaterThan(ventesIdx);
-    expect(src.indexOf("save(row.id, { designation: e.target.value });")).toBeGreaterThan(ventesIdx);
+    expect(src.indexOf("save(row.id, { designation: e.target.value });")).toBeGreaterThan(
+      ventesIdx,
+    );
     expect(src.indexOf("save(row.id, { amount_ht: v });")).toBeGreaterThan(ventesIdx);
   });
 
