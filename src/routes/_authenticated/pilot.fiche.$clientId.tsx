@@ -903,10 +903,10 @@ function HeaderStat({
   icon: React.ComponentType<{ className?: string }>; label: string; value: string; color?: string;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
-      <Icon className="h-4 w-4 shrink-0 text-primary/70" />
+    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-2.5 py-1.5">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-primary/70" />
       <div className="min-w-0">
-        <div className="text-[11px] text-muted-foreground">{label}</div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
         <div className="truncate text-sm font-medium" style={color ? { color } : undefined}>{value}</div>
       </div>
     </div>
