@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getClient, REPORT_POLICY_META, type ReportPolicy } from "@/lib/clients";
+import { getClient, REPORT_POLICY_META, type ReportPolicy, type ClientLifecycle } from "@/lib/clients";
 import { getClientEconomicScore, SCORE_META } from "@/lib/client-score";
 import { computeScoreBreakdown } from "@/lib/client-score-breakdown";
 import { listNextBestOffers, explainOffer, reasonLabel, formatSeason } from "@/lib/next-best-offers";
@@ -305,11 +305,11 @@ function PilotClient360() {
 
       {/* 1 — En-tête client */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+        <CardContent className="pt-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="font-serif text-2xl font-semibold">{client.name}</h1>
+                <h1 className="font-serif text-xl font-semibold">{client.name}</h1>
                 {scoreMeta && (
                   <Badge variant="outline" className="gap-1" style={{ borderColor: scoreMeta.color, color: scoreMeta.color }}>
                     <span>{scoreMeta.emoji}</span>{scoreMeta.label}
@@ -334,13 +334,13 @@ function PilotClient360() {
                 {client.contract_type && <Badge variant="secondary">{client.contract_type}</Badge>}
                 <EntityStatusBadge status={score?.entityStatus} />
               </div>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                 {client.address && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{client.address}</span>}
                 {client.phone && <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{client.phone}</span>}
                 {client.email && <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{client.email}</span>}
                 {client.frequency && <span>Fréquence : {client.frequency}</span>}
               </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
                 <HeaderStat icon={Wallet} label="CA cumulé" value={formatEuro(caCumule)} />
                 <HeaderStat
                   icon={CalendarClock}
@@ -361,14 +361,14 @@ function PilotClient360() {
 
       {/* Séparation stricte : entité économique vs contacts / sites */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <ShieldCheck className="h-4 w-4 text-primary" />
             Identité économique & interlocuteurs
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-lg border border-border p-3">
+        <CardContent className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-lg border border-border p-2.5">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Entité économique cliente
             </p>
@@ -392,7 +392,7 @@ function PilotClient360() {
               </li>
             </ul>
           </div>
-          <div className="rounded-lg border border-border p-3">
+          <div className="rounded-lg border border-border p-2.5">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Contacts associés (personnes physiques)
             </p>
@@ -484,6 +484,15 @@ function PilotClient360() {
       <ClientQualityCard
         clientId={clientId}
         input={qualityInput}
+        client={{
+          name: client.name,
+          address: client.address ?? null,
+          phone: client.phone ?? null,
+          email: client.email ?? null,
+          report_policy: policy,
+          lifecycle_status: (client.lifecycle_status ?? "actif") as ClientLifecycle,
+        }}
+        entityStatus={score?.entityStatus}
         details={[
           { label: "CA associé", value: formatEuro(caCumule) },
           { label: "Interventions", value: String(crTotal) },
@@ -903,10 +912,10 @@ function HeaderStat({
   icon: React.ComponentType<{ className?: string }>; label: string; value: string; color?: string;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
-      <Icon className="h-4 w-4 shrink-0 text-primary/70" />
+    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-2.5 py-1.5">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-primary/70" />
       <div className="min-w-0">
-        <div className="text-[11px] text-muted-foreground">{label}</div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
         <div className="truncate text-sm font-medium" style={color ? { color } : undefined}>{value}</div>
       </div>
     </div>

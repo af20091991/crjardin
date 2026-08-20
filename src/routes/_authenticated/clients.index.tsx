@@ -7,6 +7,8 @@
 // ---------------------------------------------------------------------------
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { keepForLifecycle, splitFavorites } from "@/lib/client-list-view";
+import { Switch } from "@/components/ui/switch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -113,6 +115,8 @@ function ClientsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortKey>("name");
+  // Les clients perdus sont exclus par défaut (règle d'affichage, pas de calcul).
+  const [showLost, setShowLost] = useState(false);
 
   const { data: clients, isLoading } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: recos } = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
@@ -200,6 +204,7 @@ function ClientsPage() {
       if (status === "cr_a_qualifier") {
         if ((c.report_policy ?? "a_confirmer") !== "a_confirmer") return false;
       } else if (status !== "all" && r.activity !== status) return false;
+      if (!keepForLifecycle(c.lifecycle_status, status, showLost)) return false;
       if (!q) return true;
       return [c.name, c.address, c.email, c.phone, c.contract_type]
         .filter(Boolean)
@@ -219,10 +224,12 @@ function ClientsPage() {
       }
     });
     return sorted;
-  }, [rows, search, status, sort]);
+  }, [rows, search, status, sort, showLost]);
 
-  const favoriteRows = filtered.filter((r) => favorites.has(r.client.id));
-  const otherRows = filtered.filter((r) => !favorites.has(r.client.id));
+  const { favorites: favoriteRows, others: otherRows } = splitFavorites(filtered, (r) =>
+    favorites.has(r.client.id),
+  );
+  const lostCount = rows.filter((r) => (r.client.lifecycle_status ?? "actif") === "perdu").length;
 
   const suspects = useMemo(() => findSuspectClients(clients ?? []), [clients]);
 
@@ -415,6 +422,15 @@ function ClientsPage() {
               <SelectItem value="recent">Tri : activité récente</SelectItem>
             </SelectContent>
           </Select>
+          <label className="flex shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground">
+            <Switch
+              checked={showLost || status === "perdu"}
+              disabled={status === "perdu"}
+              onCheckedChange={setShowLost}
+              aria-label="Afficher les clients perdus"
+            />
+            Afficher les perdus ({lostCount})
+          </label>
           {canEdit && (
             <>
               <ClientForm
@@ -453,24 +469,23 @@ function ClientsPage() {
             ) : filtered.length === 0 ? (
               <EmptyState hasClients={(clients?.length ?? 0) > 0} />
             ) : (
-              <div className="space-y-4">
+              <div className="grid gap-4 lg:grid-cols-2">
                 {favoriteRows.length > 0 && (
-                  <div className="space-y-2">
+                  <section className="space-y-2">
                     <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
                       Clients favoris ({favoriteRows.length})
                     </div>
                     <div className="space-y-2">{favoriteRows.map(renderRow)}</div>
-                  </div>
+                  </section>
                 )}
-                <div className="space-y-2">
-                  {favoriteRows.length > 0 && (
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Tous les clients ({otherRows.length})
-                    </div>
-                  )}
-                  {otherRows.map(renderRow)}
-                </div>
+                <section className="space-y-2">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {favoriteRows.length > 0 ? "Autres clients" : "Tous les clients"} (
+                    {otherRows.length})
+                  </div>
+                  <div className="space-y-2">{otherRows.map(renderRow)}</div>
+                </section>
               </div>
             )}
           </TabsContent>
