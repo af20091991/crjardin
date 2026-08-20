@@ -280,18 +280,24 @@ function FixPopover({
             {f === "report_policy" || f === "lifecycle_status" ? (
               <div className="flex flex-wrap gap-1">
                 {(f === "report_policy"
-                  ? (["oui", "non", "a_confirmer"] as const)
-                  : (["actif", "perdu"] as const)
-                ).map((v) => (
+                  ? (["oui", "non", "a_confirmer"] as ReportPolicy[]).map((v) => ({
+                      value: v as string,
+                      label: REPORT_POLICY_META[v].short,
+                    }))
+                  : (["actif", "perdu"] as ClientLifecycle[]).map((v) => ({
+                      value: v as string,
+                      label: LIFECYCLE_META[v].label,
+                    }))
+                ).map((o) => (
                   <Button
-                    key={v}
+                    key={o.value}
                     type="button"
                     size="sm"
-                    variant={values[f] === v ? "secondary" : "ghost"}
+                    variant={values[f] === o.value ? "secondary" : "ghost"}
                     className="h-7 px-2 text-xs"
-                    onClick={() => setValues((s) => ({ ...s, [f]: v }))}
+                    onClick={() => setValues((s) => ({ ...s, [f]: o.value }))}
                   >
-                    {f === "report_policy" ? REPORT_POLICY_META[v].short : LIFECYCLE_META[v].label}
+                    {o.label}
                   </Button>
                 ))}
               </div>

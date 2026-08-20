@@ -52,7 +52,9 @@ type Section =
   | "integrite";
 
 export const Route = createFileRoute("/_authenticated/pilot/controle")({
-  validateSearch: (search: Record<string, unknown>): { section?: Section; sub?: string } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { section?: Section; sub?: string; client?: string } => ({
     section: (
       [
         "actions",
@@ -72,6 +74,9 @@ export const Route = createFileRoute("/_authenticated/pilot/controle")({
       ? (search.section as Section)
       : undefined,
     sub: typeof search.sub === "string" ? search.sub : undefined,
+    // Client d'origine (fiche 360°) : simple repère de contexte, aucun filtrage
+    // automatique des décisions humaines.
+    client: typeof search.client === "string" ? search.client : undefined,
   }),
   head: () => ({
     meta: [
