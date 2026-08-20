@@ -99,7 +99,7 @@ export const Route = createFileRoute("/_authenticated/pilot/controle")({
 });
 
 function ControlCenterPage() {
-  const { section = "actions", sub } = Route.useSearch();
+  const { section = "actions", sub, client } = Route.useSearch();
 
   return (
     <div className="space-y-5">
@@ -112,6 +112,12 @@ function ControlCenterPage() {
           Diagnostic, décisions humaines et corrections guidées. Aucun rapprochement automatique,
           aucune migration : chaque action reste validée et historisée.
         </p>
+        {client && (
+          <p className="text-xs text-muted-foreground">
+            Ouvert depuis une fiche client : traitez ci-dessous l'élément à rapprocher, puis
+            revenez à la fiche 360° pour vérifier la complétude.
+          </p>
+        )}
       </header>
 
       <Tabs value={section}>
