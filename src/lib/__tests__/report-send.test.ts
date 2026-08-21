@@ -184,3 +184,31 @@ describe("notifyClient : un seul chemin de reprise", () => {
     expect(src).not.toContain("alreadySent:");
   });
 });
+
+describe("clé d'idempotence — renvoi volontaire", () => {
+  it("réutilise la même clé pour tous les destinataires d'une même tentative", () => {
+    const a = reportIdempotencyKey("iv1", "a@x.fr", "path/x.pdf", "att1");
+    const b = reportIdempotencyKey("iv1", "a@x.fr", "path/x.pdf", "att1");
+    expect(a).toBe(b);
+  });
+
+  it("produit une clé différente à chaque nouvelle tentative", () => {
+    const a = reportIdempotencyKey("iv1", "a@x.fr", "path/x.pdf", "att1");
+    const b = reportIdempotencyKey("iv1", "a@x.fr", "path/x.pdf", "att2");
+    expect(a).not.toBe(b);
+  });
+
+  it("un second envoi de la même archive ne réutilise pas la clé précédente", async () => {
+    const keys: string[] = [];
+    const deps = {
+      sendEmail: async (_r: string, k: string) => { keys.push(k); },
+      logSent: async () => {},
+      markSent: async () => {},
+    };
+    const params = { interventionId: "iv1", pdfStoragePath: "p/x.pdf", recipients: ["a@x.fr"] };
+    await sendReportToRecipients(deps, params);
+    await sendReportToRecipients(deps, params);
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).not.toBe(keys[1]);
+  });
+});
