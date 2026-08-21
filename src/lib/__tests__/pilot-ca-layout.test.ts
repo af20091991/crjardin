@@ -78,4 +78,21 @@ describe("page Chiffre d'affaires — agencement", () => {
     expect(src).toContain("Détails des charges");
     expect(src).toContain('onClick={() => addRow("charge")');
   });
+
+  it("n'a qu'une seule source de vérité pour la période (pas de sélecteur local dupliqué)", () => {
+    expect(src).not.toContain("displayMode");
+    expect(src).not.toContain('value="annee"');
+    expect(src).not.toContain("Exercice en cours (01/01");
+  });
+
+  it("fait dépendre la navigation des mois du period global", () => {
+    expect(src).toContain('period === "exercice_complet" || !isCurrentYear ? 12');
+    expect(src).toContain("realizedMonthLimit(year, now)");
+  });
+
+  it("affiche le tableau annuel uniquement quand period vaut exercice_complet", () => {
+    const idx = src.indexOf("{period === \"exercice_complet\" && (");
+    expect(idx).toBeGreaterThan(0);
+    expect(src.indexOf("<AnnualMonthsTable", idx)).toBeGreaterThan(idx);
+  });
 });

@@ -142,7 +142,6 @@ function CaPage() {
   const { year } = usePilotYear();
   const { period } = usePilotPeriod();
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
-  const [displayMode, setDisplayMode] = useState<"exercice" | "annee">("exercice");
   const [pending, setPending] = useState<number | null>(null);
   const [openNote, setOpenNote] = useState<Record<string, boolean>>({});
   const toggleNote = (id: string) => setOpenNote((s) => ({ ...s, [id]: !s[id] }));
@@ -216,7 +215,7 @@ function CaPage() {
   const now = new Date();
   const isCurrentYear = year === now.getFullYear();
   const monthsVisible =
-    displayMode === "exercice" && isCurrentYear ? Math.max(realizedMonthLimit(year, now), 1) : 12;
+    period === "exercice_complet" || !isCurrentYear ? 12 : Math.max(realizedMonthLimit(year, now), 1);
 
   useMemo(() => {
     if (month > monthsVisible) setMonth(monthsVisible);
@@ -260,18 +259,6 @@ function CaPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="font-serif text-xl font-semibold">CA {year}</span>
         <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={displayMode}
-            onValueChange={(v) => setDisplayMode(v as "exercice" | "annee")}
-          >
-            <SelectTrigger className="h-8 w-[260px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="exercice">Exercice en cours (01/01 → aujourd'hui)</SelectItem>
-              <SelectItem value="annee">Année complète</SelectItem>
-            </SelectContent>
-          </Select>
           {pending != null && (
             <Badge variant="secondary" className="gap-1">
               Résultat prêt : {formatEuro(pending)} — cliquez « + Ligne »
@@ -310,13 +297,8 @@ function CaPage() {
       </div>
 
       {/* Mode « année complète » : les 12 mois de l'exercice, saisies telles quelles */}
-      {(period === "exercice_complet" || displayMode === "annee") && (
-        <AnnualMonthsTable
-          entries={entries}
-          year={year}
-          period={period === "exercice_complet" ? "exercice_complet" : "a_date"}
-          now={now}
-        />
+      {period === "exercice_complet" && (
+        <AnnualMonthsTable entries={entries} year={year} period={period} now={now} />
       )}
 
 
