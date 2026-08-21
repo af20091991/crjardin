@@ -264,6 +264,15 @@ function CaPage() {
 
   const yt = useMemo(() => yearTotals(entries, { period }), [entries, period]);
   const mt = useMemo(() => monthTotals(entries, month, { period }), [entries, month, period]);
+  // Prévisionnel HT du mois affiché : cumul de TOUTES les lignes de vente
+  // saisies sur ce mois, quel que soit leur statut (pastille de couleur).
+  const previsionnelHt = useMemo(
+    () =>
+      entries
+        .filter((e) => e.kind === "vente" && Number(e.month) === month)
+        .reduce((s, e) => s + (e.amount_ht || 0), 0),
+    [entries, month],
+  );
   const catTotals = useMemo(
     () => categoryTotals(entries, month, { period }),
     [entries, month, period],
