@@ -13,10 +13,12 @@ import {
   QUARTER_OF,
   categoryTotals,
   CA_CATEGORIES,
+  isRemunerationGrossed,
   type CaEntry,
   type CaKind,
   type CaCategory,
 } from "@/lib/pilot-ca";
+import { FixedChargesDetail } from "@/components/pilot/FixedChargesPanel";
 import { formatEuro } from "@/lib/pilot";
 import {
   listBillableRecommendations,
