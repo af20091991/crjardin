@@ -93,8 +93,9 @@ export async function monthlyCa(year: number, options?: AsOfOptions): Promise<nu
   for (const r of data) {
     // Pas de date précise en base : borne au couple année/mois.
     if (!keepRealizedYearMonth({ year, month: r.month }, options)) continue;
-    // CA comptabilisé uniquement à partir de 🟢 Réglé.
-    if (!revenueCounted(r.sale_status)) continue;
+    // CA comptabilisé à partir de 🟢 Réglé — sauf en « Exercice complet »,
+    // où toutes les lignes saisies comptent (règle unique, cf. revenueCounted).
+    if (!revenueCounted(r.sale_status, options)) continue;
     if (r.month >= 1 && r.month <= 12) totals[r.month - 1] += Number(r.amount_ht) || 0;
   }
   return totals;
