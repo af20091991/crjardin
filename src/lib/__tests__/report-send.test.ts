@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import {
   canSendReport,
   reportIdempotencyKey,
@@ -171,8 +172,8 @@ describe("reprise : rejouer le journal sans jamais renvoyer d'e-mail", () => {
 });
 
 describe("notifyClient : un seul chemin de reprise", () => {
-  test("la route utilise resumeReportLogging et n'envoie pas en reprise", async () => {
-    const src = await Bun.file("src/routes/_authenticated/interventions.$interventionId.tsx").text();
+  test("la route utilise resumeReportLogging et n'envoie pas en reprise", () => {
+    const src = readFileSync("src/routes/_authenticated/interventions.$interventionId.tsx", "utf8");
     expect(src).toContain("resumeReportLogging");
     // Le chemin de reprise court-circuite l'envoi.
     const resumeIdx = src.indexOf("resumeReportLogging({ logSent, markSent }");
