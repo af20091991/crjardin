@@ -24,6 +24,7 @@ import {
 import { generateInterventionInsights, analyzeInterventionPhotos } from "@/lib/ai.functions";
 import { getClient, clientEmails, listClients } from "@/lib/clients";
 import {
+  canSendReport,
   REPORT_SEND_LABELS,
   reportSendBlocker,
   reportSendStatus,
