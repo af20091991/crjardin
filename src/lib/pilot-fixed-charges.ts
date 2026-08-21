@@ -1,9 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Charges fixes récurrentes, définies par année.
- * Les montants sont mensuels ; l'annuel est déduit (× 12).
- * Modifier une année n'affecte jamais les autres.
+ * Charges fixes récurrentes.
+ *
+ * Ce n'est PAS une source parallèle : chaque poste est le détail d'une ligne
+ * précise du classeur (`ca_entry_id` → pilot_ca_entries). La ligne du classeur
+ * porte le montant, toujours égal à la somme exacte du détail.
  */
 export interface FixedCharge {
   id: string;
@@ -13,7 +15,10 @@ export interface FixedCharge {
   monthly_amount: number;
   position: number;
   is_active: boolean;
+  /** Ligne du classeur dont ce poste est le détail. */
+  ca_entry_id: string | null;
 }
+
 
 /** Taux de cotisations sociales appliqué à une rémunération nette saisie. */
 export const SOCIAL_CONTRIBUTION_RATE = 0.45;
@@ -44,11 +49,26 @@ export async function listFixedCharges(year: number): Promise<FixedCharge[]> {
   }));
 }
 
+/** Détail d'une ligne précise du classeur (source unique du montant de la ligne). */
+export async function listFixedChargesForEntry(caEntryId: string): Promise<FixedCharge[]> {
+  const { data, error } = await supabase
+    .from("pilot_fixed_charges")
+    .select("*")
+    .eq("ca_entry_id", caEntryId)
+    .order("position", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    ...(r as unknown as FixedCharge),
+    monthly_amount: Number((r as { monthly_amount: number }).monthly_amount) || 0,
+  }));
+}
+
 export async function createFixedCharge(input: {
   year: number;
   label: string;
   monthly_amount: number;
   position?: number;
+  ca_entry_id?: string | null;
 }): Promise<void> {
   const user_id = await uid();
   const { error } = await supabase
@@ -56,6 +76,7 @@ export async function createFixedCharge(input: {
     .insert({ position: 0, ...input, user_id } as never);
   if (error) throw error;
 }
+
 
 export async function updateFixedCharge(
   id: string,
@@ -74,4 +95,9 @@ export function fixedChargesTotals(rows: FixedCharge[]) {
   const active = rows.filter((r) => r.is_active);
   const monthly = active.reduce((s, r) => s + r.monthly_amount, 0);
   return { monthly, yearly: monthly * 12, count: active.length };
+}
+/** Somme exacte (2 décimales) du détail : c'est le montant de la ligne du classeur. */
+export function fixedChargesSum(rows: FixedCharge[]): number {
+  const monthly = rows.filter((r) => r.is_active).reduce((s, r) => s + r.monthly_amount, 0);
+  return Math.round(monthly * 100) / 100;
 }

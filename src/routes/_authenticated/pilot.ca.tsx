@@ -13,10 +13,12 @@ import {
   QUARTER_OF,
   categoryTotals,
   CA_CATEGORIES,
+  isRemunerationGrossed,
   type CaEntry,
   type CaKind,
   type CaCategory,
 } from "@/lib/pilot-ca";
+import { FixedChargesDetail } from "@/components/pilot/FixedChargesPanel";
 import { formatEuro } from "@/lib/pilot";
 import {
   listBillableRecommendations,
@@ -66,6 +68,7 @@ import {
   Link2,
   Link2Off,
   Sparkles,
+  ChevronDown,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -145,6 +148,8 @@ function CaPage() {
   const [pending, setPending] = useState<number | null>(null);
   const [openNote, setOpenNote] = useState<Record<string, boolean>>({});
   const toggleNote = (id: string) => setOpenNote((s) => ({ ...s, [id]: !s[id] }));
+  const [openFixed, setOpenFixed] = useState<Record<string, boolean>>({});
+  const toggleFixed = (id: string) => setOpenFixed((s) => ({ ...s, [id]: !s[id] }));
   const [originFor, setOriginFor] = useState<CaEntry | null>(null);
   const [density, setDensity] = useState<CaDensity>("compact");
 
@@ -233,6 +238,12 @@ function CaPage() {
   const ventes = monthRows("vente");
   const remus = monthRows("remuneration");
 
+  // Majoration active à partir d'août 2026 seulement : avant, rien ne change.
+  const remuGrossed = isRemunerationGrossed(year, month);
+  const remuNet = remus.length
+    ? Number(remus[0].net_amount_ht ?? (remuGrossed ? 0 : remus[0].amount_ht)) || 0
+    : 0;
+
   const addRow = (kind: CaKind) => {
     const list = monthRows(kind);
     const position = list.length ? Math.max(...list.map((r) => r.position)) + 1 : 0;
@@ -244,6 +255,7 @@ function CaPage() {
       designation: "",
       category: kind === "vente" ? "AP" : null,
       amount_ht: kind === "remuneration" ? 0 : (pending ?? 0),
+      net_amount_ht: kind === "remuneration" ? 0 : null,
       // Temps volontairement vide : aucune valeur n'est inventée à la création.
       hours: null,
       intervention_type: kind === "vente" ? "interne" : null,
@@ -252,6 +264,17 @@ function CaPage() {
   };
 
   const save = (id: string, input: Partial<CaEntry>) => updateMut.mutate({ id, input });
+
+  /**
+   * Saisie en net : le net est stocké tel quel (ressaisie sans dérive) et la
+   * ligne porte le montant consommé par les totaux (majoré dès août 2026).
+   */
+  const saveRemuneration = (row: CaEntry, net: number) => {
+    const amount = remuGrossed ? Math.round(remunerationBreakdown(net).total * 100) / 100 : net;
+    if (net === Number(row.net_amount_ht ?? NaN) && amount === row.amount_ht) return;
+    save(row.id, { net_amount_ht: net, amount_ht: amount });
+  };
+
 
   return (
     <div className="space-y-5">
@@ -686,7 +709,61 @@ function CaPage() {
           />
         </div>
         <div data-testid="ca-charges-column" className="min-w-0 space-y-4">
+          {/*
+           * Rémunération — encart unique, placé AVANT les charges.
+           * Saisie en net ; à partir d'août 2026 la ligne stocke le total
+           * majoré (net + cotisations) et le net reste conservé à part.
+           */}
+          <Card data-testid="ca-remuneration-card">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
+              <CardTitle className="text-base">Rémunération {MONTH_NAMES[month - 1]}</CardTitle>
+              {remus.length === 0 && (
+                <Button size="sm" variant="outline" onClick={() => addRow("remuneration")}>
+                  <Plus className="mr-1 h-4 w-4" />
+                  Définir
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {remus.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Aucune rémunération saisie pour ce mois.
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 text-sm">Rémunération nette</span>
+                    <Input
+                      key={remus[0].id + remuNet}
+                      defaultValue={remuNet || ""}
+                      type="number"
+                      inputMode="decimal"
+                      className="h-8 w-32 text-right"
+                      onBlur={(e) => saveRemuneration(remus[0], num(e.target.value))}
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => deleteMut.mutate(remus[0].id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <RemunerationBreakdown net={remuNet} />
+                  {remuGrossed && (
+                    <p className="text-xs text-muted-foreground">
+                      La ligne enregistrée vaut {formatEuro(remus[0].amount_ht)} (coût total
+                      majoré).
+                    </p>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Charges */}
+
           <Card
             style={{ backgroundColor: "color-mix(in oklab, var(--pp-charges) 7%, transparent)" }}
           >
@@ -740,33 +817,62 @@ function CaPage() {
                       // Commentaire replié par défaut : aucune donnée perdue,
                       // ouverture en un clic via « Voir le commentaire ».
                       const opened = !!openNote[row.id];
+                      // Ligne « Charges fixes » : son montant est la somme du
+                      // détail (pilot_fixed_charges), jamais ressaisi à part.
+                      const isFixed = !!row.is_fixed;
+                      const fixedOpen = !!openFixed[row.id];
                       return (
                         <Fragment key={row.id}>
                           <TableRow>
                             <TableCell>
-                              <Input
-                                defaultValue={row.designation ?? ""}
-                                placeholder="Désignation"
-                                title={row.designation ?? undefined}
-                                className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input"
-                                onBlur={(e) => {
-                                  if (e.target.value !== (row.designation ?? ""))
-                                    save(row.id, { designation: e.target.value });
-                                }}
-                              />
+                              {isFixed ? (
+                                <button
+                                  type="button"
+                                  data-testid="ca-fixed-row-toggle"
+                                  className="flex h-8 items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                                  onClick={() => toggleFixed(row.id)}
+                                >
+                                  <ChevronDown
+                                    className={`h-4 w-4 transition-transform ${fixedOpen ? "" : "-rotate-90"}`}
+                                  />
+                                  {row.designation || "Charges fixes"}
+                                </button>
+                              ) : (
+                                <Input
+                                  defaultValue={row.designation ?? ""}
+                                  placeholder="Désignation"
+                                  title={row.designation ?? undefined}
+                                  className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input"
+                                  onBlur={(e) => {
+                                    if (e.target.value !== (row.designation ?? ""))
+                                      save(row.id, { designation: e.target.value });
+                                  }}
+                                />
+                              )}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Input
-                                defaultValue={row.amount_ht || ""}
-                                type="number"
-                                inputMode="decimal"
-                                className="h-8 text-right"
-                                onBlur={(e) => {
-                                  const v = num(e.target.value);
-                                  if (v !== row.amount_ht) save(row.id, { amount_ht: v });
-                                }}
-                              />
+                              {isFixed ? (
+                                <span
+                                  data-testid="ca-fixed-row-amount"
+                                  className="block px-3 text-sm font-semibold"
+                                  title="Somme du détail des charges fixes"
+                                >
+                                  {formatEuro(row.amount_ht)}
+                                </span>
+                              ) : (
+                                <Input
+                                  defaultValue={row.amount_ht || ""}
+                                  type="number"
+                                  inputMode="decimal"
+                                  className="h-8 text-right"
+                                  onBlur={(e) => {
+                                    const v = num(e.target.value);
+                                    if (v !== row.amount_ht) save(row.id, { amount_ht: v });
+                                  }}
+                                />
+                              )}
                             </TableCell>
+
                             <TableCell className="whitespace-nowrap">
                               <Button
                                 size="icon"
@@ -787,7 +893,21 @@ function CaPage() {
                               </Button>
                             </TableCell>
                           </TableRow>
+                          {isFixed && fixedOpen && (
+                            <TableRow>
+                              <TableCell colSpan={3} className="py-2">
+                                <FixedChargesDetail
+                                  caEntryId={row.id}
+                                  year={year}
+                                  onSumChange={(sum) => {
+                                    if (sum !== row.amount_ht) save(row.id, { amount_ht: sum });
+                                  }}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          )}
                           {hasNote && !opened && (
+
                             <TableRow>
                               <TableCell colSpan={3} className="py-1">
                                 <button
@@ -825,54 +945,10 @@ function CaPage() {
                 <span className="font-medium">Total charges {MONTH_NAMES[month - 1]}</span>
                 <span className="font-semibold text-rose-600">{formatEuro(mt.chargesHt)}</span>
               </div>
-              {/* Rémunération */}
             </CardContent>
           </Card>
 
-          {/* Rémunération — séparée des charges d'exploitation */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
-              <CardTitle className="text-base">Rémunération {MONTH_NAMES[month - 1]}</CardTitle>
-              {remus.length === 0 && (
-                <Button size="sm" variant="outline" onClick={() => addRow("remuneration")}>
-                  <Plus className="mr-1 h-4 w-4" />
-                  Définir
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {remus.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Aucune rémunération saisie pour ce mois.
-                </p>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="flex-1 text-sm">Rémunération nette</span>
-                    <Input
-                      defaultValue={remus[0].amount_ht || ""}
-                      type="number"
-                      inputMode="decimal"
-                      className="h-8 w-32 text-right"
-                      onBlur={(e) => {
-                        const v = num(e.target.value);
-                        if (v !== remus[0].amount_ht) save(remus[0].id, { amount_ht: v });
-                      }}
-                    />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => deleteMut.mutate(remus[0].id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <RemunerationBreakdown net={remus[0].amount_ht} />
-                </>
-              )}
-            </CardContent>
-          </Card>
+
 
           {/*
            * Panneau « charges fixes » legacy retiré (audit V2.3+, anomalie 3) :
