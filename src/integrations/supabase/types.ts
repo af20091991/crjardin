@@ -1617,6 +1617,7 @@ export type Database = {
           match_status: string
           matched_at: string | null
           month: number
+          net_amount_ht: number | null
           note: string | null
           position: number
           raw_category: string | null
@@ -1655,6 +1656,7 @@ export type Database = {
           match_status?: string
           matched_at?: string | null
           month: number
+          net_amount_ht?: number | null
           note?: string | null
           position?: number
           raw_category?: string | null
@@ -1693,6 +1695,7 @@ export type Database = {
           match_status?: string
           matched_at?: string | null
           month?: number
+          net_amount_ht?: number | null
           note?: string | null
           position?: number
           raw_category?: string | null
@@ -1994,6 +1997,7 @@ export type Database = {
       }
       pilot_fixed_charges: {
         Row: {
+          ca_entry_id: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -2005,6 +2009,7 @@ export type Database = {
           year: number
         }
         Insert: {
+          ca_entry_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -2016,6 +2021,7 @@ export type Database = {
           year: number
         }
         Update: {
+          ca_entry_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -2026,7 +2032,22 @@ export type Database = {
           user_id?: string
           year?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pilot_fixed_charges_ca_entry_id_fkey"
+            columns: ["ca_entry_id"]
+            isOneToOne: false
+            referencedRelation: "pilot_ca_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pilot_fixed_charges_ca_entry_id_fkey"
+            columns: ["ca_entry_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_non_qualifie"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pilot_goals: {
         Row: {
@@ -4816,6 +4837,7 @@ export type Database = {
           match_status: string
           matched_at: string | null
           month: number
+          net_amount_ht: number | null
           note: string | null
           position: number
           raw_category: string | null
