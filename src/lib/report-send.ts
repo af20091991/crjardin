@@ -168,3 +168,35 @@ export function sendOutcomeMessage(outcome: SendOutcome): string {
   if (outcome.failed.length > 0) parts.push(`${outcome.failed.length} échec(s) à reprendre`);
   return parts.length > 0 ? parts.join(" · ") : "Aucun envoi nécessaire";
 }
+
+/**
+ * Reprise : rejoue UNIQUEMENT la journalisation et le marquage d'envoi pour
+ * des destinataires dont l'e-mail a déjà été accepté par la file. Aucun
+ * nouvel e-mail n'est jamais émis ici — c'est l'unique chemin de reprise.
+ */
+export async function resumeReportLogging(
+  deps: Pick<SendDeps, "logSent" | "markSent">,
+  params: { recipients: string[] },
+): Promise<SendOutcome> {
+  const outcome: SendOutcome = { sent: [], logPending: [], failed: [] };
+  if (params.recipients.length === 0) return outcome;
+
+  for (const recipient of params.recipients) {
+    try {
+      await deps.logSent(recipient);
+      outcome.sent.push(recipient);
+    } catch {
+      outcome.logPending.push(recipient);
+    }
+  }
+
+  try {
+    await deps.markSent();
+  } catch {
+    // Le marquage d'envoi reste à reprendre : tout redevient "à journaliser",
+    // sans jamais relancer d'e-mail.
+    outcome.logPending = [...params.recipients];
+    outcome.sent = [];
+  }
+  return outcome;
+}
