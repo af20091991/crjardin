@@ -161,7 +161,8 @@ async function bridgeCaEntries(options?: AsOfOptions): Promise<PilotEntry[]> {
     const hoursIn = r.hours == null ? null : Number(r.hours);
     // Règle de comptabilisation : Temps dès Facturé, CA à partir de Réglé.
     const countedHours = hoursCounted(status) ? hoursIn : null;
-    const countedHt = revenueCounted(status) ? ht : 0;
+    // En « Exercice complet », tous les statuts saisis comptent (règle unique).
+    const countedHt = revenueCounted(status, options) ? ht : 0;
     return {
       id: r.id,
       user_id: r.user_id,
