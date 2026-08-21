@@ -297,13 +297,8 @@ function CaPage() {
       </div>
 
       {/* Mode « année complète » : les 12 mois de l'exercice, saisies telles quelles */}
-      {(period === "exercice_complet" || displayMode === "annee") && (
-        <AnnualMonthsTable
-          entries={entries}
-          year={year}
-          period={period === "exercice_complet" ? "exercice_complet" : "a_date"}
-          now={now}
-        />
+      {period === "exercice_complet" && (
+        <AnnualMonthsTable entries={entries} year={year} period={period} now={now} />
       )}
 
 
