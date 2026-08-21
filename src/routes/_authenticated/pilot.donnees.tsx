@@ -234,7 +234,7 @@ function RegressionPanel() {
   const year = currentYear();
   const [note, setNote] = useState("");
 
-  const entries = useQuery({ queryKey: ["pilot-entries"], queryFn: listEntries });
+  const entries = useQuery({ queryKey: ["pilot-entries"], queryFn: () => listEntries() });
   const charges = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: () => listChargeRows() });
   const clients = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const snapshots = useQuery({

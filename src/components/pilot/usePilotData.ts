@@ -10,7 +10,7 @@ import { resourceState, type DataState } from "@/lib/pilot-data-state";
  * en plus l'état typé de chaque ressource pour un affichage explicite.
  */
 export function usePilotData() {
-  const entries = useQuery({ queryKey: ["pilot-entries"], queryFn: listEntries });
+  const entries = useQuery({ queryKey: ["pilot-entries"], queryFn: () => listEntries() });
   const charges = useQuery({ queryKey: ["pilot-charges"], queryFn: listCharges });
   const settings = useQuery({ queryKey: ["pilot-settings"], queryFn: getSettings });
   const clients = useQuery({ queryKey: ["clients"], queryFn: listClients });

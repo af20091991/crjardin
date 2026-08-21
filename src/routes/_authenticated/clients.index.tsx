@@ -131,7 +131,7 @@ function ClientsPage() {
   });
   const entriesQ = useQuery({
     queryKey: ["pilot-entries"],
-    queryFn: listEntries,
+    queryFn: () => listEntries(),
     enabled: canEdit,
   });
   const favoritesQ = useQuery({ queryKey: ["favorite-clients"], queryFn: listFavoriteClientIds });
