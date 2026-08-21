@@ -53,7 +53,13 @@ export interface CaEntry {
   is_investment?: boolean | null;
   /** Type d'intervention saisi sur la ligne de vente (interne / sst). */
   intervention_type?: InterventionKind | null;
-  match_status?: MatchStatusValue | null;
+  /**
+   * Montant net saisi, conservé à part quand la ligne stocke un montant majoré
+   * (rémunération : amount_ht = net + cotisations). Permet une ressaisie sans
+   * dérive d'arrondi.
+   */
+  net_amount_ht?: number | null;
+
   sale_status?: SaleStatusValue;
   /** Date comptable de la ligne, quand elle est connue (borne au jour près). */
   entry_date?: string | null;
