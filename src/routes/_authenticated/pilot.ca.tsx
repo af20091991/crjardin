@@ -78,6 +78,7 @@ import {
 import { toast } from "sonner";
 import { remunerationBreakdown, SOCIAL_CONTRIBUTION_RATE } from "@/lib/pilot-fixed-charges";
 import { realizedMonthLimit } from "@/lib/pilot-realized";
+import { AnnualMonthsTable } from "@/components/pilot/AnnualMonthsTable";
 import { updateSaleStatus } from "@/lib/pilot";
 import { SALE_STATUS, SALE_STATUS_ORDER, type SaleStatus } from "@/lib/pilot-colors";
 import {
