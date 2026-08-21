@@ -40,6 +40,11 @@ const messagesQuery = (token: string) =>
   });
 
 export const Route = createFileRoute("/partage/$token")({
+  // `?intervention=` cible un compte-rendu précis. Il n'ouvre AUCUN accès :
+  // le périmètre reste celui du token (token → client → ses interventions).
+  validateSearch: (search: Record<string, unknown>) => ({
+    intervention: typeof search.intervention === "string" ? search.intervention : undefined,
+  }),
   loader: async ({ context, params }) => {
     const data = await context.queryClient.ensureQueryData(sharedQuery(params.token));
     if (!data) throw notFound();
