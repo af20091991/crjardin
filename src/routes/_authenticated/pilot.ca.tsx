@@ -686,7 +686,61 @@ function CaPage() {
           />
         </div>
         <div data-testid="ca-charges-column" className="min-w-0 space-y-4">
+          {/*
+           * Rémunération — encart unique, placé AVANT les charges.
+           * Saisie en net ; à partir d'août 2026 la ligne stocke le total
+           * majoré (net + cotisations) et le net reste conservé à part.
+           */}
+          <Card data-testid="ca-remuneration-card">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
+              <CardTitle className="text-base">Rémunération {MONTH_NAMES[month - 1]}</CardTitle>
+              {remus.length === 0 && (
+                <Button size="sm" variant="outline" onClick={() => addRow("remuneration")}>
+                  <Plus className="mr-1 h-4 w-4" />
+                  Définir
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {remus.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Aucune rémunération saisie pour ce mois.
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 text-sm">Rémunération nette</span>
+                    <Input
+                      key={remus[0].id + remuNet}
+                      defaultValue={remuNet || ""}
+                      type="number"
+                      inputMode="decimal"
+                      className="h-8 w-32 text-right"
+                      onBlur={(e) => saveRemuneration(remus[0], num(e.target.value))}
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => deleteMut.mutate(remus[0].id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <RemunerationBreakdown net={remuNet} />
+                  {remuGrossed && (
+                    <p className="text-xs text-muted-foreground">
+                      La ligne enregistrée vaut {formatEuro(remus[0].amount_ht)} (coût total
+                      majoré).
+                    </p>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Charges */}
+
           <Card
             style={{ backgroundColor: "color-mix(in oklab, var(--pp-charges) 7%, transparent)" }}
           >
