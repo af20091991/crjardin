@@ -425,7 +425,12 @@ function CaPage() {
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <StatBox label="CA HT mois" value={formatEuro(mt.ventesHt)} icon={TrendingUp} />
-        <StatBox label="CA TTC mois" value={formatEuro(mt.ventesTtc)} icon={Wallet} />
+        <StatBox
+          label="Prévisionnel HT mois"
+          value={formatEuro(previsionnelHt)}
+          icon={Wallet}
+        />
+
         <StatBox
           label="Charges HT"
           value={formatEuro(mt.chargesHt)}
