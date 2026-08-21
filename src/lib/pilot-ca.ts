@@ -195,7 +195,11 @@ export function yearTotals(entries: CaEntry[], options?: AsOfOptions): YearTotal
 // ---------- Répartition des ventes par type de chantier ----------
 export type CategoryTotal = { category: CaCategory; ht: number; hours: number };
 
-export function categoryTotals(entries: CaEntry[], month?: number): CategoryTotal[] {
+export function categoryTotals(
+  entries: CaEntry[],
+  month?: number,
+  options?: AsOfOptions,
+): CategoryTotal[] {
   const ventes = entries.filter(
     (e) => e.kind === "vente" && (month == null || e.month === month),
   );
@@ -203,7 +207,7 @@ export function categoryTotals(entries: CaEntry[], month?: number): CategoryTota
     const rows = ventes.filter((e) => (e.category ?? "Autre") === category);
     return {
       category,
-      ht: rows.reduce((s, e) => s + (revenueCounted(e.sale_status) ? e.amount_ht || 0 : 0), 0),
+      ht: rows.reduce((s, e) => s + (revenueCounted(e.sale_status, options) ? e.amount_ht || 0 : 0), 0),
       hours: rows.reduce((s, e) => s + (hoursCounted(e.sale_status) ? e.hours || 0 : 0), 0),
     };
   }).filter((c) => c.ht > 0 || c.hours > 0);
