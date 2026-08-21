@@ -585,18 +585,16 @@ function InterventionDetail() {
               <Button
                 size="sm"
                 variant="outline"
-                disabled={notifyClient.isPending || !done || !client || clientEmails(client).length === 0 || !iv.pdf_storage_path}
-                title={
-                  !done ? "Marquez le compte-rendu comme terminé d'abord"
-                  : !iv.pdf_storage_path ? "Archivez le PDF avant l'envoi au client"
-                  : (!client || clientEmails(client).length === 0) ? "Aucune adresse e-mail pour ce client"
-                  : "Prévenir le client par e-mail"
-                }
+                disabled={!sendCtx || !canSendReport(sendCtx)}
+                title={REPORT_SEND_LABELS[sendStatus]}
                 onClick={() => notifyClient.mutate()}
               >
                 {notifyClient.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Mail className="mr-1.5 h-4 w-4" />}
-                Prévenir le client
+                {logPending.length > 0 ? "Reprendre l'envoi" : "Prévenir le client"}
               </Button>
+              <Badge variant="outline" className="self-center text-xs">
+                {REPORT_SEND_LABELS[sendStatus]}
+              </Badge>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
