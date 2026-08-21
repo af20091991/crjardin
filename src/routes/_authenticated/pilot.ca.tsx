@@ -357,11 +357,6 @@ function CaPage() {
       {/* Synthèse annuelle */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
         <StatBox label={`CA HT ${year}`} value={formatEuro(yt.ventesHt)} icon={TrendingUp} />
-        <StatBox
-          label="Prévisionnel total HT — ventes du mois"
-          value={formatEuro(previsionnelHt)}
-          icon={Wallet}
-        />
 
         <StatBox
           label="Charges HT"
