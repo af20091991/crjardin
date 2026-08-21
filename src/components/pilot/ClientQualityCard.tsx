@@ -22,7 +22,12 @@ import {
   type SimpleField,
 } from "@/lib/client-quality-actions";
 import { datasetById, updateCell } from "@/lib/pilot-edit";
-import { REPORT_POLICY_META, LIFECYCLE_META, type ReportPolicy, type ClientLifecycle } from "@/lib/clients";
+import {
+  REPORT_POLICY_META,
+  LIFECYCLE_META,
+  type ReportPolicy,
+  type ClientLifecycle,
+} from "@/lib/clients";
 import { EntityStatusQuickEdit } from "@/components/pilot/rentabilite/EntityStatusQuickEdit";
 import type { EntityStatus } from "@/lib/pilot-referential";
 import { useRole } from "@/hooks/use-role";
@@ -170,7 +175,12 @@ export function ClientQualityCard({
                       onBeforeSave={() => setPendingBefore(q.completeness)}
                     />
                   ) : (
-                    <Button asChild size="sm" variant="outline" className="h-7 shrink-0 px-2 text-xs">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="h-7 shrink-0 px-2 text-xs"
+                    >
                       <Link
                         to="/pilot/controle"
                         search={{

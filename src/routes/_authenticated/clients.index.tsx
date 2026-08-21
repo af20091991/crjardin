@@ -42,7 +42,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Plus,
   Search,
@@ -119,8 +125,15 @@ function ClientsPage() {
   const [showLost, setShowLost] = useState(false);
 
   const { data: clients, isLoading } = useQuery({ queryKey: ["clients"], queryFn: listClients });
-  const { data: recos } = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
-  const entriesQ = useQuery({ queryKey: ["pilot-entries"], queryFn: listEntries, enabled: canEdit });
+  const { data: recos } = useQuery({
+    queryKey: ["recommendations-all"],
+    queryFn: listAllRecommendations,
+  });
+  const entriesQ = useQuery({
+    queryKey: ["pilot-entries"],
+    queryFn: listEntries,
+    enabled: canEdit,
+  });
   const favoritesQ = useQuery({ queryKey: ["favorite-clients"], queryFn: listFavoriteClientIds });
 
   const favorites = useMemo(() => new Set(favoritesQ.data ?? []), [favoritesQ.data]);
@@ -137,8 +150,10 @@ function ClientsPage() {
   // modifiables (cycle de vie, politique de compte-rendu). Les statuts déduits
   // de l'activité réelle ne sont jamais forçables à la main.
   const statusMut = useMutation({
-    mutationFn: (p: { client: Client; patch: { lifecycle_status?: ClientLifecycle; report_policy?: ReportPolicy } }) =>
-      updateClient(p.client.id, { name: p.client.name, ...p.patch }),
+    mutationFn: (p: {
+      client: Client;
+      patch: { lifecycle_status?: ClientLifecycle; report_policy?: ReportPolicy };
+    }) => updateClient(p.client.id, { name: p.client.name, ...p.patch }),
     onSuccess: () => {
       toast.success("Fiche client mise à jour");
       void qc.invalidateQueries({ queryKey: ["clients"] });
@@ -271,12 +286,17 @@ function ClientsPage() {
                 {ACTIVITY_BADGE[r.activity].label}
               </Badge>
               {(c.report_policy ?? "a_confirmer") === "a_confirmer" && (
-                <Badge variant="outline" className="shrink-0 text-[10px] border-sky-200 bg-sky-50 text-sky-700">
+                <Badge
+                  variant="outline"
+                  className="shrink-0 text-[10px] border-sky-200 bg-sky-50 text-sky-700"
+                >
                   CR à qualifier
                 </Badge>
               )}
               {c.contract_type && (
-                <Badge variant="secondary" className="shrink-0 text-[10px]">{c.contract_type}</Badge>
+                <Badge variant="secondary" className="shrink-0 text-[10px]">
+                  {c.contract_type}
+                </Badge>
               )}
               {stale.has(c.id) && (
                 <Badge className="shrink-0 gap-1 bg-amber-100 text-[10px] text-amber-800">
@@ -297,13 +317,20 @@ function ClientsPage() {
                 <span className="flex items-center gap-1">
                   <ProfitSignal
                     compact
-                    level={signalFromHourlyRate(r.hourlyRate, thresholds.tauxHoraireCibleMin, thresholds)}
+                    level={signalFromHourlyRate(
+                      r.hourlyRate,
+                      thresholds.tauxHoraireCibleMin,
+                      thresholds,
+                    )}
                   />
                   {r.hourlyRate.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/h
                 </span>
               )}
               {c.address && (
-                <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{c.address}</span>
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {c.address}
+                </span>
               )}
             </div>
           </div>
@@ -341,11 +368,15 @@ function ClientsPage() {
                       key={v}
                       type="button"
                       disabled={statusMut.isPending}
-                      onClick={() => statusMut.mutate({ client: c, patch: { lifecycle_status: v } })}
+                      onClick={() =>
+                        statusMut.mutate({ client: c, patch: { lifecycle_status: v } })
+                      }
                       className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left hover:bg-accent/40"
                     >
                       <span>{LIFECYCLE_META[v].label}</span>
-                      {(c.lifecycle_status ?? "actif") === v && <Check className="h-4 w-4 text-primary" />}
+                      {(c.lifecycle_status ?? "actif") === v && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -362,7 +393,9 @@ function ClientsPage() {
                       className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left hover:bg-accent/40"
                     >
                       <span>{REPORT_POLICY_META[v].short}</span>
-                      {(c.report_policy ?? "a_confirmer") === v && <Check className="h-4 w-4 text-primary" />}
+                      {(c.report_policy ?? "a_confirmer") === v && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -378,7 +411,11 @@ function ClientsPage() {
               source={c}
               clients={clients}
               trigger={
-                <Button variant="ghost" size="icon" title="Fusionner / rattacher à un client existant">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Fusionner / rattacher à un client existant"
+                >
                   <Merge className="h-4 w-4" />
                 </Button>
               }
@@ -403,7 +440,9 @@ function ClientsPage() {
             />
           </div>
           <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les clients</SelectItem>
               <SelectItem value="actif">Actifs</SelectItem>
@@ -414,7 +453,9 @@ function ClientsPage() {
             </SelectContent>
           </Select>
           <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="name">Tri : nom</SelectItem>
               <SelectItem value="ca">Tri : CA</SelectItem>
@@ -456,15 +497,15 @@ function ClientsPage() {
         <Tabs defaultValue="liste">
           <TabsList className="mb-3">
             <TabsTrigger value="liste">Référentiel ({filtered.length})</TabsTrigger>
-            {canEdit && (
-              <TabsTrigger value="nettoyage">À vérifier ({suspects.length})</TabsTrigger>
-            )}
+            {canEdit && <TabsTrigger value="nettoyage">À vérifier ({suspects.length})</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="liste">
             {isLoading ? (
               <div className="space-y-2.5">
-                {[0, 1, 2].map((i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                ))}
               </div>
             ) : filtered.length === 0 ? (
               <EmptyState hasClients={(clients?.length ?? 0) > 0} />
@@ -496,8 +537,8 @@ function ClientsPage() {
                 <div className="flex items-start gap-2">
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   <p>
-                    Fiches dont le nom ressemble à une prestation ou à un chantier. Rien n'est corrigé
-                    automatiquement : chaque rattachement est validé par vous et journalisé.
+                    Fiches dont le nom ressemble à une prestation ou à un chantier. Rien n'est
+                    corrigé automatiquement : chaque rattachement est validé par vous et journalisé.
                   </p>
                 </div>
               </Card>
@@ -520,7 +561,8 @@ function ClientsPage() {
                         <p className="text-xs text-muted-foreground">{reason.label}</p>
                         {suggestion && (
                           <p className="text-xs text-muted-foreground">
-                            Rattachement suggéré : <span className="font-medium">{suggestion.name}</span>
+                            Rattachement suggéré :{" "}
+                            <span className="font-medium">{suggestion.name}</span>
                           </p>
                         )}
                       </div>
@@ -531,7 +573,8 @@ function ClientsPage() {
                           defaultTargetId={suggestion?.id ?? null}
                           trigger={
                             <Button variant="outline" size="sm">
-                              <Merge className="mr-1.5 h-4 w-4" />Rattacher
+                              <Merge className="mr-1.5 h-4 w-4" />
+                              Rattacher
                             </Button>
                           }
                         />
@@ -557,11 +600,20 @@ function EmptyState({ hasClients }: { hasClients: boolean }) {
       <div>
         <p className="font-medium">{hasClients ? "Aucun résultat" : "Aucun client"}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          {hasClients ? "Essayez une autre recherche." : "Créez votre premier client pour commencer."}
+          {hasClients
+            ? "Essayez une autre recherche."
+            : "Créez votre premier client pour commencer."}
         </p>
       </div>
       {!hasClients && (
-        <ClientForm trigger={<Button className="mt-1"><Plus className="mr-1.5 h-4 w-4" />Nouveau client</Button>} />
+        <ClientForm
+          trigger={
+            <Button className="mt-1">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Nouveau client
+            </Button>
+          }
+        />
       )}
     </Card>
   );
