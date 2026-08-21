@@ -77,18 +77,30 @@ export function reportShareUrl(origin: string, shareToken: string, interventionI
 }
 
 /**
- * Clé d'idempotence stable : identique tant que l'archive envoyée n'a pas
- * changé, donc un renvoi accidentel ne produit pas de doublon, tandis qu'une
- * nouvelle archive autorise un envoi volontaire.
+ * Clé d'idempotence d'UNE tentative d'envoi.
+ *
+ * RÈGLE : la clé protège contre les doublons *à l'intérieur* d'une même
+ * tentative (double-clic, reprise partielle de la boucle), mais un renvoi
+ * volontaire doit produire une clé NOUVELLE — sinon la file d'envoi considère
+ * l'e-mail déjà traité et le client ne reçoit jamais rien alors que
+ * l'application affiche « envoyé ».
  */
 export function reportIdempotencyKey(
   interventionId: string,
   recipient: string,
   pdfStoragePath: string,
+  attemptId?: string,
 ): string {
   const archiveKey = pdfStoragePath.replace(/[^a-zA-Z0-9]/g, "").slice(-24);
-  return `new-report-${interventionId}-${recipient.toLowerCase()}-${archiveKey}`;
+  const base = `new-report-${interventionId}-${recipient.toLowerCase()}-${archiveKey}`;
+  return attemptId ? `${base}-${attemptId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16)}` : base;
 }
+
+/** Identifiant de tentative : un envoi = une valeur, réutilisée pour tous les destinataires. */
+export function newSendAttemptId(now: Date = new Date()): string {
+  return `${now.getTime().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
 
 export interface SendOutcome {
   /** Destinataires envoyés ET journalisés. */
