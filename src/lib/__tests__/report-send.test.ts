@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import {
   canSendReport,
   reportIdempotencyKey,
   reportSendStatus,
   reportShareUrl,
   sendReportToRecipients,
+  resumeReportLogging,
   type ReportSendContext,
 } from "@/lib/report-send";
 
@@ -123,5 +125,62 @@ describe("boucle multi-destinataires reprenable", () => {
     );
     expect(marked).toBe(0);
     expect(out.sent).toEqual([]);
+  });
+});
+
+describe("reprise : rejouer le journal sans jamais renvoyer d'e-mail", () => {
+  test("journalisation rejouée avec succès et marquage effectué", async () => {
+    let marked = 0;
+    const logged: string[] = [];
+    const out = await resumeReportLogging(
+      { logSent: async (r) => { logged.push(r); }, markSent: async () => { marked += 1; } },
+      { recipients: ["a@x.fr", "b@x.fr"] },
+    );
+    expect(logged).toEqual(["a@x.fr", "b@x.fr"]);
+    expect(marked).toBe(1);
+    expect(out).toEqual({ sent: ["a@x.fr", "b@x.fr"], logPending: [], failed: [] });
+  });
+
+  test("journal encore indisponible : reprise toujours signalée, aucun échec d'envoi", async () => {
+    const out = await resumeReportLogging(
+      { logSent: async () => { throw new Error("journal ko"); }, markSent: async () => {} },
+      { recipients: ["a@x.fr"] },
+    );
+    expect(out.logPending).toEqual(["a@x.fr"]);
+    expect(out.sent).toEqual([]);
+    expect(out.failed).toEqual([]);
+  });
+
+  test("marquage d'envoi en échec : tout reste à reprendre", async () => {
+    const out = await resumeReportLogging(
+      { logSent: async () => {}, markSent: async () => { throw new Error("update ko"); } },
+      { recipients: ["a@x.fr", "b@x.fr"] },
+    );
+    expect(out.sent).toEqual([]);
+    expect(out.logPending).toEqual(["a@x.fr", "b@x.fr"]);
+  });
+
+  test("rien à reprendre : aucun marquage", async () => {
+    let marked = 0;
+    const out = await resumeReportLogging(
+      { logSent: async () => {}, markSent: async () => { marked += 1; } },
+      { recipients: [] },
+    );
+    expect(marked).toBe(0);
+    expect(out.sent).toEqual([]);
+  });
+});
+
+describe("notifyClient : un seul chemin de reprise", () => {
+  test("la route utilise resumeReportLogging et n'envoie pas en reprise", () => {
+    const src = readFileSync("src/routes/_authenticated/interventions.$interventionId.tsx", "utf8");
+    expect(src).toContain("resumeReportLogging");
+    // Le chemin de reprise court-circuite l'envoi.
+    const resumeIdx = src.indexOf("resumeReportLogging({ logSent, markSent }");
+    const sendIdx = src.indexOf("sendReportToRecipients(");
+    expect(resumeIdx).toBeGreaterThan(0);
+    expect(resumeIdx).toBeLessThan(sendIdx);
+    // Pas de seconde implémentation locale de la reprise.
+    expect(src).not.toContain("alreadySent:");
   });
 });
