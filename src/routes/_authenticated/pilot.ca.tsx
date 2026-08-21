@@ -259,18 +259,6 @@ function CaPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="font-serif text-xl font-semibold">CA {year}</span>
         <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={displayMode}
-            onValueChange={(v) => setDisplayMode(v as "exercice" | "annee")}
-          >
-            <SelectTrigger className="h-8 w-[260px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="exercice">Exercice en cours (01/01 → aujourd'hui)</SelectItem>
-              <SelectItem value="annee">Année complète</SelectItem>
-            </SelectContent>
-          </Select>
           {pending != null && (
             <Badge variant="secondary" className="gap-1">
               Résultat prêt : {formatEuro(pending)} — cliquez « + Ligne »
