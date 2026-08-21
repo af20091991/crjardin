@@ -130,10 +130,13 @@ export async function sendReportToRecipients(
     pdfStoragePath: string;
     recipients: string[];
     alreadySent?: string[];
+    /** Une tentative = un identifiant : garantit une clé d'idempotence neuve. */
+    attemptId?: string;
   },
 ): Promise<SendOutcome> {
   const skip = new Set((params.alreadySent ?? []).map((r) => r.toLowerCase()));
   const outcome: SendOutcome = { sent: [], logPending: [], failed: [] };
+  const attemptId = params.attemptId ?? newSendAttemptId();
   let anyAccepted = false;
 
   for (const recipient of params.recipients) {
@@ -141,7 +144,7 @@ export async function sendReportToRecipients(
     try {
       await deps.sendEmail(
         recipient,
-        reportIdempotencyKey(params.interventionId, recipient, params.pdfStoragePath),
+        reportIdempotencyKey(params.interventionId, recipient, params.pdfStoragePath, attemptId),
       );
     } catch (e) {
       outcome.failed.push({
