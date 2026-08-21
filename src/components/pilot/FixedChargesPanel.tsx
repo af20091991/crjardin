@@ -7,8 +7,8 @@ import { Plus, Trash2, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { formatEuro } from "@/lib/pilot";
 import {
-  listFixedCharges, createFixedCharge, updateFixedCharge, deleteFixedCharge,
-  fixedChargesTotals,
+  listFixedCharges, listFixedChargesForEntry, createFixedCharge, updateFixedCharge,
+  deleteFixedCharge, fixedChargesTotals, fixedChargesSum,
 } from "@/lib/pilot-fixed-charges";
 
 const num = (v: string) => Number(v.replace(",", ".")) || 0;
