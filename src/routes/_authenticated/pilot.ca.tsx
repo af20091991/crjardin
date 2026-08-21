@@ -890,7 +890,21 @@ function CaPage() {
                               </Button>
                             </TableCell>
                           </TableRow>
+                          {isFixed && fixedOpen && (
+                            <TableRow>
+                              <TableCell colSpan={3} className="py-2">
+                                <FixedChargesDetail
+                                  caEntryId={row.id}
+                                  year={year}
+                                  onSumChange={(sum) => {
+                                    if (sum !== row.amount_ht) save(row.id, { amount_ht: sum });
+                                  }}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          )}
                           {hasNote && !opened && (
+
                             <TableRow>
                               <TableCell colSpan={3} className="py-1">
                                 <button
