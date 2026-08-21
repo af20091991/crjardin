@@ -68,6 +68,7 @@ import {
   Link2,
   Link2Off,
   Sparkles,
+  ChevronDown,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
