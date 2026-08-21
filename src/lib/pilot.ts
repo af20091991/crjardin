@@ -117,8 +117,8 @@ export const DEFAULT_SETTINGS: Omit<PilotSettings, "user_id"> = {
 // ---------- Lecture des ventes (source unique : pilot_ca_entries) ----------
 // Toutes les analyses (Finance, Saisonnalité, Santé, Rapports, Clients ABC)
 // s'alimentent depuis la table pilot_ca_entries — seule source de vérité du CA.
-export async function listEntries(): Promise<PilotEntry[]> {
-  return bridgeCaEntries();
+export async function listEntries(options?: AsOfOptions): Promise<PilotEntry[]> {
+  return bridgeCaEntries(options);
 }
 
 function categoryToFamily(cat: string | null): PilotFamily {
@@ -150,7 +150,7 @@ type CaChargeRow = {
   created_at: string; updated_at: string;
 };
 
-async function bridgeCaEntries(): Promise<PilotEntry[]> {
+async function bridgeCaEntries(options?: AsOfOptions): Promise<PilotEntry[]> {
   const rows = await fetchCaRows<CaVenteRow>(
     "id,user_id,year,month,kind,designation,category,amount_ht,hours,client_id,sale_status,intervention_type,created_at,updated_at",
     "vente",
@@ -161,7 +161,8 @@ async function bridgeCaEntries(): Promise<PilotEntry[]> {
     const hoursIn = r.hours == null ? null : Number(r.hours);
     // Règle de comptabilisation : Temps dès Facturé, CA à partir de Réglé.
     const countedHours = hoursCounted(status) ? hoursIn : null;
-    const countedHt = revenueCounted(status) ? ht : 0;
+    // En « Exercice complet », tous les statuts saisis comptent (règle unique).
+    const countedHt = revenueCounted(status, options) ? ht : 0;
     return {
       id: r.id,
       user_id: r.user_id,

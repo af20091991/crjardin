@@ -35,8 +35,31 @@ export function hoursCounted(status: string | null | undefined): boolean {
   return saleStatusOf(status) !== "planifie";
 }
 
-/** Le CA HT de la ligne entre-t-il dans le CA ? (uniquement à partir de Réglé) */
-export function revenueCounted(status: string | null | undefined): boolean {
+/**
+ * Périmètre temporel demandé par l'écran. Type structurel volontaire : évite
+ * un cycle d'imports avec `pilot-realized.ts`.
+ */
+export interface SaleAccountingScope {
+  period?: "a_date" | "exercice_complet" | (string & {});
+}
+
+/** Vrai en lecture « Exercice complet » : toutes les données saisies comptent. */
+export function countsAllSaleStatuses(scope?: SaleAccountingScope): boolean {
+  return scope?.period === "exercice_complet";
+}
+
+/**
+ * Le CA HT de la ligne entre-t-il dans le CA ?
+ *  - `a_date` (défaut) : uniquement à partir de 🟢 Réglé (+ particulier) ;
+ *  - `exercice_complet` : TOUS les statuts saisis (planifié, facturé, réglé,
+ *    particulier), car la lecture porte sur l'intégralité de l'exercice.
+ * Fonction unique faisant autorité pour tout Pilot Pro.
+ */
+export function revenueCounted(
+  status: string | null | undefined,
+  scope?: SaleAccountingScope,
+): boolean {
+  if (countsAllSaleStatuses(scope)) return true;
   const s = saleStatusOf(status);
   return s === "regle" || s === "particulier";
 }
@@ -51,12 +74,15 @@ export interface RawSaleRow {
  * Applique la règle de comptabilisation à une ligne brute :
  * renvoie le CA et le Temps réellement comptabilisables.
  */
-export function accountedSale<T extends RawSaleRow>(row: T): T & { amount_ht: number; hours: number | null } {
+export function accountedSale<T extends RawSaleRow>(
+  row: T,
+  scope?: SaleAccountingScope,
+): T & { amount_ht: number; hours: number | null } {
   const ht = Number(row.amount_ht) || 0;
   const h = row.hours == null ? null : Number(row.hours);
   return {
     ...row,
-    amount_ht: revenueCounted(row.sale_status) ? ht : 0,
+    amount_ht: revenueCounted(row.sale_status, scope) ? ht : 0,
     hours: hoursCounted(row.sale_status) ? h : null,
   };
 }

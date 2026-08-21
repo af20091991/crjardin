@@ -30,7 +30,7 @@ export function ClientProfitabilityCard({
   const { mode } = usePilotMode();
   const { period } = usePilotPeriod();
   const thresholds = useThresholds();
-  const entriesQ = useQuery({ queryKey: ["pilot-entries"], queryFn: listEntries });
+  const entriesQ = useQuery({ queryKey: ["pilot-entries"], queryFn: () => listEntries() });
   const ledgerQ = useQuery({
     queryKey: ["pilot-hours-ledger-all", mode, period],
     queryFn: () => fetchHoursLedger(undefined, { mode, period }),

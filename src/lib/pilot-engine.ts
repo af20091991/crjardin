@@ -142,7 +142,7 @@ export async function loadEngineInputs(scope: EngineScope): Promise<EngineInputs
     categories,
     prevConfirmedHours,
   ] = await Promise.all([
-    listEntries(),
+    listEntries(asOf),
     listChargeRows(),
     fetchHoursLedger(undefined, asOf),
     getClientEconomicScores(asOf),
