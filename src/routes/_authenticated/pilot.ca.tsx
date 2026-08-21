@@ -215,7 +215,7 @@ function CaPage() {
   const now = new Date();
   const isCurrentYear = year === now.getFullYear();
   const monthsVisible =
-    displayMode === "exercice" && isCurrentYear ? Math.max(realizedMonthLimit(year, now), 1) : 12;
+    period === "exercice_complet" || !isCurrentYear ? 12 : Math.max(realizedMonthLimit(year, now), 1);
 
   useMemo(() => {
     if (month > monthsVisible) setMonth(monthsVisible);
