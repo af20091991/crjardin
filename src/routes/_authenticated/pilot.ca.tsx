@@ -233,6 +233,12 @@ function CaPage() {
   const ventes = monthRows("vente");
   const remus = monthRows("remuneration");
 
+  // Majoration active à partir d'août 2026 seulement : avant, rien ne change.
+  const remuGrossed = isRemunerationGrossed(year, month);
+  const remuNet = remus.length
+    ? Number(remus[0].net_amount_ht ?? (remuGrossed ? 0 : remus[0].amount_ht)) || 0
+    : 0;
+
   const addRow = (kind: CaKind) => {
     const list = monthRows(kind);
     const position = list.length ? Math.max(...list.map((r) => r.position)) + 1 : 0;
@@ -244,6 +250,7 @@ function CaPage() {
       designation: "",
       category: kind === "vente" ? "AP" : null,
       amount_ht: kind === "remuneration" ? 0 : (pending ?? 0),
+      net_amount_ht: kind === "remuneration" ? 0 : null,
       // Temps volontairement vide : aucune valeur n'est inventée à la création.
       hours: null,
       intervention_type: kind === "vente" ? "interne" : null,
@@ -252,6 +259,17 @@ function CaPage() {
   };
 
   const save = (id: string, input: Partial<CaEntry>) => updateMut.mutate({ id, input });
+
+  /**
+   * Saisie en net : le net est stocké tel quel (ressaisie sans dérive) et la
+   * ligne porte le montant consommé par les totaux (majoré dès août 2026).
+   */
+  const saveRemuneration = (row: CaEntry, net: number) => {
+    const amount = remuGrossed ? Math.round(remunerationBreakdown(net).total * 100) / 100 : net;
+    if (net === Number(row.net_amount_ht ?? NaN) && amount === row.amount_ht) return;
+    save(row.id, { net_amount_ht: net, amount_ht: amount });
+  };
+
 
   return (
     <div className="space-y-5">
