@@ -18,6 +18,8 @@ import {
   type CaKind,
   type CaCategory,
 } from "@/lib/pilot-ca";
+import { monthForecastHt } from "@/lib/pilot-ca-forecast";
+
 import { FixedChargesDetail } from "@/components/pilot/FixedChargesPanel";
 import { formatEuro } from "@/lib/pilot";
 import {
@@ -264,15 +266,13 @@ function CaPage() {
 
   const yt = useMemo(() => yearTotals(entries, { period }), [entries, period]);
   const mt = useMemo(() => monthTotals(entries, month, { period }), [entries, month, period]);
-  // Prévisionnel HT du mois affiché : cumul de TOUTES les lignes de vente
-  // saisies sur ce mois, quel que soit leur statut (pastille de couleur).
+  // Prévisionnel total HT du mois affiché : cumul de TOUTES les lignes de vente
+  // saisies sur ce mois, tous statuts confondus, dans le périmètre du mode global.
   const previsionnelHt = useMemo(
-    () =>
-      entries
-        .filter((e) => e.kind === "vente" && Number(e.month) === month)
-        .reduce((s, e) => s + (e.amount_ht || 0), 0),
-    [entries, month],
+    () => monthForecastHt(entries, month, { period }),
+    [entries, month, period],
   );
+
   const catTotals = useMemo(
     () => categoryTotals(entries, month, { period }),
     [entries, month, period],
@@ -357,7 +357,7 @@ function CaPage() {
       {/* Synthèse annuelle */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
         <StatBox label={`CA HT ${year}`} value={formatEuro(yt.ventesHt)} icon={TrendingUp} />
-        <StatBox label="CA TTC" value={formatEuro(yt.ventesTtc)} icon={Wallet} />
+
         <StatBox
           label="Charges HT"
           value={formatEuro(yt.chargesHt)}
@@ -426,7 +426,7 @@ function CaPage() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <StatBox label="CA HT mois" value={formatEuro(mt.ventesHt)} icon={TrendingUp} />
         <StatBox
-          label="Prévisionnel HT mois"
+          label="Prévisionnel total HT — ventes du mois"
           value={formatEuro(previsionnelHt)}
           icon={Wallet}
         />
