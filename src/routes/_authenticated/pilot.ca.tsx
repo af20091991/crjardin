@@ -224,7 +224,10 @@ function CaPage() {
 
   const yt = useMemo(() => yearTotals(entries, { period }), [entries, period]);
   const mt = useMemo(() => monthTotals(entries, month, { period }), [entries, month, period]);
-  const catTotals = useMemo(() => categoryTotals(entries, month), [entries, month]);
+  const catTotals = useMemo(
+    () => categoryTotals(entries, month, { period }),
+    [entries, month, period],
+  );
 
   const monthRows = (kind: CaKind) => entries.filter((e) => e.month === month && e.kind === kind);
   const charges = monthRows("charge");
