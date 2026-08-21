@@ -153,7 +153,7 @@ export function monthTotals(
   const remu = rows.filter((e) => e.kind === "remuneration");
   // Comptabilisation : CA à partir de 🟢 Réglé, Temps dès 🟠 Facturé.
   const ventesHt = ventes.reduce(
-    (s, e) => s + (revenueCounted(e.sale_status) ? e.amount_ht || 0 : 0),
+    (s, e) => s + (revenueCounted(e.sale_status, options) ? e.amount_ht || 0 : 0),
     0,
   );
   const chargesHt = charges.reduce((s, e) => s + (e.amount_ht || 0), 0);
