@@ -27,6 +27,16 @@ import {
   type BillableRecommendation,
 } from "@/lib/garden";
 import { Calculators } from "@/components/pilot/Calculators";
+import { CaSection } from "@/components/pilot/CaSection";
+import {
+  CA_SECTION_ORDER,
+  parseCaSections,
+  serializeCaSections,
+  toggleCaSection,
+  type CaSectionState,
+  CA_SECTIONS_KEY,
+} from "@/lib/pilot-ca-sections";
+import { investmentsTotal, resultAfterInvestments } from "@/lib/pilot-ca-investments";
 import { ClientPicker } from "@/components/pilot/ClientPicker";
 import { listClients } from "@/lib/clients";
 import {
@@ -69,6 +79,10 @@ import {
   Link2Off,
   Sparkles,
   ChevronDown,
+  Calculator,
+  Landmark,
+  BadgeEuro,
+
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
