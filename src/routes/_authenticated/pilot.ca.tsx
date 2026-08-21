@@ -166,6 +166,21 @@ function CaPage() {
   const toggleFixed = (id: string) => setOpenFixed((s) => ({ ...s, [id]: !s[id] }));
   const [originFor, setOriginFor] = useState<CaEntry | null>(null);
   const [density, setDensity] = useState<CaDensity>("compact");
+  // Encarts repliables (Ventes, Charges, Rémunération, Calculateurs) :
+  // fermés par défaut, ouverture mémorisée localement pour cette page.
+  const [sections, setSections] = useState<CaSectionState>(() =>
+    typeof window === "undefined" ? { ventes: false, charges: false, remuneration: false, calculateurs: false } : parseCaSections(window.localStorage.getItem(CA_SECTIONS_KEY)),
+  );
+  const toggleSection = (id: CaSectionId) =>
+    setSections((s) => {
+      const next = toggleCaSection(s, id);
+      try {
+        window.localStorage.setItem(CA_SECTIONS_KEY, serializeCaSections(next));
+      } catch {
+        /* stockage indisponible : réglage valable pour la session */
+      }
+      return next;
+    });
 
   // Réglage mémorisé uniquement pour cette page (localStorage, après montage).
   useEffect(() => setDensity(loadCaDensity()), []);
