@@ -168,9 +168,15 @@ function CaPage() {
   const [density, setDensity] = useState<CaDensity>("compact");
   // Encarts repliables (Ventes, Charges, Rémunération, Calculateurs) :
   // fermés par défaut, ouverture mémorisée localement pour cette page.
-  const [sections, setSections] = useState<CaSectionState>(() =>
-    typeof window === "undefined" ? { ventes: false, charges: false, remuneration: false, calculateurs: false } : parseCaSections(window.localStorage.getItem(CA_SECTIONS_KEY)),
-  );
+  const [sections, setSections] = useState<CaSectionState>({
+    ventes: false,
+    charges: false,
+    remuneration: false,
+    calculateurs: false,
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") setSections(parseCaSections(window.localStorage.getItem(CA_SECTIONS_KEY)));
+  }, []);
   const toggleSection = (id: CaSectionId) =>
     setSections((s) => {
       const next = toggleCaSection(s, id);
