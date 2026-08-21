@@ -117,8 +117,8 @@ export const DEFAULT_SETTINGS: Omit<PilotSettings, "user_id"> = {
 // ---------- Lecture des ventes (source unique : pilot_ca_entries) ----------
 // Toutes les analyses (Finance, Saisonnalité, Santé, Rapports, Clients ABC)
 // s'alimentent depuis la table pilot_ca_entries — seule source de vérité du CA.
-export async function listEntries(): Promise<PilotEntry[]> {
-  return bridgeCaEntries();
+export async function listEntries(options?: AsOfOptions): Promise<PilotEntry[]> {
+  return bridgeCaEntries(options);
 }
 
 function categoryToFamily(cat: string | null): PilotFamily {
