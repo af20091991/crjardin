@@ -1,9 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Charges fixes récurrentes, définies par année.
- * Les montants sont mensuels ; l'annuel est déduit (× 12).
- * Modifier une année n'affecte jamais les autres.
+ * Charges fixes récurrentes.
+ *
+ * Ce n'est PAS une source parallèle : chaque poste est le détail d'une ligne
+ * précise du classeur (`ca_entry_id` → pilot_ca_entries). La ligne du classeur
+ * porte le montant, toujours égal à la somme exacte du détail.
  */
 export interface FixedCharge {
   id: string;
@@ -13,7 +15,10 @@ export interface FixedCharge {
   monthly_amount: number;
   position: number;
   is_active: boolean;
+  /** Ligne du classeur dont ce poste est le détail. */
+  ca_entry_id: string | null;
 }
+
 
 /** Taux de cotisations sociales appliqué à une rémunération nette saisie. */
 export const SOCIAL_CONTRIBUTION_RATE = 0.45;
