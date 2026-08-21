@@ -28,6 +28,7 @@ import {
   REPORT_SEND_LABELS,
   reportSendBlocker,
   reportSendStatus,
+  resumeReportLogging,
   reportShareUrl,
   sendOutcomeMessage,
   sendReportToRecipients,
