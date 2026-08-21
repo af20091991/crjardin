@@ -264,6 +264,15 @@ function CaPage() {
 
   const yt = useMemo(() => yearTotals(entries, { period }), [entries, period]);
   const mt = useMemo(() => monthTotals(entries, month, { period }), [entries, month, period]);
+  // Prévisionnel HT du mois affiché : cumul de TOUTES les lignes de vente
+  // saisies sur ce mois, quel que soit leur statut (pastille de couleur).
+  const previsionnelHt = useMemo(
+    () =>
+      entries
+        .filter((e) => e.kind === "vente" && Number(e.month) === month)
+        .reduce((s, e) => s + (e.amount_ht || 0), 0),
+    [entries, month],
+  );
   const catTotals = useMemo(
     () => categoryTotals(entries, month, { period }),
     [entries, month, period],
@@ -416,7 +425,12 @@ function CaPage() {
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <StatBox label="CA HT mois" value={formatEuro(mt.ventesHt)} icon={TrendingUp} />
-        <StatBox label="CA TTC mois" value={formatEuro(mt.ventesTtc)} icon={Wallet} />
+        <StatBox
+          label="Prévisionnel HT mois"
+          value={formatEuro(previsionnelHt)}
+          icon={Wallet}
+        />
+
         <StatBox
           label="Charges HT"
           value={formatEuro(mt.chargesHt)}
