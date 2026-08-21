@@ -492,7 +492,7 @@ function PilotClient360() {
           report_policy: policy,
           lifecycle_status: (client.lifecycle_status ?? "actif") as ClientLifecycle,
         }}
-        entityStatus={score?.entityStatus}
+        entityStatus={score?.entityStatus as EntityStatus | undefined}
         details={[
           { label: "CA associé", value: formatEuro(caCumule) },
           { label: "Interventions", value: String(crTotal) },
