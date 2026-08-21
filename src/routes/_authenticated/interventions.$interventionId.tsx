@@ -347,16 +347,29 @@ function InterventionDetail() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Lien indisponible"),
   });
 
+  // Destinataires déjà acceptés par la file mais dont la journalisation a
+  // échoué : ils ne doivent jamais être renvoyés au prochain essai.
+  const [logPending, setLogPending] = useState<string[]>([]);
+  const [lastOutcome, setLastOutcome] = useState<SendOutcome | null>(null);
+
   const notifyClient = useMutation({
     mutationFn: async () => {
       if (!iv || !client) throw new Error("Données indisponibles");
-      if (!iv.pdf_storage_path) {
-        throw new Error("Aucune archive PDF disponible. Archivez le compte-rendu avant l'envoi.");
-      }
       const recipients = clientEmails(client);
-      if (recipients.length === 0) throw new Error("Ce client n'a pas d'adresse e-mail renseignée.");
+      const ctx: ReportSendContext = {
+        done: iv.status === "terminee",
+        pdfStoragePath: iv.pdf_storage_path,
+        shareToken: client.share_token,
+        recipients,
+        sentToClientAt: iv.sent_to_client_at,
+        clientReadAt: iv.client_read_at,
+      };
+      const blocker = reportSendBlocker(ctx);
+      if (blocker) throw new Error(REPORT_SEND_LABELS[blocker]);
+
+      const sentPath = iv.pdf_storage_path!;
       const settings = await getEmailSettings();
-      const shareUrl = `${window.location.origin}/partage/${client.share_token}`;
+      const shareUrl = reportShareUrl(window.location.origin, client.share_token!, interventionId);
       const reportDate = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
         day: "numeric", month: "long", year: "numeric",
       });
@@ -365,32 +378,62 @@ function InterventionDetail() {
         nom: client.name,
         date: reportDate,
       });
-      // Empreinte stable de l'archive référencée : évite les doublons
-      // mais permet un renvoi volontaire dès qu'une nouvelle version est archivée.
-      const archiveKey = iv.pdf_storage_path.replace(/[^a-zA-Z0-9]/g, "").slice(-24);
-      const sentPath = iv.pdf_storage_path;
-      for (const recipientEmail of recipients) {
-        await sendTransactionalEmail({
-          templateName: "new-report",
-          recipientEmail,
-          idempotencyKey: `new-report-${interventionId}-${recipientEmail}-${archiveKey}`,
-          templateData: {
-            subject: settings.subject,
-            bodyText,
-            shareUrl,
-          },
-        });
-        await logReportEvent(interventionId, "sent", { recipient: recipientEmail, pdf_storage_path: sentPath });
-      }
-      // Fige la version envoyée : c'est cette archive que le portail servira au client.
-      await updateIntervention(interventionId, {
-        sent_pdf_storage_path: sentPath,
-        sent_to_client_at: new Date().toISOString(),
-      });
+
+      return sendReportToRecipients(
+        {
+          sendEmail: (recipientEmail, idempotencyKey) =>
+            sendTransactionalEmail({
+              templateName: "new-report",
+              recipientEmail,
+              idempotencyKey,
+              templateData: { subject: settings.subject, bodyText, shareUrl },
+            }).then(() => undefined),
+          logSent: (recipientEmail) =>
+            logReportEvent(interventionId, "sent", {
+              recipient: recipientEmail,
+              pdf_storage_path: sentPath,
+            }),
+          // Fige la version envoyée : c'est cette archive que le portail servira.
+          markSent: () =>
+            updateIntervention(interventionId, {
+              sent_pdf_storage_path: sentPath,
+              sent_to_client_at: new Date().toISOString(),
+            }).then(() => undefined),
+        },
+        {
+          interventionId,
+          pdfStoragePath: sentPath,
+          recipients,
+          alreadySent: logPending,
+        },
+      );
     },
-    onSuccess: () => { invIv(); qc.invalidateQueries({ queryKey: ["report-history", interventionId] }); toast.success("E-mail envoyé au client"); },
+    onSuccess: (outcome) => {
+      setLastOutcome(outcome);
+      setLogPending((prev) => [...new Set([...prev, ...outcome.logPending])]);
+      invIv();
+      qc.invalidateQueries({ queryKey: ["report-history", interventionId] });
+      const message = sendOutcomeMessage(outcome);
+      if (outcome.failed.length > 0) toast.error(message);
+      else if (outcome.logPending.length > 0) toast.warning(message);
+      else toast.success(message);
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'envoi"),
   });
+
+  const sendCtx: ReportSendContext | null = iv && client
+    ? {
+        done: iv.status === "terminee",
+        pdfStoragePath: iv.pdf_storage_path,
+        shareToken: client.share_token,
+        recipients: clientEmails(client),
+        sentToClientAt: iv.sent_to_client_at,
+        clientReadAt: iv.client_read_at,
+        sending: notifyClient.isPending,
+        lastOutcome,
+      }
+    : null;
+  const sendStatus = sendCtx ? reportSendStatus(sendCtx) : "archive_indisponible";
 
   const runPhotoAi = useMutation({
     mutationFn: () => analyzePhotos({ data: { interventionId } }),
