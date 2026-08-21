@@ -442,7 +442,11 @@ function InterventionDetail() {
         qc.invalidateQueries({ queryKey: ["interventions", client.id] });
         qc.invalidateQueries({ queryKey: ["fiche-interventions", client.id] });
       }
-      const message = sendOutcomeMessage(outcome);
+      const message = resumed
+        ? outcome.logPending.length > 0
+          ? `Reprise incomplète : ${outcome.logPending.length} journalisation(s) à reprendre — ne pas renvoyer`
+          : "Reprise terminée : envoi journalisé"
+        : sendOutcomeMessage(outcome);
       if (outcome.failed.length > 0) toast.error(message);
       else if (outcome.logPending.length > 0) toast.warning(message);
       else toast.success(message);
