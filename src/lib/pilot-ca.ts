@@ -59,7 +59,7 @@ export interface CaEntry {
    * dérive d'arrondi.
    */
   net_amount_ht?: number | null;
-
+  match_status?: MatchStatusValue | null;
   sale_status?: SaleStatusValue;
   /** Date comptable de la ligne, quand elle est connue (borne au jour près). */
   entry_date?: string | null;
@@ -74,6 +74,7 @@ export type CaEntryInput = {
   designation?: string | null;
   category?: CaCategory | null;
   amount_ht?: number;
+  net_amount_ht?: number | null;
   hours?: number | null;
   is_fixed?: boolean;
   note?: string | null;
@@ -81,6 +82,20 @@ export type CaEntryInput = {
   client_id?: string | null;
   intervention_type?: InterventionKind | null;
 };
+
+/**
+ * Première période concernée par la majoration de la rémunération
+ * (net + cotisations stocké sur la ligne) : août 2026. Les mois antérieurs
+ * restent strictement inchangés.
+ */
+export const REMUNERATION_GROSS_FROM = { year: 2026, month: 8 } as const;
+
+/** true si la ligne de rémunération de ce mois stocke le total majoré. */
+export function isRemunerationGrossed(year: number, month: number): boolean {
+  if (year !== REMUNERATION_GROSS_FROM.year) return year > REMUNERATION_GROSS_FROM.year;
+  return month >= REMUNERATION_GROSS_FROM.month;
+}
+
 
 export async function listCaEntries(year: number): Promise<CaEntry[]> {
   return fetchAllCaRows<CaEntry>("*", { year }, [
