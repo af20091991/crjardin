@@ -35,7 +35,8 @@ import {
   type CaSectionId,
   CA_SECTIONS_KEY,
 } from "@/lib/pilot-ca-sections";
-import { investmentsTotal } from "@/lib/pilot-ca-investments";
+import { investmentsTotal, resultAfterInvestments } from "@/lib/pilot-ca-investments";
+import { CaSection } from "@/components/pilot/CaSection";
 import { ClientPicker } from "@/components/pilot/ClientPicker";
 import { listClients } from "@/lib/clients";
 import {
@@ -79,6 +80,9 @@ import {
   Sparkles,
   ChevronDown,
   Landmark,
+  Calculator,
+  Sprout,
+
 
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -264,6 +268,15 @@ function CaPage() {
     () => categoryTotals(entries, month, { period }),
     [entries, month, period],
   );
+  // Investissements de l'exercice (hors charges d'exploitation) et résultat net après investissements.
+  const yearInvestments = useMemo(
+    () => investmentsTotal(entries, undefined, { period }),
+    [entries, period],
+  );
+  const resultAfterInvest = useMemo(
+    () => resultAfterInvestments(yt.benefice, yearInvestments),
+    [yt.benefice, yearInvestments],
+  );
 
   const monthRows = (kind: CaKind) => entries.filter((e) => e.month === month && e.kind === kind);
   const charges = monthRows("charge");
@@ -349,6 +362,18 @@ function CaPage() {
           tone="text-emerald-600"
         />
         <StatBox label="Temps total" value={`${yt.hours.toLocaleString("fr-FR")} h`} icon={Clock} />
+        {/* Investissements : jamais des charges d'exploitation, comptés une seule fois */}
+        <StatBox
+          label={`Investissements ${year}`}
+          value={formatEuro(yearInvestments)}
+          icon={Sprout}
+        />
+        <StatBox
+          label="Résultat après investissements"
+          value={formatEuro(resultAfterInvest)}
+          icon={PiggyBank}
+          tone={resultAfterInvest >= 0 ? "text-emerald-600" : "text-rose-600"}
+        />
       </div>
 
       {/* Mode « année complète » : les 12 mois de l'exercice, saisies telles quelles */}
@@ -422,16 +447,21 @@ function CaPage() {
         className={`flex flex-col gap-4 ${CA_DENSITY_CLASS[density]}`}
       >
         <div data-testid="ca-ventes-column" className="min-w-0 space-y-4">
-          {/* Ventes — source de vérité unique */}
-          <Card style={{ backgroundColor: "color-mix(in oklab, var(--pp-sales) 7%, transparent)" }}>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
-              <CardTitle className="text-base">Détails des ventes</CardTitle>
+          {/* Ventes — source de vérité unique, encart repliable */}
+          <CaSection
+            id="ventes"
+            label="Détails des ventes"
+            open={sections.ventes}
+            onToggle={toggleSection}
+            icon={<TrendingUp className="h-4 w-4 text-emerald-600" />}
+            accent="color-mix(in oklab, var(--pp-sales) 7%, transparent)"
+            action={
               <Button size="sm" variant="outline" onClick={() => addRow("vente")}>
                 <Plus className="mr-1 h-4 w-4" />
                 Ligne
               </Button>
-            </CardHeader>
-            <CardContent className="p-0">
+            }
+          >
               <p className="px-4 pb-2 text-xs text-muted-foreground">
                 Source unique de vérité économique. Chaque ligne porte le client, la prestation, le
                 montant HT, le temps et le type d'intervention. Largeur des colonnes ajustable en
@@ -730,83 +760,24 @@ function CaPage() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          <Calculators
-            onUse={(v) => {
-              setPending(v);
-              toast.success(`Résultat prêt : ${formatEuro(v)}`);
-            }}
-          />
+          </CaSection>
         </div>
         <div data-testid="ca-charges-column" className="min-w-0 space-y-4">
-          {/*
-           * Rémunération — encart unique, placé AVANT les charges.
-           * Saisie en net ; à partir d'août 2026 la ligne stocke le total
-           * majoré (net + cotisations) et le net reste conservé à part.
-           */}
-          <Card data-testid="ca-remuneration-card">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
-              <CardTitle className="text-base">Rémunération {MONTH_NAMES[month - 1]}</CardTitle>
-              {remus.length === 0 && (
-                <Button size="sm" variant="outline" onClick={() => addRow("remuneration")}>
-                  <Plus className="mr-1 h-4 w-4" />
-                  Définir
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {remus.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Aucune rémunération saisie pour ce mois.
-                </p>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="flex-1 text-sm">Rémunération nette</span>
-                    <Input
-                      key={remus[0].id + remuNet}
-                      defaultValue={remuNet || ""}
-                      type="number"
-                      inputMode="decimal"
-                      className="h-8 w-32 text-right"
-                      onBlur={(e) => saveRemuneration(remus[0], num(e.target.value))}
-                    />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => deleteMut.mutate(remus[0].id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <RemunerationBreakdown net={remuNet} />
-                  {remuGrossed && (
-                    <p className="text-xs text-muted-foreground">
-                      La ligne enregistrée vaut {formatEuro(remus[0].amount_ht)} (coût total
-                      majoré).
-                    </p>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Charges */}
-
-          <Card
-            style={{ backgroundColor: "color-mix(in oklab, var(--pp-charges) 7%, transparent)" }}
-          >
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
-              <CardTitle className="text-base">Détails des charges</CardTitle>
+          {/* Charges d'exploitation — encart repliable, sous les ventes */}
+          <CaSection
+            id="charges"
+            label="Détails des charges"
+            open={sections.charges}
+            onToggle={toggleSection}
+            icon={<Wallet className="h-4 w-4 text-rose-600" />}
+            accent="color-mix(in oklab, var(--pp-charges) 7%, transparent)"
+            action={
               <Button size="sm" variant="outline" onClick={() => addRow("charge")}>
                 <Plus className="mr-1 h-4 w-4" />
                 Ligne
               </Button>
-            </CardHeader>
-            <CardContent className="p-0">
+            }
+          >
               <div className="overflow-x-auto">
                 <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
                   <colgroup>
@@ -977,19 +948,92 @@ function CaPage() {
                 <span className="font-medium">Total charges {MONTH_NAMES[month - 1]}</span>
                 <span className="font-semibold text-rose-600">{formatEuro(mt.chargesHt)}</span>
               </div>
-            </CardContent>
-          </Card>
+          </CaSection>
 
+          {/*
+           * Rémunération — encart unique et repliable, placé APRÈS les charges.
+           * Saisie en net ; à partir d'août 2026 la ligne stocke le total
+           * majoré (net + cotisations) et le net reste conservé à part.
+           */}
+          <div data-testid="ca-remuneration-card">
+            <CaSection
+              id="remuneration"
+              label={`Rémunération ${MONTH_NAMES[month - 1]}`}
+              open={sections.remuneration}
+              onToggle={toggleSection}
+              icon={<Landmark className="h-4 w-4 text-primary" />}
+              action={
+                remus.length === 0 ? (
+                  <Button size="sm" variant="outline" onClick={() => addRow("remuneration")}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Définir
+                  </Button>
+                ) : undefined
+              }
+            >
+              <div className="space-y-2 p-4">
+                {remus.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Aucune rémunération saisie pour ce mois.
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="flex-1 text-sm">Rémunération nette</span>
+                      <Input
+                        key={remus[0].id + remuNet}
+                        defaultValue={remuNet || ""}
+                        type="number"
+                        inputMode="decimal"
+                        className="h-8 w-32 text-right"
+                        onBlur={(e) => saveRemuneration(remus[0], num(e.target.value))}
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => deleteMut.mutate(remus[0].id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <RemunerationBreakdown net={remuNet} />
+                    {remuGrossed && (
+                      <p className="text-xs text-muted-foreground">
+                        La ligne enregistrée vaut {formatEuro(remus[0].amount_ht)} (coût total
+                        majoré).
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            </CaSection>
+          </div>
 
+          {/* Calculateurs — dernier encart, repliable */}
+          <CaSection
+            id="calculateurs"
+            label="Calculateurs"
+            open={sections.calculateurs}
+            onToggle={toggleSection}
+            icon={<Calculator className="h-4 w-4 text-primary" />}
+          >
+            <div className="p-4">
+              <Calculators
+                onUse={(v) => {
+                  setPending(v);
+                  toast.success(`Résultat prêt : ${formatEuro(v)}`);
+                }}
+              />
+            </div>
+          </CaSection>
 
           {/*
            * Panneau « charges fixes » legacy retiré (audit V2.3+, anomalie 3) :
-           * il lisait la table `pilot_fixed_charges`, doublon des charges du
-           * classeur. Source unique désormais : pilot_ca_entries.
-           * La table est conservée en base, aucune donnée supprimée.
+           * source unique désormais : pilot_ca_entries.
            */}
           <p className="rounded-lg border border-dashed border-border/70 px-3 py-2 text-xs text-muted-foreground">
-            Source unique des charges : le classeur CA / charges ci-contre. L'ancien tableau de
+            Source unique des charges : le classeur CA / charges ci-dessus. L'ancien tableau de
             charges fixes mensuelles a été retiré pour éviter tout double comptage.
           </p>
         </div>
