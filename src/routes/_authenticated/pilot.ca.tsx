@@ -305,6 +305,17 @@ function CaPage() {
         <StatBox label="Temps total" value={`${yt.hours.toLocaleString("fr-FR")} h`} icon={Clock} />
       </div>
 
+      {/* Mode « année complète » : les 12 mois de l'exercice, saisies telles quelles */}
+      {(period === "exercice_complet" || displayMode === "annee") && (
+        <AnnualMonthsTable
+          entries={entries}
+          year={year}
+          period={period === "exercice_complet" ? "exercice_complet" : "a_date"}
+          now={now}
+        />
+      )}
+
+
       {/* Onglets mois */}
       <div className="-mx-1 overflow-x-auto pb-1">
         <div className="flex min-w-max gap-1 rounded-xl border border-border bg-card p-1">
