@@ -114,8 +114,8 @@ function ControlCenterPage() {
         </p>
         {client && (
           <p className="text-xs text-muted-foreground">
-            Ouvert depuis une fiche client : traitez ci-dessous l'élément à rapprocher, puis
-            revenez à la fiche 360° pour vérifier la complétude.
+            Ouvert depuis une fiche client : traitez ci-dessous l'élément à rapprocher, puis revenez
+            à la fiche 360° pour vérifier la complétude.
           </p>
         )}
       </header>
