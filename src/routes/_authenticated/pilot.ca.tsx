@@ -27,6 +27,15 @@ import {
   type BillableRecommendation,
 } from "@/lib/garden";
 import { Calculators } from "@/components/pilot/Calculators";
+import {
+  parseCaSections,
+  serializeCaSections,
+  toggleCaSection,
+  type CaSectionState,
+  type CaSectionId,
+  CA_SECTIONS_KEY,
+} from "@/lib/pilot-ca-sections";
+import { investmentsTotal } from "@/lib/pilot-ca-investments";
 import { ClientPicker } from "@/components/pilot/ClientPicker";
 import { listClients } from "@/lib/clients";
 import {
@@ -69,6 +78,8 @@ import {
   Link2Off,
   Sparkles,
   ChevronDown,
+  Landmark,
+
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -152,6 +163,27 @@ function CaPage() {
   const toggleFixed = (id: string) => setOpenFixed((s) => ({ ...s, [id]: !s[id] }));
   const [originFor, setOriginFor] = useState<CaEntry | null>(null);
   const [density, setDensity] = useState<CaDensity>("compact");
+  // Encarts repliables (Ventes, Charges, Rémunération, Calculateurs) :
+  // fermés par défaut, ouverture mémorisée localement pour cette page.
+  const [sections, setSections] = useState<CaSectionState>({
+    ventes: false,
+    charges: false,
+    remuneration: false,
+    calculateurs: false,
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") setSections(parseCaSections(window.localStorage.getItem(CA_SECTIONS_KEY)));
+  }, []);
+  const toggleSection = (id: CaSectionId) =>
+    setSections((s) => {
+      const next = toggleCaSection(s, id);
+      try {
+        window.localStorage.setItem(CA_SECTIONS_KEY, serializeCaSections(next));
+      } catch {
+        /* stockage indisponible : réglage valable pour la session */
+      }
+      return next;
+    });
 
   // Réglage mémorisé uniquement pour cette page (localStorage, après montage).
   useEffect(() => setDensity(loadCaDensity()), []);
