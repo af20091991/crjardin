@@ -223,9 +223,16 @@ function ClientDetail() {
                           {new Date(iv.intervention_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
                         </p>
                       </div>
-                      <Badge variant={iv.status === "terminee" ? "default" : "secondary"} className="shrink-0">
-                        {iv.status === "terminee" ? "Terminé" : "Brouillon"}
-                      </Badge>
+                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                        <Badge variant={iv.status === "terminee" ? "default" : "secondary"}>
+                          {iv.status === "terminee" ? "Terminé" : "Brouillon"}
+                        </Badge>
+                        {iv.sent_to_client_at && (
+                          <Badge variant="outline" className="border-primary/40 text-primary">
+                            Envoyé au client
+                          </Badge>
+                        )}
+                      </div>
                     </Card>
                   </Link>
                 ))}
