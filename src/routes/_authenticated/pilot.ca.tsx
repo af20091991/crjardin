@@ -18,6 +18,8 @@ import {
   type CaKind,
   type CaCategory,
 } from "@/lib/pilot-ca";
+import { monthForecastHt } from "@/lib/pilot-ca-forecast";
+
 import { FixedChargesDetail } from "@/components/pilot/FixedChargesPanel";
 import { formatEuro } from "@/lib/pilot";
 import {
