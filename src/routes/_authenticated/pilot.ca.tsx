@@ -142,7 +142,6 @@ function CaPage() {
   const { year } = usePilotYear();
   const { period } = usePilotPeriod();
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
-  const [displayMode, setDisplayMode] = useState<"exercice" | "annee">("exercice");
   const [pending, setPending] = useState<number | null>(null);
   const [openNote, setOpenNote] = useState<Record<string, boolean>>({});
   const toggleNote = (id: string) => setOpenNote((s) => ({ ...s, [id]: !s[id] }));
