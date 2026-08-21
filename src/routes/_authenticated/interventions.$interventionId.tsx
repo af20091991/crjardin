@@ -23,6 +23,16 @@ import {
 } from "@/lib/garden";
 import { generateInterventionInsights, analyzeInterventionPhotos } from "@/lib/ai.functions";
 import { getClient, clientEmails, listClients } from "@/lib/clients";
+import {
+  REPORT_SEND_LABELS,
+  reportSendBlocker,
+  reportSendStatus,
+  reportShareUrl,
+  sendOutcomeMessage,
+  sendReportToRecipients,
+  type ReportSendContext,
+  type SendOutcome,
+} from "@/lib/report-send";
 import { getMyProfile } from "@/lib/profile";
 import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
