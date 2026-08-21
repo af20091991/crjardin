@@ -150,7 +150,7 @@ type CaChargeRow = {
   created_at: string; updated_at: string;
 };
 
-async function bridgeCaEntries(): Promise<PilotEntry[]> {
+async function bridgeCaEntries(options?: AsOfOptions): Promise<PilotEntry[]> {
   const rows = await fetchCaRows<CaVenteRow>(
     "id,user_id,year,month,kind,designation,category,amount_ht,hours,client_id,sale_status,intervention_type,created_at,updated_at",
     "vente",
