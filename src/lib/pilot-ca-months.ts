@@ -5,7 +5,6 @@
 // `keepRealizedYearMonth` de `pilot-realized.ts` (source de vérité unique).
 import { monthTotals, MONTH_NAMES, type CaEntry } from "@/lib/pilot-ca";
 import {
-  DEFAULT_PERIOD_MODE,
   isRealizedMonth,
   keepRealizedYearMonth,
   type AsOfOptions,
@@ -52,7 +51,6 @@ export function monthlyCaRows(
   options?: AsOfOptions,
 ): MonthlyCaRow[] {
   const now = options?.now ?? new Date();
-  const period = options?.period ?? DEFAULT_PERIOD_MODE;
   return Array.from({ length: 12 }, (_, i) => {
     const month = i + 1;
     const t = monthTotals(entries, month, options);
@@ -75,8 +73,6 @@ export function monthlyCaRows(
       resultat: kept.length === 0 ? 0 : t.ventesHt - t.chargesHt,
       nature,
       rowCount: kept.length,
-      // `period` est conservé implicitement par les moteurs appelés ci-dessus.
-      ...(period ? {} : {}),
     };
   });
 }
