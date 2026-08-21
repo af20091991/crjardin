@@ -364,7 +364,7 @@ function InterventionDetail() {
   const [lastOutcome, setLastOutcome] = useState<SendOutcome | null>(null);
 
   const notifyClient = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<{ outcome: SendOutcome; resumed: boolean }> => {
       if (!iv || !client) throw new Error("Données indisponibles");
       const recipients = clientEmails(client);
       const ctx: ReportSendContext = {
@@ -379,6 +379,25 @@ function InterventionDetail() {
       if (blocker) throw new Error(REPORT_SEND_LABELS[blocker]);
 
       const sentPath = iv.pdf_storage_path!;
+      const logSent = (recipientEmail: string) =>
+        logReportEvent(interventionId, "sent", {
+          recipient: recipientEmail,
+          pdf_storage_path: sentPath,
+        });
+      // Fige la version envoyée : c'est cette archive que le portail servira.
+      const markSent = () =>
+        updateIntervention(interventionId, {
+          sent_pdf_storage_path: sentPath,
+          sent_to_client_at: new Date().toISOString(),
+        }).then(() => undefined);
+
+      // Reprise : e-mails déjà acceptés par la file → on rejoue uniquement
+      // journalisation + marquage, jamais un nouvel envoi.
+      if (logPending.length > 0) {
+        const outcome = await resumeReportLogging({ logSent, markSent }, { recipients: logPending });
+        return { outcome, resumed: true };
+      }
+
       const settings = await getEmailSettings();
       const shareUrl = reportShareUrl(window.location.origin, client.share_token!, interventionId);
       const reportDate = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
@@ -390,7 +409,7 @@ function InterventionDetail() {
         date: reportDate,
       });
 
-      return sendReportToRecipients(
+      const outcome = await sendReportToRecipients(
         {
           sendEmail: (recipientEmail, idempotencyKey) =>
             sendTransactionalEmail({
@@ -399,29 +418,22 @@ function InterventionDetail() {
               idempotencyKey,
               templateData: { subject: settings.subject, bodyText, shareUrl },
             }).then(() => undefined),
-          logSent: (recipientEmail) =>
-            logReportEvent(interventionId, "sent", {
-              recipient: recipientEmail,
-              pdf_storage_path: sentPath,
-            }),
-          // Fige la version envoyée : c'est cette archive que le portail servira.
-          markSent: () =>
-            updateIntervention(interventionId, {
-              sent_pdf_storage_path: sentPath,
-              sent_to_client_at: new Date().toISOString(),
-            }).then(() => undefined),
+          logSent,
+          markSent,
         },
         {
           interventionId,
           pdfStoragePath: sentPath,
           recipients,
-          alreadySent: logPending,
         },
       );
+      return { outcome, resumed: false };
     },
-    onSuccess: (outcome) => {
+    onSuccess: ({ outcome, resumed }) => {
       setLastOutcome(outcome);
-      setLogPending((prev) => [...new Set([...prev, ...outcome.logPending])]);
+      setLogPending((prev) =>
+        resumed ? outcome.logPending : [...new Set([...prev, ...outcome.logPending])],
+      );
       invIv();
       qc.invalidateQueries({ queryKey: ["report-history", interventionId] });
       // Les listes d'interventions du client doivent être rafraîchies pour que
