@@ -49,11 +49,26 @@ export async function listFixedCharges(year: number): Promise<FixedCharge[]> {
   }));
 }
 
+/** Détail d'une ligne précise du classeur (source unique du montant de la ligne). */
+export async function listFixedChargesForEntry(caEntryId: string): Promise<FixedCharge[]> {
+  const { data, error } = await supabase
+    .from("pilot_fixed_charges")
+    .select("*")
+    .eq("ca_entry_id", caEntryId)
+    .order("position", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    ...(r as unknown as FixedCharge),
+    monthly_amount: Number((r as { monthly_amount: number }).monthly_amount) || 0,
+  }));
+}
+
 export async function createFixedCharge(input: {
   year: number;
   label: string;
   monthly_amount: number;
   position?: number;
+  ca_entry_id?: string | null;
 }): Promise<void> {
   const user_id = await uid();
   const { error } = await supabase
@@ -61,6 +76,7 @@ export async function createFixedCharge(input: {
     .insert({ position: 0, ...input, user_id } as never);
   if (error) throw error;
 }
+
 
 export async function updateFixedCharge(
   id: string,
