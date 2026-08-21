@@ -96,3 +96,8 @@ export function fixedChargesTotals(rows: FixedCharge[]) {
   const monthly = active.reduce((s, r) => s + r.monthly_amount, 0);
   return { monthly, yearly: monthly * 12, count: active.length };
 }
+/** Somme exacte (2 décimales) du détail : c'est le montant de la ligne du classeur. */
+export function fixedChargesSum(rows: FixedCharge[]): number {
+  const monthly = rows.filter((r) => r.is_active).reduce((s, r) => s + r.monthly_amount, 0);
+  return Math.round(monthly * 100) / 100;
+}
