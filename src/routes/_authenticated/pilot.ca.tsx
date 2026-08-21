@@ -147,6 +147,8 @@ function CaPage() {
   const [pending, setPending] = useState<number | null>(null);
   const [openNote, setOpenNote] = useState<Record<string, boolean>>({});
   const toggleNote = (id: string) => setOpenNote((s) => ({ ...s, [id]: !s[id] }));
+  const [openFixed, setOpenFixed] = useState<Record<string, boolean>>({});
+  const toggleFixed = (id: string) => setOpenFixed((s) => ({ ...s, [id]: !s[id] }));
   const [originFor, setOriginFor] = useState<CaEntry | null>(null);
   const [density, setDensity] = useState<CaDensity>("compact");
 
