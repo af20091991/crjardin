@@ -814,33 +814,62 @@ function CaPage() {
                       // Commentaire replié par défaut : aucune donnée perdue,
                       // ouverture en un clic via « Voir le commentaire ».
                       const opened = !!openNote[row.id];
+                      // Ligne « Charges fixes » : son montant est la somme du
+                      // détail (pilot_fixed_charges), jamais ressaisi à part.
+                      const isFixed = !!row.is_fixed;
+                      const fixedOpen = !!openFixed[row.id];
                       return (
                         <Fragment key={row.id}>
                           <TableRow>
                             <TableCell>
-                              <Input
-                                defaultValue={row.designation ?? ""}
-                                placeholder="Désignation"
-                                title={row.designation ?? undefined}
-                                className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input"
-                                onBlur={(e) => {
-                                  if (e.target.value !== (row.designation ?? ""))
-                                    save(row.id, { designation: e.target.value });
-                                }}
-                              />
+                              {isFixed ? (
+                                <button
+                                  type="button"
+                                  data-testid="ca-fixed-row-toggle"
+                                  className="flex h-8 items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                                  onClick={() => toggleFixed(row.id)}
+                                >
+                                  <ChevronDown
+                                    className={`h-4 w-4 transition-transform ${fixedOpen ? "" : "-rotate-90"}`}
+                                  />
+                                  {row.designation || "Charges fixes"}
+                                </button>
+                              ) : (
+                                <Input
+                                  defaultValue={row.designation ?? ""}
+                                  placeholder="Désignation"
+                                  title={row.designation ?? undefined}
+                                  className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input"
+                                  onBlur={(e) => {
+                                    if (e.target.value !== (row.designation ?? ""))
+                                      save(row.id, { designation: e.target.value });
+                                  }}
+                                />
+                              )}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Input
-                                defaultValue={row.amount_ht || ""}
-                                type="number"
-                                inputMode="decimal"
-                                className="h-8 text-right"
-                                onBlur={(e) => {
-                                  const v = num(e.target.value);
-                                  if (v !== row.amount_ht) save(row.id, { amount_ht: v });
-                                }}
-                              />
+                              {isFixed ? (
+                                <span
+                                  data-testid="ca-fixed-row-amount"
+                                  className="block px-3 text-sm font-semibold"
+                                  title="Somme du détail des charges fixes"
+                                >
+                                  {formatEuro(row.amount_ht)}
+                                </span>
+                              ) : (
+                                <Input
+                                  defaultValue={row.amount_ht || ""}
+                                  type="number"
+                                  inputMode="decimal"
+                                  className="h-8 text-right"
+                                  onBlur={(e) => {
+                                    const v = num(e.target.value);
+                                    if (v !== row.amount_ht) save(row.id, { amount_ht: v });
+                                  }}
+                                />
+                              )}
                             </TableCell>
+
                             <TableCell className="whitespace-nowrap">
                               <Button
                                 size="icon"
