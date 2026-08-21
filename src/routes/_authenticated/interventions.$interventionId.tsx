@@ -424,6 +424,12 @@ function InterventionDetail() {
       setLogPending((prev) => [...new Set([...prev, ...outcome.logPending])]);
       invIv();
       qc.invalidateQueries({ queryKey: ["report-history", interventionId] });
+      // Les listes d'interventions du client doivent être rafraîchies pour que
+      // les fiches client (classique et Pilot Pro) reflètent l'état d'envoi.
+      if (client?.id) {
+        qc.invalidateQueries({ queryKey: ["interventions", client.id] });
+        qc.invalidateQueries({ queryKey: ["fiche-interventions", client.id] });
+      }
       const message = sendOutcomeMessage(outcome);
       if (outcome.failed.length > 0) toast.error(message);
       else if (outcome.logPending.length > 0) toast.warning(message);
