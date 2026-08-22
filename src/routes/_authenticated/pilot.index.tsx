@@ -1397,22 +1397,27 @@ function TodayPage() {
             label="Taux horaire réel"
             value={
               safeValue([states.entries, hoursLedgerState], () =>
-                realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible",
+                tauxAffiche != null ? `${formatEuro(tauxAffiche)}/h` : "Non disponible",
               ).value
             }
             icon={Gauge}
             to="/pilot/taux"
-            help={realRate.available ? realRate.note : realRate.detail}
+            action={<GestionToggle />}
+            help={`${realRate.available ? realRate.note : realRate.detail} — ${
+              includeGestion ? GESTION_MODE_HELP.incluse : GESTION_MODE_HELP.exclue
+            }`}
             tone={
-              realRate.available && targetHR > 0
-                ? realRate.value >= targetHR
+              tauxAffiche != null && targetHR > 0
+                ? tauxAffiche >= targetHR
                   ? "positive"
                   : "warning"
                 : "default"
             }
             sub={
-              realRate.available && targetHR > 0
-                ? `${tauxEcartPct >= 0 ? "+" : ""}${tauxEcartPct.toFixed(0)} % vs cible ${formatEuro(targetHR)}`
+              tauxAffiche != null && targetHR > 0
+                ? `${tauxEcartPct >= 0 ? "+" : ""}${tauxEcartPct.toFixed(0)} % vs cible ${formatEuro(targetHR)}${
+                    includeGestion ? ` · dont ${formatHours(gestionAnnee)} de gestion` : ""
+                  }`
                 : undefined
             }
           />
