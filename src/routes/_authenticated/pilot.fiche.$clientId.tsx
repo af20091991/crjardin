@@ -34,6 +34,7 @@ import { listMissions } from "@/lib/subcontractors";
 import { listContacts, listSites, type Contact, type Site } from "@/lib/sites";
 import { entityEligibility } from "@/lib/pilot-entity-rules";
 import { saleTimeKnown } from "@/lib/pilot-sale-time";
+import { revenueCounted } from "@/lib/pilot-sale-accounting";
 import { EntityStatusBadge } from "@/components/pilot/ReliabilityBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -96,6 +97,7 @@ interface CaEntryRow {
   kind: string;
   hours: number | null;
   intervention_type: string | null;
+  sale_status: string | null;
 }
 
 interface InterventionRow {
@@ -186,7 +188,7 @@ function PilotClient360() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pilot_ca_entries")
-        .select("id,year,month,amount_ht,designation,kind,hours,intervention_type")
+        .select("id,year,month,amount_ht,designation,kind,hours,intervention_type,sale_status")
         .eq("client_id", clientId)
         .eq("kind", "vente")
         .order("year", { ascending: false })
@@ -257,10 +259,12 @@ function PilotClient360() {
   const activityStatus = getClientActivityStatus(lastActivity);
   const activityMeta = ACTIVITY_META[activityStatus];
 
-  // Prestations connues (top désignations)
+  // Prestations connues (top désignations) : alignées sur la règle de
+  // comptabilisation du CA (revenueCounted) pour cohérence avec caCumule.
   const topDesignations = (() => {
     const acc = new Map<string, { total: number; n: number }>();
     for (const r of caQ.data ?? []) {
+      if (!revenueCounted(r.sale_status)) continue;
       const key = (r.designation ?? "—").trim() || "—";
       const cur = acc.get(key) ?? { total: 0, n: 0 };
       cur.total += Number(r.amount_ht) || 0;
