@@ -259,10 +259,12 @@ function PilotClient360() {
   const activityStatus = getClientActivityStatus(lastActivity);
   const activityMeta = ACTIVITY_META[activityStatus];
 
-  // Prestations connues (top désignations)
+  // Prestations connues (top désignations) : alignées sur la règle de
+  // comptabilisation du CA (revenueCounted) pour cohérence avec caCumule.
   const topDesignations = (() => {
     const acc = new Map<string, { total: number; n: number }>();
     for (const r of caQ.data ?? []) {
+      if (!revenueCounted(r.sale_status)) continue;
       const key = (r.designation ?? "—").trim() || "—";
       const cur = acc.get(key) ?? { total: 0, n: 0 };
       cur.total += Number(r.amount_ht) || 0;
