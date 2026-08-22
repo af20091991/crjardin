@@ -262,7 +262,8 @@ function TodayPage() {
   // Indicateurs : valeur affichée uniquement si ses sources sont disponibles.
   const caSources = [states.entries];
   const beneficeSources = [states.entries, chargeRowsState];
-  const itvSources = [interventionsState];
+  // Interventions = lignes de Vente : la source est donc pilot_ca_entries.
+  const itvSources = [states.entries];
   const hoursSources = [states.entries];
 
   // Politique compte-rendu par client : seul un client « Oui » génère une action CR.
