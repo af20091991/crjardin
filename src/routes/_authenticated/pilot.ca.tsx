@@ -288,6 +288,20 @@ function CaPage() {
     [entries, month, period],
   );
 
+  // Taux horaire du mois : même règle que la Vue exercice.
+  // Gestion exclue  → CA du mois / heures d'intervention du mois.
+  // Gestion incluse → CA du mois / (heures d'intervention + Temps gestion du mois),
+  // le Temps gestion venant d'Analyse temps & rentabilité → Suivi mensuel.
+  const { includeGestion } = useGestionMode();
+  const hoursRowsQ = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
+  const tjmQ = useQuery({ queryKey: ["pilot-tjm-settings"], queryFn: getTjmSettings });
+  const gestionMois = gestionHoursForMonth(
+    hoursRowsQ.data ?? [],
+    month,
+    tjmQ.data?.heures_gestion ?? 60,
+  );
+  const tauxMoisAffiche = rateWithGestion(mt.ventesHt, mt.hours, gestionMois, includeGestion);
+
   const catTotals = useMemo(
     () => categoryTotals(entries, month, { period }),
     [entries, month, period],
