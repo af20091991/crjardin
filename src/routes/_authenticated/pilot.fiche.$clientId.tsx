@@ -97,6 +97,7 @@ interface CaEntryRow {
   kind: string;
   hours: number | null;
   intervention_type: string | null;
+  sale_status: string | null;
 }
 
 interface InterventionRow {
