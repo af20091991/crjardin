@@ -651,13 +651,15 @@ function TodayPage() {
    * cf. pilot-intervention-count). Les CR Chantier et les données SST ne sont
    * jamais utilisés pour ce comptage.
    */
+  // Périmètre du comptage : TOUTES les lignes de vente de l'exercice
+  // (1er janvier → 31 décembre), sans limitation « à date ».
   const interventionsMois = useMemo(
-    () => countSaleInterventions(realEntries, { year, month: month + 1 }),
-    [realEntries, year, month],
+    () => countSaleInterventions(entries.data ?? [], { year, month: month + 1 }),
+    [entries.data, year, month],
   );
   const interventionsAnnee = useMemo(
-    () => countSaleInterventions(realEntries, { year }),
-    [realEntries, year],
+    () => countSaleInterventions(entries.data ?? [], { year }),
+    [entries.data, year],
   );
 
   // ---- Comparatifs à date équivalente N-1 (uniquement l'enregistré) ----
