@@ -338,6 +338,12 @@ export function ProfitabilityClientsView() {
                       >
                         Rentabilité
                       </TableHead>
+                      <TableHead
+                        className="text-center"
+                        title="Motif factuel de vérification : identité non exploitable, CA sans temps, temps sans CA, couverture horaire faible ou taux horaire aberrant."
+                      >
+                        À vérifier
+                      </TableHead>
                       <TableHead className="text-center">Cat.</TableHead>
                     </TableRow>
                   </TableHeader>
