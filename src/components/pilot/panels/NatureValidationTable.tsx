@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  NATURE_CHOICES,
   NATURE_LABELS,
   listLinesToValidate,
   setLineNature,
@@ -14,7 +15,7 @@ import {
   type NatureLine,
 } from "@/lib/pilot-nature-validation";
 
-const NATURES: LineNature[] = ["vente", "variable", "fixe"];
+const NATURES: LineNature[] = NATURE_CHOICES;
 const euro = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €`;
 
 function NatureRow({ row, onDone }: { row: NatureLine; onDone: () => void }) {
@@ -34,7 +35,11 @@ function NatureRow({ row, onDone }: { row: NatureLine; onDone: () => void }) {
           {String(row.month).padStart(2, "0")}/{row.year}
         </span>
       </td>
-      <td className="py-2 pr-3 text-xs text-muted-foreground">{row.placement}</td>
+      <td className="py-2 pr-3">
+        <span className="rounded border border-border bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground">
+          {row.placement}
+        </span>
+      </td>
       <td className="py-2 pr-3 text-right text-sm font-semibold tabular-nums">{euro(row.amount)}</td>
       <td className="py-2">
         <div className="flex flex-wrap justify-end gap-1.5">
@@ -85,9 +90,9 @@ export function NatureValidationTable() {
           <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-medium">Désignation</th>
-              <th className="px-3 py-2 font-medium">Emplacement</th>
+              <th className="px-3 py-2 font-medium">Emplacement actuel</th>
               <th className="px-3 py-2 text-right font-medium">Montant HT</th>
-              <th className="px-3 py-2 text-right font-medium">Nature retenue</th>
+              <th className="px-3 py-2 text-right font-medium">Choix</th>
             </tr>
           </thead>
           <tbody className="[&_td:first-child]:pl-3 [&_td:last-child]:pr-3">

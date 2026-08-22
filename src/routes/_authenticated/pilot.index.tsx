@@ -60,7 +60,7 @@ import {
 import { gestionHoursForYear, rateWithGestion, GESTION_MODE_HELP } from "@/lib/pilot-gestion-hours";
 import { useGestionMode } from "@/lib/pilot-gestion-mode";
 import { GestionToggle } from "@/components/pilot/GestionToggle";
-import { listHours, getTjmSettings } from "@/lib/pilot-hours";
+import { listHours } from "@/lib/pilot-hours";
 import { annualSummary } from "@/lib/pilot-annual";
 import {
   listAlertFeedback,
@@ -157,7 +157,6 @@ function TodayPage() {
   const chargeRows = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   // Temps de gestion mensuel (source unique : Analyse temps & rentabilité).
   const hoursRows = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
-  const tjmSettings = useQuery({ queryKey: ["pilot-tjm-settings"], queryFn: getTjmSettings });
   const { includeGestion } = useGestionMode();
   // Ledger consolidé des heures de l'année : source unique pour le temps réel.
   const hoursLedger = useQuery({
@@ -617,10 +616,10 @@ function TodayPage() {
     : ({ available: false, label: "Taux horaire réel", detail: "Chargement des heures…" } as const);
   // Gestion incluse / exclue : seul le dénominateur change, jamais le CA.
   // Heures de gestion : Analyse temps & rentabilité → Suivi mensuel → Temps gestion.
-  const gestionDefaut = tjmSettings.data?.heures_gestion ?? 0;
+  // Aucun repli : sans saisie du Suivi mensuel, le temps de gestion vaut 0 h.
   const gestionAnnee = useMemo(
-    () => gestionHoursForYear(hoursRows.data ?? [], gestionDefaut, month + 1),
-    [hoursRows.data, gestionDefaut, month],
+    () => gestionHoursForYear(hoursRows.data ?? [], month + 1),
+    [hoursRows.data, month],
   );
   const tauxAffiche = realRate.available
     ? rateWithGestion(

@@ -7,9 +7,9 @@
 // Le CA n'est JAMAIS modifié par ce module : seul le dénominateur change.
 // Les heures de gestion proviennent exclusivement de
 // « Analyse temps & rentabilité → Suivi mensuel → Temps gestion »
-// (table pilot_hours, colonne temps_gestion), avec la même règle de repli que
-// ce suivi mensuel : à défaut de saisie, la valeur par défaut des paramètres
-// TJM (pilot_tjm_settings.heures_gestion) est utilisée.
+// (table pilot_hours, colonne temps_gestion). AUCUN repli : en l'absence de
+// saisie, le temps de gestion vaut 0 h. Ni les paramètres TJM, ni une valeur
+// par défaut, ni une estimation ne peuvent le compléter.
 // ---------------------------------------------------------------------------
 
 export interface GestionHoursRow {
@@ -17,15 +17,12 @@ export interface GestionHoursRow {
   temps_gestion: number | null;
 }
 
-/** Heures de gestion d'un mois (1-12) : saisie du suivi mensuel, sinon défaut. */
-export function gestionHoursForMonth(
-  rows: GestionHoursRow[],
-  month: number,
-  gestionDefaut: number,
-): number {
+/** Heures de gestion d'un mois (1-12) : saisie du suivi mensuel, sinon 0 h. */
+export function gestionHoursForMonth(rows: GestionHoursRow[], month: number): number {
   const row = rows.find((r) => r.month === month);
   const saisie = row?.temps_gestion;
-  const value = saisie == null ? gestionDefaut : Number(saisie);
+  if (saisie == null) return 0;
+  const value = Number(saisie);
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
@@ -34,14 +31,10 @@ export function gestionHoursForMonth(
  * `monthLimit` borne le cumul aux mois du périmètre (1-12) : en lecture « À
  * date » on s'arrête au mois en cours, en « Exercice complet » aux 12 mois.
  */
-export function gestionHoursForYear(
-  rows: GestionHoursRow[],
-  gestionDefaut: number,
-  monthLimit = 12,
-): number {
+export function gestionHoursForYear(rows: GestionHoursRow[], monthLimit = 12): number {
   const limit = Math.max(0, Math.min(12, Math.round(monthLimit)));
   let total = 0;
-  for (let m = 1; m <= limit; m += 1) total += gestionHoursForMonth(rows, m, gestionDefaut);
+  for (let m = 1; m <= limit; m += 1) total += gestionHoursForMonth(rows, m);
   return total;
 }
 

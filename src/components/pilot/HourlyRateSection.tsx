@@ -51,7 +51,6 @@ export function HourlyRateSection() {
   const qc = useQueryClient();
   // Toutes les valeurs affichées proviennent du moteur analytique central.
   const { snapshot, isLoading } = useAnalytics();
-  const gestionDefaut = snapshot?.monthly.gestionDefaut ?? 0;
 
   const [cols, setCols] = useState<ColKey[]>(() => {
     if (typeof window === "undefined") return DEFAULT_COLS;
@@ -110,7 +109,7 @@ export function HourlyRateSection() {
   const heuresData = months.map((m) => ({
     mois: MONTHS[m.month - 1],
     Terrain: Number((m.temps_terrain ?? 0).toFixed(1)),
-    Gestion: Number((m.temps_gestion ?? gestionDefaut).toFixed(1)),
+    Gestion: Number((m.temps_gestion ?? 0).toFixed(1)),
   }));
 
   return (
@@ -174,7 +173,7 @@ export function HourlyRateSection() {
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
             Temps de gestion non renseigné pour&nbsp;: {missing.map((m) => MONTHS[m - 1]).join(", ")}. Sans cette
-            saisie, le taux horaire net utilise la valeur par défaut ({gestionDefaut} h/mois).
+            saisie, le temps de gestion vaut 0 h : aucune valeur n'est estimée à sa place.
           </p>
         </div>
       )}
@@ -244,7 +243,7 @@ export function HourlyRateSection() {
             <tbody>
               {months.map((m) => {
                 const gestionVal = m.temps_gestion;
-                const total = (m.temps_terrain ?? 0) + (gestionVal ?? gestionDefaut);
+                const total = (m.temps_terrain ?? 0) + (gestionVal ?? 0);
                 return (
                   <tr key={m.month} className="border-b border-border/60 last:border-0">
                     <td className="px-3 py-1.5 font-medium">{MONTHS[m.month - 1]}</td>
@@ -267,7 +266,7 @@ export function HourlyRateSection() {
                         <NumCell
                           key={`g-${m.month}-${gestionVal}`}
                           value={gestionVal}
-                          placeholder={String(gestionDefaut)}
+                          placeholder="0"
                           onCommit={(v) => hoursMut.mutate({ month: m.month, field: "temps_gestion", value: v })}
                         />
                       </td>

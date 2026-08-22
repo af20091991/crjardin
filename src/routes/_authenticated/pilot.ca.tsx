@@ -27,7 +27,7 @@ import {
 } from "@/lib/pilot-gestion-hours";
 import { useGestionMode } from "@/lib/pilot-gestion-mode";
 import { GestionToggle } from "@/components/pilot/GestionToggle";
-import { listHours, getTjmSettings } from "@/lib/pilot-hours";
+import { listHours } from "@/lib/pilot-hours";
 
 import { FixedChargesDetail } from "@/components/pilot/FixedChargesPanel";
 import { formatEuro } from "@/lib/pilot";
@@ -294,12 +294,7 @@ function CaPage() {
   // le Temps gestion venant d'Analyse temps & rentabilité → Suivi mensuel.
   const { includeGestion } = useGestionMode();
   const hoursRowsQ = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
-  const tjmQ = useQuery({ queryKey: ["pilot-tjm-settings"], queryFn: getTjmSettings });
-  const gestionMois = gestionHoursForMonth(
-    hoursRowsQ.data ?? [],
-    month,
-    tjmQ.data?.heures_gestion ?? 0,
-  );
+  const gestionMois = gestionHoursForMonth(hoursRowsQ.data ?? [], month);
   const tauxMoisAffiche = rateWithGestion(mt.ventesHt, mt.hours, gestionMois, includeGestion);
 
   const catTotals = useMemo(

@@ -4,11 +4,18 @@
 // Une seule question posée à l'utilisateur, ligne par ligne :
 //   « Cette ligne est-elle une Vente, une Charge variable ou une Charge fixe ? »
 //
+// Le périmètre couvre les DEUX emplacements de la page Chiffre d'affaires :
+//   • Encart Ventes  (kind = 'vente')  → lignes non encore validées ;
+//   • Encart Charges (kind = 'charge') → lignes sans nature retenue.
+//
 // Règles absolues :
-//   • le montant, la date et le libellé d'origine ne sont JAMAIS modifiés ;
+//   • le montant, la date, l'exercice et le libellé d'origine ne sont JAMAIS
+//     modifiés ;
 //   • aucun classement automatique : seule la décision humaine écrit ;
+//   • une ligne reclassée est mise à jour sur place (jamais de doublon) ;
 //   • chaque décision est historisée dans pilot_edit_log (avant / après) ;
-//   • un investissement qualifié n'est pas une charge « à classer ».
+//   • un investissement qualifié n'est pas une ligne « à classer » ;
+//   • les seuls choix offerts sont Vente / Charge variable / Charge fixe.
 // ---------------------------------------------------------------------------
 
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +30,9 @@ export const NATURE_LABELS: Record<LineNature, string> = {
   fixe: "Charge fixe",
 };
 
+/** Les trois — et seuls — choix de l'outil. */
+export const NATURE_CHOICES: LineNature[] = ["vente", "variable", "fixe"];
+
 export interface NatureLineRaw {
   id: string;
   year: number;
@@ -32,7 +42,10 @@ export interface NatureLineRaw {
   kind: string | null;
   charge_class: string | null;
   is_investment?: boolean | null;
+  validation_status?: string | null;
 }
+
+export type Placement = "Encart Ventes" | "Encart Charges";
 
 export interface NatureLine {
   id: string;
@@ -42,28 +55,31 @@ export interface NatureLine {
   amount: number;
   kind: string;
   currentClass: string;
-  /** Encart de la page Chiffre d'affaires où la ligne apparaît aujourd'hui. */
-  placement: string;
+  /** Emplacement actuel : « Encart Ventes » ou « Encart Charges ». */
+  placement: Placement;
 }
 
-/** Emplacement lisible de la ligne dans la page Chiffre d'affaires. */
-export function placementOf(row: { kind?: string | null }): string {
-  return row.kind === "vente"
-    ? "Chiffre d'affaires → Ventes"
-    : row.kind === "remuneration"
-      ? "Chiffre d'affaires → Rémunération"
-      : "Chiffre d'affaires → Charges";
+/** Emplacement actuel de la ligne : Ventes ou Charges, sans autre libellé. */
+export function placementOf(row: { kind?: string | null }): Placement {
+  return row.kind === "vente" ? "Encart Ventes" : "Encart Charges";
 }
 
-/** Une ligne appelle-t-elle une décision de nature ? (règle pure, testable) */
+/**
+ * Une ligne appelle-t-elle une décision de nature ? (règle pure, testable)
+ *   • Charges : aucune nature retenue (vide ou « à classer ») ;
+ *   • Ventes  : emplacement jamais confirmé (validation_status ≠ 'valide').
+ * Un investissement qualifié n'est jamais interrogé.
+ */
 export function needsNatureDecision(row: {
   kind?: string | null;
   charge_class?: string | null;
   is_investment?: boolean | null;
+  validation_status?: string | null;
 }): boolean {
   if (row.is_investment) return false;
-  if (row.kind !== "charge") return false;
-  return !row.charge_class || row.charge_class === "a_classer";
+  if (row.kind === "charge") return !row.charge_class || row.charge_class === "a_classer";
+  if (row.kind === "vente") return row.validation_status !== "valide";
+  return false;
 }
 
 /** Correctif appliqué à la ligne selon la nature retenue (aucun montant touché). */
@@ -76,14 +92,17 @@ export function naturePatch(nature: LineNature): {
   return { kind: "charge", charge_class: nature, is_investment: false };
 }
 
+/** Lignes à contrôler, provenant des encarts Ventes ET Charges. */
 export async function listLinesToValidate(limit = 500): Promise<NatureLine[]> {
   const { data, error } = await db
     .from("pilot_ca_entries")
-    .select("id,year,month,designation,amount_ht,kind,charge_class,is_investment")
-    .eq("kind", "charge")
+    .select(
+      "id,year,month,designation,amount_ht,kind,charge_class,is_investment,validation_status",
+    )
+    .in("kind", ["vente", "charge"])
     .order("year", { ascending: false })
     .order("month", { ascending: false })
-    .limit(2000);
+    .limit(3000);
   if (error) throw error;
   return ((data ?? []) as NatureLineRaw[])
     .filter((r) => needsNatureDecision(r))
@@ -95,12 +114,15 @@ export async function listLinesToValidate(limit = 500): Promise<NatureLine[]> {
       designation: r.designation?.trim() || "(sans libellé)",
       amount: Number(r.amount_ht) || 0,
       kind: r.kind ?? "charge",
-      currentClass: r.charge_class || "a_classer",
+      currentClass: r.charge_class || (r.kind === "vente" ? "—" : "a_classer"),
       placement: placementOf(r),
     }));
 }
 
-/** Écrit la décision humaine et l'historise. Montant / libellé intacts. */
+/**
+ * Écrit la décision humaine et l'historise. Montant, désignation et exercice
+ * intacts : la ligne existante est mise à jour sur place (aucun doublon).
+ */
 export async function setLineNature(row: NatureLine, nature: LineNature): Promise<void> {
   const patch = naturePatch(nature);
   const { error } = await db
@@ -116,9 +138,7 @@ export async function setLineNature(row: NatureLine, nature: LineNature): Promis
   const reason = `Nature validée manuellement : ${NATURE_LABELS[nature]}`;
   const traces = [
     { field: "charge_class", before: row.currentClass, after: patch.charge_class },
-    ...(patch.kind !== row.kind
-      ? [{ field: "kind", before: row.kind, after: patch.kind }]
-      : []),
+    ...(patch.kind !== row.kind ? [{ field: "kind", before: row.kind, after: patch.kind }] : []),
   ];
   for (const t of traces) {
     const { error: e } = await db.from("pilot_edit_log").insert({
