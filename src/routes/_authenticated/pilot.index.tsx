@@ -1402,8 +1402,8 @@ function TodayPage() {
             label="Interventions réalisées"
             value={safeValue(itvSources, () => String(interventionsAnnee)).value}
             icon={Leaf}
-            to="/interventions"
-            help="Interventions terminées et enregistrées depuis le début de l'exercice."
+            to="/pilot/ca"
+            help="Nombre de lignes de Vente de l'exercice (Chiffre d'affaires → Ventes) : 1 ligne = 1 intervention, une ligne à 0 h incluse."
           />
           <PilotCard
             label="Taux horaire réel"
