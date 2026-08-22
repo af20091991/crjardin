@@ -662,7 +662,7 @@ function TodayPage() {
 
   // ---- Comparatifs à date équivalente N-1 (uniquement l'enregistré) ----
   // CA : lignes de vente enregistrées (pilot_ca_entries).
-  // Interventions : statut « terminée » (interventions).
+  // Interventions : nombre de lignes de Vente (1 ligne = 1 intervention).
   // Heures : colonne Vente → Temps des lignes de vente (source unique). Les
   // heures des comptes-rendus et les heures historiques importées ne sont
   // jamais utilisées dans un calcul.
@@ -706,7 +706,7 @@ function TodayPage() {
       },
       {
         key: "itv",
-        label: "Interventions terminées",
+        label: "Interventions (lignes de vente)",
         current: nbItv(cur),
         previous: nbItv(prev),
         fmt: (v: number) => String(Math.round(v)),
