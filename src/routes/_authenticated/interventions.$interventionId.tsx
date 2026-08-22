@@ -1366,14 +1366,7 @@ function RentabilityEstimateBlock({
           {confLabel}
         </Badge>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div className="rounded border bg-background/60 p-2">
-          <div className="text-[11px] text-muted-foreground">Temps prévu</div>
-          <div className="text-base font-semibold tabular-nums">
-            {plannedHours != null ? `${plannedHours.toFixed(2)} h` : "—"}
-          </div>
-          <div className="text-[10px] text-muted-foreground">selon catalogue</div>
-        </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <div className="rounded border bg-background/60 p-2">
           <div className="text-[11px] text-muted-foreground">Temps réel</div>
           <div className="text-base font-semibold tabular-nums">
