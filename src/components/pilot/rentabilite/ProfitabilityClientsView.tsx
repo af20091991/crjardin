@@ -250,7 +250,12 @@ export function ProfitabilityClientsView() {
                           title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
                         />
                       ) : (
-                        <ReliabilityBadge reliability={reliabilityOf(c)} compact />
+                        <ReliabilityBadge
+                            reliability={reliabilityOf(c)}
+                            compact
+                            clientId={c.clientId}
+                            clientLabel={c.name}
+                          />
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -401,7 +406,12 @@ export function ProfitabilityClientsView() {
                               title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
                             />
                           ) : (
-                            <ReliabilityBadge reliability={reliabilityOf(c)} compact />
+                            <ReliabilityBadge
+                            reliability={reliabilityOf(c)}
+                            compact
+                            clientId={c.clientId}
+                            clientLabel={c.name}
+                          />
                           )}
                         </TableCell>
                         <TableCell className="text-center">
