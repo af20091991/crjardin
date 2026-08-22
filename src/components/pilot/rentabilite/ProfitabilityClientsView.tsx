@@ -421,6 +421,18 @@ export function ProfitabilityClientsView() {
                           )}
                         </TableCell>
                         <TableCell className="text-center">
+                          <ClientCheckCell
+                            check={clientCheck({
+                              entityStatus: statusOf(statusesQ.data, c.clientId),
+                              ca: c.ca,
+                              hours: c.hours,
+                              lines: c.count,
+                              hourlyRate: c.hourlyRate,
+                              minHours: thresholds.heuresMinClient,
+                            })}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
                           <Badge className={ABC_TONE[c.abc]}>{c.abc}</Badge>
                         </TableCell>
                       </TableRow>
