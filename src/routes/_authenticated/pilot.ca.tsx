@@ -298,7 +298,7 @@ function CaPage() {
   const gestionMois = gestionHoursForMonth(
     hoursRowsQ.data ?? [],
     month,
-    tjmQ.data?.heures_gestion ?? 60,
+    tjmQ.data?.heures_gestion ?? 0,
   );
   const tauxMoisAffiche = rateWithGestion(mt.ventesHt, mt.hours, gestionMois, includeGestion);
 

@@ -617,7 +617,7 @@ function TodayPage() {
     : ({ available: false, label: "Taux horaire réel", detail: "Chargement des heures…" } as const);
   // Gestion incluse / exclue : seul le dénominateur change, jamais le CA.
   // Heures de gestion : Analyse temps & rentabilité → Suivi mensuel → Temps gestion.
-  const gestionDefaut = tjmSettings.data?.heures_gestion ?? 60;
+  const gestionDefaut = tjmSettings.data?.heures_gestion ?? 0;
   const gestionAnnee = useMemo(
     () => gestionHoursForYear(hoursRows.data ?? [], gestionDefaut, month + 1),
     [hoursRows.data, gestionDefaut, month],
