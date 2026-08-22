@@ -195,10 +195,12 @@ export function KpiReliabilityPanel() {
             <CardHeader className="pb-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <CardTitle className="text-sm">{r.contract.label}</CardTitle>
-                <Badge variant="outline" className={`gap-1 font-normal ${TONE[r.readiness]}`}>
-                  <ReadinessIcon readiness={r.readiness} />
-                  {KPI_READINESS_LABEL[r.readiness]}
-                </Badge>
+                {r.readiness !== "partiel" && (
+                  <Badge variant="outline" className={`gap-1 font-normal ${TONE[r.readiness]}`}>
+                    <ReadinessIcon readiness={r.readiness} />
+                    {KPI_READINESS_LABEL[r.readiness]}
+                  </Badge>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Badge variant="outline" className="font-mono font-normal">
