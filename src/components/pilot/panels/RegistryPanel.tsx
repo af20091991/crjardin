@@ -175,16 +175,18 @@ export function RegistryPanel() {
         >
           Tous
         </Button>
-        {(Object.keys(CONTROL_STATUS_LABEL) as ControlStatus[]).map((s) => (
-          <Button
-            key={s}
-            variant={status === s ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setStatus(s)}
-          >
-            {CONTROL_STATUS_LABEL[s]} ({report.counts[s]})
-          </Button>
-        ))}
+        {(Object.keys(CONTROL_STATUS_LABEL) as ControlStatus[])
+          .filter((s) => s !== "partiel")
+          .map((s) => (
+            <Button
+              key={s}
+              variant={status === s ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setStatus(s)}
+            >
+              {CONTROL_STATUS_LABEL[s]} ({report.counts[s]})
+            </Button>
+          ))}
       </div>
 
       <Accordion type="multiple" className="space-y-2">
