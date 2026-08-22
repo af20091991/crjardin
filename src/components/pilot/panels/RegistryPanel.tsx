@@ -51,6 +51,7 @@ function StatusIcon({ status }: { status: ControlStatus }) {
 }
 
 function StatusBadge({ status }: { status: ControlStatus }) {
+  if (status === "partiel") return null;
   return (
     <Badge
       variant="outline"
