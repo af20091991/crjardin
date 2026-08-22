@@ -626,23 +626,18 @@ function TodayPage() {
     [now],
   );
 
-  /** Interventions terminées : mois en cours et cumul de l'exercice. */
+  /**
+   * Nombre d'interventions : 1 ligne de Vente = 1 intervention (règle unique,
+   * cf. pilot-intervention-count). Les CR Chantier et les données SST ne sont
+   * jamais utilisés pour ce comptage.
+   */
   const interventionsMois = useMemo(
-    () =>
-      allI.filter((i) => {
-        if (i.status !== "terminee" || !i.intervention_date) return false;
-        const d = new Date(i.intervention_date);
-        return d.getFullYear() === year && d.getMonth() === month;
-      }).length,
-    [allI, year, month],
+    () => countSaleInterventions(realEntries, { year, month: month + 1 }),
+    [realEntries, year, month],
   );
   const interventionsAnnee = useMemo(
-    () =>
-      allI.filter((i) => {
-        if (i.status !== "terminee" || !i.intervention_date) return false;
-        return new Date(i.intervention_date).getFullYear() === year;
-      }).length,
-    [allI, year],
+    () => countSaleInterventions(realEntries, { year }),
+    [realEntries, year],
   );
 
   // ---- Comparatifs à date équivalente N-1 (uniquement l'enregistré) ----
