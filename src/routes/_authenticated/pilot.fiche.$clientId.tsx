@@ -188,7 +188,7 @@ function PilotClient360() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pilot_ca_entries")
-        .select("id,year,month,amount_ht,designation,kind,hours,intervention_type")
+        .select("id,year,month,amount_ht,designation,kind,hours,intervention_type,sale_status")
         .eq("client_id", clientId)
         .eq("kind", "vente")
         .order("year", { ascending: false })
