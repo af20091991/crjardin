@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { NatureValidationTable } from "@/components/pilot/panels/NatureValidationTable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -278,9 +279,17 @@ function ChargesFlow() {
         {rows.length} ligne(s) à classer, soit {euroFix(total)}. Chaque validation écrit la classe retenue et
         enregistre la trace (avant / après / motif). Aucun classement n'est appliqué automatiquement.
       </p>
-      {rows.slice(0, limit).map((r) => (
-        <ChargeRowCard key={r.id} row={r} onDone={refresh} categories={categories} />
-      ))}
+      <NatureValidationTable />
+      <details className="rounded-lg border border-dashed p-3">
+        <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Classement détaillé (catégorie, investissement, rémunération)
+        </summary>
+        <div className="mt-3 space-y-3">
+          {rows.slice(0, limit).map((r) => (
+            <ChargeRowCard key={r.id} row={r} onDone={refresh} categories={categories} />
+          ))}
+        </div>
+      </details>
       {rows.length > limit && (
         <Button variant="outline" size="sm" onClick={() => setLimit(limit + 25)}>
           Afficher 25 lignes de plus

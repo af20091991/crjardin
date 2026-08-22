@@ -455,7 +455,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const annual = annualSummary(inputs.entries, inputs.chargeRows, { mode, now, period });
 
   // --- référentiel temps mensuel (taux horaire, jours, gestion) ---
-  const gestionDefaut = inputs.tjmSettings?.heures_gestion ?? 60;
+  const gestionDefaut = inputs.tjmSettings?.heures_gestion ?? 0;
   const monthRows = computeMonths(
     inputs.monthlyCa,
     inputs.hoursRows,

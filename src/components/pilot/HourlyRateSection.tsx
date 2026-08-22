@@ -51,7 +51,7 @@ export function HourlyRateSection() {
   const qc = useQueryClient();
   // Toutes les valeurs affichées proviennent du moteur analytique central.
   const { snapshot, isLoading } = useAnalytics();
-  const gestionDefaut = snapshot?.monthly.gestionDefaut ?? 60;
+  const gestionDefaut = snapshot?.monthly.gestionDefaut ?? 0;
 
   const [cols, setCols] = useState<ColKey[]>(() => {
     if (typeof window === "undefined") return DEFAULT_COLS;
