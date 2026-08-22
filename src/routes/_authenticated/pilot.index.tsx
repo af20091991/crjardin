@@ -155,6 +155,10 @@ function TodayPage() {
     queryFn: listHistoricHours,
   });
   const chargeRows = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
+  // Temps de gestion mensuel (source unique : Analyse temps & rentabilité).
+  const hoursRows = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
+  const tjmSettings = useQuery({ queryKey: ["pilot-tjm-settings"], queryFn: getTjmSettings });
+  const { includeGestion } = useGestionMode();
   // Ledger consolidé des heures de l'année : source unique pour le temps réel.
   const hoursLedger = useQuery({
     queryKey: ["pilot-hours-ledger", year],
