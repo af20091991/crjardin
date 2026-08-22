@@ -34,6 +34,7 @@ import { listMissions } from "@/lib/subcontractors";
 import { listContacts, listSites, type Contact, type Site } from "@/lib/sites";
 import { entityEligibility } from "@/lib/pilot-entity-rules";
 import { saleTimeKnown } from "@/lib/pilot-sale-time";
+import { revenueCounted } from "@/lib/pilot-sale-accounting";
 import { EntityStatusBadge } from "@/components/pilot/ReliabilityBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
