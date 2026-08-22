@@ -27,7 +27,7 @@ import {
 } from "@/lib/pilot-gestion-hours";
 import { useGestionMode } from "@/lib/pilot-gestion-mode";
 import { GestionToggle } from "@/components/pilot/GestionToggle";
-import { listHours, getTjmSettings } from "@/lib/pilot-hours";
+import { listHours } from "@/lib/pilot-hours";
 
 import { FixedChargesDetail } from "@/components/pilot/FixedChargesPanel";
 import { formatEuro } from "@/lib/pilot";
