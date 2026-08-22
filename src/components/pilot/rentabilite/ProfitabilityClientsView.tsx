@@ -41,6 +41,8 @@ import {
   useEntityStatuses,
 } from "@/lib/pilot-entity-rules";
 import { ReliabilityBadge } from "@/components/pilot/ReliabilityBadge";
+import { clientCheck, type ClientCheck } from "@/lib/pilot-client-check";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { EntityStatusQuickEdit } from "@/components/pilot/rentabilite/EntityStatusQuickEdit";
 import { CertifyReferentialAction } from "@/components/pilot/rentabilite/CertifyReferentialAction";
 import { useAttachmentCertification } from "@/components/pilot/useAttachmentCertification";
@@ -541,5 +543,30 @@ function ClientLink({
     >
       {name}
     </Link>
+  );
+}
+
+/** Colonne « À vérifier » : motif factuel affiché en un clic (jamais générique). */
+function ClientCheckCell({ check }: { check: ClientCheck }) {
+  if (!check.flagged) return <span className="text-xs text-muted-foreground">—</span>;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-800"
+        >
+          À vérifier ({check.reasons.length})
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72 space-y-1.5 text-xs">
+        <p className="font-medium">Pourquoi cette ligne est à vérifier</p>
+        <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+          {check.reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
   );
 }
