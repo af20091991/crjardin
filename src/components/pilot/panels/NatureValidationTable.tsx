@@ -1,11 +1,11 @@
-// Outil unique de validation de la nature des lignes financières.
-// Tableau simple : Désignation · Emplacement · Montant · un clic pour décider.
+// File de traitement des natures : une ligne à la fois, un clic, ligne suivante.
 // Aucun calcul ici : la décision est écrite par pilot-nature-validation.ts.
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SkipForward } from "lucide-react";
 import {
   NATURE_CHOICES,
   NATURE_LABELS,
@@ -18,95 +18,89 @@ import {
 const NATURES: LineNature[] = NATURE_CHOICES;
 const euro = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €`;
 
-function NatureRow({ row, onDone }: { row: NatureLine; onDone: () => void }) {
+export function NatureValidationTable() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["nature-validation"], queryFn: () => listLinesToValidate() });
+  const [done, setDone] = useState<string[]>([]);
+  const [skipped, setSkipped] = useState<string[]>([]);
+
+  const queue = useMemo(() => {
+    const rows = (q.data ?? []).filter((r) => !done.includes(r.id));
+    const pending = rows.filter((r) => !skipped.includes(r.id));
+    const later = rows.filter((r) => skipped.includes(r.id));
+    return [...pending, ...later];
+  }, [q.data, done, skipped]);
+
+  const current: NatureLine | undefined = queue[0];
+
   const m = useMutation({
-    mutationFn: (nature: LineNature) => setLineNature(row, nature),
-    onSuccess: () => {
-      toast.success("Nature enregistrée — décision historisée");
-      onDone();
+    mutationFn: ({ row, nature }: { row: NatureLine; nature: LineNature }) =>
+      setLineNature(row, nature),
+    onSuccess: (_d, v) => {
+      setDone((prev) => [...prev, v.row.id]);
+      toast.success(`${NATURE_LABELS[v.nature]} enregistrée`);
+      qc.invalidateQueries({ queryKey: ["fix", "charges"] });
+      qc.invalidateQueries({ queryKey: ["fix-plan"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  if (q.isLoading) return <Skeleton className="h-56 w-full" />;
+
+  const total = q.data?.length ?? 0;
+  if (total === 0)
+    return <p className="text-sm text-muted-foreground">Aucune donnée à valider.</p>;
+
+  if (!current)
+    return (
+      <p className="text-sm text-muted-foreground">Toutes les données en attente sont classées.</p>
+    );
+
   return (
-    <tr className="border-t border-border align-middle">
-      <td className="py-2 pr-3">
-        <span className="text-sm font-medium">{row.designation}</span>
-        <span className="ml-2 text-xs text-muted-foreground">
-          {String(row.month).padStart(2, "0")}/{row.year}
-        </span>
-      </td>
-      <td className="py-2 pr-3">
-        <span className="rounded border border-border bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground">
-          {row.placement}
-        </span>
-      </td>
-      <td className="py-2 pr-3 text-right text-sm font-semibold tabular-nums">{euro(row.amount)}</td>
-      <td className="py-2">
-        <div className="flex flex-wrap justify-end gap-1.5">
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-card p-5 shadow-sm">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h3 className="text-lg font-semibold leading-tight">{current.designation}</h3>
+          <span className="rounded border border-border bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground">
+            {current.placement}
+          </span>
+        </div>
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-4 text-sm text-muted-foreground">
+          <span className="text-2xl font-semibold tabular-nums text-foreground">
+            {euro(current.amount)}
+          </span>
+          <span>
+            {String(current.month).padStart(2, "0")}/{current.year}
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-2 sm:grid-cols-3">
           {NATURES.map((n) => (
             <Button
               key={n}
-              size="sm"
-              variant={n === "vente" ? "secondary" : "outline"}
-              className="h-7 px-2 text-xs"
+              size="lg"
+              variant={n === "vente" ? "default" : "secondary"}
+              className="h-14 text-base font-semibold"
               disabled={m.isPending}
-              onClick={() => m.mutate(n)}
+              onClick={() => m.mutate({ row: current, nature: n })}
             >
               {NATURE_LABELS[n]}
             </Button>
           ))}
         </div>
-      </td>
-    </tr>
-  );
-}
 
-export function NatureValidationTable() {
-  const qc = useQueryClient();
-  const q = useQuery({ queryKey: ["nature-validation"], queryFn: () => listLinesToValidate() });
-  const [limit, setLimit] = useState(25);
-  const refresh = () => {
-    qc.invalidateQueries({ queryKey: ["nature-validation"] });
-    qc.invalidateQueries({ queryKey: ["fix", "charges"] });
-    qc.invalidateQueries({ queryKey: ["fix-plan"] });
-  };
-  if (q.isLoading) return <Skeleton className="h-40 w-full" />;
-  const rows = q.data ?? [];
-  if (rows.length === 0)
-    return (
-      <p className="text-sm text-muted-foreground">
-        Aucune ligne en attente : toutes les natures sont validées.
-      </p>
-    );
-  const total = rows.reduce((s, r) => s + r.amount, 0);
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        {rows.length} ligne(s) à qualifier, soit {euro(total)}. Un clic suffit : le montant, la date
-        et le libellé d'origine ne sont jamais modifiés, et chaque décision est historisée.
-      </p>
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[40rem] text-left">
-          <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2 font-medium">Désignation</th>
-              <th className="px-3 py-2 font-medium">Emplacement actuel</th>
-              <th className="px-3 py-2 text-right font-medium">Montant HT</th>
-              <th className="px-3 py-2 text-right font-medium">Choix</th>
-            </tr>
-          </thead>
-          <tbody className="[&_td:first-child]:pl-3 [&_td:last-child]:pr-3">
-            {rows.slice(0, limit).map((r) => (
-              <NatureRow key={r.id} row={r} onDone={refresh} />
-            ))}
-          </tbody>
-        </table>
+        <div className="mt-3 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={m.isPending || queue.length < 2}
+            onClick={() => setSkipped((prev) => [...new Set([...prev, current.id])])}
+          >
+            <SkipForward className="mr-1.5 h-4 w-4" /> Passer
+          </Button>
+          <span className="text-xs text-muted-foreground">{queue.length} ligne(s) restante(s)</span>
+        </div>
       </div>
-      {rows.length > limit && (
-        <Button variant="outline" size="sm" onClick={() => setLimit(limit + 25)}>
-          Afficher 25 lignes de plus
-        </Button>
-      )}
     </div>
   );
 }
