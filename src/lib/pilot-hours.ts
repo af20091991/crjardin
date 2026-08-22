@@ -141,11 +141,12 @@ export type MonthMetric = {
 /**
  * Le temps terrain provient EXCLUSIVEMENT de Vente → Temps (`caHours`).
  * `pilot_hours.temps_terrain` est conservé en base mais n'alimente plus le calcul.
+ * Le temps de gestion provient EXCLUSIVEMENT de Suivi mensuel → Temps gestion,
+ * sans aucune valeur de repli (absence de saisie = 0 h).
  */
 export function computeMonths(
   ca: number[],
   hours: HoursRow[],
-  gestionDefaut: number,
   /** Heures terrain issues de Vente → Temps (source unique). */
   caHours: number[] = [],
 ): MonthMetric[] {
@@ -157,7 +158,8 @@ export function computeMonths(
     const terrain = fromCa > 0 ? fromCa : null;
     const terrainSource: MonthMetric["terrainSource"] = fromCa > 0 ? "ca" : "aucune";
     const gestionSaisie = h?.temps_gestion == null ? null : Number(h.temps_gestion);
-    const gestion = gestionSaisie ?? gestionDefaut;
+    // Aucun repli : sans saisie du Suivi mensuel, le temps de gestion vaut 0 h.
+    const gestion = gestionSaisie ?? 0;
     const jours = h?.jours_travailles ?? null;
     const caM = ca[i] ?? 0;
     const brut = terrain && terrain > 0 ? caM / terrain : null;
@@ -239,15 +241,15 @@ export interface MonthlyHoursTotals {
   avgCaJour: number;
 }
 
-export function monthlyTotals(months: MonthMetric[], gestionDefaut: number): MonthlyHoursTotals {
+export function monthlyTotals(months: MonthMetric[]): MonthlyHoursTotals {
   const withTerrain = months.filter((m) => (m.temps_terrain ?? 0) > 0);
   const caWithTerrain = withTerrain.reduce((s, m) => s + m.ca, 0);
   const totalTerrain = withTerrain.reduce((s, m) => s + (m.temps_terrain ?? 0), 0);
-  const totalGestion = withTerrain.reduce((s, m) => s + (m.temps_gestion ?? gestionDefaut), 0);
+  const totalGestion = withTerrain.reduce((s, m) => s + (m.temps_gestion ?? 0), 0);
   const caTotal = months.reduce((s, m) => s + m.ca, 0);
   const totalJours = months.reduce((s, m) => s + (m.jours_travailles ?? 0), 0);
   const heuresTotales = months.reduce(
-    (s, m) => s + (m.temps_terrain ?? 0) + (m.temps_gestion ?? gestionDefaut),
+    (s, m) => s + (m.temps_terrain ?? 0) + (m.temps_gestion ?? 0),
     0,
   );
   return {

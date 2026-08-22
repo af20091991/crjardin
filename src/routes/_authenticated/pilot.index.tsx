@@ -617,10 +617,10 @@ function TodayPage() {
     : ({ available: false, label: "Taux horaire réel", detail: "Chargement des heures…" } as const);
   // Gestion incluse / exclue : seul le dénominateur change, jamais le CA.
   // Heures de gestion : Analyse temps & rentabilité → Suivi mensuel → Temps gestion.
-  const gestionDefaut = tjmSettings.data?.heures_gestion ?? 0;
+  // Aucun repli : sans saisie du Suivi mensuel, le temps de gestion vaut 0 h.
   const gestionAnnee = useMemo(
-    () => gestionHoursForYear(hoursRows.data ?? [], gestionDefaut, month + 1),
-    [hoursRows.data, gestionDefaut, month],
+    () => gestionHoursForYear(hoursRows.data ?? [], month + 1),
+    [hoursRows.data, month],
   );
   const tauxAffiche = realRate.available
     ? rateWithGestion(

@@ -290,7 +290,6 @@ export interface AnalyticsSnapshot {
   monthly: {
     rows: MonthMetric[];
     totals: MonthlyHoursTotals;
-    gestionDefaut: number;
     missingGestion: number[];
     /** Série financière mensuelle (mode réel ou projection selon le périmètre). */
     finance: Array<{
@@ -455,14 +454,9 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   const annual = annualSummary(inputs.entries, inputs.chargeRows, { mode, now, period });
 
   // --- référentiel temps mensuel (taux horaire, jours, gestion) ---
-  const gestionDefaut = inputs.tjmSettings?.heures_gestion ?? 0;
-  const monthRows = computeMonths(
-    inputs.monthlyCa,
-    inputs.hoursRows,
-    gestionDefaut,
-    inputs.monthlyFieldHours,
-  );
-  const monthTotals = monthlyTotals(monthRows, gestionDefaut);
+  // Temps de gestion : Suivi mensuel uniquement, aucun repli (absence = 0 h).
+  const monthRows = computeMonths(inputs.monthlyCa, inputs.hoursRows, inputs.monthlyFieldHours);
+  const monthTotals = monthlyTotals(monthRows);
   const tjmResult = inputs.tjmSettings ? computeTjm(inputs.tjmSettings) : null;
 
   // --- projection d'exercice (mode projection) ---
@@ -800,7 +794,6 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
     monthly: {
       rows: monthRows,
       totals: monthTotals,
-      gestionDefaut,
       missingGestion: monthsMissingGestion(monthRows, year, now),
       finance: financeMonths,
       caSeries: monthlySeries(inputs.entries, year, { mode, now }),
