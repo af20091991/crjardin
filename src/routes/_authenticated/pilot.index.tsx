@@ -665,11 +665,8 @@ function TodayPage() {
         const d = new Date(e.entry_date);
         return Number.isFinite(d.getTime()) && keep(d) ? s + (Number(e.amount_ht) || 0) : s;
       }, 0);
-    const nbItv = (keep: (d: Date) => boolean) =>
-      allI.filter(
-        (i) =>
-          i.status === "terminee" && i.intervention_date && keep(new Date(i.intervention_date)),
-      ).length;
+    // Règle unique : 1 ligne de Vente = 1 intervention (0 h inclus).
+    const nbItv = (keep: (d: Date) => boolean) => countSaleInterventionsWhere(realEntries, keep);
     const heures = (keep: (d: Date) => boolean) =>
       realEntries.reduce((s, e) => {
         const d = new Date(e.entry_date);
