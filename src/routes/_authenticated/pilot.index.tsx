@@ -610,8 +610,23 @@ function TodayPage() {
         targetRate: targetHR,
       })
     : ({ available: false, label: "Taux horaire réel", detail: "Chargement des heures…" } as const);
+  // Gestion incluse / exclue : seul le dénominateur change, jamais le CA.
+  // Heures de gestion : Analyse temps & rentabilité → Suivi mensuel → Temps gestion.
+  const gestionDefaut = tjmSettings.data?.heures_gestion ?? 60;
+  const gestionAnnee = useMemo(
+    () => gestionHoursForYear(hoursRows.data ?? [], gestionDefaut, month + 1),
+    [hoursRows.data, gestionDefaut, month],
+  );
+  const tauxAffiche = realRate.available
+    ? rateWithGestion(
+        k.caHeuresVendues,
+        hoursResolution?.hours ?? 0,
+        gestionAnnee,
+        includeGestion,
+      )
+    : null;
   const tauxEcartPct =
-    realRate.available && targetHR > 0 ? ((realRate.value - targetHR) / targetHR) * 100 : 0;
+    tauxAffiche != null && targetHR > 0 ? ((tauxAffiche - targetHR) / targetHR) * 100 : 0;
 
   // ---- Synthèses de lecture (aucune projection, uniquement l'enregistré) ----
   /** Libellé de période « Du 1er août au 5 août 2026 ». */
