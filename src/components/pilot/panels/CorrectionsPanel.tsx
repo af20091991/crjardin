@@ -126,12 +126,29 @@ function IgnoredList({ scope }: { scope: FixScope }) {
 }
 
 // ── Charges ────────────────────────────────────────────────────────────────
-function ChargeRowCard({ row, onDone }: { row: ChargeToClassify; onDone: () => void }) {
+const OTHER_CATEGORY = "__autre__";
+
+function ChargeRowCard({
+  row,
+  onDone,
+  categories,
+}: {
+  row: ChargeToClassify;
+  onDone: () => void;
+  /** Catégories déjà paramétrées : évite les libellés saisis à la main. */
+  categories: string[];
+}) {
   const [target, setTarget] = useState<ChargeTarget>(row.suggestion?.target ?? "fixe");
-  const [category, setCategory] = useState(row.suggestion?.category ?? row.currentCategory);
+  const initialCategory = row.suggestion?.category ?? row.currentCategory;
+  const [category, setCategory] = useState(initialCategory);
+  // Saisie libre uniquement si la catégorie n'existe pas déjà.
+  const [freeText, setFreeText] = useState(
+    Boolean(initialCategory) && !categories.includes(initialCategory),
+  );
   const [note, setNote] = useState("");
   const m = useMutation({
-    mutationFn: () => classifyCharge(row, target, category, note),
+    mutationFn: (override?: { target: ChargeTarget; category: string }) =>
+      classifyCharge(row, override?.target ?? target, override?.category ?? category, note),
     onSuccess: () => {
       toast.success("Charge classée — modification historisée");
       onDone();
@@ -149,10 +166,26 @@ function ChargeRowCard({ row, onDone }: { row: ChargeToClassify; onDone: () => v
         classe actuelle : à classer
       </p>
       {row.suggestion && (
-        <p className="mt-1 text-xs text-primary">
-          Proposition : {CHARGE_TARGET_LABELS[row.suggestion.target]} / {row.suggestion.category} —{" "}
-          {row.suggestion.why}
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-primary">
+          <span>
+            Proposition : {CHARGE_TARGET_LABELS[row.suggestion.target]} / {row.suggestion.category} —{" "}
+            {row.suggestion.why}
+          </span>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-6 px-2"
+            disabled={m.isPending}
+            onClick={() =>
+              m.mutate({
+                target: row.suggestion!.target,
+                category: row.suggestion!.category,
+              })
+            }
+          >
+            <Check className="mr-1 h-3 w-3" /> Accepter la proposition
+          </Button>
+        </div>
       )}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Select value={target} onValueChange={(v) => setTarget(v as ChargeTarget)}>
@@ -167,19 +200,48 @@ function ChargeRowCard({ row, onDone }: { row: ChargeToClassify; onDone: () => v
             ))}
           </SelectContent>
         </Select>
-        <Input
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          placeholder="Catégorie"
-          className="h-8 w-40"
-        />
+        {freeText ? (
+          <Input
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            placeholder="Nouvelle catégorie"
+            className="h-8 w-44"
+            autoFocus
+          />
+        ) : (
+          <Select
+            value={categories.includes(category) ? category : ""}
+            onValueChange={(v) => {
+              if (v === OTHER_CATEGORY) {
+                setFreeText(true);
+                setCategory("");
+              } else setCategory(v);
+            }}
+          >
+            <SelectTrigger className="h-8 w-44">
+              <SelectValue placeholder="Catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+              <SelectItem value={OTHER_CATEGORY}>Autre catégorie…</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
         <Input
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Motif (optionnel)"
           className="h-8 w-48"
         />
-        <Button size="sm" disabled={m.isPending} onClick={() => m.mutate()}>
+        <Button
+          size="sm"
+          disabled={m.isPending || !category.trim()}
+          onClick={() => m.mutate(undefined)}
+        >
           <Check className="mr-1 h-3 w-3" /> Classer
         </Button>
         <IgnoreButton
@@ -197,6 +259,9 @@ function ChargeRowCard({ row, onDone }: { row: ChargeToClassify; onDone: () => v
 function ChargesFlow() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["fix", "charges"], queryFn: listChargesToClassify });
+  // Catégories existantes : aucune création implicite, aucune donnée modifiée.
+  const catsQ = useQuery({ queryKey: ["pilot-charge-categories"], queryFn: listChargeCategories });
+  const categories = (catsQ.data ?? []).map((c) => c.label).filter(Boolean);
   const [limit, setLimit] = useState(25);
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["fix", "charges"] });
@@ -213,7 +278,7 @@ function ChargesFlow() {
         enregistre la trace (avant / après / motif). Aucun classement n'est appliqué automatiquement.
       </p>
       {rows.slice(0, limit).map((r) => (
-        <ChargeRowCard key={r.id} row={r} onDone={refresh} />
+        <ChargeRowCard key={r.id} row={r} onDone={refresh} categories={categories} />
       ))}
       {rows.length > limit && (
         <Button variant="outline" size="sm" onClick={() => setLimit(limit + 25)}>
