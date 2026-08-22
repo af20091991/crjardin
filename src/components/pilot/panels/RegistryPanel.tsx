@@ -51,6 +51,7 @@ function StatusIcon({ status }: { status: ControlStatus }) {
 }
 
 function StatusBadge({ status }: { status: ControlStatus }) {
+  if (status === "partiel") return null;
   return (
     <Badge
       variant="outline"
@@ -135,8 +136,8 @@ export function RegistryPanel() {
             </CardHeader>
             <CardContent className="space-y-1 text-xs text-muted-foreground">
               <p>
-                {f.counts.certifie} certifié(s) · {f.counts.partiel} partiel(s) ·{" "}
-                {f.counts.a_confirmer} à confirmer · {f.counts.indisponible} indisponible(s)
+                {f.counts.certifie} certifié(s) · {f.counts.a_confirmer} à confirmer ·{" "}
+                {f.counts.indisponible} indisponible(s)
               </p>
               <p>
                 Impact : {f.amountAtRisk == null ? "non mesurable" : euro(f.amountAtRisk)}
@@ -174,16 +175,18 @@ export function RegistryPanel() {
         >
           Tous
         </Button>
-        {(Object.keys(CONTROL_STATUS_LABEL) as ControlStatus[]).map((s) => (
-          <Button
-            key={s}
-            variant={status === s ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setStatus(s)}
-          >
-            {CONTROL_STATUS_LABEL[s]} ({report.counts[s]})
-          </Button>
-        ))}
+        {(Object.keys(CONTROL_STATUS_LABEL) as ControlStatus[])
+          .filter((s) => s !== "partiel")
+          .map((s) => (
+            <Button
+              key={s}
+              variant={status === s ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setStatus(s)}
+            >
+              {CONTROL_STATUS_LABEL[s]} ({report.counts[s]})
+            </Button>
+          ))}
       </div>
 
       <Accordion type="multiple" className="space-y-2">

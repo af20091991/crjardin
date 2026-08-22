@@ -313,13 +313,15 @@ function KpiTile({ kpi }: { kpi: DirectionKpi }) {
           {kpi.variation}
         </div>
       )}
-      <Badge
-        variant="outline"
-        className={`mt-2 font-normal ${READINESS_TONE[kpi.readiness]}`}
-        title={certified ? kpi.audit : kpi.explanation}
-      >
-        {KPI_READINESS_LABEL[kpi.readiness]}
-      </Badge>
+      {kpi.readiness !== "partiel" && (
+        <Badge
+          variant="outline"
+          className={`mt-2 font-normal ${READINESS_TONE[kpi.readiness]}`}
+          title={certified ? kpi.audit : kpi.explanation}
+        >
+          {KPI_READINESS_LABEL[kpi.readiness]}
+        </Badge>
+      )}
     </>
   );
   return (

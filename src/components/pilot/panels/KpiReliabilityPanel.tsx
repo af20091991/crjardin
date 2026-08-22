@@ -130,14 +130,16 @@ export function KpiReliabilityPanel() {
             des ressources et du statut des indicateurs déjà produits par le moteur unique.
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {(Object.keys(KPI_READINESS_LABEL) as KpiReadiness[]).map((k) => (
-              <Badge key={k} variant="outline" className={`font-normal ${TONE[k]}`}>
-                <ReadinessIcon readiness={k} />
-                <span className="ml-1">
-                  {KPI_READINESS_LABEL[k]} : {counts[k]}
-                </span>
-              </Badge>
-            ))}
+            {(Object.keys(KPI_READINESS_LABEL) as KpiReadiness[])
+              .filter((k) => k !== "partiel")
+              .map((k) => (
+                <Badge key={k} variant="outline" className={`font-normal ${TONE[k]}`}>
+                  <ReadinessIcon readiness={k} />
+                  <span className="ml-1">
+                    {KPI_READINESS_LABEL[k]} : {counts[k]}
+                  </span>
+                </Badge>
+              ))}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative w-full max-w-sm">
@@ -193,10 +195,12 @@ export function KpiReliabilityPanel() {
             <CardHeader className="pb-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <CardTitle className="text-sm">{r.contract.label}</CardTitle>
-                <Badge variant="outline" className={`gap-1 font-normal ${TONE[r.readiness]}`}>
-                  <ReadinessIcon readiness={r.readiness} />
-                  {KPI_READINESS_LABEL[r.readiness]}
-                </Badge>
+                {r.readiness !== "partiel" && (
+                  <Badge variant="outline" className={`gap-1 font-normal ${TONE[r.readiness]}`}>
+                    <ReadinessIcon readiness={r.readiness} />
+                    {KPI_READINESS_LABEL[r.readiness]}
+                  </Badge>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Badge variant="outline" className="font-mono font-normal">
