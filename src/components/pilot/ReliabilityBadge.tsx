@@ -1,6 +1,8 @@
 // Affichage unique du niveau de confiance d'un indicateur Pilot Pro :
 // identité économique + source des heures + couverture. Aucun calcul ici.
+import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertTriangle, BadgeCheck, HelpCircle, ShieldAlert } from "lucide-react";
 import {
   ENTITY_STATUS_META,
@@ -35,8 +37,19 @@ const TONE: Record<Reliability["level"], string> = {
   non_fiable: "border-red-200 bg-red-50 text-red-700",
 };
 
-export function ReliabilityBadge({ reliability, compact }: { reliability: Reliability; compact?: boolean }) {
-  return (
+export function ReliabilityBadge({
+  reliability,
+  compact,
+  clientId,
+  clientLabel,
+}: {
+  reliability: Reliability;
+  compact?: boolean;
+  /** Fiche concernée : active le diagnostic « pourquoi provisoire ? » en 2 clics. */
+  clientId?: string | null;
+  clientLabel?: string;
+}) {
+  const badge = (
     <Badge
       variant="outline"
       className={`gap-1 font-normal ${TONE[reliability.level]}`}
@@ -55,6 +68,51 @@ export function ReliabilityBadge({ reliability, compact }: { reliability: Reliab
             : "Non fiable"
         : reliability.label}
     </Badge>
+  );
+
+  // Diagnostic accessible en 2 clics : 1) ouvrir la cause, 2) ouvrir la donnée
+  // responsable. Aucune règle de calcul n'est modifiée ici.
+  if (!clientId || reliability.level === "fiable") return badge;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" className="cursor-help" title="Pourquoi ce statut ?">
+          {badge}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 space-y-2 text-xs">
+        <p className="font-medium text-foreground">{reliability.label}</p>
+        {clientLabel && <p className="text-muted-foreground">{clientLabel}</p>}
+        {reliability.reasons.length > 0 ? (
+          <ul className="space-y-1 text-muted-foreground">
+            {reliability.reasons.map((r) => (
+              <li key={r}>• {r}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground">Aucun motif détaillé disponible.</p>
+        )}
+        <p className="text-muted-foreground">
+          Heures utilisées : {reliability.hoursSourceLabel}. Identité économique :{" "}
+          {reliability.entity.warning ?? "exploitable"}.
+        </p>
+        <div className="flex flex-col gap-1 border-t pt-2">
+          <Link
+            to="/pilot/fiche/$clientId"
+            params={{ clientId }}
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
+            Ouvrir les données du client (CA et Vente → Temps)
+          </Link>
+          <Link
+            to="/pilot/qualite"
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
+            Corriger dans le centre de qualité des données
+          </Link>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

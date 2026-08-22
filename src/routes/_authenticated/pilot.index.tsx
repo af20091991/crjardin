@@ -51,6 +51,16 @@ import {
 } from "@/lib/pilot-action-status";
 import { listCeevContracts } from "@/lib/ceev";
 import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
+// Comptage unique des interventions : 1 ligne de Vente = 1 intervention.
+import {
+  countSaleInterventions,
+  countSaleInterventionsWhere,
+} from "@/lib/pilot-intervention-count";
+// Taux horaire : gestion incluse / exclue (dénominateur uniquement).
+import { gestionHoursForYear, rateWithGestion, GESTION_MODE_HELP } from "@/lib/pilot-gestion-hours";
+import { useGestionMode } from "@/lib/pilot-gestion-mode";
+import { GestionToggle } from "@/components/pilot/GestionToggle";
+import { listHours, getTjmSettings } from "@/lib/pilot-hours";
 import { annualSummary } from "@/lib/pilot-annual";
 import {
   listAlertFeedback,
@@ -145,6 +155,10 @@ function TodayPage() {
     queryFn: listHistoricHours,
   });
   const chargeRows = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
+  // Temps de gestion mensuel (source unique : Analyse temps & rentabilité).
+  const hoursRows = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
+  const tjmSettings = useQuery({ queryKey: ["pilot-tjm-settings"], queryFn: getTjmSettings });
+  const { includeGestion } = useGestionMode();
   // Ledger consolidé des heures de l'année : source unique pour le temps réel.
   const hoursLedger = useQuery({
     queryKey: ["pilot-hours-ledger", year],
@@ -252,7 +266,8 @@ function TodayPage() {
   // Indicateurs : valeur affichée uniquement si ses sources sont disponibles.
   const caSources = [states.entries];
   const beneficeSources = [states.entries, chargeRowsState];
-  const itvSources = [interventionsState];
+  // Interventions = lignes de Vente : la source est donc pilot_ca_entries.
+  const itvSources = [states.entries];
   const hoursSources = [states.entries];
 
   // Politique compte-rendu par client : seul un client « Oui » génère une action CR.
@@ -600,8 +615,23 @@ function TodayPage() {
         targetRate: targetHR,
       })
     : ({ available: false, label: "Taux horaire réel", detail: "Chargement des heures…" } as const);
+  // Gestion incluse / exclue : seul le dénominateur change, jamais le CA.
+  // Heures de gestion : Analyse temps & rentabilité → Suivi mensuel → Temps gestion.
+  const gestionDefaut = tjmSettings.data?.heures_gestion ?? 60;
+  const gestionAnnee = useMemo(
+    () => gestionHoursForYear(hoursRows.data ?? [], gestionDefaut, month + 1),
+    [hoursRows.data, gestionDefaut, month],
+  );
+  const tauxAffiche = realRate.available
+    ? rateWithGestion(
+        k.caHeuresVendues,
+        hoursResolution?.hours ?? 0,
+        gestionAnnee,
+        includeGestion,
+      )
+    : null;
   const tauxEcartPct =
-    realRate.available && targetHR > 0 ? ((realRate.value - targetHR) / targetHR) * 100 : 0;
+    tauxAffiche != null && targetHR > 0 ? ((tauxAffiche - targetHR) / targetHR) * 100 : 0;
 
   // ---- Synthèses de lecture (aucune projection, uniquement l'enregistré) ----
   /** Libellé de période « Du 1er août au 5 août 2026 ». */
@@ -616,28 +646,23 @@ function TodayPage() {
     [now],
   );
 
-  /** Interventions terminées : mois en cours et cumul de l'exercice. */
+  /**
+   * Nombre d'interventions : 1 ligne de Vente = 1 intervention (règle unique,
+   * cf. pilot-intervention-count). Les CR Chantier et les données SST ne sont
+   * jamais utilisés pour ce comptage.
+   */
   const interventionsMois = useMemo(
-    () =>
-      allI.filter((i) => {
-        if (i.status !== "terminee" || !i.intervention_date) return false;
-        const d = new Date(i.intervention_date);
-        return d.getFullYear() === year && d.getMonth() === month;
-      }).length,
-    [allI, year, month],
+    () => countSaleInterventions(realEntries, { year, month: month + 1 }),
+    [realEntries, year, month],
   );
   const interventionsAnnee = useMemo(
-    () =>
-      allI.filter((i) => {
-        if (i.status !== "terminee" || !i.intervention_date) return false;
-        return new Date(i.intervention_date).getFullYear() === year;
-      }).length,
-    [allI, year],
+    () => countSaleInterventions(realEntries, { year }),
+    [realEntries, year],
   );
 
   // ---- Comparatifs à date équivalente N-1 (uniquement l'enregistré) ----
   // CA : lignes de vente enregistrées (pilot_ca_entries).
-  // Interventions : statut « terminée » (interventions).
+  // Interventions : nombre de lignes de Vente (1 ligne = 1 intervention).
   // Heures : colonne Vente → Temps des lignes de vente (source unique). Les
   // heures des comptes-rendus et les heures historiques importées ne sont
   // jamais utilisées dans un calcul.
@@ -655,11 +680,8 @@ function TodayPage() {
         const d = new Date(e.entry_date);
         return Number.isFinite(d.getTime()) && keep(d) ? s + (Number(e.amount_ht) || 0) : s;
       }, 0);
-    const nbItv = (keep: (d: Date) => boolean) =>
-      allI.filter(
-        (i) =>
-          i.status === "terminee" && i.intervention_date && keep(new Date(i.intervention_date)),
-      ).length;
+    // Règle unique : 1 ligne de Vente = 1 intervention (0 h inclus).
+    const nbItv = (keep: (d: Date) => boolean) => countSaleInterventionsWhere(realEntries, keep);
     const heures = (keep: (d: Date) => boolean) =>
       realEntries.reduce((s, e) => {
         const d = new Date(e.entry_date);
@@ -684,7 +706,7 @@ function TodayPage() {
       },
       {
         key: "itv",
-        label: "Interventions terminées",
+        label: "Interventions (lignes de vente)",
         current: nbItv(cur),
         previous: nbItv(prev),
         fmt: (v: number) => String(Math.round(v)),
@@ -1304,8 +1326,8 @@ function TodayPage() {
             label="Interventions réalisées"
             value={safeValue(itvSources, () => String(interventionsMois)).value}
             icon={Leaf}
-            to="/interventions"
-            help="Interventions terminées et enregistrées sur le mois en cours."
+            to="/pilot/ca"
+            help="Nombre de lignes de Vente du mois (Chiffre d'affaires → Ventes) : 1 ligne = 1 intervention, une ligne à 0 h incluse."
           />
           <PilotCard
             label="Heures d'intervention"
@@ -1380,29 +1402,34 @@ function TodayPage() {
             label="Interventions réalisées"
             value={safeValue(itvSources, () => String(interventionsAnnee)).value}
             icon={Leaf}
-            to="/interventions"
-            help="Interventions terminées et enregistrées depuis le début de l'exercice."
+            to="/pilot/ca"
+            help="Nombre de lignes de Vente de l'exercice (Chiffre d'affaires → Ventes) : 1 ligne = 1 intervention, une ligne à 0 h incluse."
           />
           <PilotCard
             label="Taux horaire réel"
             value={
               safeValue([states.entries, hoursLedgerState], () =>
-                realRate.available ? `${formatEuro(realRate.value)}/h` : "Non disponible",
+                tauxAffiche != null ? `${formatEuro(tauxAffiche)}/h` : "Non disponible",
               ).value
             }
             icon={Gauge}
             to="/pilot/taux"
-            help={realRate.available ? realRate.note : realRate.detail}
+            action={<GestionToggle />}
+            help={`${realRate.available ? realRate.note : realRate.detail} — ${
+              includeGestion ? GESTION_MODE_HELP.incluse : GESTION_MODE_HELP.exclue
+            }`}
             tone={
-              realRate.available && targetHR > 0
-                ? realRate.value >= targetHR
+              tauxAffiche != null && targetHR > 0
+                ? tauxAffiche >= targetHR
                   ? "positive"
                   : "warning"
                 : "default"
             }
             sub={
-              realRate.available && targetHR > 0
-                ? `${tauxEcartPct >= 0 ? "+" : ""}${tauxEcartPct.toFixed(0)} % vs cible ${formatEuro(targetHR)}`
+              tauxAffiche != null && targetHR > 0
+                ? `${tauxEcartPct >= 0 ? "+" : ""}${tauxEcartPct.toFixed(0)} % vs cible ${formatEuro(targetHR)}${
+                    includeGestion ? ` · dont ${formatHours(gestionAnnee)} de gestion` : ""
+                  }`
                 : undefined
             }
           />

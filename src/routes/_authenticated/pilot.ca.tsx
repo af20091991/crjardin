@@ -19,6 +19,15 @@ import {
   type CaCategory,
 } from "@/lib/pilot-ca";
 import { monthForecastHt } from "@/lib/pilot-ca-forecast";
+// Taux horaire : gestion incluse / exclue (seul le dénominateur change).
+import {
+  gestionHoursForMonth,
+  rateWithGestion,
+  GESTION_MODE_HELP,
+} from "@/lib/pilot-gestion-hours";
+import { useGestionMode } from "@/lib/pilot-gestion-mode";
+import { GestionToggle } from "@/components/pilot/GestionToggle";
+import { listHours, getTjmSettings } from "@/lib/pilot-hours";
 
 import { FixedChargesDetail } from "@/components/pilot/FixedChargesPanel";
 import { formatEuro } from "@/lib/pilot";
@@ -138,14 +147,19 @@ function StatBox({
   value,
   icon: Icon,
   tone,
+  action,
+  title,
 }: {
   label: string;
   value: string;
   icon: React.ComponentType<{ className?: string }>;
   tone?: string;
+  /** Contrôle d'affichage propre à la vignette (ex. gestion incluse / exclue). */
+  action?: React.ReactNode;
+  title?: string;
 }) {
   return (
-    <Card className="p-3">
+    <Card className="p-3" title={title}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground">{label}</span>
         <Icon className="h-4 w-4 text-primary/70" />
@@ -153,6 +167,7 @@ function StatBox({
       <div className={`mt-1.5 font-serif text-xl font-semibold tracking-tight ${tone ?? ""}`}>
         {value}
       </div>
+      {action && <div className="mt-1.5">{action}</div>}
     </Card>
   );
 }
@@ -272,6 +287,20 @@ function CaPage() {
     () => monthForecastHt(entries, month, { period }),
     [entries, month, period],
   );
+
+  // Taux horaire du mois : même règle que la Vue exercice.
+  // Gestion exclue  → CA du mois / heures d'intervention du mois.
+  // Gestion incluse → CA du mois / (heures d'intervention + Temps gestion du mois),
+  // le Temps gestion venant d'Analyse temps & rentabilité → Suivi mensuel.
+  const { includeGestion } = useGestionMode();
+  const hoursRowsQ = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
+  const tjmQ = useQuery({ queryKey: ["pilot-tjm-settings"], queryFn: getTjmSettings });
+  const gestionMois = gestionHoursForMonth(
+    hoursRowsQ.data ?? [],
+    month,
+    tjmQ.data?.heures_gestion ?? 60,
+  );
+  const tauxMoisAffiche = rateWithGestion(mt.ventesHt, mt.hours, gestionMois, includeGestion);
 
   const catTotals = useMemo(
     () => categoryTotals(entries, month, { period }),
@@ -446,8 +475,10 @@ function CaPage() {
         <StatBox label="Temps" value={`${mt.hours} h`} icon={Clock} />
         <StatBox
           label="Taux horaire"
-          value={mt.hours ? `${formatEuro(mt.tauxHoraire)}/h` : "—"}
+          value={tauxMoisAffiche != null ? `${formatEuro(tauxMoisAffiche)}/h` : "—"}
           icon={TrendingUp}
+          action={<GestionToggle />}
+          title={includeGestion ? GESTION_MODE_HELP.incluse : GESTION_MODE_HELP.exclue}
         />
       </div>
 

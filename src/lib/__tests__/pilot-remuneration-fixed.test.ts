@@ -70,15 +70,16 @@ describe("charges fixes — détail = montant de la ligne", () => {
   });
 });
 
-describe("page CA — un seul encart rémunération, avant les charges", () => {
+describe("page CA — un seul encart rémunération, après les charges", () => {
   it("un unique encart Rémunération", () => {
-    const occurrences = page.match(/Rémunération \{MONTH_NAMES\[month - 1\]\}/g) ?? [];
+    const occurrences = page.match(/label=\{`Rémunération \$\{MONTH_NAMES\[month - 1\]\}`\}/g) ?? [];
     expect(occurrences.length).toBe(1);
   });
 
-  it("l'encart est positionné avant la carte Charges", () => {
-    expect(page.indexOf('data-testid="ca-remuneration-card"')).toBeLessThan(
-      page.indexOf("{/* Charges */}"),
+  // Ordre vertical fixe de la page : Ventes → Charges → Rémunération.
+  it("l'encart est positionné après l'encart Charges", () => {
+    expect(page.indexOf('data-testid="ca-remuneration-card"')).toBeGreaterThan(
+      page.indexOf("Charges d'exploitation"),
     );
   });
 
