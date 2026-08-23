@@ -15,8 +15,6 @@ for (const key of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_PUBLIS
   if (!process.env[key] && serverEnv[key]) process.env[key] = serverEnv[key];
 }
 
-const entitiesDir = path.resolve(process.cwd(), "node_modules/entities");
-
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
@@ -24,13 +22,6 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
-    resolve: {
-      alias: {
-        "entities/lib/decode.js": path.join(entitiesDir, "dist/esm/decode.js"),
-        "entities/lib/encode.js": path.join(entitiesDir, "dist/esm/encode.js"),
-        entities: entitiesDir,
-      },
-    },
     plugins: [
       VitePWA({
         registerType: "autoUpdate",
