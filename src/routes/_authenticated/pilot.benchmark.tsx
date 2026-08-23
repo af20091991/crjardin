@@ -246,7 +246,7 @@ function SaisonSection({
 
       <Card><CardContent className="pt-6">
         <h3 className="mb-3 font-medium">Évolution mensuelle</h3>
-        <ChartContainer config={{ current: { label: `${y}`, color: "var(--primary)" }, previous: { label: `${y - 1}`, color: "#cbd5e1" } }} className="h-[280px] w-full">
+        <ChartContainer config={{ current: { label: `${y}`, color: "var(--primary)" }, previous: { label: `${y - 1}`, color: "var(--pp-neutral)" } }} className="h-[280px] w-full">
           <LineChart data={series}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />

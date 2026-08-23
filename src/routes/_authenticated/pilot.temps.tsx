@@ -144,20 +144,20 @@ const MONTH_LABELS = [
   "Déc",
 ];
 const PRESTATION_COLORS = [
-  "var(--pp-ventes, #4c8a2f)",
-  "#7cb342",
-  "#f0a733",
-  "#4f9ecf",
-  "#a56bd6",
-  "#9aa0a6",
+  "var(--primary)",
+  "var(--pp-planned)",
+  "var(--pp-mid)",
+  "var(--pp-sales)",
+  "var(--pp-special)",
+  "var(--pp-neutral)",
 ];
 
 const ZONE_COLORS: Record<ClientZone, string> = {
-  strategique: "#2f9e5f",
-  a_developper: "#4f9ecf",
-  a_optimiser: "#f0a733",
-  chronophage: "#d9534f",
-  non_classe: "#9aa0a6",
+  strategique: "var(--primary)",
+  a_developper: "var(--pp-sales)",
+  a_optimiser: "var(--pp-mid)",
+  chronophage: "var(--pp-charges)",
+  non_classe: "var(--pp-neutral)",
 };
 
 function euroPerHour(n: number | null | undefined): string {
@@ -592,10 +592,10 @@ function TimeValueAnalysis() {
                         width={150}
                       />
                       <ChartTooltip content={<ChartTooltipContent />} />
-                      <ReferenceLine x={target} stroke="#d9534f" strokeDasharray="4 4" />
+                      <ReferenceLine x={target} stroke="var(--pp-charges)" strokeDasharray="4 4" />
                       <Bar dataKey="rate" radius={[0, 4, 4, 0]}>
                         {ratedPrestations.map((p, i) => (
-                          <Cell key={i} fill={p.rate >= target ? "#2f9e5f" : "#f0a733"} />
+                          <Cell key={i} fill={p.rate >= target ? "var(--primary)" : "var(--pp-mid)"} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -668,8 +668,8 @@ function TimeValueAnalysis() {
                         );
                       }}
                     />
-                    <ReferenceLine x={medHours} stroke="#9aa0a6" strokeDasharray="4 4" />
-                    <ReferenceLine y={0} stroke="#9aa0a6" />
+                    <ReferenceLine x={medHours} stroke="var(--pp-neutral)" strokeDasharray="4 4" />
+                    <ReferenceLine y={0} stroke="var(--pp-neutral)" />
                     <Scatter data={scatterData}>
                       {scatterData.map((d, i) => (
                         <Cell key={i} fill={ZONE_COLORS[d.zone]} fillOpacity={0.75} />

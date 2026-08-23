@@ -297,7 +297,7 @@ function SantePage() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-base">
                   <span>{tm.label}</span>
-                  <span className="font-serif text-xl" style={{ color: t.score == null ? "#94A3B8" : tm.color }}>
+                  <span className="font-serif text-xl" style={{ color: t.score == null ? "var(--pp-neutral)" : tm.color }}>
                     {t.score == null ? "—" : `${t.score}/100`}
                   </span>
                 </CardTitle>

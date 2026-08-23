@@ -1201,7 +1201,7 @@ function PhotoCard({ photo, onChange }: { photo: InterventionPhoto; onChange: ()
         )}
         <button
           onClick={async () => { await deletePhoto(photo.id, photo.storage_path); onChange(); }}
-          className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-black/50 text-white hover:bg-black/70"
+          className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-foreground/55 text-background hover:bg-foreground/75"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -1348,11 +1348,11 @@ function RentabilityEstimateBlock({
   const marginDelta = valueProduced !== null && realCost !== null ? valueProduced - realCost : null;
 
   const tone = delta === null ? "neutral" : delta <= 0 ? "positive" : delta / (plannedHours as number) > 0.2 ? "negative" : "warning";
-  const toneColor = { positive: "#4F8E33", warning: "#EE8627", negative: "#C0392B", neutral: "#8896A0" }[tone];
+  const toneColor = { positive: "var(--primary)", warning: "var(--pp-mid)", negative: "var(--pp-charges)", neutral: "var(--pp-neutral)" }[tone];
   const TrendIcon = delta === null ? Minus : delta < 0 ? TrendingDown : delta > 0 ? TrendingUp : Minus;
   const confidence: "HIGH" | "MEDIUM" | "LOW" = !hasBoth ? "LOW" : estimated ? "MEDIUM" : "HIGH";
   const confLabel = { HIGH: "Fiable", MEDIUM: "Estimé", LOW: "Incomplet" }[confidence];
-  const confColor = { HIGH: "#4F8E33", MEDIUM: "#EE8627", LOW: "#8896A0" }[confidence];
+  const confColor = { HIGH: "var(--primary)", MEDIUM: "var(--pp-mid)", LOW: "var(--pp-neutral)" }[confidence];
 
   return (
     <div className="mt-3 rounded-lg border bg-muted/20 p-3">
@@ -1390,7 +1390,7 @@ function RentabilityEstimateBlock({
           <div className="text-[11px] text-muted-foreground">Rentabilité</div>
           {targetHourlyRate > 0 && hasBoth ? (
             <>
-              <div className="text-base font-semibold tabular-nums" style={{ color: (marginDelta ?? 0) >= 0 ? "#4F8E33" : "#C0392B" }}>
+              <div className="text-base font-semibold tabular-nums" style={{ color: (marginDelta ?? 0) >= 0 ? "var(--primary)" : "var(--pp-charges)" }}>
                 {(marginDelta ?? 0) >= 0 ? "+" : ""}
                 {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(marginDelta ?? 0)}
               </div>
