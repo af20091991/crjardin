@@ -27,7 +27,7 @@ export default defineConfig({
     resolve: {
       alias: {
         "entities/lib/decode.js": path.join(entitiesDir, "dist/esm/decode.js"),
-        "entities/lib/encode.js": path.join(entitiesDir, "dist/esm/escape.js"),
+        "entities/lib/encode.js": path.join(entitiesDir, "dist/esm/encode.js"),
         entities: entitiesDir,
       },
     },
