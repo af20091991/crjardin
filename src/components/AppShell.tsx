@@ -77,7 +77,24 @@ type NavGroup = { label: string; items: NavItem[]; emptyLabel?: string };
 
 // État d'ouverture des rubriques : conservé pendant toute la navigation interne
 // (module scope = réinitialisé uniquement au rechargement complet de la page).
-let navGroupState: Record<string, boolean> = {};
+// Un seul bloc ouvert par défaut : la rubrique la plus utilisée.
+export const DEFAULT_OPEN_GROUP = "Aujourd'hui";
+let navGroupState: Record<string, boolean> = { [DEFAULT_OPEN_GROUP]: true };
+
+/** Filtre de la palette de commande : recherche insensible casse/accents. */
+export function filterNavItems<T extends { label: string; short: string; to: string }>(
+  items: T[],
+  query: string,
+): T[] {
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  const q = norm(query.trim());
+  if (!q) return items;
+  return items.filter((i) => norm(`${i.label} ${i.short} ${i.to}`).includes(q));
+}
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const navigate = useNavigate();
@@ -102,6 +119,20 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       }
       return next;
     });
+
+  // Palette de commande : ⌘K / Ctrl+K, capture pour rester la seule à s'ouvrir.
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -659,7 +690,121 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </Sheet>
         )}
       </nav>
+      <NavCommandPalette
+        items={navItems}
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        onNavigate={(to) => navigate({ to } as never)}
+      />
       <InstallPrompt />
+    </div>
+  );
+}
+
+/**
+ * Palette de commande : filtre les liens déjà présents dans la sidebar,
+ * navigation aux flèches, validation à Entrée, fermeture à Échap.
+ * Aucun lien ajouté ni destination modifiée : la liste vient de la sidebar.
+ */
+export function NavCommandPalette({
+  items,
+  open,
+  onOpenChange,
+  onNavigate,
+}: {
+  items: { to: string; label: string; short: string }[];
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onNavigate: (to: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [index, setIndex] = useState(0);
+  const results = filterNavItems(items, query);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [query]);
+  useEffect(() => {
+    if (!open) setQuery("");
+  }, [open]);
+
+  if (!open) return null;
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      onOpenChange(false);
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setIndex((i) => (results.length ? (i + 1) % results.length : 0));
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setIndex((i) => (results.length ? (i - 1 + results.length) % results.length : 0));
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const target = results[index];
+      if (target) {
+        onOpenChange(false);
+        onNavigate(target.to);
+      }
+    }
+  };
+
+  return (
+    <div
+      data-nav-palette="root"
+      role="dialog"
+      aria-label="Palette de commande"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-24"
+      onClick={() => onOpenChange(false)}
+      onKeyDown={onKeyDown}
+    >
+      <div
+        className="w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <input
+          autoFocus
+          type="text"
+          aria-label="Rechercher un écran"
+          placeholder="Aller à…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full border-b border-border bg-transparent px-4 py-3 text-sm outline-none"
+        />
+        <ul role="listbox" className="max-h-80 overflow-y-auto py-1">
+          {results.length === 0 && (
+            <li className="px-4 py-3 text-sm text-muted-foreground">Aucun écran.</li>
+          )}
+          {results.map((item, i) => (
+            <li key={item.to}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={i === index}
+                data-nav-palette-item={item.to}
+                onMouseEnter={() => setIndex(i)}
+                onClick={() => {
+                  onOpenChange(false);
+                  onNavigate(item.to);
+                }}
+                className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm ${
+                  i === index ? "bg-accent/50 text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                <span className="truncate">{item.label}</span>
+                <span className="ml-3 shrink-0 text-xs text-muted-foreground/70">{item.to}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
