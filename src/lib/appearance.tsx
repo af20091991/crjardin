@@ -80,6 +80,7 @@ export function applyAppearance(a: Appearance) {
   );
   root.setAttribute("data-density", a.density);
   root.setAttribute("data-skin", a.skin);
+  root.setAttribute("data-theme", a.ui);
 }
 
 type Ctx = {
