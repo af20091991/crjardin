@@ -618,3 +618,126 @@
     margin-top: 1.1rem;
   }
 }
+
+/* ============================================================
+   Nouvelle interface (data-theme="next") — couche de tokens seule.
+   Bascule réversible depuis Personnalisation → Apparence.
+   Aucune page ne contient de logique conditionnelle : seuls les
+   tokens et les composants partagés changent. Aucune donnée,
+   aucun calcul, aucun statut n'est modifié.
+   ============================================================ */
+[data-theme="next"] {
+  /* Accent vert mousse (remplace l'accent orange dans ce jeu de tokens) */
+  --accent: oklch(0.63 0.077 145);
+  --accent-foreground: oklch(0.99 0.01 95);
+  --ring: oklch(0.63 0.077 145);
+  --sidebar-accent: oklch(0.945 0.028 145);
+  --sidebar-accent-foreground: oklch(0.33 0.06 145);
+  --secondary: oklch(0.947 0.024 145);
+  --secondary-foreground: oklch(0.33 0.06 145);
+  --border: oklch(0.912 0.011 130);
+  --input: oklch(0.905 0.011 130);
+  --muted: oklch(0.958 0.012 128);
+  --muted-foreground: oklch(0.505 0.022 128);
+
+  /* Sérif réservée aux valeurs numériques importantes */
+  --font-numeric: "Newsreader", "Iowan Old Style", Georgia, serif;
+
+  /* Respiration : rythme vertical et intérieur des surfaces légèrement aérés */
+  --space-rhythm: 1.35rem;
+  --space-surface: 1.4rem;
+  --shadow-soft: 0 1px 2px -1px color-mix(in oklab, var(--foreground) 8%, transparent),
+    0 10px 24px -18px color-mix(in oklab, var(--foreground) 18%, transparent);
+}
+
+[data-theme="next"].dark {
+  --accent: oklch(0.68 0.08 145);
+  --accent-foreground: oklch(0.18 0.02 145);
+  --ring: oklch(0.68 0.08 145);
+  --sidebar-accent: oklch(0.30 0.03 145);
+  --secondary: oklch(0.29 0.026 145);
+  --muted: oklch(0.29 0.026 145);
+  --muted-foreground: oklch(0.75 0.02 128);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+}
+
+/* ---------- Typographie : titres sans-serif, valeurs en sérif ---------- */
+[data-theme="next"] h1,
+[data-theme="next"] h2,
+[data-theme="next"] h3 {
+  font-family: var(--font-sans);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+[data-theme="next"] .font-serif.text-xl,
+[data-theme="next"] .font-serif.text-2xl,
+[data-theme="next"] .font-serif.text-3xl,
+[data-theme="next"] .font-serif.text-4xl,
+[data-theme="next"] .font-serif.tabular-nums,
+[data-theme="next"] table .font-serif,
+[data-theme="next"] table td.tabular-nums,
+[data-theme="next"] .tabular-nums.font-semibold,
+[data-theme="next"] .tabular-nums.font-bold {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* ---------- Surfaces partagées (Card) : bord net, intérieur aéré ---------- */
+[data-theme="next"] .bg-card {
+  box-shadow: var(--shadow-soft);
+  border-color: var(--border);
+}
+[data-theme="next"] .bg-card > .p-6,
+[data-theme="next"] .bg-card > .px-6 {
+  padding-inline: var(--space-surface);
+}
+[data-theme="next"] .space-y-5 > * + * {
+  margin-top: var(--space-rhythm);
+}
+[data-theme="next"] .space-y-4 > * + * {
+  margin-top: calc(var(--space-rhythm) - 0.25rem);
+}
+
+/* ---------- Tableaux partagés : en-têtes discrets, lignes respirantes ---------- */
+[data-theme="next"] table thead th {
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted-foreground);
+}
+[data-theme="next"] table td,
+[data-theme="next"] table th {
+  padding-top: 0.62rem;
+  padding-bottom: 0.62rem;
+}
+[data-theme="next"] table tbody tr:hover {
+  background-color: color-mix(in oklab, var(--accent) 8%, transparent);
+}
+
+/* ---------- Badges et boutons partagés : pastilles nettes ---------- */
+[data-theme="next"] .rounded-full.border,
+[data-theme="next"] .rounded-md.border.px-2\.5 {
+  border-radius: 999px;
+}
+[data-theme="next"] button:focus-visible,
+[data-theme="next"] a:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 75%, transparent);
+  outline-offset: 2px;
+}
+
+/* ---------- Enveloppe applicative (AppShell) : grille plus aérée ---------- */
+[data-theme="next"] [data-shell="main"] {
+  padding-top: 1.35rem;
+}
+@media (min-width: 768px) {
+  [data-theme="next"] [data-shell="main"] {
+    padding-inline: 1.85rem;
+  }
+}
+[data-theme="next"] [data-shell="nav"] a {
+  min-height: 42px;
+}
