@@ -11,6 +11,7 @@ import {
   type ThemeMode,
   type Density,
   type Skin,
+  type UiTheme,
 } from "@/lib/appearance";
 import { Palette, Sun, Moon, Monitor, RotateCcw, Check } from "lucide-react";
 
@@ -92,6 +93,45 @@ function PersonnalisationPage() {
             </p>
           </div>
         </div>
+
+        {/* Nouvelle interface : bascule de jeu de tokens (data-theme) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-serif text-base">Nouvelle interface</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Activer la nouvelle interface</p>
+                <p className="text-xs text-muted-foreground">
+                  Accent vert mousse, valeurs chiffrées en sérif et espacements plus aérés.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={appearance.ui === "next"}
+                aria-label="Nouvelle interface"
+                onClick={() =>
+                  setAppearance({ ui: (appearance.ui === "next" ? "legacy" : "next") as UiTheme })
+                }
+                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                  appearance.ui === "next" ? "bg-primary" : "bg-muted"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-card shadow transition-all ${
+                    appearance.ui === "next" ? "left-[1.375rem]" : "left-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Réversible à tout moment et conservé sur cet appareil : seuls les tokens visuels
+              changent, aucune donnée ni aucun calcul n'est modifié.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Apparence globale (skin) */}
         <Card>

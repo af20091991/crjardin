@@ -12,10 +12,17 @@ export type ThemeMode = "light" | "dark" | "auto";
 export type Density = "comfortable" | "compact";
 /** Couche d'apparence réversible : "classic" = existant, "modern" = alternative épurée. */
 export type Skin = "classic" | "modern";
+/**
+ * Jeu de tokens visuels : "legacy" = existant, "next" = nouvelle interface
+ * (accent vert mousse, sérif Newsreader sur les valeurs, respiration accrue).
+ * Bascule uniquement via data-theme sur <html> : aucune page n'a de logique dédiée.
+ */
+export type UiTheme = "legacy" | "next";
 
 export type Appearance = {
   theme: ThemeMode;
   skin: Skin;
+  ui: UiTheme;
   primary: string;
   accent: string;
   density: Density;
@@ -27,6 +34,7 @@ export type Appearance = {
 export const DEFAULT_APPEARANCE: Appearance = {
   theme: "light",
   skin: "classic",
+  ui: "legacy",
   primary: "#4F8E33",
   accent: "#EE8627",
   density: "comfortable",
@@ -62,7 +70,9 @@ export function applyAppearance(a: Appearance) {
   root.style.setProperty("--ring", a.primary);
   root.style.setProperty("--sidebar-primary", a.primary);
   root.style.setProperty("--sidebar-ring", a.primary);
-  root.style.setProperty("--accent", a.accent);
+  // Nouvelle interface : l'accent vert mousse vient des tokens, pas d'un style inline.
+  if (a.ui === "next") root.style.removeProperty("--accent");
+  else root.style.setProperty("--accent", a.accent);
   // Le skin moderne resserre nettement les rayons pour une hiérarchie plus franche.
   root.style.setProperty(
     "--radius",
@@ -70,6 +80,7 @@ export function applyAppearance(a: Appearance) {
   );
   root.setAttribute("data-density", a.density);
   root.setAttribute("data-skin", a.skin);
+  root.setAttribute("data-theme", a.ui);
 }
 
 type Ctx = {
