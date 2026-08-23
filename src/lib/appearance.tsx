@@ -70,7 +70,9 @@ export function applyAppearance(a: Appearance) {
   root.style.setProperty("--ring", a.primary);
   root.style.setProperty("--sidebar-primary", a.primary);
   root.style.setProperty("--sidebar-ring", a.primary);
-  root.style.setProperty("--accent", a.accent);
+  // Nouvelle interface : l'accent vert mousse vient des tokens, pas d'un style inline.
+  if (a.ui === "next") root.style.removeProperty("--accent");
+  else root.style.setProperty("--accent", a.accent);
   // Le skin moderne resserre nettement les rayons pour une hiérarchie plus franche.
   root.style.setProperty(
     "--radius",
