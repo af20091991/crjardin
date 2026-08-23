@@ -261,7 +261,7 @@ function AdminPage() {
             <Card key={c.label}>
               <CardContent className="flex flex-col gap-1 pt-5">
                 <c.icon className="h-5 w-5 text-primary" />
-                <span className="text-2xl font-semibold">{c.value ?? "—"}</span>
+                <span className="font-serif text-2xl font-semibold tabular-nums">{c.value ?? "—"}</span>
                 <span className="text-xs text-muted-foreground">{c.label}</span>
               </CardContent>
             </Card>

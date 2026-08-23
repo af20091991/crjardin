@@ -161,7 +161,7 @@ function SettingsPage() {
                   Importez le cachet (tampon) de votre entreprise. Il sera ajouté à côté de votre signature sur chaque compte-rendu PDF.
                 </p>
                 {profile?.stamp_data && (
-                  <div className="inline-flex rounded-lg border border-border bg-white p-2">
+                  <div className="inline-flex rounded-lg border border-border bg-card p-2">
                     <img src={profile.stamp_data} alt="Cachet de l'entreprise" className="h-28 w-auto object-contain" />
                   </div>
                 )}

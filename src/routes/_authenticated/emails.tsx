@@ -130,7 +130,7 @@ function EmailsPage() {
                 <CardContent className="flex items-center gap-3 p-4">
                   <c.icon className={`h-6 w-6 ${c.color}`} />
                   <div>
-                    <p className="text-2xl font-semibold leading-none">{c.value}</p>
+                    <p className="font-serif text-2xl font-semibold leading-none tabular-nums">{c.value}</p>
                     <p className="text-xs text-muted-foreground">{c.label}</p>
                   </div>
                 </CardContent>

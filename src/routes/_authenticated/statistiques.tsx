@@ -21,7 +21,16 @@ export const Route = createFileRoute("/_authenticated/statistiques")({
 });
 
 const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
-const PIE_COLORS = ["#4c8a2f", "#7cb342", "#aed581", "#c5e1a5", "#dcedc8", "#e6ee9c", "#fff59d", "#ffe082"];
+const PIE_COLORS = [
+  "var(--primary)",
+  "var(--pp-sales)",
+  "var(--pp-mid)",
+  "var(--pp-special)",
+  "var(--pp-business)",
+  "var(--pp-warning)",
+  "var(--pp-planned)",
+  "var(--pp-neutral)",
+];
 
 function StatsPage() {
   const { data: interventions } = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });

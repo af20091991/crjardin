@@ -72,19 +72,19 @@ const CONFIDENCE_META: Record<
   "HIGH" | "MEDIUM" | "LOW",
   { label: string; color: string; icon: typeof ShieldCheck }
 > = {
-  HIGH: { label: "Fiabilité élevée", color: "#4F8E33", icon: ShieldCheck },
-  MEDIUM: { label: "Fiabilité moyenne", color: "#EE8627", icon: Activity },
-  LOW: { label: "Fiabilité faible", color: "#8896A0", icon: AlertCircle },
+  HIGH: { label: "Fiabilité élevée", color: "var(--primary)", icon: ShieldCheck },
+  MEDIUM: { label: "Fiabilité moyenne", color: "var(--pp-mid)", icon: Activity },
+  LOW: { label: "Fiabilité faible", color: "var(--pp-neutral)", icon: AlertCircle },
 };
 
 const ACTIVITY_META: Record<
   "actif" | "a_relancer" | "dormant" | "perdu",
   { label: string; color: string }
 > = {
-  actif: { label: "Client actif", color: "#4F8E33" },
-  a_relancer: { label: "À relancer", color: "#EE8627" },
-  dormant: { label: "Dormant", color: "#8896A0" },
-  perdu: { label: "Client perdu", color: "#B3261E" },
+  actif: { label: "Client actif", color: "var(--primary)" },
+  a_relancer: { label: "À relancer", color: "var(--pp-mid)" },
+  dormant: { label: "Dormant", color: "var(--pp-neutral)" },
+  perdu: { label: "Client perdu", color: "var(--pp-charges)" },
 };
 
 interface CaEntryRow {
@@ -1167,10 +1167,10 @@ function HeaderStat({
 }
 
 function crStatus(iv: InterventionRow): { label: string; color: string } {
-  if (iv.sent_to_client_at) return { label: "CR envoyé", color: "#4F8E33" };
-  if (iv.pdf_storage_path) return { label: "CR archivé", color: "#EE8627" };
-  if (iv.status === "terminee") return { label: "Terminée", color: "#8896A0" };
-  return { label: "Brouillon", color: "#8896A0" };
+  if (iv.sent_to_client_at) return { label: "CR envoyé", color: "var(--primary)" };
+  if (iv.pdf_storage_path) return { label: "CR archivé", color: "var(--pp-mid)" };
+  if (iv.status === "terminee") return { label: "Terminée", color: "var(--pp-neutral)" };
+  return { label: "Brouillon", color: "var(--pp-neutral)" };
 }
 
 function buildNextAction(
