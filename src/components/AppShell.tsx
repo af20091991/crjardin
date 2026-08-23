@@ -690,6 +690,12 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </Sheet>
         )}
       </nav>
+      <NavCommandPalette
+        items={navItems}
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        onNavigate={(to) => navigate({ to } as never)}
+      />
       <InstallPrompt />
     </div>
   );
