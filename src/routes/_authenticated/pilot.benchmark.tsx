@@ -268,7 +268,7 @@ function SaisonSection({
             const intensity = h.avg / maxAvg;
             return (
               <div key={h.label} className="flex flex-col items-center gap-1">
-                <div className="flex h-16 w-full items-end justify-center rounded-md" style={{ backgroundColor: `rgba(79,142,51,${0.1 + intensity * 0.9})` }} title={formatEuro(h.avg)} />
+                <div className="flex h-16 w-full items-end justify-center rounded-md" style={{ backgroundColor: `color-mix(in oklab, var(--primary) ${Math.round((0.1 + intensity * 0.9) * 100)}%, transparent)` }} title={formatEuro(h.avg)} />
                 <span className="text-[10px] text-muted-foreground">{h.label}</span>
               </div>
             );
