@@ -539,7 +539,7 @@ function TimeValueAnalysis() {
                           </td>
                           <td
                             className={`py-2 pr-3 text-right font-medium ${
-                              (p.resultatBrut ?? 0) < 0 ? "text-[var(--pp-charges,#d9534f)]" : ""
+                              (p.resultatBrut ?? 0) < 0 ? "text-pp-charges" : ""
                             }`}
                           >
                             {p.resultatBrut == null ? "—" : formatEuro(p.resultatBrut)}
