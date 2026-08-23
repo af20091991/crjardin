@@ -77,7 +77,24 @@ type NavGroup = { label: string; items: NavItem[]; emptyLabel?: string };
 
 // État d'ouverture des rubriques : conservé pendant toute la navigation interne
 // (module scope = réinitialisé uniquement au rechargement complet de la page).
-let navGroupState: Record<string, boolean> = {};
+// Un seul bloc ouvert par défaut : la rubrique la plus utilisée.
+export const DEFAULT_OPEN_GROUP = "Aujourd'hui";
+let navGroupState: Record<string, boolean> = { [DEFAULT_OPEN_GROUP]: true };
+
+/** Filtre de la palette de commande : recherche insensible casse/accents. */
+export function filterNavItems<T extends { label: string; short: string; to: string }>(
+  items: T[],
+  query: string,
+): T[] {
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  const q = norm(query.trim());
+  if (!q) return items;
+  return items.filter((i) => norm(`${i.label} ${i.short} ${i.to}`).includes(q));
+}
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const navigate = useNavigate();
