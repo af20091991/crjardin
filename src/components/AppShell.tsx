@@ -681,6 +681,114 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   );
 }
 
+/**
+ * Palette de commande : filtre les liens déjà présents dans la sidebar,
+ * navigation aux flèches, validation à Entrée, fermeture à Échap.
+ * Aucun lien ajouté ni destination modifiée : la liste vient de la sidebar.
+ */
+export function NavCommandPalette({
+  items,
+  open,
+  onOpenChange,
+  onNavigate,
+}: {
+  items: { to: string; label: string; short: string }[];
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onNavigate: (to: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [index, setIndex] = useState(0);
+  const results = filterNavItems(items, query);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [query]);
+  useEffect(() => {
+    if (!open) setQuery("");
+  }, [open]);
+
+  if (!open) return null;
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      onOpenChange(false);
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setIndex((i) => (results.length ? (i + 1) % results.length : 0));
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setIndex((i) => (results.length ? (i - 1 + results.length) % results.length : 0));
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const target = results[index];
+      if (target) {
+        onOpenChange(false);
+        onNavigate(target.to);
+      }
+    }
+  };
+
+  return (
+    <div
+      data-nav-palette="root"
+      role="dialog"
+      aria-label="Palette de commande"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-24"
+      onClick={() => onOpenChange(false)}
+      onKeyDown={onKeyDown}
+    >
+      <div
+        className="w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <input
+          autoFocus
+          type="text"
+          aria-label="Rechercher un écran"
+          placeholder="Aller à…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full border-b border-border bg-transparent px-4 py-3 text-sm outline-none"
+        />
+        <ul role="listbox" className="max-h-80 overflow-y-auto py-1">
+          {results.length === 0 && (
+            <li className="px-4 py-3 text-sm text-muted-foreground">Aucun écran.</li>
+          )}
+          {results.map((item, i) => (
+            <li key={item.to}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={i === index}
+                data-nav-palette-item={item.to}
+                onMouseEnter={() => setIndex(i)}
+                onClick={() => {
+                  onOpenChange(false);
+                  onNavigate(item.to);
+                }}
+                className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm ${
+                  i === index ? "bg-accent/50 text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                <span className="truncate">{item.label}</span>
+                <span className="ml-3 shrink-0 text-xs text-muted-foreground/70">{item.to}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 /** Exercice partagé : tous les écrans Pilot Pro suivent cette sélection. */
 function PilotYearSwitcher({ compact = false }: { compact?: boolean }) {
   const { year, setYear } = usePilotYear();
