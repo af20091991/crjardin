@@ -11,6 +11,7 @@ import {
   type ThemeMode,
   type Density,
   type Skin,
+  type UiTheme,
 } from "@/lib/appearance";
 import { Palette, Sun, Moon, Monitor, RotateCcw, Check } from "lucide-react";
 
