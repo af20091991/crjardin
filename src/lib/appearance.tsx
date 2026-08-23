@@ -12,10 +12,17 @@ export type ThemeMode = "light" | "dark" | "auto";
 export type Density = "comfortable" | "compact";
 /** Couche d'apparence réversible : "classic" = existant, "modern" = alternative épurée. */
 export type Skin = "classic" | "modern";
+/**
+ * Jeu de tokens visuels : "legacy" = existant, "next" = nouvelle interface
+ * (accent vert mousse, sérif Newsreader sur les valeurs, respiration accrue).
+ * Bascule uniquement via data-theme sur <html> : aucune page n'a de logique dédiée.
+ */
+export type UiTheme = "legacy" | "next";
 
 export type Appearance = {
   theme: ThemeMode;
   skin: Skin;
+  ui: UiTheme;
   primary: string;
   accent: string;
   density: Density;
@@ -27,6 +34,7 @@ export type Appearance = {
 export const DEFAULT_APPEARANCE: Appearance = {
   theme: "light",
   skin: "classic",
+  ui: "legacy",
   primary: "#4F8E33",
   accent: "#EE8627",
   density: "comfortable",
