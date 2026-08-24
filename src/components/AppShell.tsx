@@ -425,6 +425,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     navGroupState = { ...navGroupState, [activeGroup]: true };
     setOpenGroups(navGroupState);
   }, [activeGroup]);
+  // Réglage « groupe ouvert par défaut » : ajout seul, aucune fermeture forcée.
+  const defaultOpenGroup = appearance.defaultOpenGroup;
+  useEffect(() => {
+    if (!defaultOpenGroup) return;
+    if (typeof navGroupState[defaultOpenGroup] === "boolean") return;
+    navGroupState = { ...navGroupState, [defaultOpenGroup]: true };
+    setOpenGroups(navGroupState);
+  }, [defaultOpenGroup]);
   const isGroupOpen = (label: string) => openGroups[label] ?? false;
   const toggleGroup = (label: string) => {
     navGroupState = { ...navGroupState, [label]: !(navGroupState[label] ?? false) };
