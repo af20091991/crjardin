@@ -13,6 +13,7 @@ import {
   lookupExcelNature,
 } from "@/lib/pilot-excel-nature";
 import { buildNatureQueue, type NatureQueueRow } from "@/lib/pilot-nature-validation";
+import { reasonsForLine } from "@/lib/pilot-validation";
 
 const emptyQueue = {
   integrity: null,
@@ -76,6 +77,52 @@ describe("règle historique : le Temps n'existe pas avant 2026", () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]!.id).toBe("a");
   });
+
+  test("2024 et 2025 sans Temps n'entrent pas dans la validation financière", () => {
+    for (const year of [2024, 2025]) {
+      expect(
+        reasonsForLine({
+          year,
+          kind: "vente",
+          designation: "Client historique",
+          charge_class: null,
+          charge_category: null,
+          match_status: "rattachee",
+          source_file: "Suivi_mensuel_CA_2026-2.xlsx",
+          source_sheet: "Historique CA 2020-2025",
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("une charge historique issue du bloc Charges Excel ne redemande pas sa nature", () => {
+    expect(
+      reasonsForLine({
+        year: 2025,
+        kind: "charge",
+        designation: "Carburant",
+        charge_class: "a_classer",
+        charge_category: "À classer",
+        match_status: "non_identifie",
+        source_file: "Suivi_mensuel_CA_2026-2.xlsx",
+        source_sheet: "Historique CA 2020-2025",
+      }),
+    ).toEqual([]);
+  });
+
+  test("2026 sans Temps reste traité par la file Temps, pas par la nature", () => {
+    expect(buildControlQueue({ ...emptyQueue, salesMissingTime: [sale(2026)] }).actions).toHaveLength(1);
+    expect(
+      reasonsForLine({
+        year: 2026,
+        kind: "vente",
+        designation: "Entretien",
+        charge_class: null,
+        charge_category: null,
+        match_status: "rattachee",
+      }),
+    ).toEqual([]);
+  });
 });
 
 const workbook = [
@@ -101,6 +148,20 @@ describe("rapprochement Excel → Pilot Pro (nature)", () => {
     expect(index.blocksFound.sort()).toEqual(["charge", "vente"]);
     expect(index.salesRows).toBeGreaterThanOrEqual(2);
     expect(index.chargeRows).toBeGreaterThanOrEqual(2);
+  });
+
+  test("les blocs Charges et Ventes côte à côte du fichier réel sont lus séparément", () => {
+    const sideBySide = buildExcelNatureIndex([
+      {
+        name: "Historique CA 2020-2025",
+        matrix: [
+          ["Détails des charges", "Désignation", "Montant HT", null, "Détails des ventes", "Désignation", "Montant HT"],
+          ["Janvier", "Carburant", 300, null, "Janvier", "Taille de haie", 1200],
+        ],
+      },
+    ]);
+    expect(lookupExcelNature(sideBySide, "Carburant")).toMatchObject({ kind: "trouve", nature: "charge" });
+    expect(lookupExcelNature(sideBySide, "Taille de haie")).toMatchObject({ kind: "trouve", nature: "vente" });
   });
 
   test("Test 4 — désignation du bloc Ventes → Vente", () => {

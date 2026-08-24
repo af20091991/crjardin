@@ -13,9 +13,32 @@ describe("validation de la nature d'une ligne", () => {
     expect(needsNatureDecision({ kind: "charge", charge_class: "fixe" })).toBe(false);
   });
 
-  it("interroge aussi les lignes de l'encart Ventes non validées", () => {
-    expect(needsNatureDecision({ kind: "vente", validation_status: null })).toBe(true);
+  it("ne redemande pas la nature d'une ligne déjà placée dans Ventes", () => {
+    expect(needsNatureDecision({ kind: "vente", validation_status: null })).toBe(false);
     expect(needsNatureDecision({ kind: "vente", validation_status: "valide" })).toBe(false);
+  });
+
+  it("ne redemande pas les ventes historiques déjà typées par l'import Excel", () => {
+    expect(
+      needsNatureDecision({
+        kind: "vente",
+        validation_status: "a_valider",
+        source_file: "Suivi_mensuel_CA_2026-2.xlsx",
+        source_sheet: "Historique CA 2020-2025",
+      }),
+    ).toBe(false);
+  });
+
+  it("ne redemande pas les charges historiques déjà typées par l'import Excel", () => {
+    expect(
+      needsNatureDecision({
+        kind: "charge",
+        charge_class: "a_classer",
+        validation_status: "a_valider",
+        source_file: "Suivi_mensuel_CA_2026-2.xlsx",
+        source_sheet: "Historique CA 2020-2025",
+      }),
+    ).toBe(false);
   });
 
   it("n'interroge jamais un investissement qualifié", () => {

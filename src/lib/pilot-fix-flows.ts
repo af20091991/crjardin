@@ -577,7 +577,10 @@ export async function buildActionPlan(): Promise<ActionPlanItem[]> {
   );
   const salesAmount = sales.reduce((s, r) => s + num(r.amount_ht), 0);
   const salesWithSite = sales.filter((r) => r.site_id).reduce((s, r) => s + num(r.amount_ht), 0);
-  const noHours = sales.filter((r) =>
+  // Le plan d'action partage le même périmètre que la file Temps : avant 2026,
+  // l'absence de Temps est normale et ne doit affecter ni compteur ni progrès.
+  const salesTimeTracked = sales.filter((r) => timeRequestApplies({ year: num(r.year) }));
+  const noHours = salesTimeTracked.filter((r) =>
     saleTimeMissing({
       hours: r.hours == null ? null : num(r.hours),
       intervention_type: r.intervention_type == null ? null : str(r.intervention_type),
@@ -607,8 +610,8 @@ export async function buildActionPlan(): Promise<ActionPlanItem[]> {
       dot: noHours.length ? "🔴" : "🟢",
       title: `Compléter le temps de ${noHours.length} ligne(s) de vente`,
       impact: "Le temps du suivi CA est la seule source des taux horaires et de la rentabilité.",
-      volume: `${noHours.length} sur ${sales.length} ligne(s) de vente`,
-      progress: pct(sales.length - noHours.length, sales.length),
+      volume: `${noHours.length} sur ${salesTimeTracked.length} ligne(s) de vente`,
+      progress: pct(salesTimeTracked.length - noHours.length, salesTimeTracked.length),
       to: "/pilot/corrections",
       cta: "Saisir le temps",
     },

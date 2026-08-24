@@ -48,6 +48,8 @@ export interface NatureLineRaw {
   charge_class: string | null;
   is_investment?: boolean | null;
   validation_status?: string | null;
+  source_file?: string | null;
+  source_sheet?: string | null;
 }
 
 export type Placement = "Encart Ventes" | "Encart Charges";
@@ -80,10 +82,21 @@ export function needsNatureDecision(row: {
   charge_class?: string | null;
   is_investment?: boolean | null;
   validation_status?: string | null;
+  source_file?: string | null;
+  source_sheet?: string | null;
 }): boolean {
   if (row.is_investment) return false;
+  // Lors de l'import, le bloc Excel Ventes / Charges est conservé avec sa
+  // provenance. C'est déjà la réponse à la question de nature ; une catégorie
+  // secondaire vide ne doit pas recréer une validation humaine.
+  if (row.source_file && row.source_sheet && (row.kind === "vente" || row.kind === "charge")) {
+    return false;
+  }
   if (row.kind === "charge") return !row.charge_class || row.charge_class === "a_classer";
-  if (row.kind === "vente") return row.validation_status !== "valide";
+  // `kind = vente` est déjà une décision de nature. Les imports historiques
+  // issus de l'Excel conservent cette preuve via source_file/source_sheet ; ils
+  // ne doivent jamais être renvoyés en validation faute de catégorie annexe.
+  if (row.kind === "vente") return false;
   return false;
 }
 
@@ -102,7 +115,7 @@ export async function listLinesToValidate(limit = 500): Promise<NatureLine[]> {
   const { data, error } = await db
     .from("pilot_ca_entries")
     .select(
-      "id,year,month,designation,amount_ht,kind,charge_class,is_investment,validation_status",
+      "id,year,month,designation,amount_ht,kind,charge_class,is_investment,validation_status,source_file,source_sheet",
     )
     .in("kind", ["vente", "charge"])
     .order("year", { ascending: false })
@@ -211,6 +224,7 @@ export function buildNatureQueue(
       items.push({ line, reason: "conflit", comparison, excelSuggestion });
       continue;
     }
+    if (comparison.verdict === "accord") continue;
     if (line.needsDecision) {
       items.push({ line, reason: "a_classer", comparison, excelSuggestion });
     }
@@ -231,7 +245,7 @@ export async function listFinancialLines(limit = 3000): Promise<NatureQueueRow[]
   const { data, error } = await db
     .from("pilot_ca_entries")
     .select(
-      "id,year,month,designation,amount_ht,kind,charge_class,is_investment,validation_status",
+      "id,year,month,designation,amount_ht,kind,charge_class,is_investment,validation_status,source_file,source_sheet",
     )
     .in("kind", ["vente", "charge"])
     .order("year", { ascending: false })
