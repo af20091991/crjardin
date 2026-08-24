@@ -323,13 +323,22 @@ export function applyAppearance(a: Appearance) {
   const numeric = a.fontNumeric ?? "auto";
   if (heading === "auto") {
     root.style.removeProperty("--font-heading");
+    root.style.removeProperty("--font-serif");
     root.removeAttribute("data-font-heading");
   } else {
     root.style.setProperty("--font-heading", FONT_STACKS[heading]);
+    // --font-serif alimente les titres de base et toutes les classes .font-serif :
+    // sans cette surcharge, la plupart des titres de l'app ignoraient le choix.
+    root.style.setProperty("--font-serif", FONT_STACKS[heading]);
     root.setAttribute("data-font-heading", "custom");
   }
-  if (body === "auto") root.style.removeProperty("--font-sans");
-  else root.style.setProperty("--font-sans", FONT_STACKS[body]);
+  if (body === "auto") {
+    root.style.removeProperty("--font-sans");
+    root.removeAttribute("data-font-body");
+  } else {
+    root.style.setProperty("--font-sans", FONT_STACKS[body]);
+    root.setAttribute("data-font-body", "custom");
+  }
   if (numeric === "auto") {
     root.style.removeProperty("--font-numeric");
     root.removeAttribute("data-font-numeric");
