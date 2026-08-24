@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { FONT_STACKS } from "@/lib/appearance";
 

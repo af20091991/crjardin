@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach } from "vitest";
+import { describe, expect, test, beforeEach } from "bun:test";
 import {
   applyAppearance,
   DEFAULT_APPEARANCE,
