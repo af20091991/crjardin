@@ -215,11 +215,12 @@ export function buildNatureQueue(
       items.push({ line, reason: "a_classer", comparison, excelSuggestion });
     }
   }
-  return items.sort(
-    (a, b) =>
-      (a.reason === "conflit" ? 0 : 1) - (b.reason === "conflit" ? 0 : 1) ||
-      Math.abs(b.line.amount) - Math.abs(a.line.amount),
-  );
+  // Les conflits Excel remontent en tête ; l'ordre d'origine des autres lignes
+  // est conservé (tri stable) pour ne pas désorienter la lecture du tableau.
+  return [
+    ...items.filter((i) => i.reason === "conflit"),
+    ...items.filter((i) => i.reason !== "conflit"),
+  ];
 }
 
 /**
