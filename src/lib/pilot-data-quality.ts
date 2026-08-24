@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { computeClientQuality } from "@/lib/client-quality";
 import { clientNameFromDesignation } from "@/lib/pilot-ca-designation";
 import { saleTimeKnown } from "@/lib/pilot-sale-time";
+import { isTimeTrackedYear } from "@/lib/pilot-time-scope";
 
 export interface QualityRate {
   key: string;
@@ -76,7 +77,7 @@ interface QualityDataset {
 async function fetchAll(): Promise<QualityDataset> {
   const [c, ca, ceev, sst, iv, reco, histo] = await Promise.all([
     paged("clients", "id,name,address,phone,email,report_policy"),
-    paged("pilot_ca_entries", "id,client_id,kind,match_status,amount_ht,designation,hours,intervention_type"),
+    paged("pilot_ca_entries", "id,client_id,kind,match_status,amount_ht,designation,hours,intervention_type,year"),
     paged("ceev_contracts", "id,client_id,label,pv_ht,year"),
     paged("subcontractor_missions", "id,client_id,service_requested,mission_date"),
     paged("interventions", "id,client_id,hours_spent"),
