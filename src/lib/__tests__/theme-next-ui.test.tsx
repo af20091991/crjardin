@@ -13,15 +13,13 @@ beforeAll(() => {
   document.head.appendChild(style);
 });
 
-function categoryIcon(props: { className?: string }) {
-  return (
-    <svg
-      data-testid="category-icon"
-      viewBox="0 0 24 24"
-      className={props.className ?? "h-4 w-4"}
-    />
-  );
-}
+const categoryIcon = ((props: { className?: string }) => (
+  <svg
+    data-testid="category-icon"
+    viewBox="0 0 24 24"
+    className={props.className ?? "h-4 w-4"}
+  />
+)) as unknown as LucideIcon;
 
 describe("Thème next — aplatissement des cartes KPI et allègement des icônes", () => {
   it("KpiCard inclut les classes d'icône et d'actions sous next et legacy", () => {
