@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { render, cleanup } from "@testing-library/react";
 import { KpiCard } from "@/components/pilot/KpiCard";
 import { applyAppearance, DEFAULT_APPEARANCE } from "@/lib/appearance";
+import type { LucideIcon } from "lucide-react";
 
 beforeAll(() => {
   const css = readFileSync("src/styles.css", "utf8");
