@@ -20,6 +20,7 @@ declare module "bun:test" {
   export function it(label: string, fn: () => void | Promise<void>): void;
   export function test(label: string, fn: () => void | Promise<void>): void;
   export function beforeAll(fn: () => void | Promise<void>): void;
+  export function afterAll(fn: () => void | Promise<void>): void;
   export const mock: {
     module(path: string, factory: () => unknown): void;
   };
