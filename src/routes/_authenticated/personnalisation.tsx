@@ -13,7 +13,16 @@ import {
   type Skin,
   type UiTheme,
   type FontChoice,
-  FONT_OPTIONS,
+  type BorderWidth,
+  type TextScale,
+  type TableDensity,
+  type ContentWidth,
+  type NavIndicator,
+  type AccentSaturation,
+  type DarkTint,
+  type WeekStart,
+  FONT_GROUPS,
+  FONT_STACKS,
 } from "@/lib/appearance";
 import { Palette, Sun, Moon, Monitor, RotateCcw, Check } from "lucide-react";
 
@@ -103,7 +112,8 @@ function PersonnalisationPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Choisissez la police de chaque rôle. « Par défaut du thème » conserve le rendu actuel.
+              25 familles disponibles (sans-serif, serif, display, monospace). « Par défaut du
+              thème » conserve le rendu actuel.
             </p>
             {(
               [
@@ -119,11 +129,20 @@ function PersonnalisationPage() {
                   value={appearance[role.key]}
                   onChange={(e) => setAppearance({ [role.key]: e.target.value as FontChoice })}
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  style={
+                    appearance[role.key] === "auto"
+                      ? undefined
+                      : { fontFamily: FONT_STACKS[appearance[role.key]] }
+                  }
                 >
-                  {FONT_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
+                  {FONT_GROUPS.map((g) => (
+                    <optgroup key={g.label} label={g.label}>
+                      {g.options.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
@@ -353,6 +372,8 @@ function PersonnalisationPage() {
             })}
           </CardContent>
         </Card>
+
+        <VisualSettingsCard />
 
         <div className="flex justify-end">
           <Button variant="outline" onClick={reset}>
