@@ -40,6 +40,14 @@ export type FontChoice =
   | "poppins"
   | "nunito"
   | "quicksand"
+  | "roboto"
+  | "opensans"
+  | "lato"
+  | "montserrat"
+  | "raleway"
+  | "rubik"
+  | "figtree"
+  | "karla"
   // Serif
   | "newsreader"
   | "fraunces"
@@ -51,8 +59,12 @@ export type FontChoice =
   | "spectral"
   | "ptserif"
   | "robotoslab"
+  | "merriweather"
+  | "bitter"
   // Display
   | "syne"
+  | "oswald"
+  | "bebas"
   // Monospace
   | "jetbrains"
   | "ibmplexmono"
@@ -75,6 +87,14 @@ export const FONT_STACKS: Record<Exclude<FontChoice, "auto">, string> = {
   poppins: `"Poppins", ${SANS_FALLBACK}`,
   nunito: `"Nunito", ${SANS_FALLBACK}`,
   quicksand: `"Quicksand", ${SANS_FALLBACK}`,
+  roboto: `"Roboto", ${SANS_FALLBACK}`,
+  opensans: `"Open Sans", ${SANS_FALLBACK}`,
+  lato: `"Lato", ${SANS_FALLBACK}`,
+  montserrat: `"Montserrat", ${SANS_FALLBACK}`,
+  raleway: `"Raleway", ${SANS_FALLBACK}`,
+  rubik: `"Rubik", ${SANS_FALLBACK}`,
+  figtree: `"Figtree", ${SANS_FALLBACK}`,
+  karla: `"Karla", ${SANS_FALLBACK}`,
   newsreader: `"Newsreader", ${SERIF_FALLBACK}`,
   fraunces: `"Fraunces", ${SERIF_FALLBACK}`,
   lora: `"Lora", ${SERIF_FALLBACK}`,
@@ -85,7 +105,11 @@ export const FONT_STACKS: Record<Exclude<FontChoice, "auto">, string> = {
   spectral: `"Spectral", ${SERIF_FALLBACK}`,
   ptserif: `"PT Serif", ${SERIF_FALLBACK}`,
   robotoslab: `"Roboto Slab", ${SERIF_FALLBACK}`,
+  merriweather: `"Merriweather", ${SERIF_FALLBACK}`,
+  bitter: `"Bitter", ${SERIF_FALLBACK}`,
   syne: `"Syne", ${SANS_FALLBACK}`,
+  oswald: `"Oswald", ${SANS_FALLBACK}`,
+  bebas: `"Bebas Neue", ${SANS_FALLBACK}`,
   jetbrains: `"JetBrains Mono", ${MONO_FALLBACK}`,
   ibmplexmono: `"IBM Plex Mono", ${MONO_FALLBACK}`,
   spacemono: `"Space Mono", ${MONO_FALLBACK}`,
@@ -113,6 +137,14 @@ export const FONT_GROUPS: { label: string; options: { value: FontChoice; label: 
       { value: "poppins", label: "Poppins" },
       { value: "nunito", label: "Nunito" },
       { value: "quicksand", label: "Quicksand" },
+      { value: "roboto", label: "Roboto" },
+      { value: "opensans", label: "Open Sans" },
+      { value: "lato", label: "Lato" },
+      { value: "montserrat", label: "Montserrat" },
+      { value: "raleway", label: "Raleway" },
+      { value: "rubik", label: "Rubik" },
+      { value: "figtree", label: "Figtree" },
+      { value: "karla", label: "Karla" },
     ],
   },
   {
@@ -128,9 +160,18 @@ export const FONT_GROUPS: { label: string; options: { value: FontChoice; label: 
       { value: "spectral", label: "Spectral" },
       { value: "ptserif", label: "PT Serif" },
       { value: "robotoslab", label: "Roboto Slab" },
+      { value: "merriweather", label: "Merriweather" },
+      { value: "bitter", label: "Bitter" },
     ],
   },
-  { label: "Display", options: [{ value: "syne", label: "Syne" }] },
+  {
+    label: "Display",
+    options: [
+      { value: "syne", label: "Syne" },
+      { value: "oswald", label: "Oswald" },
+      { value: "bebas", label: "Bebas Neue" },
+    ],
+  },
   {
     label: "Monospace",
     options: [
@@ -282,13 +323,22 @@ export function applyAppearance(a: Appearance) {
   const numeric = a.fontNumeric ?? "auto";
   if (heading === "auto") {
     root.style.removeProperty("--font-heading");
+    root.style.removeProperty("--font-serif");
     root.removeAttribute("data-font-heading");
   } else {
     root.style.setProperty("--font-heading", FONT_STACKS[heading]);
+    // --font-serif alimente les titres de base et toutes les classes .font-serif :
+    // sans cette surcharge, la plupart des titres de l'app ignoraient le choix.
+    root.style.setProperty("--font-serif", FONT_STACKS[heading]);
     root.setAttribute("data-font-heading", "custom");
   }
-  if (body === "auto") root.style.removeProperty("--font-sans");
-  else root.style.setProperty("--font-sans", FONT_STACKS[body]);
+  if (body === "auto") {
+    root.style.removeProperty("--font-sans");
+    root.removeAttribute("data-font-body");
+  } else {
+    root.style.setProperty("--font-sans", FONT_STACKS[body]);
+    root.setAttribute("data-font-body", "custom");
+  }
   if (numeric === "auto") {
     root.style.removeProperty("--font-numeric");
     root.removeAttribute("data-font-numeric");
