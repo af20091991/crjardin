@@ -13,6 +13,7 @@ import {
   lookupExcelNature,
 } from "@/lib/pilot-excel-nature";
 import { buildNatureQueue, type NatureQueueRow } from "@/lib/pilot-nature-validation";
+import { reasonsForLine } from "@/lib/pilot-validation";
 
 const emptyQueue = {
   integrity: null,
@@ -75,6 +76,37 @@ describe("règle historique : le Temps n'existe pas avant 2026", () => {
     // La source reste intacte : aucune ligne financière supprimée.
     expect(rows).toHaveLength(2);
     expect(rows[0]!.id).toBe("a");
+  });
+
+  test("2024 et 2025 sans Temps n'entrent pas dans la validation financière", () => {
+    for (const year of [2024, 2025]) {
+      expect(
+        reasonsForLine({
+          year,
+          kind: "vente",
+          designation: "Client historique",
+          charge_class: null,
+          charge_category: null,
+          match_status: "rattachee",
+          source_file: "Suivi_mensuel_CA_2026-2.xlsx",
+          source_sheet: "Historique CA 2020-2025",
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("2026 sans Temps reste traité par la file Temps, pas par la nature", () => {
+    expect(buildControlQueue({ ...emptyQueue, salesMissingTime: [sale(2026)] }).actions).toHaveLength(1);
+    expect(
+      reasonsForLine({
+        year: 2026,
+        kind: "vente",
+        designation: "Entretien",
+        charge_class: null,
+        charge_category: null,
+        match_status: "rattachee",
+      }),
+    ).toEqual([]);
   });
 });
 

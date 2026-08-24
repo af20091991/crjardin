@@ -48,6 +48,8 @@ export interface NatureLineRaw {
   charge_class: string | null;
   is_investment?: boolean | null;
   validation_status?: string | null;
+  source_file?: string | null;
+  source_sheet?: string | null;
 }
 
 export type Placement = "Encart Ventes" | "Encart Charges";
@@ -80,10 +82,15 @@ export function needsNatureDecision(row: {
   charge_class?: string | null;
   is_investment?: boolean | null;
   validation_status?: string | null;
+  source_file?: string | null;
+  source_sheet?: string | null;
 }): boolean {
   if (row.is_investment) return false;
   if (row.kind === "charge") return !row.charge_class || row.charge_class === "a_classer";
-  if (row.kind === "vente") return row.validation_status !== "valide";
+  // `kind = vente` est déjà une décision de nature. Les imports historiques
+  // issus de l'Excel conservent cette preuve via source_file/source_sheet ; ils
+  // ne doivent jamais être renvoyés en validation faute de catégorie annexe.
+  if (row.kind === "vente") return false;
   return false;
 }
 
