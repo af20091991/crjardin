@@ -1,5 +1,5 @@
-// @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
+import "./dom-setup";
+import { describe, expect, it } from "bun:test";
 import { applyAppearance, DEFAULT_APPEARANCE, FONT_STACKS } from "@/lib/appearance";
 
 describe("typographie personnalisable", () => {
