@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------
 
 import { sumHistoricHours, type HistoricHoursRow } from "@/lib/pilot-historic-hours";
+import { isTimeTrackedYear } from "@/lib/pilot-time-scope";
 import { saleTimeKnown } from "@/lib/pilot-sale-time";
 
 export interface ClientViewInput {
@@ -15,6 +16,8 @@ export interface ClientViewInput {
     amount_ht: number | null;
     designation: string | null;
     entry_date?: string;
+    /** Exercice de la ligne (sert à qualifier l'attente d'un Temps). */
+    year?: number | null;
     /** Temps de la ligne de vente — SOURCE UNIQUE des heures. */
     hours?: number | null;
     intervention_type?: string | null;
@@ -84,7 +87,14 @@ export function buildClientView(input: ClientViewInput): ClientView {
   const salesTimeKnown = caRows.filter((r) =>
     saleTimeKnown({ hours: r.hours ?? null, intervention_type: r.intervention_type ?? null }),
   ).length;
-  const salesTimeMissing = caRows.length - salesTimeKnown;
+  // Avant 2026, le Temps n'existe pas : ces lignes ne sont pas « à compléter ».
+  const rowYear = (r: { year?: number | null; entry_date?: string }): number | null =>
+    r.year ?? (r.entry_date ? Number(r.entry_date.slice(0, 4)) || null : null);
+  const salesTimeMissing = caRows.filter(
+    (r) =>
+      isTimeTrackedYear(rowYear(r)) &&
+      !saleTimeKnown({ hours: r.hours ?? null, intervention_type: r.intervention_type ?? null }),
+  ).length;
 
   return {
     caCumule,

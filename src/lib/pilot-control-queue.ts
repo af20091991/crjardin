@@ -13,6 +13,7 @@ import type { IntegrityReport } from "@/lib/pilot-integrity";
 import type { ReconciliationReport } from "@/lib/pilot-reconciliation";
 import type { KpiReliabilityRow } from "@/lib/pilot-kpi-reliability";
 import type { QualityAnomaly, QualityDomainKey } from "@/lib/pilot-quality-center";
+import { isTimeTrackedYear } from "@/lib/pilot-time-scope";
 import { isOutOfCertificationScope } from "@/lib/pilot-history-scope";
 
 /** Niveau d'action unique attribué à chaque anomalie. */
@@ -258,6 +259,10 @@ export function buildControlQueue(input: ControlQueueInput): ControlQueue {
   const states = input.states ?? {};
   const all: ControlAction[] = [];
   const push = (a: Omit<ControlAction, "state"> & { state?: ControlState }) => {
+    // Règle centrale : avant 2026, le Temps n'existe pas dans l'historique.
+    // Une demande de Temps sur ces exercices n'est pas une donnée manquante :
+    // elle n'entre ni dans la file, ni dans les compteurs, ni dans l'historique.
+    if (a.domain === "heures" && !isTimeTrackedYear(a.year)) return;
     // Périmètre de certification : un exercice antérieur à 2026 ne sera jamais
     // complété. L'élément est qualifié « non requis » (état final, tracé) au
     // lieu d'être présenté comme une anomalie à traiter.

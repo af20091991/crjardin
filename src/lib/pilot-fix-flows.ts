@@ -10,6 +10,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { interventionKind, saleTimeMissing, type InterventionKind } from "@/lib/pilot-sale-time";
+import { timeRequestApplies } from "@/lib/pilot-time-scope";
 
 const db = supabase as unknown as { from: (t: string) => any };
 
@@ -316,6 +317,8 @@ export async function listSalesMissingTime(): Promise<SaleMissingTime[]> {
   const ignored = new Set((await listIgnored("heures")).map((i) => i.targetId));
 
   return ((ca.data ?? []) as Record<string, unknown>[])
+    // Règle centrale : avant 2026 le Temps n'existe pas — aucune demande générée.
+    .filter((r) => timeRequestApplies({ year: num(r.year) }))
     .filter((r) =>
       saleTimeMissing({
         hours: r.hours == null ? null : num(r.hours),
