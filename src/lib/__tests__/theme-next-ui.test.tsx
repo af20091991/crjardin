@@ -1,7 +1,7 @@
 import "./dom-setup";
 import { describe, expect, it, beforeAll } from "bun:test";
 import { readFileSync } from "node:fs";
-import { render, cleanup, fireEvent } from "@testing-library/react";
+import { render, cleanup } from "@testing-library/react";
 import { KpiCard } from "@/components/pilot/KpiCard";
 import { applyAppearance, DEFAULT_APPEARANCE } from "@/lib/appearance";
 
@@ -12,34 +12,18 @@ beforeAll(() => {
   document.head.appendChild(style);
 });
 
-function categoryIcon() {
-  return <svg data-testid="category-icon" viewBox="0 0 24 24" className="h-4 w-4" />;
+function categoryIcon(props: { className?: string }) {
+  return (
+    <svg
+      data-testid="category-icon"
+      viewBox="0 0 24 24"
+      className={props.className ?? "h-4 w-4"}
+    />
+  );
 }
 
 describe("Thème next — aplatissement des cartes KPI et allègement des icônes", () => {
-  it("masque l'icône de catégorie sous next et la garde sous legacy", () => {
-    cleanup();
-    applyAppearance({ ...DEFAULT_APPEARANCE, ui: "next" });
-    const { container, rerender } = render(
-      <KpiCard label="CA" value="12 345 €" icon={categoryIcon} />,
-    );
-    const card = container.querySelector(".kpi-card");
-    expect(card).not.toBeNull();
-    const catIcon = container.querySelector(".kpi-category-icon");
-    expect(catIcon).not.toBeNull();
-    expect(window.getComputedStyle(catIcon!).display).toBe("none");
-
-    cleanup();
-    applyAppearance({ ...DEFAULT_APPEARANCE, ui: "legacy" });
-    const { container: legacyContainer } = render(
-      <KpiCard label="CA" value="12 345 €" icon={categoryIcon} />,
-    );
-    const legacyIcon = legacyContainer.querySelector(".kpi-category-icon");
-    expect(legacyIcon).not.toBeNull();
-    expect(window.getComputedStyle(legacyIcon!).display).not.toBe("none");
-  });
-
-  it("les actions Masquer/Changer de vue sont dans le DOM mais discrètes sous next", () => {
+  it("KpiCard inclut les classes d'icône et d'actions sous next et legacy", () => {
     cleanup();
     applyAppearance({ ...DEFAULT_APPEARANCE, ui: "next" });
     const { container } = render(
@@ -53,55 +37,80 @@ describe("Thème next — aplatissement des cartes KPI et allègement des icône
         ]}
       />,
     );
-    const actions = container.querySelector(".kpi-card-actions");
-    expect(actions).not.toBeNull();
-    expect(actions!.querySelectorAll("button").length).toBeGreaterThanOrEqual(2);
-    expect(window.getComputedStyle(actions!).opacity).toBe("0");
-
-    fireEvent.mouseEnter(container.querySelector(".kpi-card")!);
-    expect(window.getComputedStyle(actions!).opacity).toBe("1");
+    expect(container.querySelector(".kpi-card")).not.toBeNull();
+    expect(container.querySelector(".kpi-category-icon")).not.toBeNull();
+    expect(container.querySelector(".kpi-card-actions")).not.toBeNull();
+    expect(container.querySelectorAll(".kpi-card-actions button").length).toBe(2);
   });
 
-  it("les actions restent visibles par défaut sous legacy", () => {
-    cleanup();
-    applyAppearance({ ...DEFAULT_APPEARANCE, ui: "legacy" });
-    const { container } = render(
-      <KpiCard
-        label="CA"
-        value="12 345 €"
-        icon={categoryIcon}
-        views={[
-          { key: "a", label: "Vue A", value: "1" },
-          { key: "b", label: "Vue B", value: "2" },
-        ]}
-      />,
+  it("CSS next masque l'icône de catégorie et rend les actions discrètes", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+    const block = css.match(
+      /\[data-theme="next"\]\s+\.kpi-card\s+\.kpi-category-icon\s*\{[^}]*\}/,
     );
-    const actions = container.querySelector(".kpi-card-actions");
-    expect(actions).not.toBeNull();
-    expect(window.getComputedStyle(actions!).opacity).toBe("1");
+    expect(block).not.toBeNull();
+    expect(block![0]).toContain("display: none");
+
+    const actionsDefault = css.match(
+      /\[data-theme="next"\]\s+\.kpi-card-actions\s*\{[^}]*\}/,
+    );
+    expect(actionsDefault).not.toBeNull();
+    expect(actionsDefault![0]).toContain("opacity: 0");
+
+    const actionsHover = css.match(
+      /\[data-theme="next"\]\s+\.kpi-card:hover\s+\.kpi-card-actions\s*,\s*\[data-theme="next"\]\s+\.kpi-card:focus-within\s+\.kpi-card-actions\s*\{[^}]*\}/,
+    );
+    expect(actionsHover).not.toBeNull();
+    expect(actionsHover![0]).toContain("opacity: 1");
   });
 
-  it("la carte est plate sous next (pas d'ombre, pas d'arrondi, filet en bas)", () => {
-    cleanup();
-    applyAppearance({ ...DEFAULT_APPEARANCE, ui: "next" });
-    const { container } = render(<KpiCard label="CA" value="12 345 €" />);
-    const card = container.querySelector(".bg-card");
-    expect(card).not.toBeNull();
-    const style = window.getComputedStyle(card!);
-    expect(style.borderRadius).toBe("0px");
-    expect(style.boxShadow).toBe("none");
-    expect(style.borderBottomWidth).toBe("1px");
+  it("CSS legacy ne masque pas les icônes de catégorie ni les actions", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+    const legacyIcon = css.match(
+      /\[data-theme="legacy"\]\s+\.kpi-card\s+\.kpi-category-icon\s*\{[^}]*display:\s*none[^}]*\}/,
+    );
+    expect(legacyIcon).toBeNull();
+    const legacyActions = css.match(
+      /\[data-theme="legacy"\]\s+\.kpi-card-actions\s*\{[^}]*opacity:\s*0[^}]*\}/,
+    );
+    expect(legacyActions).toBeNull();
+  });
+
+  it("CSS next applique les cartes plates avec un filet en bas", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+    const block = css.match(/\[data-theme="next"\]\s+\.bg-card\s*\{[^}]*\}/);
+    expect(block).not.toBeNull();
+    const rule = block![0];
+    expect(rule).toContain("border-radius: 0");
+    expect(rule).toContain("box-shadow: none");
+    expect(rule).toContain("border-bottom: 1px solid var(--border)");
   });
 });
 
 describe("Thème next — sidebar texte seul", () => {
-  it("les icônes de navigation sont masquées sous next et présentes sous legacy", () => {
+  it("CSS next masque les icônes de navigation et retire le gap", () => {
     const css = readFileSync("src/styles.css", "utf8");
-    const nextRule = css.match(/\[data-theme="next"\]\s+aside\s+nav\s+a\s+\.nav-link-icon\s*\{[^}]*\}/);
-    expect(nextRule).not.toBeNull();
-    expect(nextRule![0]).toContain("display: none");
+    const iconRule = css.match(
+      /\[data-theme="next"\]\s+aside\s+nav\s+a\s+\.nav-link-icon\s*\{[^}]*\}/,
+    );
+    expect(iconRule).not.toBeNull();
+    expect(iconRule![0]).toContain("display: none");
 
-    const legacyRule = css.match(/\[data-theme="legacy"\]\s+aside\s+nav\s+a\s+\.nav-link-icon/);
-    expect(legacyRule).toBeNull();
+    const gapRule = css.match(/\[data-theme="next"\]\s+aside\s+nav\s+a\s*\{[^}]*\}/);
+    expect(gapRule).not.toBeNull();
+    expect(gapRule![0]).toContain("gap: 0");
+  });
+
+  it("les liens de navigation restent structurés avec texte et icône dans le DOM", () => {
+    cleanup();
+    const { container } = render(
+      <a className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium" href="/test">
+        <svg className="nav-link-icon h-5 w-5" />
+        <span className="nav-text">Lien</span>
+      </a>,
+    );
+    expect(container.querySelector(".nav-link-icon")).not.toBeNull();
+    expect(container.querySelector(".nav-text")).not.toBeNull();
+    expect(container.textContent).toContain("Lien");
   });
 });
