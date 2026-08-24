@@ -39,6 +39,14 @@ const ALLOWED_FAMILIES = [
   "Poppins",
   "Nunito",
   "Quicksand",
+  "Roboto",
+  "Open Sans",
+  "Lato",
+  "Montserrat",
+  "Raleway",
+  "Rubik",
+  "Figtree",
+  "Karla",
   "Newsreader",
   "Fraunces",
   "Lora",
@@ -49,16 +57,20 @@ const ALLOWED_FAMILIES = [
   "Spectral",
   "PT Serif",
   "Roboto Slab",
+  "Merriweather",
+  "Bitter",
   "Syne",
+  "Oswald",
+  "Bebas Neue",
   "JetBrains Mono",
   "IBM Plex Mono",
   "Space Mono",
 ];
 
 describe("catalogue de polices", () => {
-  test("expose exactement 25 familles + auto + système", () => {
-    expect(FONT_OPTIONS.length).toBe(27);
-    expect(FONT_GROUPS.flatMap((g) => g.options).length).toBe(27);
+  test("expose exactement 37 familles + auto + système", () => {
+    expect(FONT_OPTIONS.length).toBe(39);
+    expect(FONT_GROUPS.flatMap((g) => g.options).length).toBe(39);
   });
 
   test("aucune police hors liste", () => {
