@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import {
   applyAppearance,
   DEFAULT_APPEARANCE,
@@ -10,6 +10,16 @@ import {
 import { startOfWeek, getWeekStartDay } from "@/lib/date-utils";
 
 /** DOM minimal : suffit pour vérifier attributs et variables inline. */
+const REAL_DOCUMENT = (globalThis as any).document;
+const REAL_WINDOW = (globalThis as any).window;
+
+// Le DOM factice ne doit jamais survivre au fichier : les tests de rendu réel
+// (@testing-library) exécutés ensuite dans le même process ont besoin du vrai DOM.
+afterAll(() => {
+  (globalThis as any).document = REAL_DOCUMENT;
+  (globalThis as any).window = REAL_WINDOW;
+});
+
 function setupDom() {
   const attrs = new Map<string, string>();
   const styles = new Map<string, string>();

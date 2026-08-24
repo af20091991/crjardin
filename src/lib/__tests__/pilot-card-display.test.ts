@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
   DEFAULT_VALUE_FORMAT,
@@ -14,6 +14,16 @@ import {
   effectiveValueAlign,
   CARD_STYLES,
 } from "@/lib/appearance";
+
+const REAL_DOCUMENT = (globalThis as any).document;
+const REAL_WINDOW = (globalThis as any).window;
+
+// Le DOM factice ne doit jamais survivre au fichier : les tests de rendu réel
+// (@testing-library) exécutés ensuite dans le même process ont besoin du vrai DOM.
+afterAll(() => {
+  (globalThis as any).document = REAL_DOCUMENT;
+  (globalThis as any).window = REAL_WINDOW;
+});
 
 function setupDom() {
   const attrs = new Map<string, string>();
