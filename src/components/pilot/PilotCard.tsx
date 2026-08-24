@@ -127,7 +127,7 @@ export function PilotCard({
 
   if (hidden) {
     return (
-      <Card className="flex h-full min-h-20 items-center justify-between gap-3 border-dashed p-4 text-sm text-muted-foreground">
+      <Card className="kpi-card flex h-full min-h-20 items-center justify-between gap-3 border-dashed p-4 text-sm text-muted-foreground">
         <span className="truncate">{label} masqué</span>
         <Button type="button" variant="ghost" size="icon" onClick={toggleHidden} title="Réafficher cette carte">
           <Eye className="h-4 w-4" />
