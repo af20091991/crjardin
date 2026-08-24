@@ -198,6 +198,45 @@ export type AccentSaturation = "normal" | "soft" | "vivid";
 export type DarkTint = "colored" | "neutral";
 export type WeekStart = "auto" | "monday" | "sunday";
 
+/* ---------- Lecture des cartes (présentation seule) ---------- */
+export type CardReading = "synthetic" | "standard" | "detailed";
+export type CardStyle =
+  | "auto"
+  | "minimal"
+  | "epure"
+  | "pilotage"
+  | "editorial"
+  | "contour"
+  | "accent";
+export type VisualProfile = "classique" | "pilotage" | "epure";
+export type ValueAlign = "auto" | "left" | "right";
+export type LabelLevel = "full" | "short";
+export type EuroFormat = "normal" | "compact";
+export type HoursFormat = "decimal" | "integer";
+export type PercentFormat = "decimal" | "integer";
+
+export const CARD_STYLES: { value: Exclude<CardStyle, "auto">; label: string; hint: string }[] = [
+  { value: "minimal", label: "Minimal", hint: "Très peu de bordures, valeur dominante." },
+  { value: "epure", label: "Épuré", hint: "Respiration importante, fond discret." },
+  { value: "pilotage", label: "Pilotage", hint: "Valeur dominante, voyant et comparaison nets." },
+  { value: "editorial", label: "Éditorial", hint: "Hiérarchie typographique forte, espaces généreux." },
+  { value: "contour", label: "Contour", hint: "Carte définie par une bordure fine, intérieur sobre." },
+  { value: "accent", label: "Accent", hint: "Filet d'accent discret sur le côté." },
+];
+
+/** Style effectif : « Éditorial » est le style privilégié de la nouvelle apparence. */
+export function effectiveCardStyle(a: Appearance): Exclude<CardStyle, "auto"> | null {
+  if (a.cardStyle !== "auto") return a.cardStyle;
+  return a.ui === "next" ? "editorial" : null;
+}
+
+/** Alignement effectif : à droite par défaut dans la nouvelle apparence. */
+export function effectiveValueAlign(a: Appearance): "left" | "right" {
+  if (a.valueAlign !== "auto") return a.valueAlign;
+  return a.ui === "next" ? "right" : "left";
+}
+
+
 export type Appearance = {
   theme: ThemeMode;
   skin: Skin;
@@ -244,6 +283,26 @@ export type Appearance = {
   sidebarCollapsedDefault: boolean;
   // 15 — Premier jour de la semaine
   weekStart: WeekStart;
+
+  /* ---------- Lecture des cartes (présentation seule) ---------- */
+  // Niveau de lecture des cartes
+  cardReading: CardReading;
+  // Comparaisons affichées sur les cartes (N-1, objectif, période, moyenne existantes)
+  cardComparisons: boolean;
+  // Format d'affichage des valeurs
+  euroFormat: EuroFormat;
+  hoursFormat: HoursFormat;
+  percentFormat: PercentFormat;
+  // Style des cartes ("auto" = style privilégié du thème actif)
+  cardStyle: CardStyle;
+  // Preset visuel global
+  visualProfile: VisualProfile;
+  // Mode lecture propre
+  cleanReading: boolean;
+  // Alignement des valeurs numériques ("auto" = droite en nouvelle apparence)
+  valueAlign: ValueAlign;
+  // Niveau des libellés
+  labelLevel: LabelLevel;
 };
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -273,7 +332,18 @@ export const DEFAULT_APPEARANCE: Appearance = {
   defaultOpenGroup: "",
   sidebarCollapsedDefault: false,
   weekStart: "auto",
+  cardReading: "standard",
+  cardComparisons: true,
+  euroFormat: "normal",
+  hoursFormat: "decimal",
+  percentFormat: "decimal",
+  cardStyle: "auto",
+  visualProfile: "classique",
+  cleanReading: false,
+  valueAlign: "auto",
+  labelLevel: "full",
 };
+
 
 export const PRIMARY_PRESETS = ["#4F8E33", "#1F3D2B", "#3E7D44", "#2E8CCC", "#825A41", "#0F766E"];
 export const ACCENT_PRESETS = ["#EE8627", "#D98A3D", "#E0A21B", "#C97B4A", "#B4531F", "#DC2626"];
@@ -385,7 +455,17 @@ export function applyAppearance(a: Appearance) {
   setFlag(root, "data-dark-tint", a.darkTint === "colored" ? null : a.darkTint);
   // 15 — Premier jour de la semaine (lundi = comportement actuel des helpers)
   setWeekStartDay(a.weekStart === "sunday" ? 0 : 1);
+
+  /* ---------- Lecture des cartes : présentation seule, jamais de calcul ---------- */
+  setFlag(root, "data-card-reading", a.cardReading === "standard" ? null : a.cardReading);
+  setFlag(root, "data-card-compare", a.cardComparisons ? null : "off");
+  setFlag(root, "data-card-style", effectiveCardStyle(a));
+  setFlag(root, "data-visual-profile", a.visualProfile === "classique" ? null : a.visualProfile);
+  setFlag(root, "data-clean-reading", a.cleanReading ? "on" : null);
+  setFlag(root, "data-value-align", effectiveValueAlign(a) === "left" ? null : "right");
+  setFlag(root, "data-label-level", a.labelLevel === "full" ? null : "short");
 }
+
 
 type Ctx = {
   appearance: Appearance;

@@ -937,3 +937,189 @@ html[data-dark-tint="neutral"].dark {
   --muted: oklch(0.27 0 0);
   --border: oklch(0.34 0 0);
 }
+
+/* ============================================================
+   Lecture des cartes Pilot Pro (Personnalisation → Lecture des cartes).
+   Couche 100 % présentation : niveau de lecture, style de carte,
+   profil visuel, lecture propre, alignement, importance visuelle.
+   Aucune donnée, aucun calcul, aucun KPI n'est modifié par ces règles.
+   Valeurs par défaut : aucun attribut posé → rendu actuel inchangé.
+   ============================================================ */
+
+/* ---------- Niveau de lecture ---------- */
+html[data-card-reading="synthetic"] .pp-card .pp-card-value {
+  font-size: 1.95rem;
+  line-height: 1.1;
+}
+html[data-card-reading="synthetic"] .pp-card .pp-card-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+html[data-card-reading="synthetic"] .pp-card .pp-card-signal {
+  opacity: 0.7;
+}
+html[data-card-reading="detailed"] .pp-card .pp-card-value {
+  font-size: 1.6rem;
+}
+html[data-card-reading="detailed"] .pp-card .pp-card-sub {
+  font-size: 0.78rem;
+}
+
+/* ---------- Alignement des valeurs ---------- */
+html[data-value-align="right"] .pp-card .pp-card-value,
+html[data-value-align="right"] .pp-card .pp-card-sub,
+html[data-value-align="right"] .pp-card .pp-card-signal {
+  text-align: right;
+  justify-content: flex-end;
+}
+
+/* ---------- Importance visuelle des cartes ---------- */
+.pp-card[data-emphasis="important"] .pp-card-value {
+  font-size: 1.7rem;
+}
+.pp-card[data-emphasis="priority"] {
+  box-shadow: inset 3px 0 0 color-mix(in oklab, var(--primary) 65%, transparent);
+}
+.pp-card[data-emphasis="priority"] .pp-card-value {
+  font-size: 2.1rem;
+  line-height: 1.08;
+}
+.pp-card[data-emphasis="priority"] .pp-card-label {
+  color: var(--foreground);
+}
+
+/* ---------- 6 styles de carte ---------- */
+/* Minimal : quasi aucune bordure, valeur dominante. */
+html[data-card-style="minimal"] .pp-card {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  padding-inline: 0.25rem;
+}
+html[data-card-style="minimal"] .pp-card .pp-card-value {
+  font-size: 1.85rem;
+}
+
+/* Épuré : respiration importante, fond discret, hiérarchie douce. */
+html[data-card-style="epure"] .pp-card {
+  border: 0;
+  box-shadow: none;
+  background: color-mix(in oklab, var(--muted) 55%, transparent);
+  padding: 1.5rem 1.4rem;
+}
+html[data-card-style="epure"] .pp-card .pp-card-label {
+  font-weight: 500;
+}
+html[data-card-style="epure"] .pp-card .pp-card-value {
+  margin-top: 0.65rem;
+  font-weight: 500;
+}
+
+/* Pilotage : valeur dominante, voyant et comparaison très visibles. */
+html[data-card-style="pilotage"] .pp-card {
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+html[data-card-style="pilotage"] .pp-card .pp-card-value {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+html[data-card-style="pilotage"] .pp-card .pp-card-signal {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+html[data-card-style="pilotage"] .pp-card .pp-card-sub {
+  font-weight: 600;
+}
+
+/* Éditorial : hiérarchie typographique forte, composition aérée. */
+html[data-card-style="editorial"] .pp-card {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 1.35rem 1.1rem 1.45rem;
+}
+html[data-card-style="editorial"] .pp-card .pp-card-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+html[data-card-style="editorial"] .pp-card .pp-card-value {
+  margin-top: 0.55rem;
+  font-size: 1.85rem;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+html[data-card-style="editorial"] .pp-card .pp-card-sub {
+  margin-top: 0.45rem;
+}
+
+/* Contour : carte définie par une bordure fine, intérieur très sobre. */
+html[data-card-style="contour"] .pp-card {
+  background: transparent;
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+html[data-card-style="contour"] .pp-card .pp-card-value {
+  font-weight: 500;
+}
+
+/* Accent : filet d'accent discret sur le côté. */
+html[data-card-style="accent"] .pp-card {
+  border: 0;
+  box-shadow: none;
+  border-left: 3px solid color-mix(in oklab, var(--primary) 45%, transparent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: color-mix(in oklab, var(--muted) 35%, transparent);
+}
+
+/* ---------- Profils visuels (presets) ---------- */
+html[data-visual-profile="pilotage"] .pp-card .pp-card-value {
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 600;
+}
+html[data-visual-profile="pilotage"] .pp-card .pp-card-sub,
+html[data-visual-profile="pilotage"] .pp-card .pp-card-signal {
+  font-weight: 600;
+}
+html[data-visual-profile="epure"] .pp-card {
+  border-color: color-mix(in oklab, var(--border) 55%, transparent);
+  box-shadow: none;
+}
+html[data-visual-profile="epure"] .pp-card {
+  padding: 1.5rem 1.35rem;
+}
+html[data-visual-profile="epure"] .pp-card .kpi-category-icon {
+  display: none;
+}
+html[data-visual-profile="epure"] .pp-card .pp-card-value {
+  font-weight: 500;
+}
+
+/* ---------- Mode lecture propre ---------- */
+html[data-clean-reading="on"] .pp-card {
+  border-color: color-mix(in oklab, var(--border) 45%, transparent);
+  box-shadow: none;
+  padding: 1.45rem 1.3rem;
+}
+html[data-clean-reading="on"] .pp-card .kpi-category-icon {
+  display: none;
+}
+html[data-clean-reading="on"] .pp-card .kpi-card-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+html[data-clean-reading="on"] .pp-card:hover .kpi-card-actions,
+html[data-clean-reading="on"] .pp-card:focus-within .kpi-card-actions {
+  opacity: 1;
+}
+html[data-clean-reading="on"] .pp-card .pp-card-detail {
+  display: none;
+}
+html[data-clean-reading="on"] .pp-card .pp-card-progress {
+  opacity: 0.6;
+}

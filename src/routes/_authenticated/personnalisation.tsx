@@ -21,9 +21,21 @@ import {
   type AccentSaturation,
   type DarkTint,
   type WeekStart,
+  type CardReading,
+  type CardStyle,
+  type VisualProfile,
+  type ValueAlign,
+  type LabelLevel,
+  type EuroFormat,
+  type HoursFormat,
+  type PercentFormat,
+  CARD_STYLES,
+  effectiveCardStyle,
+  effectiveValueAlign,
   FONT_GROUPS,
   FONT_STACKS,
 } from "@/lib/appearance";
+
 import { Palette, Sun, Moon, Monitor, RotateCcw, Check } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/personnalisation")({
@@ -373,7 +385,10 @@ function PersonnalisationPage() {
           </CardContent>
         </Card>
 
+        <CardReadingSettings />
+
         <VisualSettingsCard />
+
 
         <div className="flex justify-end">
           <Button variant="outline" onClick={reset}>
@@ -688,6 +703,165 @@ function VisualSettingsCard() {
             ]}
           />
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------
+   Lecture des cartes : présentation uniquement.
+   Aucun de ces réglages ne touche une donnée, un calcul ou un KPI.
+   ------------------------------------------------------------------ */
+
+function CardReadingSettings() {
+  const { appearance, setAppearance } = useAppearance();
+  const a = appearance;
+  const currentStyle = effectiveCardStyle(a);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif text-base">Lecture des cartes</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <p className="text-sm text-muted-foreground">
+          Ces réglages ne changent que la présentation : hiérarchie, format d'affichage et
+          composition. Les valeurs, calculs et sources restent identiques.
+        </p>
+
+        <SegRow<VisualProfile>
+          label="Profil visuel"
+          hint="Preset global : applique une hiérarchie d'ensemble."
+          value={a.visualProfile}
+          onChange={(v) => setAppearance({ visualProfile: v })}
+          options={[
+            { value: "classique", label: "Classique" },
+            { value: "pilotage", label: "Pilotage" },
+            { value: "epure", label: "Épuré" },
+          ]}
+        />
+
+        <SegRow<CardReading>
+          label="Niveau de lecture des cartes"
+          value={a.cardReading}
+          onChange={(v) => setAppearance({ cardReading: v })}
+          options={[
+            { value: "synthetic", label: "Synthétique" },
+            { value: "standard", label: "Standard" },
+            { value: "detailed", label: "Détaillée" },
+          ]}
+        />
+
+        <SegRow<"show" | "hide">
+          label="Comparaisons sur les cartes"
+          hint="N-1, objectif, période précédente ou moyenne, selon ce qui existe déjà pour chaque indicateur."
+          value={a.cardComparisons ? "show" : "hide"}
+          onChange={(v) => setAppearance({ cardComparisons: v === "show" })}
+          options={[
+            { value: "show", label: "Afficher" },
+            { value: "hide", label: "Masquer" },
+          ]}
+        />
+
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Format des valeurs
+          </p>
+          <SegRow<EuroFormat>
+            label="Montants"
+            hint="Exemple : 80 400 € ou 80,4 k€."
+            value={a.euroFormat}
+            onChange={(v) => setAppearance({ euroFormat: v })}
+            options={[
+              { value: "normal", label: "Normal" },
+              { value: "compact", label: "Compact" },
+            ]}
+          />
+          <SegRow<HoursFormat>
+            label="Heures"
+            hint="Exemple : 533,3 h ou 533 h."
+            value={a.hoursFormat}
+            onChange={(v) => setAppearance({ hoursFormat: v })}
+            options={[
+              { value: "decimal", label: "Décimales" },
+              { value: "integer", label: "Entières" },
+            ]}
+          />
+          <SegRow<PercentFormat>
+            label="Pourcentages"
+            hint="Exemple : 34,2 % ou 34 %."
+            value={a.percentFormat}
+            onChange={(v) => setAppearance({ percentFormat: v })}
+            options={[
+              { value: "decimal", label: "Décimales" },
+              { value: "integer", label: "Entiers" },
+            ]}
+          />
+        </div>
+
+        <SegRow<"left" | "right">
+          label="Alignement des valeurs"
+          hint="Concerne les valeurs numériques des cartes."
+          value={effectiveValueAlign(a)}
+          onChange={(v) => setAppearance({ valueAlign: v as ValueAlign })}
+          options={[
+            { value: "left", label: "Gauche" },
+            { value: "right", label: "Droite" },
+          ]}
+        />
+
+        <SegRow<LabelLevel>
+          label="Niveau des libellés"
+          hint="« Court » n'est utilisé que lorsqu'un raccourci sans ambiguïté est défini."
+          value={a.labelLevel}
+          onChange={(v) => setAppearance({ labelLevel: v })}
+          options={[
+            { value: "full", label: "Complets" },
+            { value: "short", label: "Courts" },
+          ]}
+        />
+
+        <div className="space-y-2">
+          <Label>Style des cartes</Label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {CARD_STYLES.map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                aria-pressed={currentStyle === s.value}
+                onClick={() => setAppearance({ cardStyle: s.value as CardStyle })}
+                className={`rounded-xl border p-3 text-left text-sm transition-colors ${
+                  currentStyle === s.value
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:bg-accent/30"
+                }`}
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  {currentStyle === s.value && <Check className="h-4 w-4 text-primary" />}
+                  {s.label}
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">{s.hint}</span>
+              </button>
+            ))}
+          </div>
+          {a.cardStyle !== "auto" && (
+            <Button variant="ghost" size="sm" onClick={() => setAppearance({ cardStyle: "auto" })}>
+              Revenir au style du thème
+            </Button>
+          )}
+        </div>
+
+        <SwitchRow
+          label="Mode lecture propre"
+          hint="Moins de bordures et d'éléments décoratifs, actions secondaires discrètes, davantage de respiration. Aucune information métier n'est supprimée."
+          checked={a.cleanReading}
+          onChange={(v) => setAppearance({ cleanReading: v })}
+        />
+
+        <p className="text-xs text-muted-foreground">
+          L'importance visuelle d'une carte (Normal · Important · Prioritaire) se règle directement
+          sur la carte, via son menu d'affichage. Le choix est conservé sur cet appareil.
+        </p>
       </CardContent>
     </Card>
   );

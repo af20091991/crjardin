@@ -1,5 +1,7 @@
 // Composant unique de carte Pilot Pro : masquer / changer de vue / aide.
 // Toutes les cartes des écrans PP passent par ce composant.
+// Cette carte ne calcule rien : elle ne fait que présenter des valeurs déjà
+// produites par les moteurs (mise en forme, libellés, voyants dérivés du ton).
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Card } from "@/components/ui/card";
@@ -8,6 +10,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -15,8 +19,25 @@ import type { LucideIcon } from "lucide-react";
 import { BarChart3, Eye, EyeOff, HelpCircle, ScanSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { KpiAudit } from "@/lib/pilot-kpi-audit";
+import { useAppearance, effectiveValueAlign } from "@/lib/appearance";
+import {
+  CARD_SIGNAL_META,
+  formatValueText,
+  shortLabel,
+  signalFromTone,
+  type CardSignal,
+} from "@/lib/pilot-card-display";
 
 export type PilotTone = "default" | "positive" | "negative" | "warning";
+
+/** Poids visuel de la carte, choisi par l'utilisateur et mémorisé. */
+export type PilotEmphasis = "normal" | "important" | "priority";
+
+const EMPHASIS_LABEL: Record<PilotEmphasis, string> = {
+  normal: "Normal",
+  important: "Important",
+  priority: "Prioritaire",
+};
 
 export type PilotCardView = {
   key: string;
@@ -51,6 +72,10 @@ export type PilotCardProps = {
   className?: string;
   /** Identifiant de persistance (défaut : dérivé du libellé). */
   storageId?: string;
+  /** Poids visuel par défaut (l'utilisateur peut le changer sur la carte). */
+  emphasis?: PilotEmphasis;
+  /** Voyant explicite ; par défaut dérivé du ton (aucun seuil inventé). */
+  signal?: CardSignal | null;
 };
 
 const toneClass = (tone: PilotTone) =>
@@ -61,6 +86,16 @@ const toneClass = (tone: PilotTone) =>
       : tone === "warning"
         ? "text-[var(--pp-mid)]"
         : "text-muted-foreground";
+
+/** Applique le format d'affichage uniquement aux nœuds texte. */
+function displayNode(
+  node: ReactNode,
+  fmt: { euro: "normal" | "compact"; hours: "decimal" | "integer"; percent: "decimal" | "integer" },
+): ReactNode {
+  if (typeof node === "string") return formatValueText(node, fmt);
+  if (typeof node === "number") return node;
+  return node;
+}
 
 export function PilotCard({
   label,
@@ -78,16 +113,22 @@ export function PilotCard({
   action,
   className,
   storageId,
+  emphasis: emphasisDefault = "normal",
+  signal,
 }: PilotCardProps) {
+  const { appearance } = useAppearance();
   const storageKey = `pp.card.${storageId ?? label.toLowerCase().replace(/[^a-z0-9]+/gi, "-")}`;
   const [hidden, setHidden] = useState(false);
   const [viewKey, setViewKey] = useState(() => views?.[0]?.key ?? "main");
+  const [emphasis, setEmphasis] = useState<PilotEmphasis>(emphasisDefault);
 
   useEffect(() => {
     try {
       setHidden(window.localStorage.getItem(`${storageKey}.hidden`) === "1");
       const v = window.localStorage.getItem(`${storageKey}.view`);
       if (v) setViewKey(v);
+      const e = window.localStorage.getItem(`${storageKey}.emphasis`);
+      if (e === "normal" || e === "important" || e === "priority") setEmphasis(e);
     } catch {
       /* stockage indisponible */
     }
@@ -103,6 +144,20 @@ export function PilotCard({
   const currentTone = active.tone ?? tone;
   const currentProgress = active.progress ?? progress;
   const helpText = active.help ?? help ?? description;
+
+  const fmt = {
+    euro: appearance.euroFormat,
+    hours: appearance.hoursFormat,
+    percent: appearance.percentFormat,
+  };
+  const reading = appearance.cardReading;
+  const align = effectiveValueAlign(appearance);
+  const rawLabel = views?.length ? active.label : label;
+  const shownLabel = appearance.labelLevel === "short" ? shortLabel(rawLabel) : rawLabel;
+  // Voyant : uniquement quand un ton interprétatif existe déjà (seuil Pilot Pro).
+  const shownSignal = signal !== undefined ? signal : signalFromTone(currentTone);
+  // Comparaisons : le sous-titre porte les comparaisons existantes (N-1, objectif…).
+  const showSub = appearance.cardComparisons && reading !== "synthetic";
 
   const toggleHidden = () => {
     setHidden((prev) => {
@@ -125,10 +180,19 @@ export function PilotCard({
     }
   };
 
+  const chooseEmphasis = (v: PilotEmphasis) => {
+    setEmphasis(v);
+    try {
+      window.localStorage.setItem(`${storageKey}.emphasis`, v);
+    } catch {
+      /* stockage indisponible */
+    }
+  };
+
   if (hidden) {
     return (
       <Card className="kpi-card flex h-full min-h-20 items-center justify-between gap-3 border-dashed p-4 text-sm text-muted-foreground">
-        <span className="truncate">{label} masqué</span>
+        <span className="truncate">{shownLabel} masqué</span>
         <Button type="button" variant="ghost" size="icon" onClick={toggleHidden} title="Réafficher cette carte">
           <Eye className="h-4 w-4" />
         </Button>
@@ -138,16 +202,31 @@ export function PilotCard({
 
   const body = (
     <>
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium text-muted-foreground">{views?.length ? active.label : label}</p>
+      <div className="pp-card-head flex items-start justify-between gap-2">
+        <p className="pp-card-label text-xs font-medium text-muted-foreground">{shownLabel}</p>
         {Icon && <Icon className="kpi-category-icon h-4 w-4 shrink-0 text-primary/70" />}
       </div>
       {active.value != null && (
-        <div className="mt-2 font-serif text-2xl font-semibold tracking-tight">{active.value}</div>
+        <div className="pp-card-value mt-2 font-serif text-2xl font-semibold tracking-tight tabular-nums">
+          {displayNode(active.value, fmt)}
+        </div>
       )}
-      {active.sub != null && <div className={cn("mt-1 text-xs", toneClass(currentTone))}>{active.sub}</div>}
+      {shownSignal && (
+        <div className="pp-card-signal mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span
+            aria-hidden
+            className={cn("h-1.5 w-1.5 shrink-0 rounded-full", CARD_SIGNAL_META[shownSignal].className)}
+          />
+          <span>{CARD_SIGNAL_META[shownSignal].label}</span>
+        </div>
+      )}
+      {showSub && active.sub != null && (
+        <div className={cn("pp-card-sub mt-1 text-xs", toneClass(currentTone))}>
+          {displayNode(active.sub, fmt)}
+        </div>
+      )}
       {currentProgress != null && (
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className="pp-card-progress mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-primary transition-all"
             style={{ width: `${Math.max(0, Math.min(100, currentProgress))}%` }}
@@ -155,30 +234,54 @@ export function PilotCard({
         </div>
       )}
       {active.content}
+      {reading === "detailed" && helpText && (
+        <p className="pp-card-detail mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          {helpText}
+        </p>
+      )}
     </>
   );
 
   const hasMenu = (views?.length ?? 0) > 1;
 
   return (
-    <Card className={cn("kpi-card group relative h-full p-4 transition-all", to && "hover:shadow-md", className)}>
+    <Card
+      data-emphasis={emphasis}
+      data-align={align}
+      className={cn(
+        "kpi-card pp-card group relative h-full p-4 transition-all",
+        to && "hover:shadow-md",
+        className,
+      )}
+    >
       <div className="kpi-card-actions absolute right-2 top-2 z-10 flex items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
-        {hasMenu && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Changer de vue">
-                <BarChart3 className="h-3.5 w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {views!.map((v) => (
-                <DropdownMenuItem key={v.key} onSelect={() => chooseView(v.key)}>
-                  {v.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Affichage de la carte">
+              <BarChart3 className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {hasMenu && (
+              <>
+                <DropdownMenuLabel>Vue</DropdownMenuLabel>
+                {views!.map((v) => (
+                  <DropdownMenuItem key={v.key} onSelect={() => chooseView(v.key)}>
+                    {v.label}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuLabel>Importance visuelle</DropdownMenuLabel>
+            {(["normal", "important", "priority"] as PilotEmphasis[]).map((v) => (
+              <DropdownMenuItem key={v} onSelect={() => chooseEmphasis(v)}>
+                {EMPHASIS_LABEL[v]}
+                {emphasis === v ? " ·" : ""}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         {helpText && (
           <Popover>
             <PopoverTrigger asChild>
@@ -227,7 +330,7 @@ export function PilotCard({
           <EyeOff className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <div className={cn(hasMenu || helpText || audit ? "pr-20" : "pr-8")}>
+      <div className={cn(helpText || audit ? "pr-20" : "pr-8")}>
         {to ? (
           <Link to={to} className="block focus:outline-none focus-visible:ring-1 focus-visible:ring-ring">
             {body}
@@ -236,7 +339,7 @@ export function PilotCard({
           body
         )}
       </div>
-      {action && <div className="mt-3">{action}</div>}
+      {action && <div className="pp-card-action mt-3">{action}</div>}
     </Card>
   );
 }
