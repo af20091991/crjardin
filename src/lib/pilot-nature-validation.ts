@@ -19,6 +19,11 @@
 // ---------------------------------------------------------------------------
 
 import { supabase } from "@/integrations/supabase/client";
+import {
+  compareNatureWithExcel,
+  type ExcelNatureIndex,
+  type NatureComparison,
+} from "@/lib/pilot-excel-nature";
 
 const db = supabase as unknown as { from: (t: string) => any };
 
@@ -152,4 +157,95 @@ export async function setLineNature(row: NatureLine, nature: LineNature): Promis
     });
     if (e) throw e;
   }
+}
+
+
+// ---------------------------------------------------------------------------
+// RAPPROCHEMENT EXCEL → PILOT PRO (ordre imposé : Excel d'abord)
+//
+// Le fichier Excel sert de référence pour savoir si une désignation appartient
+// au bloc Ventes ou au bloc Charges. Deux cas seulement entrent dans la file :
+//   • « à classer » : Pilot Pro n'a pas de nature retenue ;
+//   • « conflit »   : Excel indique un bloc différent de celui de Pilot Pro.
+// Une ligne conforme n'est jamais présentée. Aucune écriture automatique :
+// la décision reste un clic humain sur Vente / Charge variable / Charge fixe.
+// ---------------------------------------------------------------------------
+
+export type NatureQueueReason = "conflit" | "a_classer";
+
+export const NATURE_QUEUE_REASON_LABEL: Record<NatureQueueReason, string> = {
+  conflit: "Conflit à vérifier (Pilot Pro ≠ Excel)",
+  a_classer: "Nature à retenir",
+};
+
+export interface NatureQueueItem {
+  line: NatureLine;
+  reason: NatureQueueReason;
+  /** Comparaison Pilot Pro / Excel — jamais appliquée automatiquement. */
+  comparison: NatureComparison;
+  /** Nature proposée par Excel (Vente, ou Charge à préciser variable/fixe). */
+  excelSuggestion: LineNature | null;
+}
+
+export interface NatureQueueRow extends NatureLine {
+  needsDecision: boolean;
+}
+
+/**
+ * File de décision : conflits Excel d'abord, puis lignes sans nature retenue.
+ * Fonction PURE — aucune lecture base, aucune écriture, aucun montant touché.
+ */
+export function buildNatureQueue(
+  rows: readonly NatureQueueRow[],
+  index: ExcelNatureIndex | null,
+): NatureQueueItem[] {
+  const items: NatureQueueItem[] = [];
+  for (const line of rows) {
+    const comparison = compareNatureWithExcel(
+      { kind: line.kind, designation: line.designation },
+      index,
+    );
+    const excelSuggestion: LineNature | null =
+      comparison.excel === "vente" ? "vente" : null;
+    if (comparison.verdict === "conflit") {
+      items.push({ line, reason: "conflit", comparison, excelSuggestion });
+      continue;
+    }
+    if (line.needsDecision) {
+      items.push({ line, reason: "a_classer", comparison, excelSuggestion });
+    }
+  }
+  return items.sort(
+    (a, b) =>
+      (a.reason === "conflit" ? 0 : 1) - (b.reason === "conflit" ? 0 : 1) ||
+      Math.abs(b.line.amount) - Math.abs(a.line.amount),
+  );
+}
+
+/**
+ * Toutes les lignes financières des encarts Ventes et Charges, avec le drapeau
+ * « décision attendue ». Aucune ligne n'est supprimée ni modifiée en lecture.
+ */
+export async function listFinancialLines(limit = 3000): Promise<NatureQueueRow[]> {
+  const { data, error } = await db
+    .from("pilot_ca_entries")
+    .select(
+      "id,year,month,designation,amount_ht,kind,charge_class,is_investment,validation_status",
+    )
+    .in("kind", ["vente", "charge"])
+    .order("year", { ascending: false })
+    .order("month", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return ((data ?? []) as NatureLineRaw[]).map((r) => ({
+    id: String(r.id),
+    year: Number(r.year) || 0,
+    month: Number(r.month) || 0,
+    designation: r.designation?.trim() || "(sans libellé)",
+    amount: Number(r.amount_ht) || 0,
+    kind: r.kind ?? "charge",
+    currentClass: r.charge_class || (r.kind === "vente" ? "—" : "a_classer"),
+    placement: placementOf(r),
+    needsDecision: needsNatureDecision(r),
+  }));
 }
