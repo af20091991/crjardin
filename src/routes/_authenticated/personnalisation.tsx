@@ -13,7 +13,16 @@ import {
   type Skin,
   type UiTheme,
   type FontChoice,
-  FONT_OPTIONS,
+  type BorderWidth,
+  type TextScale,
+  type TableDensity,
+  type ContentWidth,
+  type NavIndicator,
+  type AccentSaturation,
+  type DarkTint,
+  type WeekStart,
+  FONT_GROUPS,
+  FONT_STACKS,
 } from "@/lib/appearance";
 import { Palette, Sun, Moon, Monitor, RotateCcw, Check } from "lucide-react";
 
@@ -103,7 +112,8 @@ function PersonnalisationPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Choisissez la police de chaque rôle. « Par défaut du thème » conserve le rendu actuel.
+              25 familles disponibles (sans-serif, serif, display, monospace). « Par défaut du
+              thème » conserve le rendu actuel.
             </p>
             {(
               [
@@ -119,11 +129,20 @@ function PersonnalisationPage() {
                   value={appearance[role.key]}
                   onChange={(e) => setAppearance({ [role.key]: e.target.value as FontChoice })}
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  style={
+                    appearance[role.key] === "auto"
+                      ? undefined
+                      : { fontFamily: FONT_STACKS[appearance[role.key] as Exclude<FontChoice, "auto">] }
+                  }
                 >
-                  {FONT_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
+                  {FONT_GROUPS.map((g) => (
+                    <optgroup key={g.label} label={g.label}>
+                      {g.options.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
@@ -354,6 +373,8 @@ function PersonnalisationPage() {
           </CardContent>
         </Card>
 
+        <VisualSettingsCard />
+
         <div className="flex justify-end">
           <Button variant="outline" onClick={reset}>
             <RotateCcw className="mr-1.5 h-4 w-4" /> Réinitialiser
@@ -361,5 +382,313 @@ function PersonnalisationPage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+/* ------------------------------------------------------------------
+   15 réglages visuels supplémentaires.
+   Chaque réglage n'agit que sur son propre rôle et sa valeur par défaut
+   reproduit exactement le rendu actuel de l'application.
+   ------------------------------------------------------------------ */
+
+const SIDEBAR_GROUPS = [
+  "Aujourd'hui",
+  "Clients",
+  "Chantiers",
+  "Catalogue",
+  "Pilotage",
+  "Administration",
+];
+
+function SegRow<T extends string>({
+  label,
+  hint,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            aria-pressed={value === o.value}
+            onClick={() => onChange(o.value)}
+            className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+              value === o.value
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border hover:bg-accent/30"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3">
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => onChange(!checked)}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+          checked ? "bg-primary" : "bg-muted"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-card shadow transition-all ${
+            checked ? "left-[1.375rem]" : "left-0.5"
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+function VisualSettingsCard() {
+  const { appearance, setAppearance } = useAppearance();
+  const a = appearance;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif text-base">Réglages visuels avancés</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <p className="text-sm text-muted-foreground">
+          Chaque réglage est indépendant et réversible. Les valeurs par défaut reproduisent
+          exactement l'affichage actuel.
+        </p>
+
+        {/* Cartes & bordures */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Cartes & bordures
+          </p>
+          <SegRow<BorderWidth>
+            label="Épaisseur des bordures"
+            value={a.borderWidth}
+            onChange={(v) => setAppearance({ borderWidth: v })}
+            options={[
+              { value: "thin", label: "Fin" },
+              { value: "normal", label: "Normal" },
+              { value: "strong", label: "Marqué" },
+            ]}
+          />
+          <SwitchRow
+            label="Ombre au survol des cartes"
+            checked={a.cardHoverShadow}
+            onChange={(v) => setAppearance({ cardHoverShadow: v })}
+          />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Rayon des boutons</Label>
+              <span className="text-sm text-muted-foreground">
+                {a.buttonRadius === "auto"
+                  ? "Comme les cartes"
+                  : `${Number(a.buttonRadius).toFixed(2)} rem`}
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={1.6}
+              step={0.1}
+              value={[a.buttonRadius === "auto" ? a.radius : Number(a.buttonRadius)]}
+              onValueChange={([v]) => setAppearance({ buttonRadius: v })}
+            />
+            {a.buttonRadius !== "auto" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setAppearance({ buttonRadius: "auto" })}
+              >
+                Revenir au rayon des cartes
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Lisibilité & accessibilité */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Lisibilité & accessibilité
+          </p>
+          <SwitchRow
+            label="Contraste renforcé"
+            hint="Texte secondaire et bordures accentués."
+            checked={a.highContrast}
+            onChange={(v) => setAppearance({ highContrast: v })}
+          />
+          <SegRow<TextScale>
+            label="Échelle de texte globale"
+            value={a.textScale}
+            onChange={(v) => setAppearance({ textScale: v })}
+            options={[
+              { value: "small", label: "Petit" },
+              { value: "normal", label: "Normal" },
+              { value: "large", label: "Grand" },
+            ]}
+          />
+          <SwitchRow
+            label="Réduire les animations"
+            checked={a.reducedMotion}
+            onChange={(v) => setAppearance({ reducedMotion: v })}
+          />
+        </div>
+
+        {/* Densité & mise en page */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Densité & mise en page
+          </p>
+          <SegRow<TableDensity>
+            label="Densité des tableaux"
+            hint="Indépendante de la densité générale."
+            value={a.tableDensity}
+            onChange={(v) => setAppearance({ tableDensity: v })}
+            options={[
+              { value: "auto", label: "Suivre la densité générale" },
+              { value: "comfortable", label: "Confortable" },
+              { value: "compact", label: "Compact" },
+            ]}
+          />
+          <SegRow<ContentWidth>
+            label="Largeur maximale du contenu"
+            value={a.contentWidth}
+            onChange={(v) => setAppearance({ contentWidth: v })}
+            options={[
+              { value: "comfortable", label: "Confortable" },
+              { value: "full", label: "Pleine largeur" },
+            ]}
+          />
+        </div>
+
+        {/* Icônes & indicateurs */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Icônes & indicateurs
+          </p>
+          <SwitchRow
+            label="Icônes décoratives"
+            hint="Icônes illustratives des cartes et KPI."
+            checked={a.decorativeIcons}
+            onChange={(v) => setAppearance({ decorativeIcons: v })}
+          />
+          <SegRow<NavIndicator>
+            label="Indicateur du lien actif (barre latérale)"
+            value={a.navIndicator}
+            onChange={(v) => setAppearance({ navIndicator: v })}
+            options={[
+              { value: "auto", label: "Actuel (fond coloré)" },
+              { value: "dot", label: "Pastille pleine" },
+              { value: "bar", label: "Trait fin" },
+            ]}
+          />
+        </div>
+
+        {/* Couleurs */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Couleurs
+          </p>
+          <SegRow<AccentSaturation>
+            label="Saturation de l'accent"
+            value={a.accentSaturation}
+            onChange={(v) => setAppearance({ accentSaturation: v })}
+            options={[
+              { value: "soft", label: "Doux" },
+              { value: "normal", label: "Normal" },
+              { value: "vivid", label: "Vif" },
+            ]}
+          />
+          <SegRow<DarkTint>
+            label="Teinte du mode sombre"
+            value={a.darkTint}
+            onChange={(v) => setAppearance({ darkTint: v })}
+            options={[
+              { value: "colored", label: "Accent coloré conservé" },
+              { value: "neutral", label: "Gris neutre" },
+            ]}
+          />
+        </div>
+
+        {/* Sidebar & navigation */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Barre latérale
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor="defaultOpenGroup">Groupe ouvert par défaut</Label>
+            <select
+              id="defaultOpenGroup"
+              value={a.defaultOpenGroup}
+              onChange={(e) => setAppearance({ defaultOpenGroup: e.target.value })}
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">Comportement actuel</option>
+              {SIDEBAR_GROUPS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </div>
+          <SwitchRow
+            label="Barre latérale repliée par défaut"
+            hint="S'applique tant que vous ne l'avez pas repliée/dépliée manuellement."
+            checked={a.sidebarCollapsedDefault}
+            onChange={(v) => setAppearance({ sidebarCollapsedDefault: v })}
+          />
+        </div>
+
+        {/* Régional */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Régional
+          </p>
+          <SegRow<WeekStart>
+            label="Premier jour de la semaine"
+            hint="Vues calendrier et planning."
+            value={a.weekStart}
+            onChange={(v) => setAppearance({ weekStart: v })}
+            options={[
+              { value: "auto", label: "Par défaut" },
+              { value: "monday", label: "Lundi" },
+              { value: "sunday", label: "Dimanche" },
+            ]}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

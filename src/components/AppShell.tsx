@@ -109,6 +109,13 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem("cr-sidebar-collapsed") === "1";
   });
+  // Réglage « sidebar repliée par défaut » : appliqué uniquement si l'utilisateur
+  // n'a jamais replié/déplié manuellement la sidebar sur cet appareil.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem("cr-sidebar-collapsed") !== null) return;
+    if (appearance.sidebarCollapsedDefault) setCollapsed(true);
+  }, [appearance.sidebarCollapsedDefault]);
   const toggleCollapsed = () =>
     setCollapsed((c) => {
       const next = !c;
@@ -418,6 +425,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     navGroupState = { ...navGroupState, [activeGroup]: true };
     setOpenGroups(navGroupState);
   }, [activeGroup]);
+  // Réglage « groupe ouvert par défaut » : ajout seul, aucune fermeture forcée.
+  const defaultOpenGroup = appearance.defaultOpenGroup;
+  useEffect(() => {
+    if (!defaultOpenGroup) return;
+    if (typeof navGroupState[defaultOpenGroup] === "boolean") return;
+    navGroupState = { ...navGroupState, [defaultOpenGroup]: true };
+    setOpenGroups(navGroupState);
+  }, [defaultOpenGroup]);
   const isGroupOpen = (label: string) => openGroups[label] ?? false;
   const toggleGroup = (label: string) => {
     navGroupState = { ...navGroupState, [label]: !(navGroupState[label] ?? false) };
@@ -506,6 +521,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                           <Link
                             key={item.to}
                             to={item.to}
+                            data-active={isActive(item.to, item.exact) ? "true" : undefined}
                             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                               isActive(item.to, item.exact)
                                 ? "bg-primary/10 text-primary"

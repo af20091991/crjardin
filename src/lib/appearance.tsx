@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { setWeekStartDay } from "@/lib/date-utils";
 
 export type ThemeMode = "light" | "dark" | "auto";
 export type Density = "comfortable" | "compact";
@@ -20,25 +21,141 @@ export type Skin = "classic" | "modern";
 export type UiTheme = "legacy" | "next";
 
 /**
- * Polices déjà chargées par le projet (aucun import supplémentaire) :
- * "auto" conserve strictement le comportement actuel du thème actif.
+ * Catalogue fermé de 25 familles chargées par src/routes/__root.tsx
+ * (1 à 2 graisses chacune) + "auto" (rendu du thème actif) et "system".
+ * Aucune police hors de cette liste ne doit être proposée ni importée.
  */
-export type FontChoice = "auto" | "jakarta" | "syne" | "newsreader" | "system";
+export type FontChoice =
+  | "auto"
+  | "system"
+  // Sans-serif
+  | "jakarta"
+  | "inter"
+  | "worksans"
+  | "manrope"
+  | "outfit"
+  | "sora"
+  | "spacegrotesk"
+  | "dmsans"
+  | "poppins"
+  | "nunito"
+  | "quicksand"
+  // Serif
+  | "newsreader"
+  | "fraunces"
+  | "lora"
+  | "sourceserif"
+  | "playfair"
+  | "cormorant"
+  | "baskerville"
+  | "spectral"
+  | "ptserif"
+  | "robotoslab"
+  // Display
+  | "syne"
+  // Monospace
+  | "jetbrains"
+  | "ibmplexmono"
+  | "spacemono";
+
+const SANS_FALLBACK = "ui-sans-serif, system-ui, sans-serif";
+const SERIF_FALLBACK = '"Iowan Old Style", Georgia, serif';
+const MONO_FALLBACK = "ui-monospace, SFMono-Regular, Menlo, monospace";
 
 export const FONT_STACKS: Record<Exclude<FontChoice, "auto">, string> = {
-  jakarta: '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
-  syne: '"Syne", ui-sans-serif, system-ui, sans-serif',
-  newsreader: '"Newsreader", "Iowan Old Style", Georgia, serif',
-  system: "ui-sans-serif, system-ui, sans-serif",
+  system: SANS_FALLBACK,
+  jakarta: `"Plus Jakarta Sans", ${SANS_FALLBACK}`,
+  inter: `"Inter", ${SANS_FALLBACK}`,
+  worksans: `"Work Sans", ${SANS_FALLBACK}`,
+  manrope: `"Manrope", ${SANS_FALLBACK}`,
+  outfit: `"Outfit", ${SANS_FALLBACK}`,
+  sora: `"Sora", ${SANS_FALLBACK}`,
+  spacegrotesk: `"Space Grotesk", ${SANS_FALLBACK}`,
+  dmsans: `"DM Sans", ${SANS_FALLBACK}`,
+  poppins: `"Poppins", ${SANS_FALLBACK}`,
+  nunito: `"Nunito", ${SANS_FALLBACK}`,
+  quicksand: `"Quicksand", ${SANS_FALLBACK}`,
+  newsreader: `"Newsreader", ${SERIF_FALLBACK}`,
+  fraunces: `"Fraunces", ${SERIF_FALLBACK}`,
+  lora: `"Lora", ${SERIF_FALLBACK}`,
+  sourceserif: `"Source Serif 4", ${SERIF_FALLBACK}`,
+  playfair: `"Playfair Display", ${SERIF_FALLBACK}`,
+  cormorant: `"Cormorant Garamond", ${SERIF_FALLBACK}`,
+  baskerville: `"Libre Baskerville", ${SERIF_FALLBACK}`,
+  spectral: `"Spectral", ${SERIF_FALLBACK}`,
+  ptserif: `"PT Serif", ${SERIF_FALLBACK}`,
+  robotoslab: `"Roboto Slab", ${SERIF_FALLBACK}`,
+  syne: `"Syne", ${SANS_FALLBACK}`,
+  jetbrains: `"JetBrains Mono", ${MONO_FALLBACK}`,
+  ibmplexmono: `"IBM Plex Mono", ${MONO_FALLBACK}`,
+  spacemono: `"Space Mono", ${MONO_FALLBACK}`,
 };
 
-export const FONT_OPTIONS: { value: FontChoice; label: string }[] = [
-  { value: "auto", label: "Par défaut du thème" },
-  { value: "jakarta", label: "Plus Jakarta Sans" },
-  { value: "syne", label: "Syne" },
-  { value: "newsreader", label: "Newsreader" },
-  { value: "system", label: "Système" },
+export const FONT_GROUPS: { label: string; options: { value: FontChoice; label: string }[] }[] = [
+  {
+    label: "Par défaut",
+    options: [
+      { value: "auto", label: "Par défaut du thème" },
+      { value: "system", label: "Système" },
+    ],
+  },
+  {
+    label: "Sans-serif",
+    options: [
+      { value: "jakarta", label: "Plus Jakarta Sans" },
+      { value: "inter", label: "Inter" },
+      { value: "worksans", label: "Work Sans" },
+      { value: "manrope", label: "Manrope" },
+      { value: "outfit", label: "Outfit" },
+      { value: "sora", label: "Sora" },
+      { value: "spacegrotesk", label: "Space Grotesk" },
+      { value: "dmsans", label: "DM Sans" },
+      { value: "poppins", label: "Poppins" },
+      { value: "nunito", label: "Nunito" },
+      { value: "quicksand", label: "Quicksand" },
+    ],
+  },
+  {
+    label: "Serif",
+    options: [
+      { value: "newsreader", label: "Newsreader" },
+      { value: "fraunces", label: "Fraunces" },
+      { value: "lora", label: "Lora" },
+      { value: "sourceserif", label: "Source Serif 4" },
+      { value: "playfair", label: "Playfair Display" },
+      { value: "cormorant", label: "Cormorant Garamond" },
+      { value: "baskerville", label: "Libre Baskerville" },
+      { value: "spectral", label: "Spectral" },
+      { value: "ptserif", label: "PT Serif" },
+      { value: "robotoslab", label: "Roboto Slab" },
+    ],
+  },
+  { label: "Display", options: [{ value: "syne", label: "Syne" }] },
+  {
+    label: "Monospace",
+    options: [
+      { value: "jetbrains", label: "JetBrains Mono" },
+      { value: "ibmplexmono", label: "IBM Plex Mono" },
+      { value: "spacemono", label: "Space Mono" },
+    ],
+  },
 ];
+
+/** Liste plate (compatibilité) : identique à l'ancien FONT_OPTIONS, catalogue étendu. */
+export const FONT_OPTIONS: { value: FontChoice; label: string }[] = FONT_GROUPS.flatMap(
+  (g) => g.options,
+);
+
+/* ---------- 15 réglages visuels supplémentaires (valeurs par défaut = rendu actuel) ---------- */
+
+export type BorderWidth = "thin" | "normal" | "strong";
+export type TextScale = "small" | "normal" | "large";
+export type TableDensity = "auto" | "comfortable" | "compact";
+export type ContentWidth = "comfortable" | "full";
+export type NavIndicator = "auto" | "dot" | "bar";
+export type AccentSaturation = "normal" | "soft" | "vivid";
+export type DarkTint = "colored" | "neutral";
+export type WeekStart = "auto" | "monday" | "sunday";
 
 export type Appearance = {
   theme: ThemeMode;
@@ -56,6 +173,36 @@ export type Appearance = {
   fontBody: FontChoice;
   /** Police des valeurs numériques (KPI, montants). */
   fontNumeric: FontChoice;
+  // 1 — Épaisseur des bordures
+  borderWidth: BorderWidth;
+  // 2 — Ombre au survol des cartes
+  cardHoverShadow: boolean;
+  // 3 — Rayon des boutons, indépendant des cartes ("auto" = suit les cartes)
+  buttonRadius: number | "auto";
+  // 4 — Contraste renforcé
+  highContrast: boolean;
+  // 5 — Échelle de texte globale
+  textScale: TextScale;
+  // 6 — Réduction des animations
+  reducedMotion: boolean;
+  // 7 — Densité des tableaux, indépendante de la densité générale
+  tableDensity: TableDensity;
+  // 8 — Largeur maximale du contenu
+  contentWidth: ContentWidth;
+  // 9 — Icônes décoratives
+  decorativeIcons: boolean;
+  // 10 — Indicateur du lien actif de la sidebar
+  navIndicator: NavIndicator;
+  // 11 — Saturation des couleurs d'accent
+  accentSaturation: AccentSaturation;
+  // 12 — Teinte du mode sombre
+  darkTint: DarkTint;
+  // 13 — Groupe de sidebar ouvert par défaut ("" = comportement actuel)
+  defaultOpenGroup: string;
+  // 14 — Sidebar repliée par défaut
+  sidebarCollapsedDefault: boolean;
+  // 15 — Premier jour de la semaine
+  weekStart: WeekStart;
 };
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -70,6 +217,21 @@ export const DEFAULT_APPEARANCE: Appearance = {
   fontHeading: "auto",
   fontBody: "auto",
   fontNumeric: "auto",
+  borderWidth: "normal",
+  cardHoverShadow: false,
+  buttonRadius: "auto",
+  highContrast: false,
+  textScale: "normal",
+  reducedMotion: false,
+  tableDensity: "auto",
+  contentWidth: "comfortable",
+  decorativeIcons: true,
+  navIndicator: "auto",
+  accentSaturation: "normal",
+  darkTint: "colored",
+  defaultOpenGroup: "",
+  sidebarCollapsedDefault: false,
+  weekStart: "auto",
 };
 
 export const PRIMARY_PRESETS = ["#4F8E33", "#1F3D2B", "#3E7D44", "#2E8CCC", "#825A41", "#0F766E"];
@@ -86,6 +248,12 @@ function load(): Appearance {
   } catch {
     return DEFAULT_APPEARANCE;
   }
+}
+
+/** Pose l'attribut uniquement hors valeur par défaut : sans action utilisateur, aucun sélecteur ne matche. */
+function setFlag(root: HTMLElement, name: string, value: string | null) {
+  if (value === null) root.removeAttribute(name);
+  else root.setAttribute(name, value);
 }
 
 export function applyAppearance(a: Appearance) {
@@ -132,6 +300,41 @@ export function applyAppearance(a: Appearance) {
   root.setAttribute("data-density", a.density);
   root.setAttribute("data-skin", a.skin);
   root.setAttribute("data-theme", a.ui);
+
+  // 1 — Épaisseur des bordures
+  setFlag(root, "data-border-width", a.borderWidth === "normal" ? null : a.borderWidth);
+  // 2 — Ombre au survol des cartes
+  setFlag(root, "data-card-hover", a.cardHoverShadow ? "shadow" : null);
+  // 3 — Rayon des boutons
+  if (a.buttonRadius === "auto" || typeof a.buttonRadius !== "number") {
+    root.style.removeProperty("--radius-button");
+    root.removeAttribute("data-button-radius");
+  } else {
+    root.style.setProperty("--radius-button", `${a.buttonRadius}rem`);
+    root.setAttribute("data-button-radius", "custom");
+  }
+  // 4 — Contraste renforcé
+  setFlag(root, "data-contrast", a.highContrast ? "high" : null);
+  // 5 — Échelle de texte
+  if (a.textScale === "normal") root.style.removeProperty("--text-scale");
+  else root.style.setProperty("--text-scale", a.textScale === "small" ? "0.94" : "1.06");
+  setFlag(root, "data-text-scale", a.textScale === "normal" ? null : a.textScale);
+  // 6 — Réduction des animations
+  setFlag(root, "data-motion", a.reducedMotion ? "reduced" : null);
+  // 7 — Densité des tableaux
+  setFlag(root, "data-table-density", a.tableDensity === "auto" ? null : a.tableDensity);
+  // 8 — Largeur du contenu
+  setFlag(root, "data-content-width", a.contentWidth === "comfortable" ? null : a.contentWidth);
+  // 9 — Icônes décoratives
+  setFlag(root, "data-deco-icons", a.decorativeIcons ? null : "off");
+  // 10 — Indicateur de lien actif
+  setFlag(root, "data-nav-indicator", a.navIndicator === "auto" ? null : a.navIndicator);
+  // 11 — Saturation d'accent
+  setFlag(root, "data-accent-sat", a.accentSaturation === "normal" ? null : a.accentSaturation);
+  // 12 — Teinte du mode sombre
+  setFlag(root, "data-dark-tint", a.darkTint === "colored" ? null : a.darkTint);
+  // 15 — Premier jour de la semaine (lundi = comportement actuel des helpers)
+  setWeekStartDay(a.weekStart === "sunday" ? 0 : 1);
 }
 
 type Ctx = {

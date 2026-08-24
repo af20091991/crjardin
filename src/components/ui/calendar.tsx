@@ -6,6 +6,7 @@ import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { useAppearance } from "@/lib/appearance";
 
 function Calendar({
   className,
@@ -15,14 +16,21 @@ function Calendar({
   buttonVariant = "ghost",
   formatters,
   components,
+  weekStartsOn,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
   const defaultClassNames = getDefaultClassNames();
+  const { appearance } = useAppearance();
+  // Réglage « premier jour de la semaine » : "auto" conserve le comportement actuel.
+  const resolvedWeekStart =
+    weekStartsOn ??
+    (appearance.weekStart === "monday" ? 1 : appearance.weekStart === "sunday" ? 0 : undefined);
 
   return (
     <DayPicker
+      weekStartsOn={resolvedWeekStart}
       showOutsideDays={showOutsideDays}
       className={cn(
         "bg-background group/calendar p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
