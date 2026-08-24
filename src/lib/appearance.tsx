@@ -19,6 +19,27 @@ export type Skin = "classic" | "modern";
  */
 export type UiTheme = "legacy" | "next";
 
+/**
+ * Polices déjà chargées par le projet (aucun import supplémentaire) :
+ * "auto" conserve strictement le comportement actuel du thème actif.
+ */
+export type FontChoice = "auto" | "jakarta" | "syne" | "newsreader" | "system";
+
+export const FONT_STACKS: Record<Exclude<FontChoice, "auto">, string> = {
+  jakarta: '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
+  syne: '"Syne", ui-sans-serif, system-ui, sans-serif',
+  newsreader: '"Newsreader", "Iowan Old Style", Georgia, serif',
+  system: "ui-sans-serif, system-ui, sans-serif",
+};
+
+export const FONT_OPTIONS: { value: FontChoice; label: string }[] = [
+  { value: "auto", label: "Par défaut du thème" },
+  { value: "jakarta", label: "Plus Jakarta Sans" },
+  { value: "syne", label: "Syne" },
+  { value: "newsreader", label: "Newsreader" },
+  { value: "system", label: "Système" },
+];
+
 export type Appearance = {
   theme: ThemeMode;
   skin: Skin;
@@ -29,6 +50,12 @@ export type Appearance = {
   radius: number; // rem
   /** Groupes de menu masqués (par label). */
   hiddenGroups: string[];
+  /** Police des titres (h1/h2/h3). */
+  fontHeading: FontChoice;
+  /** Police du texte courant / interface. */
+  fontBody: FontChoice;
+  /** Police des valeurs numériques (KPI, montants). */
+  fontNumeric: FontChoice;
 };
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -40,6 +67,9 @@ export const DEFAULT_APPEARANCE: Appearance = {
   density: "comfortable",
   radius: 0.9,
   hiddenGroups: [],
+  fontHeading: "auto",
+  fontBody: "auto",
+  fontNumeric: "auto",
 };
 
 export const PRIMARY_PRESETS = ["#4F8E33", "#1F3D2B", "#3E7D44", "#2E8CCC", "#825A41", "#0F766E"];
@@ -78,6 +108,27 @@ export function applyAppearance(a: Appearance) {
     "--radius",
     `${a.skin === "modern" ? Math.min(a.radius, 0.375) : a.radius}rem`,
   );
+  // Typographie : le choix utilisateur prime sur le thème actif (next comme legacy).
+  const heading = a.fontHeading ?? "auto";
+  const body = a.fontBody ?? "auto";
+  const numeric = a.fontNumeric ?? "auto";
+  if (heading === "auto") {
+    root.style.removeProperty("--font-heading");
+    root.removeAttribute("data-font-heading");
+  } else {
+    root.style.setProperty("--font-heading", FONT_STACKS[heading]);
+    root.setAttribute("data-font-heading", "custom");
+  }
+  if (body === "auto") root.style.removeProperty("--font-sans");
+  else root.style.setProperty("--font-sans", FONT_STACKS[body]);
+  if (numeric === "auto") {
+    root.style.removeProperty("--font-numeric");
+    root.removeAttribute("data-font-numeric");
+  } else {
+    root.style.setProperty("--font-numeric", FONT_STACKS[numeric]);
+    root.setAttribute("data-font-numeric", "custom");
+  }
+
   root.setAttribute("data-density", a.density);
   root.setAttribute("data-skin", a.skin);
   root.setAttribute("data-theme", a.ui);
