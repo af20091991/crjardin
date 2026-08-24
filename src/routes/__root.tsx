@@ -107,9 +107,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      // Polices historiques (graisses inchangées pour garantir un rendu identique).
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Newsreader:wght@400;500;600;700&display=swap",
+      },
+      // Catalogue de personnalisation : 22 familles supplémentaires, 2 graisses chacune.
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Work+Sans:wght@400;600&family=Manrope:wght@400;600&family=Outfit:wght@400;600&family=Sora:wght@400;600&family=Space+Grotesk:wght@400;600&family=DM+Sans:wght@400;600&family=Poppins:wght@400;600&family=Nunito:wght@400;600&family=Quicksand:wght@400;600&display=swap",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&family=Lora:wght@400;600&family=Source+Serif+4:wght@400;600&family=Playfair+Display:wght@400;600&family=Cormorant+Garamond:wght@400;600&family=Libre+Baskerville:wght@400;700&family=Spectral:wght@400;600&family=PT+Serif:wght@400;700&family=Roboto+Slab:wght@400;600&family=JetBrains+Mono:wght@400;600&family=IBM+Plex+Mono:wght@400;600&family=Space+Mono:wght@400;700&display=swap",
       },
     ],
   }),
