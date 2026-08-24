@@ -161,8 +161,8 @@ export function PilotCard({
   const hasMenu = (views?.length ?? 0) > 1;
 
   return (
-    <Card className={cn("group relative h-full p-4 transition-all", to && "hover:shadow-md", className)}>
-      <div className="absolute right-2 top-2 z-10 flex items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
+    <Card className={cn("kpi-card group relative h-full p-4 transition-all", to && "hover:shadow-md", className)}>
+      <div className="kpi-card-actions absolute right-2 top-2 z-10 flex items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
         {hasMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
