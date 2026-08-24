@@ -99,7 +99,7 @@ export function KpiCard({
     <>
       <div className="flex items-start justify-between gap-2 px-10">
         <p className="text-xs font-medium text-muted-foreground">{views?.length ? active.label : label}</p>
-        {Icon && <Icon className="h-4 w-4 shrink-0 text-primary/70" />}
+        {Icon && <Icon className="kpi-category-icon h-4 w-4 shrink-0 text-primary/70" />}
       </div>
       <div className="mt-2 font-serif text-2xl font-semibold tracking-tight">{active.value}</div>
       {active.sub != null && <div className={cn("mt-1 text-xs", toneText)}>{active.sub}</div>}
