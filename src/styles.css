@@ -685,10 +685,12 @@
   letter-spacing: -0.015em;
 }
 
-/* ---------- Surfaces partagées (Card) : bord net, intérieur aéré ---------- */
+/* ---------- Surfaces partagées (Card) : cartes plates, filet léger ---------- */
 [data-theme="next"] .bg-card {
-  box-shadow: var(--shadow-soft);
-  border-color: var(--border);
+  border-radius: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
 }
 [data-theme="next"] .bg-card > .p-6,
 [data-theme="next"] .bg-card > .px-6 {
