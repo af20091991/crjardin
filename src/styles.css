@@ -743,3 +743,24 @@
 [data-theme="next"] [data-shell="nav"] a {
   min-height: 42px;
 }
+
+/* ---------- Cartes KPI (KpiCard) : icône de catégorie masquée, actions discrètes ---------- */
+[data-theme="next"] .kpi-card .kpi-category-icon {
+  display: none;
+}
+[data-theme="next"] .kpi-card-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+[data-theme="next"] .kpi-card:hover .kpi-card-actions,
+[data-theme="next"] .kpi-card:focus-within .kpi-card-actions {
+  opacity: 1;
+}
+
+/* ---------- Sidebar : navigation texte seul ---------- */
+[data-theme="next"] aside nav a .nav-link-icon {
+  display: none;
+}
+[data-theme="next"] aside nav a {
+  gap: 0;
+}
