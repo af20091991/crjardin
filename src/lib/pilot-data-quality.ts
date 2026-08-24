@@ -148,7 +148,7 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
   // Avant 2026, aucun Temps n'existe : seuls les exercices suivis peuvent
   // motiver une demande de Temps (règle centrale pilot-time-scope).
   const caTrackedByClient = countBy(
-    caLinked.filter((r) => isTimeTrackedYear(Number(r.year))),
+    caLinked.filter((r) => isTimeTrackedYear(Number((r as { year?: number | null }).year))),
     "client_id",
   );
   const ceevByClient = countBy(ceev.filter((r) => r.client_id), "client_id");
