@@ -11,6 +11,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { saleTimeMissing } from "@/lib/pilot-sale-time";
+import { isTimeTrackedYear } from "@/lib/pilot-time-scope";
 
 export type QualityDomainKey = "finance" | "activite" | "clients" | "sst";
 
@@ -131,9 +132,12 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   // Les heures des comptes-rendus (CR Chantier) et du module SST ne sont plus
   // évaluées ici : elles n'alimentent aucun calcul économique.
   // Un temps de 0 h sur une ligne SST est une donnée valide, jamais une anomalie.
+  // Avant 2026, l'absence de Temps est normale (pilot-time-scope) : ces lignes
+  // ne sont ni comptées, ni signalées, ni pénalisantes pour le score.
   const salesTimeMissing = ca.filter(
     (r) =>
       r.kind === "vente" &&
+      isTimeTrackedYear(num(r.year)) &&
       saleTimeMissing({
         hours: r.hours as number | null,
         intervention_type: r.intervention_type as string | null,
@@ -145,7 +149,11 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
   const ivNoClient = iv.filter((r) => !r.client_id);
   const ivNoSite = iv.filter((r) => r.client_id && !r.site_id);
 
-  const activiteScore = pct(salesAll.length - salesTimeMissing.length, salesAll.length);
+  const salesTimeTracked = salesAll.filter((r) => isTimeTrackedYear(num(r.year)));
+  const activiteScore = pct(
+    salesTimeTracked.length - salesTimeMissing.length,
+    salesTimeTracked.length,
+  );
 
   // ── Clients / Sites ────────────────────────────────────────────────────────
   const salesLinkable = sales.filter((r) => r.match_status !== "non_applicable");

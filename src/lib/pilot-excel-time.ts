@@ -9,6 +9,7 @@
 //    annulable via le mécanisme existant (pilot_edit_log / undoEdit).
 
 import { supabase } from "@/integrations/supabase/client";
+import { isTimeTrackedYear } from "@/lib/pilot-time-scope";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as unknown as { from: (t: string) => any };
@@ -417,8 +418,13 @@ export async function readExcelTimeFile(file: File): Promise<ExcelSaleRow[]> {
   return rows;
 }
 
-/** Ventes de l'exercice dont le temps est absent (0 h explicite exclu). */
+/**
+ * Ventes de l'exercice dont le temps est absent (0 h explicite exclu).
+ * Avant 2026, le Temps n'existe pas dans l'historique : aucune ligne n'est
+ * réclamée ni proposée à la restauration (règle centrale pilot-time-scope).
+ */
 export async function listSalesWithUnknownTime(year: number): Promise<CaSaleRow[]> {
+  if (!isTimeTrackedYear(year)) return [];
   const [ca, clients] = await Promise.all([
     db
       .from("pilot_ca_entries")
