@@ -506,6 +506,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                           <Link
                             key={item.to}
                             to={item.to}
+                            data-active={isActive(item.to, item.exact) ? "true" : undefined}
                             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                               isActive(item.to, item.exact)
                                 ? "bg-primary/10 text-primary"
