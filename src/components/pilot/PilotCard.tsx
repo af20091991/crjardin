@@ -127,7 +127,7 @@ export function PilotCard({
 
   if (hidden) {
     return (
-      <Card className="flex h-full min-h-20 items-center justify-between gap-3 border-dashed p-4 text-sm text-muted-foreground">
+      <Card className="kpi-card flex h-full min-h-20 items-center justify-between gap-3 border-dashed p-4 text-sm text-muted-foreground">
         <span className="truncate">{label} masqué</span>
         <Button type="button" variant="ghost" size="icon" onClick={toggleHidden} title="Réafficher cette carte">
           <Eye className="h-4 w-4" />
@@ -140,7 +140,7 @@ export function PilotCard({
     <>
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs font-medium text-muted-foreground">{views?.length ? active.label : label}</p>
-        {Icon && <Icon className="h-4 w-4 shrink-0 text-primary/70" />}
+        {Icon && <Icon className="kpi-category-icon h-4 w-4 shrink-0 text-primary/70" />}
       </div>
       {active.value != null && (
         <div className="mt-2 font-serif text-2xl font-semibold tracking-tight">{active.value}</div>
@@ -161,8 +161,8 @@ export function PilotCard({
   const hasMenu = (views?.length ?? 0) > 1;
 
   return (
-    <Card className={cn("group relative h-full p-4 transition-all", to && "hover:shadow-md", className)}>
-      <div className="absolute right-2 top-2 z-10 flex items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
+    <Card className={cn("kpi-card group relative h-full p-4 transition-all", to && "hover:shadow-md", className)}>
+      <div className="kpi-card-actions absolute right-2 top-2 z-10 flex items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
         {hasMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
