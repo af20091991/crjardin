@@ -96,10 +96,59 @@ export function buildExcelNatureIndex(
     sheetNames.push(sheet.name);
     const sheetBlock = blockFromTitle(sheet.name);
     let current: ExcelNature | null = sheetBlock;
+    let columnBlocks: { start: number; end: number; nature: ExcelNature }[] = [];
 
     for (const row of sheet.matrix) {
       const cells = Array.isArray(row) ? row : [];
       if (cells.length === 0) continue;
+
+      // Les feuilles financières réelles présentent souvent Charges et Ventes
+      // côte à côte. Une ligne telle que « Détails des charges … Détails des
+      // ventes » définit alors deux segments de colonnes indépendants.
+      const markers = cells
+        .map((cell, index) => ({
+          index,
+          nature: blockFromTitle(cell == null ? null : String(cell)),
+        }))
+        .filter((m): m is { index: number; nature: ExcelNature } => m.nature != null);
+      if (markers.length > 1) {
+        columnBlocks = markers.map((marker, index) => ({
+          start: marker.index,
+          end: markers[index + 1]?.index ?? cells.length,
+          nature: marker.nature,
+        }));
+        continue;
+      }
+
+      if (columnBlocks.length > 0) {
+        for (const block of columnBlocks) {
+          const segment = cells.slice(block.start + 1, block.end);
+          const label = segment
+            .map((c) => (c == null ? "" : String(c).trim()))
+            .find((s) => s !== "" && !/^-?[\d\s.,€%]+$/.test(s));
+          if (!label || normalizeLabel(label) === "designation") continue;
+          const key = normalizeLabel(label);
+          if (!key || blockFromTitle(label) != null || key.startsWith("total ")) continue;
+          blocks.add(block.nature);
+          if (block.nature === "vente") salesRows += 1;
+          else chargeRows += 1;
+          const existing = entries.get(key);
+          if (!existing) {
+            entries.set(key, {
+              label,
+              nature: block.nature,
+              occurrences: 1,
+              blocks: [block.nature],
+              sheets: [sheet.name],
+            });
+          } else {
+            existing.occurrences += 1;
+            if (!existing.blocks.includes(block.nature)) existing.blocks.push(block.nature);
+            if (!existing.sheets.includes(sheet.name)) existing.sheets.push(sheet.name);
+          }
+        }
+        continue;
+      }
 
       // Ligne de section : elle change le bloc courant et n'est pas une donnée.
       if (isSectionRow(cells)) {

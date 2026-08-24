@@ -135,6 +135,20 @@ describe("rapprochement Excel → Pilot Pro (nature)", () => {
     expect(index.chargeRows).toBeGreaterThanOrEqual(2);
   });
 
+  test("les blocs Charges et Ventes côte à côte du fichier réel sont lus séparément", () => {
+    const sideBySide = buildExcelNatureIndex([
+      {
+        name: "Historique CA 2020-2025",
+        matrix: [
+          ["Détails des charges", "Désignation", "Montant HT", null, "Détails des ventes", "Désignation", "Montant HT"],
+          ["Janvier", "Carburant", 300, null, "Janvier", "Taille de haie", 1200],
+        ],
+      },
+    ]);
+    expect(lookupExcelNature(sideBySide, "Carburant")).toMatchObject({ kind: "trouve", nature: "charge" });
+    expect(lookupExcelNature(sideBySide, "Taille de haie")).toMatchObject({ kind: "trouve", nature: "vente" });
+  });
+
   test("Test 4 — désignation du bloc Ventes → Vente", () => {
     const found = lookupExcelNature(index, "  taille de HAIE ");
     expect(found.kind).toBe("trouve");
