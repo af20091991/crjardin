@@ -10,6 +10,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { interventionKind, saleTimeMissing, type InterventionKind } from "@/lib/pilot-sale-time";
+import { timeRequestApplies } from "@/lib/pilot-time-scope";
 
 const db = supabase as unknown as { from: (t: string) => any };
 
