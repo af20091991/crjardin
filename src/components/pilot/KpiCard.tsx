@@ -84,11 +84,13 @@ export function KpiCard({
 
   if (hidden) {
     return (
-      <Card className="flex h-full min-h-20 items-center justify-between gap-3 border-dashed p-4 text-sm text-muted-foreground">
+      <Card className="kpi-card flex h-full min-h-20 items-center justify-between gap-3 border-dashed p-4 text-sm text-muted-foreground">
         <span className="truncate">{label} masqué</span>
-        <Button type="button" variant="ghost" size="icon" onClick={persistHidden} title="Réafficher ce KPI">
-          <Eye className="h-4 w-4" />
-        </Button>
+        <div className="kpi-card-actions">
+          <Button type="button" variant="ghost" size="icon" onClick={persistHidden} title="Réafficher ce KPI">
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
       </Card>
     );
   }
