@@ -132,7 +132,7 @@ function PersonnalisationPage() {
                   style={
                     appearance[role.key] === "auto"
                       ? undefined
-                      : { fontFamily: FONT_STACKS[appearance[role.key]] }
+                      : { fontFamily: FONT_STACKS[appearance[role.key] as Exclude<FontChoice, "auto">] }
                   }
                 >
                   {FONT_GROUPS.map((g) => (
