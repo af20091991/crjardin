@@ -12,9 +12,21 @@ export function daysBetween(iso: string | null | undefined): number | null {
   return Math.floor((Date.now() - t) / DAY_MS);
 }
 
+/**
+ * Premier jour de la semaine (1 = lundi, comportement historique).
+ * Réglage d'apparence uniquement : la valeur par défaut ne change rien.
+ */
+let weekStartDay: 0 | 1 = 1;
+export function setWeekStartDay(day: 0 | 1) {
+  weekStartDay = day;
+}
+export function getWeekStartDay(): 0 | 1 {
+  return weekStartDay;
+}
+
 export function startOfWeek(d: Date): Date {
   const x = new Date(d);
-  const day = (x.getDay() + 6) % 7; // Lundi = 0
+  const day = (x.getDay() - weekStartDay + 7) % 7;
   x.setHours(0, 0, 0, 0);
   x.setDate(x.getDate() - day);
   return x;
