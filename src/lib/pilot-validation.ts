@@ -62,6 +62,7 @@ export function reasonsForLine(r: {
   source_sheet?: string | null;
 }): ValidationReason[] {
   const out: ValidationReason[] = [];
+  const natureCertifiedByExcel = Boolean(r.source_file && r.source_sheet);
   if (
     r.kind === "remuneration" ||
     isRemunerationLabel(r.designation) ||
@@ -69,7 +70,11 @@ export function reasonsForLine(r: {
   ) {
     return ["remuneration_dirigeant"];
   }
-  if (r.kind === "charge" && (!r.charge_class || r.charge_class === "a_classer")) {
+  if (
+    r.kind === "charge" &&
+    !natureCertifiedByExcel &&
+    (!r.charge_class || r.charge_class === "a_classer")
+  ) {
     // Un investissement n'est jamais une charge d'exploitation « à classer ».
     if (r.is_investment) return [];
     out.push("charge_a_classer");
@@ -79,6 +84,7 @@ export function reasonsForLine(r: {
   // remet pas cette nature en cause et ne justifie aucune décision humaine.
   if (
     r.kind === "charge" &&
+    !natureCertifiedByExcel &&
     (!r.charge_category || r.charge_category === "À classer")
   ) {
     out.push("categorie_incertaine");
@@ -98,7 +104,7 @@ export async function listPendingValidation(limit = 500): Promise<PendingValidat
   const { data, error } = await supabase
     .from("pilot_ca_entries")
     .select(
-      "id,year,month,kind,designation,amount_ht,charge_class,charge_category,match_status,validation_status,validation_note,is_investment",
+      "id,year,month,kind,designation,amount_ht,charge_class,charge_category,match_status,validation_status,validation_note,is_investment,source_file,source_sheet",
     )
     .neq("validation_status", "valide")
     .order("year", { ascending: false })

@@ -29,6 +29,18 @@ describe("validation de la nature d'une ligne", () => {
     ).toBe(false);
   });
 
+  it("ne redemande pas les charges historiques déjà typées par l'import Excel", () => {
+    expect(
+      needsNatureDecision({
+        kind: "charge",
+        charge_class: "a_classer",
+        validation_status: "a_valider",
+        source_file: "Suivi_mensuel_CA_2026-2.xlsx",
+        source_sheet: "Historique CA 2020-2025",
+      }),
+    ).toBe(false);
+  });
+
   it("n'interroge jamais un investissement qualifié", () => {
     expect(needsNatureDecision({ kind: "charge", charge_class: null, is_investment: true })).toBe(
       false,

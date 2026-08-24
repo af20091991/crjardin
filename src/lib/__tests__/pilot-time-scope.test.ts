@@ -95,6 +95,21 @@ describe("règle historique : le Temps n'existe pas avant 2026", () => {
     }
   });
 
+  test("une charge historique issue du bloc Charges Excel ne redemande pas sa nature", () => {
+    expect(
+      reasonsForLine({
+        year: 2025,
+        kind: "charge",
+        designation: "Carburant",
+        charge_class: "a_classer",
+        charge_category: "À classer",
+        match_status: "non_identifie",
+        source_file: "Suivi_mensuel_CA_2026-2.xlsx",
+        source_sheet: "Historique CA 2020-2025",
+      }),
+    ).toEqual([]);
+  });
+
   test("2026 sans Temps reste traité par la file Temps, pas par la nature", () => {
     expect(buildControlQueue({ ...emptyQueue, salesMissingTime: [sale(2026)] }).actions).toHaveLength(1);
     expect(
