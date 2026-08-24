@@ -12,6 +12,8 @@ import {
   type Density,
   type Skin,
   type UiTheme,
+  type FontChoice,
+  FONT_OPTIONS,
 } from "@/lib/appearance";
 import { Palette, Sun, Moon, Monitor, RotateCcw, Check } from "lucide-react";
 
@@ -93,6 +95,41 @@ function PersonnalisationPage() {
             </p>
           </div>
         </div>
+
+        {/* Typographie : 3 rôles indépendants, polices déjà chargées */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-serif text-base">Typographie</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Choisissez la police de chaque rôle. « Par défaut du thème » conserve le rendu actuel.
+            </p>
+            {(
+              [
+                { key: "fontHeading" as const, label: "Titres (h1/h2/h3)" },
+                { key: "fontBody" as const, label: "Texte courant (interface, libellés)" },
+                { key: "fontNumeric" as const, label: "Valeurs numériques (montants, KPI)" },
+              ]
+            ).map((role) => (
+              <div key={role.key} className="space-y-2">
+                <Label htmlFor={role.key}>{role.label}</Label>
+                <select
+                  id={role.key}
+                  value={appearance[role.key]}
+                  onChange={(e) => setAppearance({ [role.key]: e.target.value as FontChoice })}
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {FONT_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
 
         {/* Nouvelle interface : bascule de jeu de tokens (data-theme) */}
         <Card>
