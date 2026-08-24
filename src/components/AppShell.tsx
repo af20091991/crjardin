@@ -109,6 +109,13 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem("cr-sidebar-collapsed") === "1";
   });
+  // Réglage « sidebar repliée par défaut » : appliqué uniquement si l'utilisateur
+  // n'a jamais replié/déplié manuellement la sidebar sur cet appareil.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem("cr-sidebar-collapsed") !== null) return;
+    if (appearance.sidebarCollapsedDefault) setCollapsed(true);
+  }, [appearance.sidebarCollapsedDefault]);
   const toggleCollapsed = () =>
     setCollapsed((c) => {
       const next = !c;
