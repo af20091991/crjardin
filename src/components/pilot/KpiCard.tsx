@@ -84,11 +84,13 @@ export function KpiCard({
 
   if (hidden) {
     return (
-      <Card className="flex h-full min-h-20 items-center justify-between gap-3 border-dashed p-4 text-sm text-muted-foreground">
+      <Card className="kpi-card flex h-full min-h-20 items-center justify-between gap-3 border-dashed p-4 text-sm text-muted-foreground">
         <span className="truncate">{label} masqué</span>
-        <Button type="button" variant="ghost" size="icon" onClick={persistHidden} title="Réafficher ce KPI">
-          <Eye className="h-4 w-4" />
-        </Button>
+        <div className="kpi-card-actions">
+          <Button type="button" variant="ghost" size="icon" onClick={persistHidden} title="Réafficher ce KPI">
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
       </Card>
     );
   }
@@ -97,7 +99,7 @@ export function KpiCard({
     <>
       <div className="flex items-start justify-between gap-2 px-10">
         <p className="text-xs font-medium text-muted-foreground">{views?.length ? active.label : label}</p>
-        {Icon && <Icon className="h-4 w-4 shrink-0 text-primary/70" />}
+        {Icon && <Icon className="kpi-category-icon h-4 w-4 shrink-0 text-primary/70" />}
       </div>
       <div className="mt-2 font-serif text-2xl font-semibold tracking-tight">{active.value}</div>
       {active.sub != null && <div className={cn("mt-1 text-xs", toneText)}>{active.sub}</div>}
@@ -116,12 +118,12 @@ export function KpiCard({
     <Card
       title={description}
       className={cn(
-        "group relative h-full p-4 transition-all",
+        "kpi-card group relative h-full p-4 transition-all",
         to && "cursor-pointer hover:-translate-y-0.5 hover:shadow-md",
       )}
     >
-      {views && views.length > 1 && (
-        <div className="absolute left-2 top-2 z-10">
+      <div className="kpi-card-actions absolute left-2 right-2 top-2 z-10 flex items-start justify-between">
+        {views && views.length > 1 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button type="button" variant="ghost" size="icon" title="Changer la vue du KPI">
@@ -136,12 +138,12 @@ export function KpiCard({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+        )}
+        <div className="ml-auto">
+          <Button type="button" variant="ghost" size="icon" onClick={persistHidden} title="Masquer ce KPI">
+            <EyeOff className="h-4 w-4" />
+          </Button>
         </div>
-      )}
-      <div className="absolute right-2 top-2 z-10">
-        <Button type="button" variant="ghost" size="icon" onClick={persistHidden} title="Masquer ce KPI">
-          <EyeOff className="h-4 w-4" />
-        </Button>
       </div>
       {to ? (
         <Link to={to} className="block focus:outline-none focus-visible:ring-1 focus-visible:ring-ring">
