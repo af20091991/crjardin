@@ -110,7 +110,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // Polices historiques (graisses inchangées pour garantir un rendu identique).
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Newsreader:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Newsreader:wght@400;500;600;700&display=swap",
       },
       // Catalogue de personnalisation : chaque famille est chargée en 400/500/600/700
       // afin que titres (500-700) et texte courant (400) rendent bien la police choisie
