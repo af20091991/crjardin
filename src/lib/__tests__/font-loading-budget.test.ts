@@ -29,7 +29,7 @@ describe("budget de chargement des polices", () => {
   test("max 2 graisses par nouvelle famille", () => {
     for (const f of families()) {
       if (LEGACY.has(f.name)) continue;
-      expect(f.weights.length).toBeLessThanOrEqual(2);
+      expect(f.weights.length <= 2).toBe(true);
     }
   });
 

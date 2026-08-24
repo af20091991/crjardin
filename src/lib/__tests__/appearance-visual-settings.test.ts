@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
   applyAppearance,
   DEFAULT_APPEARANCE,
@@ -172,15 +172,15 @@ describe("polices : Système retire toute police personnalisée", () => {
 });
 
 describe("premier jour de la semaine", () => {
-  beforeEach(() => setupDom());
-
   test("auto = lundi (comportement historique)", () => {
+    setupDom();
     applyAppearance(DEFAULT_APPEARANCE);
     // 2026-08-24 est un lundi.
     expect(startOfWeek(new Date("2026-08-26T12:00:00")).getDate()).toBe(24);
   });
 
   test("dimanche décale le début de semaine", () => {
+    setupDom();
     applyAppearance({ ...DEFAULT_APPEARANCE, weekStart: "sunday" });
     expect(startOfWeek(new Date("2026-08-26T12:00:00")).getDate()).toBe(23);
     applyAppearance(DEFAULT_APPEARANCE);
