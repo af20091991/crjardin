@@ -40,6 +40,14 @@ export type FontChoice =
   | "poppins"
   | "nunito"
   | "quicksand"
+  | "roboto"
+  | "opensans"
+  | "lato"
+  | "montserrat"
+  | "raleway"
+  | "rubik"
+  | "figtree"
+  | "karla"
   // Serif
   | "newsreader"
   | "fraunces"
@@ -51,8 +59,12 @@ export type FontChoice =
   | "spectral"
   | "ptserif"
   | "robotoslab"
+  | "merriweather"
+  | "bitter"
   // Display
   | "syne"
+  | "oswald"
+  | "bebas"
   // Monospace
   | "jetbrains"
   | "ibmplexmono"
