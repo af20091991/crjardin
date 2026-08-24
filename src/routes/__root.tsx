@@ -121,6 +121,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&family=Lora:wght@400;600&family=Source+Serif+4:wght@400;600&family=Playfair+Display:wght@400;600&family=Cormorant+Garamond:wght@400;600&family=Libre+Baskerville:wght@400;700&family=Spectral:wght@400;600&family=PT+Serif:wght@400;700&family=Roboto+Slab:wght@400;600&family=JetBrains+Mono:wght@400;600&family=IBM+Plex+Mono:wght@400;600&family=Space+Mono:wght@400;700&display=swap",
       },
+      // Familles complémentaires (choix de typographie étendu).
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;600&family=Open+Sans:wght@400;600&family=Lato:wght@400;700&family=Montserrat:wght@400;600&family=Raleway:wght@400;600&family=Rubik:wght@400;600&family=Figtree:wght@400;600&family=Karla:wght@400;600&family=Merriweather:wght@400;700&family=Bitter:wght@400;600&family=Oswald:wght@400;600&family=Bebas+Neue&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
