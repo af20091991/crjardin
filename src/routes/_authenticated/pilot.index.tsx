@@ -1308,12 +1308,15 @@ function TodayPage() {
       {/* 1 — Synthèse du mois en cours : premier bloc (données enregistrées) */}
       <DashboardBlock id="mois" layout={layout}>
         <SectionTitle question="Vue mois" label={moisPeriodeLabel} />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <PilotCard
+            className="sm:col-span-2"
+            emphasis="priority"
             label="CA réalisé du mois"
             value={safeValue(caSources, () => formatEuro(k.caMonth)).value}
             icon={Euro}
             to="/pilot/ca"
+
             help="Somme des lignes CA facturées du 1er du mois à aujourd'hui. Aucune projection."
             sub={
               states.entries.status === "error"
@@ -1363,8 +1366,10 @@ function TodayPage() {
       {/* 2 — Synthèse depuis le début de l'exercice */}
       <DashboardBlock id="exercice" layout={layout}>
         <SectionTitle question="Vue exercice" label={`Depuis le 1er janvier ${year}`} />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
           <PilotCard
+            className="sm:col-span-2 lg:col-span-3"
+            emphasis="priority"
             label={`CA cumulé ${year}`}
             value={safeValue(caSources, () => formatEuro(caLecture)).value}
             icon={Euro}
@@ -1379,10 +1384,13 @@ function TodayPage() {
             }
           />
           <PilotCard
+            className="lg:col-span-3"
+            emphasis="important"
             label="Bénéfice"
             value={safeValue(beneficeSources, () => formatEuro(resultatLecture)).value}
             icon={Wallet}
             to="/pilot/finance"
+
             help="Bénéfice = CA − charges d'exploitation hors investissements (moteur annualSummary)."
             tone={
               beneficeSources.some((s) => s.unreliable)
@@ -1400,6 +1408,7 @@ function TodayPage() {
             }
           />
           <PilotCard
+            className="lg:col-span-2"
             label="Interventions réalisées"
             value={safeValue(itvSources, () => String(interventionsAnnee)).value}
             icon={Leaf}
@@ -1407,7 +1416,10 @@ function TodayPage() {
             help="Nombre de lignes de Vente de l'exercice (Chiffre d'affaires → Ventes) : 1 ligne = 1 intervention, une ligne à 0 h incluse."
           />
           <PilotCard
+            className="lg:col-span-4"
+            emphasis="important"
             label="Taux horaire réel"
+
             value={
               safeValue([states.entries, hoursLedgerState], () =>
                 tauxAffiche != null ? `${formatEuro(tauxAffiche)}/h` : "Non disponible",
