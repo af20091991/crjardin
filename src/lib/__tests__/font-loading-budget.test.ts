@@ -21,17 +21,20 @@ function families() {
 }
 
 describe("budget de chargement des polices", () => {
-  test("25 familles importées, display=swap partout", () => {
-    expect(families().length).toBe(25);
+  test("toutes les familles du catalogue sont importées, display=swap partout", () => {
+    // Une famille proposée mais non importée resterait sans effet visible.
+    const catalogue = Object.entries(FONT_STACKS).filter(([k]) => k !== "system").length;
+    expect(families().length).toBe(catalogue);
     for (const href of hrefs) expect(href).toContain("display=swap");
   });
 
-  test("max 2 graisses par nouvelle famille", () => {
+  test("max 5 graisses par famille (400 + graisses de titres)", () => {
     for (const f of families()) {
       if (LEGACY.has(f.name)) continue;
-      expect(f.weights.length <= 2).toBe(true);
+      expect(f.weights.length <= 5).toBe(true);
     }
   });
+
 
   test("chaque famille importée est proposée dans le catalogue", () => {
     const stacks = Object.values(FONT_STACKS).join(" ");
