@@ -767,13 +767,15 @@
 
 /* ---------- Typographie personnalisée (Personnalisation → Typographie) ---------- */
 /* Le choix utilisateur prime sur le thème actif, sans affecter les autres rôles. */
-html[data-font-heading="custom"] h1,
-html[data-font-heading="custom"] h2,
-html[data-font-heading="custom"] h3 {
+html[data-font-heading="custom"] :is(h1, h2, h3, h4, h5, h6, .font-serif, [data-slot="card-title"]) {
   font-family: var(--font-heading);
 }
-html[data-font-numeric="custom"] .tabular-nums,
-html[data-font-numeric="custom"] table td.tabular-nums {
+/* Le texte courant : les éléments de formulaire n'héritent pas de la police du body. */
+html[data-font-body="custom"] body,
+html[data-font-body="custom"] :is(button, input, select, textarea, optgroup, .font-sans) {
+  font-family: var(--font-sans);
+}
+html[data-font-numeric="custom"] :is(.tabular-nums, table td.tabular-nums, [class*="tabular-nums"]) {
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
 }
