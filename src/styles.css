@@ -767,18 +767,52 @@
 
 /* ---------- Typographie personnalisée (Personnalisation → Typographie) ---------- */
 /* Le choix utilisateur prime sur le thème actif, sans affecter les autres rôles. */
-html[data-font-heading="custom"] :is(h1, h2, h3, h4, h5, h6, .font-serif, [data-slot="card-title"]) {
+html[data-font-heading="custom"]
+  :is(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    .font-serif,
+    [data-slot="card-title"],
+    [data-slot="dialog-title"],
+    [data-slot="alert-dialog-title"],
+    [data-slot="sheet-title"],
+    [data-slot="drawer-title"],
+    [data-slot="alert-title"]
+  ) {
   font-family: var(--font-heading);
 }
 /* Le texte courant : les éléments de formulaire n'héritent pas de la police du body. */
 html[data-font-body="custom"] body,
-html[data-font-body="custom"] :is(button, input, select, textarea, optgroup, .font-sans) {
+html[data-font-body="custom"]
+  :is(
+    button,
+    input,
+    select,
+    textarea,
+    optgroup,
+    label,
+    .font-sans,
+    [data-slot="card-description"],
+    [data-slot="dialog-description"],
+    [data-slot="badge"],
+    [data-slot="table"],
+    [data-slot="select-trigger"],
+    [data-slot="select-content"],
+    [data-slot="dropdown-menu-content"],
+    [data-slot="tooltip-content"],
+    [data-slot="popover-content"]
+  ) {
   font-family: var(--font-sans);
 }
 html[data-font-numeric="custom"] :is(.tabular-nums, table td.tabular-nums, [class*="tabular-nums"]) {
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
 }
+
 
 /* ============================================================
    Réglages visuels additionnels (Personnalisation)
