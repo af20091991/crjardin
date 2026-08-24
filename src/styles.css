@@ -214,7 +214,7 @@
 
 /* Densité compacte pilotée par la personnalisation */
 [data-density="compact"] {
-  font-size: 0.94rem;
+  --density-font-size: 0.94rem;
 }
 [data-density="compact"] .space-y-5 > * + * {
   margin-top: 0.85rem;
@@ -776,4 +776,128 @@ html[data-font-numeric="custom"] .tabular-nums,
 html[data-font-numeric="custom"] table td.tabular-nums {
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Réglages visuels additionnels (Personnalisation)
+   Chaque bloc ne s'active que si l'utilisateur a changé le réglage :
+   sans action, aucun sélecteur ci-dessous ne matche.
+   ============================================================ */
+
+/* 1 — Épaisseur des bordures */
+html[data-border-width="thin"] * {
+  border-color: color-mix(in oklab, var(--color-border) 70%, transparent);
+}
+html[data-border-width="thin"] .border,
+html[data-border-width="thin"] .border-b,
+html[data-border-width="thin"] .border-t {
+  border-width: 0.5px;
+}
+html[data-border-width="strong"] .border,
+html[data-border-width="strong"] .border-b,
+html[data-border-width="strong"] .border-t {
+  border-width: 2px;
+}
+
+/* 2 — Ombre au survol des cartes */
+html[data-card-hover="shadow"] .bg-card {
+  transition: box-shadow 160ms ease;
+}
+html[data-card-hover="shadow"] .bg-card:hover {
+  box-shadow: 0 10px 28px -18px color-mix(in oklab, var(--color-foreground) 45%, transparent);
+}
+
+/* 3 — Rayon des boutons, indépendant des cartes */
+html[data-button-radius="custom"] button:not([class*="rounded-full"]),
+html[data-button-radius="custom"] a[class*="inline-flex"]:not([class*="rounded-full"]) {
+  border-radius: var(--radius-button);
+}
+
+/* 4 — Contraste renforcé */
+html[data-contrast="high"] {
+  --muted-foreground: color-mix(in oklab, var(--color-foreground) 82%, transparent);
+  --border: color-mix(in oklab, var(--color-foreground) 38%, transparent);
+}
+html[data-contrast="high"] .text-muted-foreground {
+  color: color-mix(in oklab, var(--color-foreground) 82%, transparent);
+}
+
+/* 5 — Échelle de texte globale (composable avec la densité) */
+html {
+  font-size: calc(var(--density-font-size, 1rem) * var(--text-scale, 1));
+}
+
+/* 6 — Réduction des animations */
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* 7 — Densité des tableaux, indépendante de la densité générale */
+html[data-table-density="compact"] table td,
+html[data-table-density="compact"] table th {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+html[data-table-density="comfortable"] table td,
+html[data-table-density="comfortable"] table th {
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+
+/* 8 — Largeur maximale du contenu */
+html[data-content-width="full"] [data-shell="main"] > * {
+  max-width: none;
+}
+
+/* 9 — Icônes décoratives */
+html[data-deco-icons="off"] .kpi-category-icon,
+html[data-deco-icons="off"] .decorative-icon {
+  display: none;
+}
+
+/* 10 — Indicateur du lien actif de la sidebar */
+html[data-nav-indicator="dot"] aside nav a[data-active="true"],
+html[data-nav-indicator="bar"] aside nav a[data-active="true"] {
+  position: relative;
+}
+html[data-nav-indicator="dot"] aside nav a[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0.25rem;
+  top: 50%;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  transform: translateY(-50%);
+}
+html[data-nav-indicator="bar"] aside nav a[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 2px;
+  background: var(--color-primary);
+}
+
+/* 11 — Saturation des couleurs d'accent */
+html[data-accent-sat="soft"] {
+  --accent: color-mix(in oklab, var(--color-accent) 65%, var(--color-background));
+}
+html[data-accent-sat="vivid"] {
+  --accent: color-mix(in oklab, var(--color-accent) 100%, white 0%);
+  --primary: color-mix(in oklab, var(--color-primary) 92%, black);
+}
+
+/* 12 — Teinte du mode sombre neutralisée */
+html[data-dark-tint="neutral"].dark {
+  --background: oklch(0.19 0 0);
+  --card: oklch(0.23 0 0);
+  --muted: oklch(0.27 0 0);
+  --border: oklch(0.34 0 0);
 }
