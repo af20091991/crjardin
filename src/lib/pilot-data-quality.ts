@@ -144,6 +144,12 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
   // Temps exploitable = source maître uniquement (lignes de vente du suivi CA).
   // 0 h sur une ligne SST compte comme donnée connue, jamais comme manquante.
   const caHoursByClient = countBy(caLinked.filter((r) => saleTimeKnown(r)), "client_id");
+  // Avant 2026, aucun Temps n'existe : seuls les exercices suivis peuvent
+  // motiver une demande de Temps (règle centrale pilot-time-scope).
+  const caTrackedByClient = countBy(
+    caLinked.filter((r) => isTimeTrackedYear(Number(r.year))),
+    "client_id",
+  );
   const ceevByClient = countBy(ceev.filter((r) => r.client_id), "client_id");
   const sstByClient = countBy(sst.filter((r) => r.client_id), "client_id");
   const recoByClient = countBy(recos, "client_id");
@@ -235,7 +241,10 @@ export async function buildDataQualityReport(): Promise<DataQualityReport> {
   const sstOrphan = sst.filter((r) => !r.client_id);
   if (sstOrphan.length > 0) blockers.push(`${sstOrphan.length} mission(s) SST sans client.`);
   const noHours = perClient.filter(
-    (p) => p.quality.hasAnyData && (caHoursByClient.get(p.client.id) ?? 0) === 0,
+    (p) =>
+      p.quality.hasAnyData &&
+      (caTrackedByClient.get(p.client.id) ?? 0) > 0 &&
+      (caHoursByClient.get(p.client.id) ?? 0) === 0,
   );
   if (noHours.length > 0) {
     blockers.push(`${noHours.length} client(s) sans temps dans le suivi CA : rentabilité indisponible.`);

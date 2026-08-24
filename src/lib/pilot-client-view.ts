@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------
 
 import { sumHistoricHours, type HistoricHoursRow } from "@/lib/pilot-historic-hours";
+import { isTimeTrackedYear } from "@/lib/pilot-time-scope";
 import { saleTimeKnown } from "@/lib/pilot-sale-time";
 
 export interface ClientViewInput {
@@ -84,7 +85,12 @@ export function buildClientView(input: ClientViewInput): ClientView {
   const salesTimeKnown = caRows.filter((r) =>
     saleTimeKnown({ hours: r.hours ?? null, intervention_type: r.intervention_type ?? null }),
   ).length;
-  const salesTimeMissing = caRows.length - salesTimeKnown;
+  // Avant 2026, le Temps n'existe pas : ces lignes ne sont pas « à compléter ».
+  const salesTimeMissing = caRows.filter(
+    (r) =>
+      isTimeTrackedYear(Number((r as { year?: number | null }).year)) &&
+      !saleTimeKnown({ hours: r.hours ?? null, intervention_type: r.intervention_type ?? null }),
+  ).length;
 
   return {
     caCumule,

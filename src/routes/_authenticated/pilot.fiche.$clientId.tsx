@@ -33,6 +33,7 @@ import { CeevClientCard } from "@/components/pilot/CeevClientCard";
 import { listMissions } from "@/lib/subcontractors";
 import { listContacts, listSites, type Contact, type Site } from "@/lib/sites";
 import { entityEligibility } from "@/lib/pilot-entity-rules";
+import { isTimeTrackedYear } from "@/lib/pilot-time-scope";
 import { saleTimeKnown } from "@/lib/pilot-sale-time";
 import { revenueCounted } from "@/lib/pilot-sale-accounting";
 import { EntityStatusBadge } from "@/components/pilot/ReliabilityBadge";
@@ -285,7 +286,10 @@ function PilotClient360() {
   const totalHours = (caQ.data ?? []).reduce((s, r) => s + (Number(r.hours) || 0), 0);
   // Anomalie de temps = ligne de vente sans Temps (source unique). Les
   // comptes-rendus sans heures ne sont plus une anomalie.
-  const missingHours = (caQ.data ?? []).filter((r) => !saleTimeKnown(r)).length;
+  // Avant 2026, l'absence de Temps est normale : jamais comptée comme anomalie.
+  const missingHours = (caQ.data ?? []).filter(
+    (r) => isTimeTrackedYear(Number((r as { year?: number }).year)) && !saleTimeKnown(r),
+  ).length;
   const crSent = (interventionsQ.data ?? []).filter((iv) => iv.sent_to_client_at).length;
   const historicRows = historicHoursQ.data ?? [];
   const historicHours = sumHistoricHours(historicRows);
