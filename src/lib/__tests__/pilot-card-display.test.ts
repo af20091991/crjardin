@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import {
   DEFAULT_VALUE_FORMAT,
   compactEuro,
@@ -125,9 +126,9 @@ describe("réglages de lecture des cartes", () => {
     expect(attrs.get("data-label-level")).toBe("short");
   });
 
-  test("6 styles de cartes exposés, tous stylés dans la feuille de styles", async () => {
+  test("6 styles de cartes exposés, tous stylés dans la feuille de styles", () => {
     expect(CARD_STYLES.length).toBe(6);
-    const css = await Bun.file("src/styles.css").text();
+    const css = readFileSync("src/styles.css", "utf8");
     for (const s of CARD_STYLES) {
       expect(css).toContain(`html[data-card-style="${s.value}"] .pp-card`);
     }
