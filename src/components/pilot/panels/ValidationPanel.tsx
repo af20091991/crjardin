@@ -10,18 +10,46 @@ import { processCertainPendingValidation } from "@/lib/pilot-validation-auto";
 
 const euro = (n: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
-const actionFor = (line: PendingValidationLine) => {
+function humanExplanation(line: PendingValidationLine) {
   if (line.kind === "vente" && line.match_status === "non_identifie") {
-    return { proposal: "PP n'a pas encore identifié le client de cette vente.", consequence: "Confirmer enregistrera cette vente avec le client proposé par PP.", accept: "Rattacher au client proposé" };
+    return {
+      text: "PP ne reconnaît pas encore le client de cette vente.",
+      detail: "Le client doit être identifié avant que PP puisse rattacher correctement cette vente.",
+      action: "Rattacher au client proposé",
+      consequence: "Cette vente sera rattachée au client proposé par PP.",
+    };
   }
   if (line.kind === "charge") {
     if (line.charge_category && line.charge_category !== "a_classer") {
-      return { proposal: `PP pense que cette dépense relève de « ${line.charge_category} ».`, consequence: `Confirmer conservera ce classement pour les calculs de charges.`, accept: `Classer en « ${line.charge_category} »` };
+      return {
+        text: `PP pense que cette dépense relève de « ${line.charge_category} ».`,
+        detail: "Vous pouvez confirmer ce classement ou laisser la dépense en attente.",
+        action: `Classer en « ${line.charge_category} »`,
+        consequence: `Cette dépense sera enregistrée dans « ${line.charge_category} » et utilisée ainsi dans les calculs de charges.`,
+      };
     }
-    return { proposal: "PP ne sait pas encore comment classer cette dépense.", consequence: "Confirmer indique seulement que cette ligne est une charge validée. PP ne lui inventera pas de catégorie.", accept: "Confirmer cette charge" };
+    if (line.reasons.includes("categorie_incertaine")) {
+      return {
+        text: "PP hésite sur la nature de cette dépense.",
+        detail: "Les informations disponibles ne permettent pas de choisir entre plusieurs types de dépense.",
+        action: "Confirmer cette charge",
+        consequence: "Cette ligne sera conservée comme charge validée, sans lui attribuer une catégorie que PP ne connaît pas.",
+      };
+    }
+    return {
+      text: "PP ne peut pas déterminer à quoi correspond cette dépense.",
+      detail: "Le libellé ou les informations disponibles sont insuffisants pour l'identifier correctement.",
+      action: "Confirmer cette charge",
+      consequence: "Cette ligne sera conservée comme charge validée, sans inventer de catégorie.",
+    };
   }
-  return { proposal: "PP a besoin de votre décision sur cette donnée.", consequence: "Confirmer permettra à PP d'utiliser cette donnée dans ses calculs.", accept: "Confirmer cette donnée" };
-};
+  return {
+    text: "PP a besoin de votre décision sur cette donnée.",
+    detail: "PP ne dispose pas d'informations suffisantes pour décider seul.",
+    action: "Confirmer cette donnée",
+    consequence: "Cette donnée pourra ensuite être utilisée par PP dans ses calculs.",
+  };
+}
 
 export function ValidationPage() {
   const qc = useQueryClient();
@@ -33,7 +61,7 @@ export function ValidationPage() {
 
   const validate = useMutation({
     mutationFn: ({ id, status }: { id: string; status: "valide" | "a_revoir" }) => setValidation(id, status),
-    onSuccess: (_data, variables) => { refresh(); toast.success(variables.status === "valide" ? "Décision enregistrée" : "Donnée laissée à revoir"); },
+    onSuccess: (_data, variables) => { refresh(); toast.success(variables.status === "valide" ? "Décision enregistrée" : "Donnée laissée en attente"); },
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -53,20 +81,20 @@ export function ValidationPage() {
   const processed = autoSummary ? autoSummary.linked + autoSummary.validated : 0;
 
   return <div className="space-y-5">
-    <header><h1 className="font-display text-2xl font-semibold">Centre de validation</h1><p className="mt-1 text-sm text-muted-foreground">PP traite les cas certains. Pour les autres, vous voyez ce que PP comprend et ce que votre décision va changer.</p></header>
+    <header><h1 className="font-display text-2xl font-semibold">Centre de validation</h1><p className="mt-1 text-sm text-muted-foreground">PP traite les cas certains. Pour les autres, PP explique pourquoi votre décision est nécessaire et ce qu'elle changera.</p></header>
     <Card><CardContent className="py-5">
       <div className="flex flex-wrap items-end justify-between gap-5"><div><p className="text-sm text-muted-foreground">À décider maintenant</p><div className="mt-1 flex flex-wrap items-baseline gap-x-5"><span className="text-2xl font-semibold">{stats.total}</span><span className="text-sm text-muted-foreground">{stats.financial} financiers</span><span className="text-sm font-medium">{euro(stats.amount)}</span></div></div><Button onClick={() => autoProcess.mutate()} disabled={autoProcess.isPending}><Wand2 className="mr-2 h-4 w-4" />{autoProcess.isPending ? "PP travaille…" : "Traiter les cas certains"}</Button></div>
       {autoSummary && <div className="mt-4 rounded-lg border bg-muted/30 px-4 py-3 text-sm"><div className="font-medium">Dernier traitement automatique</div><div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-muted-foreground"><span><strong className="text-foreground">{autoSummary.before}</strong> au départ</span><span><strong className="text-foreground">{autoSummary.linked}</strong> rapprochés par PP</span><span><strong className="text-foreground">{autoSummary.validated}</strong> validés par PP</span><span><strong className="text-foreground">{stats.total}</strong> restent à décider</span></div></div>}
       {autoError && <div className="mt-3 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"><strong>Le traitement automatique a échoué :</strong> {autoError}</div>}
     </CardContent></Card>
     <Card><CardContent className="pt-5">
-      {isLoading ? <p className="py-10 text-center text-sm text-muted-foreground">Chargement des données…</p> : lines.length === 0 ? <div className="py-10 text-center"><p className="font-medium">Aucune décision nécessaire.</p>{autoSummary && <p className="mt-2 text-sm text-muted-foreground">PP a traité {processed} donnée(s) automatiquement.</p>}</div> : <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Donnée</TableHead><TableHead>Type</TableHead><TableHead>Montant</TableHead><TableHead>Ce que PP comprend</TableHead><TableHead>Votre choix</TableHead></TableRow></TableHeader><TableBody>{lines.slice(0, 500).map((line) => <ValidationRow key={line.id} line={line} busy={validate.isPending} onValidate={() => validate.mutate({ id: line.id, status: "valide" })} onReview={() => validate.mutate({ id: line.id, status: "a_revoir" })} />)}</TableBody></Table>{lines.length > 500 && <p className="pt-3 text-xs text-muted-foreground">500 premières lignes affichées sur {lines.length}.</p>}</div>}
+      {isLoading ? <p className="py-10 text-center text-sm text-muted-foreground">Chargement des données…</p> : lines.length === 0 ? <div className="py-10 text-center"><p className="font-medium">Aucune décision nécessaire.</p>{autoSummary && <p className="mt-2 text-sm text-muted-foreground">PP a traité {processed} donnée(s) automatiquement.</p>}</div> : <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Donnée</TableHead><TableHead>Type</TableHead><TableHead>Montant</TableHead><TableHead>Pourquoi PP vous demande d'intervenir</TableHead><TableHead>Votre choix</TableHead></TableRow></TableHeader><TableBody>{lines.slice(0, 500).map((line) => <ValidationRow key={line.id} line={line} busy={validate.isPending} onValidate={() => validate.mutate({ id: line.id, status: "valide" })} onReview={() => validate.mutate({ id: line.id, status: "a_revoir" })} />)}</TableBody></Table>{lines.length > 500 && <p className="pt-3 text-xs text-muted-foreground">500 premières lignes affichées sur {lines.length}.</p>}</div>}
     </CardContent></Card>
   </div>;
 }
 
 function ValidationRow({ line, busy, onValidate, onReview }: { line: PendingValidationLine; busy: boolean; onValidate: () => void; onReview: () => void }) {
-  const action = actionFor(line);
+  const explanation = humanExplanation(line);
   const type = line.kind === "vente" ? "Vente" : "Charge";
   const designation = line.designation || (line.kind === "charge" ? "Dépense sans libellé" : "Vente sans libellé");
   return <TableRow>
@@ -74,7 +102,7 @@ function ValidationRow({ line, busy, onValidate, onReview }: { line: PendingVali
     <TableCell><div className="max-w-[330px]"><div className="truncate font-medium">{designation}</div></div></TableCell>
     <TableCell>{type}</TableCell>
     <TableCell className="text-right tabular-nums">{euro(line.amount_ht)}</TableCell>
-    <TableCell><div className="font-medium text-sm">{action.proposal}</div><div className="mt-1 text-xs text-muted-foreground">{action.consequence}</div></TableCell>
-    <TableCell><div className="flex flex-col items-start gap-2"><Button size="sm" onClick={onValidate} disabled={busy} className="w-full gap-1"><Check className="h-4 w-4" /> {action.accept}</Button><Button size="sm" variant="outline" onClick={onReview} disabled={busy} className="w-full gap-1"><X className="h-4 w-4" /> Laisser cette donnée en attente</Button></div></TableCell>
+    <TableCell><div className="font-medium text-sm">{explanation.text}</div><div className="mt-1 text-xs text-muted-foreground">{explanation.detail}</div></TableCell>
+    <TableCell><div className="flex flex-col items-start gap-2"><Button size="sm" onClick={onValidate} disabled={busy} className="w-full gap-1"><Check className="h-4 w-4" /> {explanation.action}</Button><div className="text-[11px] leading-tight text-muted-foreground">{explanation.consequence}</div><Button size="sm" variant="outline" onClick={onReview} disabled={busy} className="w-full gap-1"><X className="h-4 w-4" /> Laisser cette donnée en attente</Button></div></TableCell>
   </TableRow>;
 }
