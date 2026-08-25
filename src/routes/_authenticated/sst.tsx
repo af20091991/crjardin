@@ -436,9 +436,11 @@ function MissionsTab() {
   });
 
   const needle = q.trim().toLowerCase();
+  const missionsWithoutClientCount = missions.filter((m) => !m.client_id).length;
   const filteredMissions = missions
     .filter((m) => (statusFilter === "all" ? true : m.status === statusFilter))
     .filter((m) => (sstFilter === "all" ? true : m.subcontractor_id === sstFilter))
+    .filter((m) => (missingClientFilter ? !m.client_id : true))
     .filter((m) =>
       needle
         ? [
@@ -461,6 +463,7 @@ function MissionsTab() {
       return sort === "date_asc" ? da - db : db - da;
     });
   const visibleMissions = filteredMissions.slice(0, limit);
+
 
   return (
     <div className="space-y-4">
