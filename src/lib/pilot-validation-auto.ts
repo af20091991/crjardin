@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { listClients, type Client } from "@/lib/clients";
-import { buildDesignationIndex, suggestClients } from "@/lib/pilot-ca-matching";
+import { buildDesignationIndex, suggestClients, linkEntryToClient } from "@/lib/pilot-ca-matching";
 import { reasonsForLine, setValidation } from "@/lib/pilot-validation";
 
 interface PendingSale {
@@ -99,16 +99,13 @@ export async function processCertainPendingValidation(): Promise<AutoValidationR
       );
 
       if (unambiguous) {
-        const { error: linkError } = await supabase
-          .from("pilot_ca_entries")
-          .update({
-            client_id: best.client.id,
-            match_status: "identifie",
-            match_score: best.score,
-          } as never)
-          .eq("id", row.id)
-          .eq("validation_status", "a_valider");
-        if (linkError) throw linkError;
+        await linkEntryToClient({
+          entryId: row.id,
+          clientId: best.client.id,
+          method: "bulk",
+          score: best.score,
+          note: `Rapprochement automatique (${best.reason}) — ${best.evidence.join(" ; ")}`,
+        });
         linked += 1;
       }
     }
