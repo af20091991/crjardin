@@ -27,6 +27,7 @@ const FIELD_ALIASES: Record<ImportField, string[]> = {
   first_name: ["prenom", "firstname", "givenname", "forename"],
   last_name: ["nom", "nomdefamille", "nomfamille", "nomusage", "lastname", "surname", "familyname"],
   civility: ["civilite", "civility", "titre", "genre", "qualite"],
+  client_type: ["typedeclient", "typeclient", "clienttype", "type", "categorie", "segment", "statutclient"],
   address: ["adresse", "address", "adressepostale", "adressecomplete", "rue", "voie"],
   phone: ["telephone", "tel", "phone", "mobile", "portable", "numero", "numerodetelephone"],
   email: ["email", "mail", "courriel", "adresseemail", "adressemail", "emailaddress"],
