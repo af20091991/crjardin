@@ -163,6 +163,34 @@ export function buildValidationItems(params: {
   return items.sort((a, b) => a.confidence.score - b.confidence.score);
 }
 
+// ---------------- Données futures (lecture seule) ----------------
+
+/** Date du jour au fuseau Europe/Paris, au format ISO `YYYY-MM-DD`. */
+export function parisToday(now = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+/**
+ * Compte, parmi les lignes réellement en attente, celles dont la date de
+ * référence (année/mois de la ligne, ramenée au 1er du mois comme partout dans
+ * Pilot Pro) est postérieure à aujourd'hui. Aucune écriture, aucun filtrage
+ * de la file existante : indicateur d'information seulement.
+ */
+export function countFuturePending(
+  lines: Array<{ year: number; month: number }>,
+  now = new Date(),
+): number {
+  const today = parisToday(now);
+  return lines.filter(
+    (l) => `${l.year}-${String(l.month).padStart(2, "0")}-01` > today,
+  ).length;
+}
+
 export interface ValidationSummary {
   total: number;
   montant: number;
