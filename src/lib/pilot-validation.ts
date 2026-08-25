@@ -99,6 +99,35 @@ export function reasonsForLine(r: {
 
 const reasonsFor = (r: Raw): ValidationReason[] => reasonsForLine(r);
 
+/** Année/mois actuels au fuseau Europe/Paris. */
+function parisCurrentYearMonth(now = new Date()): { year: number; month: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(now);
+
+  return {
+    year: Number(parts.find((p) => p.type === "year")?.value),
+    month: Number(parts.find((p) => p.type === "month")?.value),
+  };
+}
+
+/**
+ * Indique si une ligne est future par rapport au mois courant.
+ * Une ligne du mois courant est éligible ; seuls les mois postérieurs sont
+ * considérés comme futurs.
+ */
+export function isFutureValidationLine(
+  year: number | null | undefined,
+  month: number | null | undefined,
+  now = new Date(),
+): boolean {
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return false;
+  const current = parisCurrentYearMonth(now);
+  return Number(year) > current.year || (Number(year) === current.year && Number(month) > current.month);
+}
+
 /** Lignes en attente d'une décision utilisateur. Lecture seule. */
 export async function listPendingValidation(limit = 500): Promise<PendingValidationLine[]> {
   const { data, error } = await supabase
@@ -112,6 +141,9 @@ export async function listPendingValidation(limit = 500): Promise<PendingValidat
     .limit(limit);
   if (error) throw error;
   return ((data ?? []) as unknown as Raw[])
+    // Une ligne future reste intacte en base et conserve son statut, mais elle
+    // n'est pas encore éligible à une décision humaine dans la file actuelle.
+    .filter((r) => !isFutureValidationLine(r.year, r.month))
     .map((r) => ({ ...r, amount_ht: Number(r.amount_ht) || 0, reasons: reasonsFor(r) }))
     .filter((r) => r.reasons.length > 0);
 }
