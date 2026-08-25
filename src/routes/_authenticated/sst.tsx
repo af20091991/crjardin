@@ -529,6 +529,36 @@ function MissionsTab() {
         </Dialog>
       </div>
 
+      {missionsWithoutClientCount > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+          <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>
+              <strong>{missionsWithoutClientCount}</strong> mission{missionsWithoutClientCount > 1 ? "s" : ""} sans client
+            </span>
+          </div>
+          {missingClientFilter ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 text-amber-800 hover:bg-amber-100 hover:text-amber-900 dark:text-amber-200 dark:hover:bg-amber-900/30 dark:hover:text-amber-100"
+              onClick={() => { setMissingClientFilter(false); setLimit(20); }}
+            >
+              <FilterX className="h-3.5 w-3.5" /> Annuler le filtre
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 border-amber-200 bg-white text-amber-800 hover:bg-amber-100 hover:text-amber-900 dark:border-amber-900/50 dark:bg-transparent dark:text-amber-200 dark:hover:bg-amber-900/30 dark:hover:text-amber-100"
+              onClick={() => { setMissingClientFilter(true); setLimit(20); }}
+            >
+              Filtrer ces missions
+            </Button>
+          )}
+        </div>
+      )}
+
       {ssts.length === 0 && (
         <Card>
           <CardContent className="py-6 text-center text-sm text-muted-foreground">
@@ -536,6 +566,7 @@ function MissionsTab() {
           </CardContent>
         </Card>
       )}
+
 
       {visibleMissions.length === 0 ? (
         <Card>
