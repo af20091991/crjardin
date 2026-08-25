@@ -30,7 +30,7 @@ import {
   type SubcontractorSummary,
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
-import { HardHat, Plus, Pencil, Trash2, Phone, Mail, MapPin, Euro, ClipboardList, Star, TrendingUp, TrendingDown, Search } from "lucide-react";
+import { HardHat, Plus, Pencil, Trash2, Phone, Mail, MapPin, Euro, ClipboardList, Star, TrendingUp, TrendingDown, Search, AlertTriangle, FilterX } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/sst")({
@@ -419,6 +419,8 @@ function MissionsTab() {
   const [sstFilter, setSstFilter] = useState("all");
   const [sort, setSort] = useState<"date_desc" | "date_asc" | "sst">("date_desc");
   const [limit, setLimit] = useState(20);
+  const [missingClientFilter, setMissingClientFilter] = useState(false);
+
 
   const sstById = new Map(ssts.map((s) => [s.id, s]));
   const clientById = new Map(clients.map((c) => [c.id, c]));
@@ -434,9 +436,11 @@ function MissionsTab() {
   });
 
   const needle = q.trim().toLowerCase();
+  const missionsWithoutClientCount = missions.filter((m) => !m.client_id).length;
   const filteredMissions = missions
     .filter((m) => (statusFilter === "all" ? true : m.status === statusFilter))
     .filter((m) => (sstFilter === "all" ? true : m.subcontractor_id === sstFilter))
+    .filter((m) => (missingClientFilter ? !m.client_id : true))
     .filter((m) =>
       needle
         ? [
@@ -459,6 +463,7 @@ function MissionsTab() {
       return sort === "date_asc" ? da - db : db - da;
     });
   const visibleMissions = filteredMissions.slice(0, limit);
+
 
   return (
     <div className="space-y-4">
@@ -524,6 +529,36 @@ function MissionsTab() {
         </Dialog>
       </div>
 
+      {missionsWithoutClientCount > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+          <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>
+              <strong>{missionsWithoutClientCount}</strong> mission{missionsWithoutClientCount > 1 ? "s" : ""} sans client
+            </span>
+          </div>
+          {missingClientFilter ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 text-amber-800 hover:bg-amber-100 hover:text-amber-900 dark:text-amber-200 dark:hover:bg-amber-900/30 dark:hover:text-amber-100"
+              onClick={() => { setMissingClientFilter(false); setLimit(20); }}
+            >
+              <FilterX className="h-3.5 w-3.5" /> Annuler le filtre
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 border-amber-200 bg-white text-amber-800 hover:bg-amber-100 hover:text-amber-900 dark:border-amber-900/50 dark:bg-transparent dark:text-amber-200 dark:hover:bg-amber-900/30 dark:hover:text-amber-100"
+              onClick={() => { setMissingClientFilter(true); setLimit(20); }}
+            >
+              Filtrer ces missions
+            </Button>
+          )}
+        </div>
+      )}
+
       {ssts.length === 0 && (
         <Card>
           <CardContent className="py-6 text-center text-sm text-muted-foreground">
@@ -531,6 +566,7 @@ function MissionsTab() {
           </CardContent>
         </Card>
       )}
+
 
       {visibleMissions.length === 0 ? (
         <Card>
