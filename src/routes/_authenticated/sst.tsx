@@ -419,6 +419,8 @@ function MissionsTab() {
   const [sstFilter, setSstFilter] = useState("all");
   const [sort, setSort] = useState<"date_desc" | "date_asc" | "sst">("date_desc");
   const [limit, setLimit] = useState(20);
+  const [missingClientFilter, setMissingClientFilter] = useState(false);
+
 
   const sstById = new Map(ssts.map((s) => [s.id, s]));
   const clientById = new Map(clients.map((c) => [c.id, c]));
