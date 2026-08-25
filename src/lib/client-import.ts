@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import type { ClientInput } from "@/lib/clients";
+import type { ClientInput, ClientType } from "@/lib/clients";
 
 const CIVILITIES = ["Madame", "Monsieur", "Madame et Monsieur"];
 
@@ -27,6 +27,7 @@ const FIELD_ALIASES: Record<ImportField, string[]> = {
   first_name: ["prenom", "firstname", "givenname", "forename"],
   last_name: ["nom", "nomdefamille", "nomfamille", "nomusage", "lastname", "surname", "familyname"],
   civility: ["civilite", "civility", "titre", "genre", "qualite"],
+  client_type: ["typedeclient", "typeclient", "clienttype", "type", "categorie", "segment", "statutclient"],
   address: ["adresse", "address", "adressepostale", "adressecomplete", "rue", "voie"],
   phone: ["telephone", "tel", "phone", "mobile", "portable", "numero", "numerodetelephone"],
   email: ["email", "mail", "courriel", "adresseemail", "adressemail", "emailaddress"],
@@ -43,6 +44,7 @@ const FIELD_PRIORITY: ImportField[] = [
   "first_name",
   "name",
   "contract_type",
+  "client_type",
   "frequency",
   "notes",
   "address",
@@ -70,6 +72,15 @@ function detectCivility(value: string): string {
   if (v.startsWith("mme") || v.includes("madame")) return "Madame";
   if (v.startsWith("mr") || v.startsWith("m") || v.includes("monsieur")) return "Monsieur";
   return CIVILITIES.includes(value) ? value : "";
+}
+
+function detectClientType(value: string): ClientType | null {
+  const v = norm(value);
+  if (!v) return null;
+  if (v.includes("professionnel") || v.includes("pro") || v.includes("entreprise") || v.includes("societe")) return "professionnel";
+  if (v.includes("residence") || v.includes("copropriete") || v.includes("syndic")) return "residence";
+  if (v.includes("particulier") || v.includes("individu") || v.includes("foyer")) return "particulier";
+  return null;
 }
 
 // Normalise a French phone number into a readable international-friendly format.
@@ -136,6 +147,7 @@ export async function parseClientsFile(file: File): Promise<ParsedClient[]> {
       phone: phoneRaw ? formatPhone(phoneRaw) : "",
       email: get("email"),
       contract_type: get("contract_type"),
+      client_type: detectClientType(get("client_type")),
       frequency: get("frequency"),
       notes: get("notes"),
     });
