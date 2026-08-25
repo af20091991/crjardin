@@ -30,7 +30,7 @@ import {
   type SubcontractorSummary,
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
-import { HardHat, Plus, Pencil, Trash2, Phone, Mail, MapPin, Euro, ClipboardList, Star, TrendingUp, TrendingDown, Search } from "lucide-react";
+import { HardHat, Plus, Pencil, Trash2, Phone, Mail, MapPin, Euro, ClipboardList, Star, TrendingUp, TrendingDown, Search, AlertTriangle, FilterX } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/sst")({
