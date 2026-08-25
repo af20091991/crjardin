@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Wand2, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { listPendingValidation, setValidation, type PendingValidationLine } from "@/lib/pilot-validation";
@@ -15,6 +14,7 @@ const euro = (n: number) =>
 export function ValidationPage() {
   const qc = useQueryClient();
   const autoStarted = useRef(false);
+  const [autoSummary, setAutoSummary] = useState<{ before: number; linked: number; validated: number } | null>(null);
   const { data: lines = [], isLoading } = useQuery({
     queryKey: ["pilot-validation"],
     queryFn: () => listPendingValidation(5000),
@@ -31,23 +31,27 @@ export function ValidationPage() {
   });
 
   const autoProcess = useMutation({
-    mutationFn: processCertainPendingValidation,
+    mutationFn: async () => {
+      const before = lines.length;
+      const result = await processCertainPendingValidation();
+      return { ...result, before };
+    },
     onSuccess: (result) => {
+      setAutoSummary({ before: result.before, linked: result.linked, validated: result.validated });
       refresh();
       if (result.linked > 0 || result.validated > 0) {
-        toast.success(`${result.linked} rapprochement(s) automatique(s) · ${result.validated} validation(s) automatique(s)`);
+        toast.success(`${result.linked} rapprochement(s) · ${result.validated} validation(s) automatiques`);
       }
     },
-    onError: (error: Error) => toast.error(`Rapprochement automatique impossible : ${error.message}`),
+    onError: (error: Error) => toast.error(`Traitement automatique impossible : ${error.message}`),
   });
 
-  // Dès l'ouverture du Centre, PP traite les cas certains. Le ref évite un double lancement.
   useEffect(() => {
-    if (!autoStarted.current) {
+    if (!autoStarted.current && !isLoading) {
       autoStarted.current = true;
       autoProcess.mutate();
     }
-  }, []);
+  }, [isLoading]);
 
   const stats = useMemo(() => {
     const financial = lines.filter((l) => l.kind === "vente" || l.kind === "charge");
@@ -69,33 +73,48 @@ export function ValidationPage() {
       </header>
 
       <Card>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4 py-4">
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <span><strong>{stats.total}</strong> à traiter</span>
-            <span><strong>{stats.financial}</strong> financiers</span>
-            <span><strong>{euro(stats.amount)}</strong></span>
-            {stats.clientsToConfirm > 0 && (
-              <span className="text-amber-700"><strong>{stats.clientsToConfirm}</strong> client(s) à rattacher</span>
-            )}
+        <CardContent className="py-5">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Il reste à décider</p>
+              <div className="mt-1 flex flex-wrap items-baseline gap-x-5 gap-y-1">
+                <span className="text-2xl font-semibold">{stats.total}</span>
+                <span className="text-sm text-muted-foreground">{stats.financial} financiers</span>
+                <span className="text-sm font-medium">{euro(stats.amount)}</span>
+              </div>
+            </div>
+            <Button onClick={() => autoProcess.mutate()} disabled={autoProcess.isPending} className="gap-2">
+              <Wand2 className="h-4 w-4" />
+              {autoProcess.isPending ? "PP travaille…" : "Traiter les cas certains"}
+            </Button>
           </div>
-          <Button onClick={() => autoProcess.mutate()} disabled={autoProcess.isPending} className="gap-2">
-            <Wand2 className="h-4 w-4" />
-            {autoProcess.isPending ? "Traitement…" : "Traiter les cas certains"}
-          </Button>
+
+          {autoSummary && (
+            <div className="mt-4 rounded-lg border bg-muted/30 px-4 py-3 text-sm">
+              <div className="font-medium">Dernier traitement automatique</div>
+              <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-muted-foreground">
+                <span><strong className="text-foreground">{autoSummary.before}</strong> au départ</span>
+                <span><strong className="text-foreground">{autoSummary.linked}</strong> rapprochés par PP</span>
+                <span><strong className="text-foreground">{autoSummary.validated}</strong> validés par PP</span>
+                <span><strong className="text-foreground">{stats.total}</strong> restent à décider</span>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Votre décision</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-5">
           {isLoading || autoProcess.isPending ? (
             <p className="py-10 text-center text-sm text-muted-foreground">PP vérifie les données certaines…</p>
           ) : lines.length === 0 ? (
             <div className="py-10 text-center">
-              <p className="font-medium">Tout est traité.</p>
-              <p className="mt-1 text-sm text-muted-foreground">Aucune donnée ne demande actuellement votre décision.</p>
+              <p className="font-medium">Aucune décision nécessaire.</p>
+              {autoSummary && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  PP a terminé son traitement : {autoSummary.linked} rapprochement(s) et {autoSummary.validated} validation(s) automatique(s).
+                </p>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -152,18 +171,16 @@ function ValidationRow({ line, busy, onValidate, onReview }: {
           <div className="text-xs text-muted-foreground">{line.kind === "vente" ? "Vente" : "Charge"}</div>
         </div>
       </TableCell>
-      <TableCell><Badge variant="outline">{clientState}</Badge></TableCell>
+      <TableCell>{clientState}</TableCell>
       <TableCell className="text-right tabular-nums">{euro(line.amount_ht)}</TableCell>
       <TableCell>
-        <div className="flex flex-wrap gap-1">
-          {line.reasons.map((reason) => (
-            <Badge key={reason} variant="secondary" className="text-xs">
-              {reason === "client_non_identifie" ? "Client à rattacher"
-                : reason === "charge_a_classer" ? "Charge à classer"
-                : reason === "categorie_incertaine" ? "Catégorie à confirmer"
-                : "Rémunération"}
-            </Badge>
-          ))}
+        <div className="text-sm text-muted-foreground">
+          {line.reasons.map((reason) =>
+            reason === "client_non_identifie" ? "Client à rattacher" :
+            reason === "charge_a_classer" ? "Charge à classer" :
+            reason === "categorie_incertaine" ? "Catégorie à confirmer" :
+            "Rémunération"
+          ).join(" · ")}
         </div>
       </TableCell>
       <TableCell>
