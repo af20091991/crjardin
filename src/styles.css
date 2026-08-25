@@ -921,14 +921,19 @@ html[data-nav-indicator="bar"] aside nav a[data-active="true"]::before {
   background: var(--color-primary);
 }
 
-/* 11 — Saturation des couleurs d'accent */
-html[data-accent-sat="soft"] {
+/* 11 — Saturation des couleurs d'accent.
+   Important : la variante est posée sur <body>, jamais sur <html>. Sur <html>,
+   `--accent: …var(--color-accent)…` créait un cycle (--color-accent = var(--accent)),
+   ce qui invalidait le jeton : les fonds de survol (options de menu, éléments
+   sélectionnés) devenaient transparents et leur texte clair devenait illisible. */
+html[data-accent-sat="soft"] body {
   --accent: color-mix(in oklab, var(--color-accent) 65%, var(--color-background));
 }
-html[data-accent-sat="vivid"] {
+html[data-accent-sat="vivid"] body {
   --accent: color-mix(in oklab, var(--color-accent) 100%, white 0%);
   --primary: color-mix(in oklab, var(--color-primary) 92%, black);
 }
+
 
 /* 12 — Teinte du mode sombre neutralisée */
 html[data-dark-tint="neutral"].dark {
