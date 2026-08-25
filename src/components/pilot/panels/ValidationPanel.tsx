@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Wand2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +12,9 @@ import { processCertainPendingValidation } from "@/lib/pilot-validation-auto";
 const euro = (n: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
-/** Centre réduit à une seule file d'action : une décision définitive en un clic. */
 export function ValidationPage() {
   const qc = useQueryClient();
+  const autoStarted = useRef(false);
   const { data: lines = [], isLoading } = useQuery({
     queryKey: ["pilot-validation"],
     queryFn: () => listPendingValidation(5000),
@@ -34,10 +34,20 @@ export function ValidationPage() {
     mutationFn: processCertainPendingValidation,
     onSuccess: (result) => {
       refresh();
-      toast.success(`${result.linked} rapprochement(s) effectué(s) · ${result.validated} validation(s) effectuée(s)`);
+      if (result.linked > 0 || result.validated > 0) {
+        toast.success(`${result.linked} rapprochement(s) automatique(s) · ${result.validated} validation(s) automatique(s)`);
+      }
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error(`Rapprochement automatique impossible : ${error.message}`),
   });
+
+  // Dès l'ouverture du Centre, PP traite les cas certains. Le ref évite un double lancement.
+  useEffect(() => {
+    if (!autoStarted.current) {
+      autoStarted.current = true;
+      autoProcess.mutate();
+    }
+  }, []);
 
   const stats = useMemo(() => {
     const financial = lines.filter((l) => l.kind === "vente" || l.kind === "charge");
@@ -54,7 +64,7 @@ export function ValidationPage() {
       <header>
         <h1 className="font-display text-2xl font-semibold">Centre de validation</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Une seule file. Un clic pour valider. Un clic pour mettre à revoir.
+          PP règle automatiquement les cas certains. Vous intervenez uniquement lorsque votre décision est nécessaire.
         </p>
       </header>
 
@@ -70,22 +80,22 @@ export function ValidationPage() {
           </div>
           <Button onClick={() => autoProcess.mutate()} disabled={autoProcess.isPending} className="gap-2">
             <Wand2 className="h-4 w-4" />
-            {autoProcess.isPending ? "Traitement…" : "Faire les rapprochements sûrs"}
+            {autoProcess.isPending ? "Traitement…" : "Traiter les cas certains"}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">À décider</CardTitle>
+          <CardTitle className="text-base">Votre décision</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Chargement…</p>
+          {isLoading || autoProcess.isPending ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">PP vérifie les données certaines…</p>
           ) : lines.length === 0 ? (
             <div className="py-10 text-center">
               <p className="font-medium">Tout est traité.</p>
-              <p className="mt-1 text-sm text-muted-foreground">Aucune donnée ne demande actuellement une décision.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Aucune donnée ne demande actuellement votre décision.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
