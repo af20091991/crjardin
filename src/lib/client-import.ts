@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import type { ClientInput } from "@/lib/clients";
+import type { ClientInput, ClientType } from "@/lib/clients";
 
 const CIVILITIES = ["Madame", "Monsieur", "Madame et Monsieur"];
 
@@ -72,6 +72,15 @@ function detectCivility(value: string): string {
   if (v.startsWith("mme") || v.includes("madame")) return "Madame";
   if (v.startsWith("mr") || v.startsWith("m") || v.includes("monsieur")) return "Monsieur";
   return CIVILITIES.includes(value) ? value : "";
+}
+
+function detectClientType(value: string): ClientType | null {
+  const v = norm(value);
+  if (!v) return null;
+  if (v.includes("professionnel") || v.includes("pro") || v.includes("entreprise") || v.includes("societe")) return "professionnel";
+  if (v.includes("residence") || v.includes("copropriete") || v.includes("syndic")) return "residence";
+  if (v.includes("particulier") || v.includes("individu") || v.includes("foyer")) return "particulier";
+  return null;
 }
 
 // Normalise a French phone number into a readable international-friendly format.
