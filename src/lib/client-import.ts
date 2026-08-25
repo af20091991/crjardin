@@ -44,6 +44,7 @@ const FIELD_PRIORITY: ImportField[] = [
   "first_name",
   "name",
   "contract_type",
+  "client_type",
   "frequency",
   "notes",
   "address",
@@ -137,6 +138,7 @@ export async function parseClientsFile(file: File): Promise<ParsedClient[]> {
       phone: phoneRaw ? formatPhone(phoneRaw) : "",
       email: get("email"),
       contract_type: get("contract_type"),
+      client_type: detectClientType(get("client_type")),
       frequency: get("frequency"),
       notes: get("notes"),
     });
