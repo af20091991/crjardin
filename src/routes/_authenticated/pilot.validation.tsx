@@ -1,5 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
+import { ValidationAutoRunner } from "@/components/pilot/ValidationAutoRunner";
+
+function ValidationRoute() {
+  return (
+    <>
+      <ValidationAutoRunner />
+      <ValidationPage />
+    </>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/pilot/validation")({
   head: () => ({
@@ -19,5 +29,5 @@ export const Route = createFileRoute("/_authenticated/pilot/validation")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: ValidationPage,
+  component: ValidationRoute,
 });
