@@ -40,6 +40,7 @@ import { applySstLabelMap, listSstLabelMap } from "@/lib/sst-provider-map";
 import { CONFIDENCE_META } from "@/lib/pilot-confidence";
 import {
   buildValidationItems,
+  countFuturePending,
   DOMAIN_LABELS,
   loadCategoryMemory,
   memorySuggestion,
@@ -94,6 +95,8 @@ export function ValidationPage() {
   );
   const analysed = chargeRows.length + contracts.length + sstLines.length;
   const summary = useMemo(() => validationSummary(items, Math.max(analysed, items.length)), [items, analysed]);
+
+  const futurePending = useMemo(() => countFuturePending(lines), [lines]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["pilot-validation"] });
 
@@ -197,7 +200,7 @@ export function ValidationPage() {
         </p>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <PilotCard
           storageId="valid-count"
           label="Éléments à traiter"
@@ -224,6 +227,17 @@ export function ValidationPage() {
             sources: ["Moteur de confiance Pilot Pro"],
             calcul:
               "Part des éléments analysés ne nécessitant aucune décision. Fiable ≥ 95 %, à vérifier 70-94 %, incertain < 70 %.",
+          }}
+        />
+        <PilotCard
+          storageId="valid-future"
+          label="Données futures non éligibles"
+          value={String(futurePending)}
+          sub="date de référence postérieure à aujourd'hui (Europe/Paris)"
+          audit={{
+            sources: ["Lignes financières en attente (listPendingValidation)"],
+            calcul:
+              "Lignes en attente dont l'année/mois est postérieur au jour courant. Lecture seule : aucun statut modifié.",
           }}
         />
         <PilotCard storageId="valid-review" label="Marquées à revoir" value={String(totals.toReview)} tone="negative" />
