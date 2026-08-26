@@ -47,6 +47,11 @@ export function clientEmails(client: { email?: string | null; emails?: string[] 
   return Array.from(new Set(list));
 }
 
+/** Libellé du jardin/site utilisé dans les comptes-rendus client. */
+export function gardenLabel(client: { name?: string | null }): string {
+  return client.name?.trim() || "Jardin";
+}
+
 export async function listClients(): Promise<Client[]> {
   const { data, error } = await supabase.from("clients").select("*").is("merged_into_client_id", null).order("name", { ascending: true });
   if (error) throw error;
