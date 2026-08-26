@@ -5,17 +5,24 @@ export function registerPwa() {
   if (typeof window === "undefined") return;
 
   const cleanupFlag = "cr-pro-pwa-cache-cleaned-v1";
-  let unregisteredServiceWorker = false;
+  const shouldReloadOnce = () => {
+    if (sessionStorage.getItem(cleanupFlag)) return false;
+    sessionStorage.setItem(cleanupFlag, "1");
+    return true;
+  };
+  const isAppCache = (name: string) =>
+    name === "html-cache" ||
+    name === "asset-cache" ||
+    /(^|-)precache-v\d+-|(^|-)runtime-|(^|-)googleAnalytics-/.test(name);
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker
       .getRegistrations()
       .then(async (registrations) => {
-        unregisteredServiceWorker = registrations.length > 0;
-        await Promise.all(registrations.map((registration) => registration.unregister()));
+        await Promise.allSettled(registrations.map((registration) => registration.update()));
+        await Promise.allSettled(registrations.map((registration) => registration.unregister()));
 
-        if (navigator.serviceWorker.controller && !sessionStorage.getItem(cleanupFlag)) {
-          sessionStorage.setItem(cleanupFlag, "1");
+        if ((registrations.length > 0 || navigator.serviceWorker.controller) && shouldReloadOnce()) {
           window.location.reload();
         }
       })
@@ -25,13 +32,7 @@ export function registerPwa() {
   if ("caches" in window) {
     caches
       .keys()
-      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
-      .then(() => {
-        if (unregisteredServiceWorker && !sessionStorage.getItem(cleanupFlag)) {
-          sessionStorage.setItem(cleanupFlag, "1");
-          window.location.reload();
-        }
-      })
+      .then((keys) => Promise.allSettled(keys.filter(isAppCache).map((key) => caches.delete(key))))
       .catch(() => undefined);
   }
 }

@@ -34,6 +34,8 @@ const FIELD_ALIASES: Record<ImportField, string[]> = {
   contract_type: ["typedecontrat", "contrat", "typecontrat", "contracttype"],
   frequency: ["frequence", "frequency", "rythme"],
   notes: ["notes", "observations", "remarques", "commentaires", "note"],
+  cr_notes: ["notescr", "notecr", "compterendu", "commentairecr", "consignescr"],
+  ceev_enabled: ["ceev", "contratceev", "ceevenabled", "eligibiliteceev"],
 };
 
 const FIELD_PRIORITY: ImportField[] = [
@@ -47,6 +49,8 @@ const FIELD_PRIORITY: ImportField[] = [
   "client_type",
   "frequency",
   "notes",
+  "cr_notes",
+  "ceev_enabled",
   "address",
 ];
 
