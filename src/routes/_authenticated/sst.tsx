@@ -17,7 +17,7 @@ function SstPage() {
           <Button asChild variant="outline" size="sm">
             <Link to="/journal-sst">
               <ClipboardList className="mr-2 h-4 w-4" />
-              Gérer les missions et le carnet SST
+              Liste des SST
             </Link>
           </Button>
         </div>
