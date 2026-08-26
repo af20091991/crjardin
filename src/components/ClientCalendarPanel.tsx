@@ -4,10 +4,12 @@ import { CalendarDays, ExternalLink, FileText, Loader2, Trash2, Upload } from "l
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { deleteCeevPlanning, getCeevPlanningUrl, uploadCeevPlanning } from "@/lib/client-portal.functions";
+import { createCeevPlanningUpload, deleteCeevPlanning, finalizeCeevPlanningUpload, getCeevPlanningUrl } from "@/lib/client-portal.functions";
+import { supabase } from "@/integrations/supabase/client";
 import type { Client } from "@/lib/clients";
 
 const MAX_BYTES = 15 * 1024 * 1024;
+const BUCKET = "client-plannings";
 
 export function ClientCalendarPanel({ client, canEdit }: { client: Client; canEdit: boolean }) {
   const qc = useQueryClient();
@@ -28,19 +30,16 @@ export function ClientCalendarPanel({ client, canEdit }: { client: Client; canEd
       toast.error("Le calendrier doit être un PDF");
       return;
     }
-    if (file.size > MAX_BYTES) {
+    if (file.size <= 0 || file.size > MAX_BYTES) {
       toast.error("Le PDF ne doit pas dépasser 15 Mo");
       return;
     }
     setBusy(true);
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-        reader.onerror = () => reject(new Error("Lecture du fichier impossible"));
-        reader.readAsDataURL(file);
-      });
-      await uploadCeevPlanning({ data: { clientId: client.id, filename: file.name, contentBase64: base64 } });
+      const target = await createCeevPlanningUpload({ data: { clientId: client.id, filename: file.name, size: file.size } });
+      const { error: uploadError } = await supabase.storage.from(BUCKET).uploadToSignedUrl(target.path, target.token, file);
+      if (uploadError) throw new Error(`Import du PDF impossible : ${uploadError.message}`);
+      await finalizeCeevPlanningUpload({ data: { clientId: client.id, path: target.path, filename: file.name, size: file.size } });
       await qc.invalidateQueries({ queryKey: ["client", client.id] });
       await qc.invalidateQueries({ queryKey: ["client-calendar-url", client.id] });
       toast.success("Calendrier enregistré");
