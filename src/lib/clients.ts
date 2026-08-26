@@ -93,13 +93,44 @@ export async function getClient(id: string): Promise<Client> {
 export async function createClient(input: ClientInput): Promise<Client> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error("Non authentifié");
-  const { data, error } = await supabase.from("clients").insert({ ...input, user_id: auth.user.id } as never).select().single();
+  const payload = { ...input, user_id: auth.user.id };
+  const { data, error } = await supabase.from("clients").insert(payload as never).select().single();
   if (error) throw error;
   return data as unknown as Client;
 }
 
+/**
+ * Update a client while remaining compatible with databases that have not yet
+ * received every optional migration. We first try the complete payload. If
+ * PostgREST reports an unknown column, retry once without the optional fields
+ * introduced by later features. This keeps basic client editing functional
+ * while the database catches up, instead of displaying a generic "Erreur".
+ */
 export async function updateClient(id: string, input: ClientInput): Promise<Client> {
-  const { data, error } = await supabase.from("clients").update(input as never).eq("id", id).select().single();
+  const primary = { ...input } as Record<string, unknown>;
+  if (Array.isArray(primary.emails)) {
+    primary.email = primary.email ?? primary.emails[0] ?? null;
+  }
+
+  let { data, error } = await supabase.from("clients").update(primary as never).eq("id", id).select().single();
+  if (!error) return data as unknown as Client;
+
+  const optionalFields = [
+    "emails",
+    "cr_notes",
+    "ceev_enabled",
+    "ceev_planning_path",
+    "ceev_planning_filename",
+    "ceev_planning_updated_at",
+    "client_type",
+  ];
+  const message = `${error.code ?? ""} ${error.message ?? ""}`.toLowerCase();
+  const schemaError = error.code === "PGRST204" || error.code === "42703" || message.includes("column") || message.includes("schema cache");
+  if (!schemaError) throw error;
+
+  const fallback = { ...primary };
+  for (const field of optionalFields) delete fallback[field];
+  ({ data, error } = await supabase.from("clients").update(fallback as never).eq("id", id).select().single());
   if (error) throw error;
   return data as unknown as Client;
 }
