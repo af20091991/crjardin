@@ -1323,7 +1323,7 @@ function RentabilityEstimateBlock({
           {confLabel}
         </Badge>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2">
         <div className="rounded border bg-background/60 p-2">
           <div className="text-[11px] text-muted-foreground">Temps réel</div>
           <div className="text-base font-semibold tabular-nums">
@@ -1331,16 +1331,6 @@ function RentabilityEstimateBlock({
           </div>
           <div className="text-[10px] text-muted-foreground">
             {actualHours != null && actualHours > 0 ? (estimated ? "estimé auto" : "confirmé") : "à renseigner"}
-          </div>
-        </div>
-        <div className="rounded border bg-background/60 p-2">
-          <div className="text-[11px] text-muted-foreground">Écart</div>
-          <div className="flex items-baseline gap-1 text-base font-semibold tabular-nums" style={{ color: toneColor }}>
-            <TrendIcon className="h-3.5 w-3.5" />
-            {delta !== null ? `${delta >= 0 ? "+" : ""}${delta.toFixed(2)} h` : "—"}
-          </div>
-          <div className="text-[10px] text-muted-foreground">
-            {deltaPct !== null ? `${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(0)}% vs prévu` : "—"}
           </div>
         </div>
         <div className="rounded border bg-background/60 p-2">
