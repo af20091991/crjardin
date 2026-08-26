@@ -1,32 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
-
-function admin() {
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-const BUCKET = "client-plannings";
-const MAX_BYTES = 15 * 1024 * 1024;
-
-function validateId(id: string) {
-  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Client invalide");
-}
-
-async function ensurePlanningBucket(db: ReturnType<typeof admin>) {
-  const { data: buckets, error } = await db.storage.listBuckets();
-  if (error) throw new Error(`Stockage calendrier inaccessible : ${error.message}`);
-  if (buckets?.some((b) => b.id === BUCKET)) return;
-  const { error: createError } = await db.storage.createBucket(BUCKET, {
-    public: false,
-    fileSizeLimit: `${MAX_BYTES}`,
-    allowedMimeTypes: ["application/pdf"],
-  });
-  if (createError && !/already exists|duplicate/i.test(createError.message)) {
-    throw new Error(`Création du stockage calendrier impossible : ${createError.message}`);
-  }
-}
+import { PLANNING_MAX_BYTES as MAX_BYTES, validateClientId as validateId } from "./client-portal-validation";
 
 export const createOrUpdateClient = createServerFn({ method: "POST" })
   .inputValidator((data: { mode: "create" | "update"; id?: string; userId?: string; payload: Record<string, unknown> }) => {
@@ -36,6 +9,7 @@ export const createOrUpdateClient = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }) => {
+    const { admin } = await import("./client-portal.server");
     const db = admin();
     const result = data.mode === "create"
       ? await db.from("clients").insert({ ...data.payload, id: data.id ?? crypto.randomUUID(), user_id: data.userId }).select().single()
@@ -52,6 +26,7 @@ export const createCeevPlanningUpload = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }) => {
+    const { admin, ensurePlanningBucket, BUCKET } = await import("./client-portal.server");
     const db = admin();
     const { data: client, error } = await db.from("clients").select("id").eq("id", data.clientId).single();
     if (error || !client) throw new Error("Client introuvable");
@@ -71,6 +46,7 @@ export const finalizeCeevPlanningUpload = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }) => {
+    const { admin, BUCKET } = await import("./client-portal.server");
     const db = admin();
     const { data: client, error } = await db.from("clients").select("id,ceev_planning_path").eq("id", data.clientId).single();
     if (error || !client) throw new Error("Client introuvable");
@@ -91,7 +67,6 @@ export const finalizeCeevPlanningUpload = createServerFn({ method: "POST" })
     return { path: data.path, filename: data.filename };
   });
 
-/** Compatibility for older callers. New UI uploads directly to Storage via the signed-upload flow above. */
 export const uploadCeevPlanning = createServerFn({ method: "POST" })
   .inputValidator((data: { clientId: string; filename: string; contentBase64: string }) => {
     validateId(data.clientId);
@@ -100,6 +75,7 @@ export const uploadCeevPlanning = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }) => {
+    const { admin, ensurePlanningBucket, BUCKET } = await import("./client-portal.server");
     const bytes = Buffer.from(data.contentBase64, "base64");
     if (!bytes.length || bytes.length > MAX_BYTES) throw new Error("PDF invalide ou supérieur à 15 Mo");
     const db = admin();
@@ -118,6 +94,7 @@ export const uploadCeevPlanning = createServerFn({ method: "POST" })
 export const deleteCeevPlanning = createServerFn({ method: "POST" })
   .inputValidator((data: { clientId: string }) => { validateId(data.clientId); return data; })
   .handler(async ({ data }) => {
+    const { admin, BUCKET } = await import("./client-portal.server");
     const db = admin();
     const { data: client, error } = await db.from("clients").select("ceev_planning_path").eq("id", data.clientId).single();
     if (error) throw error;
@@ -130,6 +107,7 @@ export const deleteCeevPlanning = createServerFn({ method: "POST" })
 export const getCeevPlanningUrl = createServerFn({ method: "POST" })
   .inputValidator((data: { token: string }) => { if (!data?.token) throw new Error("Lien invalide"); return data; })
   .handler(async ({ data }) => {
+    const { admin, BUCKET } = await import("./client-portal.server");
     const db = admin();
     const { data: client, error } = await db.from("clients").select("ceev_enabled,ceev_planning_path").eq("share_token", data.token).single();
     if (error || !client?.ceev_enabled || !client.ceev_planning_path) throw new Error("Aucun calendrier disponible");
