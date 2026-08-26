@@ -876,11 +876,7 @@ function InterventionDetail() {
             <div className="flex items-center justify-between">
               <h3 className="font-serif text-lg font-semibold">Photos</h3>
               <div className="flex gap-2">
-                <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => handleFiles(e.target.files)} />
                 <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
-                <Button size="sm" variant="outline" disabled={uploading} onClick={() => cameraRef.current?.click()}>
-                  <Camera className="mr-1.5 h-4 w-4" />Photo
-                </Button>
                 <Button size="sm" variant="outline" disabled={uploading} onClick={() => fileRef.current?.click()}>
                   {uploading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1.5 h-4 w-4" />}Importer
                 </Button>
