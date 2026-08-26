@@ -1,17 +1,9 @@
 // ---------------------------------------------------------------------------
 // RÈGLE DE COMPTABILISATION « FACTURÉ / RÉGLÉ » (pastilles de la page Ventes)
 //
-// Le statut d'une ligne de vente ne décide pas D'OÙ vient la donnée
-// (la source reste Chiffre d'affaires → Ventes), mais QUAND elle entre
-// dans les périmètres :
-//
-//   planifie   (gris)   → aucune heure, aucun CA
-//   realise    (orange) → Temps comptabilisé, CA NON comptabilisé
-//   regle      (vert)   → Temps conservé + CA comptabilisé
-//   particulier         → cas dérogatoire : Temps et CA comptabilisés
-//
-// Deux déclencheurs distincts : ne jamais appliquer le même filtre de statut
-// aux heures et au CA.
+// La période et le statut sont deux choses différentes :
+// - la période dit QUAND regarder les lignes ;
+// - le statut dit SI le CA est réellement comptabilisé.
 // ---------------------------------------------------------------------------
 
 export type SaleAccountingStatus = "planifie" | "realise" | "regle" | "particulier";
@@ -19,14 +11,10 @@ export type SaleAccountingStatus = "planifie" | "realise" | "regle" | "particuli
 /** Statut effectif d'une ligne (défaut historique : `realise` = facturé). */
 export function saleStatusOf(value: string | null | undefined): SaleAccountingStatus {
   switch (value) {
-    case "planifie":
-      return "planifie";
-    case "regle":
-      return "regle";
-    case "particulier":
-      return "particulier";
-    default:
-      return "realise";
+    case "planifie": return "planifie";
+    case "regle": return "regle";
+    case "particulier": return "particulier";
+    default: return "realise";
   }
 }
 
@@ -35,31 +23,26 @@ export function hoursCounted(status: string | null | undefined): boolean {
   return saleStatusOf(status) !== "planifie";
 }
 
-/**
- * Périmètre temporel demandé par l'écran. Type structurel volontaire : évite
- * un cycle d'imports avec `pilot-realized.ts`.
- */
+/** Périmètre temporel demandé par l'écran. */
 export interface SaleAccountingScope {
   period?: "a_date" | "exercice_complet" | (string & {});
 }
 
-/** Vrai en lecture « Exercice complet » : toutes les données saisies comptent. */
-export function countsAllSaleStatuses(scope?: SaleAccountingScope): boolean {
-  return scope?.period === "exercice_complet";
+/** Conservé pour compatibilité avec les anciens appelants. */
+export function countsAllSaleStatuses(_scope?: SaleAccountingScope): boolean {
+  return false;
 }
 
 /**
- * Le CA HT de la ligne entre-t-il dans le CA ?
- *  - `a_date` (défaut) : uniquement à partir de 🟢 Réglé (+ particulier) ;
- *  - `exercice_complet` : TOUS les statuts saisis (planifié, facturé, réglé,
- *    particulier), car la lecture porte sur l'intégralité de l'exercice.
- * Fonction unique faisant autorité pour tout Pilot Pro.
+ * Le CA HT est comptabilisé uniquement lorsqu'il est réellement réglé.
+ * « Exercice complet » signifie « toute la période », pas « inclure les
+ * ventes planifiées ou simplement facturées ». Une projection doit rester
+ * séparée du réalisé.
  */
 export function revenueCounted(
   status: string | null | undefined,
-  scope?: SaleAccountingScope,
+  _scope?: SaleAccountingScope,
 ): boolean {
-  if (countsAllSaleStatuses(scope)) return true;
   const s = saleStatusOf(status);
   return s === "regle" || s === "particulier";
 }
@@ -70,10 +53,6 @@ export interface RawSaleRow {
   sale_status?: string | null;
 }
 
-/**
- * Applique la règle de comptabilisation à une ligne brute :
- * renvoie le CA et le Temps réellement comptabilisables.
- */
 export function accountedSale<T extends RawSaleRow>(
   row: T,
   scope?: SaleAccountingScope,
