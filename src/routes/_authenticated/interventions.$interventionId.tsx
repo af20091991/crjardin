@@ -40,7 +40,7 @@ import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
 import { archiveInterventionReport, listReportHistory, signedReportUrl, logReportEvent, REPORT_EVENT_LABEL, withVersions } from "@/lib/report-history";
-import { listWorksiteSheetsByClient, getWorksiteSheet } from "@/lib/worksite";
+import { getWorksiteSheet } from "@/lib/worksite";
 import { InterventionReportPreview } from "@/components/InterventionReportPreview";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { getEmailSettings, fillTemplate } from "@/lib/email-settings";
@@ -64,9 +64,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
+  ArrowLeft, Plus, Trash2, Loader2, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
   FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download, ArrowUp, ArrowDown, Settings2,
-  Clock, AlertTriangle, Gauge, TrendingUp, TrendingDown, Minus,
+  Clock, AlertTriangle, Gauge,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -103,11 +103,6 @@ function InterventionDetail() {
   });
   const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
-  const { data: worksiteOptions } = useQuery({
-    queryKey: ["worksite-sheets-by-client", iv?.client_id],
-    queryFn: () => listWorksiteSheetsByClient(iv!.client_id),
-    enabled: !!iv?.client_id,
-  });
   const { data: worksite } = useQuery({
     queryKey: ["worksite-sheet", iv?.worksite_sheet_id],
     queryFn: () => getWorksiteSheet(iv!.worksite_sheet_id!),
@@ -148,8 +143,6 @@ function InterventionDetail() {
   }, [iv?.id, iv?.hours_spent]);
 
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const changeClient = useMutation({
     mutationFn: (clientId: string) => updateIntervention(interventionId, { client_id: clientId }),
@@ -162,12 +155,6 @@ function InterventionDetail() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
-  const changeWorksite = useMutation({
-    mutationFn: (worksiteId: string | null) =>
-      updateIntervention(interventionId, { worksite_sheet_id: worksiteId }),
-    onSuccess: () => { invIv(); toast.success("Fiche jardin liée"); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
-  });
 
   const setStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: TaskStatus }) => updateTask(id, { status }),
@@ -555,31 +542,6 @@ function InterventionDetail() {
                 </Select>
               </div>
             )}
-            {client && (
-              <div className="mb-4 space-y-1.5">
-                <Label>Fiche jardin</Label>
-                <Select
-                  value={iv.worksite_sheet_id ?? "__none__"}
-                  onValueChange={(v) => changeWorksite.mutate(v === "__none__" ? null : v)}
-                  disabled={changeWorksite.isPending}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Aucune fiche jardin liée" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— Aucune —</SelectItem>
-                    {(worksiteOptions ?? []).map((w) => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {w.client_name || "Jardin"}{w.intervention_date ? ` · ${new Date(w.intervention_date).toLocaleDateString("fr-FR")}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {(worksiteOptions?.length ?? 0) === 0 && (
-                  <p className="text-xs text-muted-foreground">Aucune fiche jardin n'existe pour ce client.</p>
-                )}
-              </div>
-            )}
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-serif text-xl font-semibold">{iv.title ?? iv.intervention_type ?? "Intervention"}</h2>
@@ -820,7 +782,7 @@ function InterventionDetail() {
                           <SelectValue placeholder="Rattacher au catalogue…" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="__none__">— Non catalogué —</SelectItem>
+                          
                           {(serviceCatalog ?? []).map((s) => (
                             <SelectItem key={s.id} value={s.id}>
                               {s.label}
@@ -914,11 +876,7 @@ function InterventionDetail() {
             <div className="flex items-center justify-between">
               <h3 className="font-serif text-lg font-semibold">Photos</h3>
               <div className="flex gap-2">
-                <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => handleFiles(e.target.files)} />
                 <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
-                <Button size="sm" variant="outline" disabled={uploading} onClick={() => cameraRef.current?.click()}>
-                  <Camera className="mr-1.5 h-4 w-4" />Photo
-                </Button>
                 <Button size="sm" variant="outline" disabled={uploading} onClick={() => fileRef.current?.click()}>
                   {uploading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1.5 h-4 w-4" />}Importer
                 </Button>
@@ -1341,15 +1299,10 @@ function RentabilityEstimateBlock({
 }) {
   if (!plannedHours && !actualHours) return null;
   const hasBoth = plannedHours != null && actualHours != null && actualHours > 0;
-  const delta = hasBoth ? (actualHours as number) - (plannedHours as number) : null;
-  const deltaPct = hasBoth && (plannedHours as number) > 0 ? (delta! / (plannedHours as number)) * 100 : null;
   const valueProduced = hasBoth && targetHourlyRate > 0 ? (plannedHours as number) * targetHourlyRate : null;
   const realCost = hasBoth && targetHourlyRate > 0 ? (actualHours as number) * targetHourlyRate : null;
   const marginDelta = valueProduced !== null && realCost !== null ? valueProduced - realCost : null;
 
-  const tone = delta === null ? "neutral" : delta <= 0 ? "positive" : delta / (plannedHours as number) > 0.2 ? "negative" : "warning";
-  const toneColor = { positive: "var(--primary)", warning: "var(--pp-mid)", negative: "var(--pp-charges)", neutral: "var(--pp-neutral)" }[tone];
-  const TrendIcon = delta === null ? Minus : delta < 0 ? TrendingDown : delta > 0 ? TrendingUp : Minus;
   const confidence: "HIGH" | "MEDIUM" | "LOW" = !hasBoth ? "LOW" : estimated ? "MEDIUM" : "HIGH";
   const confLabel = { HIGH: "Fiable", MEDIUM: "Estimé", LOW: "Incomplet" }[confidence];
   const confColor = { HIGH: "var(--primary)", MEDIUM: "var(--pp-mid)", LOW: "var(--pp-neutral)" }[confidence];
@@ -1366,7 +1319,7 @@ function RentabilityEstimateBlock({
           {confLabel}
         </Badge>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2">
         <div className="rounded border bg-background/60 p-2">
           <div className="text-[11px] text-muted-foreground">Temps réel</div>
           <div className="text-base font-semibold tabular-nums">
@@ -1374,16 +1327,6 @@ function RentabilityEstimateBlock({
           </div>
           <div className="text-[10px] text-muted-foreground">
             {actualHours != null && actualHours > 0 ? (estimated ? "estimé auto" : "confirmé") : "à renseigner"}
-          </div>
-        </div>
-        <div className="rounded border bg-background/60 p-2">
-          <div className="text-[11px] text-muted-foreground">Écart</div>
-          <div className="flex items-baseline gap-1 text-base font-semibold tabular-nums" style={{ color: toneColor }}>
-            <TrendIcon className="h-3.5 w-3.5" />
-            {delta !== null ? `${delta >= 0 ? "+" : ""}${delta.toFixed(2)} h` : "—"}
-          </div>
-          <div className="text-[10px] text-muted-foreground">
-            {deltaPct !== null ? `${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(0)}% vs prévu` : "—"}
           </div>
         </div>
         <div className="rounded border bg-background/60 p-2">
