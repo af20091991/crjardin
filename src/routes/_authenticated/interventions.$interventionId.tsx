@@ -64,7 +64,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  ArrowLeft, Plus, Trash2, Loader2, Camera, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
+  ArrowLeft, Plus, Trash2, Loader2, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
   FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download, ArrowUp, ArrowDown, Settings2,
   Clock, AlertTriangle, Gauge, TrendingUp, TrendingDown, Minus,
 } from "lucide-react";
