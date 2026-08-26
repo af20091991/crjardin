@@ -35,6 +35,11 @@ export interface Client {
   contract_type: string | null;
   frequency: string | null;
   notes: string | null;
+  cr_notes: string | null;
+  ceev_enabled: boolean;
+  ceev_planning_path: string | null;
+  ceev_planning_filename: string | null;
+  ceev_planning_updated_at: string | null;
   report_policy: ReportPolicy;
   lifecycle_status: ClientLifecycle;
   lost_at: string | null;
@@ -56,6 +61,8 @@ export type ClientInput = {
   contract_type?: string | null;
   frequency?: string | null;
   notes?: string | null;
+  cr_notes?: string | null;
+  ceev_enabled?: boolean;
   report_policy?: ReportPolicy;
   lifecycle_status?: ClientLifecycle;
   lost_at?: string | null;
