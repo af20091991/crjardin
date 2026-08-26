@@ -1,10 +1,136 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
-function admin(){return createClient(process.env.SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false,autoRefreshToken:false}})}
-const BUCKET="client-plannings";
-function validateId(id:string){if(!id||!/^[0-9a-f-]{36}$/i.test(id))throw new Error("Client invalide")}
-export const createOrUpdateClient=createServerFn({method:"POST"}).inputValidator((data:{mode:"create"|"update";id?:string;userId?:string;payload:Record<string,unknown>})=>{if(data.mode==="update")validateId(data.id!);if(data.mode==="create"&&!data.userId)throw new Error("Utilisateur invalide");if(!data.payload?.name||typeof data.payload.name!=="string")throw new Error("Le nom du client est requis");return data}).handler(async({data})=>{const db=admin();const base={...data.payload};const optional=["client_type","emails","cr_notes","ceev_enabled","ceev_planning_path","ceev_planning_filename","ceev_planning_updated_at","report_policy","lifecycle_status","lost_at"];const attempt=async(p:Record<string,unknown>)=>data.mode==="create"?db.from("clients").insert({...p,id:data.id??crypto.randomUUID(),user_id:data.userId}).select().single():db.from("clients").update(p).eq("id",data.id!).select().single();let payload={...base};let result=await attempt(payload);if(result.error){for(const key of optional){if(!(key in payload))continue;delete payload[key];result=await attempt(payload);if(!result.error)break;}}if(result.error)throw new Error(`Enregistrement client impossible : ${result.error.message}`);return result.data});
-async function ensurePlanningBucket(db:ReturnType<typeof admin>){const{data:buckets,error}=await db.storage.listBuckets();if(error)throw new Error(`Stockage calendrier inaccessible : ${error.message}`);if(buckets?.some(b=>b.id===BUCKET))return;const{error:e}=await db.storage.createBucket(BUCKET,{public:false,fileSizeLimit:"15728640",allowedMimeTypes:["application/pdf"]});if(e&&!/already exists|duplicate/i.test(e.message))throw new Error(`Création du stockage calendrier impossible : ${e.message}`)}
-export const uploadCeevPlanning=createServerFn({method:"POST"}).inputValidator((data:{clientId:string;filename:string;contentBase64:string})=>{validateId(data.clientId);if(!data.filename?.toLowerCase().endsWith(".pdf"))throw new Error("Le calendrier doit être un PDF");if(!data.contentBase64)throw new Error("Fichier vide");return data}).handler(async({data})=>{const db=admin();const{data:client,error}=await db.from("clients").select("id,ceev_planning_path").eq("id",data.clientId).single();if(error)throw new Error(`Client introuvable : ${error.message}`);const bytes=Buffer.from(data.contentBase64,"base64");if(!bytes.length||bytes.length>15*1024*1024)throw new Error("PDF invalide ou supérieur à 15 Mo");await ensurePlanningBucket(db);const path=`${data.clientId}/planning-${Date.now()}.pdf`;const{error:up}=await db.storage.from(BUCKET).upload(path,bytes,{contentType:"application/pdf",upsert:false});if(up)throw new Error(`Import PDF impossible : ${up.message}`);const{error:save}=await db.from("clients").update({ceev_enabled:true,ceev_planning_path:path,ceev_planning_filename:data.filename,ceev_planning_updated_at:new Date().toISOString()}).eq("id",data.clientId);if(save){await db.storage.from(BUCKET).remove([path]);throw new Error(`PDF importé mais association impossible : ${save.message}`)}if(client.ceev_planning_path)await db.storage.from(BUCKET).remove([client.ceev_planning_path]);return{path,filename:data.filename}});
-export const deleteCeevPlanning=createServerFn({method:"POST"}).inputValidator((data:{clientId:string})=>{validateId(data.clientId);return data}).handler(async({data})=>{const db=admin();const{data:client,error}=await db.from("clients").select("ceev_planning_path").eq("id",data.clientId).single();if(error)throw error;if(client.ceev_planning_path)await db.storage.from(BUCKET).remove([client.ceev_planning_path]);const{error:e}=await db.from("clients").update({ceev_planning_path:null,ceev_planning_filename:null,ceev_planning_updated_at:null}).eq("id",data.clientId);if(e)throw e;return{ok:true}});
-export const getCeevPlanningUrl=createServerFn({method:"POST"}).inputValidator((data:{token:string})=>{if(!data?.token)throw new Error("Lien invalide");return data}).handler(async({data})=>{const db=admin();const{data:client,error}=await db.from("clients").select("ceev_enabled,ceev_planning_path").eq("share_token",data.token).single();if(error||!client?.ceev_enabled||!client.ceev_planning_path)throw new Error("Aucun calendrier disponible");const{data:s,error:e}=await db.storage.from(BUCKET).createSignedUrl(client.ceev_planning_path,3600);if(e||!s?.signedUrl)throw e??new Error("Impossible d'ouvrir le calendrier");return{url:s.signedUrl}});
+
+function admin() {
+  return createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+}
+
+const BUCKET = "client-plannings";
+const MAX_BYTES = 15 * 1024 * 1024;
+
+function validateId(id: string) {
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Client invalide");
+}
+
+async function ensurePlanningBucket(db: ReturnType<typeof admin>) {
+  const { data: buckets, error } = await db.storage.listBuckets();
+  if (error) throw new Error(`Stockage calendrier inaccessible : ${error.message}`);
+  if (buckets?.some((b) => b.id === BUCKET)) return;
+  const { error: createError } = await db.storage.createBucket(BUCKET, {
+    public: false,
+    fileSizeLimit: `${MAX_BYTES}`,
+    allowedMimeTypes: ["application/pdf"],
+  });
+  if (createError && !/already exists|duplicate/i.test(createError.message)) {
+    throw new Error(`Création du stockage calendrier impossible : ${createError.message}`);
+  }
+}
+
+export const createOrUpdateClient = createServerFn({ method: "POST" })
+  .inputValidator((data: { mode: "create" | "update"; id?: string; userId?: string; payload: Record<string, unknown> }) => {
+    if (data.mode === "update") validateId(data.id!);
+    if (data.mode === "create" && !data.userId) throw new Error("Utilisateur invalide");
+    if (!data.payload?.name || typeof data.payload.name !== "string") throw new Error("Le nom du client est requis");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const db = admin();
+    const result = data.mode === "create"
+      ? await db.from("clients").insert({ ...data.payload, id: data.id ?? crypto.randomUUID(), user_id: data.userId }).select().single()
+      : await db.from("clients").update(data.payload).eq("id", data.id!).select().single();
+
+    if (result.error) {
+      throw new Error(`Enregistrement client impossible : ${result.error.message}`);
+    }
+    return result.data;
+  });
+
+/**
+ * Creates a signed upload target. The PDF itself is uploaded directly from
+ * the browser to Storage, avoiding a base64-encoded 15 MB request through SSR.
+ */
+export const createCeevPlanningUpload = createServerFn({ method: "POST" })
+  .inputValidator((data: { clientId: string; filename: string; size: number }) => {
+    validateId(data.clientId);
+    if (!data.filename?.toLowerCase().endsWith(".pdf")) throw new Error("Le calendrier doit être un PDF");
+    if (!Number.isFinite(data.size) || data.size <= 0 || data.size > MAX_BYTES) throw new Error("Le PDF ne doit pas dépasser 15 Mo");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const db = admin();
+    const { data: client, error } = await db.from("clients").select("id").eq("id", data.clientId).single();
+    if (error || !client) throw new Error("Client introuvable");
+    await ensurePlanningBucket(db);
+
+    const path = `${data.clientId}/planning-${Date.now()}.pdf`;
+    const { data: signed, error: signedError } = await db.storage.from(BUCKET).createSignedUploadUrl(path);
+    if (signedError || !signed?.token) throw new Error(`Préparation de l'import impossible : ${signedError?.message ?? "URL signée indisponible"}`);
+    return { path, token: signed.token };
+  });
+
+export const finalizeCeevPlanningUpload = createServerFn({ method: "POST" })
+  .inputValidator((data: { clientId: string; path: string; filename: string; size: number }) => {
+    validateId(data.clientId);
+    if (!data.filename?.toLowerCase().endsWith(".pdf")) throw new Error("Le calendrier doit être un PDF");
+    if (!Number.isFinite(data.size) || data.size <= 0 || data.size > MAX_BYTES) throw new Error("PDF invalide ou supérieur à 15 Mo");
+    if (!data.path.startsWith(`${data.clientId}/`)) throw new Error("Chemin de fichier invalide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const db = admin();
+    const { data: client, error } = await db.from("clients").select("id,ceev_planning_path").eq("id", data.clientId).single();
+    if (error || !client) throw new Error("Client introuvable");
+
+    const { data: listed, error: listError } = await db.storage.from(BUCKET).list(data.clientId, { search: data.path.split("/").pop()!, limit: 1 });
+    if (listError || !listed?.some((f) => f.name === data.path.split("/").pop())) {
+      throw new Error("Le fichier n'a pas été reçu par le stockage");
+    }
+
+    const { error: saveError } = await db.from("clients").update({
+      ceev_enabled: true,
+      ceev_planning_path: data.path,
+      ceev_planning_filename: data.filename,
+      ceev_planning_updated_at: new Date().toISOString(),
+    }).eq("id", data.clientId);
+
+    if (saveError) {
+      await db.storage.from(BUCKET).remove([data.path]);
+      throw new Error(`PDF importé mais association impossible : ${saveError.message}`);
+    }
+
+    if (client.ceev_planning_path && client.ceev_planning_path !== data.path) {
+      await db.storage.from(BUCKET).remove([client.ceev_planning_path]);
+    }
+    return { path: data.path, filename: data.filename };
+  });
+
+export const deleteCeevPlanning = createServerFn({ method: "POST" })
+  .inputValidator((data: { clientId: string }) => { validateId(data.clientId); return data; })
+  .handler(async ({ data }) => {
+    const db = admin();
+    const { data: client, error } = await db.from("clients").select("ceev_planning_path").eq("id", data.clientId).single();
+    if (error) throw error;
+    if (client.ceev_planning_path) await db.storage.from(BUCKET).remove([client.ceev_planning_path]);
+    const { error: updateError } = await db.from("clients").update({
+      ceev_planning_path: null,
+      ceev_planning_filename: null,
+      ceev_planning_updated_at: null,
+    }).eq("id", data.clientId);
+    if (updateError) throw updateError;
+    return { ok: true };
+  });
+
+export const getCeevPlanningUrl = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string }) => { if (!data?.token) throw new Error("Lien invalide"); return data; })
+  .handler(async ({ data }) => {
+    const db = admin();
+    const { data: client, error } = await db.from("clients").select("ceev_enabled,ceev_planning_path").eq("share_token", data.token).single();
+    if (error || !client?.ceev_enabled || !client.ceev_planning_path) throw new Error("Aucun calendrier disponible");
+    const { data: signed, error: signedError } = await db.storage.from(BUCKET).createSignedUrl(client.ceev_planning_path, 3600);
+    if (signedError || !signed?.signedUrl) throw signedError ?? new Error("Impossible d'ouvrir le calendrier");
+    return { url: signed.signedUrl };
+  });
