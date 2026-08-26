@@ -1303,15 +1303,10 @@ function RentabilityEstimateBlock({
 }) {
   if (!plannedHours && !actualHours) return null;
   const hasBoth = plannedHours != null && actualHours != null && actualHours > 0;
-  const delta = hasBoth ? (actualHours as number) - (plannedHours as number) : null;
-  const deltaPct = hasBoth && (plannedHours as number) > 0 ? (delta! / (plannedHours as number)) * 100 : null;
   const valueProduced = hasBoth && targetHourlyRate > 0 ? (plannedHours as number) * targetHourlyRate : null;
   const realCost = hasBoth && targetHourlyRate > 0 ? (actualHours as number) * targetHourlyRate : null;
   const marginDelta = valueProduced !== null && realCost !== null ? valueProduced - realCost : null;
 
-  const tone = delta === null ? "neutral" : delta <= 0 ? "positive" : delta / (plannedHours as number) > 0.2 ? "negative" : "warning";
-  const toneColor = { positive: "var(--primary)", warning: "var(--pp-mid)", negative: "var(--pp-charges)", neutral: "var(--pp-neutral)" }[tone];
-  const TrendIcon = delta === null ? Minus : delta < 0 ? TrendingDown : delta > 0 ? TrendingUp : Minus;
   const confidence: "HIGH" | "MEDIUM" | "LOW" = !hasBoth ? "LOW" : estimated ? "MEDIUM" : "HIGH";
   const confLabel = { HIGH: "Fiable", MEDIUM: "Estimé", LOW: "Incomplet" }[confidence];
   const confColor = { HIGH: "var(--primary)", MEDIUM: "var(--pp-mid)", LOW: "var(--pp-neutral)" }[confidence];
