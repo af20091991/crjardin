@@ -2,11 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 
 function admin() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 const BUCKET = "client-plannings";
@@ -42,17 +40,10 @@ export const createOrUpdateClient = createServerFn({ method: "POST" })
     const result = data.mode === "create"
       ? await db.from("clients").insert({ ...data.payload, id: data.id ?? crypto.randomUUID(), user_id: data.userId }).select().single()
       : await db.from("clients").update(data.payload).eq("id", data.id!).select().single();
-
-    if (result.error) {
-      throw new Error(`Enregistrement client impossible : ${result.error.message}`);
-    }
+    if (result.error) throw new Error(`Enregistrement client impossible : ${result.error.message}`);
     return result.data;
   });
 
-/**
- * Creates a signed upload target. The PDF itself is uploaded directly from
- * the browser to Storage, avoiding a base64-encoded 15 MB request through SSR.
- */
 export const createCeevPlanningUpload = createServerFn({ method: "POST" })
   .inputValidator((data: { clientId: string; filename: string; size: number }) => {
     validateId(data.clientId);
@@ -65,7 +56,6 @@ export const createCeevPlanningUpload = createServerFn({ method: "POST" })
     const { data: client, error } = await db.from("clients").select("id").eq("id", data.clientId).single();
     if (error || !client) throw new Error("Client introuvable");
     await ensurePlanningBucket(db);
-
     const path = `${data.clientId}/planning-${Date.now()}.pdf`;
     const { data: signed, error: signedError } = await db.storage.from(BUCKET).createSignedUploadUrl(path);
     if (signedError || !signed?.token) throw new Error(`Préparation de l'import impossible : ${signedError?.message ?? "URL signée indisponible"}`);
@@ -84,28 +74,45 @@ export const finalizeCeevPlanningUpload = createServerFn({ method: "POST" })
     const db = admin();
     const { data: client, error } = await db.from("clients").select("id,ceev_planning_path").eq("id", data.clientId).single();
     if (error || !client) throw new Error("Client introuvable");
-
-    const { data: listed, error: listError } = await db.storage.from(BUCKET).list(data.clientId, { search: data.path.split("/").pop()!, limit: 1 });
-    if (listError || !listed?.some((f) => f.name === data.path.split("/").pop())) {
-      throw new Error("Le fichier n'a pas été reçu par le stockage");
-    }
-
+    const filename = data.path.split("/").pop()!;
+    const { data: listed, error: listError } = await db.storage.from(BUCKET).list(data.clientId, { search: filename, limit: 1 });
+    if (listError || !listed?.some((f) => f.name === filename)) throw new Error("Le fichier n'a pas été reçu par le stockage");
     const { error: saveError } = await db.from("clients").update({
       ceev_enabled: true,
       ceev_planning_path: data.path,
       ceev_planning_filename: data.filename,
       ceev_planning_updated_at: new Date().toISOString(),
     }).eq("id", data.clientId);
-
     if (saveError) {
       await db.storage.from(BUCKET).remove([data.path]);
       throw new Error(`PDF importé mais association impossible : ${saveError.message}`);
     }
-
-    if (client.ceev_planning_path && client.ceev_planning_path !== data.path) {
-      await db.storage.from(BUCKET).remove([client.ceev_planning_path]);
-    }
+    if (client.ceev_planning_path && client.ceev_planning_path !== data.path) await db.storage.from(BUCKET).remove([client.ceev_planning_path]);
     return { path: data.path, filename: data.filename };
+  });
+
+/** Compatibility for older callers. New UI uploads directly to Storage via the signed-upload flow above. */
+export const uploadCeevPlanning = createServerFn({ method: "POST" })
+  .inputValidator((data: { clientId: string; filename: string; contentBase64: string }) => {
+    validateId(data.clientId);
+    if (!data.filename?.toLowerCase().endsWith(".pdf")) throw new Error("Le calendrier doit être un PDF");
+    if (!data.contentBase64) throw new Error("Fichier vide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const bytes = Buffer.from(data.contentBase64, "base64");
+    if (!bytes.length || bytes.length > MAX_BYTES) throw new Error("PDF invalide ou supérieur à 15 Mo");
+    const db = admin();
+    const { data: client, error } = await db.from("clients").select("id,ceev_planning_path").eq("id", data.clientId).single();
+    if (error || !client) throw new Error("Client introuvable");
+    await ensurePlanningBucket(db);
+    const path = `${data.clientId}/planning-${Date.now()}.pdf`;
+    const { error: uploadError } = await db.storage.from(BUCKET).upload(path, bytes, { contentType: "application/pdf", upsert: false });
+    if (uploadError) throw new Error(`Import PDF impossible : ${uploadError.message}`);
+    const { error: saveError } = await db.from("clients").update({ ceev_enabled: true, ceev_planning_path: path, ceev_planning_filename: data.filename, ceev_planning_updated_at: new Date().toISOString() }).eq("id", data.clientId);
+    if (saveError) { await db.storage.from(BUCKET).remove([path]); throw new Error(`PDF importé mais association impossible : ${saveError.message}`); }
+    if (client.ceev_planning_path) await db.storage.from(BUCKET).remove([client.ceev_planning_path]);
+    return { path, filename: data.filename };
   });
 
 export const deleteCeevPlanning = createServerFn({ method: "POST" })
@@ -115,11 +122,7 @@ export const deleteCeevPlanning = createServerFn({ method: "POST" })
     const { data: client, error } = await db.from("clients").select("ceev_planning_path").eq("id", data.clientId).single();
     if (error) throw error;
     if (client.ceev_planning_path) await db.storage.from(BUCKET).remove([client.ceev_planning_path]);
-    const { error: updateError } = await db.from("clients").update({
-      ceev_planning_path: null,
-      ceev_planning_filename: null,
-      ceev_planning_updated_at: null,
-    }).eq("id", data.clientId);
+    const { error: updateError } = await db.from("clients").update({ ceev_planning_path: null, ceev_planning_filename: null, ceev_planning_updated_at: null }).eq("id", data.clientId);
     if (updateError) throw updateError;
     return { ok: true };
   });
