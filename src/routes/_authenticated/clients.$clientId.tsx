@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
+import { ClientCalendarPanel } from "@/components/ClientCalendarPanel";
 import {
   getClient,
   deleteClient,
@@ -136,7 +137,6 @@ function ClientDetail() {
                         <AlertTriangle className="h-3 w-3" /> Préco. en attente +30j
                       </Badge>
                     )}
-                    {/* Badge « CR » : uniquement avec un historique de compte-rendu envoyé */}
                     {(interventions ?? []).some((iv) => iv.sent_to_client_at) && (
                       <Badge variant="outline" className="border-primary/40 text-primary">CR</Badge>
                     )}
@@ -194,6 +194,7 @@ function ClientDetail() {
         <Tabs defaultValue="interventions">
           <TabsList className="w-full">
             <TabsTrigger value="interventions" className="flex-1"><Calendar className="mr-1.5 h-4 w-4" />Interventions</TabsTrigger>
+            <TabsTrigger value="calendar" className="flex-1"><CalendarDaysIcon /><span>Calendrier</span></TabsTrigger>
             <TabsTrigger value="health" className="flex-1"><Leaf className="mr-1.5 h-4 w-4" />Santé</TabsTrigger>
             <TabsTrigger value="reco" className="flex-1"><Sparkles className="mr-1.5 h-4 w-4" />Préconisations</TabsTrigger>
             <TabsTrigger value="opps" className="flex-1"><TrendingUp className="mr-1.5 h-4 w-4" />Opportunités</TabsTrigger>
@@ -238,6 +239,9 @@ function ClientDetail() {
                 ))}
               </div>
             )}
+          </TabsContent>
+          <TabsContent value="calendar">
+            <ClientCalendarPanel client={client} canEdit={canEdit} />
           </TabsContent>
           <TabsContent value="health">
             {(health?.length ?? 0) === 0 ? (
@@ -292,6 +296,10 @@ function ClientDetail() {
       </div>
     </AppShell>
   );
+}
+
+function CalendarDaysIcon() {
+  return <Calendar className="mr-1.5 h-4 w-4" />;
 }
 
 function Info({ icon: Icon, text }: { icon: typeof MapPin; text: string }) {
@@ -466,7 +474,6 @@ function RecoCard({
           )}
         </div>
       )}
-      {/* clientId conservé pour usage éventuel (liens contextuels futurs) */}
       <span className="hidden" data-client={clientId} />
     </Card>
   );
