@@ -25,12 +25,13 @@ export default defineConfig({
       VitePWA({
         registerType: "autoUpdate",
         injectRegister: null,
+        selfDestroying: true,
         devOptions: { enabled: false },
         filename: "sw.js",
         manifest: {
-          name: "Jardin Pro — Suivi de chantier",
-          short_name: "Jardin Pro",
-          description: "Gestion des interventions et comptes-rendus de jardinage.",
+          name: "De la graine au jardin — Suivi de chantier",
+          short_name: "CR Pro",
+          description: "Gestion des interventions et comptes-rendus paysagers.",
           theme_color: "#4c8a2f",
           background_color: "#ffffff",
           display: "standalone",
