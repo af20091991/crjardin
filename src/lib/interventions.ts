@@ -17,16 +17,16 @@ export interface ReportSections {
 }
 
 export const DEFAULT_REPORT_SECTIONS: ReportSections = {
-  summary: true,
-  worksite: true,
-  tasks: true,
-  positive_points: true,
-  attention_points: true,
-  garden_evolution: true,
-  garden_state: true,
-  recommendations: true,
-  upcoming: true,
-  photos: true,
+  summary: false,
+  worksite: false,
+  tasks: false,
+  positive_points: false,
+  attention_points: false,
+  garden_evolution: false,
+  garden_state: false,
+  recommendations: false,
+  upcoming: false,
+  photos: false,
 };
 
 export const REPORT_SECTION_LABELS: Record<keyof ReportSections, string> = {
