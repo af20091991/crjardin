@@ -782,7 +782,7 @@ function InterventionDetail() {
                           <SelectValue placeholder="Rattacher au catalogue…" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="__none__">— Non catalogué —</SelectItem>
+                          
                           {(serviceCatalog ?? []).map((s) => (
                             <SelectItem key={s.id} value={s.id}>
                               {s.label}
