@@ -40,7 +40,7 @@ import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
 import { archiveInterventionReport, listReportHistory, signedReportUrl, logReportEvent, REPORT_EVENT_LABEL, withVersions } from "@/lib/report-history";
-import { listWorksiteSheetsByClient, getWorksiteSheet } from "@/lib/worksite";
+import { getWorksiteSheet } from "@/lib/worksite";
 import { InterventionReportPreview } from "@/components/InterventionReportPreview";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { getEmailSettings, fillTemplate } from "@/lib/email-settings";
