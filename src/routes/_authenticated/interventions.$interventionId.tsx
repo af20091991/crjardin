@@ -143,8 +143,6 @@ function InterventionDetail() {
   }, [iv?.id, iv?.hours_spent]);
 
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const changeClient = useMutation({
     mutationFn: (clientId: string) => updateIntervention(interventionId, { client_id: clientId }),
