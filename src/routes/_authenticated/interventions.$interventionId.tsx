@@ -66,7 +66,7 @@ import {
 import {
   ArrowLeft, Plus, Trash2, Loader2, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
   FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download, ArrowUp, ArrowDown, Settings2,
-  Clock, AlertTriangle, Gauge, TrendingUp, TrendingDown, Minus,
+  Clock, AlertTriangle, Gauge,
 } from "lucide-react";
 import { toast } from "sonner";
 
