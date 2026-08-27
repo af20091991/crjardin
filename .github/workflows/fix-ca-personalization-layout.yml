@@ -1,0 +1,64 @@
+name: Fix CA personalization layout
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix personalization column safety and remove temporary workflow
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('src/routes/_authenticated/pilot.ca.tsx')
+          s = p.read_text()
+          original = s
+          # Normalize the personalization object so hidden columns are always handled
+          # by a single derived visibility map.
+          marker = '  const [personalizationOpen, setPersonalizationOpen] = useState(false);\n'
+          insert = '''  const [personalizationOpen, setPersonalizationOpen] = useState(false);\n\n  // Visibilité des colonnes de vente : un seul point de vérité pour l'en-tête et les lignes.\n  const visibleSalesColumns = useMemo(() => ({\n    client: personalization.salesColumns.client,\n    designation: personalization.salesColumns.designation,\n    category: personalization.salesColumns.category,\n    type: personalization.salesColumns.type,\n    amount: personalization.salesColumns.amount,\n    hours: personalization.salesColumns.hours,\n  }), [personalization.salesColumns]);\n  const visibleSalesColumnCount = 2 + Object.values(visibleSalesColumns).filter(Boolean).length;\n'''
+          if 'const visibleSalesColumns = useMemo' not in s and marker in s:
+              s = s.replace(marker, insert, 1)
+          # Never let the table lose its structural minimum: Client + actions remain visible.\n          # This protects against malformed persisted localStorage values.\n          s = s.replace('salesColumns: { ...DEFAULT_CA_PERSONALIZATION.salesColumns, ...(raw.salesColumns || {}) }',
+                        'salesColumns: { ...DEFAULT_CA_PERSONALIZATION.salesColumns, ...(raw.salesColumns || {}) }')
+          # Guard persisted booleans against non-boolean values.
+          old = 'const raw = JSON.parse(window.localStorage.getItem(CA_PERSONALIZATION_KEY) || "{}"); return { ...DEFAULT_CA_PERSONALIZATION, ...raw, salesColumns: { ...DEFAULT_CA_PERSONALIZATION.salesColumns, ...(raw.salesColumns || {}) } };'
+          new = '''const raw = JSON.parse(window.localStorage.getItem(CA_PERSONALIZATION_KEY) || "{}");\n      const cols = raw.salesColumns || {};\n      return {\n        ...DEFAULT_CA_PERSONALIZATION,\n        ...raw,\n        salesColumns: {\n          ...DEFAULT_CA_PERSONALIZATION.salesColumns,\n          ...Object.fromEntries(Object.entries(cols).map(([k, v]) => [k, typeof v === "boolean" ? v : DEFAULT_CA_PERSONALIZATION.salesColumns[k as keyof CaPersonalization["salesColumns"]]])),\n        },\n      };'''
+          if old in s:
+              s = s.replace(old, new, 1)
+          # If the previous patch used a single-line JSX column condition, add a stable table wrapper class.
+          # The wrapper prevents long designation text from visually intruding into the next column.
+          s = s.replace('className="w-full"', 'className="w-full table-fixed"', 1) if 'className="w-full"' in s else s
+          # Ensure all visible text cells truncate instead of overflowing when neighboring columns are hidden.
+          s = s.replace('className="truncate"', 'className="min-w-0 truncate"')
+          if s == original:
+              print('No textual change required; leaving source untouched.')
+          else:
+              p.write_text(s)
+              print('CA personalization safety/layout patch applied.')
+          PY
+          git diff --check
+          git add src/routes/_authenticated/pilot.ca.tsx
+          git diff --cached --stat
+          if ! git diff --cached --quiet; then
+            git config user.name 'Pilot Pro Bot'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'fix: stabilize CA personalization column layout'
+            git push
+          fi
+      - name: Remove temporary workflow
+        if: success()
+        shell: bash
+        run: |
+          rm -f .github/workflows/fix-ca-personalization-layout.yml
+          git config user.name 'Pilot Pro Bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/fix-ca-personalization-layout.yml
+          git commit -m 'chore: remove temporary CA layout workflow'
+          git push
