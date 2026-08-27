@@ -8,7 +8,7 @@ import {
   listTasks, addTask, updateTask, deleteTask,
   listPhotos, addPhoto, updatePhoto, deletePhoto, signedPhotoUrl, reorderPhotos,
   TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
-  DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, normalizeReportSections, type ReportSections,
+  DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, SELECTABLE_REPORT_SECTIONS, normalizeReportSections, type ReportSections,
   listServiceCatalog,
   completeInterventionWithHoursAutofill, confirmHoursSpent, estimateHoursSpent,
 } from "@/lib/interventions";
