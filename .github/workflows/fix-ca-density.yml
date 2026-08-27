@@ -1,0 +1,48 @@
+name: Fix CA density runtime error
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore removed density compatibility state
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('src/routes/_authenticated/pilot.ca.tsx')
+          s = p.read_text()
+          marker = 'const num = (v: string) => Number(v.replace(",", ".")) || 0;\n'
+          compat = '''const num = (v: string) => Number(v.replace(",", ".")) || 0;\n\n// Compatibilité de rendu : l'ancien sélecteur de densité a été retiré de l'UI,\n// mais le workbench utilise encore cette classe pour sa mise en page.\nconst CA_DENSITY_CLASS = { normal: "", compact: "" } as const;\n'''
+          if 'const CA_DENSITY_CLASS' not in s:
+              if marker not in s: raise SystemExit('Missing num marker')
+              s = s.replace(marker, compat, 1)
+          state_marker = '  const [originFor, setOriginFor] = useState<CaEntry | null>(null);\n'
+          state = state_marker + '  // L\'ancien contrôle de densité n\'est plus affiché, mais le workbench conserve\n  // une valeur interne fixe afin de ne pas casser son rendu.\n  const [density] = useState<"normal">("normal");\n'
+          if 'const [density]' not in s:
+              if state_marker not in s: raise SystemExit('Missing origin state marker')
+              s = s.replace(state_marker, state, 1)
+          p.write_text(s)
+          PY
+          git diff --check
+          git diff -- src/routes/_authenticated/pilot.ca.tsx
+          git config user.name 'Pilot Pro Bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/_authenticated/pilot.ca.tsx
+          git commit -m 'fix: restore CA page density compatibility state'
+          git push
+      - name: Remove temporary workflow
+        if: success()
+        shell: bash
+        run: |
+          rm -f .github/workflows/fix-ca-density.yml
+          git config user.name 'Pilot Pro Bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/fix-ca-density.yml
+          git commit -m 'chore: remove temporary CA density fix workflow'
+          git push
