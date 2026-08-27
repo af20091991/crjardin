@@ -237,6 +237,7 @@ function CaPage() {
     actions: 116,
   });
   const chargeCols = useColumnWidths("pilot-ca-charges", {
+    type: 190,
     designation: 240,
     montant: 130,
     actions: 84,
@@ -339,6 +340,54 @@ function CaPage() {
   };
 
   const save = (id: string, input: Partial<CaEntry>) => updateMut.mutate({ id, input });
+
+  type ChargeType =
+    | "Charge fixe"
+    | "Alimentaire"
+    | "Déchèterie"
+    | "Carburant"
+    | "Investissement"
+    | "Charge de fonctionnement"
+    | "Achats"
+    | "Charge chantier";
+
+  const CHARGE_TYPES: ChargeType[] = [
+    "Charge fixe",
+    "Alimentaire",
+    "Déchèterie",
+    "Carburant",
+    "Investissement",
+    "Charge de fonctionnement",
+    "Achats",
+    "Charge chantier",
+  ];
+
+  const CHARGE_TYPE_META: Record<ChargeType, { charge_class: "fixe" | "variable" | "a_classer"; is_investment: boolean }> = {
+    "Charge fixe": { charge_class: "fixe", is_investment: false },
+    Alimentaire: { charge_class: "variable", is_investment: false },
+    "Déchèterie": { charge_class: "variable", is_investment: false },
+    Carburant: { charge_class: "variable", is_investment: false },
+    Investissement: { charge_class: "a_classer", is_investment: true },
+    "Charge de fonctionnement": { charge_class: "a_classer", is_investment: false },
+    Achats: { charge_class: "a_classer", is_investment: false },
+    "Charge chantier": { charge_class: "a_classer", is_investment: false },
+  };
+
+  const chargeTypeForRow = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }) => {
+    if (row.is_fixed) return "Charge fixe" as const;
+    const current = row.charge_category;
+    return CHARGE_TYPES.includes(current as ChargeType) ? (current as ChargeType) : null;
+  };
+
+  const saveChargeType = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }, type: ChargeType) => {
+    const meta = CHARGE_TYPE_META[type];
+    save(row.id, {
+      charge_category: type,
+      charge_class: meta.charge_class,
+      is_investment: meta.is_investment,
+    } as never);
+  };
+
 
   /**
    * Saisie en net : le net est stocké tel quel (ressaisie sans dérive) et la
@@ -827,6 +876,7 @@ function CaPage() {
                 <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
                   <colgroup>
                     <col style={{ width: chargeCols.widths.designation }} />
+                    <col style={{ width: chargeCols.widths.type }} />
                     <col style={{ width: chargeCols.widths.montant }} />
                     <col style={{ width: chargeCols.widths.actions }} />
                   </colgroup>
@@ -837,6 +887,13 @@ function CaPage() {
                         <ResizeHandle
                           width={chargeCols.widths.designation}
                           onResize={(w) => chargeCols.setWidth("designation", w)}
+                        />
+                      </TableHead>
+                      <TableHead className="relative">
+                        Type de charge
+                        <ResizeHandle
+                          width={chargeCols.widths.type}
+                          onResize={(w) => chargeCols.setWidth("type", w)}
                         />
                       </TableHead>
                       <TableHead className="relative text-right">
@@ -898,6 +955,28 @@ function CaPage() {
                                 />
                               )}
                             </TableCell>
+                            <TableCell>
+                              {isFixed ? (
+                                <span className="text-sm font-medium text-muted-foreground">Charge fixe</span>
+                              ) : (
+                                <Select
+                                  value={chargeTypeForRow(row as CaEntry & { charge_category?: string | null; charge_class?: string | null }) ?? ""}
+                                  onValueChange={(value) => saveChargeType(row as CaEntry & { charge_category?: string | null; charge_class?: string | null }, value as ChargeType)}
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Choisir…" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {CHARGE_TYPES.map((type) => (
+                                      <SelectItem key={type} value={type}>
+                                        {type}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </TableCell>
+
                             <TableCell className="text-right">
                               {isFixed ? (
                                 <span
@@ -943,7 +1022,7 @@ function CaPage() {
                           </TableRow>
                           {isFixed && fixedOpen && (
                             <TableRow>
-                              <TableCell colSpan={3} className="py-2">
+                              <TableCell colSpan={4} className="py-2">
                                 <FixedChargesDetail
                                   caEntryId={row.id}
                                   year={year}
@@ -957,7 +1036,7 @@ function CaPage() {
                           {hasNote && !opened && (
 
                             <TableRow>
-                              <TableCell colSpan={3} className="py-1">
+                              <TableCell colSpan={4} className="py-1">
                                 <button
                                   type="button"
                                   className="text-xs font-medium text-primary hover:underline"
@@ -970,7 +1049,7 @@ function CaPage() {
                           )}
                           {opened && (
                             <TableRow>
-                              <TableCell colSpan={3} className="bg-muted/20 py-2">
+                              <TableCell colSpan={4} className="bg-muted/20 py-2">
                                 <Textarea
                                   defaultValue={row.note ?? ""}
                                   placeholder="Commentaire (optionnel)…"
