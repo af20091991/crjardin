@@ -26,6 +26,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-08-27",
+    version: "2.3.1",
+    theme: "Général",
+    title: "Chiffre d'affaires — hiérarchie des charges",
+    details: [
+      "La colonne Type de charge distingue désormais Charges fixes, Charges variables et Investissements avec un sous-menu de classement.",
+      "Alimentaire, carburant et déchèterie sont détectés automatiquement à partir de la désignation ; Achats et Charge chantier restent sélectionnables.",
+      "Le type Investissement conserve son traitement comptable hors résultat mensuel et son rattachement à l'exercice.",
+    ],
+  },
+  {
     date: "2026-08-04",
     version: "2.3.0",
     theme: "Général",

@@ -61,6 +61,9 @@ export interface CaEntry {
   net_amount_ht?: number | null;
   match_status?: MatchStatusValue | null;
   sale_status?: SaleStatusValue;
+  /** Classification de charge utilisée par la page Chiffre d'affaires. */
+  charge_category?: string | null;
+  charge_class?: "fixe" | "variable" | "a_classer" | null;
   /** Date comptable de la ligne, quand elle est connue (borne au jour près). */
   entry_date?: string | null;
   created_at: string;
@@ -81,6 +84,9 @@ export type CaEntryInput = {
   position?: number;
   client_id?: string | null;
   intervention_type?: InterventionKind | null;
+  charge_category?: string | null;
+  charge_class?: "fixe" | "variable" | "a_classer" | null;
+  is_investment?: boolean | null;
 };
 
 /**

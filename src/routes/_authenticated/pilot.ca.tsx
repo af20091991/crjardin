@@ -114,6 +114,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -341,51 +345,38 @@ function CaPage() {
 
   const save = (id: string, input: Partial<CaEntry>) => updateMut.mutate({ id, input });
 
-  type ChargeType =
-    | "Charge fixe"
-    | "Alimentaire"
-    | "Déchèterie"
-    | "Carburant"
-    | "Investissement"
-    | "Charge de fonctionnement"
-    | "Achats"
-    | "Charge chantier";
-
-  const CHARGE_TYPES: ChargeType[] = [
-    "Charge fixe",
-    "Alimentaire",
-    "Déchèterie",
-    "Carburant",
-    "Investissement",
-    "Charge de fonctionnement",
-    "Achats",
-    "Charge chantier",
-  ];
+  type ChargeType = "Charge fixe" | "Achats" | "Charge chantier" | "Investissement";
+  type AutoVariableCharge = "Alimentaire" | "Carburant" | "Déchèterie";
 
   const CHARGE_TYPE_META: Record<ChargeType, { charge_class: "fixe" | "variable" | "a_classer"; is_investment: boolean }> = {
     "Charge fixe": { charge_class: "fixe", is_investment: false },
-    Alimentaire: { charge_class: "variable", is_investment: false },
-    "Déchèterie": { charge_class: "variable", is_investment: false },
-    Carburant: { charge_class: "variable", is_investment: false },
+    Achats: { charge_class: "variable", is_investment: false },
+    "Charge chantier": { charge_class: "variable", is_investment: false },
     Investissement: { charge_class: "a_classer", is_investment: true },
-    "Charge de fonctionnement": { charge_class: "a_classer", is_investment: false },
-    Achats: { charge_class: "a_classer", is_investment: false },
-    "Charge chantier": { charge_class: "a_classer", is_investment: false },
+  };
+
+  const detectAutoVariableCharge = (designation: string | null | undefined): AutoVariableCharge | null => {
+    const value = (designation ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (/\b(carburant|essence|gazole|gasoil|diesel|sp95|sp98|e10|e85|adblue)\b/.test(value)) return "Carburant";
+    if (/\b(dechetterie|dechet|dechets|decharge|benne|gravats|evacuation)\b/.test(value)) return "Déchèterie";
+    if (/\b(alimentaire|alimentation|repas|restaurant|dejeuner|diner|nourriture|supermarche)\b/.test(value)) return "Alimentaire";
+    return null;
   };
 
   const chargeTypeForRow = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }) => {
     if (row.is_fixed) return "Charge fixe" as const;
+    if (row.is_investment) return "Investissement" as const;
     const current = row.charge_category;
-    return CHARGE_TYPES.includes(current as ChargeType) ? (current as ChargeType) : null;
+    if (current === "Charge de fonctionnement") return "Achats" as const;
+    if (current === "Achats" || current === "Charge chantier") return current as ChargeType;
+    const auto = detectAutoVariableCharge(row.designation);
+    if (auto) return `Charges variables · ${auto}`;
+    return null;
   };
 
   const saveChargeType = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }, type: ChargeType) => {
     const meta = CHARGE_TYPE_META[type];
-    save(row.id, {
-      charge_category: type,
-      charge_class: meta.charge_class,
-      is_investment: meta.is_investment,
-    } as never);
+    save(row.id, { charge_category: type, charge_class: meta.charge_class, is_investment: meta.is_investment });
   };
 
 
@@ -958,23 +949,35 @@ function CaPage() {
                             <TableCell>
                               {isFixed ? (
                                 <span className="text-sm font-medium text-muted-foreground">Charge fixe</span>
-                              ) : (
-                                <Select
-                                  value={chargeTypeForRow(row as CaEntry & { charge_category?: string | null; charge_class?: string | null }) ?? ""}
-                                  onValueChange={(value) => saveChargeType(row as CaEntry & { charge_category?: string | null; charge_class?: string | null }, value as ChargeType)}
-                                >
-                                  <SelectTrigger className="h-8">
-                                    <SelectValue placeholder="Choisir…" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {CHARGE_TYPES.map((type) => (
-                                      <SelectItem key={type} value={type}>
-                                        {type}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              )}
+                              ) : (() => {
+                                const typedRow = row as CaEntry & { charge_category?: string | null; charge_class?: string | null };
+                                const selectedType = chargeTypeForRow(typedRow);
+                                const autoVariable = detectAutoVariableCharge(row.designation);
+                                return (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button type="button" className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 text-left text-sm hover:bg-muted/40">
+                                        <span className={selectedType ? "" : "text-muted-foreground"}>{selectedType ?? "Choisir…"}</span>
+                                        <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start" className="w-64">
+                                      <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Charge fixe")}>Charge fixe</DropdownMenuItem>
+                                      <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>Charges variables</DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent className="w-72">
+                                          <div className="px-2 py-1.5 text-xs text-muted-foreground">Alimentaire, carburant et déchèterie sont détectés automatiquement d'après la désignation.</div>
+                                          <DropdownMenuSeparator />
+                                          {autoVariable && <div className="px-2 py-1.5 text-xs text-muted-foreground">Détection actuelle : <span className="font-medium text-foreground">{autoVariable}</span></div>}
+                                          <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Achats")}>Achats</DropdownMenuItem>
+                                          <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Charge chantier")}>Charge chantier</DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                      </DropdownMenuSub>
+                                      <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Investissement")}>Investissement</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                );
+                              })()}
                             </TableCell>
 
                             <TableCell className="text-right">
