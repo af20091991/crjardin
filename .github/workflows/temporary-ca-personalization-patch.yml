@@ -1,0 +1,79 @@
+name: Temporary Pilot Pro CA personalization patch
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch CA page
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('src/routes/_authenticated/pilot.ca.tsx')
+          s = p.read_text()
+
+          def once(old, new, label):
+              global s
+              if old not in s:
+                  raise SystemExit(f'Missing expected block: {label}')
+              s = s.replace(old, new, 1)
+
+          once('''import {\n  DropdownMenu,\n  DropdownMenuContent,\n  DropdownMenuItem,\n  DropdownMenuTrigger,\n} from "@/components/ui/dropdown-menu";''', '''import {\n  DropdownMenu,\n  DropdownMenuContent,\n  DropdownMenuItem,\n  DropdownMenuTrigger,\n} from "@/components/ui/dropdown-menu";\nimport { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";''', 'dropdown imports')
+
+          once('''  Calculator,\n  Sprout,\n\n\n} from "lucide-react";''', '''  Calculator,\n  Sprout,\n  Settings2,\n  RotateCcw,\n} from "lucide-react";''', 'lucide imports')
+
+          start = s.index('/** Densité locale à cette page uniquement')
+          end = s.index('function StatBox', start)
+          s = s[:start] + s[end:]
+          s = s.replace('  const [density, setDensity] = useState<CaDensity>("compact");\n', '', 1)
+
+          start = s.index('  // Réglage mémorisé uniquement pour cette page')
+          end = s.index('  const entriesQ = useQuery', start)
+          state = '''  const CA_PERSONALIZATION_KEY = "pilot-ca-personalization-v1";\n  type CaPersonalization = {\n    showAnnualSummary: boolean;\n    showMonthlySummary: boolean;\n    showMonthTabs: boolean;\n    showStatusLegend: boolean;\n    showTotals: boolean;\n    salesColumns: { client: boolean; designation: boolean; category: boolean; type: boolean; amount: boolean; hours: boolean };\n  };\n  const DEFAULT_CA_PERSONALIZATION: CaPersonalization = {\n    showAnnualSummary: true,\n    showMonthlySummary: true,\n    showMonthTabs: true,\n    showStatusLegend: true,\n    showTotals: true,\n    salesColumns: { client: true, designation: true, category: true, type: true, amount: true, hours: true },\n  };\n  const loadCaPersonalization = (): CaPersonalization => {\n    if (typeof window === "undefined") return DEFAULT_CA_PERSONALIZATION;\n    try {\n      const raw = JSON.parse(window.localStorage.getItem(CA_PERSONALIZATION_KEY) || "{}");\n      return { ...DEFAULT_CA_PERSONALIZATION, ...raw, salesColumns: { ...DEFAULT_CA_PERSONALIZATION.salesColumns, ...(raw.salesColumns || {}) } };\n    } catch { return DEFAULT_CA_PERSONALIZATION; }\n  };\n  const [personalization, setPersonalization] = useState<CaPersonalization>(DEFAULT_CA_PERSONALIZATION);\n  const [personalizationOpen, setPersonalizationOpen] = useState(false);\n  useEffect(() => setPersonalization(loadCaPersonalization()), []);\n  const updatePersonalization = (patch: Partial<CaPersonalization>) => setPersonalization((current) => {\n    const next = { ...current, ...patch, salesColumns: { ...current.salesColumns, ...(patch.salesColumns || {}) } };\n    try { window.localStorage.setItem(CA_PERSONALIZATION_KEY, JSON.stringify(next)); } catch {}\n    return next;\n  });\n  const resetPersonalization = () => {\n    setPersonalization(DEFAULT_CA_PERSONALIZATION);\n    try { window.localStorage.removeItem(CA_PERSONALIZATION_KEY); } catch {}\n  };\n\n'''
+          s = s[:start] + state + s[end:]
+
+          density_block = '''          {/* Densité locale de la zone de saisie (mémorisée pour cette page) */}\n          <Select value={density} onValueChange={(v) => changeDensity(v as CaDensity)}>\n            <SelectTrigger className="h-8 w-[150px]" aria-label="Densité d'affichage">\n              <SelectValue />\n            </SelectTrigger>\n            <SelectContent>\n              <SelectItem value="normal">Densité normale</SelectItem>\n              <SelectItem value="compact">Densité compacte</SelectItem>\n            </SelectContent>\n          </Select>'''
+          panel = '''          <Sheet open={personalizationOpen} onOpenChange={setPersonalizationOpen}>\n            <SheetTrigger asChild>\n              <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground" title="Personnaliser la page">\n                <Settings2 className="h-3.5 w-3.5" />\n                <span>Personnaliser</span>\n              </Button>\n            </SheetTrigger>\n            <SheetContent className="w-[360px] sm:w-[400px] overflow-y-auto">\n              <SheetHeader>\n                <SheetTitle>Personnaliser le chiffre d'affaires</SheetTitle>\n              </SheetHeader>\n              <div className="mt-5 space-y-6 text-sm">\n                <section>\n                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Page</p>\n                  <div className="space-y-1">\n                    {([\n                      ["showAnnualSummary", "Synthèse annuelle"],\n                      ["showMonthlySummary", "Synthèse du mois"],\n                      ["showMonthTabs", "Navigation par mois"],\n                      ["showStatusLegend", "Légende des statuts"],\n                      ["showTotals", "Totaux du tableau"],\n                    ] as const).map(([key, label]) => (\n                      <label key={key} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50">\n                        <span>{label}</span>\n                        <input type="checkbox" checked={personalization[key]} onChange={(e) => updatePersonalization({ [key]: e.target.checked } as Partial<CaPersonalization>)} />\n                      </label>\n                    ))}\n                  </div>\n                </section>\n                <section>\n                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Colonnes des ventes</p>\n                  <div className="space-y-1">\n                    {([\n                      ["client", "Client"],\n                      ["designation", "Désignation"],\n                      ["category", "Catégorie"],\n                      ["type", "Type d'intervention"],\n                      ["amount", "Montant HT"],\n                      ["hours", "Temps"],\n                    ] as const).map(([key, label]) => (\n                      <label key={key} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50">\n                        <span>{label}</span>\n                        <input type="checkbox" checked={personalization.salesColumns[key]} onChange={(e) => updatePersonalization({ salesColumns: { [key]: e.target.checked } })} />\n                      </label>\n                    ))}\n                  </div>\n                  <p className="mt-2 text-xs text-muted-foreground">Les colonnes masquées restent enregistrées et ne modifient aucun calcul.</p>\n                </section>\n                <Button variant="outline" size="sm" onClick={resetPersonalization}>\n                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />\n                  Réinitialiser\n                </Button>\n              </div>\n            </SheetContent>\n          </Sheet>'''
+          once(density_block, panel, 'density control')
+
+          once('''      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">\n        <StatBox label={`CA HT ${year}`} value={formatEuro(yt.ventesHt)} icon={TrendingUp} />''', '''      {personalization.showAnnualSummary && <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">\n        <StatBox label={`CA HT ${year}`} value={formatEuro(yt.ventesHt)} icon={TrendingUp} />''', 'annual summary start')
+          once('''      </div>\n\n      {/* Mode « année complète »''', '''      </div>}\n\n      {/* Mode « année complète »''', 'annual summary end')
+
+          once('''      <div className="-mx-1 overflow-x-auto pb-1">''', '''      {personalization.showMonthTabs && <div className="-mx-1 overflow-x-auto pb-1">''', 'month tabs start')
+          once('''      </div>\n\n      {/* En-tête mois */''', '''      </div>}\n\n      {/* En-tête mois */''', 'month tabs end')
+
+          once('''      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">\n        <StatBox label="CA HT mois"''', '''      {personalization.showMonthlySummary && <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">\n        <StatBox label="CA HT mois"''', 'monthly summary start')
+          once('''      </div>\n\n      {/*\n       * Corps de saisie''', '''      </div>}\n\n      {/*\n       * Corps de saisie''', 'monthly summary end')
+
+          # Hide/show sales columns using CSS visibility: collapse on <col>; this preserves table semantics and removes the column visually.
+          for name, key in [("client","client"),("designation","designation"),("categorie","category"),("type","type"),("montant","amount"),("temps","hours")]:
+              old = f'<col style={{ width: salesCols.widths.{name} }} />'
+              new = f'<col style={{{{ width: salesCols.widths.{name}, visibility: personalization.salesColumns.{key} ? "visible" : "collapse" }}}} />'
+              once(old, new, f'column {name}')
+
+          once('''              {ventes.length > 0 && (\n                <div className="flex flex-wrap items-center gap-3 border-t px-4 py-2 text-[11px] text-muted-foreground">''', '''              {ventes.length > 0 && personalization.showStatusLegend && (\n                <div className="flex flex-wrap items-center gap-3 border-t px-4 py-2 text-[11px] text-muted-foreground">''', 'status legend')
+          once('''              <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">\n                <span className="font-medium">Total CA HT {MONTH_NAMES[month - 1]}</span>''', '''              {personalization.showTotals && <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">\n                <span className="font-medium">Total CA HT {MONTH_NAMES[month - 1]}</span>''', 'sales total start')
+          once('''              </div>\n              {catTotals.length > 0 && (''', '''              </div>}\n              {catTotals.length > 0 && (''', 'sales total end')
+
+          p.write_text(s)
+          PY
+          if ! grep -q 'Personnaliser le chiffre d' src/routes/_authenticated/pilot.ca.tsx; then echo 'Patch marker missing'; exit 1; fi
+          if grep -q 'CA_DENSITY_KEY\|Densité normale\|Densité compacte' src/routes/_authenticated/pilot.ca.tsx; then echo 'Old density control remains'; exit 1; fi
+          git diff --check
+          git config user.name "Pilot Pro Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/_authenticated/pilot.ca.tsx
+          git commit -m "feat(pilot-ca): add discreet page personalization"
+          git push
+      - name: Remove temporary workflow
+        run: |
+          rm -f .github/workflows/temporary-ca-personalization-patch.yml
+          git add -u .github/workflows/temporary-ca-personalization-patch.yml
+          git commit -m "chore: remove temporary CA patch workflow" || true
+          git push || true
