@@ -128,6 +128,20 @@ function InterventionDetail() {
     queryKey: ["pilot-settings-target"],
     queryFn: getSettings,
   });
+  // Taux horaire moyen du client (mêmes lignes de vente que le périmètre unique).
+  const clientRateQ = useQuery({
+    queryKey: ["client-hourly-rate", iv?.client_id],
+    enabled: !!iv?.client_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pilot_ca_entries")
+        .select("amount_ht,hours,intervention_type")
+        .eq("client_id", iv!.client_id);
+      if (error) throw new Error(error.message);
+      return saleRateScope((data ?? []) as { amount_ht: number | null; hours: number | null; intervention_type: string | null }[]).rate;
+    },
+  });
+
 
   const invTasks = () => qc.invalidateQueries({ queryKey: ["tasks", interventionId] });
   const invPhotos = () => qc.invalidateQueries({ queryKey: ["photos", interventionId] });
