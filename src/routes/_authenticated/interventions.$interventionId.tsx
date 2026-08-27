@@ -628,6 +628,7 @@ function InterventionDetail() {
               actualHours={iv.hours_spent ?? null}
               done={done}
               targetHourlyRate={pilotSettingsQ.data?.target_hourly_rate ?? 0}
+              clientHourlyRate={clientRateQ.data ?? null}
               estimated={((iv.ai_metadata ?? {}) as Record<string, unknown>).hours_spent_estimated === true}
             />
           </CardContent>
