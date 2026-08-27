@@ -729,7 +729,7 @@ function InterventionDetail() {
               <div>
                 <p className="mb-2 text-sm font-medium">Sections</p>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {(Object.keys(REPORT_SECTION_LABELS) as (keyof ReportSections)[]).map((k) => (
+                  {SELECTABLE_REPORT_SECTIONS.map((k) => (
                     <label key={k} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
                       <Checkbox
                         checked={sections[k]}
