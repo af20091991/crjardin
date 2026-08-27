@@ -41,15 +41,23 @@ import { useRole } from "@/hooks/use-role";
 import { ClientOpportunitiesWidget } from "@/components/ClientOpportunitiesWidget";
 
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({
+  validateSearch: (search: Record<string, unknown>): { edit?: boolean } => ({
+    edit: search.edit === true || search.edit === "true" || search.edit === "1" ? true : undefined,
+  }),
   component: ClientDetail,
 });
 
 function ClientDetail() {
   const { clientId } = Route.useParams();
+  const { edit } = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { canEdit } = useRole();
   const [copied, setCopied] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  useEffect(() => {
+    if (edit && canEdit) setEditOpen(true);
+  }, [edit, canEdit]);
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", clientId],
     queryFn: () => getClient(clientId),
