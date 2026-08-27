@@ -378,7 +378,7 @@ function CaPage() {
                 </div></section>
                 <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Colonnes des ventes</p><div className="space-y-1">
                   {([["client","Client"],["designation","Désignation"],["category","Catégorie"],["type","Type d'intervention"],["amount","Montant HT"],["hours","Temps"]] as const).map(([key,label]) => (
-                    <label key={key} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"><span>{label}</span><input type="checkbox" checked={personalization.salesColumns[key]} onChange={(e) => updatePersonalization({ salesColumns: { [key]: e.target.checked } })} /></label>
+                    <label key={key} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"><span>{label}</span><input type="checkbox" checked={personalization.salesColumns[key]} onChange={(e) => updatePersonalization({ salesColumns: { ...personalization.salesColumns, [key]: e.target.checked } })} /></label>
                   ))}
                   <p className="mt-2 text-xs text-muted-foreground">Masquer une colonne ne supprime aucune donnée et ne modifie aucun calcul.</p>
                 </div></section>
