@@ -1377,6 +1377,34 @@ function RentabilityEstimateBlock({
           )}
         </div>
       </div>
+      {ivRate !== null && (
+        <div className="mt-2 rounded border bg-background/60 p-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-[11px] text-muted-foreground">Taux horaire de cette intervention</span>
+            <span className="text-sm font-semibold tabular-nums">
+              {ivRate.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/h
+            </span>
+          </div>
+          {clientHourlyRate != null && clientHourlyRate > 0 ? (
+            <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-[11px] text-muted-foreground">
+                Moyenne du client : {clientHourlyRate.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/h
+              </span>
+              <span
+                className="text-xs font-semibold tabular-nums"
+                style={{ color: (rateGapPct ?? 0) >= 0 ? "var(--primary)" : "var(--pp-charges)" }}
+              >
+                {(rateGapPct ?? 0) >= 0 ? "Au-dessus" : "En dessous"} de{" "}
+                {Math.abs(rateGapPct ?? 0).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %
+              </span>
+            </div>
+          ) : (
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Moyenne du client indisponible — aucune vente avec temps documenté.
+            </p>
+          )}
+        </div>
+      )}
       {confidence !== "HIGH" && (
         <p className="mt-2 text-[11px] text-muted-foreground">
           {confidence === "LOW"
