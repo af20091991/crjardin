@@ -93,8 +93,8 @@ import {
   Landmark,
   Calculator,
   Sprout,
-
-
+  Settings2,
+  RotateCcw,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -116,31 +116,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/_authenticated/pilot/ca")({
   component: CaPage,
 });
 
 const num = (v: string) => Number(v.replace(",", ".")) || 0;
-
-/** Densité locale à cette page uniquement (aucun effet global, aucun calcul). */
-type CaDensity = "normal" | "compact";
-const CA_DENSITY_KEY = "pilot-ca-density";
-
-function loadCaDensity(): CaDensity {
-  if (typeof window === "undefined") return "compact";
-  return window.localStorage.getItem(CA_DENSITY_KEY) === "normal" ? "normal" : "compact";
-}
-
-/**
- * Compactage strictement visuel de la zone de saisie : espacements, hauteurs
- * de champ et typographie. Aucune colonne masquée, aucune valeur tronquée.
- */
-const CA_DENSITY_CLASS: Record<CaDensity, string> = {
-  normal: "",
-  compact:
-    "text-[13px] [&_td]:py-1 [&_th]:py-1.5 [&_td]:px-2 [&_th]:px-2 [&_input]:h-7 [&_input]:text-[13px] [&_button[role=combobox]]:h-7 [&_button[role=combobox]]:text-[13px] [&_textarea]:min-h-[48px]",
-};
 
 function StatBox({
   label,
@@ -183,7 +165,6 @@ function CaPage() {
   const [openFixed, setOpenFixed] = useState<Record<string, boolean>>({});
   const toggleFixed = (id: string) => setOpenFixed((s) => ({ ...s, [id]: !s[id] }));
   const [originFor, setOriginFor] = useState<CaEntry | null>(null);
-  const [density, setDensity] = useState<CaDensity>("compact");
   // Encarts repliables (Ventes, Charges, Rémunération, Calculateurs) :
   // fermés par défaut, ouverture mémorisée localement pour cette page.
   const [sections, setSections] = useState<CaSectionState>({
@@ -206,16 +187,25 @@ function CaPage() {
       return next;
     });
 
-  // Réglage mémorisé uniquement pour cette page (localStorage, après montage).
-  useEffect(() => setDensity(loadCaDensity()), []);
-  const changeDensity = (d: CaDensity) => {
-    setDensity(d);
-    try {
-      window.localStorage.setItem(CA_DENSITY_KEY, d);
-    } catch {
-      /* stockage indisponible : le réglage reste valable pour la session */
-    }
+  const CA_PERSONALIZATION_KEY = "pilot-ca-personalization-v1";
+  type CaPersonalization = {
+    showAnnualSummary: boolean; showMonthlySummary: boolean; showMonthTabs: boolean;
+    showStatusLegend: boolean; showTotals: boolean;
+    salesColumns: { client: boolean; designation: boolean; category: boolean; type: boolean; amount: boolean; hours: boolean };
   };
+  const DEFAULT_CA_PERSONALIZATION: CaPersonalization = {
+    showAnnualSummary: true, showMonthlySummary: true, showMonthTabs: true, showStatusLegend: true, showTotals: true,
+    salesColumns: { client: true, designation: true, category: true, type: true, amount: true, hours: true },
+  };
+  const loadCaPersonalization = (): CaPersonalization => {
+    if (typeof window === "undefined") return DEFAULT_CA_PERSONALIZATION;
+    try { const raw = JSON.parse(window.localStorage.getItem(CA_PERSONALIZATION_KEY) || "{}"); return { ...DEFAULT_CA_PERSONALIZATION, ...raw, salesColumns: { ...DEFAULT_CA_PERSONALIZATION.salesColumns, ...(raw.salesColumns || {}) } }; } catch { return DEFAULT_CA_PERSONALIZATION; }
+  };
+  const [personalization, setPersonalization] = useState<CaPersonalization>(DEFAULT_CA_PERSONALIZATION);
+  const [personalizationOpen, setPersonalizationOpen] = useState(false);
+  useEffect(() => setPersonalization(loadCaPersonalization()), []);
+  const updatePersonalization = (patch: Partial<CaPersonalization>) => setPersonalization((current) => { const next = { ...current, ...patch, salesColumns: { ...current.salesColumns, ...(patch.salesColumns || {}) } }; try { window.localStorage.setItem(CA_PERSONALIZATION_KEY, JSON.stringify(next)); } catch {} return next; });
+  const resetPersonalization = () => { setPersonalization(DEFAULT_CA_PERSONALIZATION); try { window.localStorage.removeItem(CA_PERSONALIZATION_KEY); } catch {} };
 
   const entriesQ = useQuery({ queryKey: ["pilot-ca", year], queryFn: () => listCaEntries(year) });
   const entries = entriesQ.data ?? [];
@@ -365,21 +355,35 @@ function CaPage() {
               Résultat prêt : {formatEuro(pending)} — cliquez « + Ligne »
             </Badge>
           )}
-          {/* Densité locale de la zone de saisie (mémorisée pour cette page) */}
-          <Select value={density} onValueChange={(v) => changeDensity(v as CaDensity)}>
-            <SelectTrigger className="h-8 w-[150px]" aria-label="Densité d'affichage">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="normal">Densité normale</SelectItem>
-              <SelectItem value="compact">Densité compacte</SelectItem>
-            </SelectContent>
-          </Select>
+          <Sheet open={personalizationOpen} onOpenChange={setPersonalizationOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground" title="Personnaliser la page">
+                <Settings2 className="h-3.5 w-3.5" /> <span>Personnaliser</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-[360px] sm:w-[400px] overflow-y-auto">
+              <SheetHeader><SheetTitle>Personnaliser le chiffre d'affaires</SheetTitle></SheetHeader>
+              <div className="mt-5 space-y-6 text-sm">
+                <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Page</p><div className="space-y-1">
+                  {([["showAnnualSummary","Synthèse annuelle"],["showMonthlySummary","Synthèse du mois"],["showMonthTabs","Navigation par mois"],["showStatusLegend","Légende des statuts"],["showTotals","Totaux du tableau"]] as const).map(([key,label]) => (
+                    <label key={key} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"><span>{label}</span><input type="checkbox" checked={personalization[key]} onChange={(e) => updatePersonalization({ [key]: e.target.checked } as Partial<CaPersonalization>)} /></label>
+                  ))}
+                </div></section>
+                <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Colonnes des ventes</p><div className="space-y-1">
+                  {([["client","Client"],["designation","Désignation"],["category","Catégorie"],["type","Type d'intervention"],["amount","Montant HT"],["hours","Temps"]] as const).map(([key,label]) => (
+                    <label key={key} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"><span>{label}</span><input type="checkbox" checked={personalization.salesColumns[key]} onChange={(e) => updatePersonalization({ salesColumns: { [key]: e.target.checked } })} /></label>
+                  ))}
+                  <p className="mt-2 text-xs text-muted-foreground">Masquer une colonne ne supprime aucune donnée et ne modifie aucun calcul.</p>
+                </div></section>
+                <Button variant="outline" size="sm" onClick={resetPersonalization}><RotateCcw className="mr-1.5 h-3.5 w-3.5" />Réinitialiser</Button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 
       {/* Synthèse annuelle */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
+      {personalization.showAnnualSummary && <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
         <StatBox label={`CA HT ${year}`} value={formatEuro(yt.ventesHt)} icon={TrendingUp} />
 
         <StatBox
@@ -407,7 +411,7 @@ function CaPage() {
           icon={PiggyBank}
           tone={resultAfterInvest >= 0 ? "text-emerald-600" : "text-rose-600"}
         />
-      </div>
+      </div>}
 
       {/* Mode « année complète » : les 12 mois de l'exercice, saisies telles quelles */}
       {period === "exercice_complet" && (
@@ -416,7 +420,7 @@ function CaPage() {
 
 
       {/* Onglets mois */}
-      <div className="-mx-1 overflow-x-auto pb-1">
+      {personalization.showMonthTabs && <div className="-mx-1 overflow-x-auto pb-1">
         <div className="flex min-w-max gap-1 rounded-xl border border-border bg-card p-1">
           {MONTH_NAMES.slice(0, monthsVisible).map((name, i) => {
             const m = i + 1;
@@ -438,7 +442,7 @@ function CaPage() {
             );
           })}
         </div>
-      </div>
+      </div>}
 
       {/* En-tête mois */}
       <div className="flex flex-wrap items-center gap-2">
@@ -447,7 +451,7 @@ function CaPage() {
         </h2>
         <Badge variant="outline">Trimestre {QUARTER_OF(month)}</Badge>
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+      {personalization.showMonthlySummary && <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <StatBox label="CA HT mois" value={formatEuro(mt.ventesHt)} icon={TrendingUp} />
         <StatBox
           label="Prévisionnel total HT — ventes du mois"
@@ -475,7 +479,7 @@ function CaPage() {
           action={<GestionToggle />}
           title={includeGestion ? GESTION_MODE_HELP.incluse : GESTION_MODE_HELP.exclue}
         />
-      </div>
+      </div>}
 
       {/*
        * Corps de saisie : VENTES en haut, CHARGES en bas.
@@ -511,12 +515,12 @@ function CaPage() {
                 <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
                   <colgroup>
                     <col style={{ width: salesCols.widths.statut }} />
-                    <col style={{ width: salesCols.widths.client }} />
-                    <col style={{ width: salesCols.widths.designation }} />
-                    <col style={{ width: salesCols.widths.categorie }} />
-                    <col style={{ width: salesCols.widths.type }} />
-                    <col style={{ width: salesCols.widths.montant }} />
-                    <col style={{ width: salesCols.widths.temps }} />
+                    <col style={{ width: salesCols.widths.client, visibility: personalization.salesColumns.client ? "visible" : "collapse" }} />
+                    <col style={{ width: salesCols.widths.designation, visibility: personalization.salesColumns.designation ? "visible" : "collapse" }} />
+                    <col style={{ width: salesCols.widths.categorie, visibility: personalization.salesColumns.category ? "visible" : "collapse" }} />
+                    <col style={{ width: salesCols.widths.type, visibility: personalization.salesColumns.type ? "visible" : "collapse" }} />
+                    <col style={{ width: salesCols.widths.montant, visibility: personalization.salesColumns.amount ? "visible" : "collapse" }} />
+                    <col style={{ width: salesCols.widths.temps, visibility: personalization.salesColumns.hours ? "visible" : "collapse" }} />
                     <col style={{ width: salesCols.widths.actions }} />
                   </colgroup>
                   <TableHeader>
@@ -768,7 +772,7 @@ function CaPage() {
                   </TableBody>
                 </Table>
               </div>
-              {ventes.length > 0 && (
+              {ventes.length > 0 && personalization.showStatusLegend && (
                 <div className="flex flex-wrap items-center gap-3 border-t px-4 py-2 text-[11px] text-muted-foreground">
                   <span className="uppercase tracking-wide">Statut :</span>
                   {SALE_STATUS_ORDER.map((s) => (
@@ -783,13 +787,13 @@ function CaPage() {
                   </span>
                 </div>
               )}
-              <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
+              {personalization.showTotals && <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
                 <span className="font-medium">Total CA HT {MONTH_NAMES[month - 1]}</span>
                 <div className="flex gap-4">
                   <span className="text-muted-foreground">{mt.hours} h</span>
                   <span className="font-semibold text-emerald-600">{formatEuro(mt.ventesHt)}</span>
                 </div>
-              </div>
+              </div>}
               {catTotals.length > 0 && (
                 <div className="flex flex-wrap gap-2 border-t px-4 py-2.5">
                   {catTotals.map((c) => (
