@@ -522,12 +522,12 @@ function CaPage() {
                 <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
                   <colgroup>
                     <col style={{ width: salesCols.widths.statut }} />
-                    <col style={{ width: personalization.salesColumns.client ? salesCols.widths.client : 0 }} />
-                    <col style={{ width: personalization.salesColumns.designation ? salesCols.widths.designation : 0 }} />
-                    <col style={{ width: personalization.salesColumns.category ? salesCols.widths.categorie : 0 }} />
-                    <col style={{ width: personalization.salesColumns.type ? salesCols.widths.type : 0 }} />
-                    <col style={{ width: personalization.salesColumns.amount ? salesCols.widths.montant : 0 }} />
-                    <col style={{ width: personalization.salesColumns.hours ? salesCols.widths.temps : 0 }} />
+                    <col style={{ display: personalization.salesColumns.client ? undefined : "none", width: salesCols.widths.client }} />
+                    <col style={{ display: personalization.salesColumns.designation ? undefined : "none", width: salesCols.widths.designation }} />
+                    <col style={{ display: personalization.salesColumns.category ? undefined : "none", width: salesCols.widths.categorie }} />
+                    <col style={{ display: personalization.salesColumns.type ? undefined : "none", width: salesCols.widths.type }} />
+                    <col style={{ display: personalization.salesColumns.amount ? undefined : "none", width: salesCols.widths.montant }} />
+                    <col style={{ display: personalization.salesColumns.hours ? undefined : "none", width: salesCols.widths.temps }} />
                     <col style={{ width: salesCols.widths.actions }} />
                   </colgroup>
                   <TableHeader>
