@@ -1,16 +1,20 @@
-name: Apply CA charge category cleanup
+name: Apply PP charge category cleanup
+
 on:
   push:
     paths:
       - .github/workflows/ca-charge-category-cleanup.yml
+
 permissions:
   contents: write
+
 jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply requested charge category changes
+
+      - name: Update charge category UI and classification
         shell: bash
         run: |
           set -euo pipefail
@@ -19,7 +23,7 @@ jobs:
           p = Path('src/routes/_authenticated/pilot.ca.tsx')
           s = p.read_text()
 
-          old_helper = '''  type ChargeType = "Charge fixe" | "Achats" | "Charge chantier" | "Investissement";
+          old = '''  type ChargeType = "Charge fixe" | "Achats" | "Charge chantier" | "Investissement";
   type AutoVariableCharge = "Alimentaire" | "Carburant" | "Déchèterie";
 
   const CHARGE_TYPE_META: Record<ChargeType, { charge_class: "fixe" | "variable" | "a_classer"; is_investment: boolean }> = {
@@ -52,7 +56,8 @@ jobs:
     const meta = CHARGE_TYPE_META[type];
     save(row.id, { charge_category: type, charge_class: meta.charge_class, is_investment: meta.is_investment });
   };'''
-          new_helper = '''  type ChargeType = "Charge fixe" | "Achats" | "Charge chantier" | "Rémunération" | "Investissement";
+
+          new = '''  type ChargeType = "Charge fixe" | "Achats" | "Charge chantier" | "Rémunération" | "Investissement";
 
   const CHARGE_TYPE_META: Record<ChargeType, { charge_class: "fixe" | "variable" | "a_classer"; is_investment: boolean }> = {
     "Charge fixe": { charge_class: "fixe", is_investment: false },
@@ -78,9 +83,10 @@ jobs:
     const meta = CHARGE_TYPE_META[type];
     save(row.id, { charge_category: type, charge_class: meta.charge_class, is_investment: meta.is_investment });
   };'''
-          if s.count(old_helper) != 1:
-              raise SystemExit(f'helper block mismatch: {s.count(old_helper)}')
-          s = s.replace(old_helper, new_helper, 1)
+
+          if s.count(old) != 1:
+              raise SystemExit(f'classification block mismatch: {s.count(old)}')
+          s = s.replace(old, new, 1)
 
           old_menu = '''                                      <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Charge fixe")}>Charge fixe</DropdownMenuItem>
                                       <DropdownMenuSub>
@@ -94,6 +100,7 @@ jobs:
                                         </DropdownMenuSubContent>
                                       </DropdownMenuSub>
                                       <DropdownMenuItem title="Apparaît dans le mois en cours mais n'impacte pas le résultat du mois. L'investissement est rapporté à l'exercice, pas au mois auquel il a été affecté." onSelect={() => saveChargeType(typedRow, "Investissement")}>Investissement</DropdownMenuItem>'''
+
           new_menu = '''                                      <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Charge fixe")}>Charge fixe</DropdownMenuItem>
                                       <DropdownMenuSub>
                                         <DropdownMenuSubTrigger>Charges variables</DropdownMenuSubTrigger>
@@ -104,17 +111,22 @@ jobs:
                                         </DropdownMenuSubContent>
                                       </DropdownMenuSub>
                                       <DropdownMenuItem title="Apparaît dans le mois en cours mais n'impacte pas le résultat du mois. L'investissement est rapporté à l'exercice, pas au mois auquel il a été affecté." onSelect={() => saveChargeType(typedRow, "Investissement")}>Investissement</DropdownMenuItem>'''
+
           if s.count(old_menu) != 1:
               raise SystemExit(f'menu block mismatch: {s.count(old_menu)}')
           s = s.replace(old_menu, new_menu, 1)
-
-          s = s.replace('                                const autoVariable = detectAutoVariableCharge(row.designation);\n', '')
+          s = s.replace('                                const autoVariable = detectAutoVariableCharge(row.designation);\n', '', 1)
           p.write_text(s)
           PY
+
+      - name: Validate and commit
+        shell: bash
+        run: |
+          set -euo pipefail
           npm run build
           git diff --check
           git config user.name "Pilot Pro Bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/routes/_authenticated/pilot.ca.tsx
-          git commit -m "feat: simplify CA charge categories" || true
+          git commit -m "feat: simplify CA charge categories" || exit 0
           git push
