@@ -13,6 +13,8 @@ import {
   completeInterventionWithHoursAutofill, confirmHoursSpent, estimateHoursSpent,
 } from "@/lib/interventions";
 import { getSettings } from "@/lib/pilot";
+import { supabase } from "@/integrations/supabase/client";
+import { saleRateScope } from "@/lib/pilot-sale-time";
 import {
   listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
   listRecommendationsByClient, addRecommendation, updateRecommendation, deleteRecommendation,
