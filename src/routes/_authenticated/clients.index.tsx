@@ -352,59 +352,11 @@ function ClientsPage() {
             </Button>
           )}
           {canEdit && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" title="Modifier rapidement les statuts">
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-72 space-y-3 text-sm">
-                <div>
-                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Cycle de vie
-                  </p>
-                  {(["actif", "perdu"] as ClientLifecycle[]).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      disabled={statusMut.isPending}
-                      onClick={() =>
-                        statusMut.mutate({ client: c, patch: { lifecycle_status: v } })
-                      }
-                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left hover:bg-accent/40"
-                    >
-                      <span>{LIFECYCLE_META[v].label}</span>
-                      {(c.lifecycle_status ?? "actif") === v && (
-                        <Check className="h-4 w-4 text-primary" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <div>
-                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Compte-rendu client
-                  </p>
-                  {(["oui", "non", "a_confirmer"] as ReportPolicy[]).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      disabled={statusMut.isPending}
-                      onClick={() => statusMut.mutate({ client: c, patch: { report_policy: v } })}
-                      className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left hover:bg-accent/40"
-                    >
-                      <span>{REPORT_POLICY_META[v].short}</span>
-                      {(c.report_policy ?? "a_confirmer") === v && (
-                        <Check className="h-4 w-4 text-primary" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[11px] leading-snug text-muted-foreground">
-                  Les statuts « à relancer » et « dormant » sont déduits de la dernière activité
-                  réelle : ils ne se modifient pas à la main.
-                </p>
-              </PopoverContent>
-            </Popover>
+            <Button variant="ghost" size="icon" asChild title="Modifier la fiche CRM du client">
+              <Link to="/clients/$clientId" params={{ clientId: c.id }} search={{ edit: true }}>
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
           )}
           {canEdit && clients && (
             <ClientMergeDialog

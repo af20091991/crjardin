@@ -621,8 +621,14 @@ export type Database = {
       clients: {
         Row: {
           address: string | null
+          ceev_enabled: boolean
+          ceev_planning_filename: string | null
+          ceev_planning_path: string | null
+          ceev_planning_updated_at: string | null
           civility: string | null
+          client_type: string | null
           contract_type: string | null
+          cr_notes: string | null
           created_at: string
           default_contact_id: string | null
           email: string | null
@@ -653,8 +659,14 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          ceev_enabled?: boolean
+          ceev_planning_filename?: string | null
+          ceev_planning_path?: string | null
+          ceev_planning_updated_at?: string | null
           civility?: string | null
+          client_type?: string | null
           contract_type?: string | null
+          cr_notes?: string | null
           created_at?: string
           default_contact_id?: string | null
           email?: string | null
@@ -685,8 +697,14 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          ceev_enabled?: boolean
+          ceev_planning_filename?: string | null
+          ceev_planning_path?: string | null
+          ceev_planning_updated_at?: string | null
           civility?: string | null
+          client_type?: string | null
           contract_type?: string | null
+          cr_notes?: string | null
           created_at?: string
           default_contact_id?: string | null
           email?: string | null

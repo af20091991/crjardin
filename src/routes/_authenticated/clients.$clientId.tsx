@@ -36,20 +36,28 @@ import {
   ThumbsUp, ThumbsDown, RotateCcw, TrendingUp, Send, ArrowRight, Sprout,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRole } from "@/hooks/use-role";
 import { ClientOpportunitiesWidget } from "@/components/ClientOpportunitiesWidget";
 
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({
+  validateSearch: (search: Record<string, unknown>): { edit?: boolean } => ({
+    edit: search.edit === true || search.edit === "true" || search.edit === "1" ? true : undefined,
+  }),
   component: ClientDetail,
 });
 
 function ClientDetail() {
   const { clientId } = Route.useParams();
+  const { edit } = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { canEdit } = useRole();
   const [copied, setCopied] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  useEffect(() => {
+    if (edit && canEdit) setEditOpen(true);
+  }, [edit, canEdit]);
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", clientId],
     queryFn: () => getClient(clientId),
@@ -152,7 +160,7 @@ function ClientDetail() {
               </div>
               {canEdit && (
               <div className="flex shrink-0 gap-1.5">
-                <ClientForm client={client} trigger={<Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>} />
+                <ClientForm client={client} open={editOpen} onOpenChange={setEditOpen} trigger={<Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>} />
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="outline" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>

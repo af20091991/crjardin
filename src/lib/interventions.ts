@@ -42,6 +42,18 @@ export const REPORT_SECTION_LABELS: Record<keyof ReportSections, string> = {
   photos: "Photos",
 };
 
+/**
+ * Sections proposées à la sélection dans « Contenu du compte-rendu ».
+ * Les autres clés restent supportées pour les CR déjà enregistrés.
+ */
+export const SELECTABLE_REPORT_SECTIONS: (keyof ReportSections)[] = [
+  "summary",
+  "tasks",
+  "positive_points",
+  "attention_points",
+  "photos",
+];
+
 export function normalizeReportSections(raw: unknown): ReportSections {
   const src = (raw && typeof raw === "object" ? raw : {}) as Partial<Record<keyof ReportSections, unknown>>;
   const out = { ...DEFAULT_REPORT_SECTIONS };

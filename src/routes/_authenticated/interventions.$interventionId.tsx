@@ -8,11 +8,13 @@ import {
   listTasks, addTask, updateTask, deleteTask,
   listPhotos, addPhoto, updatePhoto, deletePhoto, signedPhotoUrl, reorderPhotos,
   TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
-  DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, normalizeReportSections, type ReportSections,
+  DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, SELECTABLE_REPORT_SECTIONS, normalizeReportSections, type ReportSections,
   listServiceCatalog,
   completeInterventionWithHoursAutofill, confirmHoursSpent, estimateHoursSpent,
 } from "@/lib/interventions";
 import { getSettings } from "@/lib/pilot";
+import { supabase } from "@/integrations/supabase/client";
+import { saleRateScope } from "@/lib/pilot-sale-time";
 import {
   listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
   listRecommendationsByClient, addRecommendation, updateRecommendation, deleteRecommendation,
@@ -128,6 +130,20 @@ function InterventionDetail() {
     queryKey: ["pilot-settings-target"],
     queryFn: getSettings,
   });
+  // Taux horaire moyen du client (mêmes lignes de vente que le périmètre unique).
+  const clientRateQ = useQuery({
+    queryKey: ["client-hourly-rate", iv?.client_id],
+    enabled: !!iv?.client_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pilot_ca_entries")
+        .select("amount_ht,hours,intervention_type")
+        .eq("client_id", iv!.client_id);
+      if (error) throw new Error(error.message);
+      return saleRateScope((data ?? []) as { amount_ht: number | null; hours: number | null; intervention_type: string | null }[]).rate;
+    },
+  });
+
 
   const invTasks = () => qc.invalidateQueries({ queryKey: ["tasks", interventionId] });
   const invPhotos = () => qc.invalidateQueries({ queryKey: ["photos", interventionId] });
@@ -612,6 +628,7 @@ function InterventionDetail() {
               actualHours={iv.hours_spent ?? null}
               done={done}
               targetHourlyRate={pilotSettingsQ.data?.target_hourly_rate ?? 0}
+              clientHourlyRate={clientRateQ.data ?? null}
               estimated={((iv.ai_metadata ?? {}) as Record<string, unknown>).hours_spent_estimated === true}
             />
           </CardContent>
@@ -729,7 +746,7 @@ function InterventionDetail() {
               <div>
                 <p className="mb-2 text-sm font-medium">Sections</p>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {(Object.keys(REPORT_SECTION_LABELS) as (keyof ReportSections)[]).map((k) => (
+                  {SELECTABLE_REPORT_SECTIONS.map((k) => (
                     <label key={k} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
                       <Checkbox
                         checked={sections[k]}
@@ -1289,12 +1306,14 @@ function RentabilityEstimateBlock({
   actualHours,
   done,
   targetHourlyRate,
+  clientHourlyRate,
   estimated,
 }: {
   plannedHours: number | null;
   actualHours: number | null;
   done: boolean;
   targetHourlyRate: number;
+  clientHourlyRate: number | null;
   estimated: boolean;
 }) {
   if (!plannedHours && !actualHours) return null;
@@ -1302,6 +1321,13 @@ function RentabilityEstimateBlock({
   const valueProduced = hasBoth && targetHourlyRate > 0 ? (plannedHours as number) * targetHourlyRate : null;
   const realCost = hasBoth && targetHourlyRate > 0 ? (actualHours as number) * targetHourlyRate : null;
   const marginDelta = valueProduced !== null && realCost !== null ? valueProduced - realCost : null;
+  // Taux horaire réalisé sur cette intervention (valeur produite ÷ temps réel).
+  const ivRate = valueProduced !== null && actualHours ? valueProduced / actualHours : null;
+  const rateGapPct =
+    ivRate !== null && clientHourlyRate != null && clientHourlyRate > 0
+      ? ((ivRate - clientHourlyRate) / clientHourlyRate) * 100
+      : null;
+
 
   const confidence: "HIGH" | "MEDIUM" | "LOW" = !hasBoth ? "LOW" : estimated ? "MEDIUM" : "HIGH";
   const confLabel = { HIGH: "Fiable", MEDIUM: "Estimé", LOW: "Incomplet" }[confidence];
@@ -1351,6 +1377,34 @@ function RentabilityEstimateBlock({
           )}
         </div>
       </div>
+      {ivRate !== null && (
+        <div className="mt-2 rounded border bg-background/60 p-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-[11px] text-muted-foreground">Taux horaire de cette intervention</span>
+            <span className="text-sm font-semibold tabular-nums">
+              {ivRate.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/h
+            </span>
+          </div>
+          {clientHourlyRate != null && clientHourlyRate > 0 ? (
+            <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-[11px] text-muted-foreground">
+                Moyenne du client : {clientHourlyRate.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/h
+              </span>
+              <span
+                className="text-xs font-semibold tabular-nums"
+                style={{ color: (rateGapPct ?? 0) >= 0 ? "var(--primary)" : "var(--pp-charges)" }}
+              >
+                {(rateGapPct ?? 0) >= 0 ? "Au-dessus" : "En dessous"} de{" "}
+                {Math.abs(rateGapPct ?? 0).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %
+              </span>
+            </div>
+          ) : (
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Moyenne du client indisponible — aucune vente avec temps documenté.
+            </p>
+          )}
+        </div>
+      )}
       {confidence !== "HIGH" && (
         <p className="mt-2 text-[11px] text-muted-foreground">
           {confidence === "LOW"
