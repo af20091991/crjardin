@@ -522,54 +522,48 @@ function CaPage() {
                 <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
                   <colgroup>
                     <col style={{ width: salesCols.widths.statut }} />
-                    <col style={{ width: salesCols.widths.client, visibility: personalization.salesColumns.client ? "visible" : "collapse" }} />
-                    <col style={{ width: salesCols.widths.designation, visibility: personalization.salesColumns.designation ? "visible" : "collapse" }} />
-                    <col style={{ width: salesCols.widths.categorie, visibility: personalization.salesColumns.category ? "visible" : "collapse" }} />
-                    <col style={{ width: salesCols.widths.type, visibility: personalization.salesColumns.type ? "visible" : "collapse" }} />
-                    <col style={{ width: salesCols.widths.montant, visibility: personalization.salesColumns.amount ? "visible" : "collapse" }} />
-                    <col style={{ width: salesCols.widths.temps, visibility: personalization.salesColumns.hours ? "visible" : "collapse" }} />
+                    <col style={{ width: personalization.salesColumns.client ? salesCols.widths.client : 0 }} />
+                    <col style={{ width: personalization.salesColumns.designation ? salesCols.widths.designation : 0 }} />
+                    <col style={{ width: personalization.salesColumns.category ? salesCols.widths.categorie : 0 }} />
+                    <col style={{ width: personalization.salesColumns.type ? salesCols.widths.type : 0 }} />
+                    <col style={{ width: personalization.salesColumns.amount ? salesCols.widths.montant : 0 }} />
+                    <col style={{ width: personalization.salesColumns.hours ? salesCols.widths.temps : 0 }} />
                     <col style={{ width: salesCols.widths.actions }} />
                   </colgroup>
                   <TableHeader>
                     <TableRow>
                       <TableHead />
-                      <TableHead className="relative">
-                        Client
+                      <TableHead style={{ display: personalization.salesColumns.client ? undefined : "none" }} className="relative">Client
                         <ResizeHandle
                           width={salesCols.widths.client}
                           onResize={(w) => salesCols.setWidth("client", w)}
                         />
                       </TableHead>
-                      <TableHead className="relative">
-                        Désignation
+                      <TableHead style={{ display: personalization.salesColumns.designation ? undefined : "none" }} className="relative">Désignation
                         <ResizeHandle
                           width={salesCols.widths.designation}
                           onResize={(w) => salesCols.setWidth("designation", w)}
                         />
                       </TableHead>
-                      <TableHead className="relative">
-                        Catégorie
+                      <TableHead style={{ display: personalization.salesColumns.category ? undefined : "none" }} className="relative">Catégorie
                         <ResizeHandle
                           width={salesCols.widths.categorie}
                           onResize={(w) => salesCols.setWidth("categorie", w)}
                         />
                       </TableHead>
-                      <TableHead className="relative">
-                        Type d'intervention
+                      <TableHead style={{ display: personalization.salesColumns.type ? undefined : "none" }} className="relative">Type d'intervention
                         <ResizeHandle
                           width={salesCols.widths.type}
                           onResize={(w) => salesCols.setWidth("type", w)}
                         />
                       </TableHead>
-                      <TableHead className="relative text-right">
-                        Montant HT
+                      <TableHead style={{ display: personalization.salesColumns.amount ? undefined : "none" }} className="relative text-right">Montant HT
                         <ResizeHandle
                           width={salesCols.widths.montant}
                           onResize={(w) => salesCols.setWidth("montant", w)}
                         />
                       </TableHead>
-                      <TableHead className="relative text-right">
-                        Temps
+                      <TableHead style={{ display: personalization.salesColumns.hours ? undefined : "none" }} className="relative text-right">Temps
                         <ResizeHandle
                           width={salesCols.widths.temps}
                           onResize={(w) => salesCols.setWidth("temps", w)}
@@ -582,7 +576,7 @@ function CaPage() {
                     {ventes.length === 0 && (
                       <TableRow>
                         <TableCell
-                          colSpan={8}
+                          colSpan={2 + Object.values(personalization.salesColumns).filter(Boolean).length}
                           className="py-6 text-center text-sm text-muted-foreground"
                         >
                           Aucune vente — ajoutez une ligne
@@ -626,7 +620,7 @@ function CaPage() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
-                            <TableCell>
+                            <TableCell style={{ display: personalization.salesColumns.client ? undefined : "none" }}>
                               <ClientPicker
                                 clients={clients}
                                 value={row.client_id ?? ""}
@@ -634,7 +628,7 @@ function CaPage() {
                                 placeholder="Client…"
                               />
                             </TableCell>
-                            <TableCell>
+                            <TableCell style={{ display: personalization.salesColumns.designation ? undefined : "none" }}>
                               <Input
                                 defaultValue={row.designation ?? ""}
                                 placeholder="Désignation"
@@ -646,7 +640,7 @@ function CaPage() {
                                 }}
                               />
                             </TableCell>
-                            <TableCell>
+                            <TableCell style={{ display: personalization.salesColumns.category ? undefined : "none" }}>
                               <Select
                                 value={row.category ?? "AP"}
                                 onValueChange={(v) => save(row.id, { category: v as CaCategory })}
@@ -663,7 +657,7 @@ function CaPage() {
                                 </SelectContent>
                               </Select>
                             </TableCell>
-                            <TableCell>
+                            <TableCell style={{ display: personalization.salesColumns.type ? undefined : "none" }}>
                               <Select
                                 value={kind}
                                 onValueChange={(v) =>
@@ -685,7 +679,7 @@ function CaPage() {
                                 </SelectContent>
                               </Select>
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right" style={{ display: personalization.salesColumns.amount ? undefined : "none" }}>
                               <Input
                                 defaultValue={row.amount_ht || ""}
                                 type="number"
@@ -697,7 +691,7 @@ function CaPage() {
                                 }}
                               />
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right" style={{ display: personalization.salesColumns.hours ? undefined : "none" }}>
                               <Input
                                 defaultValue={row.hours == null ? "" : String(row.hours)}
                                 type="number"
@@ -747,7 +741,7 @@ function CaPage() {
                           </TableRow>
                           {hasNote && !opened && (
                             <TableRow>
-                              <TableCell colSpan={8} className="py-1">
+                              <TableCell colSpan={2 + Object.values(personalization.salesColumns).filter(Boolean).length} className="py-1">
                                 <button
                                   type="button"
                                   className="text-xs font-medium text-primary hover:underline"
@@ -760,7 +754,7 @@ function CaPage() {
                           )}
                           {opened && (
                             <TableRow>
-                              <TableCell colSpan={8} className="bg-muted/20 py-2">
+                              <TableCell colSpan={2 + Object.values(personalization.salesColumns).filter(Boolean).length} className="bg-muted/20 py-2">
                                 <Textarea
                                   defaultValue={row.note ?? ""}
                                   placeholder="Commentaire (optionnel)…"
