@@ -124,6 +124,10 @@ export const Route = createFileRoute("/_authenticated/pilot/ca")({
 
 const num = (v: string) => Number(v.replace(",", ".")) || 0;
 
+// Compatibilité de rendu : l'ancien sélecteur de densité a été retiré de l'UI,
+// mais le workbench utilise encore cette classe pour sa mise en page.
+const CA_DENSITY_CLASS = { normal: "", compact: "" } as const;
+
 function StatBox({
   label,
   value,
@@ -165,6 +169,9 @@ function CaPage() {
   const [openFixed, setOpenFixed] = useState<Record<string, boolean>>({});
   const toggleFixed = (id: string) => setOpenFixed((s) => ({ ...s, [id]: !s[id] }));
   const [originFor, setOriginFor] = useState<CaEntry | null>(null);
+  // L'ancien contrôle de densité n'est plus affiché, mais le workbench conserve
+  // une valeur interne fixe afin de ne pas casser son rendu.
+  const [density] = useState<"normal">("normal");
   // Encarts repliables (Ventes, Charges, Rémunération, Calculateurs) :
   // fermés par défaut, ouverture mémorisée localement pour cette page.
   const [sections, setSections] = useState<CaSectionState>({
