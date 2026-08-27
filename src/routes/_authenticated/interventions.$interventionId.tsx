@@ -1306,12 +1306,14 @@ function RentabilityEstimateBlock({
   actualHours,
   done,
   targetHourlyRate,
+  clientHourlyRate,
   estimated,
 }: {
   plannedHours: number | null;
   actualHours: number | null;
   done: boolean;
   targetHourlyRate: number;
+  clientHourlyRate: number | null;
   estimated: boolean;
 }) {
   if (!plannedHours && !actualHours) return null;
@@ -1319,6 +1321,13 @@ function RentabilityEstimateBlock({
   const valueProduced = hasBoth && targetHourlyRate > 0 ? (plannedHours as number) * targetHourlyRate : null;
   const realCost = hasBoth && targetHourlyRate > 0 ? (actualHours as number) * targetHourlyRate : null;
   const marginDelta = valueProduced !== null && realCost !== null ? valueProduced - realCost : null;
+  // Taux horaire réalisé sur cette intervention (valeur produite ÷ temps réel).
+  const ivRate = valueProduced !== null && actualHours ? valueProduced / actualHours : null;
+  const rateGapPct =
+    ivRate !== null && clientHourlyRate != null && clientHourlyRate > 0
+      ? ((ivRate - clientHourlyRate) / clientHourlyRate) * 100
+      : null;
+
 
   const confidence: "HIGH" | "MEDIUM" | "LOW" = !hasBoth ? "LOW" : estimated ? "MEDIUM" : "HIGH";
   const confLabel = { HIGH: "Fiable", MEDIUM: "Estimé", LOW: "Incomplet" }[confidence];
