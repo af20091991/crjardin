@@ -1,0 +1,40 @@
+name: Fix CA designation column
+on:
+  push:
+    paths:
+      - .github/workflows/fix-ca-designation.yml
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply targeted table fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/routes/_authenticated/pilot.ca.tsx')
+          s=p.read_text()
+          pairs={
+            'style={{ width: personalization.salesColumns.client ? salesCols.widths.client : 0 }}':'style={{ display: personalization.salesColumns.client ? undefined : "none", width: salesCols.widths.client }}',
+            'style={{ width: personalization.salesColumns.designation ? salesCols.widths.designation : 0 }}':'style={{ display: personalization.salesColumns.designation ? undefined : "none", width: salesCols.widths.designation }}',
+            'style={{ width: personalization.salesColumns.category ? salesCols.widths.categorie : 0 }}':'style={{ display: personalization.salesColumns.category ? undefined : "none", width: salesCols.widths.categorie }}',
+            'style={{ width: personalization.salesColumns.type ? salesCols.widths.type : 0 }}':'style={{ display: personalization.salesColumns.type ? undefined : "none", width: salesCols.widths.type }}',
+            'style={{ width: personalization.salesColumns.amount ? salesCols.widths.montant : 0 }}':'style={{ display: personalization.salesColumns.amount ? undefined : "none", width: salesCols.widths.montant }}',
+            'style={{ width: personalization.salesColumns.hours ? salesCols.widths.temps : 0 }}':'style={{ display: personalization.salesColumns.hours ? undefined : "none", width: salesCols.widths.temps }}',
+          }
+          for a,b in pairs.items():
+            if a not in s: raise SystemExit('Expected pattern missing: '+a)
+            s=s.replace(a,b,1)
+          p.write_text(s)
+          PY
+          git diff --check
+          git add src/routes/_authenticated/pilot.ca.tsx
+          git config user.name 'Pilot Pro Bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: remove hidden CA columns from table layout'
+          git push
+          git rm .github/workflows/fix-ca-designation.yml
+          git commit -m 'chore: remove temporary CA fix workflow'
+          git push
