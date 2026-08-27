@@ -1,0 +1,131 @@
+name: PP charge category cleanup v3
+on:
+  push:
+    paths:
+      - .github/workflows/pp-charge-category-cleanup-v3.yml
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply targeted charge category cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('src/routes/_authenticated/pilot.ca.tsx')
+          s = p.read_text()
+          old = '''  type ChargeType = "Charge fixe" | "Achats" | "Charge chantier" | "Investissement";
+  type AutoVariableCharge = "Alimentaire" | "Carburant" | "Déchèterie";
+
+  const CHARGE_TYPE_META: Record<ChargeType, { charge_class: "fixe" | "variable" | "a_classer"; is_investment: boolean }> = {
+    "Charge fixe": { charge_class: "fixe", is_investment: false },
+    Achats: { charge_class: "variable", is_investment: false },
+    "Charge chantier": { charge_class: "variable", is_investment: false },
+    Investissement: { charge_class: "a_classer", is_investment: true },
+  };
+
+  const detectAutoVariableCharge = (designation: string | null | undefined): AutoVariableCharge | null => {
+    const value = (designation ?? "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
+    if (/\\b(carburant|essence|gazole|gasoil|diesel|sp95|sp98|e10|e85|adblue)\\b/.test(value)) return "Carburant";
+    if (/\\b(dechetterie|dechet|dechets|decharge|benne|gravats|evacuation)\\b/.test(value)) return "Déchèterie";
+    if (/\\b(alimentaire|alimentation|repas|restaurant|dejeuner|diner|nourriture|supermarche)\\b/.test(value)) return "Alimentaire";
+    return null;
+  };
+
+  const chargeTypeForRow = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }) => {
+    if (row.is_fixed) return "Charge fixe" as const;
+    if (row.is_investment) return "Investissement" as const;
+    const current = row.charge_category;
+    if (current === "Charge de fonctionnement") return "Achats" as const;
+    if (current === "Achats" || current === "Charge chantier") return current as ChargeType;
+    const auto = detectAutoVariableCharge(row.designation);
+    if (auto) return `Charges variables · ${auto}`;
+    return null;
+  };
+
+  const saveChargeType = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }, type: ChargeType) => {
+    const meta = CHARGE_TYPE_META[type];
+    save(row.id, { charge_category: type, charge_class: meta.charge_class, is_investment: meta.is_investment });
+  };'''
+          new = '''  type ChargeType = "Charge fixe" | "Achats" | "Charge chantier" | "Rémunération" | "Investissement";
+
+  const CHARGE_TYPE_META: Record<ChargeType, { charge_class: "fixe" | "variable" | "a_classer"; is_investment: boolean }> = {
+    "Charge fixe": { charge_class: "fixe", is_investment: false },
+    Achats: { charge_class: "variable", is_investment: false },
+    "Charge chantier": { charge_class: "variable", is_investment: false },
+    Rémunération: { charge_class: "variable", is_investment: false },
+    Investissement: { charge_class: "a_classer", is_investment: true },
+  };
+
+  const chargeTypeForRow = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }) => {
+    if (row.is_fixed) return "Charge fixe" as const;
+    if (row.is_investment) return "Investissement" as const;
+    const current = row.charge_category;
+    if (current === "Achats" || current === "Charge chantier" || current === "Rémunération") return current as ChargeType;
+    // Alimentaire, carburant et déchèterie restent des sous-catégories implicites
+    // déterminées à partir de la désignation dans les analyses, jamais des choix UI.
+    if (current === "Alimentaire" || current === "Carburant" || current === "Déchèterie" || current === "Charges variables" || current === "Charge de fonctionnement") return "Charges variables";
+    if (row.charge_class === "variable") return "Charges variables";
+    return null;
+  };
+
+  const saveChargeType = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }, type: ChargeType) => {
+    const meta = CHARGE_TYPE_META[type];
+    save(row.id, { charge_category: type, charge_class: meta.charge_class, is_investment: meta.is_investment });
+  };'''
+          if s.count(old) != 1:
+              raise SystemExit(f'expected charge helper block exactly once, found {s.count(old)}')
+          s = s.replace(old, new, 1)
+          old_menu = '''                                          <div className="px-2 py-1.5 text-xs text-muted-foreground">Alimentaire, carburant et déchèterie sont détectés automatiquement d'après la désignation.</div>
+                                          <DropdownMenuSeparator />
+                                          {autoVariable && <div className="px-2 py-1.5 text-xs text-muted-foreground">Détection actuelle : <span className="font-medium text-foreground">{autoVariable}</span></div>}
+                                          <DropdownMenuItem title="Toutes les charges nécessaires au fonctionnement de l'entreprise, autre que les charges de chantier" onSelect={() => saveChargeType(typedRow, "Achats")}>Achats</DropdownMenuItem>
+                                          <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Charge chantier")}>Charge chantier</DropdownMenuItem>'''
+          new_menu = '''                                          <DropdownMenuItem title="Toutes les charges nécessaires au fonctionnement de l'entreprise, autre que les charges de chantier" onSelect={() => saveChargeType(typedRow, "Achats")}>Achats</DropdownMenuItem>
+                                          <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Charge chantier")}>Charge chantier</DropdownMenuItem>
+                                          <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Rémunération")}>Rémunération</DropdownMenuItem>'''
+          if s.count(old_menu) != 1:
+              raise SystemExit(f'expected variable menu exactly once, found {s.count(old_menu)}')
+          s = s.replace(old_menu, new_menu, 1)
+          s = s.replace('                                const autoVariable = detectAutoVariableCharge(row.designation);\n', '', 1)
+          if 'detectAutoVariableCharge' in s or 'type AutoVariableCharge' in s:
+              raise SystemExit('obsolete automatic detector remains')
+          p.write_text(s)
+
+          c = Path('src/lib/changelog.ts')
+          cs = c.read_text()
+          marker = 'export const CHANGELOG: ChangeEntry[] = [\n'
+          entry = '''  {
+    date: "2026-08-27",
+    version: "2.3.2",
+    theme: "Général",
+    title: "Chiffre d'affaires — simplification du classement des charges",
+    details: [
+      "Alimentaire, carburant et déchèterie ne sont plus des catégories sélectionnables ; leur sous-classement repose sur la désignation.",
+      "Les charges variables sélectionnables sont désormais Achats, Charge chantier et Rémunération.",
+    ],
+  },
+'''
+          if entry not in cs:
+              if marker not in cs: raise SystemExit('changelog marker not found')
+              cs = cs.replace(marker, marker + entry, 1)
+              c.write_text(cs)
+          PY
+          bun install --frozen-lockfile
+          bun run build
+          bun run lint
+          bun test
+          git diff --check
+          git config user.name "Pilot Pro Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/_authenticated/pilot.ca.tsx src/lib/changelog.ts
+          git commit -m "feat: simplify charge category choices"
+          git push
+          git rm .github/workflows/pp-charge-category-cleanup-v3.yml
+          git commit -m "chore: remove temporary charge category workflow"
+          git push
