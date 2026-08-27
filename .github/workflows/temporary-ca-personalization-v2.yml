@@ -1,0 +1,92 @@
+name: Temporary CA personalization v2
+on:
+  push:
+    paths:
+      - .github/workflows/temporary-ca-personalization-v2.yml
+permissions:
+  contents: write
+jobs:
+  enhance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add safe personalization controls
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/routes/_authenticated/pilot.ca.tsx')
+          s = p.read_text()
+
+          old = '''  type CaPersonalization = {
+    showAnnualSummary: boolean; showMonthlySummary: boolean; showMonthTabs: boolean;
+    showStatusLegend: boolean; showTotals: boolean;
+    salesColumns: { client: boolean; designation: boolean; category: boolean; type: boolean; amount: boolean; hours: boolean };
+  };'''
+          new = '''  type CaPersonalization = {
+    showAnnualSummary: boolean; showMonthlySummary: boolean; showMonthTabs: boolean;
+    showStatusLegend: boolean; showTotals: boolean;
+    salesColumns: { client: boolean; designation: boolean; category: boolean; type: boolean; amount: boolean; hours: boolean };
+    rowDensity: "comfortable" | "compact";
+  };'''
+          if old not in s:
+              raise SystemExit('personalization type anchor not found')
+          s = s.replace(old, new, 1)
+
+          old = '''    showAnnualSummary: true, showMonthlySummary: true, showMonthTabs: true, showStatusLegend: true, showTotals: true,
+    salesColumns: { client: true, designation: true, category: true, type: true, amount: true, hours: true },
+  };'''
+          new = '''    showAnnualSummary: true, showMonthlySummary: true, showMonthTabs: true, showStatusLegend: true, showTotals: true,
+    salesColumns: { client: true, designation: true, category: true, type: true, amount: true, hours: true },
+    rowDensity: "comfortable",
+  };'''
+          if old not in s:
+              raise SystemExit('default personalization anchor not found')
+          s = s.replace(old, new, 1)
+
+          old = '''  const updatePersonalization = (patch: Partial<CaPersonalization>) => setPersonalization((current) => { const next = { ...current, ...patch, salesColumns: { ...current.salesColumns, ...(patch.salesColumns || {}) } }; try { window.localStorage.setItem(CA_PERSONALIZATION_KEY, JSON.stringify(next)); } catch {} return next; });'''
+          new = '''  const updatePersonalization = (patch: Partial<CaPersonalization>) => setPersonalization((current) => { const next = { ...current, ...patch, salesColumns: { ...current.salesColumns, ...(patch.salesColumns || {}) } }; try { window.localStorage.setItem(CA_PERSONALIZATION_KEY, JSON.stringify(next)); } catch {} return next; });'''
+          if old not in s:
+              raise SystemExit('update function anchor not found')
+
+          old = '''                <Button variant="outline" size="sm" onClick={resetPersonalization}><RotateCcw className="mr-1.5 h-3.5 w-3.5" />Réinitialiser</Button>'''
+          new = '''                <section>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Confort de lecture</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([['comfortable','Confortable'],['compact','Compact']] as const).map(([value,label]) => (
+                      <Button key={value} type="button" variant={personalization.rowDensity === value ? "secondary" : "outline"} size="sm" onClick={() => updatePersonalization({ rowDensity: value })}>
+                        {label}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">Ce réglage agit uniquement sur le confort visuel du tableau et ne modifie aucune donnée.</p>
+                </section>
+                <Button variant="outline" size="sm" onClick={resetPersonalization}><RotateCcw className="mr-1.5 h-3.5 w-3.5" />Réinitialiser</Button>'''
+          if old not in s:
+              raise SystemExit('reset button anchor not found')
+          s = s.replace(old, new, 1)
+
+          marker = '''      {/* Onglets mois */}'''
+          if marker not in s:
+              raise SystemExit('month tabs marker not found')
+          s = s.replace(marker, '''      {/* Onglets mois */}''', 1)
+
+          # Apply only a harmless row class to the sales table; no business logic is touched.
+          old = '''<Table className="w-full">'''
+          new = '''<Table className={personalization.rowDensity === "compact" ? "w-full text-[13px]" : "w-full"}>'''
+          if old in s:
+              s = s.replace(old, new, 1)
+          else:
+              # If the table has an existing class, leave layout untouched rather than guessing.
+              pass
+
+          p.write_text(s)
+          PY
+          git diff --check
+          git add src/routes/_authenticated/pilot.ca.tsx
+          git commit -m "feat: extend CA personalization controls"
+          git push
+          rm -f .github/workflows/temporary-ca-personalization-v2.yml
+          git add .github/workflows/temporary-ca-personalization-v2.yml
+          git commit -m "chore: remove temporary CA personalization workflow"
+          git push
