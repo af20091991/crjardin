@@ -969,11 +969,11 @@ function CaPage() {
                                           <div className="px-2 py-1.5 text-xs text-muted-foreground">Alimentaire, carburant et déchèterie sont détectés automatiquement d'après la désignation.</div>
                                           <DropdownMenuSeparator />
                                           {autoVariable && <div className="px-2 py-1.5 text-xs text-muted-foreground">Détection actuelle : <span className="font-medium text-foreground">{autoVariable}</span></div>}
-                                          <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Achats")}>Achats</DropdownMenuItem>
+                                          <DropdownMenuItem title="Toutes les charges nécessaires au fonctionnement de l'entreprise, autre que les charges de chantier" onSelect={() => saveChargeType(typedRow, "Achats")}>Achats</DropdownMenuItem>
                                           <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Charge chantier")}>Charge chantier</DropdownMenuItem>
                                         </DropdownMenuSubContent>
                                       </DropdownMenuSub>
-                                      <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Investissement")}>Investissement</DropdownMenuItem>
+                                      <DropdownMenuItem title="Apparaît dans le mois en cours mais n'impacte pas le résultat du mois. L'investissement est rapporté à l'exercice, pas au mois auquel il a été affecté." onSelect={() => saveChargeType(typedRow, "Investissement")}>Investissement</DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 );
