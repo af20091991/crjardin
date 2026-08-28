@@ -345,10 +345,11 @@ function CaPage() {
 
   const save = (id: string, input: Partial<CaEntry>) => updateMut.mutate({ id, input });
 
-  type ChargeType = "Charge fixe" | "Achats" | "Charge chantier" | "Rémunération" | "Investissement";
+  type ChargeType = "Charge fixe" | "Charge variable" | "Achats" | "Charge chantier" | "Rémunération" | "Investissement";
 
   const CHARGE_TYPE_META: Record<ChargeType, { charge_class: "fixe" | "variable" | "a_classer"; is_investment: boolean }> = {
     "Charge fixe": { charge_class: "fixe", is_investment: false },
+    "Charge variable": { charge_class: "variable", is_investment: false },
     Achats: { charge_class: "variable", is_investment: false },
     "Charge chantier": { charge_class: "variable", is_investment: false },
     "Rémunération": { charge_class: "variable", is_investment: false },
@@ -959,8 +960,9 @@ function CaPage() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start" className="w-64">
                                        <DropdownMenuItem title="Charges récurrentes de structure : le détail est saisi dans la ligne « Charges fixes »." onSelect={() => saveChargeType(typedRow, "Charge fixe")}>Charge fixe</DropdownMenuItem>
+                                       <DropdownMenuItem title="Charges variables : le classement détaillé peut être précisé par Achats, Charge chantier ou Rémunération." onSelect={() => saveChargeType(typedRow, "Charge variable")}>Charge variable</DropdownMenuItem>
                                        <DropdownMenuSub>
-                                         <DropdownMenuSubTrigger>Charge variable</DropdownMenuSubTrigger>
+                                         <DropdownMenuSubTrigger>Préciser la charge variable</DropdownMenuSubTrigger>
                                          <DropdownMenuSubContent className="w-72">
                                            <DropdownMenuItem title="Toutes les charges nécessaires au fonctionnement de l'entreprise, autre que les charges de chantier" onSelect={() => saveChargeType(typedRow, "Achats")}>Achats</DropdownMenuItem>
                                            <DropdownMenuItem title="Charges directement liées à la réalisation d'un chantier." onSelect={() => saveChargeType(typedRow, "Charge chantier")}>Charge chantier</DropdownMenuItem>
