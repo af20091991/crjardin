@@ -346,39 +346,30 @@ function CaPage() {
   const save = (id: string, input: Partial<CaEntry>) => updateMut.mutate({ id, input });
 
   type ChargeType = "Charge fixe" | "Achats" | "Charge chantier" | "Rémunération" | "Investissement";
-  type AutoVariableCharge = "Alimentaire" | "Carburant" | "Déchèterie";
 
   const CHARGE_TYPE_META: Record<ChargeType, { charge_class: "fixe" | "variable" | "a_classer"; is_investment: boolean }> = {
     "Charge fixe": { charge_class: "fixe", is_investment: false },
     Achats: { charge_class: "variable", is_investment: false },
     "Charge chantier": { charge_class: "variable", is_investment: false },
     "Rémunération": { charge_class: "variable", is_investment: false },
-    // Investissement : ni fixe ni variable, suivi à part (is_investment).
     Investissement: { charge_class: "a_classer", is_investment: true },
-  };
-
-  const detectAutoVariableCharge = (designation: string | null | undefined): AutoVariableCharge | null => {
-    const value = (designation ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    if (/\b(carburant|essence|gazole|gasoil|diesel|sp95|sp98|e10|e85|adblue)\b/.test(value)) return "Carburant";
-    if (/\b(dechetterie|dechet|dechets|decharge|benne|gravats|evacuation)\b/.test(value)) return "Déchèterie";
-    if (/\b(alimentaire|alimentation|repas|restaurant|dejeuner|diner|nourriture|supermarche)\b/.test(value)) return "Alimentaire";
-    return null;
   };
 
   const chargeTypeForRow = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }) => {
     if (row.is_fixed) return "Charge fixe" as const;
     if (row.is_investment) return "Investissement" as const;
     const current = row.charge_category;
-    // Affichage du type seul, sans préfixe « Charges variables ».
     if (current === "Charge fixe" || row.charge_class === "fixe") return "Charge fixe" as const;
-    if (current === "Charge de fonctionnement" || current === "Achats") return "Achats" as const;
+    if (current === "Achats" || current === "Charge de fonctionnement") return "Achats" as const;
     if (current === "Charge chantier" || current === "Charges chantier") return "Charge chantier" as const;
     if (current === "Rémunération") return "Rémunération" as const;
-    const auto = detectAutoVariableCharge(row.designation);
-    if (auto) return auto;
+    // Les anciennes sous-catégories Alimentaire / Carburant / Déchèterie
+    // restent des informations issues de la désignation, pas des choix de classement.
+    if (current === "Alimentaire" || current === "Carburant" || current === "Déchèterie" || row.charge_class === "variable") {
+      return "Charge variable" as const;
+    }
     return null;
   };
-
 
   const saveChargeType = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }, type: ChargeType) => {
     const meta = CHARGE_TYPE_META[type];
@@ -958,7 +949,6 @@ function CaPage() {
                               ) : (() => {
                                 const typedRow = row as CaEntry & { charge_category?: string | null; charge_class?: string | null };
                                 const selectedType = chargeTypeForRow(typedRow);
-                                const autoVariable = detectAutoVariableCharge(row.designation);
                                 return (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -972,9 +962,6 @@ function CaPage() {
                                        <DropdownMenuSub>
                                          <DropdownMenuSubTrigger>Charge variable</DropdownMenuSubTrigger>
                                          <DropdownMenuSubContent className="w-72">
-                                           <div className="px-2 py-1.5 text-xs text-muted-foreground">Alimentaire, carburant et déchèterie sont détectés automatiquement d'après la désignation.</div>
-                                           <DropdownMenuSeparator />
-                                           {autoVariable && <div className="px-2 py-1.5 text-xs text-muted-foreground">Détection actuelle : <span className="font-medium text-foreground">{autoVariable}</span></div>}
                                            <DropdownMenuItem title="Toutes les charges nécessaires au fonctionnement de l'entreprise, autre que les charges de chantier" onSelect={() => saveChargeType(typedRow, "Achats")}>Achats</DropdownMenuItem>
                                            <DropdownMenuItem title="Charges directement liées à la réalisation d'un chantier." onSelect={() => saveChargeType(typedRow, "Charge chantier")}>Charge chantier</DropdownMenuItem>
                                            <DropdownMenuItem title="Rémunération versée, suivie comme charge variable." onSelect={() => saveChargeType(typedRow, "Rémunération")}>Rémunération</DropdownMenuItem>
