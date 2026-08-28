@@ -949,7 +949,7 @@ function CaPage() {
                             </TableCell>
                             <TableCell>
                               {isFixed ? (
-                                <span className="text-sm font-medium text-muted-foreground">Charge fixe</span>
+                                <span className="text-sm font-medium text-muted-foreground">Charges fixes</span>
                               ) : (() => {
                                 const typedRow = row as CaEntry & { charge_category?: string | null; charge_class?: string | null };
                                 const selectedType = chargeTypeForRow(typedRow);
