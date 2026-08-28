@@ -26,13 +26,13 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
-    date: "2026-08-27",
-    version: "2.3.1",
+    date: "2026-08-28",
+    version: "2.3.2",
     theme: "Général",
-    title: "Chiffre d'affaires — hiérarchie des charges",
+    title: "Chiffre d'affaires — simplification du classement des charges",
     details: [
-      "La colonne Type de charge distingue désormais Charges fixes, Charges variables et Investissements avec un sous-menu de classement.",
-      "Alimentaire, carburant et déchèterie sont détectés automatiquement à partir de la désignation ; Achats et Charge chantier restent sélectionnables.",
+      "Alimentaire, carburant et déchèterie ne sont plus des catégories sélectionnables ; leur sous-classement repose sur la désignation.",
+      "Les charges variables sélectionnables sont désormais Achats, Charge chantier et Rémunération.",
       "Le type Investissement conserve son traitement comptable hors résultat mensuel et son rattachement à l'exercice.",
     ],
   },
