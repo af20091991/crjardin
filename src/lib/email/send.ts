@@ -1,35 +1,9 @@
-import { supabase } from '@/integrations/supabase/client'
+import { sendTransactionalEmailFn } from './send.functions'
+import type { SendTransactionalEmailInput } from './send.functions'
 
-export interface SendTransactionalEmailInput {
-  templateName: string
-  recipientEmail: string
-  idempotencyKey?: string
-  templateData?: Record<string, unknown>
-}
+export type { SendTransactionalEmailInput }
 
-/** POST to the app's transactional email route with the signed-in user's JWT. */
+/** Envoie un e-mail applicatif via l'infrastructure e-mail gérée (côté serveur). */
 export async function sendTransactionalEmail(input: SendTransactionalEmailInput) {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) throw new Error('Vous devez être connecté pour envoyer un e-mail.')
-
-  const res = await fetch('/lovable/email/transactional/send', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify(input),
-  })
-
-  if (!res.ok) {
-    let message = "L'envoi de l'e-mail a échoué."
-    try {
-      const err = await res.json()
-      if (err?.error) message = err.error
-    } catch {
-      /* ignore */
-    }
-    throw new Error(message)
-  }
-  return res.json()
+  return sendTransactionalEmailFn({ data: input })
 }
