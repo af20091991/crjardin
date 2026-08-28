@@ -345,13 +345,15 @@ function CaPage() {
 
   const save = (id: string, input: Partial<CaEntry>) => updateMut.mutate({ id, input });
 
-  type ChargeType = "Charge fixe" | "Achats" | "Charge chantier" | "Investissement";
+  type ChargeType = "Charge fixe" | "Achats" | "Charge chantier" | "Rémunération" | "Investissement";
   type AutoVariableCharge = "Alimentaire" | "Carburant" | "Déchèterie";
 
   const CHARGE_TYPE_META: Record<ChargeType, { charge_class: "fixe" | "variable" | "a_classer"; is_investment: boolean }> = {
     "Charge fixe": { charge_class: "fixe", is_investment: false },
     Achats: { charge_class: "variable", is_investment: false },
     "Charge chantier": { charge_class: "variable", is_investment: false },
+    "Rémunération": { charge_class: "variable", is_investment: false },
+    // Investissement : ni fixe ni variable, suivi à part (is_investment).
     Investissement: { charge_class: "a_classer", is_investment: true },
   };
 
