@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { listClients } from "@/lib/clients";
 import { formatEuro } from "@/lib/pilot";
 import { PP_COLORS } from "@/lib/pilot-colors";
+import { CeevFlexibleChart } from "@/components/pilot/CeevFlexibleChart";
 import {
   attachContractToClient,
   averageHourlyMarginRate,
@@ -263,26 +264,12 @@ function CeevPage() {
         />
       </div>
 
-      {/* Évolution annuelle */}
-      <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Évolution annuelle du CA contrats</CardTitle></CardHeader>
-        <CardContent>
-          {revenueSeries.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune donnée.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={revenueSeries.map((r) => ({ ...r, année: r.year }))}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="année" fontSize={12} />
-                <YAxis fontSize={12} unit="€" />
-                <Tooltip formatter={(v: number) => formatEuro(v)} />
-                <Line type="monotone" dataKey="ca" name="CA contrats" stroke={PP_COLORS.sales} strokeWidth={2} dot />
-                <Line type="monotone" dataKey="margin" name="Marge nette" stroke={PP_COLORS.primary} strokeWidth={2} dot />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+      <CeevFlexibleChart
+        year={kpiYear}
+        contracts={yearContracts}
+        revenueSeries={revenueSeries}
+        breakdown={breakdown}
+      />
 
       {/* Répartition par client */}
       <Card>
