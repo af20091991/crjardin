@@ -366,13 +366,16 @@ function CaPage() {
   };
 
   const chargeTypeForRow = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }) => {
-    if (row.is_fixed) return "Charges fixes" as const;
-    if (row.is_investment) return "Charges variables · Investissement" as const;
+    if (row.is_fixed) return "Charge fixe" as const;
+    if (row.is_investment) return "Investissement" as const;
     const current = row.charge_category;
-    if (current === "Charge de fonctionnement" || current === "Achats") return "Charges variables · Achats" as const;
-    if (current === "Charge chantier") return "Charges variables · Charges chantier" as const;
+    // Affichage du type seul, sans préfixe « Charges variables ».
+    if (current === "Charge fixe" || row.charge_class === "fixe") return "Charge fixe" as const;
+    if (current === "Charge de fonctionnement" || current === "Achats") return "Achats" as const;
+    if (current === "Charge chantier" || current === "Charges chantier") return "Charge chantier" as const;
+    if (current === "Rémunération") return "Rémunération" as const;
     const auto = detectAutoVariableCharge(row.designation);
-    if (auto) return `Charges variables · ${auto}`;
+    if (auto) return auto;
     return null;
   };
 
