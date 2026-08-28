@@ -4802,15 +4802,6 @@ export type Database = {
       }
       admin_delete_user: { Args: { p_user_id: string }; Returns: undefined }
       clear_share_access_log: { Args: never; Returns: undefined }
-      delete_email: {
-        Args: { message_id: number; queue_name: string }
-        Returns: boolean
-      }
-      email_queue_dispatch: { Args: never; Returns: undefined }
-      enqueue_email: {
-        Args: { payload: Json; queue_name: string }
-        Returns: number
-      }
       get_or_create_unsubscribe_token: {
         Args: { p_email: string }
         Returns: string
@@ -4897,27 +4888,10 @@ export type Database = {
             Args: { p_ip?: string; p_token: string; p_user_agent?: string }
             Returns: undefined
           }
-      move_to_dlq: {
-        Args: {
-          dlq_name: string
-          message_id: number
-          payload: Json
-          source_queue: string
-        }
-        Returns: number
-      }
       next_intervention_reference: { Args: never; Returns: string }
       pilot_classify_charges: { Args: { _user_id?: string }; Returns: number }
       pilot_clean_designation: { Args: { p: string }; Returns: string }
       pilot_normalize_designation: { Args: { t: string }; Returns: string }
-      read_email_batch: {
-        Args: { batch_size: number; queue_name: string; vt: number }
-        Returns: {
-          message: Json
-          msg_id: number
-          read_ct: number
-        }[]
-      }
       record_login: { Args: { p_user_agent?: string }; Returns: undefined }
       record_shared_report_view: {
         Args: {
