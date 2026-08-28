@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, ComposedChart, Legend, Line, LineChart,
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, LineChart,
   Pie, PieChart, PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer,
   Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis,
 } from "recharts";
@@ -91,7 +91,6 @@ export function CeevFlexibleChart({ year, contracts, revenueSeries, breakdown }:
 
   const primaryName = metricLabel(primary as Metric);
   const secondaryName = metricLabel(secondary as Metric);
-  const fmt = (n: number) => format(primary as Metric, n);
   const colors = ["var(--pp-primary)", "var(--pp-sales)"];
   const common = <><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} /><YAxis tick={{ fontSize: 11 }} width={72} /><Tooltip formatter={(v: number | string, name) => [format(name === secondaryName ? secondary as Metric : primary as Metric, Number(v)), String(name)]} /><Legend wrapperStyle={{ fontSize: 11 }} /></>;
 
@@ -118,7 +117,7 @@ export function CeevFlexibleChart({ year, contracts, revenueSeries, breakdown }:
         <div className="flex flex-wrap gap-2">
           <Select value={chart} onValueChange={setChart}><SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Graphique" /></SelectTrigger><SelectContent>{CHARTS.map(c=><SelectItem key={c.value} value={c.value} className="text-xs">{c.label}</SelectItem>)}</SelectContent></Select>
           <Select value={dimension} onValueChange={setDimension}><SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="client">Par client</SelectItem><SelectItem value="contrat">Par contrat</SelectItem><SelectItem value="annee">Par année</SelectItem></SelectContent></Select>
-          <Select value={primary} onValueChange={setPrimary}><SelectTrigger className="h-36 w-36 text-xs"><SelectValue /></SelectTrigger><SelectContent>{METRICS.map(m=><SelectItem key={m.value} value={m.value} className="text-xs">{m.label}</SelectItem>)}</SelectContent></Select>
+          <Select value={primary} onValueChange={setPrimary}><SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger><SelectContent>{METRICS.map(m=><SelectItem key={m.value} value={m.value} className="text-xs">{m.label}</SelectItem>)}</SelectContent></Select>
           <Select value={secondary} onValueChange={setSecondary}><SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger><SelectContent>{METRICS.map(m=><SelectItem key={m.value} value={m.value} className="text-xs">2e · {m.label}</SelectItem>)}</SelectContent></Select>
         </div>
       </div>
