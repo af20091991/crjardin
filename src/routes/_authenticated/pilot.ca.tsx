@@ -962,7 +962,7 @@ function CaPage() {
                                       </button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start" className="w-64">
-                                      <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Charge fixe")}>Charge fixe</DropdownMenuItem>
+                                      <DropdownMenuItem title="Charges récurrentes de structure : le détail est saisi dans la ligne « Charges fixes »." onSelect={() => saveChargeType(typedRow, "Charge fixe")}>Charges fixes</DropdownMenuItem>
                                       <DropdownMenuSub>
                                         <DropdownMenuSubTrigger>Charges variables</DropdownMenuSubTrigger>
                                         <DropdownMenuSubContent className="w-72">
@@ -970,10 +970,11 @@ function CaPage() {
                                           <DropdownMenuSeparator />
                                           {autoVariable && <div className="px-2 py-1.5 text-xs text-muted-foreground">Détection actuelle : <span className="font-medium text-foreground">{autoVariable}</span></div>}
                                           <DropdownMenuItem title="Toutes les charges nécessaires au fonctionnement de l'entreprise, autre que les charges de chantier" onSelect={() => saveChargeType(typedRow, "Achats")}>Achats</DropdownMenuItem>
-                                          <DropdownMenuItem onSelect={() => saveChargeType(typedRow, "Charge chantier")}>Charge chantier</DropdownMenuItem>
+                                          <DropdownMenuItem title="Charges directement liées à la réalisation d'un chantier." onSelect={() => saveChargeType(typedRow, "Charge chantier")}>Charges chantier</DropdownMenuItem>
+                                          <DropdownMenuItem title="Apparaît dans le mois en cours mais n'impacte pas le résultat du mois. L'investissement est rapporté à l'exercice, pas au mois auquel il a été affecté." onSelect={() => saveChargeType(typedRow, "Investissement")}>Investissement</DropdownMenuItem>
                                         </DropdownMenuSubContent>
                                       </DropdownMenuSub>
-                                      <DropdownMenuItem title="Apparaît dans le mois en cours mais n'impacte pas le résultat du mois. L'investissement est rapporté à l'exercice, pas au mois auquel il a été affecté." onSelect={() => saveChargeType(typedRow, "Investissement")}>Investissement</DropdownMenuItem>
+
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 );
