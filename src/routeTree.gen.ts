@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
@@ -17,7 +16,6 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as PartageTokenRouteImport } from './routes/partage.$token'
-import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AuthenticatedVersionsRouteImport } from './routes/_authenticated/versions'
 import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
 import { Route as AuthenticatedSstRouteImport } from './routes/_authenticated/sst'
@@ -34,7 +32,7 @@ import { Route as AuthenticatedPilotIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
-import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
 import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_authenticated/pilot.validation'
 import { Route as AuthenticatedPilotTempsRouteImport } from './routes/_authenticated/pilot.temps'
@@ -67,19 +65,12 @@ import { Route as AuthenticatedFichesFicheIdRouteImport } from './routes/_authen
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients.$clientId'
 import { Route as AuthenticatedPilotClientsIndexRouteImport } from './routes/_authenticated/pilot.clients.index'
 import { Route as AuthenticatedPilotCeevContratsIndexRouteImport } from './routes/_authenticated/pilot.ceev-contrats.index'
-import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
-import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as AuthenticatedPilotFocusTopicRouteImport } from './routes/_authenticated/pilot.focus.$topic'
 import { Route as AuthenticatedPilotFicheClientIdRouteImport } from './routes/_authenticated/pilot.fiche.$clientId'
 import { Route as AuthenticatedPilotClientsClientKeyRouteImport } from './routes/_authenticated/pilot.clients.$clientKey'
 import { Route as AuthenticatedPilotCeevContratsAgreementIdRouteImport } from './routes/_authenticated/pilot.ceev-contrats.$agreementId'
 
-const UnsubscribeRoute = UnsubscribeRouteImport.update({
-  id: '/unsubscribe',
-  path: '/unsubscribe',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -112,11 +103,6 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const PartageTokenRoute = PartageTokenRouteImport.update({
   id: '/partage/$token',
   path: '/partage/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
-  id: '/email/unsubscribe',
-  path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedVersionsRoute = AuthenticatedVersionsRouteImport.update({
@@ -204,9 +190,9 @@ const AuthenticatedClientsIndexRoute =
     path: '/clients/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
-  id: '/lovable/email/suppression',
-  path: '/lovable/email/suppression',
+const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
+  id: '/lovable/email/events',
+  path: '/lovable/email/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
@@ -393,22 +379,10 @@ const AuthenticatedPilotCeevContratsIndexRoute =
     path: '/ceev-contrats/',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
-const LovableEmailTransactionalSendRoute =
-  LovableEmailTransactionalSendRouteImport.update({
-    id: '/lovable/email/transactional/send',
-    path: '/lovable/email/transactional/send',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const LovableEmailTransactionalPreviewRoute =
   LovableEmailTransactionalPreviewRouteImport.update({
     id: '/lovable/email/transactional/preview',
     path: '/lovable/email/transactional/preview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const LovableEmailQueueProcessRoute =
-  LovableEmailQueueProcessRouteImport.update({
-    id: '/lovable/email/queue/process',
-    path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedPilotFocusTopicRoute =
@@ -442,7 +416,6 @@ export interface FileRoutesByFullPath {
   '/confidentialite': typeof ConfidentialiteRoute
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/unsubscribe': typeof UnsubscribeRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/backend': typeof AuthenticatedBackendRoute
   '/emails': typeof AuthenticatedEmailsRoute
@@ -455,7 +428,6 @@ export interface FileRoutesByFullPath {
   '/sst': typeof AuthenticatedSstRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/versions': typeof AuthenticatedVersionsRoute
-  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/partage/$token': typeof PartageTokenRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
   '/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
@@ -487,7 +459,7 @@ export interface FileRoutesByFullPath {
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
-  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/fiches/': typeof AuthenticatedFichesIndexRoute
   '/interventions/': typeof AuthenticatedInterventionsIndexRoute
@@ -496,9 +468,7 @@ export interface FileRoutesByFullPath {
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
   '/pilot/focus/$topic': typeof AuthenticatedPilotFocusTopicRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/pilot/ceev-contrats/': typeof AuthenticatedPilotCeevContratsIndexRoute
   '/pilot/clients/': typeof AuthenticatedPilotClientsIndexRoute
 }
@@ -507,7 +477,6 @@ export interface FileRoutesByTo {
   '/confidentialite': typeof ConfidentialiteRoute
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/unsubscribe': typeof UnsubscribeRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/backend': typeof AuthenticatedBackendRoute
   '/emails': typeof AuthenticatedEmailsRoute
@@ -519,7 +488,6 @@ export interface FileRoutesByTo {
   '/sst': typeof AuthenticatedSstRoute
   '/statistiques': typeof AuthenticatedStatistiquesRoute
   '/versions': typeof AuthenticatedVersionsRoute
-  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/partage/$token': typeof PartageTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
@@ -551,7 +519,7 @@ export interface FileRoutesByTo {
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
-  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/fiches': typeof AuthenticatedFichesIndexRoute
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
@@ -560,9 +528,7 @@ export interface FileRoutesByTo {
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
   '/pilot/focus/$topic': typeof AuthenticatedPilotFocusTopicRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/pilot/ceev-contrats': typeof AuthenticatedPilotCeevContratsIndexRoute
   '/pilot/clients': typeof AuthenticatedPilotClientsIndexRoute
 }
@@ -573,7 +539,6 @@ export interface FileRoutesById {
   '/confidentialite': typeof ConfidentialiteRoute
   '/pending': typeof PendingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/unsubscribe': typeof UnsubscribeRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/backend': typeof AuthenticatedBackendRoute
   '/_authenticated/emails': typeof AuthenticatedEmailsRoute
@@ -586,7 +551,6 @@ export interface FileRoutesById {
   '/_authenticated/sst': typeof AuthenticatedSstRoute
   '/_authenticated/statistiques': typeof AuthenticatedStatistiquesRoute
   '/_authenticated/versions': typeof AuthenticatedVersionsRoute
-  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/partage/$token': typeof PartageTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
@@ -619,7 +583,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/_authenticated/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
-  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/fiches/': typeof AuthenticatedFichesIndexRoute
   '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
@@ -628,9 +592,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/_authenticated/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
   '/_authenticated/pilot/focus/$topic': typeof AuthenticatedPilotFocusTopicRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/_authenticated/pilot/ceev-contrats/': typeof AuthenticatedPilotCeevContratsIndexRoute
   '/_authenticated/pilot/clients/': typeof AuthenticatedPilotClientsIndexRoute
 }
@@ -642,7 +604,6 @@ export interface FileRouteTypes {
     | '/confidentialite'
     | '/pending'
     | '/sitemap.xml'
-    | '/unsubscribe'
     | '/admin'
     | '/backend'
     | '/emails'
@@ -655,7 +616,6 @@ export interface FileRouteTypes {
     | '/sst'
     | '/statistiques'
     | '/versions'
-    | '/email/unsubscribe'
     | '/partage/$token'
     | '/clients/$clientId'
     | '/fiches/$ficheId'
@@ -687,7 +647,7 @@ export interface FileRouteTypes {
     | '/pilot/temps'
     | '/pilot/validation'
     | '/api/public/email-open'
-    | '/lovable/email/suppression'
+    | '/lovable/email/events'
     | '/clients/'
     | '/fiches/'
     | '/interventions/'
@@ -696,9 +656,7 @@ export interface FileRouteTypes {
     | '/pilot/clients/$clientKey'
     | '/pilot/fiche/$clientId'
     | '/pilot/focus/$topic'
-    | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
-    | '/lovable/email/transactional/send'
     | '/pilot/ceev-contrats/'
     | '/pilot/clients/'
   fileRoutesByTo: FileRoutesByTo
@@ -707,7 +665,6 @@ export interface FileRouteTypes {
     | '/confidentialite'
     | '/pending'
     | '/sitemap.xml'
-    | '/unsubscribe'
     | '/admin'
     | '/backend'
     | '/emails'
@@ -719,7 +676,6 @@ export interface FileRouteTypes {
     | '/sst'
     | '/statistiques'
     | '/versions'
-    | '/email/unsubscribe'
     | '/partage/$token'
     | '/'
     | '/clients/$clientId'
@@ -751,7 +707,7 @@ export interface FileRouteTypes {
     | '/pilot/temps'
     | '/pilot/validation'
     | '/api/public/email-open'
-    | '/lovable/email/suppression'
+    | '/lovable/email/events'
     | '/clients'
     | '/fiches'
     | '/interventions'
@@ -760,9 +716,7 @@ export interface FileRouteTypes {
     | '/pilot/clients/$clientKey'
     | '/pilot/fiche/$clientId'
     | '/pilot/focus/$topic'
-    | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
-    | '/lovable/email/transactional/send'
     | '/pilot/ceev-contrats'
     | '/pilot/clients'
   id:
@@ -772,7 +726,6 @@ export interface FileRouteTypes {
     | '/confidentialite'
     | '/pending'
     | '/sitemap.xml'
-    | '/unsubscribe'
     | '/_authenticated/admin'
     | '/_authenticated/backend'
     | '/_authenticated/emails'
@@ -785,7 +738,6 @@ export interface FileRouteTypes {
     | '/_authenticated/sst'
     | '/_authenticated/statistiques'
     | '/_authenticated/versions'
-    | '/email/unsubscribe'
     | '/partage/$token'
     | '/_authenticated/'
     | '/_authenticated/clients/$clientId'
@@ -818,7 +770,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/temps'
     | '/_authenticated/pilot/validation'
     | '/api/public/email-open'
-    | '/lovable/email/suppression'
+    | '/lovable/email/events'
     | '/_authenticated/clients/'
     | '/_authenticated/fiches/'
     | '/_authenticated/interventions/'
@@ -827,9 +779,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/clients/$clientKey'
     | '/_authenticated/pilot/fiche/$clientId'
     | '/_authenticated/pilot/focus/$topic'
-    | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
-    | '/lovable/email/transactional/send'
     | '/_authenticated/pilot/ceev-contrats/'
     | '/_authenticated/pilot/clients/'
   fileRoutesById: FileRoutesById
@@ -840,25 +790,14 @@ export interface RootRouteChildren {
   ConfidentialiteRoute: typeof ConfidentialiteRoute
   PendingRoute: typeof PendingRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  UnsubscribeRoute: typeof UnsubscribeRoute
-  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   PartageTokenRoute: typeof PartageTokenRoute
   ApiPublicEmailOpenRoute: typeof ApiPublicEmailOpenRoute
-  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
-  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
-  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/unsubscribe': {
-      id: '/unsubscribe'
-      path: '/unsubscribe'
-      fullPath: '/unsubscribe'
-      preLoaderRoute: typeof UnsubscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -906,13 +845,6 @@ declare module '@tanstack/react-router' {
       path: '/partage/$token'
       fullPath: '/partage/$token'
       preLoaderRoute: typeof PartageTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/email/unsubscribe': {
-      id: '/email/unsubscribe'
-      path: '/email/unsubscribe'
-      fullPath: '/email/unsubscribe'
-      preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/versions': {
@@ -1027,11 +959,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/lovable/email/suppression': {
-      id: '/lovable/email/suppression'
-      path: '/lovable/email/suppression'
-      fullPath: '/lovable/email/suppression'
-      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+    '/lovable/email/events': {
+      id: '/lovable/email/events'
+      path: '/lovable/email/events'
+      fullPath: '/lovable/email/events'
+      preLoaderRoute: typeof LovableEmailEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/email-open': {
@@ -1258,25 +1190,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotCeevContratsIndexRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
-    '/lovable/email/transactional/send': {
-      id: '/lovable/email/transactional/send'
-      path: '/lovable/email/transactional/send'
-      fullPath: '/lovable/email/transactional/send'
-      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/lovable/email/transactional/preview': {
       id: '/lovable/email/transactional/preview'
       path: '/lovable/email/transactional/preview'
       fullPath: '/lovable/email/transactional/preview'
       preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/queue/process': {
-      id: '/lovable/email/queue/process'
-      path: '/lovable/email/queue/process'
-      fullPath: '/lovable/email/queue/process'
-      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/pilot/focus/$topic': {
@@ -1454,14 +1372,10 @@ const rootRouteChildren: RootRouteChildren = {
   ConfidentialiteRoute: ConfidentialiteRoute,
   PendingRoute: PendingRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  UnsubscribeRoute: UnsubscribeRoute,
-  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   PartageTokenRoute: PartageTokenRoute,
   ApiPublicEmailOpenRoute: ApiPublicEmailOpenRoute,
-  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
-  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailEventsRoute: LovableEmailEventsRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
-  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
