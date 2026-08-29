@@ -109,12 +109,15 @@ function CeevPage() {
   const clients = useQuery({ queryKey: ["clients"], queryFn: listClients });
 
   const all = contracts.data ?? [];
-  const thisYear = new Date().getFullYear();
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const { period, setPeriod } = usePilotPeriod();
   const years = useMemo(
     () => Array.from(new Set([...all.map((c) => c.year), thisYear])).sort((a, b) => b - a),
     [all, thisYear],
   );
   const currentYear = thisYear;
+
 
   // Année de référence : l'exercice en cours par défaut, pilotant toutes les sections.
   const [yearFilter, setYearFilter] = useState<string>(String(thisYear));
