@@ -63,8 +63,8 @@ export function AiChart({ chart }: { chart: AiChartSpec }) {
           ) : chart.type === "line" ? (
             <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} label={{ value: "Période / catégorie", position: "insideBottom", offset: -4 }} />
+              <YAxis tick={{ fontSize: 11 }} label={{ value: chart.unit === "EUR" ? "Montant (€ HT)" : chart.unit === "h" ? "Heures (h)" : chart.unit === "%" ? "Pourcentage (%)" : "Valeur", angle: -90, position: "insideLeft", offset: 8 }} />
               <Tooltip formatter={fmt} />
               <Legend />
               {chart.series.map((s, i) => (
@@ -81,8 +81,8 @@ export function AiChart({ chart }: { chart: AiChartSpec }) {
           ) : (
             <BarChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} label={{ value: "Période / catégorie", position: "insideBottom", offset: -4 }} />
+              <YAxis tick={{ fontSize: 11 }} label={{ value: chart.unit === "EUR" ? "Montant (€ HT)" : chart.unit === "h" ? "Heures (h)" : chart.unit === "%" ? "Pourcentage (%)" : "Valeur", angle: -90, position: "insideLeft", offset: 8 }} />
               <Tooltip formatter={fmt} />
               <Legend />
               {chart.series.map((s, i) => (
