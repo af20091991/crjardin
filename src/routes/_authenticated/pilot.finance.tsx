@@ -104,8 +104,8 @@ function FinancePage() {
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={lineData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="mois" fontSize={12} />
-                <YAxis fontSize={12} unit="€" />
+                <XAxis dataKey="mois" fontSize={12} label={{ value: "Mois", position: "insideBottom", offset: -4 }} />
+                <YAxis fontSize={12} unit="Montant (€ HT)" label={{ value: "Montant (€ HT)", angle: -90, position: "insideLeft", offset: 8 }} />
                 <Tooltip formatter={(v: number) => formatEuro(v)} />
                 <Legend />
                 <Line type="monotone" dataKey="CA" name="CA" stroke={PP_COLORS.sales} strokeWidth={2} connectNulls dot={false} />
@@ -121,7 +121,7 @@ function FinancePage() {
               <BarChart data={monthly} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="mois" fontSize={12} />
-                <YAxis fontSize={12} unit="€" />
+                <YAxis fontSize={12} unit="€" label={{ value: "Montant (€ HT)", angle: -90, position: "insideLeft", offset: 8 }} />
                 <Tooltip formatter={(v: number) => formatEuro(v)} />
                 <Legend />
                 <Bar dataKey="Bénéfice" radius={[4, 4, 0, 0]}>
@@ -146,8 +146,8 @@ function FinancePage() {
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={margeAnnuelleData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="annee" fontSize={12} />
-                  <YAxis fontSize={12} unit="%" />
+                  <XAxis dataKey="annee" fontSize={12} label={{ value: "Année", position: "insideBottom", offset: -4 }} />
+                  <YAxis fontSize={12} unit="%" label={{ value: "Marge (%)", angle: -90, position: "insideLeft", offset: 8 }} />
                   <Tooltip formatter={(v: number) => `${v.toFixed(1)} %`} />
                   <Line type="monotone" dataKey="Marge" stroke={PP_COLORS.primary} strokeWidth={2} dot />
                 </LineChart>
@@ -184,7 +184,7 @@ function FinancePage() {
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={investissementsData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="annee" fontSize={12} />
+                  <XAxis dataKey="annee" fontSize={12} label={{ value: "Année", position: "insideBottom", offset: -4 }} />
                   <YAxis fontSize={12} unit="€" />
                   <Tooltip formatter={(v: number) => formatEuro(v)} />
                   <Bar dataKey="Investissements" fill={PP_COLORS.business} radius={[4, 4, 0, 0]} />
