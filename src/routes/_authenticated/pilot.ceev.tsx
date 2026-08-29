@@ -163,9 +163,17 @@ function CeevPage() {
   // KPI sur l'année sélectionnée (par défaut l'année la plus récente)
   const kpiYear = yearFilter === "all" ? currentYear : Number(yearFilter);
   const yearContracts = useMemo(() => contractsForYear(all, kpiYear), [all, kpiYear]);
-  const kpiCa = totalPvHt(yearContracts);
-  const kpiMargin = totalMarginNet(yearContracts);
+  // Périmètre temporel global : « à date » (prorata des mois écoulés d'un
+  // contrat annuel) ou « exercice complet » (engagement annuel intégral).
+  const monthsElapsed =
+    kpiYear < now.getFullYear() ? 12 : kpiYear > now.getFullYear() ? 0 : now.getMonth() + 1;
+  const isFullPeriod = period === "exercice_complet";
+  const periodRatio = isFullPeriod ? 1 : monthsElapsed / 12;
+  const periodSuffix = isFullPeriod ? "exercice complet" : `à date (${monthsElapsed}/12 mois)`;
+  const kpiCa = totalPvHt(yearContracts) * periodRatio;
+  const kpiMargin = totalMarginNet(yearContracts) * periodRatio;
   const kpiHourlyRate = averageHourlyMarginRate(yearContracts);
+
   const allToValidate = useMemo(() => contractsToValidate(all), [all]);
   const scopedToValidate = useMemo(
     () => (yearFilter === "all" ? allToValidate : allToValidate.filter((c) => c.year === kpiYear)),
