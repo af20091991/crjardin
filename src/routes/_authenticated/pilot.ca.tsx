@@ -290,6 +290,20 @@ function CaPage() {
     [entries, month, period],
   );
 
+  /**
+   * Bénéfice du mois affiché :
+   * - mois écoulés / en cours → bénéfice réel (CA HT réglé − charges du mois) ;
+   * - mois à venir (dès septembre) en mode « Exercice complet » → bénéfice
+   *   prévisionnel (prévisionnel total HT toutes ventes − charges du mois).
+   */
+  const currentMonth = now.getMonth() + 1;
+  const isFutureMonth =
+    year > now.getFullYear() || (isCurrentYear && month > currentMonth);
+  const beneficePrevisionnel = period === "exercice_complet" && isFutureMonth;
+  const beneficeMois = beneficePrevisionnel
+    ? previsionnelHt - mt.chargesHt
+    : mt.benefice;
+
   // Taux horaire du mois : même règle que la Vue exercice.
   // Gestion exclue  → CA du mois / heures d'intervention du mois.
   // Gestion incluse → CA du mois / (heures d'intervention + Temps gestion du mois),
@@ -511,10 +525,15 @@ function CaPage() {
           tone="text-rose-600"
         />
         <StatBox
-          label="Bénéfice"
-          value={formatEuro(mt.benefice)}
+          label={beneficePrevisionnel ? "Bénéfice prévisionnel" : "Bénéfice"}
+          value={formatEuro(beneficeMois)}
           icon={PiggyBank}
-          tone={mt.benefice >= 0 ? "text-emerald-600" : "text-rose-600"}
+          tone={beneficeMois >= 0 ? "text-emerald-600" : "text-rose-600"}
+          title={
+            beneficePrevisionnel
+              ? "Mois à venir : prévisionnel total HT (toutes ventes) − charges du mois"
+              : "CA HT réglé − charges du mois"
+          }
         />
         <StatBox label="Temps" value={`${mt.hours} h`} icon={Clock} />
         <StatBox
