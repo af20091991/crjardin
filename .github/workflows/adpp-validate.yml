@@ -33,34 +33,35 @@ jobs:
           ref: ${{ github.event.inputs.ref || github.event.client_payload.ref || github.sha }}
           fetch-depth: 0
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 20
+          cache: npm
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci
 
       - name: Check protected files
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.sha }}
-        run: bun scripts/check-protected-files.mjs
+        run: node scripts/check-protected-files.mjs
 
       - name: Format check
-        run: bun run format:check
+        run: npm run format:check
 
       - name: TypeScript check
-        run: bun run typecheck
+        run: npm run typecheck
 
       - name: Lint
-        run: bun run lint
+        run: npm run lint
 
       - name: Unit tests
-        run: bun test
+        run: npm test
 
       - name: Production build
-        run: bun run build
+        run: npm run build
 
       - name: Validation summary
         run: echo "ADPP validation passed for $GITHUB_SHA"
