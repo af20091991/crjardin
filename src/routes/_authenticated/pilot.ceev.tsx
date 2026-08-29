@@ -260,7 +260,16 @@ function CeevPage() {
       </header>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <span className="mr-auto text-xs text-muted-foreground">Année de référence</span>
+        <span className="mr-auto text-xs text-muted-foreground">
+          {periodScopeLabel(kpiYear, period, now)}
+        </span>
+        <Select value={period} onValueChange={(v) => setPeriod(v as PeriodMode)}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Périmètre" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="a_date">{PERIOD_LABELS.a_date}</SelectItem>
+            <SelectItem value="exercice_complet">{PERIOD_LABELS.exercice_complet}</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={yearFilter} onValueChange={setYearFilter}>
           <SelectTrigger className="w-36"><SelectValue placeholder="Année" /></SelectTrigger>
           <SelectContent>
@@ -289,8 +298,9 @@ function CeevPage() {
       {/* KPI */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <PilotCard label={`Contrats ${kpiYear}`} value={yearContracts.length} icon={ClipboardList} help="Nombre de contrats CEEV actifs sur l'année sélectionnée." />
-        <PilotCard label="CA contrats HT" value={formatEuro(kpiCa)} help="Somme des montants PV HT des contrats de l'année." />
-        <PilotCard label="Marge nette" value={formatEuro(kpiMargin)} help="PV HT − charges, cumulé sur l'année." />
+        <PilotCard label={`CA contrats HT — ${periodSuffix}`} value={formatEuro(kpiCa)} help={isFullPeriod ? "Somme des montants PV HT des contrats de l'année (engagement annuel complet)." : `Part acquise à date : PV HT annuel au prorata des ${monthsElapsed} mois écoulés sur 12.`} />
+        <PilotCard label={`Marge nette — ${periodSuffix}`} value={formatEuro(kpiMargin)} help={isFullPeriod ? "PV HT − charges, cumulé sur l'exercice complet." : `PV HT − charges, au prorata des ${monthsElapsed} mois écoulés sur 12.`} />
+
         <PilotCard
           label="Taux horaire de marge"
           value={kpiHourlyRate != null ? `${formatEuro(kpiHourlyRate)}/h` : "—"}
