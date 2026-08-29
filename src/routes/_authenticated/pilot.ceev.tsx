@@ -19,6 +19,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { listClients } from "@/lib/clients";
+import { usePilotPeriod } from "@/lib/pilot-mode";
+import { PERIOD_LABELS, periodScopeLabel, type PeriodMode } from "@/lib/pilot-realized";
+
 import { formatEuro } from "@/lib/pilot";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { CeevFlexibleChart } from "@/components/pilot/CeevFlexibleChart";
