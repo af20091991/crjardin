@@ -55,15 +55,33 @@ type ClientRow = { id: string; name: string };
 const db = supabase as unknown as { from: (t: string) => any };
 
 export async function listCeevContracts(): Promise<CeevContract[]> {
+  // Lecture financière indépendante de la jointure PostgREST clients.
+  // Une panne de relation/cache ne doit jamais transformer des contrats valides
+  // en « aucune donnée » dans les analyses CEEV.
   const { data, error } = await supabase
     .from("ceev_contracts")
-    .select("*, clients(name)")
+    .select("*")
     .order("year", { ascending: false })
     .order("label", { ascending: true });
   if (error) throw error;
-  return (data as unknown as Array<CeevContract & { clients: { name: string } | null }>).map((row) => ({
+
+  const rows = (data ?? []) as unknown as CeevContract[];
+  const clientIds = Array.from(new Set(rows.map((row) => row.client_id).filter((id): id is string => Boolean(id))));
+  if (clientIds.length === 0) return rows.map((row) => ({ ...row, client_name: null }));
+
+  const { data: clients, error: clientsError } = await supabase
+    .from("clients")
+    .select("id, name")
+    .in("id", clientIds);
+  if (clientsError) throw clientsError;
+
+  const names = new Map(
+    ((clients ?? []) as unknown as ClientRow[]).map((client) => [client.id, client.name]),
+  );
+
+  return rows.map((row) => ({
     ...row,
-    client_name: row.clients?.name ?? null,
+    client_name: row.client_id ? names.get(row.client_id) ?? null : null,
   }));
 }
 
