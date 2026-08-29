@@ -206,8 +206,8 @@ function ChargesPage() {
                   margin={{ top: 8, right: 12, left: -8, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="label" fontSize={12} />
-                  <YAxis fontSize={12} unit="€" />
+                  <XAxis dataKey="label" fontSize={12} label={{ value: "Période", position: "insideBottom", offset: -4 }} />
+                  <YAxis fontSize={12} unit="€" label={{ value: "Montant (€ HT)", angle: -90, position: "insideLeft", offset: 8 }} />
                   <Tooltip formatter={(v: number) => formatEuro(v)} />
                   <Legend />
                   <Line
@@ -247,9 +247,9 @@ function ChargesPage() {
                   margin={{ top: 8, right: 12, left: -8, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="label" fontSize={12} />
-                  <YAxis yAxisId="left" fontSize={12} unit="%" />
-                  <YAxis yAxisId="right" orientation="right" fontSize={12} unit="€" />
+                  <XAxis dataKey="label" fontSize={12} label={{ value: "Période", position: "insideBottom", offset: -4 }} />
+                  <YAxis yAxisId="left" fontSize={12} unit="%" label={{ value: "Marge (%)", angle: -90, position: "insideLeft", offset: 8 }} />
+                  <YAxis yAxisId="right" orientation="right" fontSize={12} unit="€" label={{ value: "Investissements (€ HT)", angle: 90, position: "insideRight", offset: 8 }} />
                   <Tooltip
                     formatter={(v: number, name: string) =>
                       name === "Marge" ? `${v} %` : formatEuro(v)
@@ -291,7 +291,7 @@ function ChargesPage() {
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={evolutionData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="annee" fontSize={12} />
+                  <XAxis dataKey="annee" fontSize={12} label={{ value: "Année", position: "insideBottom", offset: -4 }} />
                   <YAxis fontSize={12} unit="€" />
                   <Tooltip formatter={(v: number) => formatEuro(v)} />
                   <Legend />
@@ -350,7 +350,7 @@ function ChargesPage() {
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={priorityTrend} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="annee" fontSize={12} />
+                <XAxis dataKey="annee" fontSize={12} label={{ value: "Année", position: "insideBottom", offset: -4 }} />
                 <YAxis fontSize={12} unit="€" />
                 <Tooltip formatter={(v: number) => formatEuro(v)} />
                 <Legend />
