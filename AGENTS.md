@@ -103,3 +103,28 @@ bun test           # tests unitaires (src/lib/__tests__)
 - [ ] Aucune couleur/police en dur.
 - [ ] Migration SQL fournie si le schéma change (avec GRANT + RLS).
 - [ ] Secrets jamais exposés côté client.
+
+## 8. Règles de modification sûre — assistants et Lovable
+
+- **Lire avant d'écrire** : toujours récupérer le fichier actuel et son contexte immédiat avant une modification.
+- **Modification minimale** : modifier uniquement ce qui est nécessaire ; ne pas réécrire un gros composant pour un changement local.
+- **Une responsabilité à la fois** : éviter de mélanger correction de syntaxe, refactor, design et logique métier dans la même modification.
+- **Validation immédiate** : après une modification significative, lancer au minimum `bun run typecheck` et, si possible, `bun run validate`.
+- **Arrêt sur erreur** : si une validation échoue, corriger ou restaurer avant de poursuivre d'autres modifications dépendantes.
+- **Pas de chaîne de modifications sur un état cassé** : une branche avec un build cassé doit être réparée avant toute nouvelle évolution.
+- **Ne pas modifier les fichiers protégés** listés en section 2. Une vérification CI automatique bloque ces changements.
+- **Git est le point de restauration** : avant un chantier à risque, travailler depuis un commit connu comme fonctionnel et conserver des commits courts et cohérents.
+- **Ne jamais considérer Lovable comme la validation du code** : le contrôle de référence est la validation GitHub.
+- **Après une modification distante**, vérifier le commit obtenu et, lorsque disponible, le résultat de la CI avant de poursuivre.
+
+## 9. Validation automatisée
+
+Le workflow `.github/workflows/adpp-validate.yml` est la chaîne de référence. Il s'exécute sur les branches,
+les pull requests vers `main` et `main`, et contrôle successivement : dépendances verrouillées, fichiers protégés,
+formatage, TypeScript, lint, tests et build de production.
+
+Commande locale équivalente :
+
+```bash
+bun run validate
+```
