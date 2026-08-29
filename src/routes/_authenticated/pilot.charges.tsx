@@ -351,7 +351,7 @@ function ChargesPage() {
               <LineChart data={priorityTrend} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="annee" fontSize={12} label={{ value: "Année", position: "insideBottom", offset: -4 }} />
-                <YAxis fontSize={12} unit="€" />
+                <YAxis fontSize={12} unit="€" label={{ value: "Montant (€ HT)", angle: -90, position: "insideLeft", offset: 8 }} />
                 <Tooltip formatter={(v: number) => formatEuro(v)} />
                 <Legend />
                 {priority.map((c, i) => (
