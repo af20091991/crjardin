@@ -239,8 +239,8 @@ function SantePage() {
             <ChartContainer config={{ score: { label: "Score", color: PP_COLORS.primary } }} className="h-[220px] w-full">
               <BarChart data={themeChartData} layout="vertical" margin={{ left: 8, right: 12 }}>
                 <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                <XAxis type="number" domain={[0, 100]} tickLine={false} axisLine={false} fontSize={11} />
-                <YAxis type="category" dataKey="label" tickLine={false} axisLine={false} fontSize={11} width={110} />
+                <XAxis type="number" domain={[0, 100]} tickLine={false} axisLine={false} fontSize={11} label={{ value: "Score (/ 100)", position: "insideBottom", offset: -4 }} />
+                <YAxis type="category" dataKey="label" tickLine={false} axisLine={false} fontSize={11} width={110} label={{ value: "Thématique", angle: -90, position: "insideLeft", offset: 8 }} />
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
@@ -267,8 +267,8 @@ function SantePage() {
               <ChartContainer config={{ score: { label: "Score de marge", color: PP_COLORS.sales } }} className="h-[220px] w-full">
                 <LineChart data={margeEvolutionData} margin={{ left: 4, right: 12 }}>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="year" tickLine={false} axisLine={false} fontSize={11} />
-                  <YAxis domain={[0, 100]} tickLine={false} axisLine={false} fontSize={11} width={32} />
+                  <XAxis dataKey="year" tickLine={false} axisLine={false} fontSize={11} label={{ value: "Année", position: "insideBottom", offset: -4 }} />
+                  <YAxis domain={[0, 100]} tickLine={false} axisLine={false} fontSize={11} width={32} label={{ value: "Score de marge (/ 100)", angle: -90, position: "insideLeft", offset: 8 }} />
                   <ReferenceLine y={75} stroke={PP_COLORS.neutral} strokeDasharray="3 3" />
                   <ChartTooltip
                     content={
