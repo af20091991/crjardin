@@ -22,6 +22,8 @@ import { listClients } from "@/lib/clients";
 import { formatEuro } from "@/lib/pilot";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { CeevFlexibleChart } from "@/components/pilot/CeevFlexibleChart";
+import { DashboardBlock, DashboardCustomizer } from "@/components/pilot/DashboardCustomizer";
+import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import {
   attachContractToClient,
   averageHourlyMarginRate,
@@ -63,6 +65,15 @@ const EMPTY_FORM: CeevContractInput & { id?: string } = {
   client_id: null,
 };
 
+const CEEV_BLOCKS: DashboardBlockDef[] = [
+  { id: "kpi", label: "Indicateurs clés" },
+  { id: "graphique", label: "Analyse graphique" },
+  { id: "repartition", label: "Répartition par client" },
+  { id: "renouvellements", label: "Échéances / renouvellements" },
+  { id: "a-valider", label: "À valider — rattachement client" },
+  { id: "contrats", label: "Contrats" },
+];
+
 function parseCsvContracts(text: string): CeevContractInput[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length < 2) return [];
@@ -98,10 +109,15 @@ function CeevPage() {
   const clients = useQuery({ queryKey: ["clients"], queryFn: listClients });
 
   const all = contracts.data ?? [];
-  const years = useMemo(() => Array.from(new Set(all.map((c) => c.year))).sort((a, b) => b - a), [all]);
-  const currentYear = years[0] ?? new Date().getFullYear();
+  const thisYear = new Date().getFullYear();
+  const years = useMemo(
+    () => Array.from(new Set([...all.map((c) => c.year), thisYear])).sort((a, b) => b - a),
+    [all, thisYear],
+  );
+  const currentYear = thisYear;
 
-  const [yearFilter, setYearFilter] = useState<string>("all");
+  // Année de référence : l'exercice en cours par défaut, pilotant toutes les sections.
+  const [yearFilter, setYearFilter] = useState<string>(String(thisYear));
   const [validationFilter, setValidationFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
 
@@ -150,17 +166,24 @@ function CeevPage() {
   const kpiCa = totalPvHt(yearContracts);
   const kpiMargin = totalMarginNet(yearContracts);
   const kpiHourlyRate = averageHourlyMarginRate(yearContracts);
-  const kpiToValidate = contractsToValidate(all).length;
+  const allToValidate = useMemo(() => contractsToValidate(all), [all]);
+  const scopedToValidate = useMemo(
+    () => (yearFilter === "all" ? allToValidate : allToValidate.filter((c) => c.year === kpiYear)),
+    [allToValidate, yearFilter, kpiYear],
+  );
+  const kpiToValidate = scopedToValidate.length;
 
   const revenueSeries = useMemo(() => yearlyRevenue(all).slice().reverse(), [all]);
   const breakdown = useMemo(() => clientBreakdown(yearContracts).slice(0, 8), [yearContracts]);
-  const toValidate = useMemo(() => contractsToValidate(all), [all]);
+  const toValidate = scopedToValidate;
 
   const renewal = useMemo(() => {
-    if (years.length < 2) return null;
-    const [latest, previous] = years;
+    const latest = kpiYear;
+    const previous = kpiYear - 1;
+    const hasData = all.some((c) => c.year === latest) || all.some((c) => c.year === previous);
+    if (!hasData) return null;
     return { latest, previous, ...renewalAnalysis(all, previous, latest) };
-  }, [all, years]);
+  }, [all, kpiYear]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -171,6 +194,8 @@ function CeevPage() {
       return true;
     });
   }, [all, yearFilter, validationFilter, search]);
+
+  const layout = useDashboardLayout(CEEV_BLOCKS, "pilot-ceev");
 
   const openCreate = () => { setForm(EMPTY_FORM); setDialogOpen(true); };
   const openEdit = (c: CeevContract) => {
@@ -224,6 +249,7 @@ function CeevPage() {
       </header>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <span className="mr-auto text-xs text-muted-foreground">Année de référence</span>
         <Select value={yearFilter} onValueChange={setYearFilter}>
           <SelectTrigger className="w-36"><SelectValue placeholder="Année" /></SelectTrigger>
           <SelectContent>
@@ -244,8 +270,11 @@ function CeevPage() {
         <Button onClick={openCreate}>
           <Plus className="mr-1.5 h-4 w-4" /> Nouveau contrat
         </Button>
+        <DashboardCustomizer defs={CEEV_BLOCKS} layout={layout} />
       </div>
 
+      <div className="space-y-5">
+      <DashboardBlock id="kpi" layout={layout}>
       {/* KPI */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <PilotCard label={`Contrats ${kpiYear}`} value={yearContracts.length} icon={ClipboardList} help="Nombre de contrats CEEV actifs sur l'année sélectionnée." />
@@ -263,14 +292,18 @@ function CeevPage() {
           help="Contrats importés sans rattachement client confirmé."
         />
       </div>
+      </DashboardBlock>
 
+      <DashboardBlock id="graphique" layout={layout}>
       <CeevFlexibleChart
         year={kpiYear}
         contracts={yearContracts}
         revenueSeries={revenueSeries}
         breakdown={breakdown}
       />
+      </DashboardBlock>
 
+      <DashboardBlock id="repartition" layout={layout}>
       {/* Répartition par client */}
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Répartition par client ({kpiYear})</CardTitle></CardHeader>
@@ -284,7 +317,9 @@ function CeevPage() {
           ))}
         </CardContent>
       </Card>
+      </DashboardBlock>
 
+      <DashboardBlock id="renouvellements" layout={layout}>
       {/* Échéances / renouvellements */}
       <Card>
         <CardHeader className="pb-2">
@@ -292,7 +327,9 @@ function CeevPage() {
         </CardHeader>
         <CardContent>
           {!renewal ? (
-            <p className="text-sm text-muted-foreground">Au moins deux années de données sont nécessaires.</p>
+            <p className="text-sm text-muted-foreground">
+              Aucune donnée sur {kpiYear} ni {kpiYear - 1}.
+            </p>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               <div>
@@ -328,9 +365,12 @@ function CeevPage() {
         </CardContent>
       </Card>
 
+      </DashboardBlock>
+
+      <DashboardBlock id="a-valider" layout={layout}>
       {/* À valider */}
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">À valider — rattachement client</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-base">À valider — rattachement client{yearFilter === "all" ? "" : ` (${kpiYear})`}</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           {toValidate.length === 0 ? (
             <p className="text-sm text-muted-foreground">Tous les contrats sont rattachés.</p>
@@ -367,6 +407,9 @@ function CeevPage() {
         </CardContent>
       </Card>
 
+      </DashboardBlock>
+
+      <DashboardBlock id="contrats" layout={layout}>
       {/* Tableau */}
       <Card>
         <CardHeader className="pb-2 flex-row items-center justify-between gap-2">
@@ -440,6 +483,8 @@ function CeevPage() {
           </div>
         </CardContent>
       </Card>
+      </DashboardBlock>
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
