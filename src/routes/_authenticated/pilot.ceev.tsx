@@ -22,7 +22,7 @@ import { listClients } from "@/lib/clients";
 import { formatEuro } from "@/lib/pilot";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { CeevFlexibleChart } from "@/components/pilot/CeevFlexibleChart";
-import { DashboardBlock, DashboardCustomizer } from "@/components/pilot/DashboardCustomizer";
+import { DashboardBlock, DashboardCustomizer, PageBlocks } from "@/components/pilot/DashboardCustomizer";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import {
   attachContractToClient,
@@ -273,7 +273,7 @@ function CeevPage() {
         <DashboardCustomizer defs={CEEV_BLOCKS} layout={layout} />
       </div>
 
-      <div className="space-y-5">
+      <PageBlocks className="gap-5">
       <DashboardBlock id="kpi" layout={layout}>
       {/* KPI */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -484,7 +484,7 @@ function CeevPage() {
         </CardContent>
       </Card>
       </DashboardBlock>
-      </div>
+      </PageBlocks>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
