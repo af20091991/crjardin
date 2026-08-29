@@ -15,6 +15,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { AppearanceProvider } from "@/lib/appearance";
 import { PilotModeProvider } from "@/lib/pilot-mode";
 import { Toaster } from "@/components/ui/sonner";
+import { DirecteurIA } from "@/components/DirecteurIA";
 import { registerPwa } from "@/lib/pwa";
 import { APP_VERSION } from "@/lib/app-meta";
 
@@ -107,7 +108,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.googleapis.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Newsreader:wght@400;500;600;700&display=swap" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Spectral:wght@400;500;600;700&family=PT+Serif:wght@400;700&family=Roboto+Slab:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Spectral:wght@400;500;600;700&family=PT+Serif:wght@400;700&family=Roboto+Slab:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Rubik:wght@400;500;600;700&family=Figtree:wght@400;500;600;700&family=Karla:wght@400;500;600;700&family=Merriweather:wght@400;500;600;700&family=Bitter:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Bebas+Neue&display=swap" },
     ],
   }),
@@ -140,6 +141,7 @@ function RootComponent() {
           <PilotModeProvider>
             <Outlet />
           </PilotModeProvider>
+          <DirecteurIA />
           <Toaster richColors position="top-center" />
         </AppearanceProvider>
       </AuthProvider>
