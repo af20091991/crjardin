@@ -1,0 +1,44 @@
+name: ADPP Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch or commit to validate
+        required: true
+        default: feature/directeur-ia
+  repository_dispatch:
+    types: [adpp-validate]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: adpp-validation-${{ github.event.inputs.ref || github.event.client_payload.ref || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout requested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.event.client_payload.ref || github.sha }}
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Report success
+        run: echo "ADPP validation completed successfully for $GITHUB_SHA"
