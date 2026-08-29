@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -122,8 +122,17 @@ function CeevPage() {
   const currentYear = thisYear;
 
 
-  // Année de référence : l'exercice en cours par défaut, pilotant toutes les sections.
+  // Année de référence : 2026 si des données existent, sinon le dernier exercice
+  // réellement présent. On évite ainsi un écran d'analyse vide lorsqu'aucun contrat
+  // n'a encore été enregistré pour l'année civile en cours.
   const [yearFilter, setYearFilter] = useState<string>(String(thisYear));
+  useEffect(() => {
+    if (contracts.isLoading || all.length === 0) return;
+    if (all.some((c) => c.year === thisYear)) return;
+    const latestYear = Math.max(...all.map((c) => c.year));
+    if (Number.isFinite(latestYear)) setYearFilter(String(latestYear));
+  }, [all, contracts.isLoading, thisYear]);
+
   const [validationFilter, setValidationFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
 
@@ -295,6 +304,14 @@ function CeevPage() {
         </Button>
         <DashboardCustomizer defs={CEEV_BLOCKS} layout={layout} />
       </div>
+
+      {contracts.isError && (
+        <Card>
+          <CardContent className="py-4 text-sm text-destructive">
+            Impossible de charger les données CEEV : {contracts.error instanceof Error ? contracts.error.message : "erreur de lecture inconnue"}.
+          </CardContent>
+        </Card>
+      )}
 
       <PageBlocks className="gap-5">
       <DashboardBlock id="kpi" layout={layout}>
