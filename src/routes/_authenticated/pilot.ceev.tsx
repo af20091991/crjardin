@@ -19,6 +19,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { listClients } from "@/lib/clients";
+import { usePilotPeriod } from "@/lib/pilot-mode";
+import { PERIOD_LABELS, periodScopeLabel, type PeriodMode } from "@/lib/pilot-realized";
+
 import { formatEuro } from "@/lib/pilot";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { CeevFlexibleChart } from "@/components/pilot/CeevFlexibleChart";
@@ -109,12 +112,15 @@ function CeevPage() {
   const clients = useQuery({ queryKey: ["clients"], queryFn: listClients });
 
   const all = contracts.data ?? [];
-  const thisYear = new Date().getFullYear();
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const { period, setPeriod } = usePilotPeriod();
   const years = useMemo(
     () => Array.from(new Set([...all.map((c) => c.year), thisYear])).sort((a, b) => b - a),
     [all, thisYear],
   );
   const currentYear = thisYear;
+
 
   // Année de référence : l'exercice en cours par défaut, pilotant toutes les sections.
   const [yearFilter, setYearFilter] = useState<string>(String(thisYear));
@@ -163,9 +169,17 @@ function CeevPage() {
   // KPI sur l'année sélectionnée (par défaut l'année la plus récente)
   const kpiYear = yearFilter === "all" ? currentYear : Number(yearFilter);
   const yearContracts = useMemo(() => contractsForYear(all, kpiYear), [all, kpiYear]);
-  const kpiCa = totalPvHt(yearContracts);
-  const kpiMargin = totalMarginNet(yearContracts);
+  // Périmètre temporel global : « à date » (prorata des mois écoulés d'un
+  // contrat annuel) ou « exercice complet » (engagement annuel intégral).
+  const monthsElapsed =
+    kpiYear < now.getFullYear() ? 12 : kpiYear > now.getFullYear() ? 0 : now.getMonth() + 1;
+  const isFullPeriod = period === "exercice_complet";
+  const periodRatio = isFullPeriod ? 1 : monthsElapsed / 12;
+  const periodSuffix = isFullPeriod ? "exercice complet" : `à date (${monthsElapsed}/12 mois)`;
+  const kpiCa = totalPvHt(yearContracts) * periodRatio;
+  const kpiMargin = totalMarginNet(yearContracts) * periodRatio;
   const kpiHourlyRate = averageHourlyMarginRate(yearContracts);
+
   const allToValidate = useMemo(() => contractsToValidate(all), [all]);
   const scopedToValidate = useMemo(
     () => (yearFilter === "all" ? allToValidate : allToValidate.filter((c) => c.year === kpiYear)),
@@ -249,7 +263,16 @@ function CeevPage() {
       </header>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <span className="mr-auto text-xs text-muted-foreground">Année de référence</span>
+        <span className="mr-auto text-xs text-muted-foreground">
+          {periodScopeLabel(kpiYear, period, now)}
+        </span>
+        <Select value={period} onValueChange={(v) => setPeriod(v as PeriodMode)}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Périmètre" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="a_date">{PERIOD_LABELS.a_date}</SelectItem>
+            <SelectItem value="exercice_complet">{PERIOD_LABELS.exercice_complet}</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={yearFilter} onValueChange={setYearFilter}>
           <SelectTrigger className="w-36"><SelectValue placeholder="Année" /></SelectTrigger>
           <SelectContent>
@@ -278,8 +301,9 @@ function CeevPage() {
       {/* KPI */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <PilotCard label={`Contrats ${kpiYear}`} value={yearContracts.length} icon={ClipboardList} help="Nombre de contrats CEEV actifs sur l'année sélectionnée." />
-        <PilotCard label="CA contrats HT" value={formatEuro(kpiCa)} help="Somme des montants PV HT des contrats de l'année." />
-        <PilotCard label="Marge nette" value={formatEuro(kpiMargin)} help="PV HT − charges, cumulé sur l'année." />
+        <PilotCard label={`CA contrats HT — ${periodSuffix}`} value={formatEuro(kpiCa)} help={isFullPeriod ? "Somme des montants PV HT des contrats de l'année (engagement annuel complet)." : `Part acquise à date : PV HT annuel au prorata des ${monthsElapsed} mois écoulés sur 12.`} />
+        <PilotCard label={`Marge nette — ${periodSuffix}`} value={formatEuro(kpiMargin)} help={isFullPeriod ? "PV HT − charges, cumulé sur l'exercice complet." : `PV HT − charges, au prorata des ${monthsElapsed} mois écoulés sur 12.`} />
+
         <PilotCard
           label="Taux horaire de marge"
           value={kpiHourlyRate != null ? `${formatEuro(kpiHourlyRate)}/h` : "—"}
