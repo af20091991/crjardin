@@ -1,12 +1,16 @@
 name: ADPP Validation
 
 on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       ref:
         description: Branch or commit to validate
         required: true
-        default: feature/directeur-ia
+        default: main
   repository_dispatch:
     types: [adpp-validate]
 
@@ -14,31 +18,48 @@ permissions:
   contents: read
 
 concurrency:
-  group: adpp-validation-${{ github.event.inputs.ref || github.event.client_payload.ref || github.sha }}
+  group: adpp-validation-${{ github.event.pull_request.number || github.ref || github.sha }}
   cancel-in-progress: true
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout requested revision
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref || github.event.client_payload.ref || github.sha }}
-          fetch-depth: 1
+          fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
-          cache: npm
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
-      - name: Build application
-        run: npm run build
+      - name: Check protected files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: bun scripts/check-protected-files.mjs
 
-      - name: Report success
-        run: echo "ADPP validation completed successfully for $GITHUB_SHA"
+      - name: Format check
+        run: bun run format:check
+
+      - name: TypeScript check
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Unit tests
+        run: bun test
+
+      - name: Production build
+        run: bun run build
+
+      - name: Validation summary
+        run: echo "ADPP validation passed for $GITHUB_SHA"
