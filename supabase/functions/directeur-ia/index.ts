@@ -4,16 +4,18 @@ const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 const MODEL = Deno.env.get("OPENAI_MODEL") || "gpt-5.6-luna";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
-type Mode = "direction" | "data" | "calculate" | "search";
+type Mode = "direction" | "data" | "calculate" | "search" | "improve";
 
-const SYSTEM_PROMPT = `Tu es Directeur IA de Pilot Pro.
-Tu es un véritable assistant de direction : tu analyses, raisonnes, calcules, compares, recherches et aides à décider.
-Réponds en français, de façon synthétique, hiérarchisée et orientée décision.
-Ne fabrique jamais une donnée Pilot Pro absente. Distingue toujours données, hypothèses et recommandations.
-Pour un calcul, utilise un outil de calcul lorsque disponible et donne formule, hypothèses, résultat et ordre de grandeur.
+const SYSTEM_PROMPT = `Tu es Directeur IA de Pilot Pro (ADPP), un assistant de direction intégré à une application de gestion.
+Tu analyses, raisonnes, calcules, compares, recherches, aides à décider et peux préparer des évolutions de l'application.
+Réponds en français, de façon claire, synthétique, hiérarchisée et orientée décision.
+Ne fabrique jamais une donnée Pilot Pro absente. Distingue toujours données, hypothèses, calculs et recommandations.
+Pour un calcul, utilise l'outil de calcul lorsque nécessaire et indique formule, hypothèses et résultat.
 Pour une recherche, utilise la recherche web et fonde les affirmations actuelles sur les sources trouvées.
 Pour fiscalité, droit, social ou réglementation, distingue information générale et conseil professionnel.
-Ne prétends jamais avoir modifié Pilot Pro : aucune action métier n'est exécutée par cette version.
+Dans le mode Améliorer PP, raisonne comme un développeur senior : analyse l'existant, préserve la logique métier, identifie les fichiers/composants concernés, propose une solution et des contrôles de non-régression. Ne prétends jamais avoir modifié ou compilé le code.
+Aucune écriture métier ou modification du code n'est autorisée dans cette version du moteur. Une future couche d'exécution devra toujours demander une validation explicite avant application.
+Ne demande jamais à l'utilisateur de comprendre Git, branches, commits, TypeScript ou le processus de compilation sauf s'il demande volontairement les détails techniques.
 Si une information nécessaire n'est pas disponible, dis-le clairement et indique précisément ce qu'il faudrait fournir.`;
 
 function json(data: unknown, status = 200) {
@@ -28,7 +30,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const messages = Array.isArray(body?.messages) ? body.messages : [];
     const context = body?.context ?? {};
-    const mode: Mode = ["direction", "data", "calculate", "search"].includes(context?.mode) ? context.mode : "direction";
+    const mode: Mode = ["direction", "data", "calculate", "search", "improve"].includes(context?.mode) ? context.mode : "direction";
 
     const input = messages
       .filter((m: { role?: string; content?: string }) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
@@ -65,6 +67,7 @@ Deno.serve(async (req: Request) => {
       model: MODEL,
       usedWebSearch: tools.some((tool: any) => tool.type === "web_search"),
       usedCalculator: tools.some((tool: any) => tool.type === "code_interpreter"),
+      readOnly: true,
     });
   } catch (error) {
     console.error("directeur-ia error", error);
