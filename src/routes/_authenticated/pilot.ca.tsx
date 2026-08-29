@@ -525,10 +525,15 @@ function CaPage() {
           tone="text-rose-600"
         />
         <StatBox
-          label="Bénéfice"
-          value={formatEuro(mt.benefice)}
+          label={beneficePrevisionnel ? "Bénéfice prévisionnel" : "Bénéfice"}
+          value={formatEuro(beneficeMois)}
           icon={PiggyBank}
-          tone={mt.benefice >= 0 ? "text-emerald-600" : "text-rose-600"}
+          tone={beneficeMois >= 0 ? "text-emerald-600" : "text-rose-600"}
+          title={
+            beneficePrevisionnel
+              ? "Mois à venir : prévisionnel total HT (toutes ventes) − charges du mois"
+              : "CA HT réglé − charges du mois"
+          }
         />
         <StatBox label="Temps" value={`${mt.hours} h`} icon={Clock} />
         <StatBox
