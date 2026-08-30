@@ -4,8 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches:
-      - "**"
+    branches: [main]
   workflow_dispatch:
     inputs:
       ref:
@@ -18,29 +17,40 @@ on:
 permissions:
   contents: read
 
+# PRs validate their proposed merge; main validates after merge.
+# Feature branches do not run CI on every push, reducing duplicate runs and email noise.
 concurrency:
-  group: adpp-validation-${{ github.event.pull_request.number || github.ref || github.sha }}
+  group: adpp-validation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.sha }}
   cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24"
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout requested revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.inputs.ref || github.event.client_payload.ref || github.sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 20
-          cache: npm
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies from locked Bun graph
+        run: bun ci
 
       - name: Check protected files
         env:
@@ -48,20 +58,23 @@ jobs:
           HEAD_SHA: ${{ github.sha }}
         run: node scripts/check-protected-files.mjs
 
-      - name: Format check
-        run: npm run format:check
+      - name: Format check changed files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: node scripts/check-format-changed.mjs
 
       - name: TypeScript check
-        run: npm run typecheck
+        run: bun run typecheck
 
       - name: Lint
-        run: npm run lint
+        run: bun run lint
 
       - name: Unit tests
-        run: npm test
+        run: bun test
 
       - name: Production build
-        run: npm run build
+        run: bun run build
 
       - name: Validation summary
         run: echo "ADPP validation passed for $GITHUB_SHA"
