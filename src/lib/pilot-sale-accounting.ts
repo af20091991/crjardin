@@ -44,6 +44,7 @@ export function revenueCounted(
   _scope?: SaleAccountingScope,
 ): boolean {
   const s = saleStatusOf(status);
+  if (_scope?.period === "exercice_complet") return true;
   return s === "regle" || s === "particulier";
 }
 
