@@ -136,9 +136,7 @@ export const askDirecteurIa = createServerFn({ method: "POST" })
       try {
         if (name === "pilot_data") {
           used.usedPilotData = true;
-          snapshot ??= await buildPilotSnapshot(
-            context.supabase as unknown as { from: (table: string) => any },
-          );
+          snapshot ??= await buildPilotSnapshot(context.supabase);
           return snapshot;
         }
         if (name === "calculate") {
