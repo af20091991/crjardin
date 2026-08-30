@@ -508,7 +508,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                             <Link
                               to={item.to}
                               className={`flex items-center justify-center rounded-lg p-2.5 transition-colors ${
-                                isActive(item.to, item.exact)
+                              isActive(item.to, item.exact)
                                   ? "bg-primary/10 text-primary"
                                   : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
                               }`}
@@ -520,7 +520,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                         </Tooltip>
                       ) : (
                         <Link
-                            key={item.to}
+                          key={item.to}
                           to={item.to}
                           data-active={isActive(item.to, item.exact) ? "true" : undefined}
                           className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
