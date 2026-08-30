@@ -1,43 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, Brain, Calculator, Check, Command, Globe2, Lightbulb, Maximize2, Minimize2, Plus, Search, Send, Sparkles, Wrench, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Brain, Check, Command, Lightbulb, Maximize2, Minimize2, Plus, Send, Sparkles, Wrench, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { askDirecteurIa } from "@/lib/adpp.functions";
 import type { DirecteurAction, DirecteurMode } from "@/lib/directeur-ia-contract";
 
 type Message = { role: "user" | "assistant"; content: string; actions?: DirecteurAction[] };
 
-const modes: { id: DirecteurMode; label: string; icon: typeof Brain; hint: string }[] = [
-  { id: "direction", label: "Direction", icon: Lightbulb, hint: "Réfléchir, décider, conseiller" },
-  { id: "data", label: "Données PP", icon: BarChart3, hint: "Analyser les données Pilot Pro" },
-  { id: "calculate", label: "Calcul", icon: Calculator, hint: "Calculer et simuler" },
-  { id: "search", label: "Recherche", icon: Search, hint: "Chercher des informations" },
+type AdppMode = Extract<DirecteurMode, "direction" | "improve">;
+
+const modes: { id: AdppMode; label: string; icon: typeof Brain; hint: string }[] = [
+  { id: "direction", label: "Direction", icon: Lightbulb, hint: "Analyser, décider, conseiller" },
   { id: "improve", label: "Améliorer PP", icon: Wrench, hint: "Proposer une évolution de Pilot Pro" },
 ];
 
-const suggestions: Record<DirecteurMode, { label: string; icon: typeof Brain }[]> = {
+const suggestions: Record<AdppMode, { label: string; icon: typeof Brain }[]> = {
   direction: [
-    { label: "Aide-moi à prendre une décision", icon: Brain },
+    { label: "Où en est mon activité cette année ?", icon: Brain },
     { label: "Analyse ce qui mérite mon attention", icon: Lightbulb },
     { label: "Construis-moi un plan d'action", icon: Command },
-  ],
-  data: [
-    { label: "Analyse mes données de cette page", icon: BarChart3 },
-    { label: "Trouve les principales anomalies", icon: Brain },
-    { label: "Compare avec l'année précédente", icon: BarChart3 },
-  ],
-  calculate: [
-    { label: "Fais une simulation", icon: Calculator },
-    { label: "Calcule l'impact financier", icon: Calculator },
-    { label: "Compare plusieurs scénarios", icon: BarChart3 },
-  ],
-  search: [
-    { label: "Cherche une information à jour", icon: Globe2 },
-    { label: "Vérifie cette information", icon: Search },
-    { label: "Trouve les sources utiles", icon: Globe2 },
   ],
   improve: [
     { label: "Améliore l'agencement de cette page", icon: Wrench },
     { label: "Propose une nouvelle fonction", icon: Command },
-    { label: "Corrige ce qui ne fonctionne pas", icon: Wrench },
+    { label: "Analyse ce qui ne fonctionne pas ici", icon: Wrench },
   ],
 };
 
@@ -47,9 +32,10 @@ export function DirecteurIA() {
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<DirecteurMode>("direction");
+  const [mode, setMode] = useState<AdppMode>("direction");
   const [context, setContext] = useState({ pathname: "/", pageTitle: "Pilot Pro" });
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const ask = useServerFn(askDirecteurIa);
   const currentMode = useMemo(() => modes.find((item) => item.id === mode) ?? modes[0], [mode]);
 
   useEffect(() => {
@@ -77,22 +63,15 @@ export function DirecteurIA() {
     setLoading(true);
 
     try {
-      const response = await supabase.functions.invoke("directeur-ia", {
-        body: {
+      const result = await ask({
+        data: {
           messages: nextMessages.map((message) => ({ role: message.role, content: message.content })),
-          context: { ...context, mode, modeHint: currentMode.hint },
+          context: { pathname: context.pathname, pageTitle: context.pageTitle, mode },
         },
       });
-      if (response.error) throw response.error;
-      const result = response.data as { answer?: string; actions?: DirecteurAction[]; error?: string } | null;
-      if (result?.error) throw new Error(result.error);
       setMessages((current) => [
         ...current,
-        {
-          role: "assistant",
-          content: result?.answer || "Je n'ai pas obtenu de réponse exploitable.",
-          actions: result?.actions,
-        },
+        { role: "assistant", content: result.answer || "Je n'ai pas obtenu de réponse exploitable." },
       ]);
     } catch (error) {
       setMessages((current) => [
