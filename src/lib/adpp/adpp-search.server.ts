@@ -29,12 +29,11 @@ function realUrl(href: string): string {
 
 export async function webSearch(query: string, limit = 5): Promise<WebSearchResult[]> {
   const response = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
-    method: "POST",
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": "Mozilla/5.0 (compatible; PilotPro/1.0)",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
     },
-    body: `q=${encodeURIComponent(query)}`,
   });
   if (!response.ok) throw new Error(`Recherche web indisponible (${response.status})`);
   const html = await response.text();
