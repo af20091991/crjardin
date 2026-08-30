@@ -40,7 +40,8 @@ export async function webSearch(query: string, limit = 5): Promise<WebSearchResu
   const html = await response.text();
 
   const results: WebSearchResult[] = [];
-  const blockRegex = /<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?(?:class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>)?/g;
+  const blockRegex =
+    /<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?(?:class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>)?/g;
   let match: RegExpExecArray | null;
   while ((match = blockRegex.exec(html)) !== null && results.length < limit) {
     const url = realUrl(match[1]!);

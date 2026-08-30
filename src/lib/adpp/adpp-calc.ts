@@ -29,13 +29,20 @@ const PRECEDENCE: Record<string, number> = { "+": 1, "-": 1, "*": 2, "/": 2, "%"
 
 function apply(operator: string, left: number, right: number): number {
   switch (operator) {
-    case "+": return left + right;
-    case "-": return left - right;
-    case "*": return left * right;
-    case "/": return right === 0 ? NaN : left / right;
-    case "%": return right === 0 ? NaN : left % right;
-    case "^": return left ** right;
-    default: throw new Error("Opérateur inconnu");
+    case "+":
+      return left + right;
+    case "-":
+      return left - right;
+    case "*":
+      return left * right;
+    case "/":
+      return right === 0 ? NaN : left / right;
+    case "%":
+      return right === 0 ? NaN : left % right;
+    case "^":
+      return left ** right;
+    default:
+      throw new Error("Opérateur inconnu");
   }
 }
 
@@ -48,7 +55,8 @@ export function evaluateExpression(expression: string): number {
     const operator = operators.pop();
     const right = values.pop();
     const left = values.pop();
-    if (operator === undefined || right === undefined || left === undefined) throw new Error("Expression incomplète");
+    if (operator === undefined || right === undefined || left === undefined)
+      throw new Error("Expression incomplète");
     values.push(apply(operator, left, right));
   };
 
@@ -63,16 +71,27 @@ export function evaluateExpression(expression: string): number {
       if (operators.pop() !== "(") throw new Error("Parenthèses déséquilibrées");
     } else {
       // Gestion du signe unaire
-      if ((token === "-" || token === "+") && (previous === null || previous === "(" || (typeof previous === "string" && previous in PRECEDENCE))) {
+      if (
+        (token === "-" || token === "+") &&
+        (previous === null ||
+          previous === "(" ||
+          (typeof previous === "string" && previous in PRECEDENCE))
+      ) {
         values.push(0);
       }
-      while (operators.length && operators[operators.length - 1] !== "(" && PRECEDENCE[operators[operators.length - 1]!]! >= PRECEDENCE[token]!) reduce();
+      while (
+        operators.length &&
+        operators[operators.length - 1] !== "(" &&
+        PRECEDENCE[operators[operators.length - 1]!]! >= PRECEDENCE[token]!
+      )
+        reduce();
       operators.push(token);
     }
     previous = token;
   }
   while (operators.length) reduce();
   const result = values.pop();
-  if (result === undefined || values.length > 0 || !Number.isFinite(result)) throw new Error("Calcul impossible");
+  if (result === undefined || values.length > 0 || !Number.isFinite(result))
+    throw new Error("Calcul impossible");
   return result;
 }

@@ -38,7 +38,8 @@ const TOOLS = [
     type: "function",
     function: {
       name: "calculate",
-      description: "Évalue une expression arithmétique de façon déterministe. Utiliser pour tout calcul chiffré.",
+      description:
+        "Évalue une expression arithmétique de façon déterministe. Utiliser pour tout calcul chiffré.",
       parameters: {
         type: "object",
         properties: { expression: { type: "string", description: "Ex. (12500-8300)/12500*100" } },
@@ -95,7 +96,10 @@ export const askDirecteurIa = createServerFn({ method: "POST" })
     let snapshot: string | null = null;
 
     const messages: Array<Record<string, unknown>> = [
-      { role: "system", content: systemPrompt(data.context.mode, data.context.pageTitle, data.context.pathname) },
+      {
+        role: "system",
+        content: systemPrompt(data.context.mode, data.context.pageTitle, data.context.pathname),
+      },
       ...data.messages.map((message) => ({ role: message.role, content: message.content })),
     ];
 
@@ -105,14 +109,20 @@ export const askDirecteurIa = createServerFn({ method: "POST" })
         headers: { "Content-Type": "application/json", "Lovable-API-Key": key },
         body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages, tools: TOOLS }),
       });
-      if (response.status === 429) throw new Error("Limite de requêtes IA atteinte, réessayez dans un instant.");
+      if (response.status === 429)
+        throw new Error("Limite de requêtes IA atteinte, réessayez dans un instant.");
       if (response.status === 402) throw new Error("Crédits IA épuisés.");
       if (!response.ok) {
         const body = await response.text().catch(() => "");
         throw new Error(`Erreur IA (${response.status}) ${body.slice(0, 200)}`);
       }
       return (await response.json()) as {
-        choices?: Array<{ message?: { content?: string; tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }> } }>;
+        choices?: Array<{
+          message?: {
+            content?: string;
+            tool_calls?: Array<{ id: string; function: { name: string; arguments: string } }>;
+          };
+        }>;
       };
     };
 
@@ -126,7 +136,9 @@ export const askDirecteurIa = createServerFn({ method: "POST" })
       try {
         if (name === "pilot_data") {
           used.usedPilotData = true;
-          snapshot ??= await buildPilotSnapshot(context.supabase as unknown as { from: (table: string) => any });
+          snapshot ??= await buildPilotSnapshot(
+            context.supabase as unknown as { from: (table: string) => any },
+          );
           return snapshot;
         }
         if (name === "calculate") {
@@ -138,7 +150,9 @@ export const askDirecteurIa = createServerFn({ method: "POST" })
           used.usedWebSearch = true;
           const results = await webSearch(String(args["query"] ?? ""));
           if (results.length === 0) return "Aucun résultat web exploitable.";
-          return results.map((item) => `- ${item.title} (${item.url}) : ${item.snippet}`).join("\n");
+          return results
+            .map((item) => `- ${item.title} (${item.url}) : ${item.snippet}`)
+            .join("\n");
         }
         return `Outil inconnu : ${name}`;
       } catch (error) {

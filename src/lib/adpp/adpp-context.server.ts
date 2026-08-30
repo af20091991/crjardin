@@ -9,7 +9,11 @@ type AnySupabase = {
 };
 
 const fmt = (value: number) =>
-  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
+  new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(value);
 
 type CaRow = {
   year: number;
@@ -58,7 +62,20 @@ export async function buildPilotSnapshot(supabase: AnySupabase): Promise<string>
     byCategory[key] = (byCategory[key] ?? 0) + Number(row.amount_ht || 0);
   }
 
-  const monthLabels = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
+  const monthLabels = [
+    "Janv.",
+    "Févr.",
+    "Mars",
+    "Avr.",
+    "Mai",
+    "Juin",
+    "Juil.",
+    "Août",
+    "Sept.",
+    "Oct.",
+    "Nov.",
+    "Déc.",
+  ];
   const monthLimit = new Date().getMonth() + 1;
   const monthly = (list: CaRow[], targetYear: number, upTo: number) =>
     monthLabels
@@ -80,9 +97,13 @@ export async function buildPilotSnapshot(supabase: AnySupabase): Promise<string>
     intervention_type: string | null;
     summary: string | null;
   }>;
-  const settings = settingsRes.data as
-    | { target_tjm?: number; target_hourly_rate?: number; monthly_salary?: number; weekly_hours?: number; monthly_fixed_charges?: number }
-    | null;
+  const settings = settingsRes.data as {
+    target_tjm?: number;
+    target_hourly_rate?: number;
+    monthly_salary?: number;
+    weekly_hours?: number;
+    monthly_fixed_charges?: number;
+  } | null;
 
   const hourlyRate = hoursYear > 0 ? caYear / hoursYear : null;
 
@@ -95,7 +116,11 @@ EXERCICE ${year}
 - Temps interne (Vente → Temps) : ${hoursYear.toFixed(0)} h
 - Taux horaire réel (CA total ÷ temps interne) : ${hourlyRate === null ? "données insuffisantes" : `${hourlyRate.toFixed(0)} €/h`}
 - Nombre de lignes de vente (= interventions économiques) : ${ventes.filter((row) => row.year === year).length}
-- Répartition par nature : ${Object.entries(byCategory).map(([key, value]) => `${key} ${fmt(value)}`).join(", ") || "aucune donnée"}
+- Répartition par nature : ${
+    Object.entries(byCategory)
+      .map(([key, value]) => `${key} ${fmt(value)}`)
+      .join(", ") || "aucune donnée"
+  }
 
 SÉRIES MENSUELLES (mois écoulés uniquement, € HT)
 - CA ${year} : ${monthly(ventes, year, monthLimit) || "aucune donnée"}
@@ -108,10 +133,26 @@ PARAMÈTRES
 - Charges fixes mensuelles : ${settings?.monthly_fixed_charges ?? "non renseigné"} €
 
 CLIENTS (${clients.length})
-${clients.slice(0, 40).map((client) => `- ${client.name} — ${client.contract_type ?? "sans contrat"}${client.frequency ? ` (${client.frequency})` : ""}${client.entity_status ? ` [${client.entity_status}]` : ""}`).join("\n") || "aucun client"}
+${
+  clients
+    .slice(0, 40)
+    .map(
+      (client) =>
+        `- ${client.name} — ${client.contract_type ?? "sans contrat"}${client.frequency ? ` (${client.frequency})` : ""}${client.entity_status ? ` [${client.entity_status}]` : ""}`,
+    )
+    .join("\n") || "aucun client"
+}
 
 INTERVENTIONS RÉCENTES (${interventions.length})
-${interventions.slice(0, 15).map((item) => `- ${item.intervention_date} : ${item.intervention_type ?? "Entretien"}${item.summary ? ` — ${item.summary.slice(0, 70)}` : ""}`).join("\n") || "aucune intervention"}
+${
+  interventions
+    .slice(0, 15)
+    .map(
+      (item) =>
+        `- ${item.intervention_date} : ${item.intervention_type ?? "Entretien"}${item.summary ? ` — ${item.summary.slice(0, 70)}` : ""}`,
+    )
+    .join("\n") || "aucune intervention"
+}
 
 RAPPEL : avant ${year} le Temps n'était pas suivi — une absence d'heures sur l'historique n'est jamais une anomalie.`;
 }
