@@ -32,6 +32,11 @@ jobs:
       - name: Format AppShell
         run: bunx prettier --write src/components/AppShell.tsx
 
+      - name: Silence intentional fast-refresh export warnings
+        run: |
+          sed -i '/^export const DEFAULT_OPEN_GROUP/i\\// eslint-disable-next-line react-refresh/only-export-components' src/components/AppShell.tsx
+          sed -i '/^export function filterNavItems/i\\// eslint-disable-next-line react-refresh/only-export-components' src/components/AppShell.tsx
+
       - name: Commit formatting only when needed
         run: |
           if git diff --quiet -- src/components/AppShell.tsx; then
@@ -41,5 +46,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/components/AppShell.tsx
-          git commit -m "chore: format AppShell with Prettier"
+          git commit -m "chore: silence intentional AppShell export warnings"
           git push
