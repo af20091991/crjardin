@@ -4,9 +4,9 @@
  * Règles respectées : heures = colonne Vente → Temps (pilot_ca_entries.hours),
  * charges lues uniquement dans pilot_ca_entries (kind = "charge").
  */
-type AnySupabase = {
-  from: (table: string) => any;
-};
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+type AnySupabase = Pick<SupabaseClient, "from">;
 
 const fmt = (value: number) =>
   new Intl.NumberFormat("fr-FR", {
@@ -44,7 +44,7 @@ export async function buildPilotSnapshot(supabase: AnySupabase): Promise<string>
       .limit(30),
   ]);
 
-  const rows = (caRes.data ?? []) as CaRow[];
+  const rows = (caRes.data ?? []) as unknown as CaRow[];
   const ventes = rows.filter((row) => row.kind === "vente");
   const charges = rows.filter((row) => row.kind === "charge");
   const sum = (list: CaRow[]) => list.reduce((total, row) => total + Number(row.amount_ht || 0), 0);
@@ -86,13 +86,13 @@ export async function buildPilotSnapshot(supabase: AnySupabase): Promise<string>
       )
       .join(", ");
 
-  const clients = (clientsRes.data ?? []) as Array<{
+  const clients = (clientsRes.data ?? []) as unknown as Array<{
     name: string;
     contract_type: string | null;
     frequency: string | null;
     entity_status: string | null;
   }>;
-  const interventions = (intRes.data ?? []) as Array<{
+  const interventions = (intRes.data ?? []) as unknown as Array<{
     intervention_date: string;
     intervention_type: string | null;
     summary: string | null;
