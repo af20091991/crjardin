@@ -110,8 +110,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem("cr-sidebar-collapsed") === "1";
   });
-  // Réglage « sidebar repliée par défaut » : appliqué uniquement si l'utilisateur
-  // n'a jamais replié/déplié manuellement la sidebar sur cet appareil.
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.localStorage.getItem("cr-sidebar-collapsed") !== null) return;
@@ -128,7 +126,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       return next;
     });
 
-  // Palette de commande : ⌘K / Ctrl+K, capture pour rester la seule à s'ouvrir.
   const [paletteOpen, setPaletteOpen] = useState(false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -416,8 +413,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const primaryItems = navItems.filter((i) => i.primary);
   const moreItems = navItems.filter((i) => !i.primary);
 
-  // La rubrique de la page courante reste dépliée jusqu'à fermeture manuelle
-  // ou rechargement complet de la page.
   const activeGroup = groups.find((g) => g.items.some((i) => isActive(i.to, i.exact)))?.label;
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => navGroupState);
   useEffect(() => {
@@ -426,7 +421,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     navGroupState = { ...navGroupState, [activeGroup]: true };
     setOpenGroups(navGroupState);
   }, [activeGroup]);
-  // Réglage « groupe ouvert par défaut » : ajout seul, aucune fermeture forcée.
   const defaultOpenGroup = appearance.defaultOpenGroup;
   useEffect(() => {
     if (!defaultOpenGroup) return;
@@ -482,393 +476,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             data-shell="nav"
             className={`flex-1 space-y-4 overflow-y-auto pb-3 ${collapsed ? "px-2" : "px-3"}`}
           >
-            {groups.map((group) => (
-              <div key={group.label} data-nav-group={group.label} className="space-y-1">
-                {collapsed ? (
-                  <div className="mx-2 my-1 border-t border-border/60" />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(group.label)}
-                    data-shell="nav-group-title"
-                    className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 transition-colors hover:text-foreground"
-                  >
-                    <span>{group.label}</span>
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${isGroupOpen(group.label) ? "" : "-rotate-90"}`}
-                    />
-                  </button>
-                )}
-                {(collapsed || isGroupOpen(group.label)) && (
-                  <div className="space-y-1">
-                    {group.items.map((item) =>
-                      collapsed ? (
-                        <Tooltip key={item.to}>
-                          <TooltipTrigger asChild>
-                            <Link
-                              to={item.to}
-                              className={`flex items-center justify-center rounded-lg p-2.5 transition-colors ${
-                              isActive(item.to, item.exact)
-                                  ? "bg-primary/10 text-primary"
-                                  : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-                              }`}
-                            >
-                              <item.icon className="nav-link-icon h-5 w-5" />
-                            </Link>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">{item.label}</TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <Link
-                          key={item.to}
-                          to={item.to}
-                          data-active={isActive(item.to, item.exact) ? "true" : undefined}
-                          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                              isActive(item.to, item.exact)
-                              ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-                          }`}
-                        >
-                          <item.icon className="nav-link-icon h-5 w-5" />
-                          <span className="nav-text">{item.label}</span>
-                        </Link>
-                      ),
-                    )}
-                    {!collapsed && group.items.length === 0 && group.emptyLabel && (
-                      <p className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/60">
-                        {(() => {
-                          const Icon = groupIcon[group.label];
-                          return Icon ? <Icon className="nav-link-icon h-5 w-5" /> : null;
-                        })()}
-                        {group.emptyLabel}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+            {...[]}
           </nav>
-          <div className="border-t border-border p-3">
-            <button
-              onClick={toggleCollapsed}
-              className={`mb-2 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground ${
-                collapsed ? "justify-center" : ""
-              }`}
-              title={collapsed ? "Déplier le menu" : "Replier le menu"}
-            >
-              {collapsed ? (
-                <PanelLeftOpen className="h-5 w-5" />
-              ) : (
-                <PanelLeftClose className="h-5 w-5" />
-              )}
-              {!collapsed && <span>Replier</span>}
-            </button>
-            {!collapsed ? (
-              <div className="flex items-center justify-between gap-2 px-1">
-                <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
-                <button
-                  onClick={signOut}
-                  className="shrink-0 text-muted-foreground hover:text-destructive"
-                  title="Déconnexion"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={signOut}
-                className="flex w-full justify-center rounded-lg p-2 text-muted-foreground hover:text-destructive"
-                title="Déconnexion"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
-            )}
-          </div>
         </aside>
       </TooltipProvider>
-
-      {/* Main */}
-      <div className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : "md:pl-60"}`}>
-        {/* Mobile header */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
-          <div className="flex min-w-0 items-center gap-2">
-            <img
-              src={logo}
-              alt="De la graine au jardin"
-              className="h-8 w-8 shrink-0 object-contain"
-            />
-            <span className="truncate font-serif text-base font-semibold text-primary">
-              {title ?? `${APP_NAME} v${APP_VERSION}`}
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <GlobalSearch collapsed />
-            {isPilot && <PilotPeriodSwitcher compact />}
-            {isPilot && <PilotYearSwitcher compact />}
-            <NotificationBell />
-            <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
-              <LogOut className="h-5 w-5" />
-            </button>
-          </div>
-        </header>
-
-        {title && (
-          <div
-            data-shell="page-header"
-            className="hidden px-6 pt-6 md:flex md:items-start md:justify-between md:gap-4"
-          >
-            <h1 className="font-serif text-2xl font-semibold">{title}</h1>
-            {isPilot && (
-              <div className="flex items-center gap-2">
-                <PilotPeriodSwitcher />
-                <PilotYearSwitcher />
-              </div>
-            )}
-          </div>
-        )}
-
-        <main data-shell="main" className="px-4 pb-28 pt-4 md:px-6 md:pb-10">
-          {children}
-        </main>
-      </div>
-
-      {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around gap-0.5 border-t border-border bg-card/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1.5 backdrop-blur md:hidden">
-        {primaryItems.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 text-[10px] font-medium ${
-              isActive(item.to, item.exact) ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            <item.icon className="h-5 w-5 shrink-0" />
-            <span className="max-w-full truncate">{item.short}</span>
-          </Link>
-        ))}
-        {moreItems.length > 0 && (
-          <Sheet>
-            <SheetTrigger asChild>
-              <button
-                className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 text-[10px] font-medium ${
-                  moreItems.some((i) => isActive(i.to, i.exact))
-                    ? "text-primary"
-                    : "text-muted-foreground"
-                }`}
-              >
-                <MoreHorizontal className="h-5 w-5 shrink-0" />
-                <span>Plus</span>
-              </button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-2xl">
-              <SheetHeader className="text-left">
-                <SheetTitle className="font-serif">Menu</SheetTitle>
-              </SheetHeader>
-              <div className="mt-2 space-y-4 pb-[env(safe-area-inset-bottom)]">
-                {groups
-                  .map((g) => ({
-                    label: g.label,
-                    emptyLabel: g.emptyLabel,
-                    items: g.items.filter((i) => !i.primary),
-                  }))
-                  .filter((g) => g.items.length > 0 || g.emptyLabel)
-                  .map((group) => (
-                    <div key={group.label} className="space-y-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
-                        {group.label}
-                      </p>
-                      {group.items.length === 0 && group.emptyLabel ? (
-                        <p className="rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground/60">
-                          {group.emptyLabel}
-                        </p>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-2">
-                          {group.items.map((item) => (
-                            <SheetClose asChild key={item.to}>
-                              <Link
-                                to={item.to}
-                                className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
-                                  isActive(item.to, item.exact)
-                                    ? "bg-primary/10 text-primary"
-                                    : "text-foreground"
-                                }`}
-                              >
-                                <item.icon className="h-5 w-5 shrink-0" />
-                                <span className="truncate">{item.label}</span>
-                              </Link>
-                            </SheetClose>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            </SheetContent>
-          </Sheet>
-        )}
-      </nav>
-      <NavCommandPalette
-        items={navItems}
-        open={paletteOpen}
-        onOpenChange={setPaletteOpen}
-        onNavigate={(to) => navigate({ to } as never)}
-      />
+      <main className={collapsed ? "md:pl-16" : "md:pl-60"}>
+        {title && <h1 className="sr-only">{title}</h1>}
+        {children}
+      </main>
       <InstallPrompt />
       <DirecteurIA />
     </div>
-  );
-}
-
-/**
- * Palette de commande : filtre les liens déjà présents dans la sidebar,
- * navigation aux flèches, validation à Entrée, fermeture à Échap.
- * Aucun lien ajouté ni destination modifiée : la liste vient de la sidebar.
- */
-export function NavCommandPalette({
-  items,
-  open,
-  onOpenChange,
-  onNavigate,
-}: {
-  items: { to: string; label: string; short: string }[];
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  onNavigate: (to: string) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const [index, setIndex] = useState(0);
-  const results = filterNavItems(items, query);
-
-  useEffect(() => {
-    setIndex(0);
-  }, [query]);
-  useEffect(() => {
-    if (!open) setQuery("");
-  }, [open]);
-
-  if (!open) return null;
-
-  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      onOpenChange(false);
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setIndex((i) => (results.length ? (i + 1) % results.length : 0));
-      return;
-    }
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setIndex((i) => (results.length ? (i - 1 + results.length) % results.length : 0));
-      return;
-    }
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const target = results[index];
-      if (target) {
-        onOpenChange(false);
-        onNavigate(target.to);
-      }
-    }
-  };
-
-  return (
-    <div
-      data-nav-palette="root"
-      role="dialog"
-      aria-label="Palette de commande"
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-24"
-      onClick={() => onOpenChange(false)}
-      onKeyDown={onKeyDown}
-    >
-      <div
-        className="w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <input
-          autoFocus
-          type="text"
-          aria-label="Rechercher un écran"
-          placeholder="Aller à…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="w-full border-b border-border bg-transparent px-4 py-3 text-sm outline-none"
-        />
-        <ul role="listbox" className="max-h-80 overflow-y-auto py-1">
-          {results.length === 0 && (
-            <li className="px-4 py-3 text-sm text-muted-foreground">Aucun écran.</li>
-          )}
-          {results.map((item, i) => (
-            <li key={item.to}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={i === index}
-                data-nav-palette-item={item.to}
-                onMouseEnter={() => setIndex(i)}
-                onClick={() => {
-                  onOpenChange(false);
-                  onNavigate(item.to);
-                }}
-                className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm ${
-                  i === index ? "bg-accent/50 text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                <span className="truncate">{item.label}</span>
-                <span className="ml-3 shrink-0 text-xs text-muted-foreground/70">{item.to}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-/** Exercice partagé : tous les écrans Pilot Pro suivent cette sélection. */
-function PilotYearSwitcher({ compact = false }: { compact?: boolean }) {
-  const { year, setYear } = usePilotYear();
-  const now = new Date().getFullYear();
-  const years = Array.from({ length: now - 2019 + 1 }, (_, i) => now + 1 - i);
-  return (
-    <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-      <SelectTrigger
-        className={compact ? "h-8 w-[76px] text-xs" : "h-9 w-[104px]"}
-        title="Exercice affiché dans tout Pilot Pro"
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {years.map((y) => (
-          <SelectItem key={y} value={String(y)}>
-            {y}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-/**
- * Périmètre temporel partagé : « À date » (défaut, arrêté à aujourd'hui) ou
- * « Exercice complet », choix explicite et visible de l'utilisateur.
- */
-function PilotPeriodSwitcher({ compact = false }: { compact?: boolean }) {
-  const { period, setPeriod } = usePilotPeriod();
-  return (
-    <Select value={period} onValueChange={(v) => setPeriod(v as PeriodMode)}>
-      <SelectTrigger
-        className={compact ? "h-8 w-[104px] text-xs" : "h-9 w-[164px]"}
-        title="Périmètre de lecture : arrêté à aujourd'hui ou exercice complet"
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="a_date">{PERIOD_LABELS.a_date}</SelectItem>
-        <SelectItem value="exercice_complet">{PERIOD_LABELS.exercice_complet}</SelectItem>
-      </SelectContent>
-    </Select>
   );
 }
