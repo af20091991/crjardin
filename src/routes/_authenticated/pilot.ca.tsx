@@ -130,7 +130,7 @@ const num = (v: string) => Number(v.replace(",", ".")) || 0;
 
 // Compatibilité de rendu : l'ancien sélecteur de densité a été retiré de l'UI,
 // mais le workbench utilise encore cette classe pour sa mise en page.
-const CA_DENSITY_CLASS = { normal: "", compact: "" } as const;
+const CA_DENSITY_CLASS = { normal: "", compact: "text-sm" } as const;
 
 function StatBox({
   label,
@@ -175,7 +175,24 @@ function CaPage() {
   const [originFor, setOriginFor] = useState<CaEntry | null>(null);
   // L'ancien contrôle de densité n'est plus affiché, mais le workbench conserve
   // une valeur interne fixe afin de ne pas casser son rendu.
-  const [density] = useState<"normal">("normal");
+  const CA_DENSITY_KEY = "pilot-ca-density";
+  const [density, setDensity] = useState<"normal" | "compact">("normal");
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(CA_DENSITY_KEY);
+      if (saved === "compact" || saved === "normal") setDensity(saved);
+    } catch {
+      /* réglage local indisponible */
+    }
+  }, []);
+  const changeDensity = (value: "normal" | "compact") => {
+    setDensity(value);
+    try {
+      window.localStorage.setItem(CA_DENSITY_KEY, value);
+    } catch {
+      /* réglage local indisponible */
+    }
+  };
   // Encarts repliables (Ventes, Charges, Rémunération, Calculateurs) :
   // fermés par défaut, ouverture mémorisée localement pour cette page.
   const [sections, setSections] = useState<CaSectionState>({
