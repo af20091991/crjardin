@@ -33,15 +33,7 @@ describe("page Chiffre d'affaires — agencement", () => {
   });
 
   it("conserve toutes les colonnes et champs de saisie Ventes", () => {
-    for (const col of [
-      "Désignation",
-      "Montant HT",
-      "Statut",
-      "Client",
-      "Catégorie",
-      "Type",
-      "Temps",
-    ]) {
+    for (const col of ["Désignation", "Montant HT", "Statut", "Client", "Catégorie", "Type", "Temps"]) {
       expect(src).toContain(col);
     }
     expect(src).toContain("<ClientPicker");
@@ -80,7 +72,7 @@ describe("page Chiffre d'affaires — agencement", () => {
   });
 
   it("fait dépendre la navigation des mois du period global", () => {
-    expect(src).toContain('period === "exercice_complet" || !isCurrentYear');
+    expect(src).toContain("period === \"exercice_complet\" || !isCurrentYear");
     expect(src).toContain("realizedMonthLimit(year, now)");
   });
 
