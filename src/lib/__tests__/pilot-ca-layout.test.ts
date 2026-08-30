@@ -80,7 +80,7 @@ describe("page Chiffre d'affaires — agencement", () => {
   });
 
   it("fait dépendre la navigation des mois du period global", () => {
-    expect(src).toMatch(/period === "exercice_complet"\s*\|\|\s*!isCurrentYear/);
+    expect(src).toContain('period === "exercice_complet" || !isCurrentYear');
     expect(src).toContain("realizedMonthLimit(year, now)");
   });
 
