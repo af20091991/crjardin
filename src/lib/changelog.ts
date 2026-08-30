@@ -26,6 +26,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-08-30",
+    version: "2.3.3",
+    theme: "Général",
+    title: "Directeur IA — assistant unifié fonctionnel",
+    details: [
+      "L'assistant répond à nouveau : il s'appuie désormais sur le moteur interne de l'application au lieu d'un service externe indisponible.",
+      "Les onglets Données PP, Calcul et Recherche sont supprimés : AD choisit lui-même les moyens nécessaires (données, calcul, recherche web, contexte de page).",
+      "Il reste deux modes : Direction et Améliorer PP. AD reste en lecture et analyse seules, toute modification devant être validée explicitement.",
+    ],
+  },
+  {
+
     date: "2026-08-28",
     version: "2.3.2",
     theme: "Général",
