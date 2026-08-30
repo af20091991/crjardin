@@ -181,11 +181,17 @@ function CaPage() {
     try {
       const saved = window.localStorage.getItem(CA_DENSITY_KEY);
       if (saved === "compact" || saved === "normal") setDensity(saved);
-    } catch { /* réglage local indisponible */ }
+    } catch {
+      /* réglage local indisponible */
+    }
   }, []);
   const changeDensity = (value: "normal" | "compact") => {
     setDensity(value);
-    try { window.localStorage.setItem(CA_DENSITY_KEY, value); } catch { /* réglage local indisponible */ }
+    try {
+      window.localStorage.setItem(CA_DENSITY_KEY, value);
+    } catch {
+      /* réglage local indisponible */
+    }
   };
   // Encarts repliables (Ventes, Charges, Rémunération, Calculateurs) :
   // fermés par défaut, ouverture mémorisée localement pour cette page.
