@@ -17,8 +17,8 @@ on:
 permissions:
   contents: read
 
-# Do not validate the same PR twice (once for push and once for PR).
-# A PR is validated on pull_request events; main is validated on push.
+# PRs validate their proposed merge; main validates after merge.
+# Feature branches do not run CI on every push, reducing duplicate runs and email noise.
 concurrency:
   group: adpp-validation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.sha }}
   cancel-in-progress: true
