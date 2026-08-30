@@ -19,12 +19,10 @@ const supported = output
   .map((file) => file.trim())
   .filter(Boolean)
   .filter((file) => !file.startsWith(".git/"))
-  .filter((file) =>
-    /\.(cjs|css|html|js|jsx|json|md|mjs|scss|ts|tsx|yaml|yml)$/.test(file),
-  );
+  .filter((file) => /\.(cjs|css|html|js|jsx|json|mjs|scss|ts|tsx)$/.test(file));
 
 if (supported.length === 0) {
-  console.log("No changed files to format-check.");
+  console.log("No changed code files to format-check.");
   process.exit(0);
 }
 
