@@ -8,24 +8,27 @@ if (!base || /^0+$/.test(base)) {
   process.exit(0);
 }
 
-const output = execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMR", `${base}...${head}`], {
-  encoding: "utf8",
-});
+const output = execFileSync(
+  "git",
+  ["diff", "--name-only", "--diff-filter=ACMR", `${base}...${head}`],
+  { encoding: "utf8" },
+);
 
 const supported = output
   .split("\n")
   .map((file) => file.trim())
   .filter(Boolean)
-  .filter((file) => !file.startsWith(".git/"));
+  .filter((file) => !file.startsWith(".git/"))
+  .filter((file) =>
+    /\.(cjs|css|html|js|jsx|json|md|mjs|scss|ts|tsx|yaml|yml)$/.test(file),
+  );
 
 if (supported.length === 0) {
   console.log("No changed files to format-check.");
   process.exit(0);
 }
 
-const result = execFileSync("bunx", ["prettier", "--check", ...supported], {
+execFileSync("bunx", ["prettier", "--check", ...supported], {
   encoding: "utf8",
   stdio: "inherit",
 });
-
-void result;
