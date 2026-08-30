@@ -27,6 +27,8 @@ export default defineConfig({
         injectRegister: null,
         selfDestroying: true,
         devOptions: { enabled: false },
+        // TanStack Start emits the browser build to .output/public; keep PWA output in the same tree.
+        outDir: ".output/public",
         filename: "sw.js",
         manifest: {
           name: "De la graine au jardin — Suivi de chantier",
