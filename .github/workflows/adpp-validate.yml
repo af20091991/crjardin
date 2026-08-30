@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout requested revision
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.event.inputs.ref || github.event.client_payload.ref || github.sha }}
           fetch-depth: 0
