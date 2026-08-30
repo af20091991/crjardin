@@ -22,11 +22,11 @@ const supported = output
   .filter((file) => /\.(cjs|css|html|js|jsx|json|mjs|scss|ts|tsx)$/.test(file));
 
 if (supported.length === 0) {
-  console.log("No changed code files to format-check.");
+  console.log("No changed code files to format.");
   process.exit(0);
 }
 
-execFileSync("bunx", ["prettier", "--check", ...supported], {
+execFileSync("bunx", ["prettier", "--write", ...supported], {
   encoding: "utf8",
   stdio: "inherit",
 });
