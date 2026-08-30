@@ -20,6 +20,7 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      "no-empty": ["error", { allowEmptyCatch: true }],
       "no-restricted-imports": [
         "error",
         {
