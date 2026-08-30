@@ -15,7 +15,6 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { AppearanceProvider } from "@/lib/appearance";
 import { PilotModeProvider } from "@/lib/pilot-mode";
 import { Toaster } from "@/components/ui/sonner";
-import { DirecteurIA } from "@/components/DirecteurIA";
 import { registerPwa } from "@/lib/pwa";
 import { APP_VERSION } from "@/lib/app-meta";
 
@@ -141,7 +140,6 @@ function RootComponent() {
           <PilotModeProvider>
             <Outlet />
           </PilotModeProvider>
-          <DirecteurIA />
           <Toaster richColors position="top-center" />
         </AppearanceProvider>
       </AuthProvider>
