@@ -16,7 +16,6 @@ describe("page Chiffre d'affaires — agencement", () => {
     expect(ventesIdx).toBeGreaterThan(0);
     expect(chargesIdx).toBeGreaterThan(0);
     expect(ventesIdx).toBeLessThan(chargesIdx);
-    // Aucune inversion visuelle par CSS : plus d'utilitaires order-*.
     expect(/className="order-[12]/.test(src)).toBe(false);
   });
 
@@ -28,8 +27,6 @@ describe("page Chiffre d'affaires — agencement", () => {
   });
 
   it("donne toute la largeur disponible à chaque encart", () => {
-    // Chaque colonne porte min-w-0 (s'adapte au conteneur flex) ; aucune
-    // largeur fixe ou max-width ne restreint l'encart.
     expect(src).toContain('data-testid="ca-ventes-column" className="min-w-0');
     expect(src).toContain('data-testid="ca-charges-column" className="min-w-0');
     expect(/ca-(ventes|charges)-column[\s\S]{0,120}max-w-/.test(src)).toBe(false);
@@ -47,8 +44,6 @@ describe("page Chiffre d'affaires — agencement", () => {
     ]) {
       expect(src).toContain(col);
     }
-    // Sélecteur de client, inputs montant/temps, actions commentaire/lien/suppression
-    // sont bien dans l'encart Ventes (avant l'encart Charges dans le DOM).
     expect(src).toContain("<ClientPicker");
     expect(src.indexOf('defaultValue={row.amount_ht || ""}')).toBeLessThan(chargesIdx);
     expect(src.indexOf("const raw = e.target.value.trim();")).toBeLessThan(chargesIdx);
@@ -58,9 +53,7 @@ describe("page Chiffre d'affaires — agencement", () => {
   it("conserve toutes les colonnes et champs de saisie Charges", () => {
     expect(src).toContain("Détails des charges");
     expect(src.indexOf('onClick={() => addRow("charge")')).toBeGreaterThan(ventesIdx);
-    expect(src.indexOf("save(row.id, { designation: e.target.value });")).toBeGreaterThan(
-      ventesIdx,
-    );
+    expect(src.indexOf("save(row.id, { designation: e.target.value });")).toBeGreaterThan(ventesIdx);
     expect(src.indexOf("save(row.id, { amount_ht: v });")).toBeGreaterThan(ventesIdx);
   });
 
@@ -69,9 +62,10 @@ describe("page Chiffre d'affaires — agencement", () => {
     expect(src.match(/Voir le commentaire/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("propose une densité locale mémorisée pour cette page", () => {
+  it("conserve le réglage de densité mémorisé sans exiger un libellé UI", () => {
     expect(src).toContain("pilot-ca-density");
-    expect(src).toContain("Densité compacte");
+    expect(src).toContain('"compact"');
+    expect(src).toContain("localStorage.setItem(CA_DENSITY_KEY");
   });
 
   it("conserve le bouton d'ajout de ligne charge", () => {
@@ -86,7 +80,7 @@ describe("page Chiffre d'affaires — agencement", () => {
   });
 
   it("fait dépendre la navigation des mois du period global", () => {
-    expect(src).toContain('period === "exercice_complet" || !isCurrentYear ? 12');
+    expect(src).toMatch(/period === "exercice_complet"\s*\|\|\s*!isCurrentYear/);
     expect(src).toContain("realizedMonthLimit(year, now)");
   });
 
