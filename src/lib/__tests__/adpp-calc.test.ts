@@ -15,11 +15,16 @@ describe("ADPP — calcul déterministe", () => {
     expect(evaluateExpression("-5+2,5")).toBeCloseTo(-2.5, 6);
   });
 
-  it("refuse une expression non arithmétique", () => {
-    expect(() => evaluateExpression("process.exit(1)")).toThrow();
-  });
-
-  it("refuse une division par zéro", () => {
-    expect(() => evaluateExpression("10/0")).toThrow();
+  it("refuse une expression non arithmétique et la division par zéro", () => {
+    const failed = (expression: string) => {
+      try {
+        evaluateExpression(expression);
+        return false;
+      } catch {
+        return true;
+      }
+    };
+    expect(failed("process.exit(1)")).toBe(true);
+    expect(failed("10/0")).toBe(true);
   });
 });
