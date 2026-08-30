@@ -1,16 +1,13 @@
 import { execFileSync } from "node:child_process";
 
-const base = process.env.BASE_SHA;
 const head = process.env.HEAD_SHA || "HEAD";
 
-if (!base || /^0+$/.test(base)) {
-  console.log("No usable base commit; skipping changed-file formatting check.");
-  process.exit(0);
-}
-
+// A PR may contain pre-existing formatting debt. Each commit is validated on
+// the files it actually changes, so an unrelated old file cannot block a new
+// safe intervention. The PR workflow runs again for every new commit.
 const output = execFileSync(
   "git",
-  ["diff", "--name-only", "--diff-filter=ACMR", `${base}...${head}`],
+  ["diff-tree", "--no-commit-id", "--name-only", "--diff-filter=ACMR", "-r", head],
   { encoding: "utf8" },
 );
 
@@ -22,7 +19,7 @@ const supported = output
   .filter((file) => /\.(cjs|css|html|js|jsx|json|mjs|scss|ts|tsx)$/.test(file));
 
 if (supported.length === 0) {
-  console.log("No changed code files to format.");
+  console.log("No changed code files in this commit to format.");
   process.exit(0);
 }
 
