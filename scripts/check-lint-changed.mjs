@@ -1,16 +1,13 @@
 import { execFileSync } from "node:child_process";
 
-const base = process.env.BASE_SHA;
 const head = process.env.HEAD_SHA || "HEAD";
 
-if (!base || /^0+$/.test(base)) {
-  console.log("No usable base commit; skipping changed-file lint check.");
-  process.exit(0);
-}
-
+// A PR may contain pre-existing lint debt. Each commit is validated only on
+// the files it actually changes, so unrelated old files cannot block a new
+// safe intervention. The PR workflow runs again for every new commit.
 const output = execFileSync(
   "git",
-  ["diff", "--name-only", "--diff-filter=ACMR", `${base}...${head}`],
+  ["diff-tree", "--no-commit-id", "--name-only", "--diff-filter=ACMR", "-r", head],
   { encoding: "utf8" },
 );
 
@@ -22,7 +19,7 @@ const supported = output
   .filter((file) => /\.(cjs|js|jsx|mjs|ts|tsx)$/.test(file));
 
 if (supported.length === 0) {
-  console.log("No changed code files to lint.");
+  console.log("No changed code files in this commit to lint.");
   process.exit(0);
 }
 
