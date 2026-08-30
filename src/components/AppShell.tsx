@@ -519,19 +519,19 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                           <TooltipContent side="right">{item.label}</TooltipContent>
                         </Tooltip>
                       ) : (
-                          <Link
-                            key={item.to}
-                            to={item.to}
-                            data-active={isActive(item.to, item.exact) ? "true" : undefined}
-                            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                              isActive(item.to, item.exact)
-                                ? "bg-primary/10 text-primary"
-                                : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-                            }`}
-                          >
-                            <item.icon className="nav-link-icon h-5 w-5" />
-                            <span className="nav-text">{item.label}</span>
-                          </Link>
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          data-active={isActive(item.to, item.exact) ? "true" : undefined}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                            isActive(item.to, item.exact)
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                          }`}
+                        >
+                          <item.icon className="nav-link-icon h-5 w-5" />
+                          <span className="nav-text">{item.label}</span>
+                        </Link>
                       ),
                     )}
                     {!collapsed && group.items.length === 0 && group.emptyLabel && (
