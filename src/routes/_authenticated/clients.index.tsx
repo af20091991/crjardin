@@ -15,7 +15,7 @@ import { ClientMergeDialog } from "@/components/clients/ClientMergeDialog";
 import { listClients, type Client } from "@/lib/clients";
 import { getClientActivityStatus, type ClientActivityStatus } from "@/lib/client-activity";
 import { listFavoriteClientIds, toggleFavoriteClient } from "@/lib/client-favorites";
-import { findSuspectClients, type SuspectClient } from "@/lib/client-cleanup";
+import { findSuspectClients } from "@/lib/client-cleanup";
 import { useRole } from "@/hooks/use-role";
 import { listAllRecommendations, staleClientIds } from "@/lib/garden";
 import { listEntries, formatEuro } from "@/lib/pilot";
@@ -32,7 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Search, MapPin, Users, ChevronRight, AlertTriangle, Upload, Star, Merge, Sparkles, BarChart3, Pencil, FolderPlus, Trash2, GripVertical, Settings2 } from "lucide-react";
+import { Plus, Search, Users, ChevronRight, Upload, Star, Merge, Sparkles, BarChart3, Pencil, FolderPlus, Trash2, GripVertical, Settings2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/clients/")({
   head: () => ({ meta: [{ title: "Référentiel clients — De la graine au jardin" }, { name: "description", content: "Répertoire, groupes et gestion des fiches clients." }] }),
