@@ -57,8 +57,11 @@ jobs:
           HEAD_SHA: ${{ github.sha }}
         run: node scripts/check-protected-files.mjs
 
-      - name: Format check
-        run: bun run format:check
+      - name: Format check changed files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: node scripts/check-format-changed.mjs
 
       - name: TypeScript check
         run: bun run typecheck
