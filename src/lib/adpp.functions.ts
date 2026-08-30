@@ -107,7 +107,7 @@ export const askDirecteurIa = createServerFn({ method: "POST" })
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Lovable-API-Key": key },
-        body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages, tools: TOOLS }),
+        body: JSON.stringify({ model: "google/gemini-3.7-flash", messages, tools: TOOLS }),
       });
       if (response.status === 429)
         throw new Error("Limite de requêtes IA atteinte, réessayez dans un instant.");
