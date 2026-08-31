@@ -38,9 +38,7 @@ export default defineConfig({
           background_color: "#ffffff",
           display: "standalone",
           start_url: "/",
-          icons: [
-            { src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" },
-          ],
+          icons: [{ src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" }],
         },
         workbox: {
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api/, /^\/partage/],
@@ -53,7 +51,13 @@ export default defineConfig({
             {
               urlPattern: /\.(?:js|css|woff2?|png|jpg|jpeg|svg|webp|ico)$/,
               handler: "CacheFirst",
-              options: { cacheName: "asset-cache", expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+              options: {
+                cacheName: "asset-cache",
+                expiration: {
+                  maxEntries: 200,
+                  maxAgeSeconds: 60 * 60 * 24 * 30,
+                },
+              },
             },
           ],
         },
