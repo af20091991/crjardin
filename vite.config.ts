@@ -32,7 +32,7 @@ export default defineConfig({
         injectRegister: null,
         selfDestroying: true,
         devOptions: { enabled: false },
-        // The active TanStack/Vite build pipeline owns the client output directory.
+        // The active TanStack/Vite build pipeline owns the client output directory; no explicit outDir.
         filename: "sw.js",
         manifest: {
           name: "De la graine au jardin — Suivi de chantier",
