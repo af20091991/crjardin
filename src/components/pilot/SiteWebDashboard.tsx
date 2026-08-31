@@ -74,8 +74,12 @@ function StatusPill({ children }: { children: string }) {
 
 export function SiteWebDashboard() {
   const [activeView, setActiveView] = useState<ModuleView>("overview");
-  const publishedPages = siteWebDemoModel.pages.filter((page) => page.statut === "publie").length;
-  const pendingActions = siteWebDemoModel.actions.filter((action) => action.statut === "a_faire").length;
+  const publishedPages = siteWebDemoModel.pages.filter(
+    (page) => page.statut === "publie",
+  ).length;
+  const pendingActions = siteWebDemoModel.actions.filter(
+    (action) => action.statut === "a_faire",
+  ).length;
 
   return (
     <div className="space-y-6">
