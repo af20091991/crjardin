@@ -4,6 +4,7 @@
 //     componentTagger (dev-only), VITE_* env injection, @ path alias, React/TanStack dedupe,
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
+import { mkdirSync } from "node:fs";
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 import { loadEnv } from "vite";
@@ -19,6 +20,13 @@ for (const key of [
   if (!process.env[key] && serverEnv[key]) process.env[key] = serverEnv[key];
 }
 
+const ensurePwaOutput = () => ({
+  name: "ensure-pwa-output",
+  configResolved() {
+    mkdirSync(".output/public", { recursive: true });
+  },
+});
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
@@ -27,12 +35,14 @@ export default defineConfig({
   },
   vite: {
     plugins: [
+      ensurePwaOutput(),
       VitePWA({
         registerType: "autoUpdate",
         injectRegister: null,
         selfDestroying: true,
         devOptions: { enabled: false },
-        // The active TanStack/Vite build pipeline owns the client output directory; no explicit outDir.
+        // PWA output must follow the TanStack production client output directory.
+        outDir: ".output/public",
         filename: "sw.js",
         manifest: {
           name: "De la graine au jardin — Suivi de chantier",
