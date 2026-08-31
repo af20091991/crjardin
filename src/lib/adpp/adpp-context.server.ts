@@ -43,6 +43,20 @@ export async function buildPilotSnapshot(supabase: AnySupabase): Promise<string>
       .limit(30),
   ]);
 
+  const queryErrors = [
+    ["CA", caRes.error],
+    ["paramètres", settingsRes.error],
+    ["clients", clientsRes.error],
+    ["interventions", intRes.error],
+  ].filter(([, error]) => error);
+
+  if (queryErrors.length > 0) {
+    const details = queryErrors
+      .map(([label, error]) => `${label}: ${error?.message ?? "erreur de lecture"}`)
+      .join(" ; ");
+    throw new Error(`Données Pilot Pro indisponibles (${details}). Aucun chiffre ne doit être déduit.`);
+  }
+
   const rows = (caRes.data ?? []) as unknown as CaRow[];
   const ventes = rows.filter((row) => row.kind === "vente");
   const charges = rows.filter((row) => row.kind === "charge");
