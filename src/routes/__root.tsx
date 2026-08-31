@@ -4,12 +4,14 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import financeChartFixesCss from "../styles/finance-chart-fixes.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/hooks/use-auth";
 import { AppearanceProvider } from "@/lib/appearance";
@@ -117,6 +119,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "stylesheet", href: financeChartFixesCss },
       { rel: "icon", href: "/favicon.ico", sizes: "any" },
       { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
@@ -137,7 +140,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Rubik:wght@400;500;600;700&family=Figtree:wght@400;500;600;700&family=Karla:wght@400;500;600;700&family=Merriweather:wght@400;500;600;700&family=Bitter:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Bebas+Neue&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Rubik:wght@400;500;600;700&family=Karla:wght@400;500;600;700&family=Merriweather:wght@400;500;600;700&family=Bitter:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Bebas+Neue&display=swap",
       },
     ],
   }),
@@ -163,10 +166,16 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     registerPwa();
   }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-route", pathname);
+    return () => document.documentElement.removeAttribute("data-route");
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
