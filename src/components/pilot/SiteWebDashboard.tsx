@@ -76,6 +76,21 @@ function StatusPill({ children }: { children: string }) {
   );
 }
 
+interface MetricItem {
+  icon: typeof Activity;
+  label: string;
+  status: string;
+}
+
+interface SectionItem {
+  title: string;
+  description: string;
+  icon: typeof Search;
+  status: string;
+  hrefLabel: string;
+  view: ModuleView;
+}
+
 export function SiteWebDashboard() {
   const [activeView, setActiveView] = useState<ModuleView>("overview");
   const publishedPages = siteWebDemoModel.pages.filter(
@@ -84,6 +99,21 @@ export function SiteWebDashboard() {
   const pendingActions = siteWebDemoModel.actions.filter(
     (action) => action.statut === "a_faire",
   ).length;
+
+  const metrics: MetricItem[] = [
+    { icon: Activity, label: "Technique", status: "À connecter" },
+    {
+      icon: Search,
+      label: "SEO",
+      status: `${siteWebDemoModel.requetes.length} requêtes démo`,
+    },
+    {
+      icon: FileText,
+      label: "Contenus",
+      status: `${publishedPages} pages publiées`,
+    },
+    { icon: MousePointerClick, label: "Conversion", status: "À construire" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -163,39 +193,21 @@ export function SiteWebDashboard() {
                     </div>
                   </div>
                   <div className="grid flex-1 gap-3 sm:grid-cols-2">
-                    {[
-                      [Activity, "Technique", "À connecter"],
-                      [
-                        Search,
-                        "SEO",
-                        `${siteWebDemoModel.requetes.length} requêtes démo`,
-                      ],
-                      [
-                        FileText,
-                        "Contenus",
-                        `${publishedPages} pages publiées`,
-                      ],
-                      [MousePointerClick, "Conversion", "À construire"],
-                    ].map(([Icon, label, status]) => {
-                      const ItemIcon = Icon as typeof Activity;
-                      return (
-                        <div
-                          key={String(label)}
-                          className="flex items-center gap-3 rounded-lg bg-muted/30 p-3"
-                        >
-                          <ItemIcon className="h-4 w-4 text-muted-foreground" />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium">
-                              {String(label)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {String(status)}
-                            </p>
-                          </div>
-                          <CheckCircle2 className="h-4 w-4 text-muted-foreground/40" />
+                    {metrics.map(({ icon: Icon, label, status }) => (
+                      <div
+                        key={label}
+                        className="flex items-center gap-3 rounded-lg bg-muted/30 p-3"
+                      >
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{label}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {status}
+                          </p>
                         </div>
-                      );
-                    })}
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground/40" />
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -222,33 +234,42 @@ export function SiteWebDashboard() {
             </div>
           </Card>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {sections.map(({ title, description, icon: Icon, status, hrefLabel, view }) => (
-              <Card
-                key={title}
-                className="group flex h-full flex-col p-4 transition-shadow hover:shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="rounded-lg bg-muted/50 p-2 text-primary">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <StatusPill>{status}</StatusPill>
-                </div>
-                <h2 className="mt-4 font-serif text-base font-semibold">
-                  {title}
-                </h2>
-                <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
-                  {description}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setActiveView(view)}
-                  className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary opacity-70 transition-opacity group-hover:opacity-100"
+            {sections.map(
+              ({
+                title,
+                description,
+                icon: Icon,
+                status,
+                hrefLabel,
+                view,
+              }) => (
+                <Card
+                  key={title}
+                  className="group flex h-full flex-col p-4 transition-shadow hover:shadow-sm"
                 >
-                  {hrefLabel}
-                  <ArrowRight className="h-3 w-3" />
-                </button>
-              </Card>
-            ))}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="rounded-lg bg-muted/50 p-2 text-primary">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <StatusPill>{status}</StatusPill>
+                  </div>
+                  <h2 className="mt-4 font-serif text-base font-semibold">
+                    {title}
+                  </h2>
+                  <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
+                    {description}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveView(view)}
+                    className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary opacity-70 transition-opacity group-hover:opacity-100"
+                  >
+                    {hrefLabel}
+                    <ArrowRight className="h-3 w-3" />
+                  </button>
+                </Card>
+              ),
+            )}
           </div>
           <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
             <Card className="p-5">
