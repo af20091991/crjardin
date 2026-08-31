@@ -104,7 +104,10 @@ export function SiteWebDashboard() {
         </button>
       </header>
 
-      <nav aria-label="Navigation Site web" className="flex flex-wrap gap-1 border-b border-border pb-1">
+      <nav
+        aria-label="Navigation Site web"
+        className="flex flex-wrap gap-1 border-b border-border pb-1"
+      >
         {moduleViews.map((view) => (
           <button
             key={view.id}
@@ -168,7 +171,9 @@ export function SiteWebDashboard() {
                 </div>
               </div>
               <div className="border-t bg-muted/20 p-5 lg:border-l lg:border-t-0 lg:p-6">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">À retenir</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  À retenir
+                </p>
                 <div className="mt-4 space-y-4">
                   <div>
                     <p className="text-sm font-medium">Données structurées et isolées</p>
