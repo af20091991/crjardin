@@ -41,7 +41,7 @@ export default defineConfig({
         injectRegister: null,
         selfDestroying: true,
         devOptions: { enabled: false },
-        // PWA output must follow the TanStack production client output directory.
+        // PWA output follows the TanStack production client output directory.
         outDir: ".output/public",
         filename: "sw.js",
         manifest: {
