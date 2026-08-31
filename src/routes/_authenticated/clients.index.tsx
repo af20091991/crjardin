@@ -254,230 +254,177 @@ function ClientsPage() {
     return (
       <Card
         key={c.id}
-        className="flex items-center gap-3 p-3.5 transition-colors hover:border-primary/40 hover:bg-accent/10"
+        className="overflow-hidden border-border/80 transition-colors hover:border-primary/30"
       >
-        <button
-          type="button"
-          aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
-          onClick={() => favMut.mutate({ clientId: c.id, favorite: !isFav })}
-          className="shrink-0 rounded p-1 text-muted-foreground hover:text-amber-500"
-        >
-          <Star className={`h-4 w-4 ${isFav ? "fill-amber-400 text-amber-500" : ""}`} />
-        </button>
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Clic sur le nom : ouverture directe de la fiche 360° (Pilotage). */}
-              <p className="truncate font-medium">
-                <Link
-                  to={canEdit ? "/pilot/fiche/$clientId" : "/clients/$clientId"}
-                  params={{ clientId: c.id }}
-                  className="hover:underline"
-                  title={canEdit ? "Ouvrir la fiche 360° (Pilotage)" : "Ouvrir la fiche client"}
-                >
-                  {c.civility ? <span className="text-muted-foreground">{c.civility} </span> : null}
-                  {c.name}
-                </Link>
-              </p>
-              <Badge
-                variant="outline"
-                className={`shrink-0 text-[10px] ${ACTIVITY_BADGE[r.activity].badge}`}
-              >
-                {ACTIVITY_BADGE[r.activity].label}
-              </Badge>
-              {(c.report_policy ?? "a_confirmer") === "a_confirmer" && (
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center gap-3 p-3.5 [&::-webkit-details-marker]:hidden">
+            <button
+              type="button"
+              aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+              onClick={(e) => {
+                e.preventDefault();
+                favMut.mutate({ clientId: c.id, favorite: !isFav });
+              }}
+              className="shrink-0 rounded p-1 text-muted-foreground hover:text-amber-500"
+            >
+              <Star className={`h-4 w-4 ${isFav ? "fill-amber-400 text-amber-500" : ""}`} />
+            </button>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate font-medium">
+                  <Link
+                    to={canEdit ? "/pilot/fiche/$clientId" : "/clients/$clientId"}
+                    params={{ clientId: c.id }}
+                    className="hover:underline"
+                    title={canEdit ? "Ouvrir la fiche 360° (Pilotage)" : "Ouvrir la fiche client"}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {c.civility ? <span className="text-muted-foreground">{c.civility} </span> : null}
+                    {c.name}
+                  </Link>
+                </p>
                 <Badge
                   variant="outline"
-                  className="shrink-0 text-[10px] border-sky-200 bg-sky-50 text-sky-700"
+                  className={`shrink-0 text-[10px] ${ACTIVITY_BADGE[r.activity].badge}`}
                 >
-                  CR à qualifier
+                  {ACTIVITY_BADGE[r.activity].label}
                 </Badge>
-              )}
-              {c.contract_type && (
-                <Badge variant="secondary" className="shrink-0 text-[10px]">
-                  {c.contract_type}
-                </Badge>
-              )}
-              {stale.has(c.id) && (
-                <Badge className="shrink-0 gap-1 bg-amber-100 text-[10px] text-amber-800">
-                  <AlertTriangle className="h-2.5 w-2.5" /> Préco. +30j
-                </Badge>
-              )}
-            </div>
-            <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-              <span>
-                {r.interventions} vente{r.interventions > 1 ? "s" : ""} en {pilotYear}
-              </span>
-              {canEdit && (
+                {(c.report_policy ?? "a_confirmer") === "a_confirmer" && (
+                  <Badge
+                    variant="outline"
+                    className="shrink-0 border-sky-200 bg-sky-50 text-[10px] text-sky-700"
+                  >
+                    CR à qualifier
+                  </Badge>
+                )}
+                {c.contract_type && (
+                  <Badge variant="secondary" className="shrink-0 text-[10px]">
+                    {c.contract_type}
+                  </Badge>
+                )}
+                {stale.has(c.id) && (
+                  <Badge className="shrink-0 gap-1 bg-amber-100 text-[10px] text-amber-800">
+                    <AlertTriangle className="h-2.5 w-2.5" /> Préco. +30j
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                 <span>
-                  CA {pilotYear} {formatEuro(r.ca)}
+                  {r.interventions} vente{r.interventions > 1 ? "s" : ""} en {pilotYear}
                 </span>
-              )}
-              {canEdit && r.hourlyRate != null && (
-                <span className="flex items-center gap-1">
-                  <ProfitSignal
-                    compact
-                    level={signalFromHourlyRate(
-                      r.hourlyRate,
-                      thresholds.tauxHoraireCibleMin,
-                      thresholds,
-                    )}
-                  />
-                  {r.hourlyRate.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/h
-                </span>
-              )}
+                {canEdit && <span>CA {pilotYear} {formatEuro(r.ca)}</span>}
+                {canEdit && r.hourlyRate != null && (
+                  <span className="flex items-center gap-1">
+                    <ProfitSignal
+                      compact
+                      level={signalFromHourlyRate(
+                        r.hourlyRate,
+                        thresholds.tauxHoraireCibleMin,
+                        thresholds,
+                      )}
+                    />
+                    {r.hourlyRate.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/h
+                  </span>
+                )}
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
+          </summary>
+          <div className="border-t bg-muted/20 px-4 py-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {c.address && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {c.address}
-                </span>
+                <div className="text-xs">
+                  <span className="text-muted-foreground">Adresse</span>
+                  <p className="mt-0.5 flex items-center gap-1"><MapPin className="h-3 w-3" />{c.address}</p>
+                </div>
+              )}
+              {c.email && <div className="text-xs"><span className="text-muted-foreground">E-mail</span><p className="mt-0.5 truncate">{c.email}</p></div>}
+              {c.phone && <div className="text-xs"><span className="text-muted-foreground">Téléphone</span><p className="mt-0.5">{c.phone}</p></div>}
+              {r.lastDate && <div className="text-xs"><span className="text-muted-foreground">Dernière vente</span><p className="mt-0.5">{new Date(r.lastDate).toLocaleDateString("fr-FR")}</p></div>}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-1">
+              {canEdit && (
+                <Button variant="ghost" size="sm" asChild title="Ouvrir la fiche 360° (Pilotage)">
+                  <Link to="/pilot/fiche/$clientId" params={{ clientId: c.id }}><BarChart3 className="mr-1.5 h-4 w-4" />Pilotage</Link>
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" asChild title="Ouvrir la fiche client">
+                <Link to="/clients/$clientId" params={{ clientId: c.id }}><ChevronRight className="mr-1.5 h-4 w-4" />Fiche</Link>
+              </Button>
+              {canEdit && (
+                <Button variant="ghost" size="sm" asChild title="Modifier la fiche CRM du client">
+                  <Link to="/clients/$clientId" params={{ clientId: c.id }} search={{ edit: true }}><Pencil className="mr-1.5 h-4 w-4" />Modifier</Link>
+                </Button>
+              )}
+              {canEdit && clients && (
+                <ClientMergeDialog
+                  source={c}
+                  clients={clients}
+                  trigger={<Button variant="ghost" size="sm"><Merge className="mr-1.5 h-4 w-4" />Rattacher</Button>}
+                />
+              )}
+              {canEdit && (
+                <Popover>
+                  <PopoverTrigger asChild><Button variant="ghost" size="sm">Statut</Button></PopoverTrigger>
+                  <PopoverContent className="w-64">
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-medium">Cycle de vie</p>
+                        <Select value={c.lifecycle_status ?? "actif"} onValueChange={(v) => statusMut.mutate({ client: c, patch: { lifecycle_status: v as ClientLifecycle } })}>
+                          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                          <SelectContent>{Object.entries(LIFECYCLE_META).map(([value, meta]) => <SelectItem key={value} value={value}>{meta.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium">Compte-rendus</p>
+                        <Select value={c.report_policy ?? "a_confirmer"} onValueChange={(v) => statusMut.mutate({ client: c, patch: { report_policy: v as ReportPolicy } })}>
+                          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                          <SelectContent>{Object.entries(REPORT_POLICY_META).map(([value, meta]) => <SelectItem key={value} value={value}>{meta.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               )}
             </div>
           </div>
-          <Link
-            to="/clients/$clientId"
-            params={{ clientId: c.id }}
-            title="Ouvrir la fiche client"
-            className="shrink-0 text-muted-foreground hover:text-foreground"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-        </div>
-        <div className="flex shrink-0 items-center gap-0.5">
-          {canEdit && (
-            <Button variant="ghost" size="icon" asChild title="Ouvrir la fiche 360° (Pilotage)">
-              <Link to="/pilot/fiche/$clientId" params={{ clientId: c.id }}>
-                <BarChart3 className="h-4 w-4" />
-              </Link>
-            </Button>
-          )}
-          {canEdit && (
-            <Button variant="ghost" size="icon" asChild title="Modifier la fiche CRM du client">
-              <Link to="/clients/$clientId" params={{ clientId: c.id }} search={{ edit: true }}>
-                <Pencil className="h-4 w-4" />
-              </Link>
-            </Button>
-          )}
-          {canEdit && clients && (
-            <ClientMergeDialog
-              source={c}
-              clients={clients}
-              trigger={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  title="Fusionner / rattacher à un client existant"
-                >
-                  <Merge className="h-4 w-4" />
-                </Button>
-              }
-            />
-          )}
-        </div>
+        </details>
       </Card>
     );
   };
 
   return (
     <AppShell title="Clients">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-7xl">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <div className="relative min-w-[220px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher un client…"
-              className="pl-9"
-            />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un client…" className="pl-9" />
           </div>
-          <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les clients</SelectItem>
-              <SelectItem value="actif">Actifs</SelectItem>
-              <SelectItem value="a_relancer">À relancer</SelectItem>
-              <SelectItem value="dormant">Dormants</SelectItem>
-              <SelectItem value="perdu">Clients perdus</SelectItem>
-              <SelectItem value="cr_a_qualifier">CR à qualifier</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name">Tri : nom</SelectItem>
-              <SelectItem value="ca">Tri : CA</SelectItem>
-              <SelectItem value="interventions">Tri : interventions</SelectItem>
-              <SelectItem value="recent">Tri : activité récente</SelectItem>
-            </SelectContent>
-          </Select>
-          <label className="flex shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground">
-            <Switch
-              checked={showLost || status === "perdu"}
-              disabled={status === "perdu"}
-              onCheckedChange={setShowLost}
-              aria-label="Afficher les clients perdus"
-            />
-            Afficher les perdus ({lostCount})
-          </label>
-          {canEdit && (
-            <>
-              <ClientForm
-                trigger={
-                  <Button className="shrink-0">
-                    <Plus className="h-4 w-4 sm:mr-1.5" />
-                    <span className="hidden sm:inline">Nouveau</span>
-                  </Button>
-                }
-              />
-              <ClientImportDialog
-                trigger={
-                  <Button variant="outline" className="shrink-0">
-                    <Upload className="h-4 w-4 sm:mr-1.5" />
-                    <span className="hidden sm:inline">Importer</span>
-                  </Button>
-                }
-              />
-            </>
-          )}
+          <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}><SelectTrigger className="w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tous les clients</SelectItem><SelectItem value="actif">Actifs</SelectItem><SelectItem value="a_relancer">À relancer</SelectItem><SelectItem value="dormant">Dormants</SelectItem><SelectItem value="perdu">Clients perdus</SelectItem><SelectItem value="cr_a_qualifier">CR à qualifier</SelectItem></SelectContent></Select>
+          <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}><SelectTrigger className="w-44"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="name">Tri : nom</SelectItem><SelectItem value="ca">Tri : CA</SelectItem><SelectItem value="interventions">Tri : interventions</SelectItem><SelectItem value="recent">Tri : activité récente</SelectItem></SelectContent></Select>
+          <label className="flex shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs text-muted-foreground"><Switch checked={showLost || status === "perdu"} disabled={status === "perdu"} onCheckedChange={setShowLost} aria-label="Afficher les clients perdus" />Afficher les perdus ({lostCount})</label>
+          {canEdit && <><ClientForm trigger={<Button className="shrink-0"><Plus className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Nouveau</span></Button>} /><ClientImportDialog trigger={<Button variant="outline" className="shrink-0"><Upload className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Importer</span></Button>} /></>}
         </div>
 
         <Tabs defaultValue="liste">
-          <TabsList className="mb-3">
-            <TabsTrigger value="liste">Référentiel ({filtered.length})</TabsTrigger>
-            {canEdit && <TabsTrigger value="nettoyage">À vérifier ({suspects.length})</TabsTrigger>}
-          </TabsList>
-
+          <TabsList className="mb-3"><TabsTrigger value="liste">Référentiel ({filtered.length})</TabsTrigger>{canEdit && <TabsTrigger value="nettoyage">À vérifier ({suspects.length})</TabsTrigger>}</TabsList>
           <TabsContent value="liste">
             {isLoading ? (
-              <div className="space-y-2.5">
-                {[0, 1, 2].map((i) => (
-                  <Skeleton key={i} className="h-20 w-full rounded-xl" />
-                ))}
-              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
             ) : filtered.length === 0 ? (
               <EmptyState hasClients={(clients?.length ?? 0) > 0} />
             ) : (
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="space-y-5">
                 {favoriteRows.length > 0 && (
-                  <section className="space-y-2">
-                    <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
-                      Clients favoris ({favoriteRows.length})
-                    </div>
-                    <div className="space-y-2">{favoriteRows.map(renderRow)}</div>
+                  <section>
+                    <div className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />Clients favoris ({favoriteRows.length})</div>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{favoriteRows.map(renderRow)}</div>
                   </section>
                 )}
-                <section className="space-y-2">
-                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {favoriteRows.length > 0 ? "Autres clients" : "Tous les clients"} (
-                    {otherRows.length})
-                  </div>
-                  <div className="space-y-2">{otherRows.map(renderRow)}</div>
+                <section>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{favoriteRows.length > 0 ? "Autres clients" : "Tous les clients"} ({otherRows.length})</div>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{otherRows.map(renderRow)}</div>
                 </section>
               </div>
             )}
@@ -486,51 +433,20 @@ function ClientsPage() {
           {canEdit && (
             <TabsContent value="nettoyage">
               <Card className="mb-3 border-dashed p-4 text-sm text-muted-foreground">
-                <div className="flex items-start gap-2">
-                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <p>
-                    Fiches dont le nom ressemble à une prestation ou à un chantier. Rien n'est
-                    corrigé automatiquement : chaque rattachement est validé par vous et journalisé.
-                  </p>
-                </div>
+                <div className="flex items-start gap-2"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><p>Fiches dont le nom ressemble à une prestation ou à un chantier. Rien n'est corrigé automatiquement : chaque rattachement est validé par vous et journalisé.</p></div>
               </Card>
               {suspects.length === 0 ? (
-                <Card className="py-10 text-center text-sm text-muted-foreground">
-                  Aucune fiche suspecte détectée.
-                </Card>
+                <Card className="py-10 text-center text-sm text-muted-foreground">Aucune fiche suspecte détectée.</Card>
               ) : (
-                <div className="space-y-2">
+                <div className="grid gap-3 md:grid-cols-2">
                   {suspects.map(({ client: c, reason, suggestion }) => (
                     <Card key={c.id} className="flex flex-wrap items-center gap-3 p-3">
                       <div className="min-w-0 flex-1">
-                        <Link
-                          to="/clients/$clientId"
-                          params={{ clientId: c.id }}
-                          className="truncate font-medium text-primary hover:underline"
-                        >
-                          {c.name}
-                        </Link>
+                        <Link to="/clients/$clientId" params={{ clientId: c.id }} className="truncate font-medium text-primary hover:underline">{c.name}</Link>
                         <p className="text-xs text-muted-foreground">{reason.label}</p>
-                        {suggestion && (
-                          <p className="text-xs text-muted-foreground">
-                            Rattachement suggéré :{" "}
-                            <span className="font-medium">{suggestion.name}</span>
-                          </p>
-                        )}
+                        {suggestion && <p className="text-xs text-muted-foreground">Rattachement suggéré : <span className="font-medium">{suggestion.name}</span></p>}
                       </div>
-                      {clients && (
-                        <ClientMergeDialog
-                          source={c}
-                          clients={clients}
-                          defaultTargetId={suggestion?.id ?? null}
-                          trigger={
-                            <Button variant="outline" size="sm">
-                              <Merge className="mr-1.5 h-4 w-4" />
-                              Rattacher
-                            </Button>
-                          }
-                        />
-                      )}
+                      {clients && <ClientMergeDialog source={c} clients={clients} defaultTargetId={suggestion?.id ?? null} trigger={<Button variant="outline" size="sm"><Merge className="mr-1.5 h-4 w-4" />Rattacher</Button>} />}
                     </Card>
                   ))}
                 </div>
@@ -546,27 +462,9 @@ function ClientsPage() {
 function EmptyState({ hasClients }: { hasClients: boolean }) {
   return (
     <Card className="flex flex-col items-center gap-3 py-14 text-center">
-      <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
-        <Users className="h-6 w-6" />
-      </div>
-      <div>
-        <p className="font-medium">{hasClients ? "Aucun résultat" : "Aucun client"}</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {hasClients
-            ? "Essayez une autre recherche."
-            : "Créez votre premier client pour commencer."}
-        </p>
-      </div>
-      {!hasClients && (
-        <ClientForm
-          trigger={
-            <Button className="mt-1">
-              <Plus className="mr-1.5 h-4 w-4" />
-              Nouveau client
-            </Button>
-          }
-        />
-      )}
+      <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary"><Users className="h-6 w-6" /></div>
+      <div><p className="font-medium">{hasClients ? "Aucun résultat" : "Aucun client"}</p><p className="mt-1 text-sm text-muted-foreground">{hasClients ? "Essayez une autre recherche." : "Créez votre premier client pour commencer."}</p></div>
+      {!hasClients && <ClientForm trigger={<Button className="mt-1"><Plus className="mr-1.5 h-4 w-4" />Nouveau client</Button>} />}
     </Card>
   );
 }
