@@ -10,7 +10,12 @@ import { loadEnv } from "vite";
 
 // Make server-only env vars available via process.env at runtime/build for email routes.
 const serverEnv = loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), "");
-for (const key of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_PUBLISHABLE_KEY", "LOVABLE_API_KEY"]) {
+for (const key of [
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "LOVABLE_API_KEY",
+]) {
   if (!process.env[key] && serverEnv[key]) process.env[key] = serverEnv[key];
 }
 
@@ -27,8 +32,8 @@ export default defineConfig({
         injectRegister: null,
         selfDestroying: true,
         devOptions: { enabled: false },
-        // TanStack Start emits the browser build to .output/public; keep PWA output in the same tree.
-        outDir: ".output/public",
+        // Keep PWA output in the actual client build directory produced by Vite/TanStack Start.
+        outDir: "dist/client",
         filename: "sw.js",
         manifest: {
           name: "De la graine au jardin — Suivi de chantier",
@@ -38,9 +43,7 @@ export default defineConfig({
           background_color: "#ffffff",
           display: "standalone",
           start_url: "/",
-          icons: [
-            { src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" },
-          ],
+          icons: [{ src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" }],
         },
         workbox: {
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api/, /^\/partage/],
@@ -53,7 +56,13 @@ export default defineConfig({
             {
               urlPattern: /\.(?:js|css|woff2?|png|jpg|jpeg|svg|webp|ico)$/,
               handler: "CacheFirst",
-              options: { cacheName: "asset-cache", expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+              options: {
+                cacheName: "asset-cache",
+                expiration: {
+                  maxEntries: 200,
+                  maxAgeSeconds: 60 * 60 * 24 * 30,
+                },
+              },
             },
           ],
         },
