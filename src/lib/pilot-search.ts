@@ -33,6 +33,7 @@ export const SEARCH_PAGES: SearchResult[] = [
   { id: "p-ceev", kind: "page", label: "Contrats CEEV", to: "/pilot/ceev" },
   { id: "p-taux", kind: "page", label: "Analyse temps & rentabilité", to: "/pilot/temps" },
   { id: "p-sante", kind: "page", label: "Santé", to: "/pilot/sante" },
+  { id: "p-site-web", kind: "page", label: "Site web", detail: "Visibilité · SEO · Contenus", to: "/pilot/site-web" },
   { id: "p-controle", kind: "page", label: "Centre de contrôle des données", to: "/pilot/controle" },
   {
     id: "p-controle-referentiel",
