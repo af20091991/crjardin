@@ -1,25 +1,20 @@
-name: Temporary format fix
+name: Temporary format cleanup
 on:
   push:
     branches: [adpp/work/refonte-fiches-clients]
 permissions:
   contents: write
 jobs:
-  format:
+  cleanup:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version-file: .bun-version
-      - run: bun ci
-      - run: bunx prettier --write src/routes/_authenticated/clients.index.tsx
-      - name: Commit formatted file
+      - name: Remove temporary workflow
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/routes/_authenticated/clients.index.tsx
-          git diff --cached --quiet || git commit -m "style(clients): format client directory"
+          git rm .github/workflows/_format-fix.yml
+          git commit -m "chore: remove temporary formatter"
           git push
