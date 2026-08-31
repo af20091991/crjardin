@@ -4,15 +4,28 @@
 //     componentTagger (dev-only), VITE_* env injection, @ path alias, React/TanStack dedupe,
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
+import { mkdirSync } from "node:fs";
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
 import { loadEnv } from "vite";
 
 // Make server-only env vars available via process.env at runtime/build for email routes.
 const serverEnv = loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), "");
-for (const key of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_PUBLISHABLE_KEY", "LOVABLE_API_KEY"]) {
+for (const key of [
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "LOVABLE_API_KEY",
+]) {
   if (!process.env[key] && serverEnv[key]) process.env[key] = serverEnv[key];
 }
+
+const ensurePwaOutput = () => ({
+  name: "ensure-pwa-output",
+  configResolved() {
+    mkdirSync(".output/public", { recursive: true });
+  },
+});
 
 export default defineConfig({
   tanstackStart: {
@@ -22,12 +35,13 @@ export default defineConfig({
   },
   vite: {
     plugins: [
+      ensurePwaOutput(),
       VitePWA({
         registerType: "autoUpdate",
         injectRegister: null,
         selfDestroying: true,
         devOptions: { enabled: false },
-        // TanStack Start emits the browser build to .output/public; keep PWA output in the same tree.
+        // PWA output follows the TanStack production client output directory.
         outDir: ".output/public",
         filename: "sw.js",
         manifest: {
@@ -38,9 +52,7 @@ export default defineConfig({
           background_color: "#ffffff",
           display: "standalone",
           start_url: "/",
-          icons: [
-            { src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" },
-          ],
+          icons: [{ src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" }],
         },
         workbox: {
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api/, /^\/partage/],
@@ -53,7 +65,10 @@ export default defineConfig({
             {
               urlPattern: /\.(?:js|css|woff2?|png|jpg|jpeg|svg|webp|ico)$/,
               handler: "CacheFirst",
-              options: { cacheName: "asset-cache", expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+              options: {
+                cacheName: "asset-cache",
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              },
             },
           ],
         },
