@@ -140,7 +140,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Rubik:wght@400;500;600;700&family=Karla:wght@400;500;600;700&family=Merriweather:wght@400;500;600;700&family=Bitter:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Bebas+Neue&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Rubik:wght@400;500;600;700&family=Figtree:wght@400;500;600;700&family=Karla:wght@400;500;600;700&family=Merriweather:wght@400;500;600;700&family=Bitter:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Bebas+Neue&display=swap",
       },
     ],
   }),
