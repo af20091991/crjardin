@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "vite build --mode development && tsc --noEmit",
     "format:check": "prettier --check .",
     "test": "bun test src/lib/__tests__",
     "validate": "bun run format:check && bun run typecheck && bun run lint && bun test && bun run build",
