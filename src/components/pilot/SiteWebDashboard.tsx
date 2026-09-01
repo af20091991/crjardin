@@ -42,7 +42,8 @@ const moduleViews: Array<{ id: ModuleView; label: string }> = [
 const sections = [
   {
     title: "Visibilité",
-    description: "Suivre la présence du site dans les moteurs de recherche.",
+    description:
+      "Suivre la présence du site dans les moteurs de recherche.",
     icon: Search,
     status: "À connecter",
     hrefLabel: "Voir la visibilité",
@@ -50,7 +51,8 @@ const sections = [
   },
   {
     title: "SEO local",
-    description: "Piloter les recherches locales autour de Montpellier et des prestations.",
+    description:
+      "Piloter les recherches locales autour de Montpellier et des prestations.",
     icon: MapPin,
     status: "À connecter",
     hrefLabel: "Voir le SEO local",
@@ -58,7 +60,8 @@ const sections = [
   },
   {
     title: "Contenus",
-    description: "Garder une vue claire des pages, articles et de leur niveau d'optimisation.",
+    description:
+      "Garder une vue claire des pages, articles et de leur niveau d'optimisation.",
     icon: FileText,
     status: "À construire",
     hrefLabel: "Gérer les contenus",
@@ -66,7 +69,8 @@ const sections = [
   },
   {
     title: "Opportunités",
-    description: "Faire remonter les sujets qui méritent une action prioritaire.",
+    description:
+      "Faire remonter les sujets qui méritent une action prioritaire.",
     icon: Lightbulb,
     status: "Démo",
     hrefLabel: "Voir les opportunités",
@@ -181,7 +185,9 @@ export function SiteWebDashboard() {
                 <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-center">
                   <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full border-[10px] border-muted">
                     <div className="text-center">
-                      <div className="font-serif text-2xl font-semibold">—</div>
+                      <div className="font-serif text-2xl font-semibold">
+                        —
+                      </div>
                       <div className="text-[11px] text-muted-foreground">
                         / 100
                       </div>
@@ -296,7 +302,9 @@ export function SiteWebDashboard() {
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Actions
               </p>
-              <h2 className="mt-1 font-serif text-lg font-semibold">À faire</h2>
+              <h2 className="mt-1 font-serif text-lg font-semibold">
+                À faire
+              </h2>
               <div className="mt-4 space-y-2">
                 {siteWebDemoModel.actions.slice(0, 3).map((action, index) => (
                   <button
@@ -320,7 +328,6 @@ export function SiteWebDashboard() {
 
       {activeView === "statistics" && <SiteWebStatistics />}
       {activeView === "opportunities" && <SiteWebOpportunities />}
-
       {activeView !== "overview" &&
         activeView !== "statistics" &&
         activeView !== "opportunities" && (
@@ -358,7 +365,10 @@ function SiteWebStatistics() {
           </div>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Metric label="Visites cumulées" value={formatNumber(totalVisits)} />
+          <Metric
+            label="Visites cumulées"
+            value={formatNumber(totalVisits)}
+          />
           <Metric label="Dernier mois" value={formatNumber(latestVisits)} />
           <Metric
             label="Évolution mensuelle"
@@ -381,7 +391,10 @@ function SiteWebStatistics() {
             </thead>
             <tbody>
               {points.map((point) => (
-                <tr key={point.periode} className="border-t border-border/40">
+                <tr
+                  key={point.periode}
+                  className="border-t border-border/40"
+                >
                   <td className="py-3">{formatPeriod(point.periode)}</td>
                   <td className="py-3 text-right tabular-nums">
                     {formatNumber(point.visites ?? 0)}
