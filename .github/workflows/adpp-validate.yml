@@ -13,7 +13,7 @@ on:
       ref:
         description: Branch or commit to validate
         required: true
-        default: feature/directeur-ia
+        default: adpp/site-web-api
   repository_dispatch:
     types: [adpp-validate]
 
@@ -38,11 +38,10 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Lint
         run: npm run lint
