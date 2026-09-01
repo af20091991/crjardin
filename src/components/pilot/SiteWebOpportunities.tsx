@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Lightbulb } from "lucide-react";
 import { siteWebDemoModel } from "@/lib/site-web-model";
 
-function Pill({ children }: { children: string }) {
+function Pill({ children }: { children: React.ReactNode }) {
   return (
     <Badge variant="outline" className="font-normal text-muted-foreground">
       {children}
