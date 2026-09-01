@@ -41,6 +41,7 @@ import {
   ShieldCheck,
   MapPin,
   Leaf,
+  Globe2,
 } from "lucide-react";
 import {
   Sheet,
