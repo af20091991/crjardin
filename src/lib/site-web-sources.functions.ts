@@ -6,8 +6,7 @@ import {
   mergeSiteWebSources,
 } from "./site-web-integrations.server";
 
-export const getSiteWebExternalSources = createServerFn(
-  { method: "GET" },
+export const getSiteWebExternalSources = createServerFn({ method: "GET" }).handler(
   async () => {
     try {
       const sources = await mergeSiteWebSources();
@@ -23,17 +22,14 @@ export const getSiteWebExternalSources = createServerFn(
   },
 );
 
-export const getSiteWebSearchConsoleData = createServerFn(
-  { method: "GET" },
+export const getSiteWebSearchConsoleData = createServerFn({ method: "GET" }).handler(
   async () => loadSearchConsoleData(),
 );
 
-export const getSiteWebAnalyticsData = createServerFn(
-  { method: "GET" },
+export const getSiteWebAnalyticsData = createServerFn({ method: "GET" }).handler(
   async () => loadAnalyticsData(),
 );
 
-export const getSiteWebBusinessProfileData = createServerFn(
-  { method: "GET" },
+export const getSiteWebBusinessProfileData = createServerFn({ method: "GET" }).handler(
   async () => loadBusinessProfileData(),
 );
