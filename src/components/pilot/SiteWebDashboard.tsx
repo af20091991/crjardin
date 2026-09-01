@@ -16,16 +16,24 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
+import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
 import { siteWebDemoModel } from "@/lib/site-web-model";
 
-type ModuleView = "overview" | "visibility" | "local" | "content" | "actions";
+type ModuleView =
+  | "overview"
+  | "visibility"
+  | "local"
+  | "content"
+  | "opportunities"
+  | "actions";
 
 const moduleViews: Array<{ id: ModuleView; label: string }> = [
   { id: "overview", label: "Vue d'ensemble" },
   { id: "visibility", label: "Visibilité" },
   { id: "local", label: "SEO local" },
   { id: "content", label: "Contenus" },
+  { id: "opportunities", label: "Opportunités" },
   { id: "actions", label: "Actions" },
 ];
 
@@ -62,9 +70,9 @@ const sections = [
     description:
       "Faire remonter les sujets qui méritent une action prioritaire.",
     icon: Lightbulb,
-    status: "À construire",
-    hrefLabel: "Voir les actions",
-    view: "actions" as ModuleView,
+    status: "Démo",
+    hrefLabel: "Voir les opportunités",
+    view: "opportunities" as ModuleView,
   },
 ];
 
@@ -316,7 +324,11 @@ export function SiteWebDashboard() {
         </>
       )}
 
-      {activeView !== "overview" && <SiteWebViewContent view={activeView} />}
+      {activeView === "opportunities" && <SiteWebOpportunities />}
+
+      {activeView !== "overview" && activeView !== "opportunities" && (
+        <SiteWebViewContent view={activeView} />
+      )}
     </div>
   );
 }
