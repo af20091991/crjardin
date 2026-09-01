@@ -20,13 +20,7 @@ import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
 import { siteWebDemoModel } from "@/lib/site-web-model";
 
-type ModuleView =
-  | "overview"
-  | "visibility"
-  | "local"
-  | "content"
-  | "opportunities"
-  | "actions";
+type ModuleView = "overview" | "visibility" | "local" | "content" | "opportunities" | "actions";
 
 const moduleViews: Array<{ id: ModuleView; label: string }> = [
   { id: "overview", label: "Vue d'ensemble" },
