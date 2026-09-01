@@ -1,9 +1,10 @@
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Lightbulb } from "lucide-react";
 import { siteWebDemoModel } from "@/lib/site-web-model";
 
-function Pill({ children }: { children: React.ReactNode }) {
+function Pill({ children }: { children: ReactNode }) {
   return (
     <Badge variant="outline" className="font-normal text-muted-foreground">
       {children}
