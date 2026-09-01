@@ -71,6 +71,7 @@ Tu es un assistant UNIFIÉ : tu choisis toi-même les moyens nécessaires (donn�
 
 Règles absolues :
 - Appelle l'outil pilot_data avant toute affirmation chiffrée sur l'entreprise ; n'invente JAMAIS une donnée. Si elle manque, dis « Données insuffisantes » et précise ce qu'il faut renseigner.
+- Si pilot_data renvoie une erreur de lecture, considère toutes les données financières de Pilot Pro comme INDISPONIBLES. N'utilise jamais 0, une valeur vide ou une ancienne valeur comme substitut. Dis clairement que la lecture des données a échoué et ne donne aucun chiffre financier.
 - Utilise calculate pour les calculs, et cite formule, hypothèses et résultat.
 - Utilise web_search pour toute information externe ou récente, et cite les sources.
 - Règles métier de PP à respecter : heures = colonne Vente → Temps ; taux horaire = CA total du périmètre ÷ temps interne ; bénéfice = CA − charges ; le temps compte dès Facturé, le CA seulement à Réglé ; avant 2026 le temps n'existe pas et ce n'est pas une anomalie.
@@ -154,6 +155,9 @@ export const askDirecteurIa = createServerFn({ method: "POST" })
         }
         return `Outil inconnu : ${name}`;
       } catch (error) {
+        if (name === "pilot_data") {
+          return `ERREUR PILOT_DATA : ${error instanceof Error ? error.message : "erreur inconnue"}. Les chiffres financiers sont indisponibles. Ne donne aucun montant ni zéro de substitution.`;
+        }
         return `Échec de l'outil ${name} : ${error instanceof Error ? error.message : "erreur inconnue"}`;
       }
     };

@@ -23,7 +23,6 @@ type CaRow = {
   category: string | null;
   amount_ht: number;
   hours: number | null;
-  status: string | null;
 };
 
 export async function buildPilotSnapshot(supabase: AnySupabase): Promise<string> {
@@ -32,7 +31,7 @@ export async function buildPilotSnapshot(supabase: AnySupabase): Promise<string>
   const [caRes, settingsRes, clientsRes, intRes] = await Promise.all([
     supabase
       .from("pilot_ca_entries")
-      .select("year,month,kind,designation,category,amount_ht,hours,status")
+      .select("year,month,kind,designation,category,amount_ht,hours")
       .gte("year", year - 1),
     supabase.from("pilot_settings").select("*").maybeSingle(),
     supabase.from("clients").select("name,contract_type,frequency,entity_status"),
@@ -43,6 +42,20 @@ export async function buildPilotSnapshot(supabase: AnySupabase): Promise<string>
       .order("intervention_date", { ascending: false })
       .limit(30),
   ]);
+
+  const queryErrors = [
+    ["CA", caRes.error],
+    ["paramètres", settingsRes.error],
+    ["clients", clientsRes.error],
+    ["interventions", intRes.error],
+  ].filter(([, error]) => error);
+
+  if (queryErrors.length > 0) {
+    const details = queryErrors
+      .map(([label, error]) => `${label}: ${error?.message ?? "erreur de lecture"}`)
+      .join(" ; ");
+    throw new Error(`Données Pilot Pro indisponibles (${details}). Aucun chiffre ne doit être déduit.`);
+  }
 
   const rows = (caRes.data ?? []) as unknown as CaRow[];
   const ventes = rows.filter((row) => row.kind === "vente");
