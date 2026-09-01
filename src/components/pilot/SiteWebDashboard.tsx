@@ -20,10 +20,18 @@ import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
 import { siteWebDemoModel } from "@/lib/site-web-model";
 
-type ModuleView = "overview" | "visibility" | "local" | "content" | "opportunities" | "actions";
+type ModuleView =
+  | "overview"
+  | "statistics"
+  | "visibility"
+  | "local"
+  | "content"
+  | "opportunities"
+  | "actions";
 
 const moduleViews: Array<{ id: ModuleView; label: string }> = [
   { id: "overview", label: "Vue d'ensemble" },
+  { id: "statistics", label: "Statistiques" },
   { id: "visibility", label: "Visibilité" },
   { id: "local", label: "SEO local" },
   { id: "content", label: "Contenus" },
@@ -314,11 +322,95 @@ export function SiteWebDashboard() {
         </>
       )}
 
+      {activeView === "statistics" && <SiteWebStatistics />}
       {activeView === "opportunities" && <SiteWebOpportunities />}
 
-      {activeView !== "overview" && activeView !== "opportunities" && (
-        <SiteWebViewContent view={activeView} />
-      )}
+      {activeView !== "overview" &&
+        activeView !== "statistics" &&
+        activeView !== "opportunities" && (
+          <SiteWebViewContent view={activeView} />
+        )}
     </div>
+  );
+}
+
+function SiteWebStatistics() {
+  const points = siteWebDemoModel.statistiques;
+  const totalVisits = points.reduce((total, point) => total + (point.visites ?? 0), 0);
+  const latestVisits = points.at(-1)?.visites ?? 0;
+  const previousVisits = points.at(-2)?.visites ?? 0;
+  const evolution = previousVisits
+    ? Math.round(((latestVisits - previousVisits) / previousVisits) * 100)
+    : null;
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-5">
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg bg-muted/50 p-2 text-primary">
+            <BarChart3 className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="font-serif text-lg font-semibold">Statistiques</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Historique de fréquentation actuellement disponible dans le modèle Site web.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <Metric label="Visites cumulées" value={formatNumber(totalVisits)} />
+          <Metric label="Dernier mois" value={formatNumber(latestVisits)} />
+          <Metric
+            label="Évolution mensuelle"
+            value={evolution === null ? "—" : `${evolution > 0 ? "+" : ""}${evolution} %`}
+          />
+        </div>
+      </Card>
+      <Card className="p-5">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="pb-2">Période</th>
+                <th className="pb-2 text-right">Visites</th>
+              </tr>
+            </thead>
+            <tbody>
+              {points.map((point) => (
+                <tr key={point.periode} className="border-t border-border/40">
+                  <td className="py-3">{formatPeriod(point.periode)}</td>
+                  <td className="py-3 text-right tabular-nums">
+                    {formatNumber(point.visites ?? 0)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("fr-FR").format(value);
+}
+
+function formatPeriod(period: string) {
+  const [year, month] = period.split("-");
+  if (!year || !month) return period;
+  return new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(
+    new Date(Number(year), Number(month) - 1, 1),
   );
 }
