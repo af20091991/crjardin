@@ -1,6 +1,13 @@
 name: ADPP Validation
 
 on:
+  push:
+    branches:
+      - adpp/site-web-api
+  pull_request:
+    branches:
+      - feature/directeur-ia
+      - lovable-sync
   workflow_dispatch:
     inputs:
       ref:
