@@ -255,6 +255,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               exact: false,
               primary: false,
             },
+            {
+              to: "/pilot/site-web",
+              label: "Site web",
+              short: "Site web",
+              icon: Globe2,
+              exact: false,
+              primary: false,
+            },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Réservé",
