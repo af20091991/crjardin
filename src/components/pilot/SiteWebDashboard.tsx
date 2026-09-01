@@ -42,8 +42,7 @@ const moduleViews: Array<{ id: ModuleView; label: string }> = [
 const sections = [
   {
     title: "Visibilité",
-    description:
-      "Suivre la présence du site dans les moteurs de recherche.",
+    description: "Suivre la présence du site dans les moteurs de recherche.",
     icon: Search,
     status: "À connecter",
     hrefLabel: "Voir la visibilité",
@@ -336,7 +335,10 @@ export function SiteWebDashboard() {
 
 function SiteWebStatistics() {
   const points = siteWebDemoModel.statistiques;
-  const totalVisits = points.reduce((total, point) => total + (point.visites ?? 0), 0);
+  const totalVisits = points.reduce(
+    (total, point) => total + (point.visites ?? 0),
+    0,
+  );
   const latestVisits = points.at(-1)?.visites ?? 0;
   const previousVisits = points.at(-2)?.visites ?? 0;
   const evolution = previousVisits
@@ -353,7 +355,8 @@ function SiteWebStatistics() {
           <div>
             <h2 className="font-serif text-lg font-semibold">Statistiques</h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Historique de fréquentation actuellement disponible dans le modèle Site web.
+              Historique de fréquentation actuellement disponible dans le
+              modèle Site web.
             </p>
           </div>
         </div>
@@ -362,7 +365,11 @@ function SiteWebStatistics() {
           <Metric label="Dernier mois" value={formatNumber(latestVisits)} />
           <Metric
             label="Évolution mensuelle"
-            value={evolution === null ? "—" : `${evolution > 0 ? "+" : ""}${evolution} %`}
+            value={
+              evolution === null
+                ? "—"
+                : `${evolution > 0 ? "+" : ""}${evolution} %`
+            }
           />
         </div>
       </Card>
@@ -398,7 +405,9 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">
+        {value}
+      </p>
     </div>
   );
 }
@@ -410,7 +419,8 @@ function formatNumber(value: number) {
 function formatPeriod(period: string) {
   const [year, month] = period.split("-");
   if (!year || !month) return period;
-  return new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(
-    new Date(Number(year), Number(month) - 1, 1),
-  );
+  return new Intl.DateTimeFormat("fr-FR", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(Number(year), Number(month) - 1, 1));
 }
