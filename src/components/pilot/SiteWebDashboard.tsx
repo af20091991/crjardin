@@ -183,9 +183,7 @@ export function SiteWebDashboard() {
                 <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-center">
                   <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full border-[10px] border-muted">
                     <div className="text-center">
-                      <div className="font-serif text-2xl font-semibold">
-                        —
-                      </div>
+                      <div className="font-serif text-2xl font-semibold">—</div>
                       <div className="text-[11px] text-muted-foreground">
                         / 100
                       </div>
@@ -300,9 +298,7 @@ export function SiteWebDashboard() {
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Actions
               </p>
-              <h2 className="mt-1 font-serif text-lg font-semibold">
-                À faire
-              </h2>
+              <h2 className="mt-1 font-serif text-lg font-semibold">À faire</h2>
               <div className="mt-4 space-y-2">
                 {siteWebDemoModel.actions.slice(0, 3).map((action, index) => (
                   <button
