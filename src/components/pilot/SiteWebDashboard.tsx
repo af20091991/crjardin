@@ -50,8 +50,7 @@ const sections = [
   },
   {
     title: "SEO local",
-    description:
-      "Piloter les recherches locales autour de Montpellier et des prestations.",
+    description: "Piloter les recherches locales autour de Montpellier et des prestations.",
     icon: MapPin,
     status: "À connecter",
     hrefLabel: "Voir le SEO local",
@@ -59,8 +58,7 @@ const sections = [
   },
   {
     title: "Contenus",
-    description:
-      "Garder une vue claire des pages, articles et de leur niveau d'optimisation.",
+    description: "Garder une vue claire des pages, articles et de leur niveau d'optimisation.",
     icon: FileText,
     status: "À construire",
     hrefLabel: "Gérer les contenus",
@@ -68,8 +66,7 @@ const sections = [
   },
   {
     title: "Opportunités",
-    description:
-      "Faire remonter les sujets qui méritent une action prioritaire.",
+    description: "Faire remonter les sujets qui méritent une action prioritaire.",
     icon: Lightbulb,
     status: "Démo",
     hrefLabel: "Voir les opportunités",
