@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteWebDashboard } from "@/components/pilot/SiteWebDashboard";
 
-export const Route = createFileRoute(
-  "/_authenticated/pilot/site-web" as keyof import("@/routeTree.gen").FileRoutesByPath,
-)({
+export const Route = createFileRoute("/_authenticated/pilot/site-web")({
   head: () => ({
     meta: [
       { title: "Site web | Pilot Pro" },
