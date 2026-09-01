@@ -55,10 +55,9 @@ export function startGoogleConnection(provider: SiteWebProvider) {
 }
 
 export function listSearchConsoleSites() {
-  return invoke<{ sites: Array<{ siteUrl: string; permissionLevel: string }> }>(
-    "google_search_console",
-    "list_sites",
-  );
+  return invoke<{
+    sites: Array<{ siteUrl: string; permissionLevel: string }>;
+  }>("google_search_console", "list_sites");
 }
 
 export function querySearchConsole(options: {
@@ -80,7 +79,11 @@ export function querySearchConsole(options: {
 
 export function listAnalyticsProperties() {
   return invoke<{
-    properties: Array<{ name: string; displayName?: string; propertyType?: string }>;
+    properties: Array<{
+      name: string;
+      displayName?: string;
+      propertyType?: string;
+    }>;
   }>("google_analytics_4", "list_properties");
 }
 
@@ -96,12 +99,20 @@ export function runAnalyticsReport(options: {
 
 export function listBusinessProfileAccounts() {
   return invoke<{
-    accounts: Array<{ name: string; accountName?: string; type?: string }>;
+    accounts: Array<{
+      name: string;
+      accountName?: string;
+      type?: string;
+    }>;
   }>("google_business_profile", "list_accounts");
 }
 
 export function listBusinessProfileLocations(accountName: string) {
   return invoke<{
-    locations: Array<{ name: string; title?: string; storefrontAddress?: unknown }>;
+    locations: Array<{
+      name: string;
+      title?: string;
+      storefrontAddress?: unknown;
+    }>;
   }>("google_business_profile", "list_locations", { accountName });
 }
