@@ -82,15 +82,6 @@ interface MetricItem {
   status: string;
 }
 
-interface SectionItem {
-  title: string;
-  description: string;
-  icon: typeof Search;
-  status: string;
-  hrefLabel: string;
-  view: ModuleView;
-}
-
 export function SiteWebDashboard() {
   const [activeView, setActiveView] = useState<ModuleView>("overview");
   const publishedPages = siteWebDemoModel.pages.filter(
