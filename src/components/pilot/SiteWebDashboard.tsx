@@ -365,10 +365,7 @@ function SiteWebStatistics() {
           </div>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Metric
-            label="Visites cumulées"
-            value={formatNumber(totalVisits)}
-          />
+          <Metric label="Visites cumulées" value={formatNumber(totalVisits)} />
           <Metric label="Dernier mois" value={formatNumber(latestVisits)} />
           <Metric
             label="Évolution mensuelle"
