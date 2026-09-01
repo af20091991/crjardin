@@ -41,6 +41,7 @@ import {
   ShieldCheck,
   MapPin,
   Leaf,
+  Globe2,
 } from "lucide-react";
 import {
   Sheet,
@@ -252,6 +253,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               label: "Simulations",
               short: "Simul.",
               icon: Calculator,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/site-web",
+              label: "Site web",
+              short: "Site web",
+              icon: Globe2,
               exact: false,
               primary: false,
             },
