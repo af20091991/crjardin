@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { FileText, MapPin, Search, Target } from "lucide-react";
@@ -5,7 +6,7 @@ import { siteWebDemoModel } from "@/lib/site-web-model";
 
 type View = "visibility" | "local" | "content" | "actions";
 
-function Pill({ children }: { children: string }) {
+function Pill({ children }: { children: ReactNode }) {
   return (
     <Badge variant="outline" className="font-normal text-muted-foreground">
       {children}
