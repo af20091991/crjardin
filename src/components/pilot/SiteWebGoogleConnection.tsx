@@ -131,7 +131,12 @@ export function SiteWebGoogleConnection() {
             </p>
           </div>
         </div>
-        <Button type="button" size="sm" onClick={connect} disabled={authLoading || loading || connected || !user}>
+        <Button
+          type="button"
+          size="sm"
+          onClick={connect}
+          disabled={authLoading || loading || connected || !user}
+        >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
           {connected ? "Google connecté" : "Connecter Google"}
         </Button>
