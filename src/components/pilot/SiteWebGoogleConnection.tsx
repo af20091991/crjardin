@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, Link2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useAuth } from "@/hooks/use-auth";
 import {
   getSiteWebConnection,
   startGoogleConnection,
@@ -16,6 +17,7 @@ const providers: Array<{ id: SiteWebProvider; label: string }> = [
 ];
 
 export function SiteWebGoogleConnection() {
+  const { user, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<Record<SiteWebProvider, string>>({
     google_search_console: "disconnected",
     google_analytics_4: "disconnected",
@@ -25,6 +27,7 @@ export function SiteWebGoogleConnection() {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = async () => {
+    if (!user) return;
     const results = await Promise.all(
       providers.map(async ({ id }) => {
         const result = await getSiteWebConnection(id);
@@ -47,6 +50,11 @@ export function SiteWebGoogleConnection() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setError("Connexion Pilot Pro requise pour connecter Google.");
+      return;
+    }
     void refresh();
     const params = new URLSearchParams(window.location.search);
     const result = params.get("site_web_google");
@@ -57,9 +65,13 @@ export function SiteWebGoogleConnection() {
       );
     }
     if (result === "connected") void refresh();
-  }, []);
+  }, [authLoading, user]);
 
   const connect = async () => {
+    if (!user) {
+      setError("Connexion Pilot Pro requise pour connecter Google.");
+      return;
+    }
     setLoading(true);
     setError(null);
     const result = await startGoogleConnection("google_search_console");
@@ -107,7 +119,7 @@ export function SiteWebGoogleConnection() {
             </p>
           </div>
         </div>
-        <Button type="button" size="sm" onClick={connect} disabled={loading || connected}>
+        <Button type="button" size="sm" onClick={connect} disabled={authLoading || loading || connected || !user}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
           {connected ? "Google connecté" : "Connecter Google"}
         </Button>
