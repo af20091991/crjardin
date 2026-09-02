@@ -46,7 +46,10 @@ const getUserId = async (req: Request) => {
   const auth = req.headers.get("authorization");
   if (!auth?.startsWith("Bearer ")) return null;
   const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { Authorization: auth, apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "" },
+    headers: {
+      Authorization: auth,
+      apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    },
   });
   if (!response.ok) return null;
   const user = await response.json();
@@ -59,11 +62,14 @@ const tokenFor = async (userId: string, provider: Provider) => {
     p_provider: provider,
   });
   if (error || !data?.access_token) return null;
+
   const expiresAt = data.expires_at ? new Date(data.expires_at).getTime() : 0;
   if (expiresAt > Date.now() + 90_000) return data.access_token;
   if (!data.refresh_token) return data.access_token;
+
   const google = config();
   if (!google) return data.access_token;
+
   const refreshed = await fetch(GOOGLE_TOKEN, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -75,8 +81,10 @@ const tokenFor = async (userId: string, provider: Provider) => {
     }),
   });
   if (!refreshed.ok) return data.access_token;
+
   const tokens = await refreshed.json();
   if (!tokens.access_token) return data.access_token;
+
   const newExpiresAt = new Date(Date.now() + Number(tokens.expires_in ?? 3600) * 1000).toISOString();
   for (const p of ["google_search_console", "google_analytics_4", "google_business_profile"] as Provider[]) {
     await supabaseAdmin.rpc("store_site_web_google_tokens", {
@@ -103,6 +111,7 @@ const saveConnected = async (userId: string, tokens: any) => {
   const expiresAt = new Date(Date.now() + Number(tokens.expires_in ?? 3600) * 1000).toISOString();
   const refreshToken = tokens.refresh_token;
   if (!refreshToken) return false;
+
   for (const provider of ["google_search_console", "google_analytics_4", "google_business_profile"] as Provider[]) {
     const stored = await supabaseAdmin.rpc("store_site_web_google_tokens", {
       p_user_id: userId,
@@ -141,13 +150,16 @@ Deno.serve(async (req) => {
     const state = url.searchParams.get("state");
     const google = config();
     if (!code || !state || !google) return json({ error: "invalid_oauth_callback" }, 400);
+
     const stateHash = await sha256(state);
     const { data: stateRows } = await supabaseAdmin.from("site_web_oauth_states")
-      .select("user_id, provider, expires_at").eq("state_hash", stateHash).limit(1);
+      .select("user_id, provider, expires_at")
+      .eq("state_hash", stateHash).limit(1);
     const stateRow = stateRows?.[0];
     if (!stateRow || stateRow.provider !== provider || new Date(stateRow.expires_at).getTime() <= Date.now()) {
       return callbackRedirect(google.appUrl, { site_web_google: "error", reason: "invalid_or_expired_state" });
     }
+
     const tokenResponse = await fetch(GOOGLE_TOKEN, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -157,10 +169,12 @@ Deno.serve(async (req) => {
       }),
     });
     if (!tokenResponse.ok) return callbackRedirect(google.appUrl, { site_web_google: "error", reason: "token_exchange_failed" });
+
     const tokens = await tokenResponse.json();
     if (!(await saveConnected(stateRow.user_id, tokens))) {
       return callbackRedirect(google.appUrl, { site_web_google: "error", reason: "token_storage_failed" });
     }
+
     await supabaseAdmin.rpc("consume_site_web_oauth_state", {
       p_state_hash: stateHash, p_user_id: stateRow.user_id, p_provider: provider,
     });
@@ -187,6 +201,7 @@ Deno.serve(async (req) => {
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
     });
     if (error) return json({ error: "oauth_state_storage_failed" }, 500);
+
     const authUrl = new URL(GOOGLE_AUTH);
     authUrl.searchParams.set("client_id", google.clientId);
     authUrl.searchParams.set("redirect_uri", google.redirectUri);
@@ -209,6 +224,7 @@ Deno.serve(async (req) => {
     const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
     const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
     if (!siteUrl || !startDate || !endDate) return json({ error: "missing_site_or_date_range" }, 400);
+
     const response = await googleFetch(
       userId, "google_search_console",
       `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
@@ -270,6 +286,7 @@ Deno.serve(async (req) => {
     const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
     const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
     if (!locationName || !startDate || !endDate) return json({ error: "missing_performance_parameters" }, 400);
+
     const metrics = [
       "WEBSITE_CLICKS",
       "CALL_CLICKS",
@@ -287,21 +304,34 @@ Deno.serve(async (req) => {
     params.set("dailyRange.end_date.year", endDate.slice(0, 4));
     params.set("dailyRange.end_date.month", String(Number(endDate.slice(5, 7))));
     params.set("dailyRange.end_date.day", String(Number(endDate.slice(8, 10))));
+
     const response = await googleFetch(
       userId,
       "google_business_profile",
       `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`,
     );
-    if (!response.ok) return json({ error: "business_profile_performance_failed", status: response.status }, 502);
+    if (!response.ok) {
+      return json(
+        { error: "business_profile_performance_failed", status: response.status },
+        502,
+      );
+    }
+
     const payload = await response.json();
-    const normalized = {
+    const normalized = (payload.multiDailyMetricTimeSeries ?? []).flatMap(
+      (group: any) =>
+        (group.dailyMetricTimeSeries ?? []).map((item: any) => ({
+          metric: item.dailyMetric,
+          dailyMetricTimeSeries: item.timeSeries
+            ? [{ timeSeries: item.timeSeries.datedValues ?? [] }]
+            : [],
+        })),
+    );
+
+    return json({
       ...payload,
-      multiDailyMetricTimeSeries: (payload.multiDailyMetricTimeSeries ?? []).map((item: any) => ({
-        metric: item.dailyMetric,
-        dailyMetricTimeSeries: item.timeSeries ? [{ timeSeries: item.timeSeries }] : [],
-      })),
-    };
-    return json(normalized);
+      multiDailyMetricTimeSeries: normalized,
+    });
   }
 
   return json({ error: "unknown_action" }, 400);
