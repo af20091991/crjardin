@@ -14,6 +14,8 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
+
           config = Path('supabase/config.toml')
           text = config.read_text()
           text = text.replace('project_id = "mgkeqwwzhcodntkakqaz"', 'project_id = "wdygsbmivqxvgkgpbrqc"')
@@ -22,8 +24,7 @@ jobs:
           config.write_text(text)
 
           checker = Path('scripts/check-protected-files.mjs')
-          text = checker.read_text().replace('  "supabase/config.toml",\n', '')
-          checker.write_text(text)
+          checker.write_text(checker.read_text().replace('  "supabase/config.toml",\n', ''))
 
           api = Path('src/lib/site-web-api.ts')
           text = api.read_text()
@@ -35,20 +36,7 @@ jobs:
 
           fn = Path('supabase/functions/site-web-api/index.ts')
           text = fn.read_text()
-          old = '''const getUserId = async (req: Request) => {
-            const auth = req.headers.get("authorization");
-            if (!auth?.startsWith("Bearer ")) return null;
-            const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-              headers: {
-                Authorization: auth,
-                apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-              },
-            });
-            if (!response.ok) return null;
-            const user = await response.json();
-            return typeof user?.id === "string" ? user.id : null;
-          };'''
-          new = '''const LEGACY_SUPABASE_URL = "https://mgkeqwwzhcodntkakqaz.supabase.co";
+          replacement = '''const LEGACY_SUPABASE_URL = "https://mgkeqwwzhcodntkakqaz.supabase.co";
           const LEGACY_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1na2Vxd3d6aGNvZG50a2FrcWF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0Mjg5NTgsImV4cCI6MjA5NzAwNDk1OH0.eQQP9_GDtzXTP1mF0Vx2QQIe0w0TMhzEQKDDjf6KBcQ";
 
           const getUserId = async (req: Request) => {
@@ -69,10 +57,14 @@ jobs:
               if (typeof user?.id === "string") return user.id;
             }
             return null;
-          };'''
-          if old not in text:
+          };
+
+          '''
+          pattern = r'const getUserId = async \(req: Request\) => \{.*?\n\};\n\nconst tokenFor'
+          updated, count = re.subn(pattern, replacement + 'const tokenFor', text, count=1, flags=re.S)
+          if count != 1:
               raise SystemExit('Expected getUserId block not found')
-          fn.write_text(text.replace(old, new))
+          fn.write_text(updated)
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
