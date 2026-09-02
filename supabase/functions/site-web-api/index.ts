@@ -310,7 +310,12 @@ Deno.serve(async (req) => {
       "google_business_profile",
       `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`,
     );
-    if (!response.ok) return json({ error: "business_profile_performance_failed", status: response.status }, 502);
+    if (!response.ok) {
+      return json(
+        { error: "business_profile_performance_failed", status: response.status },
+        502,
+      );
+    }
 
     const payload = await response.json();
     const normalized = (payload.multiDailyMetricTimeSeries ?? []).flatMap(
