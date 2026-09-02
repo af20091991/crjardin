@@ -55,6 +55,9 @@ const randomState = () => {
 const LEGACY_SUPABASE_URL = "https://mgkeqwwzhcodntkakqaz.supabase.co";
 const LEGACY_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1na2Vxd3d6YWhvZG50a2FrcWF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0Mjg5NTgsImV4cCI6MjA5NzAwNDk1OH0.eQQP9_GDtzXTP1mF0Vx2QQIe0w0TMhzEQKDDjf6KBcQ";
 
+const LEGACY_SUPABASE_URL = "https://mgkeqwwzhcodntkakqaz.supabase.co";
+const LEGACY_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1na2Vxd3d6aGNvZG50a2FrcWF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0Mjg5NTgsImV4cCI6MjA5NzAwNDk1OH0.eQQP9_GDtzXTP1mF0Vx2QQIe0w0TMhzEQKDDjf6KBcQ";
+
 const getUserId = async (req: Request) => {
   const auth = req.headers.get("authorization");
   if (!auth?.startsWith("Bearer ")) return null;
