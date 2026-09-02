@@ -9,10 +9,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
-import {
-  querySearchConsole,
-  runAnalyticsReport,
-} from "@/lib/site-web-api";
+import { querySearchConsole, runAnalyticsReport } from "@/lib/site-web-api";
 
 type View = "visibility" | "local" | "content" | "actions";
 
@@ -143,7 +140,9 @@ function VisibilityView() {
           {loading ? (
             <LoadingState />
           ) : rows.length === 0 ? (
-            <EmptyState text="Aucune donnée Search Console disponible sur la période." />
+            <EmptyState
+              text="Aucune donnée Search Console disponible sur la période."
+            />
           ) : (
             <table className="w-full text-sm">
               <thead>
