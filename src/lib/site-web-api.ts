@@ -5,7 +5,11 @@ export type SiteWebProvider =
   | "google_analytics_4"
   | "google_business_profile";
 
-export type SiteWebConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
+export type SiteWebConnectionStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "error";
 
 export interface SiteWebConnection {
   id?: string;
@@ -23,6 +27,20 @@ export interface SiteWebConnection {
 
 const functionName = "site-web-api";
 const RETRY_DELAY_MS = 400;
+const REQUEST_TIMEOUT_MS = 12000;
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
 
 async function invokeDirect<T>(
   provider: SiteWebProvider,
@@ -41,29 +59,42 @@ async function invokeDirect<T>(
     return { data: null, error: "Configuration Supabase indisponible." };
   }
 
-  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      apikey: supabasePublishableKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ provider, action, ...body }),
-  });
+  try {
+    const response = await fetchWithTimeout(
+      `${supabaseUrl}/functions/v1/${functionName}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          apikey: supabasePublishableKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ provider, action, ...body }),
+      },
+    );
 
-  const payload = (await response.json().catch(() => null)) as
-    | (T & { error?: unknown })
-    | null;
-  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as
+      | (T & { error?: unknown })
+      | null;
+    if (!response.ok) {
+      return {
+        data: null,
+        error: payload?.error
+          ? String(payload.error)
+          : `Service Site web : HTTP ${response.status}.`,
+      };
+    }
+    if (payload?.error) return { data: null, error: String(payload.error) };
+    return { data: payload as T, error: null };
+  } catch (error) {
     return {
       data: null,
-      error: payload?.error
-        ? String(payload.error)
-        : `Service Site web : HTTP ${response.status}.`,
+      error:
+        error instanceof DOMException && error.name === "AbortError"
+          ? "Le service Google ne répond pas après 12 secondes."
+          : "Impossible de joindre le service Site web.",
     };
   }
-  if (payload?.error) return { data: null, error: String(payload.error) };
-  return { data: payload as T, error: null };
 }
 
 async function invoke<T>(
@@ -74,22 +105,31 @@ async function invoke<T>(
   let lastError: string | null = null;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const { data, error } = await supabase.functions.invoke(functionName, {
-      body: { provider, action, ...body },
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: { provider, action, ...body },
+      });
 
-    if (!error) {
-      if (data?.error) return { data: null, error: String(data.error) };
-      return { data: data as T, error: null };
+      if (!error) {
+        if (data?.error) return { data: null, error: String(data.error) };
+        return { data: data as T, error: null };
+      }
+
+      lastError = error.message;
+    } catch {
+      lastError = "Impossible de joindre le service Site web.";
     }
 
-    lastError = error.message;
     if (attempt === 0) {
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
     }
   }
 
-  if (lastError === "Failed to send a request to the Edge Function") {
+  if (
+    lastError === "Failed to send a request to the Edge Function" ||
+    lastError === "Failed to fetch" ||
+    lastError === "TypeError: Failed to fetch"
+  ) {
     return invokeDirect<T>(provider, action, body);
   }
 
@@ -128,7 +168,11 @@ export const querySearchConsole = (options: {
 
 export const listAnalyticsProperties = () =>
   invoke<{
-    properties: Array<{ name: string; displayName?: string; propertyType?: string }>;
+    properties: Array<{
+      name: string;
+      displayName?: string;
+      propertyType?: string;
+    }>;
   }>("google_analytics_4", "list_properties");
 
 export const runAnalyticsReport = (options: {
@@ -146,7 +190,12 @@ export const listBusinessProfileAccounts = () =>
 
 export const listBusinessProfileLocations = (accountName: string) =>
   invoke<{
-    locations?: Array<{ name: string; title?: string; storefrontAddress?: unknown; websiteUri?: string }>;
+    locations?: Array<{
+      name: string;
+      title?: string;
+      storefrontAddress?: unknown;
+      websiteUri?: string;
+    }>;
   }>("google_business_profile", "list_locations", { accountName });
 
 export const getBusinessProfilePerformance = (options: {

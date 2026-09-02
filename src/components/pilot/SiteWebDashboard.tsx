@@ -79,8 +79,16 @@ const sections = [
 ];
 
 function StatusPill({ children }: { children: string }) {
+  const isDemo = children.toLowerCase().includes("démo");
   return (
-    <Badge variant="outline" className="font-normal text-muted-foreground">
+    <Badge
+      variant="outline"
+      className={
+        isDemo
+          ? "border-destructive/40 bg-destructive/10 font-normal text-destructive"
+          : "font-normal text-muted-foreground"
+      }
+    >
       {children}
     </Badge>
   );
@@ -299,9 +307,14 @@ export function SiteWebDashboard() {
               </div>
             </Card>
             <Card className="p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Actions
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Actions
+                </p>
+                <Badge className="border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/10">
+                  Démonstration
+                </Badge>
+              </div>
               <h2 className="mt-1 font-serif text-lg font-semibold">
                 À faire
               </h2>
@@ -357,10 +370,19 @@ function SiteWebStatistics() {
             <BarChart3 className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="font-serif text-lg font-semibold">Statistiques</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-serif text-lg font-semibold">Statistiques</h2>
+              <Badge className="border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/10">
+                Démonstration
+              </Badge>
+            </div>
             <p className="mt-0.5 text-sm text-muted-foreground">
               Historique de fréquentation actuellement disponible dans le
               modèle Site web.
+            </p>
+            <p className="mt-2 text-xs text-destructive">
+              Ces valeurs sont une démonstration et ne doivent pas être
+              interprétées comme des statistiques Google vérifiées.
             </p>
           </div>
         </div>
