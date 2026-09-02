@@ -23,7 +23,11 @@ if (supported.length === 0) {
   process.exit(0);
 }
 
-execFileSync("bunx", ["prettier", "--check", ...supported], {
+execFileSync("bunx", ["prettier", "--write", ...supported], {
   encoding: "utf8",
   stdio: "inherit",
 });
+
+console.log("--- FORMAT DIFF AFTER PRETTIER --");
+console.log(execFileSync("git", ["diff", "--", ...supported], { encoding: "utf8" }));
+process.exit(1);
