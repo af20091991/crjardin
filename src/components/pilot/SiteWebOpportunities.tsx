@@ -30,17 +30,15 @@ export function SiteWebOpportunities() {
             Sujets identifiés par le pilotage du site et à transformer en actions.
           </p>
           <p className="mt-2 text-xs text-destructive">
-            Ces opportunités proviennent du modèle de démonstration et ne sont pas des données Google vérifiées.
+            Ces opportunités proviennent du modèle de démonstration et ne sont pas des données
+            Google vérifiées.
           </p>
         </div>
       </div>
 
       <div className="mt-5 space-y-3">
         {siteWebDemoModel.opportunites.map((opportunity) => (
-          <div
-            key={opportunity.id}
-            className="rounded-lg border border-border/60 p-4"
-          >
+          <div key={opportunity.id} className="rounded-lg border border-border/60 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{opportunity.titre}</p>

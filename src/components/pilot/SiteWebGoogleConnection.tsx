@@ -30,7 +30,7 @@ export function SiteWebGoogleConnection() {
         const result = await getSiteWebConnection(id);
         return {
           id,
-          status: result.error ? "error" : result.data?.status ?? "disconnected",
+          status: result.error ? "error" : (result.data?.status ?? "disconnected"),
           error: result.error,
         };
       }),
@@ -53,9 +53,7 @@ export function SiteWebGoogleConnection() {
     const reason = params.get("reason");
     if (result === "error") {
       setError(
-        reason
-          ? `La connexion Google a échoué : ${reason}.`
-          : "La connexion Google a échoué.",
+        reason ? `La connexion Google a échoué : ${reason}.` : "La connexion Google a échoué.",
       );
     }
     if (result === "connected") void refresh();
@@ -85,9 +83,7 @@ export function SiteWebGoogleConnection() {
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-serif text-base font-semibold">
-                Sources Google
-              </h2>
+              <h2 className="font-serif text-base font-semibold">Sources Google</h2>
               <Badge
                 variant="outline"
                 className={
@@ -106,22 +102,13 @@ export function SiteWebGoogleConnection() {
               </Badge>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Une seule autorisation Google alimente Search Console, Analytics
-              4 et Business Profile.
+              Une seule autorisation Google alimente Search Console, Analytics 4 et Business
+              Profile.
             </p>
           </div>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          onClick={connect}
-          disabled={loading || connected}
-        >
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Link2 className="h-4 w-4" />
-          )}
+        <Button type="button" size="sm" onClick={connect} disabled={loading || connected}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
           {connected ? "Google connecté" : "Connecter Google"}
         </Button>
       </div>
@@ -148,11 +135,7 @@ export function SiteWebGoogleConnection() {
                 <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
               )}
               {label}
-              {verified
-                ? " · vérifiée"
-                : errored
-                  ? " · erreur"
-                  : " · non connectée"}
+              {verified ? " · vérifiée" : errored ? " · erreur" : " · non connectée"}
             </span>
           );
         })}
