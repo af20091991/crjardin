@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, BarChart3, FileText, MapPin, Search, Target } from "lucide-react";
+import {
+  AlertCircle,
+  BarChart3,
+  FileText,
+  MapPin,
+  Search,
+  Target,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import {
@@ -11,6 +18,7 @@ import {
 } from "@/lib/site-web-api";
 
 type View = "visibility" | "local" | "content" | "actions";
+
 type SearchRow = {
   keys?: string[];
   clicks?: number;
@@ -18,11 +26,14 @@ type SearchRow = {
   ctr?: number;
   position?: number;
 };
-type AnalyticsRow = {
-  dimensionValues?: Array<{ value?: string }>;
-  metricValues?: Array<{ value?: string }>;
+
+type AnalyticsReport = {
+  rows?: Array<{
+    dimensionValues?: Array<{ value?: string }>;
+    metricValues?: Array<{ value?: string }>;
+  }>;
 };
-type AnalyticsReport = { rows?: AnalyticsRow[] };
+
 type BusinessMetric = {
   metric?: string;
   dailyMetricTimeSeries?: Array<{
@@ -32,7 +43,10 @@ type BusinessMetric = {
     }>;
   }>;
 };
-type BusinessPerformance = { multiDailyMetricTimeSeries?: BusinessMetric[] };
+
+type BusinessPerformance = {
+  multiDailyMetricTimeSeries?: BusinessMetric[];
+};
 
 const SITE_URL = "https://www.delagraineaujardin.com/";
 const GA4_PROPERTY_ID = "159443253";
@@ -56,19 +70,23 @@ function VisibilityView() {
 
   useEffect(() => {
     let active = true;
+
     const load = async () => {
       setLoading(true);
       setError(null);
-      const result = await querySearchConsole({
+
+      const { data, error: apiError } = await querySearchConsole({
         siteUrl: SITE_URL,
         startDate: yearStart(),
         endDate: yesterday(),
       });
+
       if (!active) return;
-      if (result.error) setError(result.error);
-      setRows(result.data?.rows ?? []);
+      if (apiError) setError(apiError);
+      setRows(data?.rows ?? []);
       setLoading(false);
     };
+
     void load();
     return () => {
       active = false;
@@ -82,9 +100,11 @@ function VisibilityView() {
       0,
     );
     const weightedPosition = rows.reduce(
-      (sum, row) => sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
+      (sum, row) =>
+        sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
       0,
     );
+
     return {
       clicks,
       impressions,
@@ -119,6 +139,7 @@ function VisibilityView() {
           Search Console · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
         </p>
       </Card>
+
       <Card className="p-5">
         <Header
           icon={Search}
@@ -172,87 +193,103 @@ function VisibilityView() {
 }
 
 function LocalView() {
-  const [analytics, setAnalytics] = useState<AnalyticsReport | null>(null);
   const [performance, setPerformance] = useState<BusinessPerformance | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
+
     const load = async () => {
       setLoading(true);
       setError(null);
-      const [analyticsResult, accountsResult] = await Promise.all([
+
+      const [analyticsResult, accounts] = await Promise.all([
         runAnalyticsReport({
           propertyId: GA4_PROPERTY_ID,
-          startDate: yearStart(),
-          endDate: yesterday(),
+          dateRange: {
+            startDate: yearStart(),
+            endDate: yesterday(),
+          },
           dimensions: ["date"],
           metrics: ["sessions", "screenPageViews"],
         }),
         listBusinessProfileAccounts(),
       ]);
+
       if (!active) return;
       if (analyticsResult.error) setError(analyticsResult.error);
       setAnalytics((analyticsResult.data ?? null) as AnalyticsReport | null);
-      if (accountsResult.error) {
-        setError(accountsResult.error);
+
+      if (accounts.error) {
+        setError(accounts.error);
         setLoading(false);
         return;
       }
-      const account = accountsResult.data?.accounts?.[0];
+
+      const account = accounts.data?.accounts?.[0];
       if (!account?.name) {
         setLoading(false);
         return;
       }
-      const locationsResult = await listBusinessProfileLocations(account.name);
+
+      const locations = await listBusinessProfileLocations(account.name);
       if (!active) return;
-      if (locationsResult.error) {
-        setError(locationsResult.error);
+      if (locations.error) {
+        setError(locations.error);
         setLoading(false);
         return;
       }
+
       const location =
-        locationsResult.data?.locations?.find((item) =>
+        locations.data?.locations?.find((item) =>
           item.websiteUri?.includes("delagraineaujardin.com"),
-        ) ?? locationsResult.data?.locations?.[0];
+        ) ?? locations.data?.locations?.[0];
+
       if (!location?.name) {
         setLoading(false);
         return;
       }
-      const performanceResult = await getBusinessProfilePerformance({
+
+      const result = await getBusinessProfilePerformance({
         locationName: location.name,
         startDate: yearStart(),
         endDate: yesterday(),
       });
+
       if (!active) return;
-      if (performanceResult.error) setError(performanceResult.error);
-      setPerformance((performanceResult.data ?? null) as BusinessPerformance | null);
+      if (result.error) setError(result.error);
+      setPerformance((result.data ?? null) as BusinessPerformance | null);
       setLoading(false);
     };
+
     void load();
     return () => {
       active = false;
     };
   }, []);
 
-  const analyticsRows = analytics?.rows ?? [];
-  const analyticsTotals = analyticsRows.reduce(
-    (acc, row) => {
-      acc.sessions += Number(row.metricValues?.[0]?.value ?? 0);
-      acc.views += Number(row.metricValues?.[1]?.value ?? 0);
-      return acc;
-    },
-    { sessions: 0, views: 0 },
-  );
+  const analyticsSeries = useMemo(() => {
+    return (analytics?.rows ?? [])
+      .map((row) => ({
+        date: row.dimensionValues?.[0]?.value ?? "",
+        sessions: Number(row.metricValues?.[0]?.value ?? 0),
+        pageViews: Number(row.metricValues?.[1]?.value ?? 0),
+      }))
+      .filter((row) => row.date)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [analytics]);
 
-  const series = useMemo(() => {
+  const businessSeries = useMemo(() => {
     const byDate = new Map<string, Record<string, number>>();
+
     for (const item of performance?.multiDailyMetricTimeSeries ?? []) {
       const metric = item.metric ?? "";
       for (const point of item.dailyMetricTimeSeries?.[0]?.timeSeries ?? []) {
         const date = point.date;
         if (!date?.year || !date.month || !date.day) continue;
+
         const key = `${date.year}-${String(date.month).padStart(2, "0")}-${String(
           date.day,
         ).padStart(2, "0")}`;
@@ -261,12 +298,13 @@ function LocalView() {
         byDate.set(key, row);
       }
     }
+
     return Array.from(byDate.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [performance]);
 
-  const localTotals = useMemo(
+  const businessTotals = useMemo(
     () =>
-      series.reduce(
+      businessSeries.reduce(
         (acc, [, row]) => {
           acc.website += row.WEBSITE_CLICKS ?? 0;
           acc.calls += row.CALL_CLICKS ?? 0;
@@ -280,17 +318,60 @@ function LocalView() {
         },
         { website: 0, calls: 0, directions: 0, impressions: 0 },
       ),
-    [series],
+    [businessSeries],
+  );
+
+  const analyticsTotals = useMemo(
+    () =>
+      analyticsSeries.reduce(
+        (acc, row) => {
+          acc.sessions += row.sessions;
+          acc.pageViews += row.pageViews;
+          return acc;
+        },
+        { sessions: 0, pageViews: 0 },
+      ),
+    [analyticsSeries],
   );
 
   return (
     <>
       {error && <GoogleDataError message={error} />}
+
+      <Card className="p-5">
+        <Header
+          icon={MapPin}
+          title="Performance locale"
+          description="Google Business Profile · données réelles de la fiche établissement."
+        />
+        <div className="mt-5 grid gap-5 sm:grid-cols-4">
+          <Metric
+            label="Clics site"
+            value={loading ? "…" : formatNumber(businessTotals.website)}
+          />
+          <Metric
+            label="Appels"
+            value={loading ? "…" : formatNumber(businessTotals.calls)}
+          />
+          <Metric
+            label="Itinéraires"
+            value={loading ? "…" : formatNumber(businessTotals.directions)}
+          />
+          <Metric
+            label="Impressions"
+            value={loading ? "…" : formatNumber(businessTotals.impressions)}
+          />
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Google Business Profile · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
+        </p>
+      </Card>
+
       <Card className="p-5">
         <Header
           icon={BarChart3}
           title="Trafic du site"
-          description="Google Analytics 4 · données réelles sur la période."
+          description="Google Analytics 4 · données réelles, avec axe temporel explicite."
         />
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Metric
@@ -299,42 +380,51 @@ function LocalView() {
           />
           <Metric
             label="Pages vues"
-            value={loading ? "…" : formatNumber(analyticsTotals.views)}
+            value={loading ? "…" : formatNumber(analyticsTotals.pageViews)}
           />
         </div>
-      </Card>
-      <Card className="p-5">
-        <Header
-          icon={MapPin}
-          title="Performance locale"
-          description="Google Business Profile · données réelles de la fiche établissement."
-        />
-        <div className="mt-5 grid gap-5 sm:grid-cols-4">
-          <Metric label="Clics site" value={loading ? "…" : formatNumber(localTotals.website)} />
-          <Metric label="Appels" value={loading ? "…" : formatNumber(localTotals.calls)} />
-          <Metric
-            label="Itinéraires"
-            value={loading ? "…" : formatNumber(localTotals.directions)}
-          />
-          <Metric
-            label="Impressions"
-            value={loading ? "…" : formatNumber(localTotals.impressions)}
-          />
+        <div className="mt-4 overflow-x-auto">
+          {loading ? (
+            <LoadingState />
+          ) : analyticsSeries.length === 0 ? (
+            <EmptyState text="Aucune donnée Google Analytics 4 disponible sur la période." />
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="pb-2">Date</th>
+                  <th className="pb-2 text-right">Sessions</th>
+                  <th className="pb-2 text-right">Pages vues</th>
+                </tr>
+              </thead>
+              <tbody>
+                {analyticsSeries.slice(-31).map((row) => (
+                  <tr key={row.date} className="border-t border-border/40">
+                    <td className="py-3">{formatDateLabel(row.date)}</td>
+                    <td className="py-3 text-right tabular-nums">
+                      {formatNumber(row.sessions)}
+                    </td>
+                    <td className="py-3 text-right tabular-nums">
+                      {formatNumber(row.pageViews)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Données Google · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
-        </p>
       </Card>
+
       <Card className="p-5">
         <Header
           icon={BarChart3}
           title="Évolution de la visibilité locale"
-          description="Axe temporel explicite : une ligne par date Google Business Profile."
+          description="Google Business Profile · chaque ligne correspond à une date réelle."
         />
         <div className="mt-4 overflow-x-auto">
           {loading ? (
             <LoadingState />
-          ) : series.length === 0 ? (
+          ) : businessSeries.length === 0 ? (
             <EmptyState text="Aucune donnée Google Business Profile disponible sur la période." />
           ) : (
             <table className="w-full text-sm">
@@ -348,7 +438,7 @@ function LocalView() {
                 </tr>
               </thead>
               <tbody>
-                {series.slice(-31).map(([date, row]) => (
+                {businessSeries.slice(-31).map(([date, row]) => (
                   <tr key={date} className="border-t border-border/40">
                     <td className="py-3">{formatDateLabel(date)}</td>
                     <td className="py-3 text-right tabular-nums">
@@ -388,8 +478,8 @@ function ContentView() {
         description="Le suivi éditorial reste séparé des statistiques Google."
       />
       <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
-        Le raccordement réel Search Console, Analytics 4 et Business Profile est opérationnel.
-        L'inventaire SEO détaillé sera branché dans cette vue.
+        Le raccordement des statistiques est opérationnel. L'inventaire réel des pages et
+        leurs données SEO sera branché dans cette vue.
       </div>
     </Card>
   );
@@ -404,8 +494,8 @@ function ActionsView() {
         description="Les recommandations seront calculées à partir des données Google réelles."
       />
       <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
-        Aucune action automatique n'est encore calculée : cette étape attend la consolidation des
-        données Google.
+        Aucune action automatique n'est encore calculée : cette étape attend les données
+        consolidées Search Console, Analytics 4 et Business Profile.
       </div>
     </Card>
   );
@@ -436,7 +526,9 @@ function Header({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
       <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
@@ -458,7 +550,9 @@ function GoogleDataError({ message }: { message: string }) {
 
 function LoadingState() {
   return (
-    <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
+    <p className="py-8 text-center text-sm text-muted-foreground">
+      Chargement des données Google…
+    </p>
   );
 }
 
