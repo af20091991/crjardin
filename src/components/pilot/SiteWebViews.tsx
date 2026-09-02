@@ -74,10 +74,7 @@ function VisibilityView() {
   }, []);
 
   const totals = useMemo(() => {
-    const clicks = rows.reduce(
-      (sum, row) => sum + Number(row.clicks ?? 0),
-      0,
-    );
+    const clicks = rows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
     const impressions = rows.reduce(
       (sum, row) => sum + Number(row.impressions ?? 0),
       0,
