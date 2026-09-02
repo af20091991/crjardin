@@ -31,7 +31,9 @@ async function invokeDirect<T>(
 ): Promise<{ data: T | null; error: string | null }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
-  if (!accessToken) return { data: null, error: "Session utilisateur Google indisponible." };
+  if (!accessToken) {
+    return { data: null, error: "Session utilisateur Google indisponible." };
+  }
 
   const response = await fetch(`${supabase.supabaseUrl}/functions/v1/${functionName}`, {
     method: "POST",
@@ -49,7 +51,9 @@ async function invokeDirect<T>(
   if (!response.ok) {
     return {
       data: null,
-      error: payload?.error ? String(payload.error) : `Service Site web: HTTP ${response.status}.`,
+      error: payload?.error
+        ? String(payload.error)
+        : `Service Site web: HTTP ${response.status}.`,
     };
   }
   if (payload?.error) return { data: null, error: String(payload.error) };
