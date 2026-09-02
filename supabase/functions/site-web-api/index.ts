@@ -47,13 +47,8 @@ const config = () => {
 };
 
 const sha256 = async (value: string) => {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(value),
-  );
-  return Array.from(new Uint8Array(digest), (b) =>
-    b.toString(16).padStart(2, "0"),
-  ).join("");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 };
 
 const randomState = () => {
@@ -99,9 +94,7 @@ const tokenFor = async (userId: string, provider: Provider) => {
   const tokens = await refreshed.json();
   if (!tokens.access_token) return data.access_token;
 
-  const expires = new Date(
-    Date.now() + Number(tokens.expires_in ?? 3600) * 1000,
-  ).toISOString();
+  const expires = new Date(Date.now() + Number(tokens.expires_in ?? 3600) * 1000).toISOString();
   for (const p of PROVIDERS) {
     await supabaseAdmin.rpc("store_site_web_google_tokens", {
       p_user_id: userId,
@@ -132,9 +125,7 @@ const googleFetch = async (
 
 const saveConnected = async (userId: string, tokens: any) => {
   if (!tokens?.access_token || !tokens?.refresh_token) return false;
-  const expiresAt = new Date(
-    Date.now() + Number(tokens.expires_in ?? 3600) * 1000,
-  ).toISOString();
+  const expiresAt = new Date(Date.now() + Number(tokens.expires_in ?? 3600) * 1000).toISOString();
 
   for (const provider of PROVIDERS) {
     const stored = await supabaseAdmin.rpc("store_site_web_google_tokens", {
@@ -173,7 +164,9 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
   const action = String(url.searchParams.get("action") ?? body.action ?? "status");
-  const provider = (url.searchParams.get("provider") ?? body.provider ?? PROVIDERS[0]) as Provider;
+  const provider = String(
+    url.searchParams.get("provider") ?? body.provider ?? "google_search_console",
+  ) as Provider;
 
   if (!PROVIDERS.includes(provider)) {
     return json({ error: "unsupported_provider" }, 400);
@@ -194,11 +187,7 @@ Deno.serve(async (req) => {
       .eq("state_hash", stateHash)
       .limit(1);
     const row = rows?.[0];
-    if (
-      !row ||
-      row.provider !== provider ||
-      new Date(row.expires_at).getTime() <= Date.now()
-    ) {
+    if (!row || row.provider !== provider || new Date(row.expires_at).getTime() <= Date.now()) {
       return callbackRedirect(google.appUrl, {
         site_web_google: "error",
         reason: "invalid_or_expired_state",
@@ -313,7 +302,13 @@ Deno.serve(async (req) => {
       },
     );
     if (!response.ok) {
-      return json({ error: "search_console_analytics_failed", status: response.status }, 502);
+      return json(
+        {
+          error: "search_console_analytics_failed",
+          status: response.status,
+        },
+        502,
+      );
     }
     return json(await response.json());
   }
@@ -425,7 +420,13 @@ Deno.serve(async (req) => {
       `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`,
     );
     if (!response.ok) {
-      return json({ error: "business_profile_performance_failed", status: response.status }, 502);
+      return json(
+        {
+          error: "business_profile_performance_failed",
+          status: response.status,
+        },
+        502,
+      );
     }
     const payload = await response.json();
     const normalized = (payload.multiDailyMetricTimeSeries ?? []).flatMap((group: any) =>
