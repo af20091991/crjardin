@@ -26,23 +26,33 @@ export function SiteWebGoogleConnection() {
 
   const refresh = async () => {
     const results = await Promise.all(
-      providers.map(
-        async ({ id }) =>
-          [
-            id,
-            (await getSiteWebConnection(id)).data?.status ?? "disconnected",
-          ] as const,
-      ),
+      providers.map(async ({ id }) => {
+        const result = await getSiteWebConnection(id);
+        return { id, status: result.data?.status ?? "disconnected", error: result.error };
+      }),
     );
-    setStatus(Object.fromEntries(results) as Record<SiteWebProvider, string>);
+
+    setStatus(
+      Object.fromEntries(
+        results.map(({ id, status: providerStatus }) => [id, providerStatus]),
+      ) as Record<SiteWebProvider, string>,
+    );
+
+    const firstError = results.find((result) => result.error)?.error;
+    if (firstError) setError(firstError);
   };
 
   useEffect(() => {
     void refresh();
     const params = new URLSearchParams(window.location.search);
     const result = params.get("site_web_google");
+    const reason = params.get("reason");
     if (result === "error") {
-      setError(params.get("message") ?? "La connexion Google a échoué.");
+      setError(
+        reason
+          ? `La connexion Google a échoué : ${reason}.`
+          : "La connexion Google a échoué.",
+      );
     }
     if (result === "connected") void refresh();
   }, []);
@@ -60,6 +70,7 @@ export function SiteWebGoogleConnection() {
   };
 
   const connected = status.google_search_console === "connected";
+  const hasConnectionError = providers.some(({ id }) => status[id] === "error");
 
   return (
     <Card className="p-4">
@@ -73,8 +84,21 @@ export function SiteWebGoogleConnection() {
               <h2 className="font-serif text-base font-semibold">
                 Sources Google
               </h2>
-              <Badge variant="outline" className="font-normal">
-                {connected ? "Connecté" : "À connecter"}
+              <Badge
+                variant="outline"
+                className={
+                  connected
+                    ? "border-emerald-500/40 bg-emerald-500/10 font-normal text-emerald-700"
+                    : hasConnectionError
+                      ? "border-destructive/40 bg-destructive/10 font-normal text-destructive"
+                      : "font-normal text-muted-foreground"
+                }
+              >
+                {connected
+                  ? "Source vérifiée"
+                  : hasConnectionError
+                    ? "Connexion en erreur"
+                    : "À connecter"}
               </Badge>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -99,19 +123,31 @@ export function SiteWebGoogleConnection() {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {providers.map(({ id, label }) => (
-          <span
-            key={id}
-            className="inline-flex items-center gap-1.5 rounded-full bg-muted/40 px-2.5 py-1 text-xs"
-          >
-            {status[id] === "connected" ? (
-              <CheckCircle2 className="h-3.5 w-3.5" />
-            ) : (
-              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-            )}
-            {label}
-          </span>
-        ))}
+        {providers.map(({ id, label }) => {
+          const providerStatus = status[id];
+          const verified = providerStatus === "connected";
+          const errored = providerStatus === "error";
+          return (
+            <span
+              key={id}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${
+                verified
+                  ? "bg-emerald-500/10 text-emerald-700"
+                  : errored
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-muted/40 text-muted-foreground"
+              }`}
+            >
+              {verified ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              ) : (
+                <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
+              )}
+              {label}
+              {verified ? " · vérifiée" : errored ? " · erreur" : " · non connectée"}
+            </span>
+          );
+        })}
       </div>
 
       {error && (
