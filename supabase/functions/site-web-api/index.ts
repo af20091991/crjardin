@@ -1,10 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-type Provider =
-  | "google_search_console"
-  | "google_analytics_4"
-  | "google_business_profile";
+type Provider = "google_search_console" | "google_analytics_4" | "google_business_profile";
 
 const PROVIDERS: Provider[] = [
   "google_search_console",
@@ -26,8 +23,7 @@ const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
@@ -51,13 +47,8 @@ const config = () => {
 };
 
 const sha256 = async (value: string) => {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(value),
-  );
-  return Array.from(new Uint8Array(digest), (b) =>
-    b.toString(16).padStart(2, "0"),
-  ).join("");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 };
 
 const randomState = () => {
@@ -75,13 +66,10 @@ const getUserId = async (req: Request) => {
 };
 
 const tokenFor = async (userId: string, provider: Provider) => {
-  const { data, error } = await supabaseAdmin.rpc(
-    "get_site_web_google_tokens",
-    {
-      p_user_id: userId,
-      p_provider: provider,
-    },
-  );
+  const { data, error } = await supabaseAdmin.rpc("get_site_web_google_tokens", {
+    p_user_id: userId,
+    p_provider: provider,
+  });
   if (error || !data?.access_token) return null;
 
   const expiresAt = data.expires_at ? new Date(data.expires_at).getTime() : 0;
@@ -106,9 +94,7 @@ const tokenFor = async (userId: string, provider: Provider) => {
   const tokens = await refreshed.json();
   if (!tokens.access_token) return data.access_token;
 
-  const expires = new Date(
-    Date.now() + Number(tokens.expires_in ?? 3600) * 1000,
-  ).toISOString();
+  const expires = new Date(Date.now() + Number(tokens.expires_in ?? 3600) * 1000).toISOString();
   for (const p of PROVIDERS) {
     await supabaseAdmin.rpc("store_site_web_google_tokens", {
       p_user_id: userId,
@@ -139,9 +125,7 @@ const googleFetch = async (
 
 const saveConnected = async (userId: string, tokens: any) => {
   if (!tokens?.access_token || !tokens?.refresh_token) return false;
-  const expiresAt = new Date(
-    Date.now() + Number(tokens.expires_in ?? 3600) * 1000,
-  ).toISOString();
+  const expiresAt = new Date(Date.now() + Number(tokens.expires_in ?? 3600) * 1000).toISOString();
 
   for (const provider of PROVIDERS) {
     const stored = await supabaseAdmin.rpc("store_site_web_google_tokens", {
@@ -179,13 +163,9 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-  const action = String(
-    url.searchParams.get("action") ?? body.action ?? "status",
-  );
+  const action = String(url.searchParams.get("action") ?? body.action ?? "status");
   const provider = String(
-    url.searchParams.get("provider") ??
-      body.provider ??
-      "google_search_console",
+    url.searchParams.get("provider") ?? body.provider ?? "google_search_console",
   ) as Provider;
 
   if (!PROVIDERS.includes(provider)) {
@@ -207,11 +187,7 @@ Deno.serve(async (req) => {
       .eq("state_hash", stateHash)
       .limit(1);
     const row = rows?.[0];
-    if (
-      !row ||
-      row.provider !== provider ||
-      new Date(row.expires_at).getTime() <= Date.now()
-    ) {
+    if (!row || row.provider !== provider || new Date(row.expires_at).getTime() <= Date.now()) {
       return callbackRedirect(google.appUrl, {
         site_web_google: "error",
         reason: "invalid_or_expired_state",
@@ -298,24 +274,15 @@ Deno.serve(async (req) => {
       "https://www.googleapis.com/webmasters/v3/sites",
     );
     if (!response.ok) {
-      return json(
-        { error: "search_console_sites_failed", status: response.status },
-        502,
-      );
+      return json({ error: "search_console_sites_failed", status: response.status }, 502);
     }
     return json(await response.json());
   }
 
   if (action === "search_analytics") {
-    const siteUrl = String(
-      url.searchParams.get("siteUrl") ?? body.siteUrl ?? "",
-    );
-    const startDate = String(
-      url.searchParams.get("startDate") ?? body.startDate ?? "",
-    );
-    const endDate = String(
-      url.searchParams.get("endDate") ?? body.endDate ?? "",
-    );
+    const siteUrl = String(url.searchParams.get("siteUrl") ?? body.siteUrl ?? "");
+    const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
+    const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
     if (!siteUrl || !startDate || !endDate) {
       return json({ error: "missing_site_or_date_range" }, 400);
     }
@@ -353,42 +320,26 @@ Deno.serve(async (req) => {
       "https://analyticsadmin.googleapis.com/v1beta/accountSummaries",
     );
     if (!response.ok) {
-      return json(
-        { error: "analytics_properties_failed", status: response.status },
-        502,
-      );
+      return json({ error: "analytics_properties_failed", status: response.status }, 502);
     }
     const payload = await response.json();
-    const properties = (payload.accountSummaries ?? []).flatMap(
-      (account: any) =>
-        (account.propertySummaries ?? []).map((property: any) => ({
-          name: property.property,
-          displayName: property.displayName,
-          propertyType: property.propertyType,
-        })),
+    const properties = (payload.accountSummaries ?? []).flatMap((account: any) =>
+      (account.propertySummaries ?? []).map((property: any) => ({
+        name: property.property,
+        displayName: property.displayName,
+        propertyType: property.propertyType,
+      })),
     );
     return json({ properties });
   }
 
   if (action === "run_report") {
-    const propertyId = String(
-      url.searchParams.get("propertyId") ?? body.propertyId ?? "",
-    );
-    const startDate = String(
-      url.searchParams.get("startDate") ?? body.startDate ?? "",
-    );
-    const endDate = String(
-      url.searchParams.get("endDate") ?? body.endDate ?? "",
-    );
+    const propertyId = String(url.searchParams.get("propertyId") ?? body.propertyId ?? "");
+    const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
+    const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
     const dimensions = Array.isArray(body.dimensions) ? body.dimensions : [];
     const metrics = Array.isArray(body.metrics) ? body.metrics : [];
-    if (
-      !propertyId ||
-      !startDate ||
-      !endDate ||
-      !dimensions.length ||
-      !metrics.length
-    ) {
+    if (!propertyId || !startDate || !endDate || !dimensions.length || !metrics.length) {
       return json({ error: "missing_analytics_report_parameters" }, 400);
     }
 
@@ -418,18 +369,13 @@ Deno.serve(async (req) => {
       "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
     );
     if (!response.ok) {
-      return json(
-        { error: "business_profile_accounts_failed", status: response.status },
-        502,
-      );
+      return json({ error: "business_profile_accounts_failed", status: response.status }, 502);
     }
     return json(await response.json());
   }
 
   if (action === "list_locations") {
-    const accountName = String(
-      url.searchParams.get("accountName") ?? body.accountName ?? "",
-    );
+    const accountName = String(url.searchParams.get("accountName") ?? body.accountName ?? "");
     if (!accountName) return json({ error: "missing_account_name" }, 400);
     const response = await googleFetch(
       userId,
@@ -437,24 +383,15 @@ Deno.serve(async (req) => {
       `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,storefrontAddress,websiteUri`,
     );
     if (!response.ok) {
-      return json(
-        { error: "business_profile_locations_failed", status: response.status },
-        502,
-      );
+      return json({ error: "business_profile_locations_failed", status: response.status }, 502);
     }
     return json(await response.json());
   }
 
   if (action === "performance") {
-    const locationName = String(
-      url.searchParams.get("locationName") ?? body.locationName ?? "",
-    );
-    const startDate = String(
-      url.searchParams.get("startDate") ?? body.startDate ?? "",
-    );
-    const endDate = String(
-      url.searchParams.get("endDate") ?? body.endDate ?? "",
-    );
+    const locationName = String(url.searchParams.get("locationName") ?? body.locationName ?? "");
+    const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
+    const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
     if (!locationName || !startDate || !endDate) {
       return json({ error: "missing_performance_parameters" }, 400);
     }
@@ -471,23 +408,11 @@ Deno.serve(async (req) => {
     const params = new URLSearchParams();
     for (const metric of metrics) params.append("dailyMetric", metric);
     params.set("dailyRange.start_date.year", startDate.slice(0, 4));
-    params.set(
-      "dailyRange.start_date.month",
-      String(Number(startDate.slice(5, 7))),
-    );
-    params.set(
-      "dailyRange.start_date.day",
-      String(Number(startDate.slice(8, 10))),
-    );
+    params.set("dailyRange.start_date.month", String(Number(startDate.slice(5, 7))));
+    params.set("dailyRange.start_date.day", String(Number(startDate.slice(8, 10))));
     params.set("dailyRange.end_date.year", endDate.slice(0, 4));
-    params.set(
-      "dailyRange.end_date.month",
-      String(Number(endDate.slice(5, 7))),
-    );
-    params.set(
-      "dailyRange.end_date.day",
-      String(Number(endDate.slice(8, 10))),
-    );
+    params.set("dailyRange.end_date.month", String(Number(endDate.slice(5, 7))));
+    params.set("dailyRange.end_date.day", String(Number(endDate.slice(8, 10))));
 
     const response = await googleFetch(
       userId,
@@ -504,14 +429,13 @@ Deno.serve(async (req) => {
       );
     }
     const payload = await response.json();
-    const normalized = (payload.multiDailyMetricTimeSeries ?? []).flatMap(
-      (group: any) =>
-        (group.dailyMetricTimeSeries ?? []).map((item: any) => ({
-          metric: item.dailyMetric,
-          dailyMetricTimeSeries: item.timeSeries
-            ? [{ timeSeries: item.timeSeries.datedValues ?? [] }]
-            : [],
-        })),
+    const normalized = (payload.multiDailyMetricTimeSeries ?? []).flatMap((group: any) =>
+      (group.dailyMetricTimeSeries ?? []).map((item: any) => ({
+        metric: item.dailyMetric,
+        dailyMetricTimeSeries: item.timeSeries
+          ? [{ timeSeries: item.timeSeries.datedValues ?? [] }]
+          : [],
+      })),
     );
     return json({
       ...payload,
