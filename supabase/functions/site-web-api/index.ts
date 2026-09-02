@@ -146,7 +146,9 @@ const googleFetch = async (
 };
 
 const saveConnected = async (userId: string, tokens: any) => {
-  const expiresAt = new Date(Date.now() + Number(tokens.expires_in ?? 3600) * 1000).toISOString();
+  const expiresAt = new Date(
+    Date.now() + Number(tokens.expires_in ?? 3600) * 1000,
+  ).toISOString();
   const refreshToken = tokens.refresh_token;
   if (!refreshToken) return false;
 
@@ -430,12 +432,30 @@ Deno.serve(async (req) => {
     endpoint.searchParams.set("dailyMetric", "BUSINESS_IMPRESSIONS_MOBILE_MAPS");
     endpoint.searchParams.set("dailyMetric", "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH");
     endpoint.searchParams.set("dailyMetric", "BUSINESS_IMPRESSIONS_MOBILE_SEARCH");
-    endpoint.searchParams.set("dailyRange.startDate.year", String(new Date(startDate).getUTCFullYear()));
-    endpoint.searchParams.set("dailyRange.startDate.month", String(new Date(startDate).getUTCMonth() + 1));
-    endpoint.searchParams.set("dailyRange.startDate.day", String(new Date(startDate).getUTCDate()));
-    endpoint.searchParams.set("dailyRange.endDate.year", String(new Date(endDate).getUTCFullYear()));
-    endpoint.searchParams.set("dailyRange.endDate.month", String(new Date(endDate).getUTCMonth() + 1));
-    endpoint.searchParams.set("dailyRange.endDate.day", String(new Date(endDate).getUTCDate()));
+    endpoint.searchParams.set(
+      "dailyRange.startDate.year",
+      String(new Date(startDate).getUTCFullYear()),
+    );
+    endpoint.searchParams.set(
+      "dailyRange.startDate.month",
+      String(new Date(startDate).getUTCMonth() + 1),
+    );
+    endpoint.searchParams.set(
+      "dailyRange.startDate.day",
+      String(new Date(startDate).getUTCDate()),
+    );
+    endpoint.searchParams.set(
+      "dailyRange.endDate.year",
+      String(new Date(endDate).getUTCFullYear()),
+    );
+    endpoint.searchParams.set(
+      "dailyRange.endDate.month",
+      String(new Date(endDate).getUTCMonth() + 1),
+    );
+    endpoint.searchParams.set(
+      "dailyRange.endDate.day",
+      String(new Date(endDate).getUTCDate()),
+    );
     const response = await googleFetch(userId, "google_business_profile", endpoint.toString());
     if (!response.ok) {
       return json({ error: "business_profile_performance_failed", status: response.status }, 502);
