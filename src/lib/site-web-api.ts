@@ -5,11 +5,7 @@ export type SiteWebProvider =
   | "google_analytics_4"
   | "google_business_profile";
 
-export type SiteWebConnectionStatus =
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "error";
+export type SiteWebConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
 export interface SiteWebConnection {
   id?: string;
@@ -39,11 +35,8 @@ async function invoke<T>(
     const { data, error } = await supabase.functions.invoke(functionName, {
       body: { provider, action, ...body },
     });
-
     if (!error) {
-      if (data?.error) {
-        return { data: null, error: String(data.error) };
-      }
+      if (data?.error) return { data: null, error: String(data.error) };
       return { data: data as T, error: null };
     }
 
@@ -88,11 +81,7 @@ export const querySearchConsole = (options: {
 
 export const listAnalyticsProperties = () =>
   invoke<{
-    properties: Array<{
-      name: string;
-      displayName?: string;
-      propertyType?: string;
-    }>;
+    properties: Array<{ name: string; displayName?: string; propertyType?: string }>;
   }>("google_analytics_4", "list_properties");
 
 export const runAnalyticsReport = (options: {
@@ -105,21 +94,12 @@ export const runAnalyticsReport = (options: {
 
 export const listBusinessProfileAccounts = () =>
   invoke<{
-    accounts?: Array<{
-      name: string;
-      accountName?: string;
-      type?: string;
-    }>;
+    accounts?: Array<{ name: string; accountName?: string; type?: string }>;
   }>("google_business_profile", "list_accounts");
 
 export const listBusinessProfileLocations = (accountName: string) =>
   invoke<{
-    locations?: Array<{
-      name: string;
-      title?: string;
-      storefrontAddress?: unknown;
-      websiteUri?: string;
-    }>;
+    locations?: Array<{ name: string; title?: string; storefrontAddress?: unknown; websiteUri?: string }>;
   }>("google_business_profile", "list_locations", { accountName });
 
 export const getBusinessProfilePerformance = (options: {
