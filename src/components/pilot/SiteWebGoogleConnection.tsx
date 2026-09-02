@@ -28,7 +28,11 @@ export function SiteWebGoogleConnection() {
     const results = await Promise.all(
       providers.map(async ({ id }) => {
         const result = await getSiteWebConnection(id);
-        return { id, status: result.data?.status ?? "disconnected", error: result.error };
+        return {
+          id,
+          status: result.error ? "error" : result.data?.status ?? "disconnected",
+          error: result.error,
+        };
       }),
     );
 
@@ -144,7 +148,11 @@ export function SiteWebGoogleConnection() {
                 <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
               )}
               {label}
-              {verified ? " · vérifiée" : errored ? " · erreur" : " · non connectée"}
+              {verified
+                ? " · vérifiée"
+                : errored
+                  ? " · erreur"
+                  : " · non connectée"}
             </span>
           );
         })}
