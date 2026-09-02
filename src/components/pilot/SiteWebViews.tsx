@@ -128,7 +128,8 @@ function VisibilityView() {
           />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Search Console · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
+          Search Console · {formatDateLabel(yearStart())} →{" "}
+          {formatDateLabel(yesterday())}
         </p>
       </Card>
 
@@ -279,10 +280,14 @@ function LocalView() {
                     <tr key={date} className="border-t border-border/40">
                       <td className="py-3">{formatDateLabel(date)}</td>
                       <td className="py-3 text-right tabular-nums">
-                        {formatNumber(Number(row.metricValues?.[0]?.value ?? 0))}
+                        {formatNumber(
+                          Number(row.metricValues?.[0]?.value ?? 0),
+                        )}
                       </td>
                       <td className="py-3 text-right tabular-nums">
-                        {formatNumber(Number(row.metricValues?.[1]?.value ?? 0))}
+                        {formatNumber(
+                          Number(row.metricValues?.[1]?.value ?? 0),
+                        )}
                       </td>
                     </tr>
                   );
