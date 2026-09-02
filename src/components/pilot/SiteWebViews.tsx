@@ -48,6 +48,8 @@ type BusinessPerformance = {
   multiDailyMetricTimeSeries?: BusinessMetric[];
 };
 
+type BusinessSeriesRow = Record<string, number>;
+
 const SITE_URL = "https://www.delagraineaujardin.com/";
 const GA4_PROPERTY_ID = "159443253";
 
@@ -74,7 +76,6 @@ function VisibilityView() {
     const load = async () => {
       setLoading(true);
       setError(null);
-
       const { data, error: apiError } = await querySearchConsole({
         siteUrl: SITE_URL,
         startDate: yearStart(),
@@ -118,12 +119,18 @@ function VisibilityView() {
       {error && <GoogleDataError message={error} />}
       <Card className="p-5">
         <div className="grid gap-5 sm:grid-cols-4">
-          <Metric label="Clics" value={loading ? "…" : formatNumber(totals.clicks)} />
+          <Metric
+            label="Clics"
+            value={loading ? "…" : formatNumber(totals.clicks)}
+          />
           <Metric
             label="Impressions"
             value={loading ? "…" : formatNumber(totals.impressions)}
           />
-          <Metric label="CTR" value={loading ? "…" : formatPercent(totals.ctr)} />
+          <Metric
+            label="CTR"
+            value={loading ? "…" : formatPercent(totals.ctr)}
+          />
           <Metric
             label="Position moyenne"
             value={
@@ -136,7 +143,8 @@ function VisibilityView() {
           />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Search Console · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
+          Search Console · {formatDateLabel(yearStart())} → {" "}
+          {formatDateLabel(yesterday())}
         </p>
       </Card>
 
@@ -152,39 +160,16 @@ function VisibilityView() {
           ) : rows.length === 0 ? (
             <EmptyState text="Aucune donnée Search Console disponible sur la période." />
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2">Date</th>
-                  <th className="pb-2 text-right">Position</th>
-                  <th className="pb-2 text-right">Impressions</th>
-                  <th className="pb-2 text-right">Clics</th>
-                  <th className="pb-2 text-right">CTR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.slice(-31).map((row) => {
-                  const date = row.keys?.[0] ?? "";
-                  return (
-                    <tr key={date} className="border-t border-border/40">
-                      <td className="py-3">{formatDateLabel(date)}</td>
-                      <td className="py-3 text-right tabular-nums">
-                        {Number(row.position ?? 0).toFixed(1).replace(".", ",")}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {formatNumber(Number(row.impressions ?? 0))}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {formatNumber(Number(row.clicks ?? 0))}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {formatPercent(Number(row.ctr ?? 0))}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <DataTable
+              headers={["Date", "Position", "Impressions", "Clics", "CTR"]}
+              rows={rows.slice(-31).map((row) => [
+                formatDateLabel(row.keys?.[0] ?? ""),
+                Number(row.position ?? 0).toFixed(1).replace(".", ","),
+                formatNumber(Number(row.impressions ?? 0)),
+                formatNumber(Number(row.clicks ?? 0)),
+                formatPercent(Number(row.ctr ?? 0)),
+              ])}
+            />
           )}
         </div>
       </Card>
@@ -193,8 +178,8 @@ function VisibilityView() {
 }
 
 function LocalView() {
+  const [report, setReport] = useState<AnalyticsReport | null>(null);
   const [performance, setPerformance] = useState<BusinessPerformance | null>(null);
-  const [analytics, setAnalytics] = useState<AnalyticsReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -205,13 +190,11 @@ function LocalView() {
       setLoading(true);
       setError(null);
 
-      const [analyticsResult, accounts] = await Promise.all([
+      const [ga4Result, accountsResult] = await Promise.all([
         runAnalyticsReport({
           propertyId: GA4_PROPERTY_ID,
-          dateRange: {
-            startDate: yearStart(),
-            endDate: yesterday(),
-          },
+          startDate: yearStart(),
+          endDate: yesterday(),
           dimensions: ["date"],
           metrics: ["sessions", "screenPageViews"],
         }),
@@ -219,48 +202,44 @@ function LocalView() {
       ]);
 
       if (!active) return;
-      if (analyticsResult.error) setError(analyticsResult.error);
-      setAnalytics((analyticsResult.data ?? null) as AnalyticsReport | null);
+      if (ga4Result.error) setError(ga4Result.error);
+      setReport((ga4Result.data ?? null) as AnalyticsReport | null);
 
-      if (accounts.error) {
-        setError(accounts.error);
-        setLoading(false);
-        return;
+      if (accountsResult.error) {
+        setError((current) => current ?? accountsResult.error ?? null);
+      } else {
+        const account = accountsResult.data?.accounts?.[0];
+        if (account?.name) {
+          const locationsResult = await listBusinessProfileLocations(account.name);
+          if (!active) return;
+          if (locationsResult.error) {
+            setError((current) => current ?? locationsResult.error ?? null);
+          } else {
+            const location =
+              locationsResult.data?.locations?.find((item) =>
+                item.websiteUri?.includes("delagraineaujardin.com"),
+              ) ?? locationsResult.data?.locations?.[0];
+
+            if (location?.name) {
+              const performanceResult = await getBusinessProfilePerformance({
+                locationName: location.name,
+                startDate: yearStart(),
+                endDate: yesterday(),
+              });
+              if (!active) return;
+              if (performanceResult.error) {
+                setError(
+                  (current) => current ?? performanceResult.error ?? null,
+                );
+              }
+              setPerformance(
+                (performanceResult.data ?? null) as BusinessPerformance | null,
+              );
+            }
+          }
+        }
       }
 
-      const account = accounts.data?.accounts?.[0];
-      if (!account?.name) {
-        setLoading(false);
-        return;
-      }
-
-      const locations = await listBusinessProfileLocations(account.name);
-      if (!active) return;
-      if (locations.error) {
-        setError(locations.error);
-        setLoading(false);
-        return;
-      }
-
-      const location =
-        locations.data?.locations?.find((item) =>
-          item.websiteUri?.includes("delagraineaujardin.com"),
-        ) ?? locations.data?.locations?.[0];
-
-      if (!location?.name) {
-        setLoading(false);
-        return;
-      }
-
-      const result = await getBusinessProfilePerformance({
-        locationName: location.name,
-        startDate: yearStart(),
-        endDate: yesterday(),
-      });
-
-      if (!active) return;
-      if (result.error) setError(result.error);
-      setPerformance((result.data ?? null) as BusinessPerformance | null);
       setLoading(false);
     };
 
@@ -270,26 +249,23 @@ function LocalView() {
     };
   }, []);
 
-  const analyticsSeries = useMemo(() => {
-    return (analytics?.rows ?? [])
-      .map((row) => ({
-        date: row.dimensionValues?.[0]?.value ?? "",
-        sessions: Number(row.metricValues?.[0]?.value ?? 0),
-        pageViews: Number(row.metricValues?.[1]?.value ?? 0),
-      }))
-      .filter((row) => row.date)
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [analytics]);
+  const ga4Rows = report?.rows ?? [];
+  const ga4Totals = ga4Rows.reduce(
+    (acc, row) => {
+      acc.sessions += Number(row.metricValues?.[0]?.value ?? 0);
+      acc.views += Number(row.metricValues?.[1]?.value ?? 0);
+      return acc;
+    },
+    { sessions: 0, views: 0 },
+  );
 
   const businessSeries = useMemo(() => {
-    const byDate = new Map<string, Record<string, number>>();
-
+    const byDate = new Map<string, BusinessSeriesRow>();
     for (const item of performance?.multiDailyMetricTimeSeries ?? []) {
       const metric = item.metric ?? "";
       for (const point of item.dailyMetricTimeSeries?.[0]?.timeSeries ?? []) {
         const date = point.date;
         if (!date?.year || !date.month || !date.day) continue;
-
         const key = `${date.year}-${String(date.month).padStart(2, "0")}-${String(
           date.day,
         ).padStart(2, "0")}`;
@@ -298,7 +274,6 @@ function LocalView() {
         byDate.set(key, row);
       }
     }
-
     return Array.from(byDate.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [performance]);
 
@@ -321,22 +296,30 @@ function LocalView() {
     [businessSeries],
   );
 
-  const analyticsTotals = useMemo(
-    () =>
-      analyticsSeries.reduce(
-        (acc, row) => {
-          acc.sessions += row.sessions;
-          acc.pageViews += row.pageViews;
-          return acc;
-        },
-        { sessions: 0, pageViews: 0 },
-      ),
-    [analyticsSeries],
-  );
-
   return (
     <>
       {error && <GoogleDataError message={error} />}
+
+      <Card className="p-5">
+        <Header
+          icon={BarChart3}
+          title="Trafic du site"
+          description="Google Analytics 4 · propriété 159443253."
+        />
+        <div className="mt-5 grid gap-5 sm:grid-cols-2">
+          <Metric
+            label="Sessions"
+            value={loading ? "…" : formatNumber(ga4Totals.sessions)}
+          />
+          <Metric
+            label="Pages vues"
+            value={loading ? "…" : formatNumber(ga4Totals.views)}
+          />
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          GA4 · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
+        </p>
+      </Card>
 
       <Card className="p-5">
         <Header
@@ -363,63 +346,40 @@ function LocalView() {
           />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Google Business Profile · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
+          Google Business Profile · {formatDateLabel(yearStart())} → {" "}
+          {formatDateLabel(yesterday())}
         </p>
       </Card>
 
       <Card className="p-5">
         <Header
           icon={BarChart3}
-          title="Trafic du site"
-          description="Google Analytics 4 · données réelles, avec axe temporel explicite."
+          title="Évolution du trafic"
+          description="Axe temporel explicite : chaque ligne correspond à une date GA4."
         />
-        <div className="mt-5 grid gap-5 sm:grid-cols-2">
-          <Metric
-            label="Sessions"
-            value={loading ? "…" : formatNumber(analyticsTotals.sessions)}
-          />
-          <Metric
-            label="Pages vues"
-            value={loading ? "…" : formatNumber(analyticsTotals.pageViews)}
-          />
-        </div>
         <div className="mt-4 overflow-x-auto">
           {loading ? (
             <LoadingState />
-          ) : analyticsSeries.length === 0 ? (
-            <EmptyState text="Aucune donnée Google Analytics 4 disponible sur la période." />
+          ) : ga4Rows.length === 0 ? (
+            <EmptyState text="Aucune donnée GA4 disponible sur la période." />
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2">Date</th>
-                  <th className="pb-2 text-right">Sessions</th>
-                  <th className="pb-2 text-right">Pages vues</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analyticsSeries.slice(-31).map((row) => (
-                  <tr key={row.date} className="border-t border-border/40">
-                    <td className="py-3">{formatDateLabel(row.date)}</td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(row.sessions)}
-                    </td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(row.pageViews)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              headers={["Date", "Sessions", "Pages vues"]}
+              rows={ga4Rows.slice(-31).map((row) => [
+                formatDateLabel(row.dimensionValues?.[0]?.value ?? ""),
+                formatNumber(Number(row.metricValues?.[0]?.value ?? 0)),
+                formatNumber(Number(row.metricValues?.[1]?.value ?? 0)),
+              ])}
+            />
           )}
         </div>
       </Card>
 
       <Card className="p-5">
         <Header
-          icon={BarChart3}
+          icon={MapPin}
           title="Évolution de la visibilité locale"
-          description="Google Business Profile · chaque ligne correspond à une date réelle."
+          description="Axe temporel explicite : chaque ligne correspond à une date Google Business Profile."
         />
         <div className="mt-4 overflow-x-auto">
           {loading ? (
@@ -427,41 +387,21 @@ function LocalView() {
           ) : businessSeries.length === 0 ? (
             <EmptyState text="Aucune donnée Google Business Profile disponible sur la période." />
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2">Date</th>
-                  <th className="pb-2 text-right">Clics site</th>
-                  <th className="pb-2 text-right">Appels</th>
-                  <th className="pb-2 text-right">Itinéraires</th>
-                  <th className="pb-2 text-right">Impressions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {businessSeries.slice(-31).map(([date, row]) => (
-                  <tr key={date} className="border-t border-border/40">
-                    <td className="py-3">{formatDateLabel(date)}</td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(row.WEBSITE_CLICKS ?? 0)}
-                    </td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(row.CALL_CLICKS ?? 0)}
-                    </td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(row.BUSINESS_DIRECTION_REQUESTS ?? 0)}
-                    </td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(
-                        (row.BUSINESS_IMPRESSIONS_DESKTOP_MAPS ?? 0) +
-                          (row.BUSINESS_IMPRESSIONS_DESKTOP_SEARCH ?? 0) +
-                          (row.BUSINESS_IMPRESSIONS_MOBILE_MAPS ?? 0) +
-                          (row.BUSINESS_IMPRESSIONS_MOBILE_SEARCH ?? 0),
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              headers={["Date", "Clics site", "Appels", "Itinéraires", "Impressions"]}
+              rows={businessSeries.slice(-31).map(([date, row]) => [
+                formatDateLabel(date),
+                formatNumber(row.WEBSITE_CLICKS ?? 0),
+                formatNumber(row.CALL_CLICKS ?? 0),
+                formatNumber(row.BUSINESS_DIRECTION_REQUESTS ?? 0),
+                formatNumber(
+                  (row.BUSINESS_IMPRESSIONS_DESKTOP_MAPS ?? 0) +
+                    (row.BUSINESS_IMPRESSIONS_DESKTOP_SEARCH ?? 0) +
+                    (row.BUSINESS_IMPRESSIONS_MOBILE_MAPS ?? 0) +
+                    (row.BUSINESS_IMPRESSIONS_MOBILE_SEARCH ?? 0),
+                ),
+              ])}
+            />
           )}
         </div>
       </Card>
@@ -478,8 +418,8 @@ function ContentView() {
         description="Le suivi éditorial reste séparé des statistiques Google."
       />
       <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
-        Le raccordement des statistiques est opérationnel. L'inventaire réel des pages et
-        leurs données SEO sera branché dans cette vue.
+        Le raccordement des statistiques est opérationnel. L'inventaire réel des
+        pages et leurs données SEO sera branché dans cette vue.
       </div>
     </Card>
   );
@@ -494,8 +434,8 @@ function ActionsView() {
         description="Les recommandations seront calculées à partir des données Google réelles."
       />
       <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
-        Aucune action automatique n'est encore calculée : cette étape attend les données
-        consolidées Search Console, Analytics 4 et Business Profile.
+        Aucune action automatique n'est encore calculée : cette étape attend les
+        données consolidées Search Console, Analytics 4 et Business Profile.
       </div>
     </Card>
   );
@@ -529,8 +469,46 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">
+        {value}
+      </p>
     </div>
+  );
+}
+
+function DataTable({
+  headers,
+  rows,
+}: {
+  headers: string[];
+  rows: string[][];
+}) {
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+          {headers.map((header) => (
+            <th key={header} className="pb-2 text-right first:text-left">
+              {header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row[0]} className="border-t border-border/40">
+            {row.map((cell, index) => (
+              <td
+                key={`${row[0]}-${index}`}
+                className="py-3 text-right tabular-nums first:text-left"
+              >
+                {cell}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -557,7 +535,9 @@ function LoadingState() {
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
+  return (
+    <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>
+  );
 }
 
 function yearStart() {
