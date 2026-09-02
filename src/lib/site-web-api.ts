@@ -22,18 +22,32 @@ export interface SiteWebConnection {
 }
 
 const functionName = "site-web-api";
+const RETRY_DELAY_MS = 400;
 
 async function invoke<T>(
   provider: SiteWebProvider,
   action: string,
   body: Record<string, unknown> = {},
 ): Promise<{ data: T | null; error: string | null }> {
-  const { data, error } = await supabase.functions.invoke(functionName, {
-    body: { provider, action, ...body },
-  });
-  if (error) return { data: null, error: error.message };
-  if (data?.error) return { data: null, error: String(data.error) };
-  return { data: data as T, error: null };
+  let lastError: string | null = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const { data, error } = await supabase.functions.invoke(functionName, {
+      body: { provider, action, ...body },
+    });
+
+    if (!error) {
+      if (data?.error) return { data: null, error: String(data.error) };
+      return { data: data as T, error: null };
+    }
+
+    lastError = error.message;
+    if (attempt === 0) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    }
+  }
+
+  return { data: null, error: lastError ?? "Impossible de joindre le service Site web." };
 }
 
 export const getSiteWebConnection = (provider: SiteWebProvider) =>
