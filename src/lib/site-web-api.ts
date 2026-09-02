@@ -22,6 +22,7 @@ export interface SiteWebConnection {
 }
 
 const functionName = "site-web-api";
+const activeSupabaseUrl = "https://wdygsbmivqxvgkgpbrqc.supabase.co";
 const RETRY_DELAY_MS = 400;
 const REQUEST_TIMEOUT_MS = 12000;
 
@@ -56,7 +57,7 @@ async function invokeDirect<T>(
   }
 
   try {
-    const response = await fetchWithTimeout(`${supabaseUrl}/functions/v1/${functionName}`, {
+    const response = await fetchWithTimeout(`${activeSupabaseUrl}/functions/v1/${functionName}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
