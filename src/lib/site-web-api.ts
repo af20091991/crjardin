@@ -45,9 +45,7 @@ async function invokeDirect<T>(
     body: JSON.stringify({ provider, action, ...body }),
   });
 
-  const payload = (await response.json().catch(() => null)) as
-    | (T & { error?: unknown })
-    | null;
+  const payload = (await response.json().catch(() => null)) as (T & { error?: unknown }) | null;
   if (!response.ok) {
     return {
       data: null,
@@ -122,11 +120,7 @@ export const querySearchConsole = (options: {
 
 export const listAnalyticsProperties = () =>
   invoke<{
-    properties: Array<{
-      name: string;
-      displayName?: string;
-      propertyType?: string;
-    }>;
+    properties: Array<{ name: string; displayName?: string; propertyType?: string }>;
   }>("google_analytics_4", "list_properties");
 
 export const runAnalyticsReport = (options: {
