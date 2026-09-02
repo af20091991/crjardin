@@ -41,7 +41,9 @@ async function invoke<T>(
     });
 
     if (!error) {
-      if (data?.error) return { data: null, error: String(data.error) };
+      if (data?.error) {
+        return { data: null, error: String(data.error) };
+      }
       return { data: data as T, error: null };
     }
 
