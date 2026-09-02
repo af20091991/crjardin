@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  AlertCircle,
-  BarChart3,
-  FileText,
-  MapPin,
-  Search,
-  Target,
-} from "lucide-react";
+import { AlertCircle, BarChart3, FileText, MapPin, Search, Target } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import { querySearchConsole, runAnalyticsReport } from "@/lib/site-web-api";
@@ -75,13 +68,9 @@ function VisibilityView() {
 
   const totals = useMemo(() => {
     const clicks = rows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
-    const impressions = rows.reduce(
-      (sum, row) => sum + Number(row.impressions ?? 0),
-      0,
-    );
+    const impressions = rows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
     const weightedPosition = rows.reduce(
-      (sum, row) =>
-        sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
+      (sum, row) => sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
       0,
     );
 
@@ -98,32 +87,18 @@ function VisibilityView() {
       {error && <GoogleDataError message={error} />}
       <Card className="p-5">
         <div className="grid gap-5 sm:grid-cols-4">
-          <Metric
-            label="Clics"
-            value={loading ? "…" : formatNumber(totals.clicks)}
-          />
-          <Metric
-            label="Impressions"
-            value={loading ? "…" : formatNumber(totals.impressions)}
-          />
-          <Metric
-            label="CTR"
-            value={loading ? "…" : formatPercent(totals.ctr)}
-          />
+          <Metric label="Clics" value={loading ? "…" : formatNumber(totals.clicks)} />
+          <Metric label="Impressions" value={loading ? "…" : formatNumber(totals.impressions)} />
+          <Metric label="CTR" value={loading ? "…" : formatPercent(totals.ctr)} />
           <Metric
             label="Position moyenne"
             value={
-              loading
-                ? "…"
-                : totals.position
-                  ? totals.position.toFixed(1).replace(".", ",")
-                  : "—"
+              loading ? "…" : totals.position ? totals.position.toFixed(1).replace(".", ",") : "—"
             }
           />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Search Console · {formatDateLabel(yearStart())} →{" "}
-          {formatDateLabel(yesterday())}
+          Search Console · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
         </p>
       </Card>
 
@@ -137,9 +112,7 @@ function VisibilityView() {
           {loading ? (
             <LoadingState />
           ) : rows.length === 0 ? (
-            <EmptyState
-              text="Aucune donnée Search Console disponible sur la période."
-            />
+            <EmptyState text="Aucune donnée Search Console disponible sur la période." />
           ) : (
             <table className="w-full text-sm">
               <thead>
@@ -235,14 +208,8 @@ function LocalView() {
           description="Google Analytics 4 · propriété 159443253."
         />
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
-          <Metric
-            label="Sessions"
-            value={loading ? "…" : formatNumber(totals.sessions)}
-          />
-          <Metric
-            label="Pages vues"
-            value={loading ? "…" : formatNumber(totals.views)}
-          />
+          <Metric label="Sessions" value={loading ? "…" : formatNumber(totals.sessions)} />
+          <Metric label="Pages vues" value={loading ? "…" : formatNumber(totals.views)} />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
           Données cumulées depuis le 1er janvier {new Date().getFullYear()}.
@@ -276,14 +243,10 @@ function LocalView() {
                     <tr key={date} className="border-t border-border/40">
                       <td className="py-3">{formatDateLabel(date)}</td>
                       <td className="py-3 text-right tabular-nums">
-                        {formatNumber(
-                          Number(row.metricValues?.[0]?.value ?? 0),
-                        )}
+                        {formatNumber(Number(row.metricValues?.[0]?.value ?? 0))}
                       </td>
                       <td className="py-3 text-right tabular-nums">
-                        {formatNumber(
-                          Number(row.metricValues?.[1]?.value ?? 0),
-                        )}
+                        {formatNumber(Number(row.metricValues?.[1]?.value ?? 0))}
                       </td>
                     </tr>
                   );
@@ -306,8 +269,8 @@ function ContentView() {
         description="Le suivi éditorial reste séparé des statistiques Google."
       />
       <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
-        Le raccordement des statistiques est opérationnel. L'inventaire réel des
-        pages et leurs données SEO sera branché dans cette vue.
+        Le raccordement des statistiques est opérationnel. L'inventaire réel des pages et leurs
+        données SEO sera branché dans cette vue.
       </div>
     </Card>
   );
@@ -322,8 +285,8 @@ function ActionsView() {
         description="Les recommandations seront calculées à partir des données Google réelles."
       />
       <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
-        Aucune action automatique n'est encore calculée : cette étape attend les
-        données consolidées Search Console et Analytics 4.
+        Aucune action automatique n'est encore calculée : cette étape attend les données consolidées
+        Search Console et Analytics 4.
       </div>
     </Card>
   );
@@ -354,12 +317,8 @@ function Header({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">
-        {value}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
 }
@@ -380,16 +339,12 @@ function GoogleDataError({ message }: { message: string }) {
 
 function LoadingState() {
   return (
-    <p className="py-8 text-center text-sm text-muted-foreground">
-      Chargement des données Google…
-    </p>
+    <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
-  return (
-    <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>
-  );
+  return <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
 }
 
 function yearStart() {
