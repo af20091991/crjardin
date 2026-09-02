@@ -173,9 +173,7 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
   const action = String(url.searchParams.get("action") ?? body.action ?? "status");
-  const provider = String(
-    url.searchParams.get("provider") ?? body.provider ?? "google_search_console",
-  ) as Provider;
+  const provider = (url.searchParams.get("provider") ?? body.provider ?? PROVIDERS[0]) as Provider;
 
   if (!PROVIDERS.includes(provider)) {
     return json({ error: "unsupported_provider" }, 400);
