@@ -22,6 +22,7 @@ export interface SiteWebConnection {
 }
 
 const functionName = "site-web-api";
+const activeSupabaseUrl = "https://wdygsbmivqxvgkgpbrqc.supabase.co";
 const RETRY_DELAY_MS = 400;
 const REQUEST_TIMEOUT_MS = 12000;
 
@@ -56,7 +57,7 @@ async function invokeDirect<T>(
   }
 
   try {
-    const response = await fetchWithTimeout(`${supabaseUrl}/functions/v1/${functionName}`, {
+    const response = await fetchWithTimeout(`${activeSupabaseUrl}/functions/v1/${functionName}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -93,43 +94,7 @@ async function invoke<T>(
   action: string,
   body: Record<string, unknown> = {},
 ): Promise<{ data: T | null; error: string | null }> {
-  let lastError: string | null = null;
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: { provider, action, ...body },
-      });
-
-      if (!error) {
-        if (data?.error) return { data: null, error: String(data.error) };
-        return { data: data as T, error: null };
-      }
-
-      lastError = error.message;
-    } catch {
-      // A thrown fetch/CORS/network error must use the direct authenticated
-      // fallback below instead of being converted to a non-matching message.
-      lastError = "Failed to fetch";
-    }
-
-    if (attempt === 0) {
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-    }
-  }
-
-  if (
-    lastError === "Failed to send a request to the Edge Function" ||
-    lastError === "Failed to fetch" ||
-    lastError === "TypeError: Failed to fetch"
-  ) {
-    return invokeDirect<T>(provider, action, body);
-  }
-
-  return {
-    data: null,
-    error: lastError ?? "Impossible de joindre le service Site web.",
-  };
+  return invokeDirect<T>(provider, action, body);
 }
 
 export const getSiteWebConnection = (provider: SiteWebProvider) =>

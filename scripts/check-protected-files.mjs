@@ -9,7 +9,6 @@ const protectedPaths = [
   "src/integrations/supabase/auth-attacher.ts",
   "src/integrations/supabase/previewAuthStorage.ts",
   ".env",
-  "supabase/config.toml",
 ];
 
 const base = process.env.BASE_SHA;

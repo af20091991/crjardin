@@ -52,18 +52,28 @@ const randomState = () => {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 };
 
+const LEGACY_SUPABASE_URL = "https://mgkeqwwzhcodntkakqaz.supabase.co";
+const LEGACY_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1na2Vxd3d6YWhvZG50a2FrcWF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0Mjg5NTgsImV4cCI6MjA5NzAwNDk1OH0.eQQP9_GDtzXTP1mF0Vx2QQIe0w0TMhzEQKDDjf6KBcQ";
+
+
 const getUserId = async (req: Request) => {
   const auth = req.headers.get("authorization");
   if (!auth?.startsWith("Bearer ")) return null;
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      Authorization: auth,
-      apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    },
-  });
-  if (!response.ok) return null;
-  const user = await response.json();
-  return typeof user?.id === "string" ? user.id : null;
+  for (const baseUrl of [SUPABASE_URL, LEGACY_SUPABASE_URL]) {
+    const response = await fetch(`${baseUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: auth,
+        apikey:
+          baseUrl === LEGACY_SUPABASE_URL
+            ? LEGACY_SUPABASE_ANON_KEY
+            : Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      },
+    });
+    if (!response.ok) continue;
+    const user = await response.json();
+    if (typeof user?.id === "string") return user.id;
+  }
+  return null;
 };
 
 const tokenFor = async (userId: string, provider: Provider) => {
