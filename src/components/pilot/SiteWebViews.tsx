@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, BarChart3, FileText, MapPin, Search, Target } from "lucide-react";
+import {
+  AlertCircle,
+  BarChart3,
+  FileText,
+  MapPin,
+  Search,
+  Target,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import {
@@ -63,19 +70,23 @@ function VisibilityView() {
 
   useEffect(() => {
     let active = true;
+
     const load = async () => {
       setLoading(true);
       setError(null);
+
       const { data, error: apiError } = await querySearchConsole({
         siteUrl: SITE_URL,
         startDate: `${new Date().getFullYear()}-01-01`,
         endDate: yesterday(),
       });
+
       if (!active) return;
       if (apiError) setError(apiError);
       setRows(data?.rows ?? []);
       setLoading(false);
     };
+
     void load();
     return () => {
       active = false;
@@ -84,11 +95,16 @@ function VisibilityView() {
 
   const totals = useMemo(() => {
     const clicks = rows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
-    const impressions = rows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
-    const weightedPosition = rows.reduce(
-      (sum, row) => sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
+    const impressions = rows.reduce(
+      (sum, row) => sum + Number(row.impressions ?? 0),
       0,
     );
+    const weightedPosition = rows.reduce(
+      (sum, row) =>
+        sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
+      0,
+    );
+
     return {
       clicks,
       impressions,
@@ -102,18 +118,35 @@ function VisibilityView() {
       {error && <GoogleDataError message={error} />}
       <Card className="p-5">
         <div className="grid gap-5 sm:grid-cols-4">
-          <Metric label="Clics" value={loading ? "…" : formatNumber(totals.clicks)} />
-          <Metric label="Impressions" value={loading ? "…" : formatNumber(totals.impressions)} />
-          <Metric label="CTR" value={loading ? "…" : formatPercent(totals.ctr)} />
+          <Metric
+            label="Clics"
+            value={loading ? "…" : formatNumber(totals.clicks)}
+          />
+          <Metric
+            label="Impressions"
+            value={loading ? "…" : formatNumber(totals.impressions)}
+          />
+          <Metric
+            label="CTR"
+            value={loading ? "…" : formatPercent(totals.ctr)}
+          />
           <Metric
             label="Position moyenne"
-            value={loading ? "…" : totals.position ? totals.position.toFixed(1).replace(".", ",") : "—"}
+            value={
+              loading
+                ? "…"
+                : totals.position
+                  ? totals.position.toFixed(1).replace(".", ",")
+                  : "—"
+            }
           />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Search Console · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
+          Search Console · {formatDateLabel(yearStart())} →{" "}
+          {formatDateLabel(yesterday())}
         </p>
       </Card>
+
       <Card className="p-5">
         <Header
           icon={Search}
@@ -124,7 +157,9 @@ function VisibilityView() {
           {loading ? (
             <LoadingState />
           ) : rows.length === 0 ? (
-            <EmptyState text="Aucune donnée Search Console disponible sur la période." />
+            <EmptyState
+              text="Aucune donnée Search Console disponible sur la période."
+            />
           ) : (
             <table className="w-full text-sm">
               <thead>
@@ -143,7 +178,9 @@ function VisibilityView() {
                     <tr key={date} className="border-t border-border/40">
                       <td className="py-3">{formatDateLabel(date)}</td>
                       <td className="py-3 text-right tabular-nums">
-                        {Number(row.position ?? 0).toFixed(1).replace(".", ",")}
+                        {Number(row.position ?? 0)
+                          .toFixed(1)
+                          .replace(".", ",")}
                       </td>
                       <td className="py-3 text-right tabular-nums">
                         {formatNumber(Number(row.impressions ?? 0))}
@@ -173,9 +210,11 @@ function LocalView() {
 
   useEffect(() => {
     let active = true;
+
     const load = async () => {
       setLoading(true);
       setError(null);
+
       const accounts = await listBusinessProfileAccounts();
       if (!active) return;
       if (accounts.error) {
@@ -183,11 +222,13 @@ function LocalView() {
         setLoading(false);
         return;
       }
+
       const account = accounts.data?.accounts?.[0];
       if (!account?.name) {
         setLoading(false);
         return;
       }
+
       const locations = await listBusinessProfileLocations(account.name);
       if (!active) return;
       if (locations.error) {
@@ -195,6 +236,7 @@ function LocalView() {
         setLoading(false);
         return;
       }
+
       const location =
         locations.data?.locations?.find((item) =>
           item.websiteUri?.includes("delagraineaujardin.com"),
@@ -203,6 +245,7 @@ function LocalView() {
         setLoading(false);
         return;
       }
+
       const result = await getBusinessProfilePerformance({
         locationName: location.name,
         startDate: yearStart(),
@@ -213,6 +256,7 @@ function LocalView() {
       setPerformance((result.data ?? null) as BusinessPerformance | null);
       setLoading(false);
     };
+
     void load();
     return () => {
       active = false;
@@ -264,15 +308,29 @@ function LocalView() {
           description="Google Business Profile · données réelles de la fiche établissement."
         />
         <div className="mt-5 grid gap-5 sm:grid-cols-4">
-          <Metric label="Clics site" value={loading ? "…" : formatNumber(totals.website)} />
-          <Metric label="Appels" value={loading ? "…" : formatNumber(totals.calls)} />
-          <Metric label="Itinéraires" value={loading ? "…" : formatNumber(totals.directions)} />
-          <Metric label="Impressions" value={loading ? "…" : formatNumber(totals.impressions)} />
+          <Metric
+            label="Clics site"
+            value={loading ? "…" : formatNumber(totals.website)}
+          />
+          <Metric
+            label="Appels"
+            value={loading ? "…" : formatNumber(totals.calls)}
+          />
+          <Metric
+            label="Itinéraires"
+            value={loading ? "…" : formatNumber(totals.directions)}
+          />
+          <Metric
+            label="Impressions"
+            value={loading ? "…" : formatNumber(totals.impressions)}
+          />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Google Business Profile · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
+          Google Business Profile · {formatDateLabel(yearStart())} →{" "}
+          {formatDateLabel(yesterday())}
         </p>
       </Card>
+
       <Card className="p-5">
         <Header
           icon={BarChart3}
@@ -283,7 +341,9 @@ function LocalView() {
           {loading ? (
             <LoadingState />
           ) : series.length === 0 ? (
-            <EmptyState text="Aucune donnée Google Business Profile disponible sur la période." />
+            <EmptyState
+              text="Aucune donnée Google Business Profile disponible sur la période."
+            />
           ) : (
             <table className="w-full text-sm">
               <thead>
@@ -382,7 +442,9 @@ function Header({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
       <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
@@ -403,7 +465,11 @@ function GoogleDataError({ message }: { message: string }) {
 }
 
 function LoadingState() {
-  return <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>;
+  return (
+    <p className="py-8 text-center text-sm text-muted-foreground">
+      Chargement des données Google…
+    </p>
+  );
 }
 
 function EmptyState({ text }: { text: string }) {
