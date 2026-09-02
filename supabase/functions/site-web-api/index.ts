@@ -62,7 +62,9 @@ const sha256 = async (value: string) => {
 
 const randomState = () => {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(bytes), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
 };
 
 const getUserId = async (req: Request) => {
@@ -406,7 +408,10 @@ Deno.serve(async (req) => {
       },
     );
     if (!response.ok) {
-      return json({ error: "analytics_report_failed", status: response.status }, 502);
+      return json(
+        { error: "analytics_report_failed", status: response.status },
+        502,
+      );
     }
     return json(await response.json());
   }
