@@ -286,19 +286,52 @@ Deno.serve(async (req) => {
     const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
     const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
     if (!locationName || !startDate || !endDate) return json({ error: "missing_performance_parameters" }, 400);
-    const metrics = ["WEBSITE_CLICKS", "CALL_CLICKS", "BUSINESS_DIRECTION_REQUESTS", "BUSINESS_IMPRESSIONS_DESKTOP_MAPS", "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH", "BUSINESS_IMPRESSIONS_MOBILE_MAPS", "BUSINESS_IMPRESSIONS_MOBILE_SEARCH"];
+
+    const metrics = [
+      "WEBSITE_CLICKS",
+      "CALL_CLICKS",
+      "BUSINESS_DIRECTION_REQUESTS",
+      "BUSINESS_IMPRESSIONS_DESKTOP_MAPS",
+      "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH",
+      "BUSINESS_IMPRESSIONS_MOBILE_MAPS",
+      "BUSINESS_IMPRESSIONS_MOBILE_SEARCH",
+    ];
     const params = new URLSearchParams();
-    for (const metric of metrics) params.append("dailyMetric", metric);
-    params.set("dailyRange.startDate.year", startDate.slice(0,4));
-    params.set("dailyRange.startDate.month", String(Number(startDate.slice(5,7))));
-    params.set("dailyRange.startDate.day", String(Number(startDate.slice(8,10))));
-    params.set("dailyRange.endDate.year", endDate.slice(0,4));
-    params.set("dailyRange.endDate.month", String(Number(endDate.slice(5,7))));
-    params.set("dailyRange.endDate.day", String(Number(endDate.slice(8,10))));
-    const response = await googleFetch(userId, "google_business_profile",
-      `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`);
-    if (!response.ok) return json({ error: "business_profile_performance_failed", status: response.status }, 502);
-    return json(await response.json());
+    for (const metric of metrics) params.append("dailyMetrics", metric);
+    params.set("dailyRange.start_date.year", startDate.slice(0, 4));
+    params.set("dailyRange.start_date.month", String(Number(startDate.slice(5, 7))));
+    params.set("dailyRange.start_date.day", String(Number(startDate.slice(8, 10))));
+    params.set("dailyRange.end_date.year", endDate.slice(0, 4));
+    params.set("dailyRange.end_date.month", String(Number(endDate.slice(5, 7))));
+    params.set("dailyRange.end_date.day", String(Number(endDate.slice(8, 10))));
+
+    const response = await googleFetch(
+      userId,
+      "google_business_profile",
+      `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`,
+    );
+    if (!response.ok) {
+      return json(
+        { error: "business_profile_performance_failed", status: response.status },
+        502,
+      );
+    }
+
+    const payload = await response.json();
+    const normalized = (payload.multiDailyMetricTimeSeries ?? []).flatMap(
+      (group: any) =>
+        (group.dailyMetricTimeSeries ?? []).map((item: any) => ({
+          metric: item.dailyMetric,
+          dailyMetricTimeSeries: item.timeSeries
+            ? [{ timeSeries: item.timeSeries.datedValues ?? [] }]
+            : [],
+        })),
+    );
+
+    return json({
+      ...payload,
+      multiDailyMetricTimeSeries: normalized,
+    });
   }
 
   return json({ error: "unknown_action" }, 400);
