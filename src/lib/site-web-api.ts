@@ -120,8 +120,6 @@ async function invoke<T>(
 
       lastError = error.message;
     } catch {
-      // A thrown fetch/CORS/network error must use the direct authenticated
-      // fallback below instead of being converted to a non-matching message.
       lastError = "Failed to fetch";
     }
 
