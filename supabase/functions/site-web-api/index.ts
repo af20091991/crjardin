@@ -293,7 +293,15 @@ Deno.serve(async (req) => {
       `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`,
     );
     if (!response.ok) return json({ error: "business_profile_performance_failed", status: response.status }, 502);
-    return json(await response.json());
+    const payload = await response.json();
+    const normalized = {
+      ...payload,
+      multiDailyMetricTimeSeries: (payload.multiDailyMetricTimeSeries ?? []).map((item: any) => ({
+        metric: item.dailyMetric,
+        dailyMetricTimeSeries: item.timeSeries ? [{ timeSeries: item.timeSeries }] : [],
+      })),
+    };
+    return json(normalized);
   }
 
   return json({ error: "unknown_action" }, 400);
