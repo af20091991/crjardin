@@ -92,3 +92,7 @@ Le contexte à reprendre est :
 Le chantier n'est réellement terminé que si ADPP peut :
 
 **lire → écrire → valider → corriger → revalider**, de façon répétable, sans perte de code ni validation d'une mauvaise révision.
+
+## Discipline supplémentaire
+
+Après toute correction de code, le HEAD final doit être soumis à une validation complète avant fusion. Un contrôle qui ne couvre qu'une modification documentaire ne constitue pas, à lui seul, une validation du code.
