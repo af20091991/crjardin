@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { createRemoteJWKSet, jwtVerify } from "npm:jose@6.1.0";
 
 type Provider = "google_search_console" | "google_analytics_4" | "google_business_profile";
 
@@ -17,6 +18,10 @@ const SCOPES = [
 ];
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const LOVABLE_AUTH_ISSUER = "https://mgkeqwwzhcodntkakqaz.supabase.co/auth/v1";
+const lovableJwks = createRemoteJWKSet(
+  new URL(`${LOVABLE_AUTH_ISSUER}/.well-known/jwks.json`),
+);
 const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
@@ -61,8 +66,17 @@ const getUserId = async (req: Request) => {
   if (!auth?.startsWith("Bearer ")) return null;
   const token = auth.slice(7).trim();
   if (!token) return null;
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
-  return error || !data.user ? null : data.user.id;
+
+  try {
+    const { payload } = await jwtVerify(token, lovableJwks, {
+      issuer: LOVABLE_AUTH_ISSUER,
+      audience: "authenticated",
+      algorithms: ["ES256", "RS256"],
+    });
+    return typeof payload.sub === "string" && payload.sub ? payload.sub : null;
+  } catch {
+    return null;
+  }
 };
 
 const tokenFor = async (userId: string, provider: Provider) => {
@@ -187,7 +201,13 @@ Deno.serve(async (req) => {
       .eq("state_hash", stateHash)
       .limit(1);
     const row = rows?.[0];
-    if (!row || row.provider !== provider || new Date(row.expires_at).getTime() <= Date.now()) {
+    const callbackProvider = row?.provider as Provider | undefined;
+    if (
+      !row ||
+      !callbackProvider ||
+      !PROVIDERS.includes(callbackProvider) ||
+      new Date(row.expires_at).getTime() <= Date.now()
+    ) {
       return callbackRedirect(google.appUrl, {
         site_web_google: "error",
         reason: "invalid_or_expired_state",
@@ -223,7 +243,7 @@ Deno.serve(async (req) => {
     await supabaseAdmin.rpc("consume_site_web_oauth_state", {
       p_state_hash: stateHash,
       p_user_id: row.user_id,
-      p_provider: provider,
+      p_provider: callbackProvider,
     });
     return callbackRedirect(google.appUrl, { site_web_google: "connected" });
   }
