@@ -24,6 +24,38 @@ export interface SiteWebConnection {
 const functionName = "site-web-api";
 const RETRY_DELAY_MS = 400;
 
+async function invokeDirect<T>(
+  provider: SiteWebProvider,
+  action: string,
+  body: Record<string, unknown>,
+): Promise<{ data: T | null; error: string | null }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) return { data: null, error: "Session utilisateur Google indisponible." };
+
+  const response = await fetch(`${supabase.supabaseUrl}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      apikey: supabase.supabaseKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ provider, action, ...body }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | (T & { error?: unknown })
+    | null;
+  if (!response.ok) {
+    return {
+      data: null,
+      error: payload?.error ? String(payload.error) : `Service Site web: HTTP ${response.status}.`,
+    };
+  }
+  if (payload?.error) return { data: null, error: String(payload.error) };
+  return { data: payload as T, error: null };
+}
+
 async function invoke<T>(
   provider: SiteWebProvider,
   action: string,
@@ -37,9 +69,7 @@ async function invoke<T>(
     });
 
     if (!error) {
-      if (data?.error) {
-        return { data: null, error: String(data.error) };
-      }
+      if (data?.error) return { data: null, error: String(data.error) };
       return { data: data as T, error: null };
     }
 
@@ -47,6 +77,10 @@ async function invoke<T>(
     if (attempt === 0) {
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
     }
+  }
+
+  if (lastError === "Failed to send a request to the Edge Function") {
+    return invokeDirect<T>(provider, action, body);
   }
 
   return {
