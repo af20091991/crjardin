@@ -46,7 +46,7 @@ Deno.serve(async req => {
     params.set("dailyRange.start_date.day", String(Number(startDate.slice(8, 10))));
     params.set("dailyRange.end_date.year", endDate.slice(0, 4));
     params.set("dailyRange.end_date.month", String(Number(endDate.slice(5, 7))));
-    params.set("dailyRange.end_date.day", String(Number(endDate.slice(8, 10)));
+    params.set("dailyRange.end_date.day", String(Number(endDate.slice(8, 10))));
     const r = await googleFetch(userId, "google_business_profile", `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`);
     if (!r.ok) return json({ error: "business_profile_performance_failed", status: r.status }, 502);
     const payload = await r.json();
