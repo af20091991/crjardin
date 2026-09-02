@@ -388,7 +388,13 @@ function LocalView() {
             <EmptyState text="Aucune donnée Google Business Profile disponible sur la période." />
           ) : (
             <DataTable
-              headers={["Date", "Clics site", "Appels", "Itinéraires", "Impressions"]}
+              headers={[
+                "Date",
+                "Clics site",
+                "Appels",
+                "Itinéraires",
+                "Impressions",
+              ]}
               rows={businessSeries.slice(-31).map(([date, row]) => [
                 formatDateLabel(date),
                 formatNumber(row.WEBSITE_CLICKS ?? 0),
