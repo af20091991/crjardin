@@ -5,11 +5,7 @@ export type SiteWebProvider =
   | "google_analytics_4"
   | "google_business_profile";
 
-export type SiteWebConnectionStatus =
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "error";
+export type SiteWebConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
 export interface SiteWebConnection {
   id?: string;
@@ -60,22 +56,17 @@ async function invokeDirect<T>(
   }
 
   try {
-    const response = await fetchWithTimeout(
-      `${supabaseUrl}/functions/v1/${functionName}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          apikey: supabasePublishableKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ provider, action, ...body }),
+    const response = await fetchWithTimeout(`${supabaseUrl}/functions/v1/${functionName}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        apikey: supabasePublishableKey,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({ provider, action, ...body }),
+    });
 
-    const payload = (await response.json().catch(() => null)) as
-      | (T & { error?: unknown })
-      | null;
+    const payload = (await response.json().catch(() => null)) as (T & { error?: unknown }) | null;
     if (!response.ok) {
       return {
         data: null,
