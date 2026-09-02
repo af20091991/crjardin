@@ -55,24 +55,29 @@ const randomState = () => {
 const LEGACY_SUPABASE_URL = "https://mgkeqwwzhcodntkakqaz.supabase.co";
 const LEGACY_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1na2Vxd3d6YWhvZG50a2FrcWF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0Mjg5NTgsImV4cCI6MjA5NzAwNDk1OH0.eQQP9_GDtzXTP1mF0Vx2QQIe0w0TMhzEQKDDjf6KBcQ";
 
+const getAuthKeys = () => [
+  Deno.env.get("SUPABASE_ANON_KEY"),
+  Deno.env.get("SUPABASE_PUBLISHABLE_KEY"),
+].filter((value): value is string => Boolean(value));
 
 const getUserId = async (req: Request) => {
   const auth = req.headers.get("authorization");
   if (!auth?.startsWith("Bearer ")) return null;
-  for (const baseUrl of [SUPABASE_URL, LEGACY_SUPABASE_URL]) {
+
+  const validators = [
+    ...getAuthKeys().map((apikey) => ({ baseUrl: SUPABASE_URL, apikey })),
+    { baseUrl: LEGACY_SUPABASE_URL, apikey: LEGACY_SUPABASE_ANON_KEY },
+  ];
+
+  for (const { baseUrl, apikey } of validators) {
     const response = await fetch(`${baseUrl}/auth/v1/user`, {
-      headers: {
-        Authorization: auth,
-        apikey:
-          baseUrl === LEGACY_SUPABASE_URL
-            ? LEGACY_SUPABASE_ANON_KEY
-            : Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      },
+      headers: { Authorization: auth, apikey },
     });
     if (!response.ok) continue;
     const user = await response.json();
     if (typeof user?.id === "string") return user.id;
   }
+
   return null;
 };
 
@@ -141,7 +146,9 @@ const googleFetch = async (
 };
 
 const saveConnected = async (userId: string, tokens: any) => {
-  const expiresAt = new Date(Date.now() + Number(tokens.expires_in ?? 3600) * 1000).toISOString();
+  const expiresAt = new Date(
+    Date.now() + Number(tokens.expires_in ?? 3600) * 1000,
+  ).toISOString();
   const refreshToken = tokens.refresh_token;
   if (!refreshToken) return false;
 
@@ -398,8 +405,11 @@ Deno.serve(async (req) => {
   if (action === "list_locations") {
     const accountName = String(url.searchParams.get("accountName") ?? body.accountName ?? "");
     if (!accountName) return json({ error: "missing_account_name" }, 400);
-    const endpoint = `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,storefrontAddress,websiteUri`;
-    const response = await googleFetch(userId, "google_business_profile", endpoint);
+    const response = await googleFetch(
+      userId,
+      "google_business_profile",
+      `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,storefrontAddress,websiteUri`,
+    );
     if (!response.ok) {
       return json({ error: "business_profile_locations_failed", status: response.status }, 502);
     }
@@ -411,51 +421,47 @@ Deno.serve(async (req) => {
     const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
     const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
     if (!locationName || !startDate || !endDate) {
-      return json({ error: "missing_performance_parameters" }, 400);
+      return json({ error: "missing_business_profile_parameters" }, 400);
     }
-
-    const metrics = [
-      "WEBSITE_CLICKS",
-      "CALL_CLICKS",
-      "BUSINESS_DIRECTION_REQUESTS",
-      "BUSINESS_IMPRESSIONS_DESKTOP_MAPS",
-      "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH",
-      "BUSINESS_IMPRESSIONS_MOBILE_MAPS",
-      "BUSINESS_IMPRESSIONS_MOBILE_SEARCH",
-    ];
-    const params = new URLSearchParams();
-    for (const metric of metrics) params.append("dailyMetrics", metric);
-    params.set("dailyRange.start_date.year", startDate.slice(0, 4));
-    params.set("dailyRange.start_date.month", String(Number(startDate.slice(5, 7))));
-    params.set("dailyRange.start_date.day", String(Number(startDate.slice(8, 10))));
-    params.set("dailyRange.end_date.year", endDate.slice(0, 4));
-    params.set("dailyRange.end_date.month", String(Number(endDate.slice(5, 7))));
-    params.set("dailyRange.end_date.day", String(Number(endDate.slice(8, 10))));
-
-    const response = await googleFetch(
-      userId,
-      "google_business_profile",
-      `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`,
+    const endpoint = new URL("https://businessprofileperformance.googleapis.com/v1");
+    endpoint.pathname += `/${locationName.replace(/^\//, "")}:fetchMultiDailyMetricsTimeSeries`;
+    endpoint.searchParams.set("dailyMetric", "WEBSITE_CLICKS");
+    endpoint.searchParams.set("dailyMetric", "CALL_CLICKS");
+    endpoint.searchParams.set("dailyMetric", "BUSINESS_DIRECTION_REQUESTS");
+    endpoint.searchParams.set("dailyMetric", "BUSINESS_IMPRESSIONS_DESKTOP_MAPS");
+    endpoint.searchParams.set("dailyMetric", "BUSINESS_IMPRESSIONS_MOBILE_MAPS");
+    endpoint.searchParams.set("dailyMetric", "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH");
+    endpoint.searchParams.set("dailyMetric", "BUSINESS_IMPRESSIONS_MOBILE_SEARCH");
+    endpoint.searchParams.set(
+      "dailyRange.startDate.year",
+      String(new Date(startDate).getUTCFullYear()),
     );
+    endpoint.searchParams.set(
+      "dailyRange.startDate.month",
+      String(new Date(startDate).getUTCMonth() + 1),
+    );
+    endpoint.searchParams.set(
+      "dailyRange.startDate.day",
+      String(new Date(startDate).getUTCDate()),
+    );
+    endpoint.searchParams.set(
+      "dailyRange.endDate.year",
+      String(new Date(endDate).getUTCFullYear()),
+    );
+    endpoint.searchParams.set(
+      "dailyRange.endDate.month",
+      String(new Date(endDate).getUTCMonth() + 1),
+    );
+    endpoint.searchParams.set(
+      "dailyRange.endDate.day",
+      String(new Date(endDate).getUTCDate()),
+    );
+    const response = await googleFetch(userId, "google_business_profile", endpoint.toString());
     if (!response.ok) {
       return json({ error: "business_profile_performance_failed", status: response.status }, 502);
     }
-
-    const payload = await response.json();
-    const normalized = (payload.multiDailyMetricTimeSeries ?? []).flatMap((group: any) =>
-      (group.dailyMetricTimeSeries ?? []).map((item: any) => ({
-        metric: item.dailyMetric,
-        dailyMetricTimeSeries: item.timeSeries
-          ? [{ timeSeries: item.timeSeries.datedValues ?? [] }]
-          : [],
-      })),
-    );
-
-    return json({
-      ...payload,
-      multiDailyMetricTimeSeries: normalized,
-    });
+    return json(await response.json());
   }
 
-  return json({ error: "unknown_action" }, 400);
+  return json({ error: "unsupported_action" }, 400);
 });
