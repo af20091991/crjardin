@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, Link2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useAuth } from "@/hooks/use-auth";
 import {
   getSiteWebConnection,
   startGoogleConnection,
@@ -16,6 +17,7 @@ const providers: Array<{ id: SiteWebProvider; label: string }> = [
 ];
 
 export function SiteWebGoogleConnection() {
+  const { user, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<Record<SiteWebProvider, string>>({
     google_search_console: "disconnected",
     google_analytics_4: "disconnected",
@@ -25,7 +27,8 @@ export function SiteWebGoogleConnection() {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = async () => {
-    const results = await Promise.all(
+    if (!user) return;
+    const settled = await Promise.allSettled(
       providers.map(async ({ id }) => {
         const result = await getSiteWebConnection(id);
         return {
@@ -36,6 +39,15 @@ export function SiteWebGoogleConnection() {
       }),
     );
 
+    const results = settled.map((entry, index) => {
+      if (entry.status === "fulfilled") return entry.value;
+      return {
+        id: providers[index].id,
+        status: "error",
+        error: "Impossible de vérifier cette source Google.",
+      };
+    });
+
     setStatus(
       Object.fromEntries(
         results.map(({ id, status: providerStatus }) => [id, providerStatus]),
@@ -43,10 +55,15 @@ export function SiteWebGoogleConnection() {
     );
 
     const firstError = results.find((result) => result.error)?.error;
-    if (firstError) setError(firstError);
+    setError(firstError ?? null);
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setError("Connexion Pilot Pro requise pour connecter Google.");
+      return;
+    }
     void refresh();
     const params = new URLSearchParams(window.location.search);
     const result = params.get("site_web_google");
@@ -57,18 +74,25 @@ export function SiteWebGoogleConnection() {
       );
     }
     if (result === "connected") void refresh();
-  }, []);
+  }, [authLoading, user]);
 
   const connect = async () => {
-    setLoading(true);
-    setError(null);
-    const result = await startGoogleConnection("google_search_console");
-    setLoading(false);
-    if (result.error || !result.data?.authorization_url) {
-      setError(result.error ?? "Impossible de démarrer la connexion Google.");
+    if (!user) {
+      setError("Connexion Pilot Pro requise pour connecter Google.");
       return;
     }
-    window.location.assign(result.data.authorization_url);
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await startGoogleConnection("google_search_console");
+      if (result.error || !result.data?.authorization_url) {
+        setError(result.error ?? "Impossible de démarrer la connexion Google.");
+        return;
+      }
+      window.location.assign(result.data.authorization_url);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const connected = status.google_search_console === "connected";
@@ -107,7 +131,12 @@ export function SiteWebGoogleConnection() {
             </p>
           </div>
         </div>
-        <Button type="button" size="sm" onClick={connect} disabled={loading || connected}>
+        <Button
+          type="button"
+          size="sm"
+          onClick={connect}
+          disabled={authLoading || loading || connected || !user}
+        >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
           {connected ? "Google connecté" : "Connecter Google"}
         </Button>
