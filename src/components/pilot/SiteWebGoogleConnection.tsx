@@ -28,7 +28,7 @@ export function SiteWebGoogleConnection() {
 
   const refresh = async () => {
     if (!user) return;
-    const results = await Promise.all(
+    const settled = await Promise.allSettled(
       providers.map(async ({ id }) => {
         const result = await getSiteWebConnection(id);
         return {
@@ -39,6 +39,15 @@ export function SiteWebGoogleConnection() {
       }),
     );
 
+    const results = settled.map((entry, index) => {
+      if (entry.status === "fulfilled") return entry.value;
+      return {
+        id: providers[index].id,
+        status: "error",
+        error: "Impossible de vérifier cette source Google.",
+      };
+    });
+
     setStatus(
       Object.fromEntries(
         results.map(({ id, status: providerStatus }) => [id, providerStatus]),
@@ -46,7 +55,7 @@ export function SiteWebGoogleConnection() {
     );
 
     const firstError = results.find((result) => result.error)?.error;
-    if (firstError) setError(firstError);
+    setError(firstError ?? null);
   };
 
   useEffect(() => {
@@ -74,13 +83,16 @@ export function SiteWebGoogleConnection() {
     }
     setLoading(true);
     setError(null);
-    const result = await startGoogleConnection("google_search_console");
-    setLoading(false);
-    if (result.error || !result.data?.authorization_url) {
-      setError(result.error ?? "Impossible de démarrer la connexion Google.");
-      return;
+    try {
+      const result = await startGoogleConnection("google_search_console");
+      if (result.error || !result.data?.authorization_url) {
+        setError(result.error ?? "Impossible de démarrer la connexion Google.");
+        return;
+      }
+      window.location.assign(result.data.authorization_url);
+    } finally {
+      setLoading(false);
     }
-    window.location.assign(result.data.authorization_url);
   };
 
   const connected = status.google_search_console === "connected";
