@@ -34,10 +34,7 @@ async function fetchWithTimeout(
   init: RequestInit = {},
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(
-    () => controller.abort(),
-    REQUEST_TIMEOUT_MS,
-  );
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     return await fetch(input, { ...init, signal: controller.signal });
   } finally {
@@ -120,6 +117,8 @@ async function invoke<T>(
 
       lastError = error.message;
     } catch {
+      // A thrown fetch/CORS/network error must use the direct authenticated
+      // fallback below instead of being converted to a non-matching message.
       lastError = "Failed to fetch";
     }
 
