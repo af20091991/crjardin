@@ -50,18 +50,11 @@ async function invokeDirect<T>(
     return { data: null, error: "Session utilisateur indisponible." };
   }
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!supabaseUrl || !supabasePublishableKey) {
-    return { data: null, error: "Configuration Supabase indisponible." };
-  }
-
   try {
     const response = await fetchWithTimeout(`${activeSupabaseUrl}/functions/v1/${functionName}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        apikey: supabasePublishableKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ provider, action, ...body }),
