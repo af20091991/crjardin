@@ -19,10 +19,18 @@ export function SiteWebOpportunities() {
         <div className="rounded-lg bg-muted/50 p-2 text-primary">
           <Lightbulb className="h-4 w-4" />
         </div>
-        <div>
-          <h2 className="font-serif text-lg font-semibold">Opportunités</h2>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-serif text-lg font-semibold">Opportunités</h2>
+            <Badge className="border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/10">
+              Démonstration
+            </Badge>
+          </div>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Sujets identifiés par le pilotage du site et à transformer en actions.
+          </p>
+          <p className="mt-2 text-xs text-destructive">
+            Ces opportunités proviennent du modèle de démonstration et ne sont pas des données Google vérifiées.
           </p>
         </div>
       </div>
