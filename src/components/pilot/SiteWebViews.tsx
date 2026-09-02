@@ -1,11 +1,33 @@
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { AlertCircle, BarChart3, FileText, MapPin, Search, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { FileText, MapPin, Search, Target } from "lucide-react";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
-import { siteWebDemoModel } from "@/lib/site-web-model";
+import {
+  getSiteWebConnection,
+  runAnalyticsReport,
+  querySearchConsole,
+} from "@/lib/site-web-api";
 
 type View = "visibility" | "local" | "content" | "actions";
+
+type SearchRow = {
+  keys?: string[];
+  clicks?: number;
+  impressions?: number;
+  ctr?: number;
+  position?: number;
+};
+
+type AnalyticsReport = {
+  rows?: Array<{
+    dimensionValues?: Array<{ value?: string }>;
+    metricValues?: Array<{ value?: string }>;
+  }>;
+};
+
+const SITE_URL = "https://www.delagraineaujardin.com/";
+const GA4_PROPERTY_ID = "159443253";
 
 function Pill({ children }: { children: ReactNode }) {
   return (
@@ -28,66 +50,110 @@ export function SiteWebViewContent({ view }: { view: View }) {
 }
 
 function VisibilityView() {
+  const [rows, setRows] = useState<SearchRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error: apiError } = await querySearchConsole({
+        siteUrl: SITE_URL,
+        startDate: `${new Date().getFullYear()}-01-01`,
+        endDate: yesterday(),
+      });
+      if (!active) return;
+      if (apiError) setError(apiError);
+      setRows(data?.rows ?? []);
+      setLoading(false);
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const totals = useMemo(() => {
+    const clicks = rows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
+    const impressions = rows.reduce(
+      (sum, row) => sum + Number(row.impressions ?? 0),
+      0,
+    );
+    const positionWeighted = rows.reduce(
+      (sum, row) => sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
+      0,
+    );
+    return {
+      clicks,
+      impressions,
+      ctr: impressions ? clicks / impressions : 0,
+      position: impressions ? positionWeighted / impressions : 0,
+    };
+  }, [rows]);
+
   return (
     <>
+      {error && <GoogleDataError message={error} />}
       <Card className="p-5">
         <div className="grid gap-5 sm:grid-cols-4">
-          <Metric
-            label="Requêtes"
-            value={String(siteWebDemoModel.requetes.length)}
-          />
-          <Metric label="Position moyenne" value={averagePosition()} />
+          <Metric label="Clics" value={loading ? "…" : formatNumber(totals.clicks)} />
           <Metric
             label="Impressions"
-            value={formatNumber(
-              siteWebDemoModel.requetes.reduce(
-                (n, q) => n + q.impressions,
-                0,
-              ),
-            )}
+            value={loading ? "…" : formatNumber(totals.impressions)}
           />
+          <Metric label="CTR" value={loading ? "…" : formatPercent(totals.ctr)} />
           <Metric
-            label="Clics"
-            value={formatNumber(
-              siteWebDemoModel.requetes.reduce((n, q) => n + q.clics, 0),
-            )}
+            label="Position moyenne"
+            value={loading ? "…" : totals.position ? totals.position.toFixed(1).replace(".", ",") : "—"}
           />
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Search Console · {formatDateLabel(`${new Date().getFullYear()}-01-01")} → {formatDateLabel(yesterday())}
+        </p>
       </Card>
 
       <Card className="p-5">
         <Header
           icon={Search}
-          title="Requêtes suivies"
-          description="Les données réelles seront affichées ici après connexion à Search Console."
+          title="Évolution de la visibilité"
+          description="Données réelles Search Console, agrégées par jour."
         />
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="pb-2">Requête</th>
-                <th className="pb-2 text-right">Position</th>
-                <th className="pb-2 text-right">Impressions</th>
-                <th className="pb-2 text-right">Clics</th>
-              </tr>
-            </thead>
-            <tbody>
-              {siteWebDemoModel.requetes.map((q) => (
-                <tr key={q.id} className="border-t border-border/40">
-                  <td className="py-3">{q.requete}</td>
-                  <td className="py-3 text-right">
-                    <Pill>#{q.position}</Pill>
-                  </td>
-                  <td className="py-3 text-right tabular-nums">
-                    {formatNumber(q.impressions)}
-                  </td>
-                  <td className="py-3 text-right tabular-nums">
-                    {formatNumber(q.clics)}
-                  </td>
+          {loading ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
+          ) : rows.length === 0 ? (
+            <EmptyState text="Aucune donnée Search Console disponible sur la période." />
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="pb-2">Date</th>
+                  <th className="pb-2 text-right">Position</th>
+                  <th className="pb-2 text-right">Impressions</th>
+                  <th className="pb-2 text-right">Clics</th>
+                  <th className="pb-2 text-right">CTR</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.slice(-31).map((row) => {
+                  const date = row.keys?.[0] ?? "";
+                  return (
+                    <tr key={date} className="border-t border-border/40">
+                      <td className="py-3">{formatDateLabel(date)}</td>
+                      <td className="py-3 text-right tabular-nums">
+                        {Number(row.position ?? 0).toFixed(1).replace(".", ",")}
+                      </td>
+                      <td className="py-3 text-right tabular-nums">{formatNumber(Number(row.impressions ?? 0))}</td>
+                      <td className="py-3 text-right tabular-nums">{formatNumber(Number(row.clicks ?? 0))}</td>
+                      <td className="py-3 text-right tabular-nums">{formatPercent(Number(row.ctr ?? 0))}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </Card>
     </>
@@ -95,46 +161,101 @@ function VisibilityView() {
 }
 
 function LocalView() {
+  const [report, setReport] = useState<AnalyticsReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error: apiError } = await runAnalyticsReport({
+        propertyId: GA4_PROPERTY_ID,
+        startDate: `${new Date().getFullYear()}-01-01`,
+        endDate: yesterday(),
+        dimensions: ["date"],
+        metrics: ["activeUsers", "sessions", "screenPageViews"],
+      });
+      if (!active) return;
+      if (apiError) setError(apiError);
+      setReport((data ?? null) as AnalyticsReport | null);
+      setLoading(false);
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const rows = report?.rows ?? [];
+  const totals = rows.reduce(
+    (acc, row) => {
+      acc.users += Number(row.metricValues?.[0]?.value ?? 0);
+      acc.sessions += Number(row.metricValues?.[1]?.value ?? 0);
+      acc.views += Number(row.metricValues?.[2]?.value ?? 0);
+      return acc;
+    },
+    { users: 0, sessions: 0, views: 0 },
+  );
+
   return (
     <>
+      {error && <GoogleDataError message={error} />}
       <Card className="p-5">
         <Header
           icon={MapPin}
-          title="SEO local"
-          description="État de la présence locale et positions de démonstration."
+          title="Trafic du site"
+          description="Google Analytics 4 · propriété 159443253. Ces indicateurs remplacent les anciennes données de démonstration."
         />
-        <div className="mt-4 divide-y divide-border/40">
-          {siteWebDemoModel.seoLocal.fiche.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between gap-3 py-3"
-            >
-              <span className="text-sm">{item.critere}</span>
-              <Pill>
-                {item.etat === "ok"
-                  ? "Complet"
-                  : item.etat === "partiel"
-                    ? "Partiel"
-                    : "Manquant"}
-              </Pill>
-            </div>
-          ))}
+        <div className="mt-5 grid gap-5 sm:grid-cols-3">
+          <Metric label="Utilisateurs actifs" value={loading ? "…" : formatNumber(totals.users)} />
+          <Metric label="Sessions" value={loading ? "…" : formatNumber(totals.sessions)} />
+          <Metric label="Pages vues" value={loading ? "…" : formatNumber(totals.views)} />
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Données cumulées depuis le 1er janvier {new Date().getFullYear()}.
+        </p>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {siteWebDemoModel.seoLocal.communes.map((commune) => (
-          <Card key={commune.id} className="p-4">
-            <p className="text-sm font-medium">{commune.nom}</p>
-            <p className="mt-2 font-serif text-2xl font-semibold">
-              #{commune.position}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Position de démonstration
-            </p>
-          </Card>
-        ))}
-      </div>
+      <Card className="p-5">
+        <Header
+          icon={BarChart3}
+          title="Évolution du trafic"
+          description="Axe temporel explicite : chaque ligne correspond à une date réellement fournie par GA4."
+        />
+        <div className="mt-4 overflow-x-auto">
+          {loading ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
+          ) : rows.length === 0 ? (
+            <EmptyState text="Aucune donnée GA4 disponible sur la période." />
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="pb-2">Date</th>
+                  <th className="pb-2 text-right">Utilisateurs</th>
+                  <th className="pb-2 text-right">Sessions</th>
+                  <th className="pb-2 text-right">Pages vues</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.slice(-31).map((row) => {
+                  const date = row.dimensionValues?.[0]?.value ?? "";
+                  return (
+                    <tr key={date} className="border-t border-border/40">
+                      <td className="py-3">{formatDateLabel(date)}</td>
+                      <td className="py-3 text-right tabular-nums">{formatNumber(Number(row.metricValues?.[0]?.value ?? 0))}</td>
+                      <td className="py-3 text-right tabular-nums">{formatNumber(Number(row.metricValues?.[1]?.value ?? 0))}</td>
+                      <td className="py-3 text-right tabular-nums">{formatNumber(Number(row.metricValues?.[2]?.value ?? 0))}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </Card>
     </>
   );
 }
@@ -145,39 +266,10 @@ function ContentView() {
       <Header
         icon={FileText}
         title="Contenus"
-        description="Inventaire des pages piloté par le modèle Site web."
+        description="Le suivi éditorial reste séparé des statistiques Google afin de ne jamais présenter des données de démonstration comme des données réelles."
       />
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <th className="pb-2">Page</th>
-              <th className="pb-2">Type</th>
-              <th className="pb-2">État</th>
-              <th className="pb-2 text-right">SEO</th>
-            </tr>
-          </thead>
-          <tbody>
-            {siteWebDemoModel.pages.map((page) => (
-              <tr key={page.id} className="border-t border-border/40">
-                <td className="py-3 font-medium">{page.titre}</td>
-                <td className="py-3 text-muted-foreground">{page.type}</td>
-                <td className="py-3">
-                  <Pill>
-                    {page.statut === "publie"
-                      ? "Publié"
-                      : page.statut === "a_enrichir"
-                        ? "À enrichir"
-                        : "Brouillon"}
-                  </Pill>
-                </td>
-                <td className="py-3 text-right tabular-nums">
-                  {page.scoreSeo ?? "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+        Le raccordement des statistiques est opérationnel. Le prochain niveau consiste à brancher ici l'inventaire réel des pages du site et leurs données SEO.
       </div>
     </Card>
   );
@@ -189,26 +281,10 @@ function ActionsView() {
       <Header
         icon={Target}
         title="Actions"
-        description="Actions issues du modèle de démonstration. La persistance sera traitée ultérieurement."
+        description="Les recommandations seront calculées à partir des données Google réelles, sans réutiliser les anciennes données de démonstration."
       />
-      <div className="mt-4 divide-y divide-border/40">
-        {siteWebDemoModel.actions.map((action) => (
-          <div
-            key={action.id}
-            className="flex flex-wrap items-center justify-between gap-3 py-3"
-          >
-            <div>
-              <p className="text-sm font-medium">{action.titre}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {action.theme}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Pill>Impact {action.impact}</Pill>
-              <Pill>Priorité {action.priorite}</Pill>
-            </div>
-          </div>
-        ))}
+      <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+        Aucune action automatique n'est encore calculée : cette étape attend les données consolidées Search Console + Analytics 4.
       </div>
     </Card>
   );
@@ -239,23 +315,53 @@ function Header({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">
-        {value}
-      </p>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
 }
 
-function averagePosition() {
-  const values = siteWebDemoModel.requetes.map((q) => q.position);
-  return (values.reduce((a, b) => a + b, 0) / values.length)
-    .toFixed(1)
-    .replace(".", ",");
+function GoogleDataError({ message }: { message: string }) {
+  return (
+    <Card className="border-destructive/30 bg-destructive/5 p-4">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+        <div>
+          <p className="text-sm font-medium">Données Google indisponibles</p>
+          <p className="mt-1 text-xs text-muted-foreground">{message}</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
+}
+
+function yesterday() {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function formatDateLabel(value: string) {
+  if (!value) return "—";
+  const date = new Date(`${value}T00:00:00`);
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
 }
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("fr-FR").format(value);
+}
+
+function formatPercent(value: number) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "percent",
+    maximumFractionDigits: 1,
+  }).format(value);
 }
