@@ -24,6 +24,48 @@ export interface SiteWebConnection {
 const functionName = "site-web-api";
 const RETRY_DELAY_MS = 400;
 
+async function invokeDirect<T>(
+  provider: SiteWebProvider,
+  action: string,
+  body: Record<string, unknown>,
+): Promise<{ data: T | null; error: string | null }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) {
+    return { data: null, error: "Session utilisateur indisponible." };
+  }
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !supabasePublishableKey) {
+    return { data: null, error: "Configuration Supabase indisponible." };
+  }
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      apikey: supabasePublishableKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ provider, action, ...body }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | (T & { error?: unknown })
+    | null;
+  if (!response.ok) {
+    return {
+      data: null,
+      error: payload?.error
+        ? String(payload.error)
+        : `Service Site web : HTTP ${response.status}.`,
+    };
+  }
+  if (payload?.error) return { data: null, error: String(payload.error) };
+  return { data: payload as T, error: null };
+}
+
 async function invoke<T>(
   provider: SiteWebProvider,
   action: string,
@@ -37,9 +79,7 @@ async function invoke<T>(
     });
 
     if (!error) {
-      if (data?.error) {
-        return { data: null, error: String(data.error) };
-      }
+      if (data?.error) return { data: null, error: String(data.error) };
       return { data: data as T, error: null };
     }
 
@@ -47,6 +87,10 @@ async function invoke<T>(
     if (attempt === 0) {
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
     }
+  }
+
+  if (lastError === "Failed to send a request to the Edge Function") {
+    return invokeDirect<T>(provider, action, body);
   }
 
   return {
@@ -102,12 +146,7 @@ export const listBusinessProfileAccounts = () =>
 
 export const listBusinessProfileLocations = (accountName: string) =>
   invoke<{
-    locations?: Array<{
-      name: string;
-      title?: string;
-      storefrontAddress?: unknown;
-      websiteUri?: string;
-    }>;
+    locations?: Array<{ name: string; title?: string; storefrontAddress?: unknown; websiteUri?: string }>;
   }>("google_business_profile", "list_locations", { accountName });
 
 export const getBusinessProfilePerformance = (options: {
