@@ -35,8 +35,11 @@ async function invoke<T>(
     const { data, error } = await supabase.functions.invoke(functionName, {
       body: { provider, action, ...body },
     });
+
     if (!error) {
-      if (data?.error) return { data: null, error: String(data.error) };
+      if (data?.error) {
+        return { data: null, error: String(data.error) };
+      }
       return { data: data as T, error: null };
     }
 
@@ -99,7 +102,12 @@ export const listBusinessProfileAccounts = () =>
 
 export const listBusinessProfileLocations = (accountName: string) =>
   invoke<{
-    locations?: Array<{ name: string; title?: string; storefrontAddress?: unknown; websiteUri?: string }>;
+    locations?: Array<{
+      name: string;
+      title?: string;
+      storefrontAddress?: unknown;
+      websiteUri?: string;
+    }>;
   }>("google_business_profile", "list_locations", { accountName });
 
 export const getBusinessProfilePerformance = (options: {
