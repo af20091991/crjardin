@@ -35,18 +35,21 @@ async function invokeDirect<T>(
     return { data: null, error: "Session utilisateur indisponible." };
   }
 
-  const response = await fetch(
-    `${supabase.supabaseUrl}/functions/v1/${functionName}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        apikey: supabase.supabaseKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ provider, action, ...body }),
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !supabasePublishableKey) {
+    return { data: null, error: "Configuration Supabase indisponible." };
+  }
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      apikey: supabasePublishableKey,
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify({ provider, action, ...body }),
+  });
 
   const payload = (await response.json().catch(() => null)) as (T & { error?: unknown }) | null;
   if (!response.ok) {
