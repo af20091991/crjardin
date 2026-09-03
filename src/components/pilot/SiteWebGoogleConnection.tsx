@@ -56,7 +56,9 @@ export function SiteWebGoogleConnection() {
       setError(result.error ?? "Impossible de démarrer la connexion Google.");
       return;
     }
-    window.location.assign(result.data.authorization_url);
+    const authorizationUrl = new URL(result.data.authorization_url);
+    authorizationUrl.searchParams.set("prompt", "select_account consent");
+    window.location.assign(authorizationUrl.toString());
   };
 
   const connected = status.google_search_console === "connected";
