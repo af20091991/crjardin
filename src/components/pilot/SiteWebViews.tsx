@@ -13,8 +13,8 @@ import {
   getBusinessProfilePerformance,
   listBusinessProfileAccounts,
   listBusinessProfileLocations,
+  listSearchConsoleSites,
   querySearchConsole,
-  runAnalyticsReport,
 } from "@/lib/site-web-api";
 
 type View = "visibility" | "local" | "content" | "actions";
@@ -25,13 +25,6 @@ type SearchRow = {
   impressions?: number;
   ctr?: number;
   position?: number;
-};
-
-type AnalyticsReport = {
-  rows?: Array<{
-    dimensionValues?: Array<{ value?: string }>;
-    metricValues?: Array<{ value?: string }>;
-  }>;
 };
 
 type BusinessMetric = {
@@ -61,8 +54,13 @@ type BusinessLocation = {
   websiteUri?: string;
 };
 
-const SITE_URL = "https://www.delagraineaujardin.com/";
-const GA4_PROPERTY_ID = "159443253";
+type SearchConsoleSite = {
+  siteUrl: string;
+  permissionLevel: string;
+};
+
+const FALLBACK_SITE_URL = "https://www.delagraineaujardin.com/";
+const SITE_DOMAIN = "delagraineaujardin.com";
 const LOCAL_QUERY_TERMS = [
   "montpellier",
   "castelnau",
@@ -92,6 +90,7 @@ export function SiteWebViewContent({ view }: { view: View }) {
 
 function VisibilityView() {
   const [rows, setRows] = useState<SearchRow[]>([]);
+  const [siteUrl, setSiteUrl] = useState(FALLBACK_SITE_URL);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,8 +99,24 @@ function VisibilityView() {
     const load = async () => {
       setLoading(true);
       setError(null);
+
+      const sitesResult = await listSearchConsoleSites();
+      const sites = sitesResult.data?.siteEntry ?? [];
+      const selectedSite = selectSearchConsoleSite(sites);
+      const resolvedSiteUrl = selectedSite?.siteUrl ?? FALLBACK_SITE_URL;
+      if (active) setSiteUrl(resolvedSiteUrl);
+
+      if (sitesResult.error && sites.length === 0) {
+        if (active) {
+          setError(sitesResult.error);
+          setRows([]);
+          setLoading(false);
+        }
+        return;
+      }
+
       const { data, error: apiError } = await querySearchConsole({
-        siteUrl: SITE_URL,
+        siteUrl: resolvedSiteUrl,
         startDate: yearStart(),
         endDate: yesterday(),
       });
@@ -145,17 +160,29 @@ function VisibilityView() {
           <Metric label="CTR" value={loading ? "…" : formatPercent(totals.ctr)} />
           <Metric
             label="Position moyenne"
-            value={loading ? "…" : totals.position ? totals.position.toFixed(1).replace(".", ",") : "—"}
+            value={
+              loading
+                ? "…"
+                : totals.position
+                  ? totals.position.toFixed(1).replace(".", ",")
+                  : "—"
+            }
           />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Search Console · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
+          Search Console · {siteUrl} · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
         </p>
       </Card>
       <Card className="p-5">
-        <Header icon={Search} title="Évolution de la visibilité" description="Données réelles Search Console, agrégées par jour." />
+        <Header
+          icon={Search}
+          title="Évolution de la visibilité"
+          description="Données réelles Search Console, agrégées par jour."
+        />
         <div className="mt-4 overflow-x-auto">
-          {loading ? <LoadingState /> : rows.length === 0 ? (
+          {loading ? (
+            <LoadingState />
+          ) : rows.length === 0 ? (
             <EmptyState text="Aucune donnée Search Console disponible sur la période." />
           ) : (
             <DataTable
@@ -179,42 +206,53 @@ function LocalView() {
   const [performance, setPerformance] = useState<BusinessPerformance | null>(null);
   const [location, setLocation] = useState<BusinessLocation | null>(null);
   const [localQueries, setLocalQueries] = useState<SearchRow[]>([]);
+  const [siteUrl, setSiteUrl] = useState(FALLBACK_SITE_URL);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [businessError, setBusinessError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       setLoading(true);
-      setError(null);
+      setSearchError(null);
+      setBusinessError(null);
 
-      const [accountsResult, searchResult] = await Promise.all([
-        listBusinessProfileAccounts(),
-        querySearchConsole({
-          siteUrl: SITE_URL,
-          startDate: yearStart(),
-          endDate: yesterday(),
-          dimensions: ["query"],
-        }),
-      ]);
+      const sitesResult = await listSearchConsoleSites();
+      const sites = sitesResult.data?.siteEntry ?? [];
+      const selectedSite = selectSearchConsoleSite(sites);
+      const resolvedSiteUrl = selectedSite?.siteUrl ?? FALLBACK_SITE_URL;
+      if (active) setSiteUrl(resolvedSiteUrl);
+
+      const searchResult =
+        sitesResult.error && sites.length === 0
+          ? { data: null, error: sitesResult.error }
+          : await querySearchConsole({
+              siteUrl: resolvedSiteUrl,
+              startDate: yearStart(),
+              endDate: yesterday(),
+              dimensions: ["query"],
+            });
 
       if (!active) return;
-      if (searchResult.error) setError(searchResult.error);
+      if (searchResult.error) setSearchError(searchResult.error);
       const queries = (searchResult.data?.rows ?? []).filter((row) => {
         const query = String(row.keys?.[0] ?? "").toLocaleLowerCase("fr-FR");
         return LOCAL_QUERY_TERMS.some((term) => query.includes(term));
       });
       setLocalQueries(queries);
 
+      const accountsResult = await listBusinessProfileAccounts();
+      if (!active) return;
       if (accountsResult.error) {
-        setError((current) => current ?? accountsResult.error ?? null);
+        setBusinessError(accountsResult.error);
         setLoading(false);
         return;
       }
 
       const account = accountsResult.data?.accounts?.[0];
       if (!account?.name) {
-        setError("Aucun compte Google Business Profile disponible.");
+        setBusinessError("Aucun compte Google Business Profile disponible.");
         setLoading(false);
         return;
       }
@@ -222,19 +260,19 @@ function LocalView() {
       const locationsResult = await listBusinessProfileLocations(account.name);
       if (!active) return;
       if (locationsResult.error) {
-        setError((current) => current ?? locationsResult.error ?? null);
+        setBusinessError(locationsResult.error);
         setLoading(false);
         return;
       }
 
       const selected =
         (locationsResult.data?.locations as BusinessLocation[] | undefined)?.find((item) =>
-          item.websiteUri?.includes("delagraineaujardin.com"),
+          item.websiteUri?.includes(SITE_DOMAIN),
         ) ?? (locationsResult.data?.locations?.[0] as BusinessLocation | undefined);
       setLocation(selected ?? null);
 
       if (!selected?.name) {
-        setError("Aucune fiche Google Business Profile correspondant au site n'a été trouvée.");
+        setBusinessError("Aucune fiche Google Business Profile correspondant au site n'a été trouvée.");
         setLoading(false);
         return;
       }
@@ -245,9 +283,7 @@ function LocalView() {
         endDate: yesterday(),
       });
       if (!active) return;
-      if (performanceResult.error) {
-        setError((current) => current ?? performanceResult.error ?? null);
-      }
+      if (performanceResult.error) setBusinessError(performanceResult.error);
       setPerformance((performanceResult.data ?? null) as BusinessPerformance | null);
       setLoading(false);
     };
@@ -306,13 +342,25 @@ function LocalView() {
   );
 
   const address = location?.storefrontAddress;
-  const locationLabel = [address?.postalCode, address?.locality]
-    .filter(Boolean)
-    .join(" ");
+  const locationLabel = [address?.postalCode, address?.locality].filter(Boolean).join(" ");
 
   return (
     <>
-      {error && <GoogleDataError message={error} />}
+      {searchError && <GoogleDataError message={`Search Console : ${searchError}`} />}
+      {businessError && (
+        <Card className="border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+            <div>
+              <p className="text-sm font-medium">Google Business Profile indisponible</p>
+              <p className="mt-1 text-xs text-muted-foreground">{businessError}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Les données Search Console restent affichées indépendamment.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card className="p-5">
         <Header
@@ -350,38 +398,24 @@ function LocalView() {
 
       <Card className="p-5">
         <Header
-          icon={BarChart3}
-          title="Performance locale"
-          description="Données réelles Google Business Profile sur la période courante."
-        />
-        <div className="mt-5 grid gap-5 sm:grid-cols-4">
-          <Metric label="Clics site" value={loading ? "…" : formatNumber(businessTotals.website)} />
-          <Metric label="Appels" value={loading ? "…" : formatNumber(businessTotals.calls)} />
-          <Metric label="Itinéraires" value={loading ? "…" : formatNumber(businessTotals.directions)} />
-          <Metric label="Impressions" value={loading ? "…" : formatNumber(businessTotals.impressions)} />
-        </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Google Business Profile · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
-        </p>
-      </Card>
-
-      <Card className="p-5">
-        <Header
-          icon={MapPin}
+          icon={Search}
           title="Requêtes à intention locale"
-          description="Search Console · requêtes contenant une commune explicitement ciblée. Ce tableau ne prétend pas mesurer la position Google Maps."
+          description="Search Console · requêtes contenant une commune explicitement ciblée. Ce tableau ne mesure pas le classement Google Maps."
         />
+        <p className="mt-2 text-xs text-muted-foreground">Propriété : {siteUrl}</p>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <Metric label="Requêtes locales" value={loading ? "…" : formatNumber(localQueries.length)} />
           <Metric label="Impressions locales" value={loading ? "…" : formatNumber(localQueryTotals.impressions)} />
         </div>
         <div className="mt-4 overflow-x-auto">
-          {loading ? <LoadingState /> : localQueries.length === 0 ? (
+          {loading ? (
+            <LoadingState />
+          ) : localQueries.length === 0 ? (
             <EmptyState text="Aucune requête contenant une commune ciblée n'est disponible sur la période." />
           ) : (
             <DataTable
               headers={["Requête", "Position", "Impressions", "Clics", "CTR"]}
-              rows={localQueries
+              rows={[...localQueries]
                 .sort((a, b) => Number(a.position ?? 999) - Number(b.position ?? 999))
                 .slice(0, 50)
                 .map((row) => [
@@ -399,11 +433,30 @@ function LocalView() {
       <Card className="p-5">
         <Header
           icon={BarChart3}
+          title="Performance locale Google Business Profile"
+          description="Données réelles Google Business Profile. Leur absence ne bloque pas les données Search Console."
+        />
+        <div className="mt-5 grid gap-5 sm:grid-cols-4">
+          <Metric label="Clics site" value={loading ? "…" : formatNumber(businessTotals.website)} />
+          <Metric label="Appels" value={loading ? "…" : formatNumber(businessTotals.calls)} />
+          <Metric label="Itinéraires" value={loading ? "…" : formatNumber(businessTotals.directions)} />
+          <Metric label="Impressions" value={loading ? "…" : formatNumber(businessTotals.impressions)} />
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Google Business Profile · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
+        </p>
+      </Card>
+
+      <Card className="p-5">
+        <Header
+          icon={MapPin}
           title="Évolution de la visibilité de la fiche"
           description="Axe temporel explicite : chaque ligne correspond à une date Google Business Profile."
         />
         <div className="mt-4 overflow-x-auto">
-          {loading ? <LoadingState /> : businessSeries.length === 0 ? (
+          {loading ? (
+            <LoadingState />
+          ) : businessSeries.length === 0 ? (
             <EmptyState text="Aucune donnée Google Business Profile disponible sur la période." />
           ) : (
             <DataTable
@@ -431,7 +484,11 @@ function LocalView() {
 function ContentView() {
   return (
     <Card className="p-5">
-      <Header icon={FileText} title="Contenus" description="Le suivi éditorial reste séparé des statistiques Google." />
+      <Header
+        icon={FileText}
+        title="Contenus"
+        description="Le suivi éditorial reste séparé des statistiques Google."
+      />
       <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
         Le raccordement des statistiques est opérationnel. L'inventaire réel des pages et leurs données SEO sera branché dans cette vue.
       </div>
@@ -442,7 +499,11 @@ function ContentView() {
 function ActionsView() {
   return (
     <Card className="p-5">
-      <Header icon={Target} title="Actions" description="Les recommandations seront calculées à partir des données Google réelles." />
+      <Header
+        icon={Target}
+        title="Actions"
+        description="Les recommandations seront calculées à partir des données Google réelles."
+      />
       <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
         Aucune action automatique n'est encore calculée : cette étape attend les données consolidées Search Console, Analytics 4 et Business Profile.
       </div>
@@ -450,30 +511,79 @@ function ActionsView() {
   );
 }
 
-function Header({ icon: Icon, title, description }: { icon: typeof Search; title: string; description: string }) {
+function Header({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof Search;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="flex items-start gap-3">
-      <div className="rounded-lg bg-muted/50 p-2 text-primary"><Icon className="h-4 w-4" /></div>
-      <div><h2 className="font-serif text-lg font-semibold">{title}</h2><p className="mt-0.5 text-sm text-muted-foreground">{description}</p></div>
+      <div className="rounded-lg bg-muted/50 p-2 text-primary">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div>
+        <h2 className="font-serif text-lg font-semibold">{title}</h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+      </div>
     </div>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
-  return <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p></div>;
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
+    </div>
+  );
 }
 
 function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
     <table className="w-full text-sm">
-      <thead><tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">{headers.map((header) => <th key={header} className="pb-2 text-right first:text-left">{header}</th>)}</tr></thead>
-      <tbody>{rows.map((row) => <tr key={row[0]} className="border-t border-border/40">{row.map((cell, index) => <td key={`${row[0]}-${index}`} className="py-3 text-right tabular-nums first:text-left">{cell}</td>)}</tr>)}</tbody>
+      <thead>
+        <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+          {headers.map((header) => (
+            <th key={header} className="pb-2 text-right first:text-left">
+              {header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, rowIndex) => (
+          <tr key={`${row[0]}-${rowIndex}`} className="border-t border-border/40">
+            {row.map((cell, index) => (
+              <td
+                key={`${row[0]}-${index}`}
+                className="py-3 text-right tabular-nums first:text-left"
+              >
+                {cell}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
     </table>
   );
 }
 
 function GoogleDataError({ message }: { message: string }) {
-  return <Card className="border-destructive/30 bg-destructive/5 p-4"><div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" /><div><p className="text-sm font-medium">Données Google indisponibles</p><p className="mt-1 text-xs text-muted-foreground">{message}</p></div></div></Card>;
+  return (
+    <Card className="border-destructive/30 bg-destructive/5 p-4">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+        <div>
+          <p className="text-sm font-medium">Données Search Console indisponibles</p>
+          <p className="mt-1 text-xs text-muted-foreground">{message}</p>
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 function LoadingState() {
@@ -484,7 +594,17 @@ function EmptyState({ text }: { text: string }) {
   return <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
 }
 
-function yearStart() { return `${new Date().getFullYear()}-01-01`; }
+function selectSearchConsoleSite(sites: SearchConsoleSite[]) {
+  return (
+    sites.find((site) => site.siteUrl.includes(SITE_DOMAIN) && !site.siteUrl.startsWith("sc-domain:")) ??
+    sites.find((site) => site.siteUrl.includes(SITE_DOMAIN)) ??
+    sites[0]
+  );
+}
+
+function yearStart() {
+  return `${new Date().getFullYear()}-01-01`;
+}
 
 function yesterday() {
   const date = new Date();
@@ -495,11 +615,20 @@ function yesterday() {
 function formatDateLabel(value: string) {
   if (!value) return "—";
   const date = new Date(`${value}T00:00:00`);
-  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
 }
 
-function formatNumber(value: number) { return new Intl.NumberFormat("fr-FR").format(value); }
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("fr-FR").format(value);
+}
 
 function formatPercent(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat("fr-FR", {
+    style: "percent",
+    maximumFractionDigits: 1,
+  }).format(value);
 }
