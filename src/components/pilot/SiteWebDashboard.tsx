@@ -83,7 +83,9 @@ function StatusPill({ children }: { children: string }) {
 
 export function SiteWebDashboard() {
   const [activeView, setActiveView] = useState<ModuleView>("overview");
-  const publishedPages = siteWebDemoModel.pages.filter((page) => page.statut === "publie").length;
+  const publishedPages = siteWebDemoModel.pages.filter(
+    (page) => page.statut === "publie",
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -111,7 +113,10 @@ export function SiteWebDashboard() {
         </button>
       </header>
 
-      <nav aria-label="Navigation Site web" className="flex flex-wrap gap-1 border-b border-border pb-1">
+      <nav
+        aria-label="Navigation Site web"
+        className="flex flex-wrap gap-1 border-b border-border pb-1"
+      >
         {moduleViews.map((view) => (
           <button
             key={view.id}
@@ -136,7 +141,9 @@ export function SiteWebDashboard() {
                 <CheckCircle2 className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="font-serif text-xl font-semibold">Connexion Google opérationnelle</h2>
+                <h2 className="font-serif text-xl font-semibold">
+                  Connexion Google opérationnelle
+                </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Une autorisation Google alimente Search Console, Analytics 4 et Business Profile.
                 </p>
@@ -148,9 +155,14 @@ export function SiteWebDashboard() {
                 [Activity, "Analytics 4"],
                 [MapPin, "Business Profile"],
               ].map(([Icon, label]) => (
-                <div key={label as string} className="flex items-center gap-3 rounded-lg bg-muted/30 p-3">
+                <div
+                  key={label as string}
+                  className="flex items-center gap-3 rounded-lg bg-muted/30 p-3"
+                >
                   <Icon className="h-4 w-4 text-muted-foreground" />
-                  <span className="flex-1 text-sm font-medium">{label as string}</span>
+                  <span className="flex-1 text-sm font-medium">
+                    {label as string}
+                  </span>
                   <StatusPill>Vérifiée</StatusPill>
                 </div>
               ))}
@@ -158,26 +170,33 @@ export function SiteWebDashboard() {
           </Card>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {sections.map(({ title, description, icon: Icon, status, hrefLabel, view }) => (
-              <Card key={title} className="group flex h-full flex-col p-4 transition-shadow hover:shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="rounded-lg bg-muted/50 p-2 text-primary">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <StatusPill>{status}</StatusPill>
-                </div>
-                <h2 className="mt-4 font-serif text-base font-semibold">{title}</h2>
-                <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
-                <button
-                  type="button"
-                  onClick={() => setActiveView(view)}
-                  className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary opacity-70 transition-opacity group-hover:opacity-100"
+            {sections.map(
+              ({ title, description, icon: Icon, status, hrefLabel, view }) => (
+                <Card
+                  key={title}
+                  className="group flex h-full flex-col p-4 transition-shadow hover:shadow-sm"
                 >
-                  {hrefLabel}
-                  <ArrowRight className="h-3 w-3" />
-                </button>
-              </Card>
-            ))}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="rounded-lg bg-muted/50 p-2 text-primary">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <StatusPill>{status}</StatusPill>
+                  </div>
+                  <h2 className="mt-4 font-serif text-base font-semibold">{title}</h2>
+                  <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
+                    {description}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveView(view)}
+                    className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary opacity-70 transition-opacity group-hover:opacity-100"
+                  >
+                    {hrefLabel}
+                    <ArrowRight className="h-3 w-3" />
+                  </button>
+                </Card>
+              ),
+            )}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -185,8 +204,12 @@ export function SiteWebDashboard() {
               <div className="flex items-center gap-3">
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contenus</p>
-                  <h2 className="mt-1 font-serif text-lg font-semibold">{publishedPages} pages publiées dans le modèle de contenu</h2>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Contenus
+                  </p>
+                  <h2 className="mt-1 font-serif text-lg font-semibold">
+                    {publishedPages} pages publiées dans le modèle de contenu
+                  </h2>
                 </div>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
@@ -197,8 +220,12 @@ export function SiteWebDashboard() {
               <div className="flex items-center gap-3">
                 <Target className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Données</p>
-                  <h2 className="mt-1 font-serif text-lg font-semibold">Pas de valeur SEO inventée</h2>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Données
+                  </p>
+                  <h2 className="mt-1 font-serif text-lg font-semibold">
+                    Pas de valeur SEO inventée
+                  </h2>
                 </div>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
@@ -211,9 +238,9 @@ export function SiteWebDashboard() {
 
       {activeView === "statistics" && <SiteWebStatistics />}
       {activeView === "opportunities" && <SiteWebOpportunities />}
-      {activeView !== "overview" && activeView !== "statistics" && activeView !== "opportunities" && (
-        <SiteWebViewContent view={activeView} />
-      )}
+      {activeView !== "overview" &&
+        activeView !== "statistics" &&
+        activeView !== "opportunities" && <SiteWebViewContent view={activeView} />}
     </div>
   );
 }
