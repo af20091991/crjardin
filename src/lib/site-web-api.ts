@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-type SiteWebProvider =
+export type SiteWebProvider =
   | "google_search_console"
   | "google_analytics_4"
   | "google_business_profile";
