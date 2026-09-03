@@ -42,6 +42,15 @@ const json = (body: unknown, status = 200) =>
     },
   });
 
+// NOUVEAU : parsing JSON sécurisé, ne plante jamais la fonction
+const safeJson = async (response: Response) => {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+};
+
 const config = () => {
   const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
   const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
@@ -188,290 +197,328 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const url = new URL(req.url);
-  const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-  const action = String(url.searchParams.get("action") ?? body.action ?? "status");
-  const provider = String(
-    url.searchParams.get("provider") ?? body.provider ?? "google_search_console",
-  ) as Provider;
+  // NOUVEAU : try/catch global -- plus aucune exception ne peut faire planter la fonction (EDGE_FUNCTION_ERROR / 502)
+  try {
+    const url = new URL(req.url);
+    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    const action = String(url.searchParams.get("action") ?? body.action ?? "status");
+    const provider = String(
+      url.searchParams.get("provider") ?? body.provider ?? "google_search_console",
+    ) as Provider;
 
-  if (!PROVIDERS.includes(provider)) {
-    return json({ error: "unsupported_provider" }, 400);
-  }
-
-  if (action === "callback") {
-    const code = url.searchParams.get("code");
-    const state = url.searchParams.get("state");
-    const google = config();
-    if (!code || !state || !google) {
-      return json({ error: "invalid_oauth_callback" }, 400);
+    if (!PROVIDERS.includes(provider)) {
+      return json({ error: "unsupported_provider" }, 400);
     }
 
-    const stateHash = await sha256(state);
-    const { data: rows } = await supabaseAdmin
-      .from("site_web_oauth_states")
-      .select("user_id, provider, expires_at")
-      .eq("state_hash", stateHash)
-      .limit(1);
-    const row = rows?.[0];
-    const callbackProvider = row?.provider as Provider | undefined;
-    if (
-      !row ||
-      !callbackProvider ||
-      !PROVIDERS.includes(callbackProvider) ||
-      new Date(row.expires_at).getTime() <= Date.now()
-    ) {
-      return callbackRedirect(google.appUrl, {
-        site_web_google: "error",
-        reason: "invalid_or_expired_state",
-      });
-    }
+    if (action === "callback") {
+      const code = url.searchParams.get("code");
+      const state = url.searchParams.get("state");
+      const google = config();
+      if (!code || !state || !google) {
+        return json({ error: "invalid_oauth_callback" }, 400);
+      }
 
-    const tokenResponse = await fetch(GOOGLE_TOKEN, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        code,
-        client_id: google.clientId,
-        client_secret: google.clientSecret,
-        redirect_uri: google.redirectUri,
-        grant_type: "authorization_code",
-      }),
-    });
-    if (!tokenResponse.ok) {
-      return callbackRedirect(google.appUrl, {
-        site_web_google: "error",
-        reason: "token_exchange_failed",
-      });
-    }
+      const stateHash = await sha256(state);
+      const { data: rows } = await supabaseAdmin
+        .from("site_web_oauth_states")
+        .select("user_id, provider, expires_at")
+        .eq("state_hash", stateHash)
+        .limit(1);
+      const row = rows?.[0];
+      const callbackProvider = row?.provider as Provider | undefined;
+      if (
+        !row ||
+        !callbackProvider ||
+        !PROVIDERS.includes(callbackProvider) ||
+        new Date(row.expires_at).getTime() <= Date.now()
+      ) {
+        return callbackRedirect(google.appUrl, {
+          site_web_google: "error",
+          reason: "invalid_or_expired_state",
+        });
+      }
 
-    const tokens = await tokenResponse.json();
-    if (!(await saveConnected(row.user_id, tokens))) {
-      return callbackRedirect(google.appUrl, {
-        site_web_google: "error",
-        reason: "token_storage_failed",
-      });
-    }
-
-    await supabaseAdmin.rpc("consume_site_web_oauth_state", {
-      p_state_hash: stateHash,
-      p_user_id: row.user_id,
-      p_provider: callbackProvider,
-    });
-    return callbackRedirect(google.appUrl, { site_web_google: "connected" });
-  }
-
-  const userId = await getUserId(req);
-  if (!userId) return json({ error: "unauthorized" }, 401);
-
-  if (action === "status") {
-    const { data } = await supabaseAdmin
-      .from("site_web_connections")
-      .select(
-        "provider,status,external_account_id,external_account_name,scopes,token_expires_at,last_sync_at,last_sync_status,last_error,metadata",
-      )
-      .eq("user_id", userId)
-      .eq("provider", provider)
-      .maybeSingle();
-    return json(data ?? { provider, status: "disconnected" });
-  }
-
-  if (action === "connect") {
-    const google = config();
-    if (!google) return json({ error: "google_oauth_not_configured" }, 503);
-    const state = randomState();
-    const stateHash = await sha256(state);
-    const { error } = await supabaseAdmin.from("site_web_oauth_states").insert({
-      state_hash: stateHash,
-      user_id: userId,
-      provider,
-      expires_at: new Date(Date.now() + 600000).toISOString(),
-    });
-    if (error) return json({ error: "oauth_state_storage_failed" }, 500);
-
-    const authUrl = new URL(GOOGLE_AUTH);
-    authUrl.searchParams.set("client_id", google.clientId);
-    authUrl.searchParams.set("redirect_uri", google.redirectUri);
-    authUrl.searchParams.set("response_type", "code");
-    authUrl.searchParams.set("scope", SCOPES.join(" "));
-    authUrl.searchParams.set("access_type", "offline");
-    authUrl.searchParams.set("prompt", "consent");
-    authUrl.searchParams.set("state", state);
-    return json({ provider, authorization_url: authUrl.toString() });
-  }
-
-  if (action === "list_sites") {
-    const response = await googleFetch(
-      userId,
-      "google_search_console",
-      "https://www.googleapis.com/webmasters/v3/sites",
-    );
-    if (!response.ok) {
-      const details = await googleError(response);
-      return json({ error: "search_console_sites_failed", ...details }, 502);
-    }
-    return json(await response.json());
-  }
-
-  if (action === "search_analytics") {
-    const siteUrl = String(url.searchParams.get("siteUrl") ?? body.siteUrl ?? "");
-    const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
-    const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
-    const requestedDimensions = Array.isArray(body.dimensions) ? body.dimensions : [];
-    const dimensions = requestedDimensions.length ? requestedDimensions : ["date"];
-    if (!siteUrl || !startDate || !endDate) {
-      return json({ error: "missing_site_or_date_range" }, 400);
-    }
-
-    const response = await googleFetch(
-      userId,
-      "google_search_console",
-      `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
-      {
+      const tokenResponse = await fetch(GOOGLE_TOKEN, {
         method: "POST",
-        body: JSON.stringify({
-          startDate,
-          endDate,
-          dimensions,
-          rowLimit: 25000,
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: google.clientId,
+          client_secret: google.clientSecret,
+          redirect_uri: google.redirectUri,
+          grant_type: "authorization_code",
         }),
-      },
-    );
-    if (!response.ok) {
-      const details = await googleError(response);
-      return json({ error: "search_console_analytics_failed", ...details }, 502);
+      });
+      if (!tokenResponse.ok) {
+        return callbackRedirect(google.appUrl, {
+          site_web_google: "error",
+          reason: "token_exchange_failed",
+        });
+      }
+
+      const tokens = await tokenResponse.json();
+      if (!(await saveConnected(row.user_id, tokens))) {
+        return callbackRedirect(google.appUrl, {
+          site_web_google: "error",
+          reason: "token_storage_failed",
+        });
+      }
+
+      await supabaseAdmin.rpc("consume_site_web_oauth_state", {
+        p_state_hash: stateHash,
+        p_user_id: row.user_id,
+        p_provider: callbackProvider,
+      });
+      return callbackRedirect(google.appUrl, { site_web_google: "connected" });
     }
-    return json(await response.json());
+
+    const userId = await getUserId(req);
+    if (!userId) return json({ error: "unauthorized" }, 401);
+
+    if (action === "status") {
+      const { data } = await supabaseAdmin
+        .from("site_web_connections")
+        .select(
+          "provider,status,external_account_id,external_account_name,scopes,token_expires_at,last_sync_at,last_sync_status,last_error,metadata",
+        )
+        .eq("user_id", userId)
+        .eq("provider", provider)
+        .maybeSingle();
+      return json(data ?? { provider, status: "disconnected" });
+    }
+
+    if (action === "connect") {
+      const google = config();
+      if (!google) return json({ error: "google_oauth_not_configured" }, 503);
+      const state = randomState();
+      const stateHash = await sha256(state);
+      const { error } = await supabaseAdmin.from("site_web_oauth_states").insert({
+        state_hash: stateHash,
+        user_id: userId,
+        provider,
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+      });
+      if (error) return json({ error: "oauth_state_storage_failed" }, 500);
+
+      const authUrl = new URL(GOOGLE_AUTH);
+      authUrl.searchParams.set("client_id", google.clientId);
+      authUrl.searchParams.set("redirect_uri", google.redirectUri);
+      authUrl.searchParams.set("response_type", "code");
+      authUrl.searchParams.set("scope", SCOPES.join(" "));
+      authUrl.searchParams.set("access_type", "offline");
+      authUrl.searchParams.set("prompt", "consent");
+      authUrl.searchParams.set("state", state);
+      return json({ provider, authorization_url: authUrl.toString() });
+    }
+
+    if (action === "list_sites") {
+      const response = await googleFetch(
+        userId,
+        "google_search_console",
+        "https://www.googleapis.com/webmasters/v3/sites",
+      );
+      if (!response.ok) {
+        const details = await googleError(response);
+        return json({ error: "search_console_sites_failed", ...details }, 502);
+      }
+      const payload = await safeJson(response);
+      if (payload === null) {
+        return json({ error: "search_console_sites_invalid_response" }, 502);
+      }
+      return json(payload);
+    }
+
+    if (action === "search_analytics") {
+      const siteUrl = String(url.searchParams.get("siteUrl") ?? body.siteUrl ?? "");
+      const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
+      const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
+      const requestedDimensions = Array.isArray(body.dimensions) ? body.dimensions : [];
+      const dimensions = requestedDimensions.length ? requestedDimensions : ["date"];
+      if (!siteUrl || !startDate || !endDate) {
+        return json({ error: "missing_site_or_date_range" }, 400);
+      }
+
+      const response = await googleFetch(
+        userId,
+        "google_search_console",
+        `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            startDate,
+            endDate,
+            dimensions,
+            rowLimit: 25000,
+          }),
+        },
+      );
+      if (!response.ok) {
+        const details = await googleError(response);
+        return json({ error: "search_console_analytics_failed", ...details }, 502);
+      }
+      const payload = await safeJson(response);
+      if (payload === null) {
+        return json({ error: "search_console_analytics_invalid_response" }, 502);
+      }
+      return json(payload);
+    }
+
+    if (action === "list_properties") {
+      const response = await googleFetch(
+        userId,
+        "google_analytics_4",
+        "https://analyticsadmin.googleapis.com/v1beta/accountSummaries",
+      );
+      if (!response.ok) {
+        const details = await googleError(response);
+        return json({ error: "analytics_properties_failed", ...details }, 502);
+      }
+      const payload = await safeJson(response);
+      if (payload === null) {
+        return json({ error: "analytics_properties_invalid_response" }, 502);
+      }
+      const properties = (payload.accountSummaries ?? []).flatMap((account: any) =>
+        (account.propertySummaries ?? []).map((property: any) => ({
+          name: property.property,
+          displayName: property.displayName,
+          propertyType: property.propertyType,
+        })),
+      );
+      return json({ properties });
+    }
+
+    if (action === "run_report") {
+      const propertyId = String(url.searchParams.get("propertyId") ?? body.propertyId ?? "");
+      const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
+      const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
+      const dimensions = Array.isArray(body.dimensions) ? body.dimensions : [];
+      const metrics = Array.isArray(body.metrics) ? body.metrics : [];
+      if (!propertyId || !startDate || !endDate || !dimensions.length || !metrics.length) {
+        return json({ error: "missing_analytics_report_parameters" }, 400);
+      }
+
+      const response = await googleFetch(
+        userId,
+        "google_analytics_4",
+        `https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(propertyId.replace(/^properties\//, ""))}:runReport`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            dateRanges: [{ startDate, endDate }],
+            dimensions: dimensions.map((name: string) => ({ name })),
+            metrics: metrics.map((name: string) => ({ name })),
+          }),
+        },
+      );
+      if (!response.ok) {
+        const details = await googleError(response);
+        return json({ error: "analytics_report_failed", ...details }, 502);
+      }
+      // CORRIGÉ : parsing JSON sécurisé, ne plante plus si le corps est vide/invalide
+      const payload = await safeJson(response);
+      if (payload === null) {
+        return json({ error: "analytics_report_invalid_response" }, 502);
+      }
+      return json(payload);
+    }
+
+    if (action === "list_accounts") {
+      const response = await googleFetch(
+        userId,
+        "google_business_profile",
+        "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
+      );
+      if (!response.ok) {
+        const details = await googleError(response);
+        return json({ error: "business_profile_accounts_failed", ...details }, 502);
+      }
+      const payload = await safeJson(response);
+      if (payload === null) {
+        return json({ error: "business_profile_accounts_invalid_response" }, 502);
+      }
+      return json(payload);
+    }
+
+    if (action === "list_locations") {
+      const accountName = String(url.searchParams.get("accountName") ?? body.accountName ?? "");
+      if (!accountName) return json({ error: "missing_account_name" }, 400);
+      const response = await googleFetch(
+        userId,
+        "google_business_profile",
+        `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,storefrontAddress,websiteUri`,
+      );
+      if (!response.ok) {
+        const details = await googleError(response);
+        return json({ error: "business_profile_locations_failed", ...details }, 502);
+      }
+      const payload = await safeJson(response);
+      if (payload === null) {
+        return json({ error: "business_profile_locations_invalid_response" }, 502);
+      }
+      return json(payload);
+    }
+
+    if (action === "performance") {
+      const locationName = String(url.searchParams.get("locationName") ?? body.locationName ?? "");
+      const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
+      const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
+      if (!locationName || !startDate || !endDate) {
+        return json({ error: "missing_performance_parameters" }, 400);
+      }
+
+      const metrics = [
+        "WEBSITE_CLICKS",
+        "CALL_CLICKS",
+        "BUSINESS_DIRECTION_REQUESTS",
+        "BUSINESS_IMPRESSIONS_DESKTOP_MAPS",
+        "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH",
+        "BUSINESS_IMPRESSIONS_MOBILE_MAPS",
+        "BUSINESS_IMPRESSIONS_MOBILE_SEARCH",
+      ];
+      const params = new URLSearchParams();
+      for (const metric of metrics) params.append("dailyMetric", metric);
+      params.set("dailyRange.start_date.year", startDate.slice(0, 4));
+      params.set("dailyRange.start_date.month", String(Number(startDate.slice(5, 7))));
+      params.set("dailyRange.start_date.day", String(Number(startDate.slice(8, 10))));
+      params.set("dailyRange.end_date.year", endDate.slice(0, 4));
+      params.set("dailyRange.end_date.month", String(Number(endDate.slice(5, 7))));
+      params.set("dailyRange.end_date.day", String(Number(endDate.slice(8, 10))));
+
+      const response = await googleFetch(
+        userId,
+        "google_business_profile",
+        `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`,
+      );
+      if (!response.ok) {
+        const details = await googleError(response);
+        return json({ error: "business_profile_performance_failed", ...details }, 502);
+      }
+      // CORRIGÉ : parsing JSON sécurisé, ne plante plus si le corps est vide/invalide
+      const payload = await safeJson(response);
+      if (payload === null) {
+        return json({ error: "business_profile_performance_invalid_response" }, 502);
+      }
+      const normalized = (payload.multiDailyMetricTimeSeries ?? []).flatMap((group: any) =>
+        (group.dailyMetricTimeSeries ?? []).map((item: any) => ({
+          metric: item.dailyMetric,
+          dailyMetricTimeSeries: item.timeSeries
+            ? [{ timeSeries: item.timeSeries.datedValues ?? [] }]
+            : [],
+        })),
+      );
+      return json({
+        ...payload,
+        multiDailyMetricTimeSeries: normalized,
+      });
+    }
+
+    return json({ error: "unknown_action" }, 400);
+  } catch (err) {
+    // NOUVEAU : filet de sécurité global -- capture toute exception imprévue
+    console.error("site-web-api unhandled error:", err);
+    return json(
+      { error: "internal_error", message: err instanceof Error ? err.message : String(err) },
+      500,
+    );
   }
-
-  if (action === "list_properties") {
-    const response = await googleFetch(
-      userId,
-      "google_analytics_4",
-      "https://analyticsadmin.googleapis.com/v1beta/accountSummaries",
-    );
-    if (!response.ok) {
-      const details = await googleError(response);
-      return json({ error: "analytics_properties_failed", ...details }, 502);
-    }
-    const payload = await response.json();
-    const properties = (payload.accountSummaries ?? []).flatMap((account: any) =>
-      (account.propertySummaries ?? []).map((property: any) => ({
-        name: property.property,
-        displayName: property.displayName,
-        propertyType: property.propertyType,
-      })),
-    );
-    return json({ properties });
-  }
-
-  if (action === "run_report") {
-    const propertyId = String(url.searchParams.get("propertyId") ?? body.propertyId ?? "");
-    const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
-    const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
-    const dimensions = Array.isArray(body.dimensions) ? body.dimensions : [];
-    const metrics = Array.isArray(body.metrics) ? body.metrics : [];
-    if (!propertyId || !startDate || !endDate || !dimensions.length || !metrics.length) {
-      return json({ error: "missing_analytics_report_parameters" }, 400);
-    }
-
-    const response = await googleFetch(
-      userId,
-      "google_analytics_4",
-      `https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(propertyId.replace(/^properties\//, ""))}:runReport`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          dateRanges: [{ startDate, endDate }],
-          dimensions: dimensions.map((name: string) => ({ name })),
-          metrics: metrics.map((name: string) => ({ name })),
-        }),
-      },
-    );
-    if (!response.ok) {
-      const details = await googleError(response);
-      return json({ error: "analytics_report_failed", ...details }, 502);
-    }
-    return json(await response.json());
-  }
-
-  if (action === "list_accounts") {
-    const response = await googleFetch(
-      userId,
-      "google_business_profile",
-      "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
-    );
-    if (!response.ok) {
-      const details = await googleError(response);
-      return json({ error: "business_profile_accounts_failed", ...details }, 502);
-    }
-    return json(await response.json());
-  }
-
-  if (action === "list_locations") {
-    const accountName = String(url.searchParams.get("accountName") ?? body.accountName ?? "");
-    if (!accountName) return json({ error: "missing_account_name" }, 400);
-    const response = await googleFetch(
-      userId,
-      "google_business_profile",
-      `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,storefrontAddress,websiteUri`,
-    );
-    if (!response.ok) {
-      const details = await googleError(response);
-      return json({ error: "business_profile_locations_failed", ...details }, 502);
-    }
-    return json(await response.json());
-  }
-
-  if (action === "performance") {
-    const locationName = String(url.searchParams.get("locationName") ?? body.locationName ?? "");
-    const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
-    const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
-    if (!locationName || !startDate || !endDate) {
-      return json({ error: "missing_performance_parameters" }, 400);
-    }
-
-    const metrics = [
-      "WEBSITE_CLICKS",
-      "CALL_CLICKS",
-      "BUSINESS_DIRECTION_REQUESTS",
-      "BUSINESS_IMPRESSIONS_DESKTOP_MAPS",
-      "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH",
-      "BUSINESS_IMPRESSIONS_MOBILE_MAPS",
-      "BUSINESS_IMPRESSIONS_MOBILE_SEARCH",
-    ];
-    const params = new URLSearchParams();
-    for (const metric of metrics) params.append("dailyMetric", metric);
-    params.set("dailyRange.start_date.year", startDate.slice(0, 4));
-    params.set("dailyRange.start_date.month", String(Number(startDate.slice(5, 7))));
-    params.set("dailyRange.start_date.day", String(Number(startDate.slice(8, 10))));
-    params.set("dailyRange.end_date.year", endDate.slice(0, 4));
-    params.set("dailyRange.end_date.month", String(Number(endDate.slice(5, 7))));
-    params.set("dailyRange.end_date.day", String(Number(endDate.slice(8, 10))));
-
-    const response = await googleFetch(
-      userId,
-      "google_business_profile",
-      `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`,
-    );
-    if (!response.ok) {
-      const details = await googleError(response);
-      return json({ error: "business_profile_performance_failed", ...details }, 502);
-    }
-    const payload = await response.json();
-    const normalized = (payload.multiDailyMetricTimeSeries ?? []).flatMap((group: any) =>
-      (group.dailyMetricTimeSeries ?? []).map((item: any) => ({
-        metric: item.dailyMetric,
-        dailyMetricTimeSeries: item.timeSeries
-          ? [{ timeSeries: item.timeSeries.datedValues ?? [] }]
-          : [],
-      })),
-    );
-    return json({
-      ...payload,
-      multiDailyMetricTimeSeries: normalized,
-    });
-  }
-
-  return json({ error: "unknown_action" }, 400);
 });
