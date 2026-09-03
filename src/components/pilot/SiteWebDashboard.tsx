@@ -10,13 +10,12 @@ import {
   Globe2,
   Lightbulb,
   MapPin,
-  MousePointerClick,
   Search,
   Settings2,
   Target,
-  TrendingUp,
 } from "lucide-react";
 import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
+import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
 import { siteWebDemoModel } from "@/lib/site-web-model";
 
@@ -41,82 +40,50 @@ const moduleViews: Array<{ id: ModuleView; label: string }> = [
 
 const sections = [
   {
+    title: "Statistiques",
+    description: "Trafic et fréquentation issus directement de Google Analytics 4.",
+    icon: BarChart3,
+    status: "Connecté",
+    hrefLabel: "Voir les statistiques",
+    view: "statistics" as ModuleView,
+  },
+  {
     title: "Visibilité",
-    description: "Suivre la présence du site dans les moteurs de recherche.",
+    description: "Présence du site dans Google et performances Search Console.",
     icon: Search,
-    status: "À connecter",
+    status: "Connecté",
     hrefLabel: "Voir la visibilité",
     view: "visibility" as ModuleView,
   },
   {
     title: "SEO local",
-    description: "Piloter les recherches locales autour de Montpellier et des prestations.",
+    description: "Performances de la fiche établissement Google Business Profile.",
     icon: MapPin,
-    status: "À connecter",
+    status: "Connecté",
     hrefLabel: "Voir le SEO local",
     view: "local" as ModuleView,
   },
   {
-    title: "Contenus",
-    description: "Garder une vue claire des pages, articles et de leur niveau d'optimisation.",
-    icon: FileText,
-    status: "À construire",
-    hrefLabel: "Gérer les contenus",
-    view: "content" as ModuleView,
-  },
-  {
     title: "Opportunités",
-    description: "Faire remonter les sujets qui méritent une action prioritaire.",
+    description: "Détection à partir des requêtes Search Console réellement observées.",
     icon: Lightbulb,
-    status: "Démo",
+    status: "Connecté",
     hrefLabel: "Voir les opportunités",
     view: "opportunities" as ModuleView,
   },
 ];
 
 function StatusPill({ children }: { children: string }) {
-  const isDemo = children.toLowerCase().includes("démo");
   return (
-    <Badge
-      variant="outline"
-      className={
-        isDemo
-          ? "border-destructive/40 bg-destructive/10 font-normal text-destructive"
-          : "font-normal text-muted-foreground"
-      }
-    >
+    <Badge variant="outline" className="font-normal text-muted-foreground">
       {children}
     </Badge>
   );
 }
 
-interface MetricItem {
-  icon: typeof Activity;
-  label: string;
-  status: string;
-}
-
 export function SiteWebDashboard() {
   const [activeView, setActiveView] = useState<ModuleView>("overview");
   const publishedPages = siteWebDemoModel.pages.filter((page) => page.statut === "publie").length;
-  const pendingActions = siteWebDemoModel.actions.filter(
-    (action) => action.statut === "a_faire",
-  ).length;
-
-  const metrics: MetricItem[] = [
-    { icon: Activity, label: "Technique", status: "À connecter" },
-    {
-      icon: Search,
-      label: "SEO",
-      status: `${siteWebDemoModel.requetes.length} requêtes démo`,
-    },
-    {
-      icon: FileText,
-      label: "Contenus",
-      status: `${publishedPages} pages publiées`,
-    },
-    { icon: MousePointerClick, label: "Conversion", status: "À construire" },
-  ];
 
   return (
     <div className="space-y-6">
@@ -128,11 +95,11 @@ export function SiteWebDashboard() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-serif text-2xl font-semibold tracking-tight">Site web</h1>
-              <StatusPill>Maquette</StatusPill>
-              <StatusPill>Démo</StatusPill>
+              <StatusPill>Google connecté</StatusPill>
             </div>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Piloter la visibilité, le contenu et les opportunités du site depuis un seul espace.
+              Piloter les statistiques, la visibilité, le SEO local et les opportunités depuis un
+              seul espace.
             </p>
           </div>
         </div>
@@ -167,62 +134,38 @@ export function SiteWebDashboard() {
 
       {activeView === "overview" && (
         <>
-          <Card className="overflow-hidden p-0">
-            <div className="grid gap-0 lg:grid-cols-[1.35fr_0.65fr]">
-              <div className="p-5 lg:p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Santé du site
-                    </p>
-                    <h2 className="mt-1 font-serif text-xl font-semibold">Vue d'ensemble</h2>
-                  </div>
-                  <StatusPill>Architecture prête</StatusPill>
-                </div>
-                <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-center">
-                  <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full border-[10px] border-muted">
-                    <div className="text-center">
-                      <div className="font-serif text-2xl font-semibold">—</div>
-                      <div className="text-[11px] text-muted-foreground">/ 100</div>
-                    </div>
-                  </div>
-                  <div className="grid flex-1 gap-3 sm:grid-cols-2">
-                    {metrics.map(({ icon: Icon, label, status }) => (
-                      <div
-                        key={label}
-                        className="flex items-center gap-3 rounded-lg bg-muted/30 p-3"
-                      >
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium">{label}</p>
-                          <p className="text-xs text-muted-foreground">{status}</p>
-                        </div>
-                        <CheckCircle2 className="h-4 w-4 text-muted-foreground/40" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
+          <Card className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-muted/50 p-2 text-primary">
+                <CheckCircle2 className="h-4 w-4" />
               </div>
-              <div className="border-t bg-muted/20 p-5 lg:border-l lg:border-t-0 lg:p-6">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  À retenir
+              <div>
+                <h2 className="font-serif text-xl font-semibold">
+                  Connexion Google opérationnelle
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Une autorisation Google alimente Search Console, Analytics 4 et Business Profile.
                 </p>
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <p className="text-sm font-medium">Données structurées et isolées</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Le module dispose maintenant d'un modèle centralisé. Les données actuelles
-                      sont explicitement marquées Démo.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Target className="h-4 w-4" />
-                    {pendingActions} actions de démonstration à traiter.
-                  </div>
-                </div>
               </div>
             </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {[
+                [Search, "Search Console"],
+                [Activity, "Analytics 4"],
+                [MapPin, "Business Profile"],
+              ].map(([Icon, label]) => (
+                <div
+                  key={label as string}
+                  className="flex items-center gap-3 rounded-lg bg-muted/30 p-3"
+                >
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="flex-1 text-sm font-medium">{label as string}</span>
+                  <StatusPill>Vérifiée</StatusPill>
+                </div>
+              ))}
+            </div>
           </Card>
+
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {sections.map(({ title, description, icon: Icon, status, hrefLabel, view }) => (
               <Card
@@ -250,53 +193,42 @@ export function SiteWebDashboard() {
               </Card>
             ))}
           </div>
-          <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+
+          <div className="grid gap-4 lg:grid-cols-2">
             <Card className="p-5">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <FileText className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Visibilité
+                    Contenus
                   </p>
-                  <h2 className="mt-1 font-serif text-lg font-semibold">Évolution du site</h2>
-                </div>
-                <BarChart3 className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="mt-5 flex h-44 items-center justify-center rounded-lg border border-dashed bg-muted/10 text-center">
-                <div>
-                  <TrendingUp className="mx-auto h-6 w-6 text-muted-foreground/50" />
-                  <p className="mt-2 text-sm font-medium">Graphique à connecter</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Les sources externes seront traitées dans un chantier dédié.
-                  </p>
+                  <h2 className="mt-1 font-serif text-lg font-semibold">
+                    {publishedPages} pages publiées dans le modèle de contenu
+                  </h2>
                 </div>
               </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                L'inventaire éditorial et les scores SEO de page restent volontairement séparés des
+                statistiques Google tant que leur source réelle n'est pas branchée.
+              </p>
             </Card>
             <Card className="p-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Actions
-                </p>
-                <Badge className="border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/10">
-                  Démonstration
-                </Badge>
+              <div className="flex items-center gap-3">
+                <Target className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Données
+                  </p>
+                  <h2 className="mt-1 font-serif text-lg font-semibold">
+                    Pas de valeur SEO inventée
+                  </h2>
+                </div>
               </div>
-              <h2 className="mt-1 font-serif text-lg font-semibold">À faire</h2>
-              <div className="mt-4 space-y-2">
-                {siteWebDemoModel.actions.slice(0, 3).map((action, index) => (
-                  <button
-                    key={action.id}
-                    type="button"
-                    onClick={() => setActiveView("actions")}
-                    className="flex w-full items-center gap-3 rounded-lg bg-muted/30 px-3 py-3 text-left hover:bg-muted/50"
-                  >
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs tabular-nums">
-                      {index + 1}
-                    </span>
-                    <span className="flex-1 text-sm">{action.titre}</span>
-                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                  </button>
-                ))}
-              </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Les modules connectés affichent désormais les réponses Google réelles ou une
+                indisponibilité explicite. Les anciennes valeurs de démonstration ne pilotent plus
+                ces modules.
+              </p>
             </Card>
           </div>
         </>
@@ -309,93 +241,4 @@ export function SiteWebDashboard() {
         activeView !== "opportunities" && <SiteWebViewContent view={activeView} />}
     </div>
   );
-}
-
-function SiteWebStatistics() {
-  const points = siteWebDemoModel.statistiques;
-  const totalVisits = points.reduce((total, point) => total + (point.visites ?? 0), 0);
-  const latestVisits = points.at(-1)?.visites ?? 0;
-  const previousVisits = points.at(-2)?.visites ?? 0;
-  const evolution = previousVisits
-    ? Math.round(((latestVisits - previousVisits) / previousVisits) * 100)
-    : null;
-
-  return (
-    <div className="space-y-4">
-      <Card className="p-5">
-        <div className="flex items-start gap-3">
-          <div className="rounded-lg bg-muted/50 p-2 text-primary">
-            <BarChart3 className="h-4 w-4" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-serif text-lg font-semibold">Statistiques</h2>
-              <Badge className="border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/10">
-                Démonstration
-              </Badge>
-            </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Historique de fréquentation actuellement disponible dans le modèle Site web.
-            </p>
-            <p className="mt-2 text-xs text-destructive">
-              Ces valeurs sont une démonstration et ne doivent pas être interprétées comme des
-              statistiques Google vérifiées.
-            </p>
-          </div>
-        </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Metric label="Visites cumulées" value={formatNumber(totalVisits)} />
-          <Metric label="Dernier mois" value={formatNumber(latestVisits)} />
-          <Metric
-            label="Évolution mensuelle"
-            value={evolution === null ? "—" : `${evolution > 0 ? "+" : ""}${evolution} %`}
-          />
-        </div>
-      </Card>
-      <Card className="p-5">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="pb-2">Période</th>
-                <th className="pb-2 text-right">Visites</th>
-              </tr>
-            </thead>
-            <tbody>
-              {points.map((point) => (
-                <tr key={point.periode} className="border-t border-border/40">
-                  <td className="py-3">{formatPeriod(point.periode)}</td>
-                  <td className="py-3 text-right tabular-nums">
-                    {formatNumber(point.visites ?? 0)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
-    </div>
-  );
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("fr-FR").format(value);
-}
-
-function formatPeriod(period: string) {
-  const [year, month] = period.split("-");
-  if (!year || !month) return period;
-  return new Intl.DateTimeFormat("fr-FR", {
-    month: "long",
-    year: "numeric",
-  }).format(new Date(Number(year), Number(month) - 1, 1));
 }
