@@ -96,7 +96,9 @@ export function SiteWebDashboard() {
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-serif text-2xl font-semibold tracking-tight">Site web</h1>
+              <h1 className="font-serif text-2xl font-semibold tracking-tight">
+                Site web
+              </h1>
               <StatusPill>Google connecté</StatusPill>
             </div>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
@@ -182,7 +184,9 @@ export function SiteWebDashboard() {
                     </div>
                     <StatusPill>{status}</StatusPill>
                   </div>
-                  <h2 className="mt-4 font-serif text-base font-semibold">{title}</h2>
+                  <h2 className="mt-4 font-serif text-base font-semibold">
+                    {title}
+                  </h2>
                   <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
                     {description}
                   </p>
@@ -213,7 +217,9 @@ export function SiteWebDashboard() {
                 </div>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                L'inventaire éditorial et les scores SEO de page restent volontairement séparés des statistiques Google tant que leur source réelle n'est pas branchée.
+                L'inventaire éditorial et les scores SEO de page restent
+                volontairement séparés des statistiques Google tant que leur
+                source réelle n'est pas branchée.
               </p>
             </Card>
             <Card className="p-5">
@@ -229,7 +235,9 @@ export function SiteWebDashboard() {
                 </div>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                Les modules connectés affichent désormais les réponses Google réelles ou une indisponibilité explicite. Les anciennes valeurs de démonstration ne pilotent plus ces modules.
+                Les modules connectés affichent désormais les réponses Google
+                réelles ou une indisponibilité explicite. Les anciennes valeurs
+                de démonstration ne pilotent plus ces modules.
               </p>
             </Card>
           </div>
