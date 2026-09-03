@@ -144,7 +144,13 @@ const googleFetch = async (
   return fetch(input, { ...init, headers });
 };
 
-const saveConnected = async (userId: string, tokens: any) => {
+type GoogleTokenResponse = {
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+};
+
+const saveConnected = async (userId: string, tokens: GoogleTokenResponse) => {
   if (!tokens?.access_token || !tokens?.refresh_token) return false;
   const expiresAt = new Date(Date.now() + Number(tokens.expires_in ?? 3600) * 1000).toISOString();
 
@@ -378,8 +384,11 @@ Deno.serve(async (req) => {
       if (payload === null) {
         return json({ error: "analytics_properties_invalid_response" }, 502);
       }
-      const properties = (payload.accountSummaries ?? []).flatMap((account: any) =>
-        (account.propertySummaries ?? []).map((property: any) => ({
+      type Ga4PropertySummary = { property: string; displayName: string; propertyType: string };
+      type Ga4AccountSummary = { propertySummaries?: Ga4PropertySummary[] };
+      const accountSummaries = (payload.accountSummaries ?? []) as Ga4AccountSummary[];
+      const properties = accountSummaries.flatMap((account) =>
+        (account.propertySummaries ?? []).map((property) => ({
           name: property.property,
           displayName: property.displayName,
           propertyType: property.propertyType,
@@ -499,8 +508,12 @@ Deno.serve(async (req) => {
       if (payload === null) {
         return json({ error: "business_profile_performance_invalid_response" }, 502);
       }
-      const normalized = (payload.multiDailyMetricTimeSeries ?? []).flatMap((group: any) =>
-        (group.dailyMetricTimeSeries ?? []).map((item: any) => ({
+      type BpTimeSeries = { datedValues?: unknown[] };
+      type BpDailyMetricTimeSeries = { dailyMetric?: string; timeSeries?: BpTimeSeries };
+      type BpMultiDailyGroup = { dailyMetricTimeSeries?: BpDailyMetricTimeSeries[] };
+      const multiDailyGroups = (payload.multiDailyMetricTimeSeries ?? []) as BpMultiDailyGroup[];
+      const normalized = multiDailyGroups.flatMap((group) =>
+        (group.dailyMetricTimeSeries ?? []).map((item) => ({
           metric: item.dailyMetric,
           dailyMetricTimeSeries: item.timeSeries
             ? [{ timeSeries: item.timeSeries.datedValues ?? [] }]
