@@ -5,6 +5,9 @@ on:
     branches:
       - adpp/work/site-web-real-data-final
 
+permissions:
+  contents: write
+
 jobs:
   format:
     runs-on: ubuntu-latest
@@ -18,7 +21,11 @@ jobs:
           bun-version-file: .bun-version
       - run: bun ci
       - run: bunx prettier --write src/components/pilot/SiteWebDashboard.tsx
-      - uses: actions/upload-artifact@v4
-        with:
-          name: formatted-dashboard
-          path: src/components/pilot/SiteWebDashboard.tsx
+      - name: Commit exact Prettier output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/pilot/SiteWebDashboard.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "style(site-web): apply exact prettier formatting"
+          git push
