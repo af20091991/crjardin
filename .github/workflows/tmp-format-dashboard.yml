@@ -1,0 +1,24 @@
+name: TMP format dashboard
+
+on:
+  push:
+    branches:
+      - adpp/work/site-web-real-data-final
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun ci
+      - run: bunx prettier --write src/components/pilot/SiteWebDashboard.tsx
+      - uses: actions/upload-artifact@v4
+        with:
+          name: formatted-dashboard
+          path: src/components/pilot/SiteWebDashboard.tsx
