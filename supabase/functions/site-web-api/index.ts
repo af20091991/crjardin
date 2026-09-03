@@ -223,12 +223,18 @@ Deno.serve(async (req) => {
     const siteUrl = String(url.searchParams.get("siteUrl") ?? body.siteUrl ?? "");
     const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
     const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
+    const requestedDimensions = Array.isArray(body.dimensions)
+      ? body.dimensions.filter((dimension): dimension is string =>
+          typeof dimension === "string" && ["date", "query", "page", "country", "device", "searchAppearance"].includes(dimension),
+        )
+      : [];
+    const dimensions = requestedDimensions.length > 0 ? requestedDimensions.slice(0, 2) : ["date"];
     if (!siteUrl || !startDate || !endDate) return json({ error: "missing_site_or_date_range" }, 400);
 
     const response = await googleFetch(
       userId, "google_search_console",
       `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
-      { method: "POST", body: JSON.stringify({ startDate, endDate, dimensions: ["date"], rowLimit: 25000 }) },
+      { method: "POST", body: JSON.stringify({ startDate, endDate, dimensions, rowLimit: 25000 }) },
     );
     if (!response.ok) return json({ error: "search_console_analytics_failed", status: response.status }, 502);
     return json(await response.json());
