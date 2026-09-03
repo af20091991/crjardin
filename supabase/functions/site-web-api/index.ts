@@ -170,6 +170,19 @@ const callbackRedirect = (appUrl: string, params: Record<string, string>) => {
   return Response.redirect(target.toString(), 302);
 };
 
+const googleError = async (response: Response) => {
+  const body = await response.clone().json().catch(() => null);
+  const message =
+    typeof body?.error?.message === "string"
+      ? body.error.message
+      : typeof body?.error?.status === "string"
+        ? body.error.status
+        : typeof body?.error_description === "string"
+          ? body.error_description
+          : null;
+  return { status: response.status, message };
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -294,7 +307,8 @@ Deno.serve(async (req) => {
       "https://www.googleapis.com/webmasters/v3/sites",
     );
     if (!response.ok) {
-      return json({ error: "search_console_sites_failed", status: response.status }, 502);
+      const details = await googleError(response);
+      return json({ error: "search_console_sites_failed", ...details }, 502);
     }
     return json(await response.json());
   }
@@ -322,13 +336,8 @@ Deno.serve(async (req) => {
       },
     );
     if (!response.ok) {
-      return json(
-        {
-          error: "search_console_analytics_failed",
-          status: response.status,
-        },
-        502,
-      );
+      const details = await googleError(response);
+      return json({ error: "search_console_analytics_failed", ...details }, 502);
     }
     return json(await response.json());
   }
@@ -340,7 +349,8 @@ Deno.serve(async (req) => {
       "https://analyticsadmin.googleapis.com/v1beta/accountSummaries",
     );
     if (!response.ok) {
-      return json({ error: "analytics_properties_failed", status: response.status }, 502);
+      const details = await googleError(response);
+      return json({ error: "analytics_properties_failed", ...details }, 502);
     }
     const payload = await response.json();
     const properties = (payload.accountSummaries ?? []).flatMap((account: any) =>
@@ -377,7 +387,8 @@ Deno.serve(async (req) => {
       },
     );
     if (!response.ok) {
-      return json({ error: "analytics_report_failed", status: response.status }, 502);
+      const details = await googleError(response);
+      return json({ error: "analytics_report_failed", ...details }, 502);
     }
     return json(await response.json());
   }
@@ -389,7 +400,8 @@ Deno.serve(async (req) => {
       "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
     );
     if (!response.ok) {
-      return json({ error: "business_profile_accounts_failed", status: response.status }, 502);
+      const details = await googleError(response);
+      return json({ error: "business_profile_accounts_failed", ...details }, 502);
     }
     return json(await response.json());
   }
@@ -403,7 +415,8 @@ Deno.serve(async (req) => {
       `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,storefrontAddress,websiteUri`,
     );
     if (!response.ok) {
-      return json({ error: "business_profile_locations_failed", status: response.status }, 502);
+      const details = await googleError(response);
+      return json({ error: "business_profile_locations_failed", ...details }, 502);
     }
     return json(await response.json());
   }
@@ -440,13 +453,8 @@ Deno.serve(async (req) => {
       `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`,
     );
     if (!response.ok) {
-      return json(
-        {
-          error: "business_profile_performance_failed",
-          status: response.status,
-        },
-        502,
-      );
+      const details = await googleError(response);
+      return json({ error: "business_profile_performance_failed", ...details }, 502);
     }
     const payload = await response.json();
     const normalized = (payload.multiDailyMetricTimeSeries ?? []).flatMap((group: any) =>
