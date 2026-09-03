@@ -3,7 +3,11 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { createRemoteJWKSet, jwtVerify } from "npm:jose@6.1.0";
 
 type Provider = "google_search_console" | "google_analytics_4" | "google_business_profile";
-const PROVIDERS: Provider[] = ["google_search_console", "google_analytics_4", "google_business_profile"];
+const PROVIDERS: Provider[] = [
+  "google_search_console",
+  "google_analytics_4",
+  "google_business_profile",
+];
 const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 const SCOPES = [
@@ -116,9 +120,15 @@ const tokenFor = async (userId: string, provider: Provider) => {
   return tokens.access_token;
 };
 
-const googleFetch = async (userId: string, provider: Provider, input: string, init?: RequestInit) => {
+const googleFetch = async (
+  userId: string,
+  provider: Provider,
+  input: string,
+  init?: RequestInit,
+) => {
   const accessToken = await tokenFor(userId, provider);
-  if (!accessToken) return new Response(JSON.stringify({ error: "google_token_unavailable" }), { status: 401 });
+  if (!accessToken)
+    return new Response(JSON.stringify({ error: "google_token_unavailable" }), { status: 401 });
   const headers = new Headers(init?.headers);
   headers.set("authorization", `Bearer ${accessToken}`);
   if (!headers.has("content-type") && init?.body) headers.set("content-type", "application/json");
@@ -150,7 +160,9 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const action = String(url.searchParams.get("action") ?? body.action ?? "status");
-    const provider = String(url.searchParams.get("provider") ?? body.provider ?? "google_search_console") as Provider;
+    const provider = String(
+      url.searchParams.get("provider") ?? body.provider ?? "google_search_console",
+    ) as Provider;
     if (!PROVIDERS.includes(provider)) return json({ error: "unsupported_provider" }, 400);
 
     if (action === "callback") {
@@ -166,18 +178,42 @@ Deno.serve(async (req) => {
         .limit(1);
       const row = rows?.[0];
       const callbackProvider = row?.provider as Provider | undefined;
-      if (!row || !callbackProvider || !PROVIDERS.includes(callbackProvider) || new Date(row.expires_at).getTime() <= Date.now()) {
-        return callbackRedirect(google.appUrl, { site_web_google: "error", reason: "invalid_or_expired_state" });
+      if (
+        !row ||
+        !callbackProvider ||
+        !PROVIDERS.includes(callbackProvider) ||
+        new Date(row.expires_at).getTime() <= Date.now()
+      ) {
+        return callbackRedirect(google.appUrl, {
+          site_web_google: "error",
+          reason: "invalid_or_expired_state",
+        });
       }
       const tokenResponse = await fetch(GOOGLE_TOKEN, {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ code, client_id: google.clientId, client_secret: google.clientSecret, redirect_uri: google.redirectUri, grant_type: "authorization_code" }),
+        body: new URLSearchParams({
+          code,
+          client_id: google.clientId,
+          client_secret: google.clientSecret,
+          redirect_uri: google.redirectUri,
+          grant_type: "authorization_code",
+        }),
       });
-      if (!tokenResponse.ok) return callbackRedirect(google.appUrl, { site_web_google: "error", reason: "token_exchange_failed" });
+      if (!tokenResponse.ok)
+        return callbackRedirect(google.appUrl, {
+          site_web_google: "error",
+          reason: "token_exchange_failed",
+        });
       const tokens = await safeJson(tokenResponse);
-      if (!tokens?.access_token || !tokens?.refresh_token) return callbackRedirect(google.appUrl, { site_web_google: "error", reason: "token_storage_failed" });
-      const expiresAt = new Date(Date.now() + Number(tokens.expires_in ?? 3600) * 1000).toISOString();
+      if (!tokens?.access_token || !tokens?.refresh_token)
+        return callbackRedirect(google.appUrl, {
+          site_web_google: "error",
+          reason: "token_storage_failed",
+        });
+      const expiresAt = new Date(
+        Date.now() + Number(tokens.expires_in ?? 3600) * 1000,
+      ).toISOString();
       for (const p of PROVIDERS) {
         const stored = await supabaseAdmin.rpc("store_site_web_google_tokens", {
           p_user_id: row.user_id,
@@ -186,9 +222,17 @@ Deno.serve(async (req) => {
           p_refresh_token: tokens.refresh_token,
           p_expires_at: expiresAt,
         });
-        if (stored.error) return callbackRedirect(google.appUrl, { site_web_google: "error", reason: "token_storage_failed" });
+        if (stored.error)
+          return callbackRedirect(google.appUrl, {
+            site_web_google: "error",
+            reason: "token_storage_failed",
+          });
       }
-      await supabaseAdmin.rpc("consume_site_web_oauth_state", { p_state_hash: stateHash, p_user_id: row.user_id, p_provider: callbackProvider });
+      await supabaseAdmin.rpc("consume_site_web_oauth_state", {
+        p_state_hash: stateHash,
+        p_user_id: row.user_id,
+        p_provider: callbackProvider,
+      });
       return callbackRedirect(google.appUrl, { site_web_google: "connected" });
     }
 
@@ -198,7 +242,9 @@ Deno.serve(async (req) => {
     if (action === "status") {
       const { data } = await supabaseAdmin
         .from("site_web_connections")
-        .select("provider,status,external_account_id,external_account_name,scopes,token_expires_at,last_sync_at,last_sync_status,last_error,metadata")
+        .select(
+          "provider,status,external_account_id,external_account_name,scopes,token_expires_at,last_sync_at,last_sync_status,last_error,metadata",
+        )
         .eq("user_id", userId)
         .eq("provider", provider)
         .maybeSingle();
@@ -210,7 +256,14 @@ Deno.serve(async (req) => {
       if (!google) return json({ error: "google_oauth_not_configured" }, 503);
       const state = randomState();
       const stateHash = await sha256(state);
-      const { error } = await supabaseAdmin.from("site_web_oauth_states").insert({ state_hash: stateHash, user_id: userId, provider, expires_at: new Date(Date.now() + 600000).toISOString() });
+      const { error } = await supabaseAdmin
+        .from("site_web_oauth_states")
+        .insert({
+          state_hash: stateHash,
+          user_id: userId,
+          provider,
+          expires_at: new Date(Date.now() + 600000).toISOString(),
+        });
       if (error) return json({ error: "oauth_state_storage_failed" }, 500);
       const authUrl = new URL(GOOGLE_AUTH);
       authUrl.searchParams.set("client_id", google.clientId);
@@ -224,70 +277,162 @@ Deno.serve(async (req) => {
     }
 
     if (action === "list_sites") {
-      const response = await googleFetch(userId, "google_search_console", "https://www.googleapis.com/webmasters/v3/sites");
-      if (!response.ok) return json({ error: "search_console_sites_failed", ...(await googleError(response)) }, 502);
+      const response = await googleFetch(
+        userId,
+        "google_search_console",
+        "https://www.googleapis.com/webmasters/v3/sites",
+      );
+      if (!response.ok)
+        return json(
+          { error: "search_console_sites_failed", ...(await googleError(response)) },
+          502,
+        );
       const payload = await safeJson(response);
-      return payload === null ? json({ error: "search_console_sites_invalid_response" }, 502) : json(payload);
+      return payload === null
+        ? json({ error: "search_console_sites_invalid_response" }, 502)
+        : json(payload);
     }
 
     if (action === "search_analytics") {
       const siteUrl = String(url.searchParams.get("siteUrl") ?? body.siteUrl ?? "");
       const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
       const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
-      const dimensions = Array.isArray(body.dimensions) && body.dimensions.length ? body.dimensions : ["date"];
-      if (!siteUrl || !startDate || !endDate) return json({ error: "missing_site_or_date_range" }, 400);
-      const response = await googleFetch(userId, "google_search_console", `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, { method: "POST", body: JSON.stringify({ startDate, endDate, dimensions, rowLimit: 25000 }) });
-      if (!response.ok) return json({ error: "search_console_analytics_failed", ...(await googleError(response)) }, 502);
+      const dimensions =
+        Array.isArray(body.dimensions) && body.dimensions.length ? body.dimensions : ["date"];
+      if (!siteUrl || !startDate || !endDate)
+        return json({ error: "missing_site_or_date_range" }, 400);
+      const response = await googleFetch(
+        userId,
+        "google_search_console",
+        `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
+        {
+          method: "POST",
+          body: JSON.stringify({ startDate, endDate, dimensions, rowLimit: 25000 }),
+        },
+      );
+      if (!response.ok)
+        return json(
+          { error: "search_console_analytics_failed", ...(await googleError(response)) },
+          502,
+        );
       const payload = await safeJson(response);
-      return payload === null ? json({ error: "search_console_analytics_invalid_response" }, 502) : json(payload);
+      return payload === null
+        ? json({ error: "search_console_analytics_invalid_response" }, 502)
+        : json(payload);
     }
 
     if (action === "list_properties") {
-      const response = await googleFetch(userId, "google_analytics_4", "https://analyticsadmin.googleapis.com/v1beta/accountSummaries");
-      if (!response.ok) return json({ error: "analytics_properties_failed", ...(await googleError(response)) }, 502);
+      const response = await googleFetch(
+        userId,
+        "google_analytics_4",
+        "https://analyticsadmin.googleapis.com/v1beta/accountSummaries",
+      );
+      if (!response.ok)
+        return json(
+          { error: "analytics_properties_failed", ...(await googleError(response)) },
+          502,
+        );
       const payload = await safeJson(response);
       if (payload === null) return json({ error: "analytics_properties_invalid_response" }, 502);
-      const properties = (payload.accountSummaries ?? []).flatMap((account: { propertySummaries?: Array<{ property: string; displayName?: string; propertyType?: string }> }) =>
-        (account.propertySummaries ?? []).map((property) => ({ name: property.property, displayName: property.displayName, propertyType: property.propertyType })),
+      const properties = (payload.accountSummaries ?? []).flatMap(
+        (account: {
+          propertySummaries?: Array<{
+            property: string;
+            displayName?: string;
+            propertyType?: string;
+          }>;
+        }) =>
+          (account.propertySummaries ?? []).map((property) => ({
+            name: property.property,
+            displayName: property.displayName,
+            propertyType: property.propertyType,
+          })),
       );
       return json({ properties });
     }
 
     if (action === "run_report") {
-      const propertyId = String(url.searchParams.get("propertyId") ?? body.propertyId ?? "").replace(/^properties\//, "");
+      const propertyId = String(
+        url.searchParams.get("propertyId") ?? body.propertyId ?? "",
+      ).replace(/^properties\//, "");
       const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
       const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
       const dimensions = Array.isArray(body.dimensions) ? body.dimensions : [];
       const metrics = Array.isArray(body.metrics) ? body.metrics : [];
-      if (!propertyId || !startDate || !endDate || !dimensions.length || !metrics.length) return json({ error: "missing_analytics_report_parameters" }, 400);
-      const response = await googleFetch(userId, "google_analytics_4", `https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(propertyId)}:runReport`, { method: "POST", body: JSON.stringify({ dateRanges: [{ startDate, endDate }], dimensions: dimensions.map((name: string) => ({ name })), metrics: metrics.map((name: string) => ({ name })) }) });
-      if (!response.ok) return json({ error: "analytics_report_failed", ...(await googleError(response)) }, 502);
+      if (!propertyId || !startDate || !endDate || !dimensions.length || !metrics.length)
+        return json({ error: "missing_analytics_report_parameters" }, 400);
+      const response = await googleFetch(
+        userId,
+        "google_analytics_4",
+        `https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(propertyId)}:runReport`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            dateRanges: [{ startDate, endDate }],
+            dimensions: dimensions.map((name: string) => ({ name })),
+            metrics: metrics.map((name: string) => ({ name })),
+          }),
+        },
+      );
+      if (!response.ok)
+        return json({ error: "analytics_report_failed", ...(await googleError(response)) }, 502);
       const payload = await safeJson(response);
-      return payload === null ? json({ error: "analytics_report_invalid_response" }, 502) : json(payload);
+      return payload === null
+        ? json({ error: "analytics_report_invalid_response" }, 502)
+        : json(payload);
     }
 
     if (action === "list_accounts") {
-      const response = await googleFetch(userId, "google_business_profile", "https://mybusinessaccountmanagement.googleapis.com/v1/accounts");
-      if (!response.ok) return json({ error: "business_profile_accounts_failed", ...(await googleError(response)) }, 502);
+      const response = await googleFetch(
+        userId,
+        "google_business_profile",
+        "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
+      );
+      if (!response.ok)
+        return json(
+          { error: "business_profile_accounts_failed", ...(await googleError(response)) },
+          502,
+        );
       const payload = await safeJson(response);
-      return payload === null ? json({ error: "business_profile_accounts_invalid_response" }, 502) : json(payload);
+      return payload === null
+        ? json({ error: "business_profile_accounts_invalid_response" }, 502)
+        : json(payload);
     }
 
     if (action === "list_locations") {
       const accountName = String(url.searchParams.get("accountName") ?? body.accountName ?? "");
       if (!accountName) return json({ error: "missing_account_name" }, 400);
-      const response = await googleFetch(userId, "google_business_profile", `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,storefrontAddress,websiteUri`);
-      if (!response.ok) return json({ error: "business_profile_locations_failed", ...(await googleError(response)) }, 502);
+      const response = await googleFetch(
+        userId,
+        "google_business_profile",
+        `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,storefrontAddress,websiteUri`,
+      );
+      if (!response.ok)
+        return json(
+          { error: "business_profile_locations_failed", ...(await googleError(response)) },
+          502,
+        );
       const payload = await safeJson(response);
-      return payload === null ? json({ error: "business_profile_locations_invalid_response" }, 502) : json(payload);
+      return payload === null
+        ? json({ error: "business_profile_locations_invalid_response" }, 502)
+        : json(payload);
     }
 
     if (action === "performance") {
       const locationName = String(url.searchParams.get("locationName") ?? body.locationName ?? "");
       const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
       const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
-      if (!locationName || !startDate || !endDate) return json({ error: "missing_performance_parameters" }, 400);
-      const metrics = ["WEBSITE_CLICKS", "CALL_CLICKS", "BUSINESS_DIRECTION_REQUESTS", "BUSINESS_IMPRESSIONS_DESKTOP_MAPS", "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH", "BUSINESS_IMPRESSIONS_MOBILE_MAPS", "BUSINESS_IMPRESSIONS_MOBILE_SEARCH"];
+      if (!locationName || !startDate || !endDate)
+        return json({ error: "missing_performance_parameters" }, 400);
+      const metrics = [
+        "WEBSITE_CLICKS",
+        "CALL_CLICKS",
+        "BUSINESS_DIRECTION_REQUESTS",
+        "BUSINESS_IMPRESSIONS_DESKTOP_MAPS",
+        "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH",
+        "BUSINESS_IMPRESSIONS_MOBILE_MAPS",
+        "BUSINESS_IMPRESSIONS_MOBILE_SEARCH",
+      ];
       const params = new URLSearchParams();
       for (const metric of metrics) params.append("dailyMetrics", metric);
       params.set("dailyRange.start_date.year", startDate.slice(0, 4));
@@ -296,16 +441,28 @@ Deno.serve(async (req) => {
       params.set("dailyRange.end_date.year", endDate.slice(0, 4));
       params.set("dailyRange.end_date.month", String(Number(endDate.slice(5, 7))));
       params.set("dailyRange.end_date.day", String(Number(endDate.slice(8, 10))));
-      const response = await googleFetch(userId, "google_business_profile", `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`);
-      if (!response.ok) return json({ error: "business_profile_performance_failed", ...(await googleError(response)) }, 502);
+      const response = await googleFetch(
+        userId,
+        "google_business_profile",
+        `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params.toString()}`,
+      );
+      if (!response.ok)
+        return json(
+          { error: "business_profile_performance_failed", ...(await googleError(response)) },
+          502,
+        );
       const payload = await safeJson(response);
-      if (payload === null) return json({ error: "business_profile_performance_invalid_response" }, 502);
+      if (payload === null)
+        return json({ error: "business_profile_performance_invalid_response" }, 502);
       return json(payload);
     }
 
     return json({ error: "unknown_action" }, 400);
   } catch (error) {
     console.error("site-web-api unhandled error", error);
-    return json({ error: "internal_error", message: error instanceof Error ? error.message : String(error) }, 500);
+    return json(
+      { error: "internal_error", message: error instanceof Error ? error.message : String(error) },
+      500,
+    );
   }
 });
