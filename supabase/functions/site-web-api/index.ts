@@ -256,14 +256,12 @@ Deno.serve(async (req) => {
       if (!google) return json({ error: "google_oauth_not_configured" }, 503);
       const state = randomState();
       const stateHash = await sha256(state);
-      const { error } = await supabaseAdmin
-        .from("site_web_oauth_states")
-        .insert({
-          state_hash: stateHash,
-          user_id: userId,
-          provider,
-          expires_at: new Date(Date.now() + 600000).toISOString(),
-        });
+      const { error } = await supabaseAdmin.from("site_web_oauth_states").insert({
+        state_hash: stateHash,
+        user_id: userId,
+        provider,
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+      });
       if (error) return json({ error: "oauth_state_storage_failed" }, 500);
       const authUrl = new URL(GOOGLE_AUTH);
       authUrl.searchParams.set("client_id", google.clientId);
