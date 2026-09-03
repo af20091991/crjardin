@@ -22,7 +22,7 @@ export interface SiteWebConnection {
 }
 
 const functionName = "site-web-api";
-const activeSupabaseUrl = "https://wdygsbmivqxvgkgpbrqc.supabase.co";
+const activeSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const RETRY_DELAY_MS = 400;
 const REQUEST_TIMEOUT_MS = 12000;
 
