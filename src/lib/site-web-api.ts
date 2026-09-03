@@ -115,6 +115,7 @@ export const querySearchConsole = (options: {
   siteUrl: string;
   startDate: string;
   endDate: string;
+  dimensions?: string[];
 }) =>
   invoke<{
     rows?: Array<{
@@ -146,7 +147,12 @@ export const listBusinessProfileAccounts = () =>
 
 export const listBusinessProfileLocations = (accountName: string) =>
   invoke<{
-    locations?: Array<{ name: string; title?: string; storefrontAddress?: unknown; websiteUri?: string }>;
+    locations?: Array<{
+      name: string;
+      title?: string;
+      storefrontAddress?: unknown;
+      websiteUri?: string;
+    }>;
   }>("google_business_profile", "list_locations", { accountName });
 
 export const getBusinessProfilePerformance = (options: {
