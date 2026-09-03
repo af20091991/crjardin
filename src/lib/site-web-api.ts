@@ -106,6 +106,7 @@ export const querySearchConsole = (options: {
   siteUrl: string;
   startDate: string;
   endDate: string;
+  dimensions?: string[];
 }) =>
   invoke<{
     rows?: Array<{
