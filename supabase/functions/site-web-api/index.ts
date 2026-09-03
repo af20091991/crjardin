@@ -19,9 +19,7 @@ const SCOPES = [
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const LOVABLE_AUTH_ISSUER = "https://mgkeqwwzhcodntkakqaz.supabase.co/auth/v1";
-const lovableJwks = createRemoteJWKSet(
-  new URL(`${LOVABLE_AUTH_ISSUER}/.well-known/jwks.json`),
-);
+const lovableJwks = createRemoteJWKSet(new URL(`${LOVABLE_AUTH_ISSUER}/.well-known/jwks.json`));
 const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
@@ -180,7 +178,10 @@ const callbackRedirect = (appUrl: string, params: Record<string, string>) => {
 };
 
 const googleError = async (response: Response) => {
-  const body = await response.clone().json().catch(() => null);
+  const body = await response
+    .clone()
+    .json()
+    .catch(() => null);
   const message =
     typeof body?.error?.message === "string"
       ? body.error.message
