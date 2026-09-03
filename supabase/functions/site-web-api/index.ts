@@ -317,6 +317,8 @@ Deno.serve(async (req) => {
     const siteUrl = String(url.searchParams.get("siteUrl") ?? body.siteUrl ?? "");
     const startDate = String(url.searchParams.get("startDate") ?? body.startDate ?? "");
     const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
+    const requestedDimensions = Array.isArray(body.dimensions) ? body.dimensions : [];
+    const dimensions = requestedDimensions.length ? requestedDimensions : ["date"];
     if (!siteUrl || !startDate || !endDate) {
       return json({ error: "missing_site_or_date_range" }, 400);
     }
@@ -330,7 +332,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           startDate,
           endDate,
-          dimensions: ["date"],
+          dimensions,
           rowLimit: 25000,
         }),
       },
