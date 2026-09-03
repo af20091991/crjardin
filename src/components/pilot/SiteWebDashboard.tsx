@@ -41,8 +41,7 @@ const moduleViews: Array<{ id: ModuleView; label: string }> = [
 const sections = [
   {
     title: "Statistiques",
-    description:
-      "Trafic et fréquentation issus directement de Google Analytics 4.",
+    description: "Trafic et fréquentation issus directement de Google Analytics 4.",
     icon: BarChart3,
     status: "Connecté",
     hrefLabel: "Voir les statistiques",
@@ -58,8 +57,7 @@ const sections = [
   },
   {
     title: "SEO local",
-    description:
-      "Performances de la fiche établissement Google Business Profile.",
+    description: "Performances de la fiche établissement Google Business Profile.",
     icon: MapPin,
     status: "Connecté",
     hrefLabel: "Voir le SEO local",
@@ -67,8 +65,7 @@ const sections = [
   },
   {
     title: "Opportunités",
-    description:
-      "Détection à partir des requêtes Search Console réellement observées.",
+    description: "Détection à partir des requêtes Search Console réellement observées.",
     icon: Lightbulb,
     status: "Connecté",
     hrefLabel: "Voir les opportunités",
@@ -86,9 +83,7 @@ function StatusPill({ children }: { children: string }) {
 
 export function SiteWebDashboard() {
   const [activeView, setActiveView] = useState<ModuleView>("overview");
-  const publishedPages = siteWebDemoModel.pages.filter(
-    (page) => page.statut === "publie",
-  ).length;
+  const publishedPages = siteWebDemoModel.pages.filter((page) => page.statut === "publie").length;
 
   return (
     <div className="space-y-6">
@@ -99,14 +94,12 @@ export function SiteWebDashboard() {
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-serif text-2xl font-semibold tracking-tight">
-                Site web
-              </h1>
+              <h1 className="font-serif text-2xl font-semibold tracking-tight">Site web</h1>
               <StatusPill>Google connecté</StatusPill>
             </div>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Piloter les statistiques, la visibilité, le SEO local et les
-              opportunités depuis un seul espace.
+              Piloter les statistiques, la visibilité, le SEO local et les opportunités depuis un
+              seul espace.
             </p>
           </div>
         </div>
@@ -151,8 +144,7 @@ export function SiteWebDashboard() {
                   Connexion Google opérationnelle
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Une autorisation Google alimente Search Console, Analytics 4
-                  et Business Profile.
+                  Une autorisation Google alimente Search Console, Analytics 4 et Business Profile.
                 </p>
               </div>
             </div>
@@ -167,9 +159,7 @@ export function SiteWebDashboard() {
                   className="flex items-center gap-3 rounded-lg bg-muted/30 p-3"
                 >
                   <Icon className="h-4 w-4 text-muted-foreground" />
-                  <span className="flex-1 text-sm font-medium">
-                    {label as string}
-                  </span>
+                  <span className="flex-1 text-sm font-medium">{label as string}</span>
                   <StatusPill>Vérifiée</StatusPill>
                 </div>
               ))}
@@ -177,42 +167,31 @@ export function SiteWebDashboard() {
           </Card>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {sections.map(
-              ({
-                title,
-                description,
-                icon: Icon,
-                status,
-                hrefLabel,
-                view,
-              }) => (
-                <Card
-                  key={title}
-                  className="group flex h-full flex-col p-4 transition-shadow hover:shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="rounded-lg bg-muted/50 p-2 text-primary">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <StatusPill>{status}</StatusPill>
+            {sections.map(({ title, description, icon: Icon, status, hrefLabel, view }) => (
+              <Card
+                key={title}
+                className="group flex h-full flex-col p-4 transition-shadow hover:shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="rounded-lg bg-muted/50 p-2 text-primary">
+                    <Icon className="h-4 w-4" />
                   </div>
-                  <h2 className="mt-4 font-serif text-base font-semibold">
-                    {title}
-                  </h2>
-                  <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
-                    {description}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setActiveView(view)}
-                    className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary opacity-70 transition-opacity group-hover:opacity-100"
-                  >
-                    {hrefLabel}
-                    <ArrowRight className="h-3 w-3" />
-                  </button>
-                </Card>
-              ),
-            )}
+                  <StatusPill>{status}</StatusPill>
+                </div>
+                <h2 className="mt-4 font-serif text-base font-semibold">{title}</h2>
+                <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
+                  {description}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveView(view)}
+                  className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary opacity-70 transition-opacity group-hover:opacity-100"
+                >
+                  {hrefLabel}
+                  <ArrowRight className="h-3 w-3" />
+                </button>
+              </Card>
+            ))}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -229,9 +208,8 @@ export function SiteWebDashboard() {
                 </div>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                L'inventaire éditorial et les scores SEO de page restent
-                volontairement séparés des statistiques Google tant que leur
-                source réelle n'est pas branchée.
+                L'inventaire éditorial et les scores SEO de page restent volontairement séparés des
+                statistiques Google tant que leur source réelle n'est pas branchée.
               </p>
             </Card>
             <Card className="p-5">
@@ -247,9 +225,9 @@ export function SiteWebDashboard() {
                 </div>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                Les modules connectés affichent désormais les réponses Google
-                réelles ou une indisponibilité explicite. Les anciennes valeurs
-                de démonstration ne pilotent plus ces modules.
+                Les modules connectés affichent désormais les réponses Google réelles ou une
+                indisponibilité explicite. Les anciennes valeurs de démonstration ne pilotent plus
+                ces modules.
               </p>
             </Card>
           </div>
@@ -260,9 +238,7 @@ export function SiteWebDashboard() {
       {activeView === "opportunities" && <SiteWebOpportunities />}
       {activeView !== "overview" &&
         activeView !== "statistics" &&
-        activeView !== "opportunities" && (
-          <SiteWebViewContent view={activeView} />
-        )}
+        activeView !== "opportunities" && <SiteWebViewContent view={activeView} />}
     </div>
   );
 }
