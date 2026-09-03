@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { runAnalyticsReport } from "@/lib/site-web-api";
+import { listAnalyticsProperties, runAnalyticsReport } from "@/lib/site-web-api";
 
-const GA4_PROPERTY_ID = "159443253";
+const PREFERRED_GA4_PROPERTY_ID = "159443253";
 
 type Row = {
   dimensionValues?: Array<{ value?: string }>;
@@ -12,29 +12,59 @@ type Row = {
 };
 
 type Report = { rows?: Row[] };
+type AnalyticsProperty = { name: string; displayName?: string; propertyType?: string };
 
 export function SiteWebStatistics() {
   const [report, setReport] = useState<Report | null>(null);
+  const [property, setProperty] = useState<AnalyticsProperty | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
+
     const load = async () => {
       setLoading(true);
       setError(null);
+
+      const propertiesResult = await listAnalyticsProperties();
+      if (!active) return;
+
+      if (propertiesResult.error) {
+        setError(propertiesResult.error);
+        setLoading(false);
+        return;
+      }
+
+      const properties = propertiesResult.data?.properties ?? [];
+      const selected =
+        properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
+        properties.find((item) => item.name === PREFERRED_GA4_PROPERTY_ID) ??
+        properties[0];
+
+      if (!selected) {
+        setError("Aucune propriété Google Analytics 4 accessible avec ce compte Google.");
+        setLoading(false);
+        return;
+      }
+
+      const propertyId = selected.name.replace(/^properties\//, "");
+      setProperty(selected);
+
       const result = await runAnalyticsReport({
-        propertyId: GA4_PROPERTY_ID,
+        propertyId,
         startDate: yearStart(),
         endDate: yesterday(),
         dimensions: ["date"],
         metrics: ["sessions", "screenPageViews", "activeUsers"],
       });
+
       if (!active) return;
       setReport((result.data ?? null) as Report | null);
       setError(result.error);
       setLoading(false);
     };
+
     void load();
     return () => {
       active = false;
@@ -56,6 +86,8 @@ export function SiteWebStatistics() {
     [rows],
   );
 
+  const propertyId = property?.name?.replace(/^properties\//, "") ?? "—";
+
   return (
     <div className="space-y-4">
       {error && (
@@ -76,7 +108,8 @@ export function SiteWebStatistics() {
               </Badge>
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Données réelles de la propriété Google Analytics 4 {GA4_PROPERTY_ID}.
+              Propriété Google Analytics 4 détectée automatiquement : {propertyId}
+              {property?.displayName ? ` · ${property.displayName}` : ""}.
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
               Période : {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
@@ -110,11 +143,22 @@ export function SiteWebStatistics() {
               </thead>
               <tbody>
                 {rows.slice(-31).map((row, index) => (
-                  <tr key={`${row.dimensionValues?.[0]?.value ?? "row"}-${index}`} className="border-t border-border/40">
-                    <td className="py-3">{formatDateLabel(row.dimensionValues?.[0]?.value ?? "")}</td>
-                    <td className="py-3 text-right tabular-nums">{formatNumber(Number(row.metricValues?.[0]?.value ?? 0))}</td>
-                    <td className="py-3 text-right tabular-nums">{formatNumber(Number(row.metricValues?.[1]?.value ?? 0))}</td>
-                    <td className="py-3 text-right tabular-nums">{formatNumber(Number(row.metricValues?.[2]?.value ?? 0))}</td>
+                  <tr
+                    key={`${row.dimensionValues?.[0]?.value ?? "row"}-${index}`}
+                    className="border-t border-border/40"
+                  >
+                    <td className="py-3">
+                      {formatDateLabel(row.dimensionValues?.[0]?.value ?? "")}
+                    </td>
+                    <td className="py-3 text-right tabular-nums">
+                      {formatNumber(Number(row.metricValues?.[0]?.value ?? 0))}
+                    </td>
+                    <td className="py-3 text-right tabular-nums">
+                      {formatNumber(Number(row.metricValues?.[1]?.value ?? 0))}
+                    </td>
+                    <td className="py-3 text-right tabular-nums">
+                      {formatNumber(Number(row.metricValues?.[2]?.value ?? 0))}
+                    </td>
                   </tr>
                 ))}
               </tbody>
