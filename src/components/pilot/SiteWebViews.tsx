@@ -1,19 +1,82 @@
-import type { ReactNode } from "react";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertCircle,
+  BarChart3,
+  FileText,
+  MapPin,
+  Search,
+  Target,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { FileText, MapPin, Search, Target } from "lucide-react";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
-import { siteWebDemoModel } from "@/lib/site-web-model";
+import {
+  getBusinessProfilePerformance,
+  listBusinessProfileAccounts,
+  listBusinessProfileLocations,
+  querySearchConsole,
+  runAnalyticsReport,
+} from "@/lib/site-web-api";
 
 type View = "visibility" | "local" | "content" | "actions";
 
-function Pill({ children }: { children: ReactNode }) {
-  return (
-    <Badge variant="outline" className="font-normal text-muted-foreground">
-      {children}
-    </Badge>
-  );
-}
+type SearchRow = {
+  keys?: string[];
+  clicks?: number;
+  impressions?: number;
+  ctr?: number;
+  position?: number;
+};
+
+type AnalyticsReport = {
+  rows?: Array<{
+    dimensionValues?: Array<{ value?: string }>;
+    metricValues?: Array<{ value?: string }>;
+  }>;
+};
+
+type BusinessMetric = {
+  metric?: string;
+  dailyMetricTimeSeries?: Array<{
+    timeSeries?: Array<{
+      date?: { year?: number; month?: number; day?: number };
+      value?: number;
+    }>;
+  }>;
+};
+
+type BusinessPerformance = {
+  multiDailyMetricTimeSeries?: BusinessMetric[];
+};
+
+type BusinessSeriesRow = Record<string, number>;
+type BusinessLocation = {
+  name: string;
+  title?: string;
+  storefrontAddress?: {
+    addressLines?: string[];
+    locality?: string;
+    administrativeArea?: string;
+    postalCode?: string;
+  };
+  websiteUri?: string;
+};
+
+const SITE_URL = "https://www.delagraineaujardin.com/";
+const GA4_PROPERTY_ID = "159443253";
+const LOCAL_QUERY_TERMS = [
+  "montpellier",
+  "castelnau",
+  "lattes",
+  "saint-jean-de-védas",
+  "saint jean de vedas",
+  "jacou",
+  "clapiers",
+  "le crès",
+  "le cres",
+  "juvignac",
+  "pérols",
+  "perols",
+];
 
 export function SiteWebViewContent({ view }: { view: View }) {
   return (
@@ -28,66 +91,84 @@ export function SiteWebViewContent({ view }: { view: View }) {
 }
 
 function VisibilityView() {
+  const [rows, setRows] = useState<SearchRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error: apiError } = await querySearchConsole({
+        siteUrl: SITE_URL,
+        startDate: yearStart(),
+        endDate: yesterday(),
+      });
+      if (!active) return;
+      if (apiError) setError(apiError);
+      setRows(data?.rows ?? []);
+      setLoading(false);
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const totals = useMemo(() => {
+    const clicks = rows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
+    const impressions = rows.reduce(
+      (sum, row) => sum + Number(row.impressions ?? 0),
+      0,
+    );
+    const weightedPosition = rows.reduce(
+      (sum, row) =>
+        sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
+      0,
+    );
+    return {
+      clicks,
+      impressions,
+      ctr: impressions ? clicks / impressions : 0,
+      position: impressions ? weightedPosition / impressions : 0,
+    };
+  }, [rows]);
+
   return (
     <>
+      {error && <GoogleDataError message={error} />}
       <Card className="p-5">
         <div className="grid gap-5 sm:grid-cols-4">
+          <Metric label="Clics" value={loading ? "…" : formatNumber(totals.clicks)} />
+          <Metric label="Impressions" value={loading ? "…" : formatNumber(totals.impressions)} />
+          <Metric label="CTR" value={loading ? "…" : formatPercent(totals.ctr)} />
           <Metric
-            label="Requêtes"
-            value={String(siteWebDemoModel.requetes.length)}
-          />
-          <Metric label="Position moyenne" value={averagePosition()} />
-          <Metric
-            label="Impressions"
-            value={formatNumber(
-              siteWebDemoModel.requetes.reduce(
-                (n, q) => n + q.impressions,
-                0,
-              ),
-            )}
-          />
-          <Metric
-            label="Clics"
-            value={formatNumber(
-              siteWebDemoModel.requetes.reduce((n, q) => n + q.clics, 0),
-            )}
+            label="Position moyenne"
+            value={loading ? "…" : totals.position ? totals.position.toFixed(1).replace(".", ",") : "—"}
           />
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Search Console · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
+        </p>
       </Card>
-
       <Card className="p-5">
-        <Header
-          icon={Search}
-          title="Requêtes suivies"
-          description="Les données réelles seront affichées ici après connexion à Search Console."
-        />
+        <Header icon={Search} title="Évolution de la visibilité" description="Données réelles Search Console, agrégées par jour." />
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="pb-2">Requête</th>
-                <th className="pb-2 text-right">Position</th>
-                <th className="pb-2 text-right">Impressions</th>
-                <th className="pb-2 text-right">Clics</th>
-              </tr>
-            </thead>
-            <tbody>
-              {siteWebDemoModel.requetes.map((q) => (
-                <tr key={q.id} className="border-t border-border/40">
-                  <td className="py-3">{q.requete}</td>
-                  <td className="py-3 text-right">
-                    <Pill>#{q.position}</Pill>
-                  </td>
-                  <td className="py-3 text-right tabular-nums">
-                    {formatNumber(q.impressions)}
-                  </td>
-                  <td className="py-3 text-right tabular-nums">
-                    {formatNumber(q.clics)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {loading ? <LoadingState /> : rows.length === 0 ? (
+            <EmptyState text="Aucune donnée Search Console disponible sur la période." />
+          ) : (
+            <DataTable
+              headers={["Date", "Position", "Impressions", "Clics", "CTR"]}
+              rows={rows.slice(-31).map((row) => [
+                formatDateLabel(row.keys?.[0] ?? ""),
+                Number(row.position ?? 0).toFixed(1).replace(".", ","),
+                formatNumber(Number(row.impressions ?? 0)),
+                formatNumber(Number(row.clicks ?? 0)),
+                formatPercent(Number(row.ctr ?? 0)),
+              ])}
+            />
+          )}
         </div>
       </Card>
     </>
@@ -95,46 +176,254 @@ function VisibilityView() {
 }
 
 function LocalView() {
+  const [performance, setPerformance] = useState<BusinessPerformance | null>(null);
+  const [location, setLocation] = useState<BusinessLocation | null>(null);
+  const [localQueries, setLocalQueries] = useState<SearchRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+
+      const [accountsResult, searchResult] = await Promise.all([
+        listBusinessProfileAccounts(),
+        querySearchConsole({
+          siteUrl: SITE_URL,
+          startDate: yearStart(),
+          endDate: yesterday(),
+          dimensions: ["query"],
+        }),
+      ]);
+
+      if (!active) return;
+      if (searchResult.error) setError(searchResult.error);
+      const queries = (searchResult.data?.rows ?? []).filter((row) => {
+        const query = String(row.keys?.[0] ?? "").toLocaleLowerCase("fr-FR");
+        return LOCAL_QUERY_TERMS.some((term) => query.includes(term));
+      });
+      setLocalQueries(queries);
+
+      if (accountsResult.error) {
+        setError((current) => current ?? accountsResult.error ?? null);
+        setLoading(false);
+        return;
+      }
+
+      const account = accountsResult.data?.accounts?.[0];
+      if (!account?.name) {
+        setError("Aucun compte Google Business Profile disponible.");
+        setLoading(false);
+        return;
+      }
+
+      const locationsResult = await listBusinessProfileLocations(account.name);
+      if (!active) return;
+      if (locationsResult.error) {
+        setError((current) => current ?? locationsResult.error ?? null);
+        setLoading(false);
+        return;
+      }
+
+      const selected =
+        (locationsResult.data?.locations as BusinessLocation[] | undefined)?.find((item) =>
+          item.websiteUri?.includes("delagraineaujardin.com"),
+        ) ?? (locationsResult.data?.locations?.[0] as BusinessLocation | undefined);
+      setLocation(selected ?? null);
+
+      if (!selected?.name) {
+        setError("Aucune fiche Google Business Profile correspondant au site n'a été trouvée.");
+        setLoading(false);
+        return;
+      }
+
+      const performanceResult = await getBusinessProfilePerformance({
+        locationName: selected.name,
+        startDate: yearStart(),
+        endDate: yesterday(),
+      });
+      if (!active) return;
+      if (performanceResult.error) {
+        setError((current) => current ?? performanceResult.error ?? null);
+      }
+      setPerformance((performanceResult.data ?? null) as BusinessPerformance | null);
+      setLoading(false);
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const businessSeries = useMemo(() => {
+    const byDate = new Map<string, BusinessSeriesRow>();
+    for (const item of performance?.multiDailyMetricTimeSeries ?? []) {
+      const metric = item.metric ?? "";
+      for (const point of item.dailyMetricTimeSeries?.[0]?.timeSeries ?? []) {
+        const date = point.date;
+        if (!date?.year || !date.month || !date.day) continue;
+        const key = `${date.year}-${String(date.month).padStart(2, "0")}-${String(date.day).padStart(2, "0")}`;
+        const row = byDate.get(key) ?? {};
+        row[metric] = Number(point.value ?? 0);
+        byDate.set(key, row);
+      }
+    }
+    return Array.from(byDate.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [performance]);
+
+  const businessTotals = useMemo(
+    () =>
+      businessSeries.reduce(
+        (acc, [, row]) => {
+          acc.website += row.WEBSITE_CLICKS ?? 0;
+          acc.calls += row.CALL_CLICKS ?? 0;
+          acc.directions += row.BUSINESS_DIRECTION_REQUESTS ?? 0;
+          acc.impressions +=
+            (row.BUSINESS_IMPRESSIONS_DESKTOP_MAPS ?? 0) +
+            (row.BUSINESS_IMPRESSIONS_DESKTOP_SEARCH ?? 0) +
+            (row.BUSINESS_IMPRESSIONS_MOBILE_MAPS ?? 0) +
+            (row.BUSINESS_IMPRESSIONS_MOBILE_SEARCH ?? 0);
+          return acc;
+        },
+        { website: 0, calls: 0, directions: 0, impressions: 0 },
+      ),
+    [businessSeries],
+  );
+
+  const localQueryTotals = useMemo(
+    () =>
+      localQueries.reduce(
+        (acc, row) => {
+          acc.clicks += Number(row.clicks ?? 0);
+          acc.impressions += Number(row.impressions ?? 0);
+          return acc;
+        },
+        { clicks: 0, impressions: 0 },
+      ),
+    [localQueries],
+  );
+
+  const address = location?.storefrontAddress;
+  const locationLabel = [address?.postalCode, address?.locality]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <>
+      {error && <GoogleDataError message={error} />}
+
       <Card className="p-5">
         <Header
           icon={MapPin}
-          title="SEO local"
-          description="État de la présence locale et positions de démonstration."
+          title="Fiche établissement"
+          description="Informations lues directement depuis Google Business Profile."
         />
-        <div className="mt-4 divide-y divide-border/40">
-          {siteWebDemoModel.seoLocal.fiche.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between gap-3 py-3"
-            >
-              <span className="text-sm">{item.critere}</span>
-              <Pill>
-                {item.etat === "ok"
-                  ? "Complet"
-                  : item.etat === "partiel"
-                    ? "Partiel"
-                    : "Manquant"}
-              </Pill>
+        {loading ? (
+          <LoadingState />
+        ) : location ? (
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nom</p>
+              <p className="mt-1 text-sm font-medium">{location.title || "—"}</p>
             </div>
-          ))}
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Adresse</p>
+              <p className="mt-1 text-sm font-medium">
+                {address?.addressLines?.join(", ") || locationLabel || "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Site</p>
+              <p className="mt-1 break-all text-sm font-medium">{location.websiteUri || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Source</p>
+              <p className="mt-1 text-sm font-medium">Google Business Profile</p>
+            </div>
+          </div>
+        ) : (
+          <EmptyState text="Fiche Google Business Profile indisponible." />
+        )}
+      </Card>
+
+      <Card className="p-5">
+        <Header
+          icon={BarChart3}
+          title="Performance locale"
+          description="Données réelles Google Business Profile sur la période courante."
+        />
+        <div className="mt-5 grid gap-5 sm:grid-cols-4">
+          <Metric label="Clics site" value={loading ? "…" : formatNumber(businessTotals.website)} />
+          <Metric label="Appels" value={loading ? "…" : formatNumber(businessTotals.calls)} />
+          <Metric label="Itinéraires" value={loading ? "…" : formatNumber(businessTotals.directions)} />
+          <Metric label="Impressions" value={loading ? "…" : formatNumber(businessTotals.impressions)} />
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Google Business Profile · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
+        </p>
+      </Card>
+
+      <Card className="p-5">
+        <Header
+          icon={MapPin}
+          title="Requêtes à intention locale"
+          description="Search Console · requêtes contenant une commune explicitement ciblée. Ce tableau ne prétend pas mesurer la position Google Maps."
+        />
+        <div className="mt-5 grid gap-5 sm:grid-cols-2">
+          <Metric label="Requêtes locales" value={loading ? "…" : formatNumber(localQueries.length)} />
+          <Metric label="Impressions locales" value={loading ? "…" : formatNumber(localQueryTotals.impressions)} />
+        </div>
+        <div className="mt-4 overflow-x-auto">
+          {loading ? <LoadingState /> : localQueries.length === 0 ? (
+            <EmptyState text="Aucune requête contenant une commune ciblée n'est disponible sur la période." />
+          ) : (
+            <DataTable
+              headers={["Requête", "Position", "Impressions", "Clics", "CTR"]}
+              rows={localQueries
+                .sort((a, b) => Number(a.position ?? 999) - Number(b.position ?? 999))
+                .slice(0, 50)
+                .map((row) => [
+                  row.keys?.[0] ?? "—",
+                  Number(row.position ?? 0).toFixed(1).replace(".", ","),
+                  formatNumber(Number(row.impressions ?? 0)),
+                  formatNumber(Number(row.clicks ?? 0)),
+                  formatPercent(Number(row.ctr ?? 0)),
+                ])}
+            />
+          )}
         </div>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {siteWebDemoModel.seoLocal.communes.map((commune) => (
-          <Card key={commune.id} className="p-4">
-            <p className="text-sm font-medium">{commune.nom}</p>
-            <p className="mt-2 font-serif text-2xl font-semibold">
-              #{commune.position}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Position de démonstration
-            </p>
-          </Card>
-        ))}
-      </div>
+      <Card className="p-5">
+        <Header
+          icon={BarChart3}
+          title="Évolution de la visibilité de la fiche"
+          description="Axe temporel explicite : chaque ligne correspond à une date Google Business Profile."
+        />
+        <div className="mt-4 overflow-x-auto">
+          {loading ? <LoadingState /> : businessSeries.length === 0 ? (
+            <EmptyState text="Aucune donnée Google Business Profile disponible sur la période." />
+          ) : (
+            <DataTable
+              headers={["Date", "Clics site", "Appels", "Itinéraires", "Impressions"]}
+              rows={businessSeries.slice(-31).map(([date, row]) => [
+                formatDateLabel(date),
+                formatNumber(row.WEBSITE_CLICKS ?? 0),
+                formatNumber(row.CALL_CLICKS ?? 0),
+                formatNumber(row.BUSINESS_DIRECTION_REQUESTS ?? 0),
+                formatNumber(
+                  (row.BUSINESS_IMPRESSIONS_DESKTOP_MAPS ?? 0) +
+                    (row.BUSINESS_IMPRESSIONS_DESKTOP_SEARCH ?? 0) +
+                    (row.BUSINESS_IMPRESSIONS_MOBILE_MAPS ?? 0) +
+                    (row.BUSINESS_IMPRESSIONS_MOBILE_SEARCH ?? 0),
+                ),
+              ])}
+            />
+          )}
+        </div>
+      </Card>
     </>
   );
 }
@@ -142,42 +431,9 @@ function LocalView() {
 function ContentView() {
   return (
     <Card className="p-5">
-      <Header
-        icon={FileText}
-        title="Contenus"
-        description="Inventaire des pages piloté par le modèle Site web."
-      />
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <th className="pb-2">Page</th>
-              <th className="pb-2">Type</th>
-              <th className="pb-2">État</th>
-              <th className="pb-2 text-right">SEO</th>
-            </tr>
-          </thead>
-          <tbody>
-            {siteWebDemoModel.pages.map((page) => (
-              <tr key={page.id} className="border-t border-border/40">
-                <td className="py-3 font-medium">{page.titre}</td>
-                <td className="py-3 text-muted-foreground">{page.type}</td>
-                <td className="py-3">
-                  <Pill>
-                    {page.statut === "publie"
-                      ? "Publié"
-                      : page.statut === "a_enrichir"
-                        ? "À enrichir"
-                        : "Brouillon"}
-                  </Pill>
-                </td>
-                <td className="py-3 text-right tabular-nums">
-                  {page.scoreSeo ?? "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <Header icon={FileText} title="Contenus" description="Le suivi éditorial reste séparé des statistiques Google." />
+      <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+        Le raccordement des statistiques est opérationnel. L'inventaire réel des pages et leurs données SEO sera branché dans cette vue.
       </div>
     </Card>
   );
@@ -186,76 +442,64 @@ function ContentView() {
 function ActionsView() {
   return (
     <Card className="p-5">
-      <Header
-        icon={Target}
-        title="Actions"
-        description="Actions issues du modèle de démonstration. La persistance sera traitée ultérieurement."
-      />
-      <div className="mt-4 divide-y divide-border/40">
-        {siteWebDemoModel.actions.map((action) => (
-          <div
-            key={action.id}
-            className="flex flex-wrap items-center justify-between gap-3 py-3"
-          >
-            <div>
-              <p className="text-sm font-medium">{action.titre}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {action.theme}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Pill>Impact {action.impact}</Pill>
-              <Pill>Priorité {action.priorite}</Pill>
-            </div>
-          </div>
-        ))}
+      <Header icon={Target} title="Actions" description="Les recommandations seront calculées à partir des données Google réelles." />
+      <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+        Aucune action automatique n'est encore calculée : cette étape attend les données consolidées Search Console, Analytics 4 et Business Profile.
       </div>
     </Card>
   );
 }
 
-function Header({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: typeof Search;
-  title: string;
-  description: string;
-}) {
+function Header({ icon: Icon, title, description }: { icon: typeof Search; title: string; description: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="rounded-lg bg-muted/50 p-2 text-primary">
-        <Icon className="h-4 w-4" />
-      </div>
-      <div>
-        <h2 className="font-serif text-lg font-semibold">{title}</h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-      </div>
+      <div className="rounded-lg bg-muted/50 p-2 text-primary"><Icon className="h-4 w-4" /></div>
+      <div><h2 className="font-serif text-lg font-semibold">{title}</h2><p className="mt-0.5 text-sm text-muted-foreground">{description}</p></div>
     </div>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
+  return <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p></div>;
+}
+
+function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">
-        {value}
-      </p>
-    </div>
+    <table className="w-full text-sm">
+      <thead><tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">{headers.map((header) => <th key={header} className="pb-2 text-right first:text-left">{header}</th>)}</tr></thead>
+      <tbody>{rows.map((row) => <tr key={row[0]} className="border-t border-border/40">{row.map((cell, index) => <td key={`${row[0]}-${index}`} className="py-3 text-right tabular-nums first:text-left">{cell}</td>)}</tr>)}</tbody>
+    </table>
   );
 }
 
-function averagePosition() {
-  const values = siteWebDemoModel.requetes.map((q) => q.position);
-  return (values.reduce((a, b) => a + b, 0) / values.length)
-    .toFixed(1)
-    .replace(".", ",");
+function GoogleDataError({ message }: { message: string }) {
+  return <Card className="border-destructive/30 bg-destructive/5 p-4"><div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" /><div><p className="text-sm font-medium">Données Google indisponibles</p><p className="mt-1 text-xs text-muted-foreground">{message}</p></div></div></Card>;
 }
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("fr-FR").format(value);
+function LoadingState() {
+  return <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>;
+}
+
+function EmptyState({ text }: { text: string }) {
+  return <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
+}
+
+function yearStart() { return `${new Date().getFullYear()}-01-01`; }
+
+function yesterday() {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function formatDateLabel(value: string) {
+  if (!value) return "—";
+  const date = new Date(`${value}T00:00:00`);
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+}
+
+function formatNumber(value: number) { return new Intl.NumberFormat("fr-FR").format(value); }
+
+function formatPercent(value: number) {
+  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(value);
 }
