@@ -41,7 +41,8 @@ const moduleViews: Array<{ id: ModuleView; label: string }> = [
 const sections = [
   {
     title: "Statistiques",
-    description: "Trafic et fréquentation issus directement de Google Analytics 4.",
+    description:
+      "Trafic et fréquentation issus directement de Google Analytics 4.",
     icon: BarChart3,
     status: "Connecté",
     hrefLabel: "Voir les statistiques",
@@ -57,7 +58,8 @@ const sections = [
   },
   {
     title: "SEO local",
-    description: "Performances de la fiche établissement Google Business Profile.",
+    description:
+      "Performances de la fiche établissement Google Business Profile.",
     icon: MapPin,
     status: "Connecté",
     hrefLabel: "Voir le SEO local",
@@ -65,7 +67,8 @@ const sections = [
   },
   {
     title: "Opportunités",
-    description: "Détection à partir des requêtes Search Console réellement observées.",
+    description:
+      "Détection à partir des requêtes Search Console réellement observées.",
     icon: Lightbulb,
     status: "Connecté",
     hrefLabel: "Voir les opportunités",
@@ -102,7 +105,8 @@ export function SiteWebDashboard() {
               <StatusPill>Google connecté</StatusPill>
             </div>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Piloter les statistiques, la visibilité, le SEO local et les opportunités depuis un seul espace.
+              Piloter les statistiques, la visibilité, le SEO local et les
+              opportunités depuis un seul espace.
             </p>
           </div>
         </div>
@@ -147,7 +151,8 @@ export function SiteWebDashboard() {
                   Connexion Google opérationnelle
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Une autorisation Google alimente Search Console, Analytics 4 et Business Profile.
+                  Une autorisation Google alimente Search Console, Analytics 4
+                  et Business Profile.
                 </p>
               </div>
             </div>
@@ -173,7 +178,14 @@ export function SiteWebDashboard() {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {sections.map(
-              ({ title, description, icon: Icon, status, hrefLabel, view }) => (
+              ({
+                title,
+                description,
+                icon: Icon,
+                status,
+                hrefLabel,
+                view,
+              }) => (
                 <Card
                   key={title}
                   className="group flex h-full flex-col p-4 transition-shadow hover:shadow-sm"
@@ -248,7 +260,9 @@ export function SiteWebDashboard() {
       {activeView === "opportunities" && <SiteWebOpportunities />}
       {activeView !== "overview" &&
         activeView !== "statistics" &&
-        activeView !== "opportunities" && <SiteWebViewContent view={activeView} />}
+        activeView !== "opportunities" && (
+          <SiteWebViewContent view={activeView} />
+        )}
     </div>
   );
 }
