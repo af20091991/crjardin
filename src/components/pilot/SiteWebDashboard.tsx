@@ -9,14 +9,12 @@ import {
   Globe2,
   Lightbulb,
   Search,
-  Settings2,
   Target,
 } from "lucide-react";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
 import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
-import { siteWebDemoModel } from "@/lib/site-web-model";
 
 type ModuleView =
   | "overview"
@@ -37,6 +35,38 @@ const moduleViews: Array<{ id: ModuleView; label: string }> = [
   { id: "actions", label: "Actions" },
 ];
 
+const cards: Array<{
+  title: string;
+  description: string;
+  icon: typeof BarChart3;
+  view: ModuleView;
+}> = [
+  {
+    title: "Statistiques",
+    description: "Mesurer le trafic et la fréquentation du site.",
+    icon: BarChart3,
+    view: "statistics",
+  },
+  {
+    title: "Visibilité",
+    description: "Mesurer la présence organique dans Google.",
+    icon: Search,
+    view: "visibility",
+  },
+  {
+    title: "SEO Local",
+    description: "Mesurer la visibilité locale et les interactions de la fiche Google.",
+    icon: Target,
+    view: "local",
+  },
+  {
+    title: "Contenus",
+    description: "Organiser les pages, sujets et besoins éditoriaux.",
+    icon: FileText,
+    view: "content",
+  },
+];
+
 function StatusPill({ children }: { children: string }) {
   return (
     <Badge variant="outline" className="font-normal text-muted-foreground">
@@ -45,36 +75,8 @@ function StatusPill({ children }: { children: string }) {
   );
 }
 
-const cards = [
-  {
-    title: "Statistiques",
-    description: "Trafic et fréquentation du site depuis Google Analytics 4.",
-    icon: BarChart3,
-    view: "statistics" as ModuleView,
-  },
-  {
-    title: "Visibilité",
-    description: "Performance organique et visibilité dans Google Search Console.",
-    icon: Search,
-    view: "visibility" as ModuleView,
-  },
-  {
-    title: "SEO Local",
-    description: "Présence locale, requêtes géolocalisées et performance Google Business Profile.",
-    icon: Target,
-    view: "local" as ModuleView,
-  },
-  {
-    title: "Contenus",
-    description: "Inventaire et suivi éditorial, séparés des statistiques Google.",
-    icon: FileText,
-    view: "content" as ModuleView,
-  },
-];
-
 export function SiteWebDashboard() {
   const [activeView, setActiveView] = useState<ModuleView>("overview");
-  const publishedPages = siteWebDemoModel.pages.filter((page) => page.statut === "publie").length;
 
   return (
     <div className="space-y-6">
@@ -86,20 +88,13 @@ export function SiteWebDashboard() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-serif text-2xl font-semibold tracking-tight">Site web</h1>
-              <StatusPill>Google connecté</StatusPill>
+              <StatusPill>Sources Google</StatusPill>
             </div>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Un espace unique pour comprendre l'audience, la visibilité et les priorités du site.
+              Mesurer → comprendre → décider → agir. Chaque onglet a une fonction unique.
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/50"
-        >
-          <Settings2 className="h-4 w-4" />
-          Paramètres du site
-        </button>
       </header>
 
       <SiteWebGoogleConnection />
@@ -126,15 +121,16 @@ export function SiteWebDashboard() {
 
       {activeView === "overview" && (
         <>
-          <Card className="p-5">
+          <Card className="border-primary/20 bg-primary/5 p-5">
             <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-muted/50 p-2 text-primary">
+              <div className="rounded-lg bg-background p-2 text-primary shadow-sm">
                 <CheckCircle2 className="h-4 w-4" />
               </div>
               <div>
                 <h2 className="font-serif text-xl font-semibold">Vue d'ensemble</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  On commence par la situation générale, puis on descend vers les détails et les
+                <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                  Cette page ne mélange pas les données. Elle sert uniquement à choisir le bon
+                  niveau de lecture : statistiques, visibilité, SEO local, contenus, opportunités ou
                   actions.
                 </p>
               </div>
@@ -151,7 +147,7 @@ export function SiteWebDashboard() {
                   <div className="rounded-lg bg-muted/50 p-2 text-primary">
                     <Icon className="h-4 w-4" />
                   </div>
-                  <StatusPill>Disponible</StatusPill>
+                  <StatusPill>Rubrique</StatusPill>
                 </div>
                 <h2 className="mt-4 font-serif text-base font-semibold">{title}</h2>
                 <p className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
@@ -169,38 +165,48 @@ export function SiteWebDashboard() {
             ))}
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <Card className="p-5">
-              <div className="flex items-center gap-3">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Contenus
-                  </p>
-                  <h2 className="mt-1 font-serif text-lg font-semibold">
-                    {publishedPages} pages publiées dans le modèle de contenu
-                  </h2>
-                </div>
-              </div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                1 · Mesurer
+              </p>
+              <h2 className="mt-1 font-serif text-lg font-semibold">Statistiques + Visibilité</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Les données brutes et leur évolution restent dans leurs rubriques dédiées.
+              </p>
             </Card>
             <Card className="p-5">
-              <div className="flex items-center gap-3">
-                <Lightbulb className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Lecture
-                  </p>
-                  <h2 className="mt-1 font-serif text-lg font-semibold">
-                    Mesure → analyse → action
-                  </h2>
-                </div>
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">
-                Les détails techniques restent accessibles dans leurs rubriques sans encombrer la
-                vue d'ensemble.
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                2 · Comprendre
+              </p>
+              <h2 className="mt-1 font-serif text-lg font-semibold">SEO Local + Contenus</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                On regroupe les données par sujet, pas par source technique.
+              </p>
+            </Card>
+            <Card className="p-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                3 · Agir
+              </p>
+              <h2 className="mt-1 font-serif text-lg font-semibold">Opportunités + Actions</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Les recommandations et le suivi opérationnel sont séparés des mesures.
               </p>
             </Card>
           </div>
+
+          <Card className="p-5">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="mt-0.5 h-4 w-4 text-primary" />
+              <div>
+                <h2 className="font-serif text-lg font-semibold">Règle d'organisation</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Données brutes → indicateurs → analyse → opportunités → actions. Aucun chiffre de
+                  démonstration n'est affiché ici.
+                </p>
+              </div>
+            </div>
+          </Card>
         </>
       )}
 
@@ -237,8 +243,8 @@ export function SiteWebDashboard() {
                     <StatusPill>Données réelles</StatusPill>
                   </div>
                   <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                    Tableau de bord dédié à la visibilité locale : requêtes géolocalisées, évolution
-                    organique et interactions de la fiche Google Business Profile.
+                    Toutes les données de visibilité locale sont regroupées ici : requêtes
+                    géolocalisées, évolution organique et interactions Google Business Profile.
                   </p>
                 </div>
               </div>
@@ -247,37 +253,6 @@ export function SiteWebDashboard() {
               </div>
             </div>
           </Card>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                1 · Visibilité locale
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Requêtes contenant les communes suivies et performance organique réellement
-                observée.
-              </p>
-            </Card>
-            <Card className="p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                2 · Fiche Google
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Clics vers le site, appels, itinéraires et impressions issus de la fiche
-                d’établissement.
-              </p>
-            </Card>
-            <Card className="p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                3 · Décision
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                On distingue toujours les données mesurées des classements Maps qui ne sont pas
-                disponibles ici.
-              </p>
-            </Card>
-          </div>
-
           <SiteWebViewContent view="local" showConnection={false} />
         </div>
       )}
@@ -301,7 +276,7 @@ export function SiteWebDashboard() {
           <Card className="p-5">
             <h2 className="font-serif text-xl font-semibold">Actions</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Les actions concrètes à traiter après l'analyse des données.
+              Le suivi opérationnel reste séparé des mesures et des recommandations.
             </p>
           </Card>
           <SiteWebViewContent view="actions" showConnection={false} />
