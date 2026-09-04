@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { SiteWebActionsView, SiteWebContentView } from "@/components/pilot/SiteWebContentActions";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
+import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
 import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
 import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
@@ -212,7 +213,7 @@ export function SiteWebDashboard() {
 
       {activeView === "visibility" && <SiteWebViewContent view="visibility" showConnection={false} />}
 
-      {activeView === "local" && <SiteWebViewContent view="local" showConnection={false} />}
+      {activeView === "local" && <SiteWebLocalView />}
 
       {activeView === "content" && <SiteWebContentView />}
 
