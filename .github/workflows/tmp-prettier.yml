@@ -17,8 +17,8 @@ jobs:
         with:
           bun-version-file: .bun-version
       - run: bun ci
-      - run: bunx prettier --write src/components/pilot/SiteWebViews.tsx
+      - run: bunx prettier --write src/components/pilot/SiteWebStatistics.tsx
       - uses: actions/upload-artifact@v4
         with:
-          name: formatted-site-web
-          path: src/components/pilot/SiteWebViews.tsx
+          name: formatted-site-web-statistics
+          path: src/components/pilot/SiteWebStatistics.tsx
