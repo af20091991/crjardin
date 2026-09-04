@@ -60,10 +60,16 @@ const LOCAL_TERMS = [
   "perols",
 ];
 
-export function SiteWebViewContent({ view }: { view: View }) {
+export function SiteWebViewContent({
+  view,
+  showConnection = true,
+}: {
+  view: View;
+  showConnection?: boolean;
+}) {
   return (
     <div className="space-y-4">
-      <SiteWebGoogleConnection />
+      {showConnection && <SiteWebGoogleConnection />}
       {view === "visibility" && <VisibilityView />}
       {view === "local" && <LocalView />}
       {view === "content" && <ContentView />}
