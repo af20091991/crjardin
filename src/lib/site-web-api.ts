@@ -5,11 +5,7 @@ export type SiteWebProvider =
   | "google_analytics_4"
   | "google_business_profile";
 
-export type SiteWebConnectionStatus =
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "error";
+export type SiteWebConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
 export interface SiteWebConnection {
   id?: string;
@@ -36,7 +32,10 @@ type ApiErrorPayload = {
   message?: unknown;
 };
 
-function formatApiError(payload: ApiErrorPayload | null, httpStatus: number): string {
+function formatApiError(
+  payload: ApiErrorPayload | null,
+  httpStatus: number,
+): string {
   const code = typeof payload?.error === "string" ? payload.error : null;
   const googleStatus = typeof payload?.status === "number" ? payload.status : null;
   const message = typeof payload?.message === "string" ? payload.message.trim() : null;
