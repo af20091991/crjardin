@@ -134,7 +134,8 @@ export function SiteWebDashboard() {
               <div>
                 <h2 className="font-serif text-xl font-semibold">Vue d'ensemble</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  On commence par la situation générale, puis on descend vers les détails et les actions.
+                  On commence par la situation générale, puis on descend vers les détails et les
+                  actions.
                 </p>
               </div>
             </div>
@@ -173,7 +174,9 @@ export function SiteWebDashboard() {
               <div className="flex items-center gap-3">
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contenus</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Contenus
+                  </p>
                   <h2 className="mt-1 font-serif text-lg font-semibold">
                     {publishedPages} pages publiées dans le modèle de contenu
                   </h2>
@@ -184,12 +187,17 @@ export function SiteWebDashboard() {
               <div className="flex items-center gap-3">
                 <Lightbulb className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lecture</p>
-                  <h2 className="mt-1 font-serif text-lg font-semibold">Mesure → analyse → action</h2>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Lecture
+                  </p>
+                  <h2 className="mt-1 font-serif text-lg font-semibold">
+                    Mesure → analyse → action
+                  </h2>
                 </div>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                Les détails techniques restent accessibles dans leurs rubriques sans encombrer la vue d'ensemble.
+                Les détails techniques restent accessibles dans leurs rubriques sans encombrer la
+                vue d'ensemble.
               </p>
             </Card>
           </div>
@@ -229,7 +237,8 @@ export function SiteWebDashboard() {
                     <StatusPill>Données réelles</StatusPill>
                   </div>
                   <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                    Tableau de bord dédié à la visibilité locale : requêtes géolocalisées, évolution organique et interactions de la fiche Google Business Profile.
+                    Tableau de bord dédié à la visibilité locale : requêtes géolocalisées, évolution
+                    organique et interactions de la fiche Google Business Profile.
                   </p>
                 </div>
               </div>
@@ -241,21 +250,30 @@ export function SiteWebDashboard() {
 
           <div className="grid gap-4 md:grid-cols-3">
             <Card className="p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">1 · Visibilité locale</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                1 · Visibilité locale
+              </p>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Requêtes contenant les communes suivies et performance organique réellement observée.
+                Requêtes contenant les communes suivies et performance organique réellement
+                observée.
               </p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">2 · Fiche Google</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                2 · Fiche Google
+              </p>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Clics vers le site, appels, itinéraires et impressions issus de la fiche d’établissement.
+                Clics vers le site, appels, itinéraires et impressions issus de la fiche
+                d’établissement.
               </p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">3 · Décision</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                3 · Décision
+              </p>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                On distingue toujours les données mesurées des classements Maps qui ne sont pas disponibles ici.
+                On distingue toujours les données mesurées des classements Maps qui ne sont pas
+                disponibles ici.
               </p>
             </Card>
           </div>
