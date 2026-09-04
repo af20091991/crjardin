@@ -14,7 +14,11 @@ type Row = {
 };
 
 type Report = { rows?: Row[] };
-type AnalyticsProperty = { name: string; displayName?: string; propertyType?: string };
+type AnalyticsProperty = {
+  name: string;
+  displayName?: string;
+  propertyType?: string;
+};
 
 type StatsRow = {
   key: string;
@@ -91,7 +95,10 @@ export function SiteWebStatistics() {
   }, [startDate, endDate]);
 
   const rows = report?.rows ?? [];
-  const statsRows = useMemo(() => aggregateRows(rows, granularity), [rows, granularity]);
+  const statsRows = useMemo(
+    () => aggregateRows(rows, granularity),
+    [rows, granularity],
+  );
   const totals = useMemo(
     () =>
       rows.reduce(
@@ -132,14 +139,25 @@ export function SiteWebStatistics() {
             <p className="mt-0.5 text-sm text-muted-foreground">
               {property?.displayName ?? "Propriété Google Analytics 4"} · ID {propertyId}
             </p>
-            <p className="mt-2 text-xs text-muted-foreground">Période analysée : {periodLabel}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Période analysée : {periodLabel}
+            </p>
           </div>
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Metric label="Sessions" value={loading ? "…" : formatNumber(totals.sessions)} />
-          <Metric label="Pages vues" value={loading ? "…" : formatNumber(totals.views)} />
-          <Metric label="Utilisateurs actifs" value={loading ? "…" : formatNumber(totals.users)} />
+          <Metric
+            label="Sessions"
+            value={loading ? "…" : formatNumber(totals.sessions)}
+          />
+          <Metric
+            label="Pages vues"
+            value={loading ? "…" : formatNumber(totals.views)}
+          />
+          <Metric
+            label="Utilisateurs actifs"
+            value={loading ? "…" : formatNumber(totals.users)}
+          />
         </div>
       </Card>
 
@@ -148,7 +166,8 @@ export function SiteWebStatistics() {
           <div>
             <p className="text-sm font-medium">Période et niveau de lecture</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Choisissez précisément la période puis regroupez les données par jour, semaine ou mois.
+              Choisissez précisément la période puis regroupez les données par jour,
+              semaine ou mois.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -204,7 +223,9 @@ export function SiteWebStatistics() {
 
         <div className="overflow-x-auto">
           {loading ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données…</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Chargement des données…
+            </p>
           ) : statsRows.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Aucune donnée Analytics 4 disponible sur cette période.
@@ -223,9 +244,15 @@ export function SiteWebStatistics() {
                 {statsRows.map((row) => (
                   <tr key={row.key} className="border-t border-border/40">
                     <td className="py-3 font-medium">{row.label}</td>
-                    <td className="py-3 text-right tabular-nums">{formatNumber(row.sessions)}</td>
-                    <td className="py-3 text-right tabular-nums">{formatNumber(row.views)}</td>
-                    <td className="py-3 text-right tabular-nums">{formatNumber(row.users)}</td>
+                    <td className="py-3 text-right tabular-nums">
+                      {formatNumber(row.sessions)}
+                    </td>
+                    <td className="py-3 text-right tabular-nums">
+                      {formatNumber(row.views)}
+                    </td>
+                    <td className="py-3 text-right tabular-nums">
+                      {formatNumber(row.users)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -240,7 +267,9 @@ export function SiteWebStatistics() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
       <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
@@ -276,13 +305,18 @@ function groupingKey(date: Date, granularity: Granularity) {
   if (granularity === "month") {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
   }
-  if (granularity === "week") return mondayOfWeek(date).toISOString().slice(0, 10);
+  if (granularity === "week") {
+    return mondayOfWeek(date).toISOString().slice(0, 10);
+  }
   return date.toISOString().slice(0, 10);
 }
 
 function groupingLabel(date: Date, granularity: Granularity) {
   if (granularity === "month") {
-    return new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(date);
+    return new Intl.DateTimeFormat("fr-FR", {
+      month: "long",
+      year: "numeric",
+    }).format(date);
   }
   if (granularity === "week") {
     const monday = mondayOfWeek(date);
