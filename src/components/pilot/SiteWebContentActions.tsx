@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FileText, Lightbulb, Target } from "lucide-react";
+import { FileText, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { querySearchConsole } from "@/lib/site-web-api";
@@ -54,7 +54,11 @@ export function SiteWebContentView() {
     <div className="space-y-4">
       {error && <GoogleDataError message={error} />}
       <Card className="p-5">
-        <Header icon={FileText} title="Contenus" description="Pages réellement visibles dans Google, issues de Search Console." />
+        <Header
+          icon={FileText}
+          title="Contenus"
+          description="Pages réellement visibles dans Google, issues de Search Console."
+        />
         <p className="mt-2 text-xs text-muted-foreground">
           Périmètre : {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
         </p>
@@ -136,7 +140,7 @@ export function SiteWebActionsView() {
           description="Actions proposées uniquement à partir de requêtes réellement observées dans Search Console."
         />
         <p className="mt-2 text-xs text-muted-foreground">
-          Règle : au moins 30 impressions, position ≤ 20 et CTR < 8 %.
+          Règle : au moins 30 impressions, position ≤ 20 et CTR &lt; 8 %.
         </p>
         <div className="mt-5 space-y-3">
           {loading ? (
@@ -151,7 +155,7 @@ export function SiteWebActionsView() {
               const action =
                 position <= 10
                   ? "Optimiser le titre et la description pour améliorer le CTR."
-                  : "Renforcer et enrichir le contenu correspondant à cette requête. ";
+                  : "Renforcer et enrichir le contenu correspondant à cette requête.";
               return (
                 <div key={`${query}-${index}`} className="rounded-lg border border-border/60 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -166,8 +170,12 @@ export function SiteWebActionsView() {
                     </Badge>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <Badge variant="outline" className="font-normal">Position {formatPosition(position)}</Badge>
-                    <Badge variant="outline" className="font-normal">CTR {formatPercent(ctr)}</Badge>
+                    <Badge variant="outline" className="font-normal">
+                      Position {formatPosition(position)}
+                    </Badge>
+                    <Badge variant="outline" className="font-normal">
+                      CTR {formatPercent(ctr)}
+                    </Badge>
                   </div>
                   <p className="mt-3 text-sm text-muted-foreground">{action}</p>
                 </div>
@@ -218,7 +226,10 @@ function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
         {rows.map((row, rowIndex) => (
           <tr key={`${row[0]}-${rowIndex}`} className="border-t border-border/40">
             {row.map((cell, index) => (
-              <td key={`${row[0]}-${index}`} className="py-3 text-right tabular-nums first:text-left">
+              <td
+                key={`${row[0]}-${index}`}
+                className="py-3 text-right tabular-nums first:text-left"
+              >
                 {cell}
               </td>
             ))}
@@ -238,7 +249,9 @@ function GoogleDataError({ message }: { message: string }) {
 }
 
 function LoadingState() {
-  return <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>;
+  return (
+    <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
+  );
 }
 
 function EmptyState({ text }: { text: string }) {
