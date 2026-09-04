@@ -37,7 +37,9 @@ function formatApiError(payload: ApiErrorPayload | null, httpStatus: number): st
   const googleStatus = typeof payload?.status === "number" ? payload.status : null;
   const message = typeof payload?.message === "string" ? payload.message.trim() : null;
 
-  if (code && googleStatus && message) return `${code} — Google HTTP ${googleStatus}: ${message}`;
+  if (code && googleStatus && message) {
+    return `${code} — Google HTTP ${googleStatus}: ${message}`;
+  }
   if (code && googleStatus) return `${code} — Google HTTP ${googleStatus}`;
   if (code && message) return `${code} — ${message}`;
   if (code) return code;
@@ -88,7 +90,9 @@ async function invokeDirect<T>(
         error: formatApiError(payload, response.status),
       };
     }
-    if (payload?.error) return { data: null, error: formatApiError(payload, response.status) };
+    if (payload?.error) {
+      return { data: null, error: formatApiError(payload, response.status) };
+    }
     return { data: payload as T, error: null };
   } catch (error) {
     return {
