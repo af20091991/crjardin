@@ -11,6 +11,7 @@ import {
   Search,
   Target,
 } from "lucide-react";
+import { SiteWebActionsView, SiteWebContentView } from "@/components/pilot/SiteWebContentActions";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
 import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
@@ -129,9 +130,7 @@ export function SiteWebDashboard() {
               <div>
                 <h2 className="font-serif text-xl font-semibold">Vue d'ensemble</h2>
                 <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                  Cette page ne mélange pas les données. Elle sert uniquement à choisir le bon
-                  niveau de lecture : statistiques, visibilité, SEO local, contenus, opportunités ou
-                  actions.
+                  Cette page ne mélange pas les données. Elle sert uniquement à choisir le bon niveau de lecture : statistiques, visibilité, SEO local, contenus, opportunités ou actions.
                 </p>
               </div>
             </div>
@@ -201,8 +200,7 @@ export function SiteWebDashboard() {
               <div>
                 <h2 className="font-serif text-lg font-semibold">Règle d'organisation</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Données brutes → indicateurs → analyse → opportunités → actions. Aucun chiffre de
-                  démonstration n'est affiché ici.
+                  Données brutes → indicateurs → analyse → opportunités → actions. Aucun chiffre de démonstration n'est affiché ici.
                 </p>
               </div>
             </div>
@@ -212,76 +210,15 @@ export function SiteWebDashboard() {
 
       {activeView === "statistics" && <SiteWebStatistics />}
 
-      {activeView === "visibility" && (
-        <div className="space-y-5">
-          <Card className="p-5">
-            <div className="flex items-start gap-3">
-              <Search className="mt-0.5 h-4 w-4 text-primary" />
-              <div>
-                <h2 className="font-serif text-xl font-semibold">Visibilité</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Performance organique observée dans Google Search Console.
-                </p>
-              </div>
-            </div>
-          </Card>
-          <SiteWebViewContent view="visibility" showConnection={false} />
-        </div>
-      )}
+      {activeView === "visibility" && <SiteWebViewContent view="visibility" showConnection={false} />}
 
-      {activeView === "local" && (
-        <div className="space-y-5">
-          <Card className="border-primary/20 bg-primary/5 p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-background p-2 text-primary shadow-sm">
-                  <Target className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-serif text-xl font-semibold">SEO Local</h2>
-                    <StatusPill>Données réelles</StatusPill>
-                  </div>
-                  <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                    Toutes les données de visibilité locale sont regroupées ici : requêtes
-                    géolocalisées, évolution organique et interactions Google Business Profile.
-                  </p>
-                </div>
-              </div>
-              <div className="rounded-lg border bg-background px-3 py-2 text-xs text-muted-foreground">
-                Search Console + Google Business Profile
-              </div>
-            </div>
-          </Card>
-          <SiteWebViewContent view="local" showConnection={false} />
-        </div>
-      )}
+      {activeView === "local" && <SiteWebViewContent view="local" showConnection={false} />}
 
-      {activeView === "content" && <SiteWebViewContent view="content" showConnection={false} />}
+      {activeView === "content" && <SiteWebContentView />}
 
-      {activeView === "opportunities" && (
-        <div className="space-y-5">
-          <Card className="p-5">
-            <h2 className="font-serif text-xl font-semibold">Opportunités</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Les points à fort potentiel identifiés à partir des données disponibles.
-            </p>
-          </Card>
-          <SiteWebOpportunities />
-        </div>
-      )}
+      {activeView === "opportunities" && <SiteWebOpportunities />}
 
-      {activeView === "actions" && (
-        <div className="space-y-5">
-          <Card className="p-5">
-            <h2 className="font-serif text-xl font-semibold">Actions</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Le suivi opérationnel reste séparé des mesures et des recommandations.
-            </p>
-          </Card>
-          <SiteWebViewContent view="actions" showConnection={false} />
-        </div>
-      )}
+      {activeView === "actions" && <SiteWebActionsView />}
     </div>
   );
 }
