@@ -63,7 +63,10 @@ export function SiteWebVisibilityView() {
 
       <Card className="p-5">
         <div className="grid gap-5 sm:grid-cols-4">
-          <Metric label="Clics" value={loading ? "…" : hasData ? formatNumber(totals.clicks) : "—"} />
+          <Metric
+            label="Clics"
+            value={loading ? "…" : hasData ? formatNumber(totals.clicks) : "—"}
+          />
           <Metric
             label="Impressions"
             value={loading ? "…" : hasData ? formatNumber(totals.impressions) : "—"}
@@ -168,7 +171,11 @@ function SourceError({ message }: { message: string }) {
 }
 
 function LoadingState() {
-  return <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>;
+  return (
+    <p className="py-8 text-center text-sm text-muted-foreground">
+      Chargement des données Google…
+    </p>
+  );
 }
 
 function EmptyState({ text }: { text: string }) {
@@ -180,7 +187,10 @@ function formatNumber(value: number) {
 }
 
 function formatPercent(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat("fr-FR", {
+    style: "percent",
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
 function formatPosition(value: number | undefined) {
