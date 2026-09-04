@@ -9,8 +9,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
+import {
+  friendlyConnectionError,
+  SiteWebGoogleConnection,
+} from "@/components/pilot/SiteWebGoogleConnection";
 import {
   getBusinessProfilePerformance,
   listBusinessProfileAccounts,
@@ -119,9 +123,19 @@ function VisibilityView() {
     };
   }, [rows]);
 
+  const chartData = useMemo(
+    () =>
+      rows.slice(-31).map((row) => ({
+        date: row.keys?.[0] ?? "",
+        clicks: Number(row.clicks ?? 0),
+        impressions: Number(row.impressions ?? 0),
+      })),
+    [rows],
+  );
+
   return (
     <>
-      {error && <GoogleDataError message={error} />}
+      {error && <GoogleDataError code={error} />}
       <Card className="p-5">
         <div className="grid gap-5 sm:grid-cols-4">
           <Metric label="Clics" value={loading ? "…" : formatNumber(totals.clicks)} />
@@ -142,28 +156,51 @@ function VisibilityView() {
         <Header
           icon={Search}
           title="Évolution de la visibilité"
-          description="Données réelles Search Console, agrégées par jour."
+          description="Données réelles Search Console — 31 derniers jours."
         />
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 h-64">
           {loading ? (
             <LoadingState />
-          ) : rows.length === 0 ? (
+          ) : chartData.length === 0 ? (
             <EmptyState text="Aucune donnée Search Console disponible sur la période." />
           ) : (
-            <DataTable
-              headers={["Date", "Position", "Impressions", "Clics", "CTR"]}
-              rows={rows.slice(-31).map((row) => [
-                formatDateLabel(row.keys?.[0] ?? ""),
-                Number(row.position ?? 0)
-                  .toFixed(1)
-                  .replace(".", ","),
-                formatNumber(Number(row.impressions ?? 0)),
-                formatNumber(Number(row.clicks ?? 0)),
-                formatPercent(Number(row.ctr ?? 0)),
-              ])}
-            />
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tickFormatter={formatShortDate} minTickGap={24} />
+                <YAxis />
+                <Tooltip labelFormatter={(value) => formatDateLabel(String(value))} />
+                <Line type="monotone" dataKey="clicks" name="Clics" dot={false} />
+                <Line type="monotone" dataKey="impressions" name="Impressions" dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
           )}
         </div>
+        <details className="mt-4">
+          <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+            Voir le détail jour par jour
+          </summary>
+          <div className="mt-3 overflow-x-auto">
+            {loading ? (
+              <LoadingState />
+            ) : rows.length === 0 ? (
+              <EmptyState text="Aucune donnée Search Console disponible sur la période." />
+            ) : (
+              <DataTable
+                headers={["Date", "Position", "Impressions", "Clics", "CTR"]}
+                rows={rows.slice(-31).map((row) => [
+                  formatDateLabel(row.keys?.[0] ?? ""),
+                  Number(row.position ?? 0)
+                    .toFixed(1)
+                    .replace(".", ","),
+                  formatNumber(Number(row.impressions ?? 0)),
+                  formatNumber(Number(row.clicks ?? 0)),
+                  formatPercent(Number(row.ctr ?? 0)),
+                ])}
+              />
+            )}
+          </div>
+        </details>
       </Card>
     </>
   );
@@ -312,7 +349,7 @@ function LocalView() {
   return (
     <>
       <SiteWebGoogleConnection />
-      {error && <GoogleDataError message={error} />}
+      {error && <GoogleDataError code={error} />}
       <Card className="p-5">
         <Header
           icon={MapPin}
@@ -464,11 +501,16 @@ function LocalView() {
 function ContentView() {
   return (
     <Card className="p-5">
-      <Header
-        icon={FileText}
-        title="Contenus"
-        description="Le suivi éditorial reste séparé des statistiques Google."
-      />
+      <div className="flex items-center justify-between gap-3">
+        <Header
+          icon={FileText}
+          title="Contenus"
+          description="Le suivi éditorial reste séparé des statistiques Google."
+        />
+        <Badge variant="outline" className="font-normal text-muted-foreground">
+          Bientôt disponible
+        </Badge>
+      </div>
       <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
         L'inventaire réel des pages et leurs données SEO sera branché lorsque leur source réelle
         sera disponible.
@@ -480,11 +522,16 @@ function ContentView() {
 function ActionsView() {
   return (
     <Card className="p-5">
-      <Header
-        icon={Target}
-        title="Actions"
-        description="Les recommandations seront calculées à partir des données Google réelles."
-      />
+      <div className="flex items-center justify-between gap-3">
+        <Header
+          icon={Target}
+          title="Actions"
+          description="Les recommandations seront calculées à partir des données Google réelles."
+        />
+        <Badge variant="outline" className="font-normal text-muted-foreground">
+          Bientôt disponible
+        </Badge>
+      </div>
       <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
         Aucune action automatique n'est calculée sans données consolidées suffisantes.
       </div>
@@ -553,14 +600,16 @@ function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
   );
 }
 
-function GoogleDataError({ message }: { message: string }) {
+function GoogleDataError({ code }: { code: string }) {
   return (
     <Card className="border-destructive/30 bg-destructive/5 p-4">
       <div className="flex items-start gap-3">
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
         <div>
           <p className="text-sm font-medium">Données Google indisponibles</p>
-          <p className="mt-1 text-xs text-muted-foreground">{message}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {friendlyConnectionError(code) ?? code}
+          </p>
         </div>
       </div>
     </Card>
