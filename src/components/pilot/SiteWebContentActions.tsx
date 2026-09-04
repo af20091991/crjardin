@@ -137,7 +137,9 @@ export function SiteWebActionsView() {
         <Header
           icon={Target}
           title="Actions"
-          description="Actions proposées uniquement à partir de requêtes réellement observées dans Search Console."
+          description={
+            "Actions proposées uniquement à partir de requêtes réellement observées dans Search Console."
+          }
         />
         <p className="mt-2 text-xs text-muted-foreground">
           Règle : au moins 30 impressions, position ≤ 20 et CTR &lt; 8 %.
