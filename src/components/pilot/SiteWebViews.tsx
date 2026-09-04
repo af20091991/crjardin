@@ -228,7 +228,7 @@ function LocalView() {
             }
           }
         }
-      } else {
+      } else if (accountsResult.error !== "google_token_unavailable") {
         setError((current) => current ?? accountsResult.error ?? null);
       }
       setLoading(false);
@@ -311,6 +311,7 @@ function LocalView() {
 
   return (
     <>
+      <SiteWebGoogleConnection />
       {error && <GoogleDataError message={error} />}
       <Card className="p-5">
         <Header
