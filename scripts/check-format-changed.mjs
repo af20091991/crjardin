@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 
 const head = process.env.HEAD_SHA || "HEAD";
 
@@ -24,13 +23,7 @@ if (supported.length === 0) {
   process.exit(0);
 }
 
-execFileSync("bunx", ["prettier", "--write", ...supported], {
+execFileSync("bunx", ["prettier", "--check", ...supported], {
   encoding: "utf8",
   stdio: "inherit",
 });
-
-for (const file of supported) {
-  console.log(`--- BEGIN PRETTIER ${file} ---`);
-  console.log(readFileSync(file, "utf8"));
-  console.log(`--- END PRETTIER ${file} ---`);
-}
