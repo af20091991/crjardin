@@ -45,7 +45,9 @@ export function SiteWebStatistics() {
       setError(null);
 
       if (startDate > endDate) {
-        setError("La date de début doit être antérieure ou égale à la date de fin.");
+        setError(
+          "La date de début doit être antérieure ou égale à la date de fin.",
+        );
         setLoading(false);
         return;
       }
@@ -68,7 +70,9 @@ export function SiteWebStatistics() {
         properties[0];
 
       if (!selected) {
-        setError("Aucune propriété Google Analytics 4 accessible avec ce compte Google.");
+        setError(
+          "Aucune propriété Google Analytics 4 accessible avec ce compte Google.",
+        );
         setLoading(false);
         return;
       }
@@ -148,8 +152,14 @@ export function SiteWebStatistics() {
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Metric label="Sessions" value={loading ? "…" : formatNumber(totals.sessions)} />
-          <Metric label="Pages vues" value={loading ? "…" : formatNumber(totals.views)} />
+          <Metric
+            label="Sessions"
+            value={loading ? "…" : formatNumber(totals.sessions)}
+          />
+          <Metric
+            label="Pages vues"
+            value={loading ? "…" : formatNumber(totals.views)}
+          />
           <Metric
             label="Utilisateurs actifs"
             value={loading ? "…" : formatNumber(totals.users)}
@@ -193,7 +203,9 @@ export function SiteWebStatistics() {
               Regrouper par
               <select
                 value={granularity}
-                onChange={(event) => setGranularity(event.target.value as Granularity)}
+                onChange={(event) =>
+                  setGranularity(event.target.value as Granularity)
+                }
                 className="h-10 rounded-md border border-input bg-background px-3 text-sm"
                 aria-label="Regrouper les statistiques par"
               >
