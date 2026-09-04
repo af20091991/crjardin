@@ -196,7 +196,8 @@ export function SiteWebStatistics() {
           <div>
             <h3 className="text-sm font-medium">Évolution du trafic</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {statsRows.length} période{statsRows.length > 1 ? "s" : ""} affichée{statsRows.length > 1 ? "s" : ""} · données Google Analytics 4
+              {statsRows.length} période{statsRows.length > 1 ? "s" : ""} affichée
+              {statsRows.length > 1 ? "s" : ""} · données Google Analytics 4
             </p>
           </div>
         </div>
@@ -287,7 +288,9 @@ function groupingLabel(date: Date, granularity: Granularity) {
     const monday = mondayOfWeek(date);
     const sunday = new Date(monday);
     sunday.setDate(sunday.getDate() + 6);
-    return `Semaine du ${formatDateLabel(monday.toISOString().slice(0, 10))} au ${formatDateLabel(sunday.toISOString().slice(0, 10))}`;
+    return `Semaine du ${formatDateLabel(monday.toISOString().slice(0, 10))} au ${formatDateLabel(
+      sunday.toISOString().slice(0, 10),
+    )}`;
   }
   return new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
