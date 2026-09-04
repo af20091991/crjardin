@@ -2,7 +2,7 @@ name: Temporary format Site Web
 on:
   push:
     branches:
-      - adpp/work/site-web-google-final-fix
+      - adpp/work/siteweb-organization
 permissions:
   contents: write
 jobs:
