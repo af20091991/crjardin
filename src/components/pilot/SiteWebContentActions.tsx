@@ -162,7 +162,8 @@ export function SiteWebActionsView() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{query}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {formatNumber(Number(row.impressions ?? 0))} impressions · {formatNumber(Number(row.clicks ?? 0))} clics
+                        {formatNumber(Number(row.impressions ?? 0))} impressions ·{" "}
+                        {formatNumber(Number(row.clicks ?? 0))} clics
                       </p>
                     </div>
                     <Badge variant="outline" className="font-normal">
