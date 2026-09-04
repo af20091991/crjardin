@@ -61,9 +61,9 @@ export function SiteWebStatistics() {
 
       const properties = propertiesResult.data?.properties ?? [];
       const selected =
-        properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
-        properties.find((item) => item.name === PREFERRED_GA4_PROPERTY_ID) ??
-        properties[0];
+        properties.find(
+          (item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`,
+        ) ?? properties.find((item) => item.name === PREFERRED_GA4_PROPERTY_ID) ?? properties[0];
 
       if (!selected) {
         setError("Aucune propriété Google Analytics 4 accessible avec ce compte Google.");
