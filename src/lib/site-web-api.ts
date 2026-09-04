@@ -37,6 +37,7 @@ function formatApiError(payload: ApiErrorPayload | null, httpStatus: number): st
   const googleStatus = typeof payload?.status === "number" ? payload.status : null;
   const message = typeof payload?.message === "string" ? payload.message.trim() : null;
 
+  // Keep Google's diagnostic status/message available to the UI for the GBP investigation.
   if (code && googleStatus && message) {
     return `${code} — Google HTTP ${googleStatus}: ${message}`;
   }
