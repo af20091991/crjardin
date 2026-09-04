@@ -16,7 +16,7 @@ import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnect
 import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
 import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
 import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
-import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
+import { SiteWebVisibilityView } from "@/components/pilot/SiteWebVisibilityView";
 
 type ModuleView =
   | "overview"
@@ -211,7 +211,7 @@ export function SiteWebDashboard() {
 
       {activeView === "statistics" && <SiteWebStatistics />}
 
-      {activeView === "visibility" && <SiteWebViewContent view="visibility" showConnection={false} />}
+      {activeView === "visibility" && <SiteWebVisibilityView />}
 
       {activeView === "local" && <SiteWebLocalView />}
 
