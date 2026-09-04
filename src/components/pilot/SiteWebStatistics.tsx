@@ -63,7 +63,9 @@ export function SiteWebStatistics() {
       const selected =
         properties.find(
           (item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`,
-        ) ?? properties.find((item) => item.name === PREFERRED_GA4_PROPERTY_ID) ?? properties[0];
+        ) ??
+        properties.find((item) => item.name === PREFERRED_GA4_PROPERTY_ID) ??
+        properties[0];
 
       if (!selected) {
         setError("Aucune propriété Google Analytics 4 accessible avec ce compte Google.");
@@ -146,14 +148,8 @@ export function SiteWebStatistics() {
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Metric
-            label="Sessions"
-            value={loading ? "…" : formatNumber(totals.sessions)}
-          />
-          <Metric
-            label="Pages vues"
-            value={loading ? "…" : formatNumber(totals.views)}
-          />
+          <Metric label="Sessions" value={loading ? "…" : formatNumber(totals.sessions)} />
+          <Metric label="Pages vues" value={loading ? "…" : formatNumber(totals.views)} />
           <Metric
             label="Utilisateurs actifs"
             value={loading ? "…" : formatNumber(totals.users)}
