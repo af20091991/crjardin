@@ -1,23 +1,22 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { BarChart3, FileText, Globe2, MapPin, Target } from "lucide-react";
-import { SiteWebActionsView, SiteWebContentView } from "@/components/pilot/SiteWebContentActions";
+import { SiteWebContentView } from "@/components/pilot/SiteWebContentActions";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
-import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
+import { SiteWebOpportunityBoard } from "@/components/pilot/SiteWebOpportunityBoard";
 import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
 import { SiteWebTodaySummary } from "@/components/pilot/SiteWebTodaySummary";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
 
-type ModuleView = "today" | "traffic" | "local" | "content" | "opportunities" | "actions";
+type ModuleView = "today" | "traffic" | "local" | "content" | "pipeline";
 
 const moduleViews: Array<{ id: ModuleView; label: string }> = [
   { id: "today", label: "Aujourd'hui" },
   { id: "traffic", label: "Trafic & Recherche" },
   { id: "local", label: "Présence locale" },
   { id: "content", label: "Contenus" },
-  { id: "opportunities", label: "Opportunités" },
-  { id: "actions", label: "Actions" },
+  { id: "pipeline", label: "Pipeline" },
 ];
 
 export function SiteWebDashboard() {
@@ -60,7 +59,7 @@ export function SiteWebDashboard() {
       </nav>
 
       {activeView === "today" && (
-        <SiteWebTodaySummary onOpenOpportunities={() => setActiveView("opportunities")} />
+        <SiteWebTodaySummary onOpenOpportunities={() => setActiveView("pipeline")} />
       )}
 
       {activeView === "traffic" && (
@@ -119,32 +118,21 @@ export function SiteWebDashboard() {
         </div>
       )}
 
-      {activeView === "opportunities" && (
+      {activeView === "pipeline" && (
         <div className="space-y-5">
           <Card className="p-5">
             <div className="flex items-start gap-3">
               <Target className="mt-0.5 h-4 w-4 text-primary" />
               <div>
-                <h2 className="font-serif text-xl font-semibold">Opportunités</h2>
+                <h2 className="font-serif text-xl font-semibold">Pipeline</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Les points à fort potentiel identifiés à partir des données disponibles.
+                  Le suivi des opportunités, comme un vrai pipeline : à traiter, en cours, traité —
+                  avec notes.
                 </p>
               </div>
             </div>
           </Card>
-          <SiteWebOpportunities />
-        </div>
-      )}
-
-      {activeView === "actions" && (
-        <div className="space-y-5">
-          <Card className="p-5">
-            <h2 className="font-serif text-xl font-semibold">Actions</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Le suivi opérationnel reste séparé des mesures et des recommandations.
-            </p>
-          </Card>
-          <SiteWebActionsView />
+          <SiteWebOpportunityBoard />
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, BarChart3, MapPin, Search } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card } from "@/components/ui/card";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
 import { Metric } from "@/components/pilot/SiteWebMetric";
@@ -191,6 +192,20 @@ export function SiteWebLocalView() {
     [queryRows],
   );
 
+  const topLocalQueries = useMemo(
+    () =>
+      [...localQueries]
+        .sort((a, b) => Number(b.impressions ?? 0) - Number(a.impressions ?? 0))
+        .slice(0, 8)
+        .map((row) => ({
+          name: truncate(row.keys?.[0] ?? "", 22),
+          Impressions: Number(row.impressions ?? 0),
+          Clics: Number(row.clicks ?? 0),
+        }))
+        .reverse(),
+    [localQueries],
+  );
+
   const localTotals = useMemo(() => {
     const clicks = localQueries.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
     const impressions = localQueries.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
@@ -308,31 +323,62 @@ export function SiteWebLocalView() {
           title="Requêtes locales réellement observées"
           description="Requêtes Search Console contenant une commune de la zone ciblée. Ce tableau ne mesure pas le classement Google Maps."
         />
-        <div className="mt-4">
+        <div className="mt-4 h-64">
           {loading ? (
             <LoadingState />
+          ) : topLocalQueries.length === 0 ? (
+            <EmptyState text="Aucune requête locale observée sur la période." />
           ) : (
-            <>
-              {localQueries.some(isOpportunity) && (
-                <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Requêtes bien
-                  positionnées mais peu cliquées — à optimiser en priorité.
-                </p>
-              )}
-              <SortableDataTable
-                columns={queryColumns}
-                rows={localQueries}
-                getRowKey={(row, index) => `${row.keys?.[0] ?? "row"}-${index}`}
-                searchField={(row) => row.keys?.[0] ?? ""}
-                searchPlaceholder="Rechercher une requête…"
-                minImpressionsField={(row) => Number(row.impressions ?? 0)}
-                defaultSortKey="impressions"
-                defaultSortDirection="desc"
-                highlightRow={isOpportunity}
-              />
-            </>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={topLocalQueries}
+                layout="vertical"
+                margin={{ top: 4, right: 12, left: 0, bottom: 4 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" />
+                <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar
+                  dataKey="Impressions"
+                  fill="hsl(var(--muted-foreground))"
+                  radius={[0, 4, 4, 0]}
+                />
+                <Bar dataKey="Clics" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           )}
         </div>
+        <details className="mt-4">
+          <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+            Voir le tableau complet, triable et filtrable
+          </summary>
+          <div className="mt-3">
+            {loading ? (
+              <LoadingState />
+            ) : (
+              <>
+                {localQueries.some(isOpportunity) && (
+                  <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Requêtes bien
+                    positionnées mais peu cliquées — à optimiser en priorité.
+                  </p>
+                )}
+                <SortableDataTable
+                  columns={queryColumns}
+                  rows={localQueries}
+                  getRowKey={(row, index) => `${row.keys?.[0] ?? "row"}-${index}`}
+                  searchField={(row) => row.keys?.[0] ?? ""}
+                  searchPlaceholder="Rechercher une requête…"
+                  minImpressionsField={(row) => Number(row.impressions ?? 0)}
+                  defaultSortKey="impressions"
+                  defaultSortDirection="desc"
+                  highlightRow={isOpportunity}
+                />
+              </>
+            )}
+          </div>
+        </details>
       </Card>
 
       <Card className="p-5">
@@ -446,6 +492,10 @@ function formatPercent(value: number) {
   return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(
     value,
   );
+}
+
+function truncate(value: string, maxLength: number) {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
 }
 
 function formatPosition(value: number | undefined) {

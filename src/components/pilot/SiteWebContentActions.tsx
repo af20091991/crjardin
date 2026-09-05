@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { FileText, Target } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { FileText } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card } from "@/components/ui/card";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
 import { SortableDataTable, type SortableColumn } from "@/components/pilot/SiteWebSortableTable";
@@ -93,6 +93,20 @@ export function SiteWebContentView() {
     [rows],
   );
 
+  const topPages = useMemo(
+    () =>
+      [...pages]
+        .sort((a, b) => Number(b.clicks ?? 0) - Number(a.clicks ?? 0))
+        .slice(0, 8)
+        .map((row) => ({
+          name: truncate(cleanPage(row.keys?.[0] ?? ""), 26),
+          Clics: Number(row.clicks ?? 0),
+          Impressions: Number(row.impressions ?? 0),
+        }))
+        .reverse(),
+    [pages],
+  );
+
   return (
     <div className="space-y-4">
       {error && <GoogleDataError code={error} />}
@@ -105,127 +119,54 @@ export function SiteWebContentView() {
         <p className="mt-2 text-xs text-muted-foreground">
           Périmètre : {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
         </p>
-        <div className="mt-5 overflow-x-auto">
+        <div className="mt-5 h-64">
           {loading ? (
             <LoadingState />
+          ) : topPages.length === 0 ? (
+            <EmptyState text="Aucune page avec des impressions sur la période." />
           ) : (
-            <SortableDataTable
-              columns={pageColumns}
-              rows={pages}
-              getRowKey={(row, index) => `${row.keys?.[0] ?? "row"}-${index}`}
-              searchField={(row) => cleanPage(row.keys?.[0] ?? "")}
-              searchPlaceholder="Rechercher une page…"
-              minImpressionsField={(row) => Number(row.impressions ?? 0)}
-              defaultSortKey="impressions"
-              defaultSortDirection="desc"
-              highlightRow={isOpportunity}
-            />
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={topPages}
+                layout="vertical"
+                margin={{ top: 4, right: 12, left: 0, bottom: 4 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" />
+                <YAxis type="category" dataKey="name" width={170} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar
+                  dataKey="Impressions"
+                  fill="hsl(var(--muted-foreground))"
+                  radius={[0, 4, 4, 0]}
+                />
+                <Bar dataKey="Clics" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           )}
         </div>
-      </Card>
-    </div>
-  );
-}
-
-export function SiteWebActionsView() {
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      const result = await querySearchConsole({
-        siteUrl: SITE_URL,
-        startDate: yearStart(),
-        endDate: yesterday(),
-        dimensions: ["query"],
-      });
-      if (!active) return;
-      setRows((result.data?.rows ?? []) as Row[]);
-      setError(result.error);
-      setLoading(false);
-    };
-    void load();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const actions = useMemo(
-    () =>
-      rows
-        .filter(
-          (row) =>
-            Number(row.impressions ?? 0) >= 30 &&
-            Number(row.position ?? 99) <= 20 &&
-            Number(row.ctr ?? 0) < 0.08,
-        )
-        .sort(
-          (a, b) =>
-            Number(b.impressions ?? 0) * (0.08 - Number(b.ctr ?? 0)) -
-            Number(a.impressions ?? 0) * (0.08 - Number(a.ctr ?? 0)),
-        )
-        .slice(0, 10),
-    [rows],
-  );
-
-  return (
-    <div className="space-y-4">
-      {error && <GoogleDataError code={error} />}
-      <Card className="p-5">
-        <Header
-          icon={Target}
-          title="Actions"
-          description="Actions proposées uniquement à partir de requêtes réellement observées dans Search Console."
-        />
-        <p className="mt-2 text-xs text-muted-foreground">
-          Règle : au moins 30 impressions, position ≤ 20 et CTR &lt; 8 %.
-        </p>
-        <div className="mt-5 space-y-3">
-          {loading ? (
-            <LoadingState />
-          ) : actions.length === 0 ? (
-            <EmptyState text="Aucune action prioritaire détectée sur les données disponibles." />
-          ) : (
-            actions.map((row, index) => {
-              const query = row.keys?.[0] ?? "Requête inconnue";
-              const position = Number(row.position ?? 0);
-              const ctr = Number(row.ctr ?? 0);
-              const action =
-                position <= 10
-                  ? "Optimiser le titre et la description pour améliorer le CTR."
-                  : "Renforcer et enrichir le contenu correspondant à cette requête.";
-              return (
-                <div key={`${query}-${index}`} className="rounded-lg border border-border/60 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{query}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {formatNumber(Number(row.impressions ?? 0))} impressions ·{" "}
-                        {formatNumber(Number(row.clicks ?? 0))} clics
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="font-normal">
-                      Prioritaire
-                    </Badge>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Badge variant="outline" className="font-normal">
-                      Position {formatPosition(position)}
-                    </Badge>
-                    <Badge variant="outline" className="font-normal">
-                      CTR {formatPercent(ctr)}
-                    </Badge>
-                  </div>
-                  <p className="mt-3 text-sm text-muted-foreground">{action}</p>
-                </div>
-              );
-            })
-          )}
-        </div>
+        <details className="mt-5">
+          <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+            Voir le tableau complet, triable et filtrable
+          </summary>
+          <div className="mt-3 overflow-x-auto">
+            {loading ? (
+              <LoadingState />
+            ) : (
+              <SortableDataTable
+                columns={pageColumns}
+                rows={pages}
+                getRowKey={(row, index) => `${row.keys?.[0] ?? "row"}-${index}`}
+                searchField={(row) => cleanPage(row.keys?.[0] ?? "")}
+                searchPlaceholder="Rechercher une page…"
+                minImpressionsField={(row) => Number(row.impressions ?? 0)}
+                defaultSortKey="impressions"
+                defaultSortDirection="desc"
+                highlightRow={isOpportunity}
+              />
+            )}
+          </div>
+        </details>
       </Card>
     </div>
   );
@@ -301,6 +242,10 @@ function formatPercent(value: number) {
 function formatPosition(value: number | undefined) {
   if (value === undefined || !Number.isFinite(Number(value)) || Number(value) <= 0) return "—";
   return Number(value).toFixed(1).replace(".", ",");
+}
+
+function truncate(value: string, maxLength: number) {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
 }
 
 function cleanPage(value: string) {
