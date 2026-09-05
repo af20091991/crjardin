@@ -132,40 +132,37 @@ export function SiteWebStatistics() {
               Aucune donnée Analytics 4 disponible sur la période.
             </p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2">Date</th>
-                  <th className="pb-2 text-right">Sessions</th>
-                  <th className="pb-2 text-right">Pages vues</th>
-                  <th className="pb-2 text-right">Utilisateurs</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.slice(-31).map((row, index) => (
-                  <tr
-                    key={`${row.dimensionValues?.[0]?.value ?? "row"}-${index}`}
-                    className="border-t border-border/40"
-                  >
-                    <td className="py-3">
-                      {formatDateLabel(row.dimensionValues?.[0]?.value ?? "")}
-                    </td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(Number(row.metricValues?.[0]?.value ?? 0))}
-                    </td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(Number(row.metricValues?.[1]?.value ?? 0))}
-                    </td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(Number(row.metricValues?.[2]?.value ?? 0))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <SortableTable
+              columns={[
+                { key: "date", label: "Date", align: "left" },
+                { key: "sessions", label: "Sessions" },
+                { key: "views", label: "Pages vues" },
+                { key: "users", label: "Utilisateurs" },
+              ]}
+              defaultSort={{ key: "date", direction: "asc" }}
+              rows={rows.slice(-31).map((row) => {
+                const rawDate = row.dimensionValues?.[0]?.value ?? "";
+                return {
+                  date: { value: rawDate, display: formatDateLabel(rawDate) },
+                  sessions: {
+                    value: Number(row.metricValues?.[0]?.value ?? 0),
+                    display: formatNumber(Number(row.metricValues?.[0]?.value ?? 0)),
+                  },
+                  views: {
+                    value: Number(row.metricValues?.[1]?.value ?? 0),
+                    display: formatNumber(Number(row.metricValues?.[1]?.value ?? 0)),
+                  },
+                  users: {
+                    value: Number(row.metricValues?.[2]?.value ?? 0),
+                    display: formatNumber(Number(row.metricValues?.[2]?.value ?? 0)),
+                  },
+                };
+              })}
+            />
           )}
         </div>
       </Card>
+
     </div>
   );
 }

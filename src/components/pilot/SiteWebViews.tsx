@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, BarChart3, FileText, MapPin, Search, Target } from "lucide-react";
+import { AlertCircle, BarChart3, FileText, Search, Target } from "lucide-react";
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -11,12 +12,10 @@ import {
 } from "recharts";
 import { Card } from "@/components/ui/card";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
-import {
-  getBusinessProfilePerformance,
-  listBusinessProfileAccounts,
-  listBusinessProfileLocations,
-  querySearchConsole,
-} from "@/lib/site-web-api";
+import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
+import { QueryFilters, SortableTable } from "@/components/pilot/SiteWebTable";
+import { describeSiteWebError } from "@/lib/site-web-error-labels";
+import { querySearchConsole } from "@/lib/site-web-api";
 
 type View = "visibility" | "local" | "content" | "actions";
 
@@ -28,37 +27,7 @@ type SearchRow = {
   position?: number;
 };
 
-type BusinessMetric = {
-  metric?: string;
-  dailyMetricTimeSeries?: Array<{
-    timeSeries?: Array<{
-      date?: { year?: number; month?: number; day?: number };
-      value?: number;
-    }>;
-  }>;
-};
-
-type BusinessPerformance = {
-  multiDailyMetricTimeSeries?: BusinessMetric[];
-};
-
-type BusinessSeriesRow = Record<string, number>;
-
 const SITE_URL = "https://www.delagraineaujardin.com/";
-const LOCAL_TERMS = [
-  "montpellier",
-  "castelnau",
-  "lattes",
-  "saint-jean-de-védas",
-  "saint jean de vedas",
-  "jacou",
-  "clapiers",
-  "le crès",
-  "le cres",
-  "juvignac",
-  "pérols",
-  "perols",
-];
 
 export function SiteWebViewContent({
   view,
@@ -71,7 +40,7 @@ export function SiteWebViewContent({
     <div className="space-y-4">
       {showConnection && <SiteWebGoogleConnection />}
       {view === "visibility" && <VisibilityView />}
-      {view === "local" && <LocalView />}
+      {view === "local" && <SiteWebLocalView />}
       {view === "content" && <ContentView />}
       {view === "actions" && <ActionsView />}
     </div>
@@ -79,23 +48,37 @@ export function SiteWebViewContent({
 }
 
 function VisibilityView() {
-  const [rows, setRows] = useState<SearchRow[]>([]);
+  const [dailyRows, setDailyRows] = useState<SearchRow[]>([]);
+  const [queryRows, setQueryRows] = useState<SearchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [minImpressions, setMinImpressions] = useState(0);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       setLoading(true);
       setError(null);
-      const { data, error: apiError } = await querySearchConsole({
-        siteUrl: SITE_URL,
-        startDate: yearStart(),
-        endDate: yesterday(),
-      });
+      const [dailyResult, queryResult] = await Promise.all([
+        querySearchConsole({
+          siteUrl: SITE_URL,
+          startDate: yearStart(),
+          endDate: yesterday(),
+          dimensions: ["date"],
+        }),
+        querySearchConsole({
+          siteUrl: SITE_URL,
+          startDate: yearStart(),
+          endDate: yesterday(),
+          dimensions: ["query"],
+        }),
+      ]);
       if (!active) return;
-      if (apiError) setError(apiError);
-      setRows(data?.rows ?? []);
+      const firstError = dailyResult.error ?? queryResult.error;
+      if (firstError) setError(describeSiteWebError(firstError));
+      setDailyRows(dailyResult.data?.rows ?? []);
+      setQueryRows(queryResult.data?.rows ?? []);
       setLoading(false);
     };
     void load();
@@ -105,9 +88,9 @@ function VisibilityView() {
   }, []);
 
   const totals = useMemo(() => {
-    const clicks = rows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
-    const impressions = rows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
-    const weightedPosition = rows.reduce(
+    const clicks = dailyRows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
+    const impressions = dailyRows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
+    const weightedPosition = dailyRows.reduce(
       (sum, row) => sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
       0,
     );
@@ -117,7 +100,29 @@ function VisibilityView() {
       ctr: impressions ? clicks / impressions : 0,
       position: impressions ? weightedPosition / impressions : 0,
     };
-  }, [rows]);
+  }, [dailyRows]);
+
+  const searchChart = useMemo(
+    () =>
+      dailyRows
+        .map((row) => ({
+          date: row.keys?.[0] ?? "",
+          clicks: Number(row.clicks ?? 0),
+          impressions: Number(row.impressions ?? 0),
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-31),
+    [dailyRows],
+  );
+
+  const filteredQueries = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return queryRows.filter((row) => {
+      const label = row.keys?.[0] ?? "";
+      if (needle && !label.toLowerCase().includes(needle)) return false;
+      return Number(row.impressions ?? 0) >= minImpressions;
+    });
+  }, [queryRows, search, minImpressions]);
 
   return (
     <>
@@ -138,252 +143,12 @@ function VisibilityView() {
           Search Console · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
         </p>
       </Card>
-      <Card className="p-5">
-        <Header
-          icon={Search}
-          title="Évolution de la visibilité"
-          description="Données réelles Search Console, agrégées par jour."
-        />
-        <div className="mt-4 overflow-x-auto">
-          {loading ? (
-            <LoadingState />
-          ) : rows.length === 0 ? (
-            <EmptyState text="Aucune donnée Search Console disponible sur la période." />
-          ) : (
-            <DataTable
-              headers={["Date", "Position", "Impressions", "Clics", "CTR"]}
-              rows={rows.slice(-31).map((row) => [
-                formatDateLabel(row.keys?.[0] ?? ""),
-                Number(row.position ?? 0)
-                  .toFixed(1)
-                  .replace(".", ","),
-                formatNumber(Number(row.impressions ?? 0)),
-                formatNumber(Number(row.clicks ?? 0)),
-                formatPercent(Number(row.ctr ?? 0)),
-              ])}
-            />
-          )}
-        </div>
-      </Card>
-    </>
-  );
-}
-
-function LocalView() {
-  const [queryRows, setQueryRows] = useState<SearchRow[]>([]);
-  const [dailyRows, setDailyRows] = useState<SearchRow[]>([]);
-  const [performance, setPerformance] = useState<BusinessPerformance | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      const [queryResult, dailyResult, accountsResult] = await Promise.all([
-        querySearchConsole({
-          siteUrl: SITE_URL,
-          startDate: yearStart(),
-          endDate: yesterday(),
-          dimensions: ["query"],
-        }),
-        querySearchConsole({
-          siteUrl: SITE_URL,
-          startDate: yearStart(),
-          endDate: yesterday(),
-          dimensions: ["date"],
-        }),
-        listBusinessProfileAccounts(),
-      ]);
-      if (!active) return;
-      if (queryResult.error) setError(queryResult.error);
-      setQueryRows(queryResult.data?.rows ?? []);
-      if (dailyResult.error) setError((current) => current ?? dailyResult.error ?? null);
-      setDailyRows(dailyResult.data?.rows ?? []);
-
-      if (!accountsResult.error) {
-        const account = accountsResult.data?.accounts?.[0];
-        if (account?.name) {
-          const locationsResult = await listBusinessProfileLocations(account.name);
-          if (!active) return;
-          if (locationsResult.error) {
-            setError((current) => current ?? locationsResult.error ?? null);
-          } else {
-            const location =
-              locationsResult.data?.locations?.find((item) =>
-                item.websiteUri?.includes("delagraineaujardin.com"),
-              ) ?? locationsResult.data?.locations?.[0];
-            if (location?.name) {
-              const performanceResult = await getBusinessProfilePerformance({
-                locationName: location.name,
-                startDate: yearStart(),
-                endDate: yesterday(),
-              });
-              if (!active) return;
-              if (performanceResult.error) {
-                setError((current) => current ?? performanceResult.error ?? null);
-              }
-              setPerformance((performanceResult.data ?? null) as BusinessPerformance | null);
-            }
-          }
-        }
-      } else if (accountsResult.error !== "google_token_unavailable") {
-        setError((current) => current ?? accountsResult.error ?? null);
-      }
-      setLoading(false);
-    };
-    void load();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const localQueries = useMemo(
-    () =>
-      queryRows
-        .filter((row) =>
-          LOCAL_TERMS.some((term) => (row.keys?.[0] ?? "").toLowerCase().includes(term)),
-        )
-        .sort((a, b) => Number(b.impressions ?? 0) - Number(a.impressions ?? 0)),
-    [queryRows],
-  );
-
-  const localTotals = useMemo(() => {
-    const clicks = localQueries.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
-    const impressions = localQueries.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
-    const weightedPosition = localQueries.reduce(
-      (sum, row) => sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
-      0,
-    );
-    return {
-      clicks,
-      impressions,
-      ctr: impressions ? clicks / impressions : 0,
-      position: impressions ? weightedPosition / impressions : 0,
-    };
-  }, [localQueries]);
-
-  const searchChart = useMemo(
-    () =>
-      dailyRows.slice(-31).map((row) => ({
-        date: row.keys?.[0] ?? "",
-        clicks: Number(row.clicks ?? 0),
-        impressions: Number(row.impressions ?? 0),
-      })),
-    [dailyRows],
-  );
-
-  const businessSeries = useMemo(() => {
-    const byDate = new Map<string, BusinessSeriesRow>();
-    for (const item of performance?.multiDailyMetricTimeSeries ?? []) {
-      const metric = item.metric ?? "";
-      for (const point of item.dailyMetricTimeSeries?.[0]?.timeSeries ?? []) {
-        const date = point.date;
-        if (!date?.year || !date.month || !date.day) continue;
-        const key = `${date.year}-${String(date.month).padStart(2, "0")}-${String(date.day).padStart(2, "0")}`;
-        const row = byDate.get(key) ?? {};
-        row[metric] = Number(point.value ?? 0);
-        byDate.set(key, row);
-      }
-    }
-    return Array.from(byDate.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [performance]);
-
-  const businessTotals = useMemo(
-    () =>
-      businessSeries.reduce(
-        (acc, [, row]) => {
-          acc.website += row.WEBSITE_CLICKS ?? 0;
-          acc.calls += row.CALL_CLICKS ?? 0;
-          acc.directions += row.BUSINESS_DIRECTION_REQUESTS ?? 0;
-          acc.impressions +=
-            (row.BUSINESS_IMPRESSIONS_DESKTOP_MAPS ?? 0) +
-            (row.BUSINESS_IMPRESSIONS_DESKTOP_SEARCH ?? 0) +
-            (row.BUSINESS_IMPRESSIONS_MOBILE_MAPS ?? 0) +
-            (row.BUSINESS_IMPRESSIONS_MOBILE_SEARCH ?? 0);
-          return acc;
-        },
-        { website: 0, calls: 0, directions: 0, impressions: 0 },
-      ),
-    [businessSeries],
-  );
-
-  return (
-    <>
-      <SiteWebGoogleConnection />
-      {error && <GoogleDataError message={error} />}
-      <Card className="p-5">
-        <Header
-          icon={MapPin}
-          title="SEO local réel"
-          description="Search Console + Google Business Profile. Aucune position Maps inventée."
-        />
-        <p className="mt-2 text-xs text-muted-foreground">
-          Périmètre : {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
-        </p>
-      </Card>
-
-      <div className="grid gap-4 sm:grid-cols-4">
-        <Card className="p-5">
-          <Metric label="Clics locaux" value={loading ? "…" : formatNumber(localTotals.clicks)} />
-        </Card>
-        <Card className="p-5">
-          <Metric
-            label="Impressions locales"
-            value={loading ? "…" : formatNumber(localTotals.impressions)}
-          />
-        </Card>
-        <Card className="p-5">
-          <Metric label="CTR local" value={loading ? "…" : formatPercent(localTotals.ctr)} />
-        </Card>
-        <Card className="p-5">
-          <Metric
-            label="Position locale"
-            value={
-              loading
-                ? "…"
-                : localTotals.position
-                  ? localTotals.position.toFixed(1).replace(".", ",")
-                  : "—"
-            }
-          />
-        </Card>
-      </div>
-
-      <Card className="p-5">
-        <Header
-          icon={Search}
-          title="Requêtes locales réellement observées"
-          description="Requêtes Search Console contenant une commune de la zone ciblée. Cela ne mesure pas le classement Google Maps."
-        />
-        <div className="mt-4 overflow-x-auto">
-          {loading ? (
-            <LoadingState />
-          ) : localQueries.length === 0 ? (
-            <EmptyState text="Aucune requête locale observée sur la période." />
-          ) : (
-            <DataTable
-              headers={["Requête", "Position", "Impressions", "Clics", "CTR"]}
-              rows={localQueries.slice(0, 50).map((row) => [
-                row.keys?.[0] ?? "—",
-                Number(row.position ?? 0)
-                  .toFixed(1)
-                  .replace(".", ","),
-                formatNumber(Number(row.impressions ?? 0)),
-                formatNumber(Number(row.clicks ?? 0)),
-                formatPercent(Number(row.ctr ?? 0)),
-              ])}
-            />
-          )}
-        </div>
-      </Card>
 
       <Card className="p-5">
         <Header
           icon={BarChart3}
-          title="Évolution de la visibilité organique locale"
-          description="Axe X explicite : date. Données Search Console réelles."
+          title="Évolution de la visibilité"
+          description="Axe X explicite : date. Données Search Console réelles, 31 derniers jours disponibles."
         />
         <div className="mt-4 h-72">
           {loading ? (
@@ -397,6 +162,7 @@ function LocalView() {
                 <XAxis dataKey="date" tickFormatter={formatShortDate} minTickGap={24} />
                 <YAxis />
                 <Tooltip labelFormatter={(value) => formatDateLabel(String(value))} />
+                <Legend />
                 <Line type="monotone" dataKey="clicks" name="Clics" dot={false} />
                 <Line type="monotone" dataKey="impressions" name="Impressions" dot={false} />
               </LineChart>
@@ -407,52 +173,104 @@ function LocalView() {
 
       <Card className="p-5">
         <Header
-          icon={MapPin}
-          title="Performance Google Business Profile"
-          description="Interactions et visibilité de la fiche Google, issues de l'API officielle."
+          icon={Search}
+          title="Requêtes de recherche"
+          description="Requêtes réellement observées dans Search Console. Cliquez sur un en-tête pour trier."
         />
-        <div className="mt-5 grid gap-5 sm:grid-cols-4">
-          <Metric label="Clics site" value={loading ? "…" : formatNumber(businessTotals.website)} />
-          <Metric label="Appels" value={loading ? "…" : formatNumber(businessTotals.calls)} />
-          <Metric
-            label="Itinéraires"
-            value={loading ? "…" : formatNumber(businessTotals.directions)}
+        <div className="mt-4">
+          <QueryFilters
+            search={search}
+            onSearchChange={setSearch}
+            minImpressions={minImpressions}
+            onMinImpressionsChange={setMinImpressions}
           />
-          <Metric
-            label="Impressions"
-            value={loading ? "…" : formatNumber(businessTotals.impressions)}
-          />
+        </div>
+        <div className="mt-4 overflow-x-auto">
+          {loading ? (
+            <LoadingState />
+          ) : filteredQueries.length === 0 ? (
+            <EmptyState text="Aucune requête ne correspond à ces critères." />
+          ) : (
+            <SortableTable
+              columns={[
+                { key: "query", label: "Requête", align: "left" },
+                { key: "position", label: "Position" },
+                { key: "impressions", label: "Impressions" },
+                { key: "clicks", label: "Clics" },
+                { key: "ctr", label: "CTR" },
+              ]}
+              defaultSort={{ key: "impressions", direction: "desc" }}
+              rows={filteredQueries.slice(0, 200).map((row) => ({
+                query: { value: row.keys?.[0] ?? "—", display: row.keys?.[0] ?? "—" },
+                position: {
+                  value: Number(row.position ?? 0),
+                  display: Number(row.position ?? 0)
+                    .toFixed(1)
+                    .replace(".", ","),
+                },
+                impressions: {
+                  value: Number(row.impressions ?? 0),
+                  display: formatNumber(Number(row.impressions ?? 0)),
+                },
+                clicks: {
+                  value: Number(row.clicks ?? 0),
+                  display: formatNumber(Number(row.clicks ?? 0)),
+                },
+                ctr: {
+                  value: Number(row.ctr ?? 0),
+                  display: formatPercent(Number(row.ctr ?? 0)),
+                },
+              }))}
+            />
+          )}
         </div>
       </Card>
 
       <Card className="p-5">
         <Header
-          icon={MapPin}
-          title="Évolution Google Business Profile"
-          description="Axe X explicite : date. Les impressions regroupent Search et Maps, sans prétendre fournir un rang Maps."
+          icon={BarChart3}
+          title="Détail quotidien"
+          description="Tri chronologique par défaut. Chaque colonne est triable."
         />
         <div className="mt-4 overflow-x-auto">
           {loading ? (
             <LoadingState />
-          ) : businessSeries.length === 0 ? (
-            <EmptyState text="Aucune donnée Google Business Profile disponible sur la période." />
+          ) : dailyRows.length === 0 ? (
+            <EmptyState text="Aucune donnée Search Console disponible sur la période." />
           ) : (
-            <DataTable
-              headers={["Date", "Clics site", "Appels", "Itinéraires", "Impressions"]}
-              rows={businessSeries
-                .slice(-31)
-                .map(([date, row]) => [
-                  formatDateLabel(date),
-                  formatNumber(row.WEBSITE_CLICKS ?? 0),
-                  formatNumber(row.CALL_CLICKS ?? 0),
-                  formatNumber(row.BUSINESS_DIRECTION_REQUESTS ?? 0),
-                  formatNumber(
-                    (row.BUSINESS_IMPRESSIONS_DESKTOP_MAPS ?? 0) +
-                      (row.BUSINESS_IMPRESSIONS_DESKTOP_SEARCH ?? 0) +
-                      (row.BUSINESS_IMPRESSIONS_MOBILE_MAPS ?? 0) +
-                      (row.BUSINESS_IMPRESSIONS_MOBILE_SEARCH ?? 0),
-                  ),
-                ])}
+            <SortableTable
+              columns={[
+                { key: "date", label: "Date", align: "left" },
+                { key: "position", label: "Position" },
+                { key: "impressions", label: "Impressions" },
+                { key: "clicks", label: "Clics" },
+                { key: "ctr", label: "CTR" },
+              ]}
+              defaultSort={{ key: "date", direction: "asc" }}
+              rows={dailyRows.slice(-31).map((row) => ({
+                date: {
+                  value: row.keys?.[0] ?? "",
+                  display: formatDateLabel(row.keys?.[0] ?? ""),
+                },
+                position: {
+                  value: Number(row.position ?? 0),
+                  display: Number(row.position ?? 0)
+                    .toFixed(1)
+                    .replace(".", ","),
+                },
+                impressions: {
+                  value: Number(row.impressions ?? 0),
+                  display: formatNumber(Number(row.impressions ?? 0)),
+                },
+                clicks: {
+                  value: Number(row.clicks ?? 0),
+                  display: formatNumber(Number(row.clicks ?? 0)),
+                },
+                ctr: {
+                  value: Number(row.ctr ?? 0),
+                  display: formatPercent(Number(row.ctr ?? 0)),
+                },
+              }))}
             />
           )}
         </div>
@@ -520,36 +338,6 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
     </div>
-  );
-}
-
-function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-          {headers.map((header) => (
-            <th key={header} className="pb-2 text-right first:text-left">
-              {header}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, rowIndex) => (
-          <tr key={`${row[0]}-${rowIndex}`} className="border-t border-border/40">
-            {row.map((cell, index) => (
-              <td
-                key={`${row[0]}-${index}`}
-                className="py-3 text-right tabular-nums first:text-left"
-              >
-                {cell}
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }
 
