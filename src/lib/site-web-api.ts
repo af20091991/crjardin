@@ -5,7 +5,11 @@ export type SiteWebProvider =
   | "google_analytics_4"
   | "google_business_profile";
 
-export type SiteWebConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
+export type SiteWebConnectionStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "error";
 
 export interface SiteWebConnection {
   id?: string;
@@ -26,12 +30,41 @@ const activeSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const RETRY_DELAY_MS = 400;
 const REQUEST_TIMEOUT_MS = 12000;
 
+type ApiErrorPayload = {
+  error?: unknown;
+  status?: unknown;
+  message?: unknown;
+};
+
+function formatApiError(
+  payload: ApiErrorPayload | null,
+  httpStatus: number,
+): string {
+  const code = typeof payload?.error === "string" ? payload.error : null;
+  const googleStatus =
+    typeof payload?.status === "number" ? payload.status : null;
+  const message =
+    typeof payload?.message === "string" ? payload.message.trim() : null;
+
+  // Keep Google's diagnostic status/message available to the UI for the GBP investigation.
+  if (code && googleStatus && message) {
+    return `${code} — Google HTTP ${googleStatus}: ${message}`;
+  }
+  if (code && googleStatus) return `${code} — Google HTTP ${googleStatus}`;
+  if (code && message) return `${code} — ${message}`;
+  if (code) return code;
+  return `Service Site web : HTTP ${httpStatus}.`;
+}
+
 async function fetchWithTimeout(
   input: RequestInfo | URL,
   init: RequestInit = {},
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = window.setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS,
+  );
   try {
     return await fetch(input, { ...init, signal: controller.signal });
   } finally {
@@ -51,25 +84,31 @@ async function invokeDirect<T>(
   }
 
   try {
-    const response = await fetchWithTimeout(`${activeSupabaseUrl}/functions/v1/${functionName}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithTimeout(
+      `${activeSupabaseUrl}/functions/v1/${functionName}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ provider, action, ...body }),
       },
-      body: JSON.stringify({ provider, action, ...body }),
-    });
+    );
 
-    const payload = (await response.json().catch(() => null)) as (T & { error?: unknown }) | null;
+    const payload = (await response.json().catch(() => null)) as
+      | (T & ApiErrorPayload)
+      | null;
+
     if (!response.ok) {
       return {
         data: null,
-        error: payload?.error
-          ? String(payload.error)
-          : `Service Site web : HTTP ${response.status}.`,
+        error: formatApiError(payload, response.status),
       };
     }
-    if (payload?.error) return { data: null, error: String(payload.error) };
+    if (payload?.error) {
+      return { data: null, error: formatApiError(payload, response.status) };
+    }
     return { data: payload as T, error: null };
   } catch (error) {
     return {
