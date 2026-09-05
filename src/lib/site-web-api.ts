@@ -5,7 +5,11 @@ export type SiteWebProvider =
   | "google_analytics_4"
   | "google_business_profile";
 
-export type SiteWebConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
+export type SiteWebConnectionStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "error";
 
 export interface SiteWebConnection {
   id?: string;
@@ -57,7 +61,10 @@ async function fetchWithTimeout(
   init: RequestInit = {},
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = window.setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS,
+  );
   try {
     return await fetch(input, { ...init, signal: controller.signal });
   } finally {
