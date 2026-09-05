@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,12 +8,14 @@ import { usePilotScope } from "@/lib/pilot-mode";
 import { listClients } from "@/lib/clients";
 import { listMissions, listSubcontractors } from "@/lib/subcontractors";
 import { sstRows, sstTotals, bySubcontractor, byMonth, byClient } from "@/lib/sst-analytics";
+import { SstCreateMissionDialog } from "@/components/pilot/SstCreateMissionDialog";
 import { Plus } from "lucide-react";
 
 const eur = (n: number) => formatEuro(n);
 
 export function SstDashboard() {
   const { year, mode, period } = usePilotScope();
+  const [createOpen, setCreateOpen] = useState(false);
   const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
   const sstsQ = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
   const clientsQ = useQuery({ queryKey: ["clients"], queryFn: listClients });
@@ -40,7 +42,7 @@ export function SstDashboard() {
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><div className="flex items-center gap-2"><h1 className="text-2xl font-semibold tracking-tight">SST</h1><Badge variant="secondary">{period === "exercice_complet" ? "Exercice complet" : "À date"}</Badge></div><p className="mt-1 text-sm text-muted-foreground">Pilotage économique de la sous-traitance · {year}</p></div>
-      <Button onClick={() => window.location.assign("/pilot/journal-sst")}><Plus className="mr-2 h-4 w-4" /> Nouvelle mission</Button>
+      <Button onClick={() => setCreateOpen(true)}><Plus className="mr-2 h-4 w-4" /> Nouvelle mission</Button>
     </div>
     {period === "exercice_complet" && isCurrentYear && <div className="rounded-lg border border-dashed bg-muted/30 px-4 py-2 text-xs text-muted-foreground">Les missions datées après aujourd’hui sont incluses dans l’exercice complet et restent des données prévisionnelles.</div>}
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -55,6 +57,14 @@ export function SstDashboard() {
     </div>
     <Card><CardHeader><CardTitle>Performance des sous-traitants</CardTitle></CardHeader><CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full text-sm"><thead className="border-b bg-muted/30"><tr><th className="px-5 py-3 text-left">Sous-traitant</th><th className="px-3 py-3 text-right">Missions</th><th className="px-3 py-3 text-right">Charge SST</th><th className="px-3 py-3 text-right">CA client</th><th className="px-3 py-3 text-right">Marge</th><th className="px-5 py-3 text-right">Marge %</th></tr></thead><tbody>{providers.map((p) => <tr key={p.key} className="border-b last:border-0"><td className="px-5 py-3 font-medium">{p.key}</td><td className="px-3 py-3 text-right">{p.missions}</td><td className="px-3 py-3 text-right">{eur(p.cost)}</td><td className="px-3 py-3 text-right">{eur(p.revenue)}</td><td className="px-3 py-3 text-right font-medium">{eur(p.margin)}</td><td className="px-5 py-3 text-right">{p.marginPct == null ? "—" : `${p.marginPct.toFixed(1)} %`}</td></tr>)}</tbody></table></div></CardContent></Card>
     <Card><CardHeader><CardTitle>Top 5 clients les plus sous-traités</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">{clientsTop.map((c, i) => <div key={c.key} className="rounded-lg border p-4"><div className="text-lg font-semibold">#{i + 1}</div><div className="mt-2 truncate font-medium">{c.key}</div><div className="mt-1 text-sm text-muted-foreground">{c.missions} mission(s) · {eur(c.cost)} de charge SST</div></div>)}</CardContent></Card>
+    <SstCreateMissionDialog
+      open={createOpen}
+      onOpenChange={setCreateOpen}
+      subcontractors={ssts}
+      onCreated={() => {
+        missionsQ.refetch();
+      }}
+    />
     <p className="text-xs text-muted-foreground">Règle économique : CA client − Charge SST = marge SST. Les données futures du mode « Exercice complet » sont incluses dans les agrégats mais signalées comme prévisionnelles.</p>
   </div>;
 }
