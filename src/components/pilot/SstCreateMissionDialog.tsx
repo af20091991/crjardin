@@ -105,8 +105,16 @@ export function SstCreateMissionDialog({ open, onOpenChange, subcontractors, onC
 
   const field = (label: string, key: keyof typeof form, type = "text", required = false) => (
     <div className="space-y-1.5">
-      <Label>{label}{required && " *"}</Label>
-      <Input type={type} step={type === "number" ? "0.01" : undefined} value={form[key]} onChange={(e) => set(key, e.target.value)} />
+      <Label>
+        {label}
+        {required && " *"}
+      </Label>
+      <Input
+        type={type}
+        step={type === "number" ? "0.01" : undefined}
+        value={form[key]}
+        onChange={(e) => set(key, e.target.value)}
+      />
     </div>
   );
 
@@ -120,17 +128,31 @@ export function SstCreateMissionDialog({ open, onOpenChange, subcontractors, onC
           <div className="space-y-1.5">
             <Label>Sous-traitant *</Label>
             <Select value={form.subcontractor_id} onValueChange={(v) => set("subcontractor_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-              <SelectContent>{subcontractors.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner" />
+              </SelectTrigger>
+              <SelectContent>
+                {subcontractors.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
             <Label>Client</Label>
             <Select value={form.client_id} onValueChange={(v) => set("client_id", v)}>
-              <SelectTrigger><SelectValue placeholder="Aucun client" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Aucun client" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Aucun client</SelectItem>
-                {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                {clients.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -141,8 +163,16 @@ export function SstCreateMissionDialog({ open, onOpenChange, subcontractors, onC
           <div className="space-y-1.5">
             <Label>Statut</Label>
             <Select value={form.status} onValueChange={(v) => set("status", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{Object.entries(MISSION_STATUS_META).map(([value, meta]) => <SelectItem key={value} value={value}>{meta.label}</SelectItem>)}</SelectContent>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(MISSION_STATUS_META).map(([value, meta]) => (
+                  <SelectItem key={value} value={value}>
+                    {meta.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           {field("Heures SST", "hours_spent", "number")}
@@ -166,8 +196,12 @@ export function SstCreateMissionDialog({ open, onOpenChange, subcontractors, onC
           <Textarea value={form.report_notes} onChange={(e) => set("report_notes", e.target.value)} />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Annuler</Button>
-          <Button onClick={save} disabled={saving || !form.subcontractor_id}>{saving ? "Enregistrement…" : "Créer la mission"}</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            Annuler
+          </Button>
+          <Button onClick={save} disabled={saving || !form.subcontractor_id}>
+            {saving ? "Enregistrement…" : "Créer la mission"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
