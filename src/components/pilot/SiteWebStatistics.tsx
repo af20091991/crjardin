@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Metric } from "@/components/pilot/SiteWebMetric";
 import { listAnalyticsProperties, runAnalyticsReport } from "@/lib/site-web-api";
 
 const PREFERRED_GA4_PROPERTY_ID = "159443253";
@@ -117,16 +118,30 @@ export function SiteWebStatistics() {
           </div>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Metric label="Sessions" value={loading ? "…" : formatNumber(totals.sessions)} />
-          <Metric label="Pages vues" value={loading ? "…" : formatNumber(totals.views)} />
-          <Metric label="Utilisateurs actifs" value={loading ? "…" : formatNumber(totals.users)} />
+          <Metric
+            label="Sessions"
+            value={loading ? "…" : formatNumber(totals.sessions)}
+            description="Nombre de visites sur le site sur la période. Une même personne qui revient plusieurs fois génère plusieurs sessions."
+          />
+          <Metric
+            label="Pages vues"
+            value={loading ? "…" : formatNumber(totals.views)}
+            description="Nombre total de pages consultées, toutes sessions confondues. Une seule session peut compter plusieurs pages vues."
+          />
+          <Metric
+            label="Utilisateurs actifs"
+            value={loading ? "…" : formatNumber(totals.users)}
+            description="Nombre de personnes différentes ayant visité le site sur la période (chaque personne n'est comptée qu'une fois, même si elle revient plusieurs fois)."
+          />
         </div>
       </Card>
 
       <Card className="p-5">
         <div className="overflow-x-auto">
           {loading ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données…</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Chargement des données…
+            </p>
           ) : rows.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Aucune donnée Analytics 4 disponible sur la période.
@@ -166,15 +181,6 @@ export function SiteWebStatistics() {
           )}
         </div>
       </Card>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
 }
