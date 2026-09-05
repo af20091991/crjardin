@@ -10,13 +10,20 @@ export function ProfitSignal({
   title,
   className,
 }: {
-  level: ProfitLevel;
-  /** Pastille seule (tableaux denses). */
+  level: ProfitLevel | "good" | "warning" | "neutral";
   compact?: boolean;
   title?: string;
   className?: string;
 }) {
-  const meta = PROFIT_SIGNAL_META[level];
+  const normalized: ProfitLevel =
+    level === "good"
+      ? "rentable"
+      : level === "warning"
+        ? "a_surveiller"
+        : level === "neutral"
+          ? "inconnu"
+          : level;
+  const meta = PROFIT_SIGNAL_META[normalized];
   if (compact) {
     return (
       <span

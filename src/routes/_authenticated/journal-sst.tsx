@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { PilotModeProvider } from "@/lib/pilot-mode";
-import { SstProfitabilityTab } from "@/components/pilot/SstProfitability";
-import { SstReconciliationPanel } from "@/components/pilot/panels/SstReconciliationPanel";
+import { JournalSstPage as JournalSstContent } from "@/components/pilot/JournalSstPage";
 import { BookText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/journal-sst")({
@@ -27,13 +26,13 @@ function JournalSstPage() {
           <div>
             <h1 className="font-serif text-2xl font-semibold">Journal SST</h1>
             <p className="text-sm text-muted-foreground">
-              Suivi détaillé de chaque mission de sous-traitance : coût, prix de vente et marge nette.
+              Suivi détaillé de chaque mission de sous-traitance : coût, prix de vente et marge
+              nette.
             </p>
           </div>
         </div>
         <PilotModeProvider>
-          <SstReconciliationPanel />
-          <SstProfitabilityTab />
+          <JournalSstContent />
         </PilotModeProvider>
       </div>
     </AppShell>
