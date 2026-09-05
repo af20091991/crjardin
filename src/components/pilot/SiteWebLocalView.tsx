@@ -50,6 +50,15 @@ const LOCAL_TERMS = [
   "perols",
 ];
 
+/** Une requête bien positionnée mais peu cliquée est un potentiel à saisir (même règle que l'onglet Actions). */
+function isOpportunity(row: SearchRow) {
+  return (
+    Number(row.impressions ?? 0) >= 30 &&
+    Number(row.position ?? 99) <= 20 &&
+    Number(row.ctr ?? 0) < 0.08
+  );
+}
+
 const queryColumns: Array<SortableColumn<SearchRow>> = [
   {
     key: "query",
@@ -63,6 +72,7 @@ const queryColumns: Array<SortableColumn<SearchRow>> = [
     label: "Position",
     render: (row) => formatPosition(row.position),
     sortValue: (row) => Number(row.position ?? 999),
+    tone: (row) => (Number(row.position ?? 99) <= 10 ? "positive" : null),
   },
   {
     key: "impressions",
@@ -81,6 +91,8 @@ const queryColumns: Array<SortableColumn<SearchRow>> = [
     label: "CTR",
     render: (row) => formatPercent(Number(row.ctr ?? 0)),
     sortValue: (row) => Number(row.ctr ?? 0),
+    tone: (row) =>
+      isOpportunity(row) ? "warning" : Number(row.ctr ?? 0) >= 0.15 ? "positive" : null,
   },
 ];
 
@@ -290,20 +302,29 @@ export function SiteWebLocalView() {
           title="Requêtes locales réellement observées"
           description="Requêtes Search Console contenant une commune de la zone ciblée. Ce tableau ne mesure pas le classement Google Maps."
         />
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4">
           {loading ? (
             <LoadingState />
           ) : (
-            <SortableDataTable
-              columns={queryColumns}
-              rows={localQueries}
-              getRowKey={(row, index) => `${row.keys?.[0] ?? "row"}-${index}`}
-              searchField={(row) => row.keys?.[0] ?? ""}
-              searchPlaceholder="Rechercher une requête…"
-              minImpressionsField={(row) => Number(row.impressions ?? 0)}
-              defaultSortKey="impressions"
-              defaultSortDirection="desc"
-            />
+            <>
+              {localQueries.some(isOpportunity) && (
+                <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Requêtes bien
+                  positionnées mais peu cliquées — à optimiser en priorité.
+                </p>
+              )}
+              <SortableDataTable
+                columns={queryColumns}
+                rows={localQueries}
+                getRowKey={(row, index) => `${row.keys?.[0] ?? "row"}-${index}`}
+                searchField={(row) => row.keys?.[0] ?? ""}
+                searchPlaceholder="Rechercher une requête…"
+                minImpressionsField={(row) => Number(row.impressions ?? 0)}
+                defaultSortKey="impressions"
+                defaultSortDirection="desc"
+                highlightRow={isOpportunity}
+              />
+            </>
           )}
         </div>
       </Card>
