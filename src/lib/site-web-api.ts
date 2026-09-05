@@ -37,8 +37,10 @@ function formatApiError(
   httpStatus: number,
 ): string {
   const code = typeof payload?.error === "string" ? payload.error : null;
-  const googleStatus = typeof payload?.status === "number" ? payload.status : null;
-  const message = typeof payload?.message === "string" ? payload.message.trim() : null;
+  const googleStatus =
+    typeof payload?.status === "number" ? payload.status : null;
+  const message =
+    typeof payload?.message === "string" ? payload.message.trim() : null;
 
   // Keep Google's diagnostic status/message available to the UI for the GBP investigation.
   if (code && googleStatus && message) {
@@ -75,14 +77,17 @@ async function invokeDirect<T>(
   }
 
   try {
-    const response = await fetchWithTimeout(`${activeSupabaseUrl}/functions/v1/${functionName}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithTimeout(
+      `${activeSupabaseUrl}/functions/v1/${functionName}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ provider, action, ...body }),
       },
-      body: JSON.stringify({ provider, action, ...body }),
-    });
+    );
 
     const payload = (await response.json().catch(() => null)) as
       | (T & ApiErrorPayload)
