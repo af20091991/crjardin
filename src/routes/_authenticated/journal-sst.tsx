@@ -26,7 +26,8 @@ function JournalSstPage() {
           <div>
             <h1 className="font-serif text-2xl font-semibold">Journal SST</h1>
             <p className="text-sm text-muted-foreground">
-              Suivi détaillé de chaque mission de sous-traitance : coût, prix de vente et marge nette.
+              Suivi détaillé de chaque mission de sous-traitance : coût, prix de vente et marge
+              nette.
             </p>
           </div>
         </div>
