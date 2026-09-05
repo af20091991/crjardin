@@ -1,19 +1,23 @@
-import { Info } from "lucide-react";
+import { ArrowDown, ArrowUp, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
- * Carte "métrique" (libellé + valeur) avec une icône d'info au survol du
- * libellé, expliquant ce que représente le chiffre. Réutilisée par les
- * différentes vues Site Web pour éviter de dupliquer ce comportement.
+ * Carte "métrique" (libellé + valeur) avec :
+ * - une icône d'info au survol du libellé, expliquant ce que représente le chiffre ;
+ * - un badge optionnel de tendance vs la période précédente (+12 %, -5 %…).
+ * Réutilisée par les différentes vues Site Web pour éviter de dupliquer ce comportement.
  */
 export function Metric({
   label,
   value,
   description,
+  trend,
 }: {
   label: string;
   value: string;
   description?: string;
+  /** Variation en % vs la période précédente. Positif = mieux, quel que soit l'indicateur. */
+  trend?: number | null;
 }) {
   return (
     <div>
@@ -38,7 +42,27 @@ export function Metric({
           </TooltipProvider>
         )}
       </div>
-      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
+      <div className="mt-1 flex items-baseline gap-2">
+        <p className="font-serif text-2xl font-semibold tabular-nums">{value}</p>
+        {trend !== undefined && trend !== null && Math.abs(trend) >= 0.5 && (
+          <TrendBadge value={trend} />
+        )}
+      </div>
     </div>
+  );
+}
+
+function TrendBadge({ value }: { value: number }) {
+  const rounded = Math.round(Math.abs(value));
+  const positive = value > 0;
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-xs font-medium ${
+        positive ? "text-emerald-700" : "text-destructive"
+      }`}
+    >
+      {positive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+      {rounded}%
+    </span>
   );
 }
