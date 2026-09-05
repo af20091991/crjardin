@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { FileText, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
+import { SortableDataTable, type SortableColumn } from "@/components/pilot/SiteWebSortableTable";
 import { querySearchConsole } from "@/lib/site-web-api";
 
 const SITE_URL = "https://www.delagraineaujardin.com/";
@@ -13,6 +15,40 @@ type Row = {
   ctr?: number;
   position?: number;
 };
+
+const pageColumns: Array<SortableColumn<Row>> = [
+  {
+    key: "page",
+    label: "Page",
+    align: "left",
+    render: (row) => cleanPage(row.keys?.[0] ?? "—"),
+    sortValue: (row) => row.keys?.[0] ?? "",
+  },
+  {
+    key: "position",
+    label: "Position",
+    render: (row) => formatPosition(row.position),
+    sortValue: (row) => Number(row.position ?? 999),
+  },
+  {
+    key: "impressions",
+    label: "Impressions",
+    render: (row) => formatNumber(Number(row.impressions ?? 0)),
+    sortValue: (row) => Number(row.impressions ?? 0),
+  },
+  {
+    key: "clicks",
+    label: "Clics",
+    render: (row) => formatNumber(Number(row.clicks ?? 0)),
+    sortValue: (row) => Number(row.clicks ?? 0),
+  },
+  {
+    key: "ctr",
+    label: "CTR",
+    render: (row) => formatPercent(Number(row.ctr ?? 0)),
+    sortValue: (row) => Number(row.ctr ?? 0),
+  },
+];
 
 export function SiteWebContentView() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -42,17 +78,13 @@ export function SiteWebContentView() {
   }, []);
 
   const pages = useMemo(
-    () =>
-      [...rows]
-        .filter((row) => (row.keys?.[0] ?? "").startsWith("http"))
-        .sort((a, b) => Number(b.impressions ?? 0) - Number(a.impressions ?? 0))
-        .slice(0, 20),
+    () => rows.filter((row) => (row.keys?.[0] ?? "").startsWith("http")),
     [rows],
   );
 
   return (
     <div className="space-y-4">
-      {error && <GoogleDataError message={error} />}
+      {error && <GoogleDataError code={error} />}
       <Card className="p-5">
         <Header
           icon={FileText}
@@ -65,18 +97,16 @@ export function SiteWebContentView() {
         <div className="mt-5 overflow-x-auto">
           {loading ? (
             <LoadingState />
-          ) : pages.length === 0 ? (
-            <EmptyState text="Aucune page observable dans Search Console sur la période." />
           ) : (
-            <DataTable
-              headers={["Page", "Position", "Impressions", "Clics", "CTR"]}
-              rows={pages.map((row) => [
-                cleanPage(row.keys?.[0] ?? "—"),
-                formatPosition(row.position),
-                formatNumber(Number(row.impressions ?? 0)),
-                formatNumber(Number(row.clicks ?? 0)),
-                formatPercent(Number(row.ctr ?? 0)),
-              ])}
+            <SortableDataTable
+              columns={pageColumns}
+              rows={pages}
+              getRowKey={(row, index) => `${row.keys?.[0] ?? "row"}-${index}`}
+              searchField={(row) => cleanPage(row.keys?.[0] ?? "")}
+              searchPlaceholder="Rechercher une page…"
+              minImpressionsField={(row) => Number(row.impressions ?? 0)}
+              defaultSortKey="impressions"
+              defaultSortDirection="desc"
             />
           )}
         </div>
@@ -132,14 +162,12 @@ export function SiteWebActionsView() {
 
   return (
     <div className="space-y-4">
-      {error && <GoogleDataError message={error} />}
+      {error && <GoogleDataError code={error} />}
       <Card className="p-5">
         <Header
           icon={Target}
           title="Actions"
-          description={
-            "Actions proposées uniquement à partir de requêtes réellement observées dans Search Console."
-          }
+          description="Actions proposées uniquement à partir de requêtes réellement observées dans Search Console."
         />
         <p className="mt-2 text-xs text-muted-foreground">
           Règle : au moins 30 impressions, position ≤ 20 et CTR &lt; 8 %.
@@ -213,40 +241,10 @@ function Header({
   );
 }
 
-function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-          {headers.map((header) => (
-            <th key={header} className="pb-2 text-right first:text-left">
-              {header}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, rowIndex) => (
-          <tr key={`${row[0]}-${rowIndex}`} className="border-t border-border/40">
-            {row.map((cell, index) => (
-              <td
-                key={`${row[0]}-${index}`}
-                className="py-3 text-right tabular-nums first:text-left"
-              >
-                {cell}
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function GoogleDataError({ message }: { message: string }) {
+function GoogleDataError({ code }: { code: string }) {
   return (
     <Card className="border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-      Données Google indisponibles : {message}
+      Données Google indisponibles : {friendlyConnectionError(code) ?? code}
     </Card>
   );
 }
