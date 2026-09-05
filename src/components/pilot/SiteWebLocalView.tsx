@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, BarChart3, MapPin, Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
+import { SortableDataTable, type SortableColumn } from "@/components/pilot/SiteWebSortableTable";
 import {
   getBusinessProfilePerformance,
   listBusinessProfileAccounts,
@@ -49,6 +50,40 @@ const LOCAL_TERMS = [
   "perols",
 ];
 
+const queryColumns: Array<SortableColumn<SearchRow>> = [
+  {
+    key: "query",
+    label: "Requête",
+    align: "left",
+    render: (row) => row.keys?.[0] ?? "—",
+    sortValue: (row) => row.keys?.[0] ?? "",
+  },
+  {
+    key: "position",
+    label: "Position",
+    render: (row) => formatPosition(row.position),
+    sortValue: (row) => Number(row.position ?? 999),
+  },
+  {
+    key: "impressions",
+    label: "Impressions",
+    render: (row) => formatNumber(Number(row.impressions ?? 0)),
+    sortValue: (row) => Number(row.impressions ?? 0),
+  },
+  {
+    key: "clicks",
+    label: "Clics",
+    render: (row) => formatNumber(Number(row.clicks ?? 0)),
+    sortValue: (row) => Number(row.clicks ?? 0),
+  },
+  {
+    key: "ctr",
+    label: "CTR",
+    render: (row) => formatPercent(Number(row.ctr ?? 0)),
+    sortValue: (row) => Number(row.ctr ?? 0),
+  },
+];
+
 export function SiteWebLocalView() {
   const [queryRows, setQueryRows] = useState<SearchRow[]>([]);
   const [performance, setPerformance] = useState<BusinessPerformance | null>(null);
@@ -89,7 +124,7 @@ export function SiteWebLocalView() {
 
       const account = accountsResult.data?.accounts?.[0];
       if (!account?.name) {
-        setBusinessError("Aucun compte Google Business Profile disponible.");
+        setBusinessError("no_business_account");
         setPerformance(null);
         setLoading(false);
         return;
@@ -110,7 +145,7 @@ export function SiteWebLocalView() {
         ) ?? locationsResult.data?.locations?.[0];
 
       if (!location?.name) {
-        setBusinessError("Aucun établissement Google Business Profile disponible.");
+        setBusinessError("no_business_location");
         setPerformance(null);
         setLoading(false);
         return;
@@ -137,11 +172,9 @@ export function SiteWebLocalView() {
 
   const localQueries = useMemo(
     () =>
-      queryRows
-        .filter((row) =>
-          LOCAL_TERMS.some((term) => (row.keys?.[0] ?? "").toLowerCase().includes(term)),
-        )
-        .sort((a, b) => Number(b.impressions ?? 0) - Number(a.impressions ?? 0)),
+      queryRows.filter((row) =>
+        LOCAL_TERMS.some((term) => (row.keys?.[0] ?? "").toLowerCase().includes(term)),
+      ),
     [queryRows],
   );
 
@@ -159,6 +192,11 @@ export function SiteWebLocalView() {
       position: impressions ? weightedPosition / impressions : 0,
     };
   }, [localQueries]);
+
+  const localShareOfImpressions = useMemo(() => {
+    const totalImpressions = queryRows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
+    return totalImpressions > 0 ? localTotals.impressions / totalImpressions : null;
+  }, [queryRows, localTotals.impressions]);
 
   const businessSeries = useMemo(() => {
     const byDate = new Map<string, BusinessSeriesRow>();
@@ -200,31 +238,27 @@ export function SiteWebLocalView() {
 
   return (
     <div className="space-y-4">
-      {searchError && (
-        <SourceError title="Search Console" message={searchError} />
-      )}
+      {searchError && <SourceError title="Search Console" code={searchError} />}
 
       <Card className="p-5">
         <Header
           icon={MapPin}
-          title="SEO Local"
-          description="Visibilité organique locale et interactions Google Business Profile, sans inventer de classement Maps."
+          title="Présence locale"
+          description="Uniquement ce qui est spécifique au local : requêtes géolocalisées et fiche Google Business Profile. Le trafic global est dans « Trafic & Recherche »."
         />
         <p className="mt-2 text-xs text-muted-foreground">
           Périmètre : {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
         </p>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-5">
         <MetricCard
           label="Clics locaux"
           value={loading ? "…" : hasLocalSearchData ? formatNumber(localTotals.clicks) : "—"}
         />
         <MetricCard
           label="Impressions locales"
-          value={
-            loading ? "…" : hasLocalSearchData ? formatNumber(localTotals.impressions) : "—"
-          }
+          value={loading ? "…" : hasLocalSearchData ? formatNumber(localTotals.impressions) : "—"}
         />
         <MetricCard
           label="CTR local"
@@ -240,6 +274,14 @@ export function SiteWebLocalView() {
                 : "—"
           }
         />
+        <MetricCard
+          label="Part du trafic total"
+          value={
+            loading || localShareOfImpressions === null
+              ? "…"
+              : formatPercent(localShareOfImpressions)
+          }
+        />
       </div>
 
       <Card className="p-5">
@@ -251,18 +293,16 @@ export function SiteWebLocalView() {
         <div className="mt-4 overflow-x-auto">
           {loading ? (
             <LoadingState />
-          ) : !hasLocalSearchData ? (
-            <EmptyState text="Aucune requête locale observable dans Search Console sur la période." />
           ) : (
-            <DataTable
-              headers={["Requête", "Position", "Impressions", "Clics", "CTR"]}
-              rows={localQueries.slice(0, 50).map((row) => [
-                row.keys?.[0] ?? "—",
-                formatPosition(row.position),
-                formatNumber(Number(row.impressions ?? 0)),
-                formatNumber(Number(row.clicks ?? 0)),
-                formatPercent(Number(row.ctr ?? 0)),
-              ])}
+            <SortableDataTable
+              columns={queryColumns}
+              rows={localQueries}
+              getRowKey={(row, index) => `${row.keys?.[0] ?? "row"}-${index}`}
+              searchField={(row) => row.keys?.[0] ?? ""}
+              searchPlaceholder="Rechercher une requête…"
+              minImpressionsField={(row) => Number(row.impressions ?? 0)}
+              defaultSortKey="impressions"
+              defaultSortDirection="desc"
             />
           )}
         </div>
@@ -274,40 +314,24 @@ export function SiteWebLocalView() {
           title="Performance Google Business Profile"
           description="Interactions et visibilité de la fiche Google, issues de l'API officielle."
         />
-        {businessError && <SourceError title="Business Profile" message={businessError} compact />}
+        {businessError && <SourceError title="Business Profile" code={businessError} compact />}
         <div className="mt-5 grid gap-5 sm:grid-cols-4">
-          <Metric label="Clics site" value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.website) : "—"} />
-          <Metric label="Appels" value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.calls) : "—"} />
-          <Metric label="Itinéraires" value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.directions) : "—"} />
+          <Metric
+            label="Clics site"
+            value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.website) : "—"}
+          />
+          <Metric
+            label="Appels"
+            value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.calls) : "—"}
+          />
+          <Metric
+            label="Itinéraires"
+            value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.directions) : "—"}
+          />
           <Metric
             label="Impressions"
             value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.impressions) : "—"}
           />
-        </div>
-        <div className="mt-5 overflow-x-auto">
-          {loading ? (
-            <LoadingState />
-          ) : !hasBusinessData ? (
-            <EmptyState text="Aucune donnée Google Business Profile disponible sur la période." />
-          ) : (
-            <DataTable
-              headers={["Date", "Clics site", "Appels", "Itinéraires", "Impressions"]}
-              rows={businessSeries
-                .slice(-31)
-                .map(([date, row]) => [
-                  formatDateLabel(date),
-                  formatNumber(row.WEBSITE_CLICKS ?? 0),
-                  formatNumber(row.CALL_CLICKS ?? 0),
-                  formatNumber(row.BUSINESS_DIRECTION_REQUESTS ?? 0),
-                  formatNumber(
-                    (row.BUSINESS_IMPRESSIONS_DESKTOP_MAPS ?? 0) +
-                      (row.BUSINESS_IMPRESSIONS_DESKTOP_SEARCH ?? 0) +
-                      (row.BUSINESS_IMPRESSIONS_MOBILE_MAPS ?? 0) +
-                      (row.BUSINESS_IMPRESSIONS_MOBILE_SEARCH ?? 0),
-                  ),
-                ])}
-            />
-          )}
         </div>
       </Card>
     </div>
@@ -353,37 +377,20 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-          {headers.map((header) => (
-            <th key={header} className="pb-2 text-right first:text-left">
-              {header}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, rowIndex) => (
-          <tr key={`${row[0]}-${rowIndex}`} className="border-t border-border/40">
-            {row.map((cell, index) => (
-              <td
-                key={`${row[0]}-${index}`}
-                className="py-3 text-right tabular-nums first:text-left"
-              >
-                {cell}
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function SourceError({ title, message, compact = false }: { title: string; message: string; compact?: boolean }) {
+function SourceError({
+  title,
+  code,
+  compact = false,
+}: {
+  title: string;
+  code: string;
+  compact?: boolean;
+}) {
+  const knownMessages: Record<string, string> = {
+    no_business_account: "Aucun compte Google Business Profile accessible avec ce compte Google.",
+    no_business_location: "Aucune fiche établissement Google Business Profile trouvée.",
+  };
+  const message = knownMessages[code] ?? friendlyConnectionError(code) ?? code;
   return (
     <div
       className={`flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive ${
@@ -400,11 +407,9 @@ function SourceError({ title, message, compact = false }: { title: string; messa
 }
 
 function LoadingState() {
-  return <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>;
-}
-
-function EmptyState({ text }: { text: string }) {
-  return <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
+  return (
+    <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
+  );
 }
 
 function formatNumber(value: number) {
@@ -412,7 +417,9 @@ function formatNumber(value: number) {
 }
 
 function formatPercent(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(
+    value,
+  );
 }
 
 function formatPosition(value: number | undefined) {
