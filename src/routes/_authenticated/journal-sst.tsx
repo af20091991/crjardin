@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { PilotModeProvider } from "@/lib/pilot-mode";
-import { JournalSstPage } from "@/components/pilot/JournalSstPage";
+import { JournalSstPage as JournalSstContent } from "@/components/pilot/JournalSstPage";
 import { BookText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/journal-sst")({
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/journal-sst")({
   component: JournalSstPage,
 });
 
-function JournalSstPageRoute() {
+function JournalSstPage() {
   return (
     <AppShell title="Journal SST">
       <div className="container mx-auto max-w-6xl space-y-6 py-6">
@@ -31,7 +31,7 @@ function JournalSstPageRoute() {
           </div>
         </div>
         <PilotModeProvider>
-          <JournalSstPage />
+          <JournalSstContent />
         </PilotModeProvider>
       </div>
     </AppShell>
