@@ -54,7 +54,7 @@ export function SstCreateMissionDialog({ open, onOpenChange, subcontractors, onC
     listClients()
       .then(setClients)
       .catch((error) => toast.error(error instanceof Error ? error.message : "Impossible de charger les clients"));
-  }, [open]);
+  }, [open, subcontractors]);
 
   const set = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
