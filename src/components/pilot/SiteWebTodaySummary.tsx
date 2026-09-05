@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Metric } from "@/components/pilot/SiteWebMetric";
 import {
   listAnalyticsProperties,
   querySearchConsole,
@@ -130,13 +131,23 @@ export function SiteWebTodaySummary({ onOpenOpportunities }: { onOpenOpportuniti
           <Metric
             label="Sessions (trafic)"
             value={loading ? "…" : formatNumber(ga4?.sessions ?? 0)}
+            description="Nombre de visites sur le site sur la période (Google Analytics 4). Une même personne peut générer plusieurs sessions si elle revient à des moments différents."
           />
-          <Metric label="Clics Google" value={loading ? "…" : formatNumber(search?.clicks ?? 0)} />
+          <Metric
+            label="Clics Google"
+            value={loading ? "…" : formatNumber(search?.clicks ?? 0)}
+            description="Nombre de fois où quelqu'un a cliqué sur une page du site depuis les résultats de recherche Google (Search Console)."
+          />
           <Metric
             label="Impressions Google"
             value={loading ? "…" : formatNumber(search?.impressions ?? 0)}
+            description="Nombre de fois où une page du site est apparue dans les résultats de recherche Google, cliquée ou non."
           />
-          <Metric label="Position moyenne" value={loading ? "…" : positionLabel} />
+          <Metric
+            label="Position moyenne"
+            value={loading ? "…" : positionLabel}
+            description="Position moyenne du site dans les résultats de recherche Google, sur l'ensemble des requêtes où il apparaît (1 = tout en haut de la page)."
+          />
         </div>
       </Card>
 
@@ -161,15 +172,6 @@ export function SiteWebTodaySummary({ onOpenOpportunities }: { onOpenOpportuniti
           </div>
         </Card>
       )}
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
 }

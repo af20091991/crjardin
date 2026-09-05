@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, BarChart3, MapPin, Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
+import { Metric } from "@/components/pilot/SiteWebMetric";
 import { SortableDataTable, type SortableColumn } from "@/components/pilot/SiteWebSortableTable";
 import {
   getBusinessProfilePerformance,
@@ -267,14 +268,17 @@ export function SiteWebLocalView() {
         <MetricCard
           label="Clics locaux"
           value={loading ? "…" : hasLocalSearchData ? formatNumber(localTotals.clicks) : "—"}
+          description="Nombre de clics obtenus sur des requêtes Google contenant le nom d'une commune de la zone ciblée (Montpellier, Castelnau, Lattes…)."
         />
         <MetricCard
           label="Impressions locales"
           value={loading ? "…" : hasLocalSearchData ? formatNumber(localTotals.impressions) : "—"}
+          description="Nombre de fois où le site est apparu dans Google pour une requête contenant le nom d'une commune de la zone ciblée."
         />
         <MetricCard
           label="CTR local"
           value={loading ? "…" : hasLocalSearchData ? formatPercent(localTotals.ctr) : "—"}
+          description="Part des impressions locales ayant donné lieu à un clic (clics locaux ÷ impressions locales)."
         />
         <MetricCard
           label="Position locale"
@@ -285,6 +289,7 @@ export function SiteWebLocalView() {
                 ? localTotals.position.toFixed(1).replace(".", ",")
                 : "—"
           }
+          description="Position moyenne du site dans Google, calculée uniquement sur les requêtes contenant une commune de la zone ciblée."
         />
         <MetricCard
           label="Part du trafic total"
@@ -293,6 +298,7 @@ export function SiteWebLocalView() {
               ? "…"
               : formatPercent(localShareOfImpressions)
           }
+          description="Part des impressions locales par rapport à l'ensemble des impressions Google du site, toutes requêtes confondues."
         />
       </div>
 
@@ -381,20 +387,19 @@ function Header({
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function MetricCard({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string;
+  description?: string;
+}) {
   return (
     <Card className="p-5">
-      <Metric label={label} value={value} />
+      <Metric label={label} value={value} description={description} />
     </Card>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
-    </div>
   );
 }
 
