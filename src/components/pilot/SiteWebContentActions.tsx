@@ -16,6 +16,14 @@ type Row = {
   position?: number;
 };
 
+function isOpportunity(row: Row) {
+  return (
+    Number(row.impressions ?? 0) >= 30 &&
+    Number(row.position ?? 99) <= 20 &&
+    Number(row.ctr ?? 0) < 0.08
+  );
+}
+
 const pageColumns: Array<SortableColumn<Row>> = [
   {
     key: "page",
@@ -29,6 +37,7 @@ const pageColumns: Array<SortableColumn<Row>> = [
     label: "Position",
     render: (row) => formatPosition(row.position),
     sortValue: (row) => Number(row.position ?? 999),
+    tone: (row) => (Number(row.position ?? 99) <= 10 ? "positive" : null),
   },
   {
     key: "impressions",
@@ -47,6 +56,8 @@ const pageColumns: Array<SortableColumn<Row>> = [
     label: "CTR",
     render: (row) => formatPercent(Number(row.ctr ?? 0)),
     sortValue: (row) => Number(row.ctr ?? 0),
+    tone: (row) =>
+      isOpportunity(row) ? "warning" : Number(row.ctr ?? 0) >= 0.15 ? "positive" : null,
   },
 ];
 
@@ -107,6 +118,7 @@ export function SiteWebContentView() {
               minImpressionsField={(row) => Number(row.impressions ?? 0)}
               defaultSortKey="impressions"
               defaultSortDirection="desc"
+              highlightRow={isOpportunity}
             />
           )}
         </div>
