@@ -20,43 +20,41 @@ interface Props {
 
 const num = (value: string) => (value.trim() === "" ? null : Number(value));
 
+const getInitialForm = (subcontractorId = "") => ({
+  subcontractor_id: subcontractorId,
+  client_id: "none",
+  mission_date: new Date().toISOString().slice(0, 10),
+  service_requested: "",
+  prestation: "",
+  category: "",
+  status: "planned" as MissionStatus,
+  hours_spent: "",
+  hours_saved: "",
+  agreed_price: "",
+  invoiced_amount: "",
+  client_price: "",
+  autonomy: "",
+  parallel_worksite: "",
+  internal_rating: "",
+  payment_method: "",
+  invoice_ref: "",
+  objective: "",
+  instructions: "",
+  report_notes: "",
+});
+
 export function SstCreateMissionDialog({ open, onOpenChange, subcontractors, onCreated }: Props) {
   const [clients, setClients] = useState<Client[]>([]);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    subcontractor_id: "",
-    client_id: "none",
-    mission_date: new Date().toISOString().slice(0, 10),
-    service_requested: "",
-    prestation: "",
-    category: "",
-    status: "planned" as MissionStatus,
-    hours_spent: "",
-    hours_saved: "",
-    agreed_price: "",
-    invoiced_amount: "",
-    client_price: "",
-    autonomy: "",
-    parallel_worksite: "",
-    internal_rating: "",
-    payment_method: "",
-    invoice_ref: "",
-    objective: "",
-    instructions: "",
-    report_notes: "",
-  });
+  const [form, setForm] = useState(() => getInitialForm());
 
   useEffect(() => {
     if (!open) return;
+    setForm(getInitialForm(subcontractors[0]?.id ?? ""));
     listClients()
       .then(setClients)
       .catch((error) => toast.error(error instanceof Error ? error.message : "Impossible de charger les clients"));
   }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    setForm((current) => ({ ...current, subcontractor_id: current.subcontractor_id || subcontractors[0]?.id || "" }));
-  }, [open, subcontractors]);
 
   const set = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
