@@ -1,0 +1,30 @@
+name: Temporary SST format
+on:
+  push:
+    branches:
+      - adpp/work/sst-mission-create-fix
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: adpp/work/sst-mission-create-fix
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bunx prettier --write src/components/pilot/SstDashboard.tsx
+      - name: Commit formatted file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- src/components/pilot/SstDashboard.tsx; then
+            echo "No formatting changes"
+          else
+            git add src/components/pilot/SstDashboard.tsx
+            git commit -m "style(sst): format dashboard"
+            git push origin HEAD:adpp/work/sst-mission-create-fix
+          fi
