@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { SlidersHorizontal } from "lucide-react";
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { signalFromMarginPct } from "@/lib/pilot-profit-signal";
 import { PilotCard } from "@/components/pilot/PilotCard";
@@ -623,8 +626,28 @@ export function SstProfitabilityTab() {
 
 
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 pb-2">
           <CardTitle className="text-base">Journal des missions sous-traitées</CardTitle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                Personnaliser
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-60 space-y-2">
+              <p className="text-xs text-muted-foreground">Colonnes affichées</p>
+              {JOURNAL_COLUMNS.map((c) => (
+                <label key={c.key} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={visibleColumns.includes(c.key)}
+                    onCheckedChange={() => toggleColumn(c.key)}
+                  />
+                  {c.label}
+                </label>
+              ))}
+            </PopoverContent>
+          </Popover>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {rows.length === 0 ? (
@@ -635,62 +658,41 @@ export function SstProfitabilityTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Chantier</TableHead>
-                  <TableHead>Sous-traitant</TableHead>
-                  <TableHead>Autonomie</TableHead>
-                  <TableHead>Chantier parallèle</TableHead>
-                  <TableHead className="text-right">Temps</TableHead>
-                  <TableHead className="text-right">Prix SST</TableHead>
-                  <TableHead className="text-right">Prix HT vente</TableHead>
-                  <TableHead className="text-right">Marge nette HT</TableHead>
-                  <TableHead className="text-right">%</TableHead>
-                  <TableHead className="text-center">Rentabilité</TableHead>
-                  <TableHead className="text-right">Difficulté</TableHead>
-                  <TableHead>Détails</TableHead>
+                  {shownColumns.map((c) => (
+                    <TableHead key={c.key} className={c.className}>
+                      {c.label}
+                    </TableHead>
+                  ))}
                   <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.map((r) => (
-                  <TableRow key={r.mission.id} className={r.mission.archived_at ? "opacity-50" : undefined}>
-                    <TableCell className="whitespace-nowrap">
-                      {new Date(r.mission.mission_date).toLocaleDateString("fr-FR")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span>{r.mission.service_requested}</span>
-                        {r.mission.archived_at && <Badge variant="outline">Archivée</Badge>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{r.sstName}</TableCell>
-                    <TableCell>{r.mission.autonomy ?? "—"}</TableCell>
-                    <TableCell>{r.mission.parallel_worksite ?? "—"}</TableCell>
-                    <TableCell className="text-right">{r.hours != null ? r.hours.toFixed(1) : "—"}</TableCell>
-                    <TableCell className="text-right">{formatEuro(r.cost)}</TableCell>
-                    <TableCell className="text-right">{formatEuro(r.revenue)}</TableCell>
-                    <TableCell
-                      className="text-right font-medium"
-                      style={{ color: r.margin >= 0 ? PP_COLORS.primary : PP_COLORS.charges }}
-                    >
-                      {formatEuro(r.margin)}
-                    </TableCell>
-                    <TableCell className="text-right">{pct(r.marginPct)}</TableCell>
-                    <TableCell className="text-center">
-                      <ProfitSignal level={signalFromMarginPct(r.marginPct)} compact />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {r.mission.internal_rating != null ? `${r.mission.internal_rating}/5` : "—"}
-                    </TableCell>
-                    <TableCell className="max-w-[220px] truncate" title={r.mission.report_notes ?? undefined}>
-                      {r.mission.report_notes ?? "—"}
-                    </TableCell>
+                  <TableRow
+                    key={r.mission.id}
+                    className={r.mission.archived_at ? "opacity-50" : undefined}
+                  >
+                    {shownColumns.map((c) => (
+                      <TableCell key={c.key} className={c.className}>
+                        {c.render(r)}
+                      </TableCell>
+                    ))}
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" title="Modifier" onClick={() => setEditing(r.mission)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Modifier"
+                          onClick={() => setEditing(r.mission)}
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" title="Dupliquer" onClick={() => duplicate.mutate(r)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Dupliquer"
+                          onClick={() => duplicate.mutate(r)}
+                        >
                           <Copy className="h-4 w-4" />
                         </Button>
                         <Button
@@ -716,13 +718,11 @@ export function SstProfitabilityTab() {
                   </TableRow>
                 ))}
                 <TableRow className="border-t-2 font-semibold">
-                  <TableCell colSpan={5}>Total</TableCell>
-                  <TableCell className="text-right">{totals.hours.toFixed(1)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.cost)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.revenue)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.margin)}</TableCell>
-                  <TableCell className="text-right">{pct(totals.marginPct)}</TableCell>
-                  <TableCell colSpan={2} />
+                  {shownColumns.map((c, i) => (
+                    <TableCell key={c.key} className={c.className}>
+                      {i === 0 ? "Total" : (c.total?.(totals) ?? "")}
+                    </TableCell>
+                  ))}
                   <TableCell />
                 </TableRow>
               </TableBody>
