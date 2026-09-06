@@ -1,36 +1,26 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import {
-  ArrowRight,
-  BarChart3,
-  CheckCircle2,
-  FileText,
-  Globe2,
-  Lightbulb,
-  Search,
-  Target,
-} from "lucide-react";
+import { ArrowRight, BarChart3, FileText, Globe2, Target } from "lucide-react";
 import { SiteWebActionsView, SiteWebContentView } from "@/components/pilot/SiteWebContentActions";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
 import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
 import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
+import { SiteWebTodaySummary } from "@/components/pilot/SiteWebTodaySummary";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
 
 type ModuleView =
-  | "overview"
-  | "statistics"
-  | "visibility"
+  | "today"
+  | "traffic"
   | "local"
   | "content"
   | "opportunities"
   | "actions";
 
 const moduleViews: Array<{ id: ModuleView; label: string }> = [
-  { id: "overview", label: "Vue d'ensemble" },
-  { id: "statistics", label: "Statistiques" },
-  { id: "visibility", label: "Visibilité" },
+  { id: "today", label: "Aujourd'hui" },
+  { id: "traffic", label: "Trafic & Recherche" },
   { id: "local", label: "SEO Local" },
   { id: "content", label: "Contenus" },
   { id: "opportunities", label: "Opportunités" },
@@ -44,16 +34,10 @@ const cards: Array<{
   view: ModuleView;
 }> = [
   {
-    title: "Statistiques",
-    description: "Mesurer le trafic et la fréquentation du site.",
+    title: "Trafic & Recherche",
+    description: "Fréquentation du site et présence organique dans Google, réunies.",
     icon: BarChart3,
-    view: "statistics",
-  },
-  {
-    title: "Visibilité",
-    description: "Mesurer la présence organique dans Google.",
-    icon: Search,
-    view: "visibility",
+    view: "traffic",
   },
   {
     title: "SEO Local",
@@ -78,7 +62,7 @@ function StatusPill({ children }: { children: string }) {
 }
 
 export function SiteWebDashboard() {
-  const [activeView, setActiveView] = useState<ModuleView>("overview");
+  const [activeView, setActiveView] = useState<ModuleView>("today");
 
   return (
     <div className="space-y-6">
@@ -121,21 +105,9 @@ export function SiteWebDashboard() {
         ))}
       </nav>
 
-      {activeView === "overview" && (
+      {activeView === "today" && (
         <>
-          <Card className="border-primary/20 bg-primary/5 p-5">
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-background p-2 text-primary shadow-sm">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 className="font-serif text-xl font-semibold">Vue d'ensemble</h2>
-                <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                  Cette page ne mélange pas les données. Elle sert uniquement à choisir le bon niveau de lecture : statistiques, visibilité, SEO local, contenus, opportunités ou actions.
-                </p>
-              </div>
-            </div>
-          </Card>
+          <SiteWebTodaySummary />
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {cards.map(({ title, description, icon: Icon, view }) => (
@@ -164,54 +136,15 @@ export function SiteWebDashboard() {
               </Card>
             ))}
           </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                1 · Mesurer
-              </p>
-              <h2 className="mt-1 font-serif text-lg font-semibold">Statistiques + Visibilité</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Les données brutes et leur évolution restent dans leurs rubriques dédiées.
-              </p>
-            </Card>
-            <Card className="p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                2 · Comprendre
-              </p>
-              <h2 className="mt-1 font-serif text-lg font-semibold">SEO Local + Contenus</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                On regroupe les données par sujet, pas par source technique.
-              </p>
-            </Card>
-            <Card className="p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                3 · Agir
-              </p>
-              <h2 className="mt-1 font-serif text-lg font-semibold">Opportunités + Actions</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Les recommandations et le suivi opérationnel sont séparés des mesures.
-              </p>
-            </Card>
-          </div>
-
-          <Card className="p-5">
-            <div className="flex items-start gap-3">
-              <Lightbulb className="mt-0.5 h-4 w-4 text-primary" />
-              <div>
-                <h2 className="font-serif text-lg font-semibold">Règle d'organisation</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Données brutes → indicateurs → analyse → opportunités → actions. Aucun chiffre de démonstration n'est affiché ici.
-                </p>
-              </div>
-            </div>
-          </Card>
         </>
       )}
 
-      {activeView === "statistics" && <SiteWebStatistics />}
-
-      {activeView === "visibility" && <SiteWebViewContent view="visibility" showConnection={false} />}
+      {activeView === "traffic" && (
+        <div className="space-y-4">
+          <SiteWebStatistics />
+          <SiteWebViewContent view="visibility" showConnection={false} />
+        </div>
+      )}
 
       {activeView === "local" && <SiteWebLocalView />}
 
