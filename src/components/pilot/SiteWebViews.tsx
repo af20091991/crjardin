@@ -46,6 +46,16 @@ const METRIC_META: Record<
 
 const DEFAULT_METRICS: MetricKey[] = ["clicks", "impressions"];
 
+/**
+ * Même logique que pour PilotFlexChart : au-delà de `maxTicks` points,
+ * on saute des étiquettes pour que les dates restent lisibles sur l'axe
+ * horizontal au lieu de se chevaucher.
+ */
+function xAxisInterval(count: number, maxTicks = 10) {
+  if (count <= maxTicks) return 0;
+  return Math.ceil(count / maxTicks) - 1;
+}
+
 type SearchRow = {
   keys?: string[];
   clicks?: number;
@@ -195,7 +205,15 @@ function VisibilityView() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tickFormatter={formatShortDate} minTickGap={24} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={formatShortDate}
+                  interval={xAxisInterval(chartData.length)}
+                  angle={chartData.length > 12 ? -30 : 0}
+                  textAnchor={chartData.length > 12 ? "end" : "middle"}
+                  height={chartData.length > 12 ? 48 : 30}
+                  tick={{ fontSize: 11 }}
+                />
                 {usesLeftAxis && <YAxis yAxisId="left" />}
                 {usesRightAxis && <YAxis yAxisId="right" orientation="right" />}
                 <Tooltip
