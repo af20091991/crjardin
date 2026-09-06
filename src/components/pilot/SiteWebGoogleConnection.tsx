@@ -9,6 +9,7 @@ import {
   startGoogleConnection,
   type SiteWebProvider,
 } from "@/lib/site-web-api";
+import { describeSiteWebError } from "@/lib/site-web-error-labels";
 
 const providers: Array<{ id: SiteWebProvider; label: string }> = [
   { id: "google_search_console", label: "Search Console" },
@@ -34,7 +35,7 @@ export function SiteWebGoogleConnection() {
         return {
           id,
           status: result.error ? "error" : (result.data?.status ?? "disconnected"),
-          error: result.error,
+          error: result.error ? describeSiteWebError(result.error) : null,
         };
       }),
     );
@@ -70,7 +71,9 @@ export function SiteWebGoogleConnection() {
     const reason = params.get("reason");
     if (result === "error") {
       setError(
-        reason ? `La connexion Google a échoué : ${reason}.` : "La connexion Google a échoué.",
+        reason
+          ? `La connexion Google a échoué : ${describeSiteWebError(reason)}`
+          : "La connexion Google a échoué.",
       );
     }
     if (result === "connected") void refresh();
@@ -86,7 +89,11 @@ export function SiteWebGoogleConnection() {
     try {
       const result = await startGoogleConnection("google_search_console");
       if (result.error || !result.data?.authorization_url) {
-        setError(result.error ?? "Impossible de démarrer la connexion Google.");
+        setError(
+          result.error
+            ? describeSiteWebError(result.error)
+            : "Impossible de démarrer la connexion Google.",
+        );
         return;
       }
       const authorizationUrl = new URL(result.data.authorization_url);
