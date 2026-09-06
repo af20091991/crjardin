@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, Search } from "lucide-react";
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -15,6 +16,35 @@ import {
   SiteWebGoogleConnection,
 } from "@/components/pilot/SiteWebGoogleConnection";
 import { querySearchConsole } from "@/lib/site-web-api";
+
+type MetricKey = "clicks" | "impressions" | "position" | "ctr";
+
+const METRIC_META: Record<
+  MetricKey,
+  { label: string; color: string; axis: "left" | "right"; format: (v: number) => string }
+> = {
+  clicks: {
+    label: "Clics",
+    color: "var(--pp-sales)",
+    axis: "left",
+    format: (v) => formatNumber(v),
+  },
+  impressions: {
+    label: "Impressions",
+    color: "var(--primary)",
+    axis: "left",
+    format: (v) => formatNumber(v),
+  },
+  position: {
+    label: "Position moyenne",
+    color: "var(--pp-warning)",
+    axis: "right",
+    format: (v) => v.toFixed(1).replace(".", ","),
+  },
+  ctr: { label: "CTR", color: "var(--pp-mid)", axis: "right", format: (v) => formatPercent(v) },
+};
+
+const DEFAULT_METRICS: MetricKey[] = ["clicks", "impressions"];
 
 type SearchRow = {
   keys?: string[];
@@ -45,6 +75,7 @@ function VisibilityView() {
   const [rows, setRows] = useState<SearchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeMetrics, setActiveMetrics] = useState<MetricKey[]>(DEFAULT_METRICS);
 
   useEffect(() => {
     let active = true;
@@ -88,9 +119,24 @@ function VisibilityView() {
         date: row.keys?.[0] ?? "",
         clicks: Number(row.clicks ?? 0),
         impressions: Number(row.impressions ?? 0),
+        position: Number(row.position ?? 0),
+        ctr: Number(row.ctr ?? 0),
       })),
     [rows],
   );
+
+  const usesRightAxis = activeMetrics.some((key) => METRIC_META[key].axis === "right");
+  const usesLeftAxis = activeMetrics.some((key) => METRIC_META[key].axis === "left");
+
+  function toggleMetric(key: MetricKey) {
+    setActiveMetrics((current) => {
+      if (current.includes(key)) {
+        if (current.length === 1) return current;
+        return current.filter((item) => item !== key);
+      }
+      return [...current, key];
+    });
+  }
 
   return (
     <>
@@ -112,12 +158,35 @@ function VisibilityView() {
         </p>
       </Card>
       <Card className="p-5">
-        <Header
-          icon={Search}
-          title="Évolution de la visibilité"
-          description="Données réelles Search Console — 31 derniers jours."
-        />
-        <div className="mt-4 h-64">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <Header
+            icon={Search}
+            title="Évolution de la visibilité"
+            description="Données réelles Search Console — 31 derniers jours. Choisissez les indicateurs à superposer."
+          />
+          <div className="flex flex-wrap gap-1">
+            {(Object.keys(METRIC_META) as MetricKey[]).map((key) => {
+              const meta = METRIC_META[key];
+              const active = activeMetrics.includes(key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => toggleMetric(key)}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+                    active
+                      ? "border-transparent text-primary-foreground"
+                      : "border-border text-muted-foreground hover:bg-muted"
+                  }`}
+                  style={active ? { backgroundColor: meta.color } : undefined}
+                >
+                  {meta.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="mt-4 h-72">
           {loading ? (
             <LoadingState />
           ) : chartData.length === 0 ? (
@@ -127,59 +196,34 @@ function VisibilityView() {
               <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tickFormatter={formatShortDate} minTickGap={24} />
-                <YAxis />
-                <Tooltip labelFormatter={(value) => formatDateLabel(String(value))} />
-                <Line type="monotone" dataKey="clicks" name="Clics" dot={false} />
-                <Line type="monotone" dataKey="impressions" name="Impressions" dot={false} />
+                {usesLeftAxis && <YAxis yAxisId="left" />}
+                {usesRightAxis && <YAxis yAxisId="right" orientation="right" />}
+                <Tooltip
+                  labelFormatter={(value) => formatDateLabel(String(value))}
+                  formatter={(value: number, name: string) => {
+                    const meta = Object.values(METRIC_META).find((m) => m.label === name);
+                    return meta ? meta.format(value) : value;
+                  }}
+                />
+                <Legend />
+                {activeMetrics.map((key) => {
+                  const meta = METRIC_META[key];
+                  return (
+                    <Line
+                      key={key}
+                      type="monotone"
+                      dataKey={key}
+                      name={meta.label}
+                      stroke={meta.color}
+                      yAxisId={meta.axis}
+                      dot={false}
+                    />
+                  );
+                })}
               </LineChart>
             </ResponsiveContainer>
           )}
         </div>
-        <details className="mt-4">
-          <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
-            Voir le détail jour par jour
-          </summary>
-          <div className="mt-3 overflow-x-auto">
-            {loading ? (
-              <LoadingState />
-            ) : rows.length === 0 ? (
-              <EmptyState text="Aucune donnée Search Console disponible sur la période." />
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="pb-2">Date</th>
-                    <th className="pb-2 text-right">Position</th>
-                    <th className="pb-2 text-right">Impressions</th>
-                    <th className="pb-2 text-right">Clics</th>
-                    <th className="pb-2 text-right">CTR</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.slice(-31).map((row, index) => (
-                    <tr key={`${row.keys?.[0] ?? index}`} className="border-t border-border/40">
-                      <td className="py-3">{formatDateLabel(row.keys?.[0] ?? "")}</td>
-                      <td className="py-3 text-right tabular-nums">
-                        {Number(row.position ?? 0)
-                          .toFixed(1)
-                          .replace(".", ",")}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {formatNumber(Number(row.impressions ?? 0))}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {formatNumber(Number(row.clicks ?? 0))}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {formatPercent(Number(row.ctr ?? 0))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </details>
       </Card>
     </>
   );
