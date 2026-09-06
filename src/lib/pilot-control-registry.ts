@@ -438,7 +438,7 @@ export const CONTROL_REGISTRY: readonly ControlDefinition[] = [
     cause: "rattachement_manquant",
     blocksKpi: true,
     kpi: ["Rentabilité client", "Marge de sous-traitance"],
-    to: "/journal-sst",
+    to: "/sst",
   }),
   def({
     id: "sst.mission.cout",
@@ -456,7 +456,7 @@ export const CONTROL_REGISTRY: readonly ControlDefinition[] = [
     cause: "montant_divergent",
     blocksKpi: false,
     kpi: ["Marge de sous-traitance"],
-    to: "/journal-sst",
+    to: "/sst",
   }),
   def({
     id: "sst.libelle.prestataire",
@@ -474,7 +474,7 @@ export const CONTROL_REGISTRY: readonly ControlDefinition[] = [
     cause: "rattachement_manquant",
     blocksKpi: false,
     kpi: ["Marge de sous-traitance"],
-    to: "/journal-sst",
+    to: "/sst",
   }),
   // ── Moteurs de calcul ─────────────────────────────────────────────────────
   def({

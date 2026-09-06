@@ -187,14 +187,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             ]
           : []),
 
-            {
-              to: "/pilot/site-web",
-              label: "Site web",
-              short: "Site web",
-              icon: Globe2,
-              exact: false,
-              primary: false,
-            },
+        {
+          to: "/pilot/site-web",
+          label: "Site web",
+          short: "Site web",
+          icon: Globe2,
+          exact: false,
+          primary: false,
+        },
       ],
     },
     {
@@ -320,14 +320,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 label: "SST",
                 short: "SST",
                 icon: HardHat,
-                exact: false,
-                primary: false,
-              },
-              {
-                to: "/journal-sst",
-                label: "Journal SST",
-                short: "Journal",
-                icon: ClipboardList,
                 exact: false,
                 primary: false,
               },
