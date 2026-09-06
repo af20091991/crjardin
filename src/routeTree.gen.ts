@@ -38,6 +38,7 @@ import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_auth
 import { Route as AuthenticatedPilotTempsRouteImport } from './routes/_authenticated/pilot.temps'
 import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
 import { Route as AuthenticatedPilotSitesRouteImport } from './routes/_authenticated/pilot.sites'
+import { Route as AuthenticatedPilotSiteWebRouteImport } from './routes/_authenticated/pilot.site-web'
 import { Route as AuthenticatedPilotSimulationsRouteImport } from './routes/_authenticated/pilot.simulations'
 import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
 import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
@@ -221,6 +222,12 @@ const AuthenticatedPilotSitesRoute = AuthenticatedPilotSitesRouteImport.update({
   path: '/sites',
   getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
+const AuthenticatedPilotSiteWebRoute =
+  AuthenticatedPilotSiteWebRouteImport.update({
+    id: '/site-web',
+    path: '/site-web',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotSimulationsRoute =
   AuthenticatedPilotSimulationsRouteImport.update({
     id: '/simulations',
@@ -454,6 +461,7 @@ export interface FileRoutesByFullPath {
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
+  '/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -514,6 +522,7 @@ export interface FileRoutesByTo {
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
+  '/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -578,6 +587,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/_authenticated/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/_authenticated/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
+  '/_authenticated/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/_authenticated/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/_authenticated/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/_authenticated/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -642,6 +652,7 @@ export interface FileRouteTypes {
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulations'
+    | '/pilot/site-web'
     | '/pilot/sites'
     | '/pilot/taux'
     | '/pilot/temps'
@@ -702,6 +713,7 @@ export interface FileRouteTypes {
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulations'
+    | '/pilot/site-web'
     | '/pilot/sites'
     | '/pilot/taux'
     | '/pilot/temps'
@@ -765,6 +777,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/saison'
     | '/_authenticated/pilot/sante'
     | '/_authenticated/pilot/simulations'
+    | '/_authenticated/pilot/site-web'
     | '/_authenticated/pilot/sites'
     | '/_authenticated/pilot/taux'
     | '/_authenticated/pilot/temps'
@@ -999,6 +1012,13 @@ declare module '@tanstack/react-router' {
       path: '/sites'
       fullPath: '/pilot/sites'
       preLoaderRoute: typeof AuthenticatedPilotSitesRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/site-web': {
+      id: '/_authenticated/pilot/site-web'
+      path: '/site-web'
+      fullPath: '/pilot/site-web'
+      preLoaderRoute: typeof AuthenticatedPilotSiteWebRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
     '/_authenticated/pilot/simulations': {
@@ -1266,6 +1286,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotSaisonRoute: typeof AuthenticatedPilotSaisonRoute
   AuthenticatedPilotSanteRoute: typeof AuthenticatedPilotSanteRoute
   AuthenticatedPilotSimulationsRoute: typeof AuthenticatedPilotSimulationsRoute
+  AuthenticatedPilotSiteWebRoute: typeof AuthenticatedPilotSiteWebRoute
   AuthenticatedPilotSitesRoute: typeof AuthenticatedPilotSitesRoute
   AuthenticatedPilotTauxRoute: typeof AuthenticatedPilotTauxRoute
   AuthenticatedPilotTempsRoute: typeof AuthenticatedPilotTempsRoute
@@ -1298,6 +1319,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotSaisonRoute: AuthenticatedPilotSaisonRoute,
   AuthenticatedPilotSanteRoute: AuthenticatedPilotSanteRoute,
   AuthenticatedPilotSimulationsRoute: AuthenticatedPilotSimulationsRoute,
+  AuthenticatedPilotSiteWebRoute: AuthenticatedPilotSiteWebRoute,
   AuthenticatedPilotSitesRoute: AuthenticatedPilotSitesRoute,
   AuthenticatedPilotTauxRoute: AuthenticatedPilotTauxRoute,
   AuthenticatedPilotTempsRoute: AuthenticatedPilotTempsRoute,
