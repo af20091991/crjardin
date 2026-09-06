@@ -3,11 +3,9 @@
 // aucune valeur n'est corrigée, aucun écart n'est absorbé.
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeftRight } from "lucide-react";
 import { useSstReconciliation } from "@/components/pilot/useSstReconciliation";
 import { INTEGRITY_LABEL, type IntegrityStatus } from "@/lib/pilot-integrity";
-import { SST_MATCH_LABEL } from "@/lib/sst-reconciliation";
 import { formatEuro } from "@/lib/format-utils";
 
 const TONE: Record<IntegrityStatus, string> = {
@@ -60,42 +58,6 @@ export function SstReconciliationPanel({ year }: { year?: number }) {
                 <p className="text-sm font-medium">{formatEuro(report.unmatchedChargeTotal)}</p>
               </div>
             </div>
-            {report.rows.length > 0 && (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ligne</TableHead>
-                      <TableHead className="text-right">Mission</TableHead>
-                      <TableHead className="text-right">Charge</TableHead>
-                      <TableHead className="text-right">Écart</TableHead>
-                      <TableHead>Classement</TableHead>
-                      <TableHead>Explication</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {report.rows.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="max-w-[220px] text-xs">{r.label}</TableCell>
-                        <TableCell className="text-right text-xs">
-                          {r.missionId ? formatEuro(r.missionAmount) : "—"}
-                        </TableCell>
-                        <TableCell className="text-right text-xs">
-                          {r.chargeId ? formatEuro(r.chargeAmount) : "—"}
-                        </TableCell>
-                        <TableCell className="text-right text-xs">{formatEuro(r.gap)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={`font-normal ${TONE[r.status]}`}>
-                            {SST_MATCH_LABEL[r.kind]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{r.message}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
           </>
         )}
       </CardContent>

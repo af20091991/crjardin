@@ -16,8 +16,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { signalFromMarginPct } from "@/lib/pilot-profit-signal";
 import { PilotCard } from "@/components/pilot/PilotCard";
@@ -39,14 +52,7 @@ import {
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
 import { listChargeRows, listSalesByYear } from "@/lib/pilot-charges";
-import { sstByProvider, sstChargeLines, sstChargeTotals } from "@/lib/sst-charges";
-import {
-  applySstLabelMap,
-  deleteSstLabelMapping,
-  listSstLabelMap,
-  upsertSstLabelMapping,
-} from "@/lib/sst-provider-map";
-import { sstDuplicateReport, sstDuplicateTotal } from "@/lib/sst-duplicates";
+import { sstChargeLines, sstChargeTotals } from "@/lib/sst-charges";
 import {
   byMonth,
   byPrestation,
@@ -66,7 +72,17 @@ import {
   type SstListKind,
 } from "@/lib/sst-lists";
 import { listSstAudit, logSst, undoSstChange, type SstAuditEntry } from "@/lib/sst-audit";
-import { Archive, ArrowLeftRight, Copy, Download, Pencil, Printer, Settings2, Trash2, Undo2 } from "lucide-react";
+import {
+  Archive,
+  ArrowLeftRight,
+  Copy,
+  Download,
+  Pencil,
+  Printer,
+  Settings2,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 const pct = (n: number | null | undefined) => (n == null ? "—" : `${n.toFixed(1)} %`);
@@ -102,9 +118,14 @@ export function SstProfitabilityTab() {
       return items;
     },
   });
-  const { data: audit = [] } = useQuery({ queryKey: ["sst-audit"], queryFn: () => listSstAudit(80) });
-  const { data: chargeRows = [] } = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const { data: labelMap = [] } = useQuery({ queryKey: ["sst-label-map"], queryFn: listSstLabelMap });
+  const { data: audit = [] } = useQuery({
+    queryKey: ["sst-audit"],
+    queryFn: () => listSstAudit(80),
+  });
+  const { data: chargeRows = [] } = useQuery({
+    queryKey: ["pilot-charge-rows"],
+    queryFn: listChargeRows,
+  });
   const { data: salesByYear } = useQuery({
     queryKey: ["pilot-sales-by-year", mode, period],
     queryFn: () => listSalesByYear({ mode, period }),
@@ -124,12 +145,14 @@ export function SstProfitabilityTab() {
 
   const rows = useMemo(
     () =>
-      sstRows({ missions, pnl, ssts, clients, mode, includeArchived: showArchived, year }).filter((r) => {
-        if (sstFilter !== "all" && r.mission.subcontractor_id !== sstFilter) return false;
-        if (!search.trim()) return true;
-        const hay = `${r.sstName} ${r.clientName} ${r.mission.service_requested} ${r.mission.prestation ?? ""}`;
-        return hay.toLowerCase().includes(search.toLowerCase());
-      }),
+      sstRows({ missions, pnl, ssts, clients, mode, includeArchived: showArchived, year }).filter(
+        (r) => {
+          if (sstFilter !== "all" && r.mission.subcontractor_id !== sstFilter) return false;
+          if (!search.trim()) return true;
+          const hay = `${r.sstName} ${r.clientName} ${r.mission.service_requested} ${r.mission.prestation ?? ""}`;
+          return hay.toLowerCase().includes(search.toLowerCase());
+        },
+      ),
     [missions, pnl, ssts, clients, mode, showArchived, year, sstFilter, search],
   );
 
@@ -137,7 +160,10 @@ export function SstProfitabilityTab() {
   const monthly = useMemo(() => byMonth(rows), [rows]);
   const perSst = useMemo(() => bySubcontractor(rows), [rows]);
   const perPresta = useMemo(() => byPrestation(rows), [rows]);
-  const insights = useMemo(() => sstInsights(rows, totals, marginTarget), [rows, totals, marginTarget]);
+  const insights = useMemo(
+    () => sstInsights(rows, totals, marginTarget),
+    [rows, totals, marginTarget],
+  );
 
   // Séries des graphiques configurables : AUCUN recalcul, uniquement une mise en
   // forme des agrégats déjà produits par sst-analytics (byMonth / bySubcontractor
@@ -154,7 +180,12 @@ export function SstProfitabilityTab() {
           { key: "revenue", label: "CA client", color: PP_COLORS.sales },
           { key: "margin", label: "Marge", color: PP_COLORS.primary },
         ],
-        rows: monthly.map((g) => ({ name: g.key, cost: g.cost, revenue: g.revenue, margin: g.margin })),
+        rows: monthly.map((g) => ({
+          name: g.key,
+          cost: g.cost,
+          revenue: g.revenue,
+          margin: g.margin,
+        })),
         note: "Missions sous-traitées (subcontractor_missions), marge nette HT calculée par le moteur SST.",
       },
       {
@@ -225,7 +256,9 @@ export function SstProfitabilityTab() {
         unit: "euro",
         categoryLabel: "Prestation",
         series: [{ key: "revenue", label: "CA client", color: PP_COLORS.sales }],
-        rows: perPresta.filter((g) => g.revenue > 0).map((g) => ({ name: g.key, revenue: g.revenue })),
+        rows: perPresta
+          .filter((g) => g.revenue > 0)
+          .map((g) => ({ name: g.key, revenue: g.revenue })),
         note: "CA client des missions sous-traitées, réparti par prestation.",
       },
       {
@@ -255,40 +288,15 @@ export function SstProfitabilityTab() {
     () => sstChargeLines({ chargeRows, missions, clients, year }),
     [chargeRows, missions, clients, year],
   );
-  const chargeProviders = useMemo(() => sstByProvider(chargeLines), [chargeLines]);
-  const mappedLines = useMemo(
-    () => applySstLabelMap(chargeLines, labelMap, ssts),
-    [chargeLines, labelMap, ssts],
-  );
-  // Rapport de doublons : toutes années confondues, signalement seul.
-  const duplicateGroups = useMemo(
-    () => sstDuplicateReport(sstChargeLines({ chargeRows, missions, clients, year: "all" })),
-    [chargeRows, missions, clients],
-  );
-  const duplicateTotal = useMemo(() => sstDuplicateTotal(duplicateGroups), [duplicateGroups]);
-
-  const mapMutation = useMutation({
-    mutationFn: async (v: { raw_label: string; subcontractor_id: string | null }) => {
-      if (!v.subcontractor_id) return deleteSstLabelMapping(v.raw_label);
-      const name = ssts.find((s) => s.id === v.subcontractor_id)?.name ?? null;
-      return upsertSstLabelMapping({
-        raw_label: v.raw_label,
-        subcontractor_id: v.subcontractor_id,
-        provider_name: name,
-      });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["sst-label-map"] });
-      toast.success("Correspondance enregistrée");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
   const caPeriod = useMemo(() => {
     if (!salesByYear) return null;
     if (year === "all") return [...salesByYear.values()].reduce((s, v) => s + v, 0);
     return salesByYear.get(year) ?? 0;
   }, [salesByYear, year]);
-  const chargeTotals = useMemo(() => sstChargeTotals(chargeLines, caPeriod), [chargeLines, caPeriod]);
+  const chargeTotals = useMemo(
+    () => sstChargeTotals(chargeLines, caPeriod),
+    [chargeLines, caPeriod],
+  );
 
   const archive = useMutation({
     mutationFn: async (row: SstRow) => {
@@ -413,15 +421,19 @@ export function SstProfitabilityTab() {
         <Card className="border-amber-300/70 bg-amber-50/40">
           <CardContent className="py-3 text-sm">
             <strong>{missions.filter((m) => !m.client_id && !m.archived_at).length}</strong> mission
-            {missions.filter((m) => !m.client_id && !m.archived_at).length > 1 ? "s" : ""} de sous-traitance sans
-            client rattaché : la marge par client reste incomplète. Le rattachement se fait ligne par ligne dans
-            le tableau ci-dessous — aucun rapprochement automatique n'est effectué.
+            {missions.filter((m) => !m.client_id && !m.archived_at).length > 1 ? "s" : ""} de
+            sous-traitance sans client rattaché : la marge par client reste incomplète. Le
+            rattachement se fait ligne par ligne dans le tableau ci-dessous — aucun rapprochement
+            automatique n'est effectué.
           </CardContent>
         </Card>
       )}
       {/* Barre d'outils */}
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={String(year)} onValueChange={(v) => setYear(v === "all" ? "all" : Number(v))}>
+        <Select
+          value={String(year)}
+          onValueChange={(v) => setYear(v === "all" ? "all" : Number(v))}
+        >
           <SelectTrigger className="w-36">
             <SelectValue />
           </SelectTrigger>
@@ -486,7 +498,11 @@ export function SstProfitabilityTab() {
           storageId="sst-cout"
           label="Coût sous-traitance"
           value={formatEuro(totals.cost)}
-          sub={totals.avgHourlyCost != null ? `${totals.avgHourlyCost.toFixed(0)} €/h en moyenne` : "Heures non saisies"}
+          sub={
+            totals.avgHourlyCost != null
+              ? `${totals.avgHourlyCost.toFixed(0)} €/h en moyenne`
+              : "Heures non saisies"
+          }
           tone="negative"
           help="Montant facturé par les sous-traitants (montant facturé, sinon prix convenu)."
         />
@@ -496,7 +512,11 @@ export function SstProfitabilityTab() {
           value={formatEuro(totals.margin)}
           sub={`${pct(totals.marginPct)} de marge`}
           tone={totals.margin >= 0 ? "positive" : "negative"}
-          progress={totals.marginPct != null ? Math.min(100, (totals.marginPct / marginTarget) * 100) : undefined}
+          progress={
+            totals.marginPct != null
+              ? Math.min(100, (totals.marginPct / marginTarget) * 100)
+              : undefined
+          }
           help={`Marge = CA client − coût sous-traitant. Objectif paramétré : ${marginTarget} %.`}
           views={[
             {
@@ -529,9 +549,9 @@ export function SstProfitabilityTab() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Sous-traitance repérée dans les charges</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Lignes déjà enregistrées dans le suivi CA (charges). Lecture seule : aucune ressaisie n'est
-            nécessaire. Une ligne couverte par une mission SST du même mois et du même montant est
-            exclue des totaux pour éviter tout double comptage.
+            Lignes déjà enregistrées dans le suivi CA (charges). Lecture seule : aucune ressaisie
+            n'est nécessaire. Une ligne couverte par une mission SST du même mois et du même montant
+            est exclue des totaux pour éviter tout double comptage.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -554,7 +574,11 @@ export function SstProfitabilityTab() {
                   storageId="sst-charges-part"
                   label="Part du CA"
                   value={chargeTotals.shareOfCaPct != null ? pct(chargeTotals.shareOfCaPct) : "—"}
-                  sub={caPeriod != null ? `CA de référence ${formatEuro(caPeriod)}` : "CA non disponible"}
+                  sub={
+                    caPeriod != null
+                      ? `CA de référence ${formatEuro(caPeriod)}`
+                      : "CA non disponible"
+                  }
                   help="Poids de la sous-traitance dans le chiffre d'affaires de la période."
                 />
                 <PilotCard
@@ -565,154 +589,7 @@ export function SstProfitabilityTab() {
                   help="Charges neutralisées car déjà suivies via une mission SST (protection anti double comptage)."
                 />
               </div>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Prestataire (déduit)</TableHead>
-                      <TableHead>Années</TableHead>
-                      <TableHead>Client(s) reconnu(s)</TableHead>
-                      <TableHead className="text-right">Lignes</TableHead>
-                      <TableHead className="text-right">Montant</TableHead>
-                      <TableHead className="text-right">Impact / CA</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {chargeProviders.map((p) => (
-                      <TableRow key={p.provider}>
-                        <TableCell className="font-medium">{p.provider}</TableCell>
-                        <TableCell>{[...p.years].sort((a, b) => a - b).join(", ")}</TableCell>
-                        <TableCell>
-                          {p.clients.length > 0 ? (
-                            p.clients.join(", ")
-                          ) : (
-                            <Badge variant="outline">À rattacher</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{p.lines}</TableCell>
-                        <TableCell className="text-right" style={{ color: PP_COLORS.charges }}>
-                          {formatEuro(p.amount)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {caPeriod && caPeriod > 0 ? pct((p.amount / caPeriod) * 100) : "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Période</TableHead>
-                      <TableHead>Libellé d'origine</TableHead>
-                      <TableHead>Prestataire réel</TableHead>
-                      <TableHead>Client</TableHead>
-                      <TableHead className="text-right">Montant</TableHead>
-                      <TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mappedLines.map((l) => (
-                      <TableRow key={l.id} className={l.duplicateOfMission ? "opacity-50" : undefined}>
-                        <TableCell className="whitespace-nowrap">
-                          {String(l.month).padStart(2, "0")}/{l.year}
-                        </TableCell>
-                        <TableCell>{l.designation}</TableCell>
-                        <TableCell>
-                          <Select
-                            value={l.mappedSubcontractorId ?? "none"}
-                            onValueChange={(v) =>
-                              mapMutation.mutate({
-                                raw_label: l.designation,
-                                subcontractor_id: v === "none" ? null : v,
-                              })
-                            }
-                          >
-                            <SelectTrigger className="h-8 w-48">
-                              <SelectValue placeholder="À rattacher" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">À rattacher</SelectItem>
-                              {ssts.map((s) => (
-                                <SelectItem key={s.id} value={s.id}>
-                                  {s.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {!l.confirmed && (
-                            <span className="block pt-1 text-[11px] text-muted-foreground">
-                              Détection auto : {l.provider}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>{l.clientName ?? "—"}</TableCell>
-                        <TableCell className="text-right">{formatEuro(l.amount)}</TableCell>
-                        <TableCell className="text-right">
-                          {l.duplicateOfMission && <Badge variant="outline">Déjà en mission</Badge>}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
             </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Doublons potentiels de sous-traitance (rapport)</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Lignes identiques (même libellé, même mois, même montant) présentes sur plusieurs
-            exercices — typiquement une recopie d'année lors des imports. Signalement uniquement :
-            aucune ligne n'est supprimée ni modifiée.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {duplicateGroups.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Aucun doublon potentiel détecté.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm">
-                <strong>{duplicateGroups.length}</strong> groupe(s) suspect(s) — montant
-                potentiellement compté en double :{" "}
-                <strong style={{ color: PP_COLORS.charges }}>{formatEuro(duplicateTotal)}</strong>
-              </p>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Libellé</TableHead>
-                      <TableHead>Mois</TableHead>
-                      <TableHead>Exercices concernés</TableHead>
-                      <TableHead className="text-right">Montant unitaire</TableHead>
-                      <TableHead className="text-right">Écart potentiel</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {duplicateGroups.map((g) => (
-                      <TableRow key={g.key}>
-                        <TableCell>{g.designation}</TableCell>
-                        <TableCell>{String(g.month).padStart(2, "0")}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{g.years.join(" / ")}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">{formatEuro(g.amount)}</TableCell>
-                        <TableCell className="text-right" style={{ color: PP_COLORS.charges }}>
-                          {formatEuro(g.suspectedAmount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
           )}
         </CardContent>
       </Card>
@@ -748,7 +625,10 @@ export function SstProfitabilityTab() {
               </TableHeader>
               <TableBody>
                 {rows.map((r) => (
-                  <TableRow key={r.mission.id} className={r.mission.archived_at ? "opacity-50" : undefined}>
+                  <TableRow
+                    key={r.mission.id}
+                    className={r.mission.archived_at ? "opacity-50" : undefined}
+                  >
                     <TableCell className="whitespace-nowrap">
                       {new Date(r.mission.mission_date).toLocaleDateString("fr-FR")}
                     </TableCell>
@@ -761,7 +641,9 @@ export function SstProfitabilityTab() {
                     <TableCell className="font-medium">{r.sstName}</TableCell>
                     <TableCell>{r.mission.autonomy ?? "—"}</TableCell>
                     <TableCell>{r.mission.parallel_worksite ?? "—"}</TableCell>
-                    <TableCell className="text-right">{r.hours != null ? r.hours.toFixed(1) : "—"}</TableCell>
+                    <TableCell className="text-right">
+                      {r.hours != null ? r.hours.toFixed(1) : "—"}
+                    </TableCell>
                     <TableCell className="text-right">{formatEuro(r.cost)}</TableCell>
                     <TableCell className="text-right">{formatEuro(r.revenue)}</TableCell>
                     <TableCell
@@ -777,15 +659,28 @@ export function SstProfitabilityTab() {
                     <TableCell className="text-right">
                       {r.mission.internal_rating != null ? `${r.mission.internal_rating}/5` : "—"}
                     </TableCell>
-                    <TableCell className="max-w-[220px] truncate" title={r.mission.report_notes ?? undefined}>
+                    <TableCell
+                      className="max-w-[220px] truncate"
+                      title={r.mission.report_notes ?? undefined}
+                    >
                       {r.mission.report_notes ?? "—"}
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" title="Modifier" onClick={() => setEditing(r.mission)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Modifier"
+                          onClick={() => setEditing(r.mission)}
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" title="Dupliquer" onClick={() => duplicate.mutate(r)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Dupliquer"
+                          onClick={() => duplicate.mutate(r)}
+                        >
                           <Copy className="h-4 w-4" />
                         </Button>
                         <Button
@@ -866,7 +761,9 @@ export function SstProfitabilityTab() {
         </CardHeader>
         <CardContent className="space-y-2">
           {insights.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Pas encore assez de données pour analyser.</p>
+            <p className="text-sm text-muted-foreground">
+              Pas encore assez de données pour analyser.
+            </p>
           ) : (
             insights.map((i, idx) => (
               <div
@@ -901,7 +798,10 @@ export function SstProfitabilityTab() {
             <p className="text-sm text-muted-foreground">Aucune modification enregistrée.</p>
           ) : (
             audit.map((a) => (
-              <div key={a.id} className="flex items-center justify-between gap-3 border-b py-2 text-sm last:border-0">
+              <div
+                key={a.id}
+                className="flex items-center justify-between gap-3 border-b py-2 text-sm last:border-0"
+              >
                 <div className="min-w-0">
                   <p className="truncate">
                     <span className="font-medium">{a.action}</span> — {a.label ?? "Mission"}
@@ -965,8 +865,7 @@ function SstRowDialog({
     report_notes: mission.report_notes ?? "",
   });
   const [saving, setSaving] = useState(false);
-  const opts = (kind: SstListKind) =>
-    valuesOf(lists as never, kind);
+  const opts = (kind: SstListKind) => valuesOf(lists as never, kind);
 
   const num = (v: string) => (v.trim() === "" ? null : Number(v));
 
@@ -1034,10 +933,17 @@ function SstRowDialog({
     </div>
   );
 
-  const selectField = (label: string, key: "prestation" | "category" | "payment_method", kind: SstListKind) => (
+  const selectField = (
+    label: string,
+    key: "prestation" | "category" | "payment_method",
+    kind: SstListKind,
+  ) => (
     <div className="space-y-1.5">
       <Label>{label}</Label>
-      <Select value={form[key] || "none"} onValueChange={(v) => setForm((f) => ({ ...f, [key]: v === "none" ? "" : v }))}>
+      <Select
+        value={form[key] || "none"}
+        onValueChange={(v) => setForm((f) => ({ ...f, [key]: v === "none" ? "" : v }))}
+      >
         <SelectTrigger>
           <SelectValue placeholder="—" />
         </SelectTrigger>
