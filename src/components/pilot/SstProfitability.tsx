@@ -255,17 +255,11 @@ export function SstProfitabilityTab() {
     () => sstChargeLines({ chargeRows, missions, clients, year }),
     [chargeRows, missions, clients, year],
   );
-  const chargeProviders = useMemo(() => sstByProvider(chargeLines), [chargeLines]);
   const mappedLines = useMemo(
     () => applySstLabelMap(chargeLines, labelMap, ssts),
     [chargeLines, labelMap, ssts],
   );
-  // Rapport de doublons : toutes années confondues, signalement seul.
-  const duplicateGroups = useMemo(
-    () => sstDuplicateReport(sstChargeLines({ chargeRows, missions, clients, year: "all" })),
-    [chargeRows, missions, clients],
-  );
-  const duplicateTotal = useMemo(() => sstDuplicateTotal(duplicateGroups), [duplicateGroups]);
+
 
   const mapMutation = useMutation({
     mutationFn: async (v: { raw_label: string; subcontractor_id: string | null }) => {
