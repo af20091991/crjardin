@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { SlidersHorizontal } from "lucide-react";
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { signalFromMarginPct } from "@/lib/pilot-profit-signal";
 import { PilotCard } from "@/components/pilot/PilotCard";
@@ -39,14 +42,13 @@ import {
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
 import { listChargeRows, listSalesByYear } from "@/lib/pilot-charges";
-import { sstByProvider, sstChargeLines, sstChargeTotals } from "@/lib/sst-charges";
+import { sstChargeLines, sstChargeTotals } from "@/lib/sst-charges";
 import {
   applySstLabelMap,
   deleteSstLabelMapping,
   listSstLabelMap,
   upsertSstLabelMapping,
 } from "@/lib/sst-provider-map";
-import { sstDuplicateReport, sstDuplicateTotal } from "@/lib/sst-duplicates";
 import {
   byMonth,
   byPrestation,
@@ -55,6 +57,7 @@ import {
   sstRows,
   sstTotals,
   type SstRow,
+  type SstTotals,
 } from "@/lib/sst-analytics";
 import {
   addSstListItem,
@@ -71,7 +74,112 @@ import { toast } from "sonner";
 
 const pct = (n: number | null | undefined) => (n == null ? "—" : `${n.toFixed(1)} %`);
 
+// Colonnes du journal des missions : présentation seule (aucune règle métier).
+type JournalColumn = {
+  key: string;
+  label: string;
+  className?: string;
+  render: (r: SstRow) => React.ReactNode;
+  total?: (t: SstTotals) => React.ReactNode;
+};
+
+const JOURNAL_COLUMNS: JournalColumn[] = [
+  {
+    key: "date",
+    label: "Date",
+    className: "whitespace-nowrap",
+    render: (r) => new Date(r.mission.mission_date).toLocaleDateString("fr-FR"),
+  },
+  {
+    key: "client",
+    label: "Client",
+    render: (r) => (
+      <div className="flex items-center gap-2">
+        <span>{r.clientName}</span>
+        {r.mission.archived_at && <Badge variant="outline">Archivée</Badge>}
+      </div>
+    ),
+  },
+  { key: "sst", label: "Sous-traitant", className: "font-medium", render: (r) => r.sstName },
+  {
+    key: "hours",
+    label: "Temps",
+    className: "text-right",
+    render: (r) => (r.hours != null ? r.hours.toFixed(1) : "—"),
+    total: (t) => t.hours.toFixed(1),
+  },
+  {
+    key: "cost",
+    label: "Prix SST",
+    className: "text-right",
+    render: (r) => formatEuro(r.cost),
+    total: (t) => formatEuro(t.cost),
+  },
+  {
+    key: "revenue",
+    label: "Prix HT vente",
+    className: "text-right",
+    render: (r) => formatEuro(r.revenue),
+    total: (t) => formatEuro(t.revenue),
+  },
+  {
+    key: "margin",
+    label: "Marge nette HT",
+    className: "text-right font-medium",
+    render: (r) => (
+      <span style={{ color: r.margin >= 0 ? PP_COLORS.primary : PP_COLORS.charges }}>
+        {formatEuro(r.margin)}
+      </span>
+    ),
+    total: (t) => formatEuro(t.margin),
+  },
+  {
+    key: "marginPct",
+    label: "%",
+    className: "text-right",
+    render: (r) => pct(r.marginPct),
+    total: (t) => pct(t.marginPct),
+  },
+  {
+    key: "signal",
+    label: "Rentabilité",
+    className: "text-center",
+    render: (r) => <ProfitSignal level={signalFromMarginPct(r.marginPct)} compact />,
+  },
+];
+
+const JOURNAL_COLUMNS_STORAGE = "sst-journal:columns";
+
 export function SstProfitabilityTab() {
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    if (typeof window === "undefined") return JOURNAL_COLUMNS.map((c) => c.key);
+    try {
+      const raw = window.localStorage.getItem(JOURNAL_COLUMNS_STORAGE);
+      const parsed = raw ? (JSON.parse(raw) as string[]) : null;
+      return Array.isArray(parsed) && parsed.length > 0
+        ? parsed.filter((k) => JOURNAL_COLUMNS.some((c) => c.key === k))
+        : JOURNAL_COLUMNS.map((c) => c.key);
+    } catch {
+      return JOURNAL_COLUMNS.map((c) => c.key);
+    }
+  });
+  const toggleColumn = (key: string) => {
+    setVisibleColumns((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      const safe = next.length > 0 ? next : prev;
+      try {
+        window.localStorage.setItem(JOURNAL_COLUMNS_STORAGE, JSON.stringify(safe));
+      } catch {
+        /* stockage indisponible : la personnalisation reste locale à la session */
+      }
+      return safe;
+    });
+  };
+  const shownColumns = useMemo(
+    () => JOURNAL_COLUMNS.filter((c) => visibleColumns.includes(c.key)),
+    [visibleColumns],
+  );
+
   const qc = useQueryClient();
   const { mode } = usePilotMode();
   const { period } = usePilotPeriod();
@@ -255,17 +363,11 @@ export function SstProfitabilityTab() {
     () => sstChargeLines({ chargeRows, missions, clients, year }),
     [chargeRows, missions, clients, year],
   );
-  const chargeProviders = useMemo(() => sstByProvider(chargeLines), [chargeLines]);
   const mappedLines = useMemo(
     () => applySstLabelMap(chargeLines, labelMap, ssts),
     [chargeLines, labelMap, ssts],
   );
-  // Rapport de doublons : toutes années confondues, signalement seul.
-  const duplicateGroups = useMemo(
-    () => sstDuplicateReport(sstChargeLines({ chargeRows, missions, clients, year: "all" })),
-    [chargeRows, missions, clients],
-  );
-  const duplicateTotal = useMemo(() => sstDuplicateTotal(duplicateGroups), [duplicateGroups]);
+
 
   const mapMutation = useMutation({
     mutationFn: async (v: { raw_label: string; subcontractor_id: string | null }) => {
@@ -569,42 +671,6 @@ export function SstProfitabilityTab() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Prestataire (déduit)</TableHead>
-                      <TableHead>Années</TableHead>
-                      <TableHead>Client(s) reconnu(s)</TableHead>
-                      <TableHead className="text-right">Lignes</TableHead>
-                      <TableHead className="text-right">Montant</TableHead>
-                      <TableHead className="text-right">Impact / CA</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {chargeProviders.map((p) => (
-                      <TableRow key={p.provider}>
-                        <TableCell className="font-medium">{p.provider}</TableCell>
-                        <TableCell>{[...p.years].sort((a, b) => a - b).join(", ")}</TableCell>
-                        <TableCell>
-                          {p.clients.length > 0 ? (
-                            p.clients.join(", ")
-                          ) : (
-                            <Badge variant="outline">À rattacher</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{p.lines}</TableCell>
-                        <TableCell className="text-right" style={{ color: PP_COLORS.charges }}>
-                          {formatEuro(p.amount)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {caPeriod && caPeriod > 0 ? pct((p.amount / caPeriod) * 100) : "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
                       <TableHead>Période</TableHead>
                       <TableHead>Libellé d'origine</TableHead>
                       <TableHead>Prestataire réel</TableHead>
@@ -663,63 +729,30 @@ export function SstProfitabilityTab() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Doublons potentiels de sous-traitance (rapport)</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Lignes identiques (même libellé, même mois, même montant) présentes sur plusieurs
-            exercices — typiquement une recopie d'année lors des imports. Signalement uniquement :
-            aucune ligne n'est supprimée ni modifiée.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {duplicateGroups.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Aucun doublon potentiel détecté.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm">
-                <strong>{duplicateGroups.length}</strong> groupe(s) suspect(s) — montant
-                potentiellement compté en double :{" "}
-                <strong style={{ color: PP_COLORS.charges }}>{formatEuro(duplicateTotal)}</strong>
-              </p>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Libellé</TableHead>
-                      <TableHead>Mois</TableHead>
-                      <TableHead>Exercices concernés</TableHead>
-                      <TableHead className="text-right">Montant unitaire</TableHead>
-                      <TableHead className="text-right">Écart potentiel</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {duplicateGroups.map((g) => (
-                      <TableRow key={g.key}>
-                        <TableCell>{g.designation}</TableCell>
-                        <TableCell>{String(g.month).padStart(2, "0")}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{g.years.join(" / ")}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">{formatEuro(g.amount)}</TableCell>
-                        <TableCell className="text-right" style={{ color: PP_COLORS.charges }}>
-                          {formatEuro(g.suspectedAmount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 pb-2">
           <CardTitle className="text-base">Journal des missions sous-traitées</CardTitle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                Personnaliser
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-60 space-y-2">
+              <p className="text-xs text-muted-foreground">Colonnes affichées</p>
+              {JOURNAL_COLUMNS.map((c) => (
+                <label key={c.key} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={visibleColumns.includes(c.key)}
+                    onCheckedChange={() => toggleColumn(c.key)}
+                  />
+                  {c.label}
+                </label>
+              ))}
+            </PopoverContent>
+          </Popover>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {rows.length === 0 ? (
@@ -730,62 +763,41 @@ export function SstProfitabilityTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Chantier</TableHead>
-                  <TableHead>Sous-traitant</TableHead>
-                  <TableHead>Autonomie</TableHead>
-                  <TableHead>Chantier parallèle</TableHead>
-                  <TableHead className="text-right">Temps</TableHead>
-                  <TableHead className="text-right">Prix SST</TableHead>
-                  <TableHead className="text-right">Prix HT vente</TableHead>
-                  <TableHead className="text-right">Marge nette HT</TableHead>
-                  <TableHead className="text-right">%</TableHead>
-                  <TableHead className="text-center">Rentabilité</TableHead>
-                  <TableHead className="text-right">Difficulté</TableHead>
-                  <TableHead>Détails</TableHead>
+                  {shownColumns.map((c) => (
+                    <TableHead key={c.key} className={c.className}>
+                      {c.label}
+                    </TableHead>
+                  ))}
                   <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.map((r) => (
-                  <TableRow key={r.mission.id} className={r.mission.archived_at ? "opacity-50" : undefined}>
-                    <TableCell className="whitespace-nowrap">
-                      {new Date(r.mission.mission_date).toLocaleDateString("fr-FR")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span>{r.mission.service_requested}</span>
-                        {r.mission.archived_at && <Badge variant="outline">Archivée</Badge>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{r.sstName}</TableCell>
-                    <TableCell>{r.mission.autonomy ?? "—"}</TableCell>
-                    <TableCell>{r.mission.parallel_worksite ?? "—"}</TableCell>
-                    <TableCell className="text-right">{r.hours != null ? r.hours.toFixed(1) : "—"}</TableCell>
-                    <TableCell className="text-right">{formatEuro(r.cost)}</TableCell>
-                    <TableCell className="text-right">{formatEuro(r.revenue)}</TableCell>
-                    <TableCell
-                      className="text-right font-medium"
-                      style={{ color: r.margin >= 0 ? PP_COLORS.primary : PP_COLORS.charges }}
-                    >
-                      {formatEuro(r.margin)}
-                    </TableCell>
-                    <TableCell className="text-right">{pct(r.marginPct)}</TableCell>
-                    <TableCell className="text-center">
-                      <ProfitSignal level={signalFromMarginPct(r.marginPct)} compact />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {r.mission.internal_rating != null ? `${r.mission.internal_rating}/5` : "—"}
-                    </TableCell>
-                    <TableCell className="max-w-[220px] truncate" title={r.mission.report_notes ?? undefined}>
-                      {r.mission.report_notes ?? "—"}
-                    </TableCell>
+                  <TableRow
+                    key={r.mission.id}
+                    className={r.mission.archived_at ? "opacity-50" : undefined}
+                  >
+                    {shownColumns.map((c) => (
+                      <TableCell key={c.key} className={c.className}>
+                        {c.render(r)}
+                      </TableCell>
+                    ))}
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" title="Modifier" onClick={() => setEditing(r.mission)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Modifier"
+                          onClick={() => setEditing(r.mission)}
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" title="Dupliquer" onClick={() => duplicate.mutate(r)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Dupliquer"
+                          onClick={() => duplicate.mutate(r)}
+                        >
                           <Copy className="h-4 w-4" />
                         </Button>
                         <Button
@@ -811,13 +823,11 @@ export function SstProfitabilityTab() {
                   </TableRow>
                 ))}
                 <TableRow className="border-t-2 font-semibold">
-                  <TableCell colSpan={5}>Total</TableCell>
-                  <TableCell className="text-right">{totals.hours.toFixed(1)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.cost)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.revenue)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.margin)}</TableCell>
-                  <TableCell className="text-right">{pct(totals.marginPct)}</TableCell>
-                  <TableCell colSpan={2} />
+                  {shownColumns.map((c, i) => (
+                    <TableCell key={c.key} className={c.className}>
+                      {i === 0 ? "Total" : (c.total?.(totals) ?? "")}
+                    </TableCell>
+                  ))}
                   <TableCell />
                 </TableRow>
               </TableBody>

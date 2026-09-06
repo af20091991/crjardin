@@ -1,7 +1,8 @@
+// Résumé chiffré réel des 30 derniers jours (Analytics 4 + Search Console).
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Lightbulb } from "lucide-react";
+import { AlertCircle, CalendarClock } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Metric } from "@/components/pilot/SiteWebMetric";
+import { describeSiteWebError } from "@/lib/site-web-error-labels";
 import {
   listAnalyticsProperties,
   querySearchConsole,
@@ -11,102 +12,71 @@ import {
 const SITE_URL = "https://www.delagraineaujardin.com/";
 const PREFERRED_GA4_PROPERTY_ID = "159443253";
 
-type SearchTotals = { clicks: number; impressions: number; position: number };
-type Ga4Totals = { sessions: number };
+type SearchRow = { clicks?: number; impressions?: number; position?: number };
+type AnalyticsRow = { metricValues?: Array<{ value?: string }> };
 
-function last30Days() {
-  const end = new Date();
-  end.setDate(end.getDate() - 1);
-  const start = new Date(end);
-  start.setDate(start.getDate() - 29);
-  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+function dayOffset(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().slice(0, 10);
 }
 
-/**
- * Résumé chiffré compact affiché en haut de l'onglet "Aujourd'hui". Réutilise
- * les mêmes fonctions d'API que les onglets détaillés (aucune nouvelle
- * mécanique de récupération), simplement agrégées sur 30 jours pour donner un
- * coup d'œil rapide sans avoir à ouvrir chaque onglet.
- */
-export function SiteWebTodaySummary({ onOpenOpportunities }: { onOpenOpportunities: () => void }) {
-  const [search, setSearch] = useState<SearchTotals | null>(null);
-  const [ga4, setGa4] = useState<Ga4Totals | null>(null);
-  const [topOpportunity, setTopOpportunity] = useState<string | null>(null);
+export function SiteWebTodaySummary() {
+  const [searchRows, setSearchRows] = useState<SearchRow[]>([]);
+  const [sessions, setSessions] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const startDate = dayOffset(30);
+  const endDate = dayOffset(1);
 
   useEffect(() => {
     let active = true;
-    const { start, end } = last30Days();
 
     const load = async () => {
       setLoading(true);
+      setError(null);
 
       const searchResult = await querySearchConsole({
         siteUrl: SITE_URL,
-        startDate: start,
-        endDate: end,
+        startDate,
+        endDate,
+        dimensions: ["date"],
       });
       if (!active) return;
-      if (!searchResult.error) {
-        const rows = searchResult.data?.rows ?? [];
-        const clicks = rows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
-        const impressions = rows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
-        const weighted = rows.reduce(
-          (sum, row) => sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
-          0,
-        );
-        setSearch({ clicks, impressions, position: impressions ? weighted / impressions : 0 });
-      }
-
-      const opportunitiesResult = await querySearchConsole({
-        siteUrl: SITE_URL,
-        startDate: start,
-        endDate: end,
-        dimensions: ["query"],
-      });
-      if (!active) return;
-      if (!opportunitiesResult.error) {
-        const best = (opportunitiesResult.data?.rows ?? [])
-          .filter(
-            (row) =>
-              Number(row.impressions ?? 0) >= 30 &&
-              Number(row.position ?? 99) <= 20 &&
-              Number(row.ctr ?? 0) < 0.08,
-          )
-          .sort((a, b) => Number(b.impressions ?? 0) - Number(a.impressions ?? 0))[0];
-        setTopOpportunity(best?.keys?.[0] ?? null);
-      }
+      if (searchResult.error) setError(describeSiteWebError(searchResult.error));
+      setSearchRows(searchResult.data?.rows ?? []);
 
       const propertiesResult = await listAnalyticsProperties();
       if (!active) return;
-      if (!propertiesResult.error) {
-        const properties = propertiesResult.data?.properties ?? [];
-        const selected =
-          properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
-          properties[0];
-        if (selected) {
-          const propertyId = selected.name.replace(/^properties\//, "");
-          const reportResult = await runAnalyticsReport({
-            propertyId,
-            startDate: start,
-            endDate: end,
-            dimensions: ["date"],
-            metrics: ["sessions"],
-          });
-          if (!active) return;
-          if (!reportResult.error) {
-            const report = reportResult.data as {
-              rows?: Array<{ metricValues?: Array<{ value?: string }> }>;
-            } | null;
-            const sessions = (report?.rows ?? []).reduce(
-              (sum, row) => sum + Number(row.metricValues?.[0]?.value ?? 0),
-              0,
-            );
-            setGa4({ sessions });
-          }
-        }
+      if (propertiesResult.error) {
+        setError((current) => current ?? describeSiteWebError(propertiesResult.error ?? ""));
+        setLoading(false);
+        return;
+      }
+      const properties = propertiesResult.data?.properties ?? [];
+      const selected =
+        properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
+        properties[0];
+      if (!selected) {
+        setLoading(false);
+        return;
       }
 
+      const reportResult = await runAnalyticsReport({
+        propertyId: selected.name.replace(/^properties\//, ""),
+        startDate,
+        endDate,
+        dimensions: ["date"],
+        metrics: ["sessions"],
+      });
+      if (!active) return;
+      if (reportResult.error) {
+        setError((current) => current ?? describeSiteWebError(reportResult.error ?? ""));
+      }
+      const rows = ((reportResult.data as { rows?: AnalyticsRow[] } | null)?.rows ?? []) as
+        AnalyticsRow[];
+      setSessions(rows.reduce((sum, row) => sum + Number(row.metricValues?.[0]?.value ?? 0), 0));
       setLoading(false);
     };
 
@@ -114,66 +84,75 @@ export function SiteWebTodaySummary({ onOpenOpportunities }: { onOpenOpportuniti
     return () => {
       active = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const positionLabel = useMemo(
-    () => (search?.position ? search.position.toFixed(1).replace(".", ",") : "—"),
-    [search],
-  );
+  const totals = useMemo(() => {
+    const clicks = searchRows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
+    const impressions = searchRows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
+    const weighted = searchRows.reduce(
+      (sum, row) => sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
+      0,
+    );
+    return { clicks, impressions, position: impressions ? weighted / impressions : 0 };
+  }, [searchRows]);
+
+  const value = (input: number | null, formatter: (v: number) => string) =>
+    loading ? "…" : input === null ? "—" : formatter(input);
 
   return (
     <div className="space-y-4">
-      <Card className="p-5">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          30 derniers jours
-        </p>
-        <div className="mt-3 grid gap-5 sm:grid-cols-4">
-          <Metric
-            label="Sessions (trafic)"
-            value={loading ? "…" : formatNumber(ga4?.sessions ?? 0)}
-            description="Nombre de visites sur le site sur la période (Google Analytics 4). Une même personne peut générer plusieurs sessions si elle revient à des moments différents."
-          />
-          <Metric
-            label="Clics Google"
-            value={loading ? "…" : formatNumber(search?.clicks ?? 0)}
-            description="Nombre de fois où quelqu'un a cliqué sur une page du site depuis les résultats de recherche Google (Search Console)."
-          />
-          <Metric
-            label="Impressions Google"
-            value={loading ? "…" : formatNumber(search?.impressions ?? 0)}
-            description="Nombre de fois où une page du site est apparue dans les résultats de recherche Google, cliquée ou non."
-          />
-          <Metric
-            label="Position moyenne"
-            value={loading ? "…" : positionLabel}
-            description="Position moyenne du site dans les résultats de recherche Google, sur l'ensemble des requêtes où il apparaît (1 = tout en haut de la page)."
-          />
-        </div>
-      </Card>
-
-      {!loading && topOpportunity && (
-        <Card className="border-primary/20 bg-primary/5 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <Lightbulb className="mt-0.5 h-4 w-4 text-primary" />
-              <p className="text-sm">
-                Meilleure opportunité du moment : la requête « {topOpportunity} » est déjà bien
-                positionnée mais peu cliquée.
-              </p>
+      {error && (
+        <Card className="border-destructive/30 bg-destructive/5 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <div>
+              <p className="text-sm font-medium">Données Google partiellement indisponibles</p>
+              <p className="mt-1 text-xs text-muted-foreground">{error}</p>
             </div>
-            <button
-              type="button"
-              onClick={onOpenOpportunities}
-              className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary"
-            >
-              Voir les opportunités
-              <ArrowRight className="h-3 w-3" />
-            </button>
           </div>
         </Card>
       )}
+
+      <Card className="p-5">
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg bg-muted/50 p-2 text-primary">
+            <CalendarClock className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="font-serif text-lg font-semibold">Aujourd'hui</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Chiffres réels des 30 derniers jours ({formatDate(startDate)} → {formatDate(endDate)}).
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <Metric label="Sessions" value={value(sessions, formatNumber)} />
+          <Metric label="Clics" value={value(totals.clicks, formatNumber)} />
+          <Metric label="Impressions" value={value(totals.impressions, formatNumber)} />
+          <Metric
+            label="Position moyenne"
+            value={value(totals.position || null, (v) => v.toFixed(1).replace(".", ","))}
+          />
+        </div>
+      </Card>
     </div>
   );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+function formatDate(value: string) {
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat("fr-FR").format(parsed);
 }
 
 function formatNumber(value: number) {

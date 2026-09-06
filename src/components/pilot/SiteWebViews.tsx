@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Search } from "lucide-react";
+import { AlertCircle, BarChart3, FileText, Search, Target } from "lucide-react";
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -10,11 +11,13 @@ import {
   YAxis,
 } from "recharts";
 import { Card } from "@/components/ui/card";
-import {
-  friendlyConnectionError,
-  SiteWebGoogleConnection,
-} from "@/components/pilot/SiteWebGoogleConnection";
+import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
+import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
+import { QueryFilters, SortableTable } from "@/components/pilot/SiteWebTable";
+import { describeSiteWebError } from "@/lib/site-web-error-labels";
 import { querySearchConsole } from "@/lib/site-web-api";
+
+type View = "visibility" | "local" | "content" | "actions";
 
 type SearchRow = {
   keys?: string[];
@@ -26,39 +29,56 @@ type SearchRow = {
 
 const SITE_URL = "https://www.delagraineaujardin.com/";
 
-/**
- * Vue "Visibilité" (Search Console, sitewide). Anciennement un tableau brut
- * jour par jour uniquement — le graphique ci-dessous reprend le code déjà
- * écrit pour l'ancienne vue locale (désormais remplacée par
- * SiteWebLocalView.tsx), qui n'était plus utilisé nulle part.
- */
-export function SiteWebViewContent({ showConnection = true }: { showConnection?: boolean }) {
+export function SiteWebViewContent({
+  view,
+  showConnection = true,
+}: {
+  view: View;
+  showConnection?: boolean;
+}) {
   return (
     <div className="space-y-4">
       {showConnection && <SiteWebGoogleConnection />}
-      <VisibilityView />
+      {view === "visibility" && <VisibilityView />}
+      {view === "local" && <SiteWebLocalView />}
+      {view === "content" && <ContentView />}
+      {view === "actions" && <ActionsView />}
     </div>
   );
 }
 
 function VisibilityView() {
-  const [rows, setRows] = useState<SearchRow[]>([]);
+  const [dailyRows, setDailyRows] = useState<SearchRow[]>([]);
+  const [queryRows, setQueryRows] = useState<SearchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [minImpressions, setMinImpressions] = useState(0);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       setLoading(true);
       setError(null);
-      const { data, error: apiError } = await querySearchConsole({
-        siteUrl: SITE_URL,
-        startDate: yearStart(),
-        endDate: yesterday(),
-      });
+      const [dailyResult, queryResult] = await Promise.all([
+        querySearchConsole({
+          siteUrl: SITE_URL,
+          startDate: yearStart(),
+          endDate: yesterday(),
+          dimensions: ["date"],
+        }),
+        querySearchConsole({
+          siteUrl: SITE_URL,
+          startDate: yearStart(),
+          endDate: yesterday(),
+          dimensions: ["query"],
+        }),
+      ]);
       if (!active) return;
-      if (apiError) setError(apiError);
-      setRows(data?.rows ?? []);
+      const firstError = dailyResult.error ?? queryResult.error;
+      if (firstError) setError(describeSiteWebError(firstError));
+      setDailyRows(dailyResult.data?.rows ?? []);
+      setQueryRows(queryResult.data?.rows ?? []);
       setLoading(false);
     };
     void load();
@@ -68,9 +88,9 @@ function VisibilityView() {
   }, []);
 
   const totals = useMemo(() => {
-    const clicks = rows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
-    const impressions = rows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
-    const weightedPosition = rows.reduce(
+    const clicks = dailyRows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
+    const impressions = dailyRows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
+    const weightedPosition = dailyRows.reduce(
       (sum, row) => sum + Number(row.position ?? 0) * Number(row.impressions ?? 0),
       0,
     );
@@ -80,21 +100,33 @@ function VisibilityView() {
       ctr: impressions ? clicks / impressions : 0,
       position: impressions ? weightedPosition / impressions : 0,
     };
-  }, [rows]);
+  }, [dailyRows]);
 
-  const chartData = useMemo(
+  const searchChart = useMemo(
     () =>
-      rows.slice(-31).map((row) => ({
-        date: row.keys?.[0] ?? "",
-        clicks: Number(row.clicks ?? 0),
-        impressions: Number(row.impressions ?? 0),
-      })),
-    [rows],
+      dailyRows
+        .map((row) => ({
+          date: row.keys?.[0] ?? "",
+          clicks: Number(row.clicks ?? 0),
+          impressions: Number(row.impressions ?? 0),
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-31),
+    [dailyRows],
   );
+
+  const filteredQueries = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return queryRows.filter((row) => {
+      const label = row.keys?.[0] ?? "";
+      if (needle && !label.toLowerCase().includes(needle)) return false;
+      return Number(row.impressions ?? 0) >= minImpressions;
+    });
+  }, [queryRows, search, minImpressions]);
 
   return (
     <>
-      {error && <GoogleDataError code={error} />}
+      {error && <GoogleDataError message={error} />}
       <Card className="p-5">
         <div className="grid gap-5 sm:grid-cols-4">
           <Metric label="Clics" value={loading ? "…" : formatNumber(totals.clicks)} />
@@ -111,77 +143,170 @@ function VisibilityView() {
           Search Console · {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
         </p>
       </Card>
+
       <Card className="p-5">
         <Header
-          icon={Search}
+          icon={BarChart3}
           title="Évolution de la visibilité"
-          description="Données réelles Search Console — 31 derniers jours."
+          description="Axe X explicite : date. Données Search Console réelles, 31 derniers jours disponibles."
         />
-        <div className="mt-4 h-64">
+        <div className="mt-4 h-72">
           {loading ? (
             <LoadingState />
-          ) : chartData.length === 0 ? (
+          ) : searchChart.length === 0 ? (
             <EmptyState text="Aucune donnée Search Console disponible sur la période." />
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+              <LineChart data={searchChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tickFormatter={formatShortDate} minTickGap={24} />
                 <YAxis />
                 <Tooltip labelFormatter={(value) => formatDateLabel(String(value))} />
+                <Legend />
                 <Line type="monotone" dataKey="clicks" name="Clics" dot={false} />
                 <Line type="monotone" dataKey="impressions" name="Impressions" dot={false} />
               </LineChart>
             </ResponsiveContainer>
           )}
         </div>
-        <details className="mt-4">
-          <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
-            Voir le détail jour par jour
-          </summary>
-          <div className="mt-3 overflow-x-auto">
-            {loading ? (
-              <LoadingState />
-            ) : rows.length === 0 ? (
-              <EmptyState text="Aucune donnée Search Console disponible sur la période." />
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="pb-2">Date</th>
-                    <th className="pb-2 text-right">Position</th>
-                    <th className="pb-2 text-right">Impressions</th>
-                    <th className="pb-2 text-right">Clics</th>
-                    <th className="pb-2 text-right">CTR</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.slice(-31).map((row, index) => (
-                    <tr key={`${row.keys?.[0] ?? index}`} className="border-t border-border/40">
-                      <td className="py-3">{formatDateLabel(row.keys?.[0] ?? "")}</td>
-                      <td className="py-3 text-right tabular-nums">
-                        {Number(row.position ?? 0)
-                          .toFixed(1)
-                          .replace(".", ",")}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {formatNumber(Number(row.impressions ?? 0))}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {formatNumber(Number(row.clicks ?? 0))}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {formatPercent(Number(row.ctr ?? 0))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </details>
+      </Card>
+
+      <Card className="p-5">
+        <Header
+          icon={Search}
+          title="Requêtes de recherche"
+          description="Requêtes réellement observées dans Search Console. Cliquez sur un en-tête pour trier."
+        />
+        <div className="mt-4">
+          <QueryFilters
+            search={search}
+            onSearchChange={setSearch}
+            minImpressions={minImpressions}
+            onMinImpressionsChange={setMinImpressions}
+          />
+        </div>
+        <div className="mt-4 overflow-x-auto">
+          {loading ? (
+            <LoadingState />
+          ) : filteredQueries.length === 0 ? (
+            <EmptyState text="Aucune requête ne correspond à ces critères." />
+          ) : (
+            <SortableTable
+              columns={[
+                { key: "query", label: "Requête", align: "left" },
+                { key: "position", label: "Position" },
+                { key: "impressions", label: "Impressions" },
+                { key: "clicks", label: "Clics" },
+                { key: "ctr", label: "CTR" },
+              ]}
+              defaultSort={{ key: "impressions", direction: "desc" }}
+              rows={filteredQueries.slice(0, 200).map((row) => ({
+                query: { value: row.keys?.[0] ?? "—", display: row.keys?.[0] ?? "—" },
+                position: {
+                  value: Number(row.position ?? 0),
+                  display: Number(row.position ?? 0)
+                    .toFixed(1)
+                    .replace(".", ","),
+                },
+                impressions: {
+                  value: Number(row.impressions ?? 0),
+                  display: formatNumber(Number(row.impressions ?? 0)),
+                },
+                clicks: {
+                  value: Number(row.clicks ?? 0),
+                  display: formatNumber(Number(row.clicks ?? 0)),
+                },
+                ctr: {
+                  value: Number(row.ctr ?? 0),
+                  display: formatPercent(Number(row.ctr ?? 0)),
+                },
+              }))}
+            />
+          )}
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <Header
+          icon={BarChart3}
+          title="Détail quotidien"
+          description="Tri chronologique par défaut. Chaque colonne est triable."
+        />
+        <div className="mt-4 overflow-x-auto">
+          {loading ? (
+            <LoadingState />
+          ) : dailyRows.length === 0 ? (
+            <EmptyState text="Aucune donnée Search Console disponible sur la période." />
+          ) : (
+            <SortableTable
+              columns={[
+                { key: "date", label: "Date", align: "left" },
+                { key: "position", label: "Position" },
+                { key: "impressions", label: "Impressions" },
+                { key: "clicks", label: "Clics" },
+                { key: "ctr", label: "CTR" },
+              ]}
+              defaultSort={{ key: "date", direction: "asc" }}
+              rows={dailyRows.slice(-31).map((row) => ({
+                date: {
+                  value: row.keys?.[0] ?? "",
+                  display: formatDateLabel(row.keys?.[0] ?? ""),
+                },
+                position: {
+                  value: Number(row.position ?? 0),
+                  display: Number(row.position ?? 0)
+                    .toFixed(1)
+                    .replace(".", ","),
+                },
+                impressions: {
+                  value: Number(row.impressions ?? 0),
+                  display: formatNumber(Number(row.impressions ?? 0)),
+                },
+                clicks: {
+                  value: Number(row.clicks ?? 0),
+                  display: formatNumber(Number(row.clicks ?? 0)),
+                },
+                ctr: {
+                  value: Number(row.ctr ?? 0),
+                  display: formatPercent(Number(row.ctr ?? 0)),
+                },
+              }))}
+            />
+          )}
+        </div>
       </Card>
     </>
+  );
+}
+
+function ContentView() {
+  return (
+    <Card className="p-5">
+      <Header
+        icon={FileText}
+        title="Contenus"
+        description="Le suivi éditorial reste séparé des statistiques Google."
+      />
+      <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+        L'inventaire réel des pages et leurs données SEO sera branché lorsque leur source réelle
+        sera disponible.
+      </div>
+    </Card>
+  );
+}
+
+function ActionsView() {
+  return (
+    <Card className="p-5">
+      <Header
+        icon={Target}
+        title="Actions"
+        description="Les recommandations seront calculées à partir des données Google réelles."
+      />
+      <div className="mt-5 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+        Aucune action automatique n'est calculée sans données consolidées suffisantes.
+      </div>
+    </Card>
   );
 }
 
@@ -216,16 +341,14 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function GoogleDataError({ code }: { code: string }) {
+function GoogleDataError({ message }: { message: string }) {
   return (
     <Card className="border-destructive/30 bg-destructive/5 p-4">
       <div className="flex items-start gap-3">
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
         <div>
           <p className="text-sm font-medium">Données Google indisponibles</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {friendlyConnectionError(code) ?? code}
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{message}</p>
         </div>
       </div>
     </Card>

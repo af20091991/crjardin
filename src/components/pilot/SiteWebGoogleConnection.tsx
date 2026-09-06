@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, CheckCircle2, Link2, Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle2, Link2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,55 +9,13 @@ import {
   startGoogleConnection,
   type SiteWebProvider,
 } from "@/lib/site-web-api";
+import { describeSiteWebError } from "@/lib/site-web-error-labels";
 
 const providers: Array<{ id: SiteWebProvider; label: string }> = [
   { id: "google_search_console", label: "Search Console" },
   { id: "google_analytics_4", label: "Analytics 4" },
   { id: "google_business_profile", label: "Business Profile" },
 ];
-
-/**
- * Traduit les codes d'erreur techniques renvoyés par l'API en messages
- * compréhensibles par un utilisateur non technique, avec une action suggérée
- * quand c'est pertinent. Les codes inconnus affichent un message générique
- * plutôt que le code brut.
- */
-export function friendlyConnectionError(code: string | null): string | null {
-  if (!code) return null;
-  const known: Record<string, string> = {
-    google_token_unavailable:
-      'La connexion Google a expiré. Cliquez sur "Reconnecter Google" pour la rétablir.',
-    google_oauth_not_configured:
-      "La connexion Google n'est pas encore configurée pour ce site. Contactez le support.",
-    unauthorized: "Votre session Pilot Pro a expiré. Rechargez la page et reconnectez-vous.",
-    invalid_or_expired_state:
-      "La demande de connexion Google a expiré avant d'être finalisée. Réessayez.",
-    token_exchange_failed:
-      'Google a refusé la connexion. Cliquez sur "Reconnecter Google" pour réessayer.',
-    token_storage_failed:
-      "La connexion Google a réussi mais n'a pas pu être enregistrée. Réessayez dans un instant.",
-    search_console_sites_failed:
-      "Impossible de récupérer la liste des sites Search Console. Vérifiez que le site est bien validé dans Google Search Console.",
-    search_console_analytics_failed:
-      "Les statistiques Search Console sont temporairement indisponibles. Réessayez dans quelques minutes.",
-    analytics_properties_failed:
-      "Impossible de récupérer les propriétés Google Analytics. Vérifiez l'accès du compte connecté.",
-    analytics_report_failed:
-      "Le rapport Google Analytics est temporairement indisponible. Réessayez dans quelques minutes.",
-    business_profile_accounts_failed:
-      "Impossible de récupérer les comptes Google Business Profile. L'accès à cette API est peut-être encore en cours de validation par Google.",
-    business_profile_locations_failed:
-      "Impossible de récupérer les fiches établissement Google Business Profile.",
-    business_profile_performance_failed:
-      "Les statistiques Google Business Profile sont temporairement indisponibles. Réessayez dans quelques minutes.",
-    internal_error:
-      "Une erreur technique inattendue est survenue. Réessayez, et contactez le support si cela persiste.",
-  };
-  return (
-    known[code] ??
-    "Impossible de vérifier cette source Google pour le moment. Réessayez dans quelques instants."
-  );
-}
 
 export function SiteWebGoogleConnection() {
   const { user, loading: authLoading } = useAuth();
@@ -77,7 +35,7 @@ export function SiteWebGoogleConnection() {
         return {
           id,
           status: result.error ? "error" : (result.data?.status ?? "disconnected"),
-          error: result.error,
+          error: result.error ? describeSiteWebError(result.error) : null,
         };
       }),
     );
@@ -87,7 +45,7 @@ export function SiteWebGoogleConnection() {
       return {
         id: providers[index].id,
         status: "error",
-        error: "connection_check_failed",
+        error: "Impossible de vérifier cette source Google.",
       };
     });
 
@@ -97,8 +55,8 @@ export function SiteWebGoogleConnection() {
       ) as Record<SiteWebProvider, string>,
     );
 
-    const firstError = results.find((result) => result.error)?.error ?? null;
-    setError(friendlyConnectionError(firstError));
+    const firstError = results.find((result) => result.error)?.error;
+    setError(firstError ?? null);
   };
 
   useEffect(() => {
@@ -112,7 +70,11 @@ export function SiteWebGoogleConnection() {
     const result = params.get("site_web_google");
     const reason = params.get("reason");
     if (result === "error") {
-      setError(friendlyConnectionError(reason) ?? "La connexion Google a échoué.");
+      setError(
+        reason
+          ? `La connexion Google a échoué : ${describeSiteWebError(reason)}`
+          : "La connexion Google a échoué.",
+      );
     }
     if (result === "connected") void refresh();
   }, [authLoading, user]);
@@ -128,7 +90,9 @@ export function SiteWebGoogleConnection() {
       const result = await startGoogleConnection("google_search_console");
       if (result.error || !result.data?.authorization_url) {
         setError(
-          friendlyConnectionError(result.error) ?? "Impossible de démarrer la connexion Google.",
+          result.error
+            ? describeSiteWebError(result.error)
+            : "Impossible de démarrer la connexion Google.",
         );
         return;
       }
@@ -176,9 +140,6 @@ export function SiteWebGoogleConnection() {
             </p>
           </div>
         </div>
-        {/* Le bouton reste actif même une fois connecté : une reconnexion doit
-            toujours être possible sans intervention technique si un token
-            expire ou qu'une erreur survient. */}
         <Button
           type="button"
           size="sm"
@@ -186,15 +147,10 @@ export function SiteWebGoogleConnection() {
           onClick={connect}
           disabled={authLoading || loading || !user}
         >
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : connected ? (
-            <RefreshCw className="h-4 w-4" />
-          ) : (
-            <Link2 className="h-4 w-4" />
-          )}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
           {connected ? "Reconnecter Google" : "Connecter Google"}
         </Button>
+
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">

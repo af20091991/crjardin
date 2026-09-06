@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, BarChart3, MapPin, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
-import { Metric } from "@/components/pilot/SiteWebMetric";
-import { SortableDataTable, type SortableColumn } from "@/components/pilot/SiteWebSortableTable";
 import {
   getBusinessProfilePerformance,
   listBusinessProfileAccounts,
@@ -51,52 +49,6 @@ const LOCAL_TERMS = [
   "perols",
 ];
 
-/** Une requête bien positionnée mais peu cliquée est un potentiel à saisir (même règle que l'onglet Actions). */
-function isOpportunity(row: SearchRow) {
-  return (
-    Number(row.impressions ?? 0) >= 30 &&
-    Number(row.position ?? 99) <= 20 &&
-    Number(row.ctr ?? 0) < 0.08
-  );
-}
-
-const queryColumns: Array<SortableColumn<SearchRow>> = [
-  {
-    key: "query",
-    label: "Requête",
-    align: "left",
-    render: (row) => row.keys?.[0] ?? "—",
-    sortValue: (row) => row.keys?.[0] ?? "",
-  },
-  {
-    key: "position",
-    label: "Position",
-    render: (row) => formatPosition(row.position),
-    sortValue: (row) => Number(row.position ?? 999),
-    tone: (row) => (Number(row.position ?? 99) <= 10 ? "positive" : null),
-  },
-  {
-    key: "impressions",
-    label: "Impressions",
-    render: (row) => formatNumber(Number(row.impressions ?? 0)),
-    sortValue: (row) => Number(row.impressions ?? 0),
-  },
-  {
-    key: "clicks",
-    label: "Clics",
-    render: (row) => formatNumber(Number(row.clicks ?? 0)),
-    sortValue: (row) => Number(row.clicks ?? 0),
-  },
-  {
-    key: "ctr",
-    label: "CTR",
-    render: (row) => formatPercent(Number(row.ctr ?? 0)),
-    sortValue: (row) => Number(row.ctr ?? 0),
-    tone: (row) =>
-      isOpportunity(row) ? "warning" : Number(row.ctr ?? 0) >= 0.15 ? "positive" : null,
-  },
-];
-
 export function SiteWebLocalView() {
   const [queryRows, setQueryRows] = useState<SearchRow[]>([]);
   const [performance, setPerformance] = useState<BusinessPerformance | null>(null);
@@ -137,7 +89,7 @@ export function SiteWebLocalView() {
 
       const account = accountsResult.data?.accounts?.[0];
       if (!account?.name) {
-        setBusinessError("no_business_account");
+        setBusinessError("Aucun compte Google Business Profile disponible.");
         setPerformance(null);
         setLoading(false);
         return;
@@ -158,7 +110,7 @@ export function SiteWebLocalView() {
         ) ?? locationsResult.data?.locations?.[0];
 
       if (!location?.name) {
-        setBusinessError("no_business_location");
+        setBusinessError("Aucun établissement Google Business Profile disponible.");
         setPerformance(null);
         setLoading(false);
         return;
@@ -185,9 +137,11 @@ export function SiteWebLocalView() {
 
   const localQueries = useMemo(
     () =>
-      queryRows.filter((row) =>
-        LOCAL_TERMS.some((term) => (row.keys?.[0] ?? "").toLowerCase().includes(term)),
-      ),
+      queryRows
+        .filter((row) =>
+          LOCAL_TERMS.some((term) => (row.keys?.[0] ?? "").toLowerCase().includes(term)),
+        )
+        .sort((a, b) => Number(b.impressions ?? 0) - Number(a.impressions ?? 0)),
     [queryRows],
   );
 
@@ -205,11 +159,6 @@ export function SiteWebLocalView() {
       position: impressions ? weightedPosition / impressions : 0,
     };
   }, [localQueries]);
-
-  const localShareOfImpressions = useMemo(() => {
-    const totalImpressions = queryRows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
-    return totalImpressions > 0 ? localTotals.impressions / totalImpressions : null;
-  }, [queryRows, localTotals.impressions]);
 
   const businessSeries = useMemo(() => {
     const byDate = new Map<string, BusinessSeriesRow>();
@@ -251,34 +200,35 @@ export function SiteWebLocalView() {
 
   return (
     <div className="space-y-4">
-      {searchError && <SourceError title="Search Console" code={searchError} />}
+      {searchError && (
+        <SourceError title="Search Console" message={searchError} />
+      )}
 
       <Card className="p-5">
         <Header
           icon={MapPin}
-          title="Présence locale"
-          description="Uniquement ce qui est spécifique au local : requêtes géolocalisées et fiche Google Business Profile. Le trafic global est dans « Trafic & Recherche »."
+          title="SEO Local"
+          description="Visibilité organique locale et interactions Google Business Profile, sans inventer de classement Maps."
         />
         <p className="mt-2 text-xs text-muted-foreground">
           Périmètre : {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
         </p>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-4">
         <MetricCard
           label="Clics locaux"
           value={loading ? "…" : hasLocalSearchData ? formatNumber(localTotals.clicks) : "—"}
-          description="Nombre de clics obtenus sur des requêtes Google contenant le nom d'une commune de la zone ciblée (Montpellier, Castelnau, Lattes…)."
         />
         <MetricCard
           label="Impressions locales"
-          value={loading ? "…" : hasLocalSearchData ? formatNumber(localTotals.impressions) : "—"}
-          description="Nombre de fois où le site est apparu dans Google pour une requête contenant le nom d'une commune de la zone ciblée."
+          value={
+            loading ? "…" : hasLocalSearchData ? formatNumber(localTotals.impressions) : "—"
+          }
         />
         <MetricCard
           label="CTR local"
           value={loading ? "…" : hasLocalSearchData ? formatPercent(localTotals.ctr) : "—"}
-          description="Part des impressions locales ayant donné lieu à un clic (clics locaux ÷ impressions locales)."
         />
         <MetricCard
           label="Position locale"
@@ -289,16 +239,6 @@ export function SiteWebLocalView() {
                 ? localTotals.position.toFixed(1).replace(".", ",")
                 : "—"
           }
-          description="Position moyenne du site dans Google, calculée uniquement sur les requêtes contenant une commune de la zone ciblée."
-        />
-        <MetricCard
-          label="Part du trafic total"
-          value={
-            loading || localShareOfImpressions === null
-              ? "…"
-              : formatPercent(localShareOfImpressions)
-          }
-          description="Part des impressions locales par rapport à l'ensemble des impressions Google du site, toutes requêtes confondues."
         />
       </div>
 
@@ -308,29 +248,22 @@ export function SiteWebLocalView() {
           title="Requêtes locales réellement observées"
           description="Requêtes Search Console contenant une commune de la zone ciblée. Ce tableau ne mesure pas le classement Google Maps."
         />
-        <div className="mt-4">
+        <div className="mt-4 overflow-x-auto">
           {loading ? (
             <LoadingState />
+          ) : !hasLocalSearchData ? (
+            <EmptyState text="Aucune requête locale observable dans Search Console sur la période." />
           ) : (
-            <>
-              {localQueries.some(isOpportunity) && (
-                <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Requêtes bien
-                  positionnées mais peu cliquées — à optimiser en priorité.
-                </p>
-              )}
-              <SortableDataTable
-                columns={queryColumns}
-                rows={localQueries}
-                getRowKey={(row, index) => `${row.keys?.[0] ?? "row"}-${index}`}
-                searchField={(row) => row.keys?.[0] ?? ""}
-                searchPlaceholder="Rechercher une requête…"
-                minImpressionsField={(row) => Number(row.impressions ?? 0)}
-                defaultSortKey="impressions"
-                defaultSortDirection="desc"
-                highlightRow={isOpportunity}
-              />
-            </>
+            <DataTable
+              headers={["Requête", "Position", "Impressions", "Clics", "CTR"]}
+              rows={localQueries.slice(0, 50).map((row) => [
+                row.keys?.[0] ?? "—",
+                formatPosition(row.position),
+                formatNumber(Number(row.impressions ?? 0)),
+                formatNumber(Number(row.clicks ?? 0)),
+                formatPercent(Number(row.ctr ?? 0)),
+              ])}
+            />
           )}
         </div>
       </Card>
@@ -341,24 +274,40 @@ export function SiteWebLocalView() {
           title="Performance Google Business Profile"
           description="Interactions et visibilité de la fiche Google, issues de l'API officielle."
         />
-        {businessError && <SourceError title="Business Profile" code={businessError} compact />}
+        {businessError && <SourceError title="Business Profile" message={businessError} compact />}
         <div className="mt-5 grid gap-5 sm:grid-cols-4">
-          <Metric
-            label="Clics site"
-            value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.website) : "—"}
-          />
-          <Metric
-            label="Appels"
-            value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.calls) : "—"}
-          />
-          <Metric
-            label="Itinéraires"
-            value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.directions) : "—"}
-          />
+          <Metric label="Clics site" value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.website) : "—"} />
+          <Metric label="Appels" value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.calls) : "—"} />
+          <Metric label="Itinéraires" value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.directions) : "—"} />
           <Metric
             label="Impressions"
             value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.impressions) : "—"}
           />
+        </div>
+        <div className="mt-5 overflow-x-auto">
+          {loading ? (
+            <LoadingState />
+          ) : !hasBusinessData ? (
+            <EmptyState text="Aucune donnée Google Business Profile disponible sur la période." />
+          ) : (
+            <DataTable
+              headers={["Date", "Clics site", "Appels", "Itinéraires", "Impressions"]}
+              rows={businessSeries
+                .slice(-31)
+                .map(([date, row]) => [
+                  formatDateLabel(date),
+                  formatNumber(row.WEBSITE_CLICKS ?? 0),
+                  formatNumber(row.CALL_CLICKS ?? 0),
+                  formatNumber(row.BUSINESS_DIRECTION_REQUESTS ?? 0),
+                  formatNumber(
+                    (row.BUSINESS_IMPRESSIONS_DESKTOP_MAPS ?? 0) +
+                      (row.BUSINESS_IMPRESSIONS_DESKTOP_SEARCH ?? 0) +
+                      (row.BUSINESS_IMPRESSIONS_MOBILE_MAPS ?? 0) +
+                      (row.BUSINESS_IMPRESSIONS_MOBILE_SEARCH ?? 0),
+                  ),
+                ])}
+            />
+          )}
         </div>
       </Card>
     </div>
@@ -387,36 +336,54 @@ function Header({
   );
 }
 
-function MetricCard({
-  label,
-  value,
-  description,
-}: {
-  label: string;
-  value: string;
-  description?: string;
-}) {
+function MetricCard({ label, value }: { label: string; value: string }) {
   return (
     <Card className="p-5">
-      <Metric label={label} value={value} description={description} />
+      <Metric label={label} value={value} />
     </Card>
   );
 }
 
-function SourceError({
-  title,
-  code,
-  compact = false,
-}: {
-  title: string;
-  code: string;
-  compact?: boolean;
-}) {
-  const knownMessages: Record<string, string> = {
-    no_business_account: "Aucun compte Google Business Profile accessible avec ce compte Google.",
-    no_business_location: "Aucune fiche établissement Google Business Profile trouvée.",
-  };
-  const message = knownMessages[code] ?? friendlyConnectionError(code) ?? code;
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+          {headers.map((header) => (
+            <th key={header} className="pb-2 text-right first:text-left">
+              {header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, rowIndex) => (
+          <tr key={`${row[0]}-${rowIndex}`} className="border-t border-border/40">
+            {row.map((cell, index) => (
+              <td
+                key={`${row[0]}-${index}`}
+                className="py-3 text-right tabular-nums first:text-left"
+              >
+                {cell}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function SourceError({ title, message, compact = false }: { title: string; message: string; compact?: boolean }) {
   return (
     <div
       className={`flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive ${
@@ -433,9 +400,11 @@ function SourceError({
 }
 
 function LoadingState() {
-  return (
-    <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
-  );
+  return <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>;
+}
+
+function EmptyState({ text }: { text: string }) {
+  return <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
 }
 
 function formatNumber(value: number) {
@@ -443,9 +412,7 @@ function formatNumber(value: number) {
 }
 
 function formatPercent(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(
-    value,
-  );
+  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(value);
 }
 
 function formatPosition(value: number | undefined) {

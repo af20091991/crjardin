@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Metric } from "@/components/pilot/SiteWebMetric";
+import { SortableTable } from "@/components/pilot/SiteWebTable";
 import { listAnalyticsProperties, runAnalyticsReport } from "@/lib/site-web-api";
 
 const PREFERRED_GA4_PROPERTY_ID = "159443253";
@@ -118,69 +118,61 @@ export function SiteWebStatistics() {
           </div>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Metric
-            label="Sessions"
-            value={loading ? "…" : formatNumber(totals.sessions)}
-            description="Nombre de visites sur le site sur la période. Une même personne qui revient plusieurs fois génère plusieurs sessions."
-          />
-          <Metric
-            label="Pages vues"
-            value={loading ? "…" : formatNumber(totals.views)}
-            description="Nombre total de pages consultées, toutes sessions confondues. Une seule session peut compter plusieurs pages vues."
-          />
-          <Metric
-            label="Utilisateurs actifs"
-            value={loading ? "…" : formatNumber(totals.users)}
-            description="Nombre de personnes différentes ayant visité le site sur la période (chaque personne n'est comptée qu'une fois, même si elle revient plusieurs fois)."
-          />
+          <Metric label="Sessions" value={loading ? "…" : formatNumber(totals.sessions)} />
+          <Metric label="Pages vues" value={loading ? "…" : formatNumber(totals.views)} />
+          <Metric label="Utilisateurs actifs" value={loading ? "…" : formatNumber(totals.users)} />
         </div>
       </Card>
 
       <Card className="p-5">
         <div className="overflow-x-auto">
           {loading ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              Chargement des données…
-            </p>
+            <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données…</p>
           ) : rows.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Aucune donnée Analytics 4 disponible sur la période.
             </p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2">Date</th>
-                  <th className="pb-2 text-right">Sessions</th>
-                  <th className="pb-2 text-right">Pages vues</th>
-                  <th className="pb-2 text-right">Utilisateurs</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.slice(-31).map((row, index) => (
-                  <tr
-                    key={`${row.dimensionValues?.[0]?.value ?? "row"}-${index}`}
-                    className="border-t border-border/40"
-                  >
-                    <td className="py-3">
-                      {formatDateLabel(row.dimensionValues?.[0]?.value ?? "")}
-                    </td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(Number(row.metricValues?.[0]?.value ?? 0))}
-                    </td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(Number(row.metricValues?.[1]?.value ?? 0))}
-                    </td>
-                    <td className="py-3 text-right tabular-nums">
-                      {formatNumber(Number(row.metricValues?.[2]?.value ?? 0))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <SortableTable
+              columns={[
+                { key: "date", label: "Date", align: "left" },
+                { key: "sessions", label: "Sessions" },
+                { key: "views", label: "Pages vues" },
+                { key: "users", label: "Utilisateurs" },
+              ]}
+              defaultSort={{ key: "date", direction: "asc" }}
+              rows={rows.slice(-31).map((row) => {
+                const rawDate = row.dimensionValues?.[0]?.value ?? "";
+                return {
+                  date: { value: rawDate, display: formatDateLabel(rawDate) },
+                  sessions: {
+                    value: Number(row.metricValues?.[0]?.value ?? 0),
+                    display: formatNumber(Number(row.metricValues?.[0]?.value ?? 0)),
+                  },
+                  views: {
+                    value: Number(row.metricValues?.[1]?.value ?? 0),
+                    display: formatNumber(Number(row.metricValues?.[1]?.value ?? 0)),
+                  },
+                  users: {
+                    value: Number(row.metricValues?.[2]?.value ?? 0),
+                    display: formatNumber(Number(row.metricValues?.[2]?.value ?? 0)),
+                  },
+                };
+              })}
+            />
           )}
         </div>
       </Card>
+
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 font-serif text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
 }
