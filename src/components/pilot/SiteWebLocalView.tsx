@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, BarChart3, MapPin, Search } from "lucide-react";
+import { AlertCircle, BarChart3, MapPin, Search, Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
 import { Metric } from "@/components/pilot/SiteWebMetric";
-import { SortableDataTable, type SortableColumn } from "@/components/pilot/SiteWebSortableTable";
+import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
+import type { FlexDataset } from "@/lib/pilot-flex-chart";
+import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 import {
   getBusinessProfilePerformance,
   listBusinessProfileAccounts,
@@ -36,6 +39,10 @@ type BusinessPerformance = {
 type BusinessSeriesRow = Record<string, number>;
 
 const SITE_URL = "https://www.delagraineaujardin.com/";
+const FAVORITES_STORAGE_KEY = "site-web:local-favoris";
+const TOP_QUERIES_LIMIT = 15;
+const FAVORITES_PICKER_LIMIT = 40;
+
 const LOCAL_TERMS = [
   "montpellier",
   "castelnau",
@@ -60,42 +67,34 @@ function isOpportunity(row: SearchRow) {
   );
 }
 
-const queryColumns: Array<SortableColumn<SearchRow>> = [
-  {
-    key: "query",
-    label: "Requête",
-    align: "left",
-    render: (row) => row.keys?.[0] ?? "—",
-    sortValue: (row) => row.keys?.[0] ?? "",
-  },
-  {
-    key: "position",
-    label: "Position",
-    render: (row) => formatPosition(row.position),
-    sortValue: (row) => Number(row.position ?? 999),
-    tone: (row) => (Number(row.position ?? 99) <= 10 ? "positive" : null),
-  },
-  {
-    key: "impressions",
-    label: "Impressions",
-    render: (row) => formatNumber(Number(row.impressions ?? 0)),
-    sortValue: (row) => Number(row.impressions ?? 0),
-  },
-  {
-    key: "clicks",
-    label: "Clics",
-    render: (row) => formatNumber(Number(row.clicks ?? 0)),
-    sortValue: (row) => Number(row.clicks ?? 0),
-  },
-  {
-    key: "ctr",
-    label: "CTR",
-    render: (row) => formatPercent(Number(row.ctr ?? 0)),
-    sortValue: (row) => Number(row.ctr ?? 0),
-    tone: (row) =>
-      isOpportunity(row) ? "warning" : Number(row.ctr ?? 0) >= 0.15 ? "positive" : null,
-  },
-];
+/** Suivi des mots-clés favoris : persisté localement, propre à cet appareil/navigateur. */
+function useFavoriteKeywords() {
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+      if (raw) setFavorites(JSON.parse(raw));
+    } catch {
+      // Pas de favoris sauvegardés ou stockage indisponible : on repart à vide.
+    }
+  }, []);
+
+  const toggle = (keyword: string) => {
+    setFavorites((current) => {
+      const exists = current.includes(keyword);
+      const next = exists ? current.filter((item) => item !== keyword) : [...current, keyword];
+      try {
+        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // Préférence d'affichage uniquement : une erreur de stockage n'est pas bloquante.
+      }
+      return next;
+    });
+  };
+
+  return { favorites, toggle };
+}
 
 export function SiteWebLocalView() {
   const [queryRows, setQueryRows] = useState<SearchRow[]>([]);
@@ -103,6 +102,14 @@ export function SiteWebLocalView() {
   const [loading, setLoading] = useState(true);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [businessError, setBusinessError] = useState<string | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [minImpressions, setMinImpressions] = useState(0);
+
+  const { favorites, toggle: toggleFavorite } = useFavoriteKeywords();
+  const [favoriteRows, setFavoriteRows] = useState<SearchRow[]>([]);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -183,6 +190,39 @@ export function SiteWebLocalView() {
     };
   }, []);
 
+  // Suivi individuel des mots-clés favoris : on ne va chercher le détail
+  // jour par jour que si au moins un favori a été ajouté, pour ne pas
+  // alourdir la page inutilement.
+  useEffect(() => {
+    if (favorites.length === 0) {
+      setFavoriteRows([]);
+      return;
+    }
+    let active = true;
+    const load = async () => {
+      setFavoriteLoading(true);
+      setFavoriteError(null);
+      const result = await querySearchConsole({
+        siteUrl: SITE_URL,
+        startDate: yearStart(),
+        endDate: yesterday(),
+        dimensions: ["date", "query"],
+      });
+      if (!active) return;
+      if (result.error) setFavoriteError(result.error);
+      const favoriteSet = new Set(favorites.map((item) => item.toLowerCase()));
+      const filtered = (result.data?.rows ?? []).filter((row) =>
+        favoriteSet.has((row.keys?.[1] ?? "").toLowerCase()),
+      );
+      setFavoriteRows(filtered);
+      setFavoriteLoading(false);
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [favorites]);
+
   const localQueries = useMemo(
     () =>
       queryRows.filter((row) =>
@@ -210,6 +250,83 @@ export function SiteWebLocalView() {
     const totalImpressions = queryRows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
     return totalImpressions > 0 ? localTotals.impressions / totalImpressions : null;
   }, [queryRows, localTotals.impressions]);
+
+  const filteredLocalQueries = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return localQueries
+      .filter((row) => Number(row.impressions ?? 0) >= minImpressions)
+      .filter((row) => !needle || (row.keys?.[0] ?? "").toLowerCase().includes(needle))
+      .sort((a, b) => Number(b.impressions ?? 0) - Number(a.impressions ?? 0));
+  }, [localQueries, search, minImpressions]);
+
+  const localQueriesDatasets = useMemo<FlexDataset[]>(
+    () => [
+      {
+        id: "requetes-locales",
+        label: "Top requêtes locales (impressions et clics)",
+        unit: "nombre",
+        categoryLabel: "Requête",
+        series: [
+          { key: "impressions", label: "Impressions", color: PP_COLORS.primary },
+          { key: "clicks", label: "Clics", color: PP_COLORS.sales },
+        ],
+        rows: filteredLocalQueries.slice(0, TOP_QUERIES_LIMIT).map((row) => ({
+          name: truncateLabel(row.keys?.[0] ?? "—"),
+          impressions: Number(row.impressions ?? 0),
+          clicks: Number(row.clicks ?? 0),
+        })),
+        note: `${filteredLocalQueries.length} requête(s) locale(s) correspondent au filtre, les ${Math.min(TOP_QUERIES_LIMIT, filteredLocalQueries.length)} premières sont affichées.`,
+      },
+    ],
+    [filteredLocalQueries],
+  );
+
+  const favoriteDatasets = useMemo<FlexDataset[]>(() => {
+    const byDate = new Map<string, Record<string, number>>();
+    for (const row of favoriteRows) {
+      const date = row.keys?.[0] ?? "";
+      const query = row.keys?.[1] ?? "";
+      if (!date || !query) continue;
+      const entry = byDate.get(date) ?? {};
+      entry[`impressions:${query}`] = Number(row.impressions ?? 0);
+      entry[`clicks:${query}`] = Number(row.clicks ?? 0);
+      entry[`position:${query}`] = Number(row.position ?? 0);
+      byDate.set(date, entry);
+    }
+    const dates = Array.from(byDate.keys()).sort();
+
+    const buildDataset = (
+      id: string,
+      label: string,
+      metric: "impressions" | "clicks" | "position",
+      unit: FlexDataset["unit"],
+    ): FlexDataset => ({
+      id,
+      label,
+      unit,
+      categoryLabel: "Date",
+      series: favorites.map((keyword, index) => ({
+        key: `${metric}:${keyword}`,
+        label: keyword,
+        color: PP_SERIES[index % PP_SERIES.length],
+      })),
+      rows: dates.map((date) => {
+        const entry = byDate.get(date) ?? {};
+        const row: Record<string, string | number> = { name: formatShortDate(date) };
+        for (const keyword of favorites) {
+          row[`${metric}:${keyword}`] = entry[`${metric}:${keyword}`] ?? 0;
+        }
+        return row;
+      }),
+      note: "Données réelles Search Console, un point par jour et par mot-clé suivi.",
+    });
+
+    return [
+      buildDataset("favoris-impressions", "Impressions par mot-clé suivi", "impressions", "nombre"),
+      buildDataset("favoris-clics", "Clics par mot-clé suivi", "clicks", "nombre"),
+      buildDataset("favoris-position", "Position moyenne par mot-clé suivi", "position", "nombre"),
+    ];
+  }, [favoriteRows, favorites]);
 
   const businessSeries = useMemo(() => {
     const byDate = new Map<string, BusinessSeriesRow>();
@@ -243,6 +360,46 @@ export function SiteWebLocalView() {
         },
         { website: 0, calls: 0, directions: 0, impressions: 0 },
       ),
+    [businessSeries],
+  );
+
+  const businessDatasets = useMemo<FlexDataset[]>(
+    () => [
+      {
+        id: "business-interactions",
+        label: "Interactions (clics site, appels, itinéraires)",
+        unit: "nombre",
+        categoryLabel: "Date",
+        series: [
+          { key: "website", label: "Clics site", color: PP_COLORS.primary },
+          { key: "calls", label: "Appels", color: PP_COLORS.sales },
+          { key: "directions", label: "Itinéraires", color: PP_COLORS.mid },
+        ],
+        rows: businessSeries.map(([date, row]) => ({
+          name: formatShortDate(date),
+          website: row.WEBSITE_CLICKS ?? 0,
+          calls: row.CALL_CLICKS ?? 0,
+          directions: row.BUSINESS_DIRECTION_REQUESTS ?? 0,
+        })),
+        note: "Données réelles Google Business Profile.",
+      },
+      {
+        id: "business-impressions",
+        label: "Impressions de la fiche (Maps + Recherche)",
+        unit: "nombre",
+        categoryLabel: "Date",
+        series: [{ key: "impressions", label: "Impressions", color: PP_COLORS.primary }],
+        rows: businessSeries.map(([date, row]) => ({
+          name: formatShortDate(date),
+          impressions:
+            (row.BUSINESS_IMPRESSIONS_DESKTOP_MAPS ?? 0) +
+            (row.BUSINESS_IMPRESSIONS_DESKTOP_SEARCH ?? 0) +
+            (row.BUSINESS_IMPRESSIONS_MOBILE_MAPS ?? 0) +
+            (row.BUSINESS_IMPRESSIONS_MOBILE_SEARCH ?? 0),
+        })),
+        note: "Données réelles Google Business Profile.",
+      },
+    ],
     [businessSeries],
   );
 
@@ -306,31 +463,117 @@ export function SiteWebLocalView() {
         <Header
           icon={Search}
           title="Requêtes locales réellement observées"
-          description="Requêtes Search Console contenant une commune de la zone ciblée. Ce tableau ne mesure pas le classement Google Maps."
+          description="Requêtes Search Console contenant une commune de la zone ciblée. Cliquez sur l'étoile d'une requête pour la suivre individuellement plus bas."
         />
         <div className="mt-4">
           {loading ? (
             <LoadingState />
+          ) : !hasLocalSearchData ? (
+            <EmptyState text="Aucune requête locale observée sur la période." />
           ) : (
             <>
-              {localQueries.some(isOpportunity) && (
-                <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Rechercher une requête…"
+                  className="h-8 max-w-xs text-sm"
+                />
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  Impressions min.
+                  <Input
+                    type="number"
+                    min={0}
+                    value={minImpressions}
+                    onChange={(event) => setMinImpressions(Number(event.target.value) || 0)}
+                    className="h-8 w-20 text-sm"
+                  />
+                </label>
+              </div>
+
+              {filteredLocalQueries.some(isOpportunity) && (
+                <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Requêtes bien
                   positionnées mais peu cliquées — à optimiser en priorité.
                 </p>
               )}
-              <SortableDataTable
-                columns={queryColumns}
-                rows={localQueries}
-                getRowKey={(row, index) => `${row.keys?.[0] ?? "row"}-${index}`}
-                searchField={(row) => row.keys?.[0] ?? ""}
-                searchPlaceholder="Rechercher une requête…"
-                minImpressionsField={(row) => Number(row.impressions ?? 0)}
-                defaultSortKey="impressions"
-                defaultSortDirection="desc"
-                highlightRow={isOpportunity}
-              />
+
+              <div className="mt-4">
+                {filteredLocalQueries.length === 0 ? (
+                  <EmptyState text="Aucune requête ne correspond à ce filtre." />
+                ) : (
+                  <PilotFlexChart
+                    title="Top requêtes locales"
+                    subtitle="Choisissez le type de graphique le plus lisible pour vous"
+                    datasets={localQueriesDatasets}
+                    storageKey="site-web:local-requetes"
+                    defaultType="barres_h"
+                  />
+                )}
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {filteredLocalQueries.slice(0, FAVORITES_PICKER_LIMIT).map((row, index) => {
+                  const keyword = row.keys?.[0] ?? "";
+                  const isFavorite = favorites.some(
+                    (item) => item.toLowerCase() === keyword.toLowerCase(),
+                  );
+                  return (
+                    <button
+                      key={`${keyword}-${index}`}
+                      type="button"
+                      onClick={() => toggleFavorite(keyword)}
+                      className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                        isFavorite
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <span className="min-w-0 flex-1 truncate">{keyword}</span>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {formatNumber(Number(row.impressions ?? 0))} impr. ·{" "}
+                        {formatNumber(Number(row.clicks ?? 0))} clics · pos.{" "}
+                        {formatPosition(row.position)}
+                      </span>
+                      <Star
+                        className={`h-4 w-4 shrink-0 ${isFavorite ? "fill-primary text-primary" : "text-muted-foreground"}`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              {filteredLocalQueries.length > FAVORITES_PICKER_LIMIT && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {filteredLocalQueries.length - FAVORITES_PICKER_LIMIT} autre(s) requête(s)
+                  correspondent au filtre — affinez la recherche pour les faire apparaître ici et
+                  les ajouter en favori.
+                </p>
+              )}
             </>
+          )}
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <Header
+          icon={Star}
+          title="Mots-clés suivis"
+          description="Évolution jour par jour des requêtes marquées en favori ci-dessus."
+        />
+        {favoriteError && <SourceError title="Search Console" code={favoriteError} compact />}
+        <div className="mt-4">
+          {favorites.length === 0 ? (
+            <EmptyState text="Aucun mot-clé suivi pour l'instant : cliquez sur l'étoile d'une requête ci-dessus pour commencer." />
+          ) : favoriteLoading ? (
+            <LoadingState />
+          ) : (
+            <PilotFlexChart
+              title="Suivi des mots-clés favoris"
+              subtitle="Un point par jour et par mot-clé suivi"
+              datasets={favoriteDatasets}
+              storageKey="site-web:local-favoris-chart"
+              defaultType="courbe"
+            />
           )}
         </div>
       </Card>
@@ -359,6 +602,19 @@ export function SiteWebLocalView() {
             label="Impressions"
             value={loading ? "…" : hasBusinessData ? formatNumber(businessTotals.impressions) : "—"}
           />
+        </div>
+        <div className="mt-5">
+          {loading ? (
+            <LoadingState />
+          ) : !hasBusinessData ? null : (
+            <PilotFlexChart
+              title="Évolution de la fiche Google Business Profile"
+              subtitle="Choisissez le type de graphique le plus lisible pour vous"
+              datasets={businessDatasets}
+              storageKey="site-web:local-business"
+              defaultType="courbe"
+            />
+          )}
         </div>
       </Card>
     </div>
@@ -438,6 +694,14 @@ function LoadingState() {
   );
 }
 
+function EmptyState({ text }: { text: string }) {
+  return <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
+}
+
+function truncateLabel(value: string, maxLength = 28) {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
+}
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat("fr-FR").format(value);
 }
@@ -457,6 +721,12 @@ function formatDateLabel(value: string) {
   const parsed = new Date(`${value}T12:00:00`);
   if (Number.isNaN(parsed.getTime())) return value;
   return new Intl.DateTimeFormat("fr-FR").format(parsed);
+}
+
+function formatShortDate(value: string) {
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit" }).format(parsed);
 }
 
 function yearStart() {
