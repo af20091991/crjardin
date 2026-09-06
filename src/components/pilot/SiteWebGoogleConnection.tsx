@@ -136,12 +136,14 @@ export function SiteWebGoogleConnection() {
         <Button
           type="button"
           size="sm"
+          variant={connected ? "outline" : "default"}
           onClick={connect}
-          disabled={authLoading || loading || connected || !user}
+          disabled={authLoading || loading || !user}
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
-          {connected ? "Google connecté" : "Connecter Google"}
+          {connected ? "Reconnecter Google" : "Connecter Google"}
         </Button>
+
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">

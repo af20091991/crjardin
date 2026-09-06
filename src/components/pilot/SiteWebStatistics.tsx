@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { SortableTable } from "@/components/pilot/SiteWebTable";
 import { listAnalyticsProperties, runAnalyticsReport } from "@/lib/site-web-api";
 
 const PREFERRED_GA4_PROPERTY_ID = "159443253";
