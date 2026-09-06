@@ -24,7 +24,7 @@ export interface FlexDataset {
   /** Lignes déjà calculées : `name` + une clé par série. */
   rows: Array<Record<string, string | number>>;
   /** Origine des chiffres, affichée sous le graphique. */
-  note: string;
+  note?: string;
 }
 
 export type FlexChartType =
