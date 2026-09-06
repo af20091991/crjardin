@@ -42,14 +42,13 @@ import {
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
 import { listChargeRows, listSalesByYear } from "@/lib/pilot-charges";
-import { sstByProvider, sstChargeLines, sstChargeTotals } from "@/lib/sst-charges";
+import { sstChargeLines, sstChargeTotals } from "@/lib/sst-charges";
 import {
   applySstLabelMap,
   deleteSstLabelMapping,
   listSstLabelMap,
   upsertSstLabelMapping,
 } from "@/lib/sst-provider-map";
-import { sstDuplicateReport, sstDuplicateTotal } from "@/lib/sst-duplicates";
 import {
   byMonth,
   byPrestation,
@@ -58,6 +57,7 @@ import {
   sstRows,
   sstTotals,
   type SstRow,
+  type SstTotals,
 } from "@/lib/sst-analytics";
 import {
   addSstListItem,
@@ -74,7 +74,112 @@ import { toast } from "sonner";
 
 const pct = (n: number | null | undefined) => (n == null ? "—" : `${n.toFixed(1)} %`);
 
+// Colonnes du journal des missions : présentation seule (aucune règle métier).
+type JournalColumn = {
+  key: string;
+  label: string;
+  className?: string;
+  render: (r: SstRow) => React.ReactNode;
+  total?: (t: SstTotals) => React.ReactNode;
+};
+
+const JOURNAL_COLUMNS: JournalColumn[] = [
+  {
+    key: "date",
+    label: "Date",
+    className: "whitespace-nowrap",
+    render: (r) => new Date(r.mission.mission_date).toLocaleDateString("fr-FR"),
+  },
+  {
+    key: "client",
+    label: "Client",
+    render: (r) => (
+      <div className="flex items-center gap-2">
+        <span>{r.clientName}</span>
+        {r.mission.archived_at && <Badge variant="outline">Archivée</Badge>}
+      </div>
+    ),
+  },
+  { key: "sst", label: "Sous-traitant", className: "font-medium", render: (r) => r.sstName },
+  {
+    key: "hours",
+    label: "Temps",
+    className: "text-right",
+    render: (r) => (r.hours != null ? r.hours.toFixed(1) : "—"),
+    total: (t) => t.hours.toFixed(1),
+  },
+  {
+    key: "cost",
+    label: "Prix SST",
+    className: "text-right",
+    render: (r) => formatEuro(r.cost),
+    total: (t) => formatEuro(t.cost),
+  },
+  {
+    key: "revenue",
+    label: "Prix HT vente",
+    className: "text-right",
+    render: (r) => formatEuro(r.revenue),
+    total: (t) => formatEuro(t.revenue),
+  },
+  {
+    key: "margin",
+    label: "Marge nette HT",
+    className: "text-right font-medium",
+    render: (r) => (
+      <span style={{ color: r.margin >= 0 ? PP_COLORS.primary : PP_COLORS.charges }}>
+        {formatEuro(r.margin)}
+      </span>
+    ),
+    total: (t) => formatEuro(t.margin),
+  },
+  {
+    key: "marginPct",
+    label: "%",
+    className: "text-right",
+    render: (r) => pct(r.marginPct),
+    total: (t) => pct(t.marginPct),
+  },
+  {
+    key: "signal",
+    label: "Rentabilité",
+    className: "text-center",
+    render: (r) => <ProfitSignal level={signalFromMarginPct(r.marginPct)} compact />,
+  },
+];
+
+const JOURNAL_COLUMNS_STORAGE = "sst-journal:columns";
+
 export function SstProfitabilityTab() {
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    if (typeof window === "undefined") return JOURNAL_COLUMNS.map((c) => c.key);
+    try {
+      const raw = window.localStorage.getItem(JOURNAL_COLUMNS_STORAGE);
+      const parsed = raw ? (JSON.parse(raw) as string[]) : null;
+      return Array.isArray(parsed) && parsed.length > 0
+        ? parsed.filter((k) => JOURNAL_COLUMNS.some((c) => c.key === k))
+        : JOURNAL_COLUMNS.map((c) => c.key);
+    } catch {
+      return JOURNAL_COLUMNS.map((c) => c.key);
+    }
+  });
+  const toggleColumn = (key: string) => {
+    setVisibleColumns((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      const safe = next.length > 0 ? next : prev;
+      try {
+        window.localStorage.setItem(JOURNAL_COLUMNS_STORAGE, JSON.stringify(safe));
+      } catch {
+        /* stockage indisponible : la personnalisation reste locale à la session */
+      }
+      return safe;
+    });
+  };
+  const shownColumns = useMemo(
+    () => JOURNAL_COLUMNS.filter((c) => visibleColumns.includes(c.key)),
+    [visibleColumns],
+  );
+
   const qc = useQueryClient();
   const { mode } = usePilotMode();
   const { period } = usePilotPeriod();
