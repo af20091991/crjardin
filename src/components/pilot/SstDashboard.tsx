@@ -9,6 +9,9 @@ import { listClients } from "@/lib/clients";
 import { listMissions, listSubcontractors } from "@/lib/subcontractors";
 import { sstRows, sstTotals, bySubcontractor, byMonth, byClient } from "@/lib/sst-analytics";
 import { SstCreateMissionDialog } from "@/components/pilot/SstCreateMissionDialog";
+import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
+import type { FlexDataset } from "@/lib/pilot-flex-chart";
+import { PP_COLORS } from "@/lib/pilot-colors";
 import { Plus } from "lucide-react";
 
 const eur = (n: number) => formatEuro(n);
@@ -45,6 +48,43 @@ export function SstDashboard() {
   const topClient = clientsTop[0];
   const maxCharge = Math.max(1, ...providers.map((p) => p.cost));
   const isCurrentYear = year === new Date().getFullYear();
+
+  const monthlyDatasets = useMemo<FlexDataset[]>(
+    () => [
+      {
+        id: "ca-charge-marge",
+        label: "CA, charge et marge",
+        unit: "euro",
+        categoryLabel: "Mois",
+        series: [
+          { key: "revenue", label: "CA client", color: PP_COLORS.sales },
+          { key: "cost", label: "Charge SST", color: PP_COLORS.charges },
+          { key: "margin", label: "Marge", color: PP_COLORS.primary },
+        ],
+        rows: months.map((m) => ({
+          name: `${m.key.slice(5)}/${m.key.slice(0, 4)}`,
+          revenue: m.revenue,
+          cost: m.cost,
+          margin: m.margin,
+        })),
+        note: "CA client, charge et marge nette HT par mois, missions sous-traitées de la période sélectionnée.",
+      },
+      {
+        id: "marge-seule",
+        label: "Marge seule",
+        unit: "euro",
+        categoryLabel: "Mois",
+        series: [{ key: "margin", label: "Marge", color: PP_COLORS.primary }],
+        rows: months.map((m) => ({
+          name: `${m.key.slice(5)}/${m.key.slice(0, 4)}`,
+          margin: m.margin,
+        })),
+        note: "Marge nette HT par mois (CA client − charge SST).",
+      },
+    ],
+    [months],
+  );
+
   const loading = missionsQ.isLoading || sstsQ.isLoading || clientsQ.isLoading;
   if (loading)
     return (
@@ -123,93 +163,6 @@ export function SstDashboard() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,1fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle>CA / Charge / Marge</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {months.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                Aucune donnée sur la période.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {months.map((m) => {
-                  const max = Math.max(1, m.revenue, m.cost, Math.abs(m.margin));
-                  return (
-                    <div
-                      key={m.key}
-                      className="grid grid-cols-[70px_1fr_90px] items-center gap-3 text-sm"
-                    >
-                      <span className="font-medium">
-                        {m.key.slice(5)}/{m.key.slice(0, 4)}
-                      </span>
-                      <div className="space-y-1">
-                        <div className="h-2 rounded bg-muted">
-                          <div
-                            className="h-2 rounded bg-primary"
-                            style={{ width: `${Math.min(100, (m.revenue / max) * 100)}%` }}
-                          />
-                        </div>
-                        <div className="h-2 rounded bg-muted">
-                          <div
-                            className="h-2 rounded bg-foreground/40"
-                            style={{ width: `${Math.min(100, (m.cost / max) * 100)}%` }}
-                          />
-                        </div>
-                        <div className="h-2 rounded bg-muted">
-                          <div
-                            className="h-2 rounded bg-foreground/70"
-                            style={{
-                              width: `${Math.min(100, (Math.max(0, m.margin) / max) * 100)}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div className="text-right text-xs">
-                        <div>{eur(m.revenue)}</div>
-                        <div className="text-muted-foreground">{eur(m.cost)}</div>
-                        <div className="font-medium">{eur(m.margin)}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div className="flex gap-4 border-t pt-3 text-xs text-muted-foreground">
-                  <span>CA</span>
-                  <span>Charge</span>
-                  <span>Marge</span>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Répartition des charges</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {providers.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">Aucune charge SST.</p>
-            ) : (
-              providers.map((p) => (
-                <div key={p.key} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>{p.key}</span>
-                    <span>{eur(p.cost)}</span>
-                  </div>
-                  <div className="h-2 rounded bg-muted">
-                    <div
-                      className="h-2 rounded bg-primary"
-                      style={{ width: `${(p.cost / maxCharge) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
       <Card>
         <CardHeader>
           <CardTitle>Performance des sous-traitants</CardTitle>
@@ -245,6 +198,40 @@ export function SstDashboard() {
           </div>
         </CardContent>
       </Card>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,1fr)]">
+        <PilotFlexChart
+          title="CA / Charge / Marge"
+          subtitle="Choisissez le type de graphique le plus lisible pour vous"
+          datasets={monthlyDatasets}
+          storageKey="sst-dashboard:mois"
+          defaultType="barres_groupees"
+        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Répartition des charges</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {providers.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">Aucune charge SST.</p>
+            ) : (
+              providers.map((p) => (
+                <div key={p.key} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>{p.key}</span>
+                    <span>{eur(p.cost)}</span>
+                  </div>
+                  <div className="h-2 rounded bg-muted">
+                    <div
+                      className="h-2 rounded bg-primary"
+                      style={{ width: `${(p.cost / maxCharge) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Top 5 clients les plus sous-traités</CardTitle>
