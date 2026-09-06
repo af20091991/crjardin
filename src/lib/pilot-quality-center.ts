@@ -344,7 +344,7 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
     title: `${sstNoClient.length} mission(s) SST sans client`,
     impact: "Marge de sous-traitance non imputée : rentabilité client incomplète.",
     count: sstNoClient.length,
-    to: "/journal-sst",
+    to: "/sst",
     actionLabel: "Ouvrir le journal SST",
   });
   push({
@@ -386,7 +386,7 @@ export async function buildQualityCenterReport(): Promise<QualityCenterReport> {
     title: `${sstToValidate.length} mission(s) SST à valider`,
     impact: "Coûts de sous-traitance non confirmés.",
     count: sstToValidate.length,
-    to: "/journal-sst",
+    to: "/sst",
     actionLabel: "Valider les missions",
   });
   push({

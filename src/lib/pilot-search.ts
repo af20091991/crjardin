@@ -33,8 +33,19 @@ export const SEARCH_PAGES: SearchResult[] = [
   { id: "p-ceev", kind: "page", label: "Contrats CEEV", to: "/pilot/ceev" },
   { id: "p-taux", kind: "page", label: "Analyse temps & rentabilité", to: "/pilot/temps" },
   { id: "p-sante", kind: "page", label: "Santé", to: "/pilot/sante" },
-  { id: "p-site-web", kind: "page", label: "Site web", detail: "Visibilité · SEO · Contenus", to: "/pilot/site-web" },
-  { id: "p-controle", kind: "page", label: "Centre de contrôle des données", to: "/pilot/controle" },
+  {
+    id: "p-site-web",
+    kind: "page",
+    label: "Site web",
+    detail: "Visibilité · SEO · Contenus",
+    to: "/pilot/site-web",
+  },
+  {
+    id: "p-controle",
+    kind: "page",
+    label: "Centre de contrôle des données",
+    to: "/pilot/controle",
+  },
   {
     id: "p-controle-referentiel",
     kind: "page",
@@ -49,20 +60,28 @@ export const SEARCH_PAGES: SearchResult[] = [
   },
   { id: "p-valid", kind: "page", label: "Centre de validation manuelle", to: "/pilot/validation" },
   { id: "p-sst", kind: "page", label: "Sous-traitants", to: "/sst" },
-  { id: "p-journal", kind: "page", label: "Journal SST", to: "/journal-sst" },
+  { id: "p-journal", kind: "page", label: "Journal SST", to: "/sst" },
 ];
 
 /** Charge une fois l'index de recherche (données réelles uniquement). */
 export async function loadSearchIndex(): Promise<SearchResult[]> {
   const [clients, ceev, sst] = await Promise.all([
     supabase.from("clients").select("id,name,address").order("name").limit(1000),
-    supabase.from("ceev_contracts").select("id,label,year").order("year", { ascending: false }).limit(500),
+    supabase
+      .from("ceev_contracts")
+      .select("id,label,year")
+      .order("year", { ascending: false })
+      .limit(500),
     supabase.from("subcontractors").select("id,name,company").order("name").limit(200),
   ]);
 
   const out: SearchResult[] = [...SEARCH_PAGES];
 
-  for (const c of (clients.data ?? []) as Array<{ id: string; name: string; address: string | null }>) {
+  for (const c of (clients.data ?? []) as Array<{
+    id: string;
+    name: string;
+    address: string | null;
+  }>) {
     out.push({
       id: `client-${c.id}`,
       kind: "client",
@@ -73,10 +92,22 @@ export async function loadSearchIndex(): Promise<SearchResult[]> {
     });
   }
   for (const c of (ceev.data ?? []) as Array<{ id: string; label: string; year: number }>) {
-    out.push({ id: `ceev-${c.id}`, kind: "ceev", label: c.label, detail: `Contrat ${c.year}`, to: "/pilot/ceev" });
+    out.push({
+      id: `ceev-${c.id}`,
+      kind: "ceev",
+      label: c.label,
+      detail: `Contrat ${c.year}`,
+      to: "/pilot/ceev",
+    });
   }
   for (const s of (sst.data ?? []) as Array<{ id: string; name: string; company: string | null }>) {
-    out.push({ id: `sst-${s.id}`, kind: "sst", label: s.name, detail: s.company ?? undefined, to: "/sst" });
+    out.push({
+      id: `sst-${s.id}`,
+      kind: "sst",
+      label: s.name,
+      detail: s.company ?? undefined,
+      to: "/sst",
+    });
   }
   return out;
 }
@@ -91,7 +122,5 @@ function normalize(s: string): string {
 export function searchIndex(index: SearchResult[], query: string, limit = 40): SearchResult[] {
   const q = normalize(query.trim());
   if (!q) return index.filter((r) => r.kind === "page").slice(0, limit);
-  return index
-    .filter((r) => normalize(`${r.label} ${r.detail ?? ""}`).includes(q))
-    .slice(0, limit);
+  return index.filter((r) => normalize(`${r.label} ${r.detail ?? ""}`).includes(q)).slice(0, limit);
 }
