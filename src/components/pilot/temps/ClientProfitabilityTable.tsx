@@ -7,7 +7,13 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatEuro } from "@/lib/pilot";
 import { formatHours } from "@/lib/format-utils";
 import {
@@ -22,11 +28,31 @@ import {
 type Level = "green" | "yellow" | "orange" | "red" | "unknown";
 
 const LEVEL_META: Record<Level, { label: string; icon: string; badge: string }> = {
-  green: { label: "Excellente (≥ cible)", icon: "🟢", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-  yellow: { label: "Correcte (70–100 % cible)", icon: "🟡", badge: "border-amber-200 bg-amber-50 text-amber-700" },
-  orange: { label: "Faible (0–70 % cible)", icon: "🟠", badge: "border-orange-200 bg-orange-50 text-orange-700" },
-  red: { label: "Déficitaire (négative)", icon: "🔴", badge: "border-rose-200 bg-rose-50 text-rose-700" },
-  unknown: { label: "Non calculable", icon: "⚪", badge: "border-slate-200 bg-slate-50 text-slate-500" },
+  green: {
+    label: "Excellente (≥ cible)",
+    icon: "🟢",
+    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
+  yellow: {
+    label: "Correcte (70–100 % cible)",
+    icon: "🟡",
+    badge: "border-amber-200 bg-amber-50 text-amber-700",
+  },
+  orange: {
+    label: "Faible (0–70 % cible)",
+    icon: "🟠",
+    badge: "border-orange-200 bg-orange-50 text-orange-700",
+  },
+  red: {
+    label: "Déficitaire (négative)",
+    icon: "🔴",
+    badge: "border-rose-200 bg-rose-50 text-rose-700",
+  },
+  unknown: {
+    label: "Non calculable",
+    icon: "⚪",
+    badge: "border-slate-200 bg-slate-50 text-slate-500",
+  },
 };
 
 function levelOf(rate: number | null, target: number): Level {
@@ -73,9 +99,19 @@ export function ClientProfitabilityTable({
   const groups = useMemo(() => {
     if (groupBy === "none") return [{ key: "all", label: null as string | null, rows: filtered }];
     if (groupBy === "zone") {
-      const order: ClientZone[] = ["strategique", "a_developper", "a_optimiser", "chronophage", "non_classe"];
+      const order: ClientZone[] = [
+        "strategique",
+        "a_developper",
+        "a_optimiser",
+        "chronophage",
+        "non_classe",
+      ];
       return order
-        .map((z) => ({ key: z, label: CLIENT_ZONE_META[z].label, rows: filtered.filter((c) => c.zone === z) }))
+        .map((z) => ({
+          key: z,
+          label: CLIENT_ZONE_META[z].label,
+          rows: filtered.filter((c) => c.zone === z),
+        }))
         .filter((g) => g.rows.length > 0);
     }
     const order: Level[] = ["green", "yellow", "orange", "red", "unknown"];
@@ -124,13 +160,19 @@ export function ClientProfitabilityTable({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Toutes les zones</SelectItem>
-            {(["strategique", "a_developper", "a_optimiser", "chronophage", "non_classe"] as ClientZone[]).map(
-              (z) => (
-                <SelectItem key={z} value={z}>
-                  {CLIENT_ZONE_META[z].label}
-                </SelectItem>
-              ),
-            )}
+            {(
+              [
+                "strategique",
+                "a_developper",
+                "a_optimiser",
+                "chronophage",
+                "non_classe",
+              ] as ClientZone[]
+            ).map((z) => (
+              <SelectItem key={z} value={z}>
+                {CLIENT_ZONE_META[z].label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select
@@ -198,7 +240,7 @@ export function ClientProfitabilityTable({
                     {g.label} ({g.rows.length})
                   </p>
                 )}
-                <div className="overflow-x-auto rounded-md border">
+                <div className="hidden overflow-x-auto rounded-md border md:block">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-left text-xs text-muted-foreground">
@@ -254,12 +296,18 @@ export function ClientProfitabilityTable({
                               {c.mainPrestation ?? "—"}
                             </td>
                             <td className="py-2 pr-3">
-                              <Badge variant="outline" className={`text-[10px] ${CLIENT_ZONE_META[c.zone].badge}`}>
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] ${CLIENT_ZONE_META[c.zone].badge}`}
+                              >
                                 {CLIENT_ZONE_META[c.zone].label}
                               </Badge>
                             </td>
                             <td className="py-2 pr-3 text-center">
-                              <Badge variant="outline" className={`text-[10px] ${LEVEL_META[level].badge}`}>
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] ${LEVEL_META[level].badge}`}
+                              >
                                 {LEVEL_META[level].icon}
                               </Badge>
                             </td>
@@ -268,6 +316,64 @@ export function ClientProfitabilityTable({
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                <div className="space-y-2 md:hidden">
+                  {g.shown.map((c) => {
+                    const level = levelOf(c.resultPerHour ?? c.caPerHour, target);
+                    return (
+                      <div key={c.clientId} className="rounded-md border p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <Link
+                            to="/pilot/fiche/$clientId"
+                            params={{ clientId: c.clientId }}
+                            className="min-w-0 truncate font-medium text-primary underline-offset-2 hover:underline"
+                          >
+                            {c.name}
+                          </Link>
+                          <Badge
+                            variant="outline"
+                            className={`shrink-0 text-[10px] ${LEVEL_META[level].badge}`}
+                          >
+                            {LEVEL_META[level].icon} {euroPerHour(c.resultPerHour ?? c.caPerHour)}
+                          </Badge>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${CLIENT_ZONE_META[c.zone].badge}`}
+                          >
+                            {CLIENT_ZONE_META[c.zone].label}
+                          </Badge>
+                          {c.mainPrestation && (
+                            <span className="text-xs text-muted-foreground">
+                              {c.mainPrestation}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground">CA HT</p>
+                            <p className="tabular-nums">{formatEuro(c.caHt)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Résultat brut</p>
+                            <p
+                              className={`tabular-nums ${(c.resultatBrut ?? 0) < 0 ? "text-[var(--pp-charges,#d9534f)]" : ""}`}
+                            >
+                              {c.resultatBrut == null ? "—" : formatEuro(c.resultatBrut)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Temps · interv.</p>
+                            <p className="tabular-nums">
+                              {c.hours > 0 ? formatHours(c.hours) : "—"} · {c.interventions || "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ),
