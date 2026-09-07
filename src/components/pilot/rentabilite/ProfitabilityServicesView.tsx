@@ -116,80 +116,154 @@ export function ProfitabilityServicesView() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">{visible.length} prestation(s)</CardTitle>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-sm">
-              <thead>
-                <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="py-2 text-left font-medium">Prestation</th>
-                  <th className="py-2 text-right font-medium">CA cumulé</th>
-                  <th className="py-2 text-right font-medium">CA {year}</th>
-                  <th className="py-2 text-right font-medium">Évolution</th>
-                  <th className="py-2 text-right font-medium">Heures</th>
-                  <th className="py-2 text-right font-medium">Taux horaire</th>
-                  <th className="py-2 text-right font-medium">Clients</th>
-                  <th className="py-2 text-center font-medium">Rentabilité</th>
-                  <th className="py-2 text-left font-medium">Classement</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((r) => (
-                  <tr key={r.prestation} className="border-b last:border-0 align-top">
-                    <td className="py-2 pr-3">
-                      <p className="font-medium">{r.prestation}</p>
-                      <p className="text-xs text-muted-foreground">{r.why}</p>
-                    </td>
-                    <td className="py-2 text-right tabular-nums">{formatEuro(r.caTotal)}</td>
-                    <td className="py-2 text-right tabular-nums">{formatEuro(r.caYear)}</td>
-                    <td className="py-2 text-right tabular-nums">
-                      {r.evolutionPct == null ? (
-                        <span className="text-muted-foreground">—</span>
-                      ) : (
-                        <span
-                          className={`inline-flex items-center gap-1 ${r.evolutionPct >= 0 ? "text-emerald-600" : "text-orange-600"}`}
-                        >
-                          {r.evolutionPct >= 0 ? (
-                            <TrendingUp className="h-3 w-3" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3" />
-                          )}
-                          {r.evolutionPct >= 0 ? "+" : ""}
-                          {r.evolutionPct.toFixed(0)} %
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 text-right tabular-nums">
-                      {r.hoursBasis === "aucune"
-                        ? "—"
-                        : formatHours(
-                            r.hoursBasis === "reelles" ? r.heuresReelles : r.heuresVendues,
-                          )}
-                      <span className="ml-1 text-[10px] uppercase text-muted-foreground">
-                        {r.hoursBasis === "reelles"
-                          ? "réelles"
-                          : r.hoursBasis === "vendues"
-                            ? "vendues"
-                            : ""}
-                      </span>
-                    </td>
-                    <td className="py-2 text-right tabular-nums">
-                      {r.tauxHoraire == null ? "—" : `${formatEuro(r.tauxHoraire)}/h`}
-                    </td>
-                    <td className="py-2 text-right tabular-nums">{r.clients}</td>
-                    <td className="py-2 text-center">
-                      <ProfitSignal level={signalFromServiceClass(r.classe)} compact />
-                    </td>
-                    <td className="py-2">
-                      <Badge variant="outline" className={SERVICE_CLASS_META[r.classe].badge}>
-                        {SERVICE_CLASS_META[r.classe].label}
-                      </Badge>
-                      <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                        confiance {r.confidence}
-                      </p>
-                    </td>
+          <CardContent>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[820px] text-sm">
+                <thead>
+                  <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="py-2 text-left font-medium">Prestation</th>
+                    <th className="py-2 text-right font-medium">CA cumulé</th>
+                    <th className="py-2 text-right font-medium">CA {year}</th>
+                    <th className="py-2 text-right font-medium">Évolution</th>
+                    <th className="py-2 text-right font-medium">Heures</th>
+                    <th className="py-2 text-right font-medium">Taux horaire</th>
+                    <th className="py-2 text-right font-medium">Clients</th>
+                    <th className="py-2 text-center font-medium">Rentabilité</th>
+                    <th className="py-2 text-left font-medium">Classement</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {visible.map((r) => (
+                    <tr key={r.prestation} className="border-b last:border-0 align-top">
+                      <td className="py-2 pr-3">
+                        <p className="font-medium">{r.prestation}</p>
+                        <p className="text-xs text-muted-foreground">{r.why}</p>
+                      </td>
+                      <td className="py-2 text-right tabular-nums">{formatEuro(r.caTotal)}</td>
+                      <td className="py-2 text-right tabular-nums">{formatEuro(r.caYear)}</td>
+                      <td className="py-2 text-right tabular-nums">
+                        {r.evolutionPct == null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center gap-1 ${r.evolutionPct >= 0 ? "text-emerald-600" : "text-orange-600"}`}
+                          >
+                            {r.evolutionPct >= 0 ? (
+                              <TrendingUp className="h-3 w-3" />
+                            ) : (
+                              <TrendingDown className="h-3 w-3" />
+                            )}
+                            {r.evolutionPct >= 0 ? "+" : ""}
+                            {r.evolutionPct.toFixed(0)} %
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2 text-right tabular-nums">
+                        {r.hoursBasis === "aucune"
+                          ? "—"
+                          : formatHours(
+                              r.hoursBasis === "reelles" ? r.heuresReelles : r.heuresVendues,
+                            )}
+                        <span className="ml-1 text-[10px] uppercase text-muted-foreground">
+                          {r.hoursBasis === "reelles"
+                            ? "réelles"
+                            : r.hoursBasis === "vendues"
+                              ? "vendues"
+                              : ""}
+                        </span>
+                      </td>
+                      <td className="py-2 text-right tabular-nums">
+                        {r.tauxHoraire == null ? "—" : `${formatEuro(r.tauxHoraire)}/h`}
+                      </td>
+                      <td className="py-2 text-right tabular-nums">{r.clients}</td>
+                      <td className="py-2 text-center">
+                        <ProfitSignal level={signalFromServiceClass(r.classe)} compact />
+                      </td>
+                      <td className="py-2">
+                        <Badge variant="outline" className={SERVICE_CLASS_META[r.classe].badge}>
+                          {SERVICE_CLASS_META[r.classe].label}
+                        </Badge>
+                        <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          confiance {r.confidence}
+                        </p>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="space-y-3 md:hidden">
+              {visible.map((r) => (
+                <div key={r.prestation} className="rounded-lg border p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{r.prestation}</p>
+                      <p className="text-xs text-muted-foreground">{r.why}</p>
+                    </div>
+                    <ProfitSignal level={signalFromServiceClass(r.classe)} compact />
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <Badge variant="outline" className={SERVICE_CLASS_META[r.classe].badge}>
+                      {SERVICE_CLASS_META[r.classe].label}
+                    </Badge>
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      confiance {r.confidence}
+                    </span>
+                  </div>
+                  <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">CA cumulé</p>
+                      <p className="tabular-nums">{formatEuro(r.caTotal)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">CA {year}</p>
+                      <p className="tabular-nums">{formatEuro(r.caYear)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Évolution</p>
+                      <p>
+                        {r.evolutionPct == null ? (
+                          "—"
+                        ) : (
+                          <span
+                            className={`inline-flex items-center gap-1 ${r.evolutionPct >= 0 ? "text-emerald-600" : "text-orange-600"}`}
+                          >
+                            {r.evolutionPct >= 0 ? (
+                              <TrendingUp className="h-3 w-3" />
+                            ) : (
+                              <TrendingDown className="h-3 w-3" />
+                            )}
+                            {r.evolutionPct >= 0 ? "+" : ""}
+                            {r.evolutionPct.toFixed(0)} %
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Heures</p>
+                      <p className="tabular-nums">
+                        {r.hoursBasis === "aucune"
+                          ? "—"
+                          : formatHours(
+                              r.hoursBasis === "reelles" ? r.heuresReelles : r.heuresVendues,
+                            )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Taux horaire</p>
+                      <p className="tabular-nums">
+                        {r.tauxHoraire == null ? "—" : `${formatEuro(r.tauxHoraire)}/h`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Clients</p>
+                      <p className="tabular-nums">{r.clients}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

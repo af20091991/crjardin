@@ -168,7 +168,7 @@ export function SstDashboard() {
           <CardTitle>Performance des sous-traitants</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead className="border-b bg-muted/30">
                 <tr>
@@ -195,6 +195,33 @@ export function SstDashboard() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="space-y-3 p-4 md:hidden">
+            {providers.map((p) => (
+              <div key={p.key} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{p.key}</span>
+                  <span className="text-sm text-muted-foreground">{p.missions} mission(s)</span>
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Charge SST</p>
+                    <p>{eur(p.cost)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">CA client</p>
+                    <p>{eur(p.revenue)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Marge</p>
+                    <p className="font-medium">
+                      {eur(p.margin)}
+                      {p.marginPct != null && ` (${p.marginPct.toFixed(1)} %)`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
