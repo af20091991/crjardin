@@ -598,125 +598,253 @@ export function SstProfitabilityTab() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Journal des missions sous-traitées</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent>
           {rows.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Aucune mission sur cette période. Créez-la depuis l'onglet <strong>Missions</strong>.
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Chantier</TableHead>
-                  <TableHead>Sous-traitant</TableHead>
-                  <TableHead>Autonomie</TableHead>
-                  <TableHead>Chantier parallèle</TableHead>
-                  <TableHead className="text-right">Temps</TableHead>
-                  <TableHead className="text-right">Prix SST</TableHead>
-                  <TableHead className="text-right">Prix HT vente</TableHead>
-                  <TableHead className="text-right">Marge nette HT</TableHead>
-                  <TableHead className="text-right">%</TableHead>
-                  <TableHead className="text-center">Rentabilité</TableHead>
-                  <TableHead className="text-right">Difficulté</TableHead>
-                  <TableHead>Détails</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="hidden overflow-x-auto md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Chantier</TableHead>
+                      <TableHead>Sous-traitant</TableHead>
+                      <TableHead>Autonomie</TableHead>
+                      <TableHead>Chantier parallèle</TableHead>
+                      <TableHead className="text-right">Temps</TableHead>
+                      <TableHead className="text-right">Prix SST</TableHead>
+                      <TableHead className="text-right">Prix HT vente</TableHead>
+                      <TableHead className="text-right">Marge nette HT</TableHead>
+                      <TableHead className="text-right">%</TableHead>
+                      <TableHead className="text-center">Rentabilité</TableHead>
+                      <TableHead className="text-right">Difficulté</TableHead>
+                      <TableHead>Détails</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((r) => (
+                      <TableRow
+                        key={r.mission.id}
+                        className={r.mission.archived_at ? "opacity-50" : undefined}
+                      >
+                        <TableCell className="whitespace-nowrap">
+                          {new Date(r.mission.mission_date).toLocaleDateString("fr-FR")}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span>{r.mission.service_requested}</span>
+                            {r.mission.archived_at && <Badge variant="outline">Archivée</Badge>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">{r.sstName}</TableCell>
+                        <TableCell>{r.mission.autonomy ?? "—"}</TableCell>
+                        <TableCell>{r.mission.parallel_worksite ?? "—"}</TableCell>
+                        <TableCell className="text-right">
+                          {r.hours != null ? r.hours.toFixed(1) : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">{formatEuro(r.cost)}</TableCell>
+                        <TableCell className="text-right">{formatEuro(r.revenue)}</TableCell>
+                        <TableCell
+                          className="text-right font-medium"
+                          style={{ color: r.margin >= 0 ? PP_COLORS.primary : PP_COLORS.charges }}
+                        >
+                          {formatEuro(r.margin)}
+                        </TableCell>
+                        <TableCell className="text-right">{pct(r.marginPct)}</TableCell>
+                        <TableCell className="text-center">
+                          <ProfitSignal level={signalFromMarginPct(r.marginPct)} compact />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {r.mission.internal_rating != null
+                            ? `${r.mission.internal_rating}/5`
+                            : "—"}
+                        </TableCell>
+                        <TableCell
+                          className="max-w-[220px] truncate"
+                          title={r.mission.report_notes ?? undefined}
+                        >
+                          {r.mission.report_notes ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Modifier"
+                              onClick={() => setEditing(r.mission)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Dupliquer"
+                              onClick={() => duplicate.mutate(r)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title={r.mission.archived_at ? "Restaurer" : "Archiver"}
+                              onClick={() => archive.mutate(r)}
+                            >
+                              <Archive className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Supprimer"
+                              onClick={() => {
+                                if (confirm("Supprimer définitivement cette ligne ?"))
+                                  remove.mutate(r);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="border-t-2 font-semibold">
+                      <TableCell colSpan={5}>Total</TableCell>
+                      <TableCell className="text-right">{totals.hours.toFixed(1)}</TableCell>
+                      <TableCell className="text-right">{formatEuro(totals.cost)}</TableCell>
+                      <TableCell className="text-right">{formatEuro(totals.revenue)}</TableCell>
+                      <TableCell className="text-right">{formatEuro(totals.margin)}</TableCell>
+                      <TableCell className="text-right">{pct(totals.marginPct)}</TableCell>
+                      <TableCell colSpan={2} />
+                      <TableCell />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Version mobile : une carte par mission plutôt qu'un tableau à
+                  faire défiler horizontalement. */}
+              <div className="space-y-3 md:hidden">
                 {rows.map((r) => (
-                  <TableRow
+                  <div
                     key={r.mission.id}
-                    className={r.mission.archived_at ? "opacity-50" : undefined}
+                    className={`rounded-lg border p-4 ${r.mission.archived_at ? "opacity-50" : ""}`}
                   >
-                    <TableCell className="whitespace-nowrap">
-                      {new Date(r.mission.mission_date).toLocaleDateString("fr-FR")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span>{r.mission.service_requested}</span>
-                        {r.mission.archived_at && <Badge variant="outline">Archivée</Badge>}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(r.mission.mission_date).toLocaleDateString("fr-FR")}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="truncate font-medium">{r.mission.service_requested}</p>
+                          {r.mission.archived_at && <Badge variant="outline">Archivée</Badge>}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{r.sstName}</p>
                       </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{r.sstName}</TableCell>
-                    <TableCell>{r.mission.autonomy ?? "—"}</TableCell>
-                    <TableCell>{r.mission.parallel_worksite ?? "—"}</TableCell>
-                    <TableCell className="text-right">
-                      {r.hours != null ? r.hours.toFixed(1) : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">{formatEuro(r.cost)}</TableCell>
-                    <TableCell className="text-right">{formatEuro(r.revenue)}</TableCell>
-                    <TableCell
-                      className="text-right font-medium"
-                      style={{ color: r.margin >= 0 ? PP_COLORS.primary : PP_COLORS.charges }}
-                    >
-                      {formatEuro(r.margin)}
-                    </TableCell>
-                    <TableCell className="text-right">{pct(r.marginPct)}</TableCell>
-                    <TableCell className="text-center">
                       <ProfitSignal level={signalFromMarginPct(r.marginPct)} compact />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {r.mission.internal_rating != null ? `${r.mission.internal_rating}/5` : "—"}
-                    </TableCell>
-                    <TableCell
-                      className="max-w-[220px] truncate"
-                      title={r.mission.report_notes ?? undefined}
-                    >
-                      {r.mission.report_notes ?? "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Modifier"
-                          onClick={() => setEditing(r.mission)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Dupliquer"
-                          onClick={() => duplicate.mutate(r)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title={r.mission.archived_at ? "Restaurer" : "Archiver"}
-                          onClick={() => archive.mutate(r)}
-                        >
-                          <Archive className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Supprimer"
-                          onClick={() => {
-                            if (confirm("Supprimer définitivement cette ligne ?")) remove.mutate(r);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Temps</p>
+                        <p>{r.hours != null ? `${r.hours.toFixed(1)} h` : "—"}</p>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Prix SST</p>
+                        <p>{formatEuro(r.cost)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Prix HT vente</p>
+                        <p>{formatEuro(r.revenue)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Marge nette HT</p>
+                        <p
+                          className="font-medium"
+                          style={{ color: r.margin >= 0 ? PP_COLORS.primary : PP_COLORS.charges }}
+                        >
+                          {formatEuro(r.margin)} · {pct(r.marginPct)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {(r.mission.autonomy ||
+                      r.mission.parallel_worksite ||
+                      r.mission.internal_rating != null ||
+                      r.mission.report_notes) && (
+                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        {r.mission.autonomy && <span>Autonomie : {r.mission.autonomy}</span>}
+                        {r.mission.parallel_worksite && (
+                          <span>Chantier parallèle : {r.mission.parallel_worksite}</span>
+                        )}
+                        {r.mission.internal_rating != null && (
+                          <span>Difficulté : {r.mission.internal_rating}/5</span>
+                        )}
+                        {r.mission.report_notes && (
+                          <span className="w-full truncate">
+                            Détails : {r.mission.report_notes}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex justify-end gap-1 border-t pt-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Modifier"
+                        onClick={() => setEditing(r.mission)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Dupliquer"
+                        onClick={() => duplicate.mutate(r)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={r.mission.archived_at ? "Restaurer" : "Archiver"}
+                        onClick={() => archive.mutate(r)}
+                      >
+                        <Archive className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Supprimer"
+                        onClick={() => {
+                          if (confirm("Supprimer définitivement cette ligne ?")) remove.mutate(r);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
                 ))}
-                <TableRow className="border-t-2 font-semibold">
-                  <TableCell colSpan={5}>Total</TableCell>
-                  <TableCell className="text-right">{totals.hours.toFixed(1)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.cost)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.revenue)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(totals.margin)}</TableCell>
-                  <TableCell className="text-right">{pct(totals.marginPct)}</TableCell>
-                  <TableCell colSpan={2} />
-                  <TableCell />
-                </TableRow>
-              </TableBody>
-            </Table>
+
+                <div className="rounded-lg border-2 p-4 text-sm">
+                  <div className="flex justify-between font-semibold">
+                    <span>Total</span>
+                    <span>{formatEuro(totals.revenue)}</span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span>
+                      Temps {totals.hours.toFixed(1)} h · Coût {formatEuro(totals.cost)}
+                    </span>
+                    <span>
+                      Marge {formatEuro(totals.margin)} ({pct(totals.marginPct)})
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
