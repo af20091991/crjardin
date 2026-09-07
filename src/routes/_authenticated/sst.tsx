@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { PilotModeProvider } from "@/lib/pilot-mode";
 import { SstDashboard } from "@/components/pilot/SstDashboard";
 import { SstProfitabilityTab } from "@/components/pilot/SstProfitability";
 import { BookText, LayoutDashboard } from "lucide-react";
@@ -40,39 +39,37 @@ function SstPage() {
           </a>
         </nav>
 
-        <PilotModeProvider>
-          <section
-            id="vue-ensemble"
-            className="scroll-mt-20 space-y-1 rounded-xl border bg-muted/20 p-4 sm:p-6"
-          >
-            <p className="text-xs text-muted-foreground">
-              Chiffres et graphiques calculés sur l'exercice et le périmètre sélectionnés en haut de
-              l'application.
-            </p>
-            <SstDashboard />
-          </section>
+        <section
+          id="vue-ensemble"
+          className="scroll-mt-20 space-y-1 rounded-xl border bg-muted/20 p-4 sm:p-6"
+        >
+          <p className="text-xs text-muted-foreground">
+            Chiffres et graphiques calculés sur l'exercice et le périmètre sélectionnés en haut de
+            l'application.
+          </p>
+          <SstDashboard />
+        </section>
 
-          <section
-            id="journal-detaille"
-            className="scroll-mt-20 space-y-4 rounded-xl border bg-muted/10 p-4 sm:p-6"
-          >
-            <div className="flex items-center gap-3">
-              <BookText className="h-6 w-6 text-primary" />
-              <div>
-                <h2 className="font-serif text-xl font-semibold">Journal SST</h2>
-                <p className="text-sm text-muted-foreground">
-                  Suivi détaillé de chaque mission de sous-traitance : coût, prix de vente et marge
-                  nette.
-                </p>
-              </div>
+        <section
+          id="journal-detaille"
+          className="scroll-mt-20 space-y-4 rounded-xl border bg-muted/10 p-4 sm:p-6"
+        >
+          <div className="flex items-center gap-3">
+            <BookText className="h-6 w-6 text-primary" />
+            <div>
+              <h2 className="font-serif text-xl font-semibold">Journal SST</h2>
+              <p className="text-sm text-muted-foreground">
+                Suivi détaillé de chaque mission de sous-traitance : coût, prix de vente et marge
+                nette.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Chiffres et graphiques recalculés selon les filtres du journal ci-dessous (année,
-              sous-traitant, recherche) — indépendants de la Vue d'ensemble ci-dessus.
-            </p>
-            <SstProfitabilityTab />
-          </section>
-        </PilotModeProvider>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Chiffres et graphiques recalculés selon les filtres du journal ci-dessous (année,
+            sous-traitant, recherche) — indépendants de la Vue d'ensemble ci-dessus.
+          </p>
+          <SstProfitabilityTab />
+        </section>
       </div>
     </AppShell>
   );

@@ -107,7 +107,13 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const { canEdit } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { appearance } = useAppearance();
-  const isPilot = pathname === "/pilot" || pathname.startsWith("/pilot/");
+  // Pages qui dépendent du périmètre partagé (exercice / à date-exercice
+  // complet) et doivent donc afficher son sélecteur dans l'en-tête.
+  const isPilot =
+    pathname === "/pilot" ||
+    pathname.startsWith("/pilot/") ||
+    pathname === "/sst" ||
+    pathname.startsWith("/sst/");
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
