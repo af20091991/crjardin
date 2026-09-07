@@ -48,89 +48,166 @@ export function AnnualMonthsTable({
           <Badge variant="outline">{periodScopeLabel(year, period, now)}</Badge>
         </div>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Mois</TableHead>
-              <TableHead className="text-right">Ventes saisies</TableHead>
-              <TableHead className="text-right">Charges saisies</TableHead>
-              <TableHead className="text-right">Investissements</TableHead>
-              <TableHead className="text-right">Résultat des saisies</TableHead>
-              <TableHead>Nature</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow
-                key={r.month}
-                className={r.nature === "aucun" ? "text-muted-foreground" : ""}
-              >
-                <TableCell className="font-medium">{r.monthLabel}</TableCell>
+      <CardContent>
+        <div className="hidden overflow-x-auto md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Mois</TableHead>
+                <TableHead className="text-right">Ventes saisies</TableHead>
+                <TableHead className="text-right">Charges saisies</TableHead>
+                <TableHead className="text-right">Investissements</TableHead>
+                <TableHead className="text-right">Résultat des saisies</TableHead>
+                <TableHead>Nature</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow
+                  key={r.month}
+                  className={r.nature === "aucun" ? "text-muted-foreground" : ""}
+                >
+                  <TableCell className="font-medium">{r.monthLabel}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.nature === "aucun" ? "—" : formatEuro(r.ventesHt)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-rose-600">
+                    {r.nature === "aucun" ? "—" : formatEuro(r.chargesHt)}
+                    {r.chargesFixesReportees ? (
+                      <span
+                        className="block text-[10px] text-amber-600"
+                        title="Charge fixe reportée (estimation)"
+                      >
+                        dont {formatEuro(r.chargesFixesReportees)} reporté
+                      </span>
+                    ) : null}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-sky-600">
+                    {r.investissements ? formatEuro(r.investissements) : "—"}
+                  </TableCell>
+                  <TableCell
+                    className={`text-right tabular-nums ${
+                      r.nature === "aucun"
+                        ? ""
+                        : r.resultat >= 0
+                          ? "text-emerald-600"
+                          : "text-rose-600"
+                    }`}
+                  >
+                    {r.nature === "aucun" ? "—" : formatEuro(r.resultat)}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-xs ${NATURE_TONE[r.nature]}`}>
+                      {MONTH_NATURE_LABELS[r.nature]}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+              <TableRow className="border-t-2 font-semibold">
+                <TableCell>Total exercice</TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {r.nature === "aucun" ? "—" : formatEuro(r.ventesHt)}
+                  {formatEuro(totals.ventesHt)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums text-rose-600">
-                  {r.nature === "aucun" ? "—" : formatEuro(r.chargesHt)}
-                  {r.chargesFixesReportees ? (
-                    <span
-                      className="block text-[10px] text-amber-600"
-                      title="Charge fixe reportée (estimation)"
-                    >
-                      dont {formatEuro(r.chargesFixesReportees)} reporté
-                    </span>
-                  ) : null}
+                  {formatEuro(totals.chargesHt)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums text-sky-600">
-                  {r.investissements ? formatEuro(r.investissements) : "—"}
+                  {totals.investissements ? formatEuro(totals.investissements) : "—"}
                 </TableCell>
                 <TableCell
                   className={`text-right tabular-nums ${
-                    r.nature === "aucun"
-                      ? ""
-                      : r.resultat >= 0
-                        ? "text-emerald-600"
-                        : "text-rose-600"
+                    totals.resultat >= 0 ? "text-emerald-600" : "text-rose-600"
                   }`}
                 >
-                  {r.nature === "aucun" ? "—" : formatEuro(r.resultat)}
+                  {formatEuro(totals.resultat)}
                 </TableCell>
-                <TableCell>
-                  <span className={`text-xs ${NATURE_TONE[r.nature]}`}>
-                    {MONTH_NATURE_LABELS[r.nature]}
-                  </span>
+                <TableCell className="text-xs font-normal text-muted-foreground">
+                  {totals.monthsWithData} mois renseigné(s)
+                  {totals.monthsFuture > 0 ? ` · dont ${totals.monthsFuture} à venir` : ""}
                 </TableCell>
               </TableRow>
-            ))}
-            <TableRow className="border-t-2 font-semibold">
-              <TableCell>Total exercice</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatEuro(totals.ventesHt)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums text-rose-600">
-                {formatEuro(totals.chargesHt)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums text-sky-600">
-                {totals.investissements ? formatEuro(totals.investissements) : "—"}
-              </TableCell>
-              <TableCell
-                className={`text-right tabular-nums ${
-                  totals.resultat >= 0 ? "text-emerald-600" : "text-rose-600"
-                }`}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="space-y-2 md:hidden">
+          {rows.map((r) => (
+            <div
+              key={r.month}
+              className={`rounded-lg border p-3 ${r.nature === "aucun" ? "text-muted-foreground" : ""}`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{r.monthLabel}</span>
+                <span className={`text-xs ${NATURE_TONE[r.nature]}`}>
+                  {MONTH_NATURE_LABELS[r.nature]}
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Ventes saisies</p>
+                  <p className="tabular-nums">
+                    {r.nature === "aucun" ? "—" : formatEuro(r.ventesHt)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Charges saisies</p>
+                  <p className="tabular-nums text-rose-600">
+                    {r.nature === "aucun" ? "—" : formatEuro(r.chargesHt)}
+                  </p>
+                  {r.chargesFixesReportees ? (
+                    <p className="text-[10px] text-amber-600">
+                      dont {formatEuro(r.chargesFixesReportees)} reporté
+                    </p>
+                  ) : null}
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Investissements</p>
+                  <p className="tabular-nums text-sky-600">
+                    {r.investissements ? formatEuro(r.investissements) : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Résultat</p>
+                  <p
+                    className={`tabular-nums ${
+                      r.nature === "aucun"
+                        ? ""
+                        : r.resultat >= 0
+                          ? "text-emerald-600"
+                          : "text-rose-600"
+                    }`}
+                  >
+                    {r.nature === "aucun" ? "—" : formatEuro(r.resultat)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <div className="rounded-lg border-2 p-3 text-sm">
+            <div className="flex justify-between font-semibold">
+              <span>Total exercice</span>
+              <span
+                className={`tabular-nums ${totals.resultat >= 0 ? "text-emerald-600" : "text-rose-600"}`}
               >
                 {formatEuro(totals.resultat)}
-              </TableCell>
-              <TableCell className="text-xs font-normal text-muted-foreground">
-                {totals.monthsWithData} mois renseigné(s)
-                {totals.monthsFuture > 0 ? ` · dont ${totals.monthsFuture} à venir` : ""}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+              </span>
+            </div>
+            <div className="mt-1 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span>Ventes {formatEuro(totals.ventesHt)}</span>
+              <span>Charges {formatEuro(totals.chargesHt)}</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {totals.monthsWithData} mois renseigné(s)
+              {totals.monthsFuture > 0 ? ` · dont ${totals.monthsFuture} à venir` : ""}
+            </p>
+          </div>
+        </div>
+
         {totals.chargesFixesReportees > 0 && (
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Dont {formatEuro(totals.chargesFixesReportees)} de charges fixes reportées
-            (estimation « Année complète » pour les mois sans ligne dédiée).
+            Dont {formatEuro(totals.chargesFixesReportees)} de charges fixes reportées (estimation «
+            Année complète » pour les mois sans ligne dédiée).
           </p>
         )}
       </CardContent>

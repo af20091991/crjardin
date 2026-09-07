@@ -15,7 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   displayCell,
   fetchRows,
@@ -64,7 +71,11 @@ export function PilotDataGrid({ def }: { def: DatasetDef }) {
     let out = rows as Row[];
     if (q) {
       out = out.filter((r) =>
-        def.searchFields.some((f) => String(r[f] ?? "").toLowerCase().includes(q)),
+        def.searchFields.some((f) =>
+          String(r[f] ?? "")
+            .toLowerCase()
+            .includes(q),
+        ),
       );
     }
     if (sort) {
@@ -97,7 +108,8 @@ export function PilotDataGrid({ def }: { def: DatasetDef }) {
         />
         <Badge variant="outline">{filtered.length} ligne(s)</Badge>
         <span className="text-xs text-muted-foreground">
-          Cliquez sur l'icône crayon d'une cellule pour la corriger : la valeur précédente est conservée.
+          Cliquez sur l'icône crayon d'une cellule pour la corriger : la valeur précédente est
+          conservée.
         </span>
       </div>
 
@@ -110,7 +122,7 @@ export function PilotDataGrid({ def }: { def: DatasetDef }) {
         />
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -119,13 +131,19 @@ export function PilotDataGrid({ def }: { def: DatasetDef }) {
                   key={c.key}
                   className={`cursor-pointer whitespace-nowrap ${c.width ?? ""}`}
                   onClick={() =>
-                    setSort((s) => (s?.key === c.key ? { key: c.key, asc: !s.asc } : { key: c.key, asc: true }))
+                    setSort((s) =>
+                      s?.key === c.key ? { key: c.key, asc: !s.asc } : { key: c.key, asc: true },
+                    )
                   }
                 >
                   <span className="inline-flex items-center gap-1">
                     {c.label}
                     {sort?.key === c.key &&
-                      (sort.asc ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+                      (sort.asc ? (
+                        <ArrowUp className="h-3 w-3" />
+                      ) : (
+                        <ArrowDown className="h-3 w-3" />
+                      ))}
                   </span>
                 </TableHead>
               ))}
@@ -185,7 +203,12 @@ export function PilotDataGrid({ def }: { def: DatasetDef }) {
                           >
                             <Check className="h-4 w-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditing(null)}>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => setEditing(null)}
+                          >
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
@@ -213,6 +236,85 @@ export function PilotDataGrid({ def }: { def: DatasetDef }) {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Version mobile : chaque ligne devient une carte avec ses champs en
+          liste, plutôt qu'un tableau générique illisible en dessous de 768px. */}
+      <div className="space-y-2 md:hidden">
+        {isLoading && <p className="text-sm text-muted-foreground">Chargement…</p>}
+        {!isLoading && filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground">Aucune ligne.</p>
+        )}
+        {filtered.slice(0, 400).map((row) => (
+          <div key={String(row.id)} className="space-y-1.5 rounded-lg border p-3">
+            {def.columns.map((col) => {
+              const isEditing = editing?.id === String(row.id) && editing.key === col.key;
+              return (
+                <div key={col.key} className="flex items-start justify-between gap-2 text-sm">
+                  <span className="shrink-0 pt-1 text-xs text-muted-foreground">{col.label}</span>
+                  {isEditing ? (
+                    <div className="flex flex-1 items-center justify-end gap-1">
+                      {col.type === "select" && col.options ? (
+                        <Select value={draft} onValueChange={setDraft}>
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {col.options.map((o) => (
+                              <SelectItem key={o} value={o}>
+                                {o}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          autoFocus
+                          value={draft}
+                          onChange={(e) => setDraft(e.target.value)}
+                          className="h-8"
+                          type={col.type === "date" ? "date" : "text"}
+                        />
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 shrink-0"
+                        disabled={save.isPending}
+                        onClick={() => save.mutate({ row, col, raw: draft })}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => setEditing(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-right">
+                      {displayCell(row[col.key]) || "—"}
+                      {col.editable && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="ml-1 h-6 w-6"
+                          onClick={() => startEdit(row, col)}
+                          title="Corriger cette valeur"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
       {filtered.length > 400 && (
         <p className="text-xs text-muted-foreground">

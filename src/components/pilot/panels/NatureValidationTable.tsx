@@ -48,9 +48,7 @@ export function NatureValidationTable({ rows }: { rows?: NatureLine[] } = {}) {
 
   const queue = useMemo(() => {
     const source =
-      rows !== undefined
-        ? rows.map((r) => ({ ...r, needsDecision: true }))
-        : (q.data ?? []);
+      rows !== undefined ? rows.map((r) => ({ ...r, needsDecision: true })) : (q.data ?? []);
     return buildNatureQueue(
       source.filter((r) => !done.includes(r.id)),
       excel,
@@ -155,7 +153,7 @@ export function NatureValidationTable({ rows }: { rows?: NatureLine[] } = {}) {
         <p className="text-sm text-muted-foreground">Aucune donnée à valider.</p>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border bg-card">
+          <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -213,6 +211,47 @@ export function NatureValidationTable({ rows }: { rows?: NatureLine[] } = {}) {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="space-y-2 md:hidden">
+            {shown.map(({ line: row, reason, comparison }) => (
+              <div
+                key={row.id}
+                data-nature-row={row.id}
+                data-nature-reason={reason}
+                className="rounded-xl border bg-card p-3"
+              >
+                <p className="font-medium">
+                  {row.designation}
+                  {reason === "conflit" && (
+                    <Badge
+                      variant="outline"
+                      className="ml-2 border-amber-200 bg-amber-50 text-amber-700"
+                    >
+                      Conflit à vérifier
+                    </Badge>
+                  )}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {row.placement} · {String(row.month).padStart(2, "0")}/{row.year}
+                  {comparison.excel && ` · Excel : ${EXCEL_NATURE_LABEL[comparison.excel]}`}
+                </p>
+                <p className="mt-1 text-sm font-medium tabular-nums">{euro(row.amount)}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {NATURES.map((n) => (
+                    <Button
+                      key={n}
+                      size="sm"
+                      variant={n === "vente" ? "default" : "secondary"}
+                      disabled={m.isPending}
+                      onClick={() => m.mutate({ row, nature: n })}
+                    >
+                      {NATURE_LABELS[n]}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="flex items-center justify-between">
