@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { Lightbulb } from "lucide-react";
 import { querySearchConsole } from "@/lib/site-web-api";
 
@@ -99,11 +100,15 @@ export function SiteWebOpportunities() {
 
         <div className="mt-5 space-y-3">
           {loading ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Chargement des données…</p>
-          ) : opportunities.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              Aucune opportunité forte détectée sur les données disponibles.
+              Chargement des données…
             </p>
+          ) : opportunities.length === 0 ? (
+            <EmptyState
+              icon={Lightbulb}
+              title="Aucune opportunité forte détectée sur les données disponibles."
+              compact
+            />
           ) : (
             opportunities.map((row, index) => {
               const query = row.keys?.[0] ?? "Requête inconnue";
@@ -115,7 +120,8 @@ export function SiteWebOpportunities() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{query}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {formatNumber(Number(row.impressions ?? 0))} impressions · {formatNumber(Number(row.clicks ?? 0))} clics
+                        {formatNumber(Number(row.impressions ?? 0))} impressions ·{" "}
+                        {formatNumber(Number(row.clicks ?? 0))} clics
                       </p>
                     </div>
                     <Pill>Position {position.toFixed(1).replace(".", ",")}</Pill>
@@ -155,5 +161,7 @@ function formatNumber(value: number) {
 }
 
 function formatPercent(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(
+    value,
+  );
 }

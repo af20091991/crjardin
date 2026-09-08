@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Wand2, X } from "lucide-react";
+import { Check, CheckCircle2, Wand2, X } from "lucide-react";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -195,14 +196,13 @@ export function ValidationPage() {
               Chargement des données…
             </p>
           ) : lines.length === 0 ? (
-            <div className="py-10 text-center">
-              <p className="font-medium">Aucune décision nécessaire.</p>
-              {autoSummary && (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  PP a traité {processed} donnée(s) automatiquement.
-                </p>
-              )}
-            </div>
+            <EmptyState
+              icon={CheckCircle2}
+              title="Aucune décision nécessaire."
+              description={
+                autoSummary ? `PP a traité ${processed} donnée(s) automatiquement.` : undefined
+              }
+            />
           ) : (
             <>
               <div className="hidden overflow-x-auto md:block">

@@ -20,7 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Undo2 } from "lucide-react";
+import { History, Merge, Undo2 } from "lucide-react";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { listRecentDecisions, revertLastDecision, type MatchMethod } from "@/lib/pilot-ca-matching";
 import { listMergeLog, revertMerge } from "@/lib/client-merge";
 import { listClients } from "@/lib/clients";
@@ -149,8 +150,8 @@ export function DecisionJournalPanel() {
                 ))}
                 {rows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                      Aucune décision enregistrée.
+                    <TableCell colSpan={5}>
+                      <EmptyState icon={History} title="Aucune décision enregistrée." compact />
                     </TableCell>
                   </TableRow>
                 )}
@@ -160,9 +161,7 @@ export function DecisionJournalPanel() {
 
           <div className="space-y-2 md:hidden">
             {rows.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                Aucune décision enregistrée.
-              </p>
+              <EmptyState icon={History} title="Aucune décision enregistrée." compact />
             ) : (
               rows.map((d) => (
                 <div key={d.id} className="rounded-lg border p-3">
@@ -246,8 +245,8 @@ export function DecisionJournalPanel() {
                 ))}
                 {mergeRows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                      Aucune fusion enregistrée.
+                    <TableCell colSpan={5}>
+                      <EmptyState icon={Merge} title="Aucune fusion enregistrée." compact />
                     </TableCell>
                   </TableRow>
                 )}
@@ -257,9 +256,7 @@ export function DecisionJournalPanel() {
 
           <div className="space-y-2 md:hidden">
             {mergeRows.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                Aucune fusion enregistrée.
-              </p>
+              <EmptyState icon={Merge} title="Aucune fusion enregistrée." compact />
             ) : (
               mergeRows.map((m) => (
                 <div key={m.id} className="rounded-lg border p-3">

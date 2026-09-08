@@ -1,9 +1,10 @@
 // Tableau financier mensuel « suivi Excel » du dirigeant — exercice en cours,
 // données réelles uniquement (aucune projection, aucun objectif estimé).
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, CalendarX } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { formatEuro } from "@/lib/pilot";
 import { listCaEntries } from "@/lib/pilot-ca";
 import { buildDirectorTable } from "@/lib/pilot-director-table";
@@ -35,9 +36,7 @@ export function DirectorFinancialTable({ year }: { year: number }) {
         {loading ? (
           <Skeleton className="h-64 w-full rounded-lg" />
         ) : !table || table.rows.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            Aucun mois réalisé disponible pour {year}.
-          </p>
+          <EmptyState icon={CalendarX} title={`Aucun mois réalisé disponible pour ${year}.`} />
         ) : (
           <>
             {/* Synthèse compacte */}

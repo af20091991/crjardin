@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, TrendingDown, TrendingUp } from "lucide-react";
+import { BarChart3, TrendingDown, TrendingUp, Wrench } from "lucide-react";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
 import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
 import {
@@ -107,8 +108,8 @@ export function ProfitabilityServicesView() {
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : visible.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Aucune prestation ne correspond.
+          <CardContent>
+            <EmptyState icon={Wrench} title="Aucune prestation ne correspond." compact />
           </CardContent>
         </Card>
       ) : (

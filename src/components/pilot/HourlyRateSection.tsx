@@ -10,13 +10,33 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Clock, Timer, CalendarDays, Target, SlidersHorizontal, Info, Settings2 } from "lucide-react";
 import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  Clock,
+  Timer,
+  CalendarDays,
+  Target,
+  SlidersHorizontal,
+  Info,
+  Settings2,
+  EyeOff,
+  LineChart as LineChartIcon,
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
 } from "recharts";
 import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
 import { PP_COLORS } from "@/lib/pilot-colors";
+import { EmptyState } from "@/components/pilot/EmptyState";
 
 const YEAR = currentYear();
 
@@ -43,7 +63,16 @@ const GRAPH_OPTIONS: { key: GraphKey; label: string }[] = [
 ];
 
 const STORAGE_KEY = "pilot-taux-columns";
-const DEFAULT_COLS: ColKey[] = ["terrain", "gestion", "total", "jours", "ca", "brut", "net", "caJour"];
+const DEFAULT_COLS: ColKey[] = [
+  "terrain",
+  "gestion",
+  "total",
+  "jours",
+  "ca",
+  "brut",
+  "net",
+  "caJour",
+];
 const GRAPH_STORAGE_KEY = "pilot-taux-graphs";
 const DEFAULT_GRAPHS: GraphKey[] = ["brut", "net", "cible"];
 
@@ -57,12 +86,18 @@ export function HourlyRateSection() {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       return raw ? (JSON.parse(raw) as ColKey[]) : DEFAULT_COLS;
-    } catch { return DEFAULT_COLS; }
+    } catch {
+      return DEFAULT_COLS;
+    }
   });
   const toggleCol = (k: ColKey) => {
     setCols((prev) => {
       const next = prev.includes(k) ? prev.filter((c) => c !== k) : [...prev, k];
-      try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
       return next;
     });
   };
@@ -73,12 +108,18 @@ export function HourlyRateSection() {
     try {
       const raw = window.localStorage.getItem(GRAPH_STORAGE_KEY);
       return raw ? (JSON.parse(raw) as GraphKey[]) : DEFAULT_GRAPHS;
-    } catch { return DEFAULT_GRAPHS; }
+    } catch {
+      return DEFAULT_GRAPHS;
+    }
   });
   const toggleGraph = (k: GraphKey) => {
     setGraphs((prev) => {
       const next = prev.includes(k) ? prev.filter((g) => g !== k) : [...prev, k];
-      try { window.localStorage.setItem(GRAPH_STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      try {
+        window.localStorage.setItem(GRAPH_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
       return next;
     });
   };
@@ -91,8 +132,11 @@ export function HourlyRateSection() {
   const tauxCible = snapshot?.tjm.tauxCible ?? null;
 
   const hoursMut = useMutation({
-    mutationFn: (p: { month: number; field: "temps_terrain" | "temps_gestion" | "jours_travailles"; value: number | null }) =>
-      upsertHours(YEAR, p.month, { [p.field]: p.value }),
+    mutationFn: (p: {
+      month: number;
+      field: "temps_terrain" | "temps_gestion" | "jours_travailles";
+      value: number | null;
+    }) => upsertHours(YEAR, p.month, { [p.field]: p.value }),
     onSuccess: () => qc.invalidateQueries({ queryKey: [ANALYTICS_QUERY_ROOT] }),
     onError: (e: Error) => toast.error(e.message),
   });
@@ -120,7 +164,8 @@ export function HourlyRateSection() {
             <Clock className="h-6 w-6 text-primary" /> Taux horaire &amp; TJM
           </h1>
           <p className="text-sm text-muted-foreground">
-            Temps terrain récupéré automatiquement depuis le suivi CA, temps de gestion saisi mois par mois.
+            Temps terrain récupéré automatiquement depuis le suivi CA, temps de gestion saisi mois
+            par mois.
           </p>
         </div>
         <Popover>
@@ -134,10 +179,7 @@ export function HourlyRateSection() {
               <p className="text-xs font-medium text-muted-foreground">Graphiques affichés</p>
               {GRAPH_OPTIONS.map((g) => (
                 <label key={g.key} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={showGraph(g.key)}
-                    onCheckedChange={() => toggleGraph(g.key)}
-                  />
+                  <Checkbox checked={showGraph(g.key)} onCheckedChange={() => toggleGraph(g.key)} />
                   {g.label}
                 </label>
               ))}
@@ -162,18 +204,40 @@ export function HourlyRateSection() {
 
       {/* KPI */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi icon={<Timer className="h-4 w-4" />} label="Taux horaire brut" value={`${(totals?.avgBrut ?? 0).toFixed(0)} €/h`} sub="CA ÷ heures terrain" accent />
-        <Kpi icon={<Clock className="h-4 w-4" />} label="Taux horaire net" value={`${(totals?.avgNet ?? 0).toFixed(0)} €/h`} sub="CA ÷ (terrain + gestion)" />
-        <Kpi icon={<CalendarDays className="h-4 w-4" />} label="CA / jour moyen" value={formatEuro(totals?.avgCaJour ?? 0)} sub={`${totals?.totalJours ?? 0} jours travaillés`} />
-        <Kpi icon={<Target className="h-4 w-4" />} label="TJM cible" value={tjm ? formatEuro(tjm.tauxJournalier) : "—"} sub="Seuil de rentabilité" />
+        <Kpi
+          icon={<Timer className="h-4 w-4" />}
+          label="Taux horaire brut"
+          value={`${(totals?.avgBrut ?? 0).toFixed(0)} €/h`}
+          sub="CA ÷ heures terrain"
+          accent
+        />
+        <Kpi
+          icon={<Clock className="h-4 w-4" />}
+          label="Taux horaire net"
+          value={`${(totals?.avgNet ?? 0).toFixed(0)} €/h`}
+          sub="CA ÷ (terrain + gestion)"
+        />
+        <Kpi
+          icon={<CalendarDays className="h-4 w-4" />}
+          label="CA / jour moyen"
+          value={formatEuro(totals?.avgCaJour ?? 0)}
+          sub={`${totals?.totalJours ?? 0} jours travaillés`}
+        />
+        <Kpi
+          icon={<Target className="h-4 w-4" />}
+          label="TJM cible"
+          value={tjm ? formatEuro(tjm.tauxJournalier) : "—"}
+          sub="Seuil de rentabilité"
+        />
       </div>
 
       {missing.length > 0 && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Temps de gestion non renseigné pour&nbsp;: {missing.map((m) => MONTHS[m - 1]).join(", ")}. Sans cette
-            saisie, le temps de gestion vaut 0 h : aucune valeur n'est estimée à sa place.
+            Temps de gestion non renseigné pour&nbsp;:{" "}
+            {missing.map((m) => MONTHS[m - 1]).join(", ")}. Sans cette saisie, le temps de gestion
+            vaut 0 h : aucune valeur n'est estimée à sa place.
           </p>
         </div>
       )}
@@ -181,12 +245,23 @@ export function HourlyRateSection() {
       {/* Graphiques */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Évolution du taux horaire</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Évolution du taux horaire</CardTitle>
+          </CardHeader>
           <CardContent>
             {chartData.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">Aucune heure terrain connue pour {YEAR}.</p>
+              <EmptyState
+                icon={LineChartIcon}
+                title={`Aucune heure terrain connue pour ${YEAR}.`}
+                compact
+              />
             ) : !showGraph("brut") && !showGraph("net") && !showGraph("cible") ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">Aucune courbe sélectionnée. Utilisez « Modifier l'affichage ».</p>
+              <EmptyState
+                icon={EyeOff}
+                title="Aucune courbe sélectionnée."
+                description="Utilisez « Modifier l'affichage »."
+                compact
+              />
             ) : (
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
@@ -195,19 +270,45 @@ export function HourlyRateSection() {
                   <YAxis fontSize={12} unit="€" />
                   <Tooltip formatter={(v: number) => `${v} €/h`} />
                   <Legend />
-                  {showGraph("brut") && <Line type="monotone" dataKey="Brut" stroke={PP_COLORS.primary} strokeWidth={2} />}
-                  {showGraph("net") && <Line type="monotone" dataKey="Net" stroke={PP_COLORS.sales} strokeWidth={2} />}
-                  {showGraph("cible") && <Line type="monotone" dataKey="Cible" name="Cible (TJM)" stroke={PP_COLORS.charges} strokeWidth={2} strokeDasharray="5 4" dot={false} />}
+                  {showGraph("brut") && (
+                    <Line
+                      type="monotone"
+                      dataKey="Brut"
+                      stroke={PP_COLORS.primary}
+                      strokeWidth={2}
+                    />
+                  )}
+                  {showGraph("net") && (
+                    <Line type="monotone" dataKey="Net" stroke={PP_COLORS.sales} strokeWidth={2} />
+                  )}
+                  {showGraph("cible") && (
+                    <Line
+                      type="monotone"
+                      dataKey="Cible"
+                      name="Cible (TJM)"
+                      stroke={PP_COLORS.charges}
+                      strokeWidth={2}
+                      strokeDasharray="5 4"
+                      dot={false}
+                    />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Heures terrain / gestion</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Heures terrain / gestion</CardTitle>
+          </CardHeader>
           <CardContent>
             {!showGraph("heures") ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">Histogramme masqué. Utilisez « Modifier l'affichage ».</p>
+              <EmptyState
+                icon={EyeOff}
+                title="Histogramme masqué."
+                description="Utilisez « Modifier l'affichage »."
+                compact
+              />
             ) : (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={heuresData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
@@ -227,14 +328,19 @@ export function HourlyRateSection() {
 
       {/* Tableau mensuel */}
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Suivi mensuel {YEAR}</CardTitle></CardHeader>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Suivi mensuel {YEAR}</CardTitle>
+        </CardHeader>
         <CardContent className="overflow-x-auto p-0">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="px-3 py-2 font-medium">Mois</th>
                 {COLUMNS.filter((c) => show(c.key)).map((c) => (
-                  <th key={c.key} className={`px-3 py-2 font-medium ${["ca", "brut", "net", "caJour", "part", "total"].includes(c.key) ? "text-right" : ""}`}>
+                  <th
+                    key={c.key}
+                    className={`px-3 py-2 font-medium ${["ca", "brut", "net", "caJour", "part", "total"].includes(c.key) ? "text-right" : ""}`}
+                  >
                     {c.label}
                   </th>
                 ))}
@@ -252,7 +358,9 @@ export function HourlyRateSection() {
                         {m.terrainSource === "ca" ? (
                           <span className="inline-flex items-center gap-1.5 tabular-nums">
                             {(m.temps_terrain ?? 0).toFixed(1)}
-                            <span className="rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] text-sky-700">auto CA</span>
+                            <span className="rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] text-sky-700">
+                              auto CA
+                            </span>
                           </span>
                         ) : m.temps_terrain && m.temps_terrain > 0 ? (
                           <span className="tabular-nums">{m.temps_terrain.toFixed(1)}</span>
@@ -267,25 +375,51 @@ export function HourlyRateSection() {
                           key={`g-${m.month}-${gestionVal}`}
                           value={gestionVal}
                           placeholder="0"
-                          onCommit={(v) => hoursMut.mutate({ month: m.month, field: "temps_gestion", value: v })}
+                          onCommit={(v) =>
+                            hoursMut.mutate({ month: m.month, field: "temps_gestion", value: v })
+                          }
                         />
                       </td>
                     )}
-                    {show("total") && <td className="px-3 py-1.5 text-right tabular-nums">{total > 0 ? total.toFixed(1) : "—"}</td>}
+                    {show("total") && (
+                      <td className="px-3 py-1.5 text-right tabular-nums">
+                        {total > 0 ? total.toFixed(1) : "—"}
+                      </td>
+                    )}
                     {show("jours") && (
                       <td className="px-3 py-1.5">
                         <NumCell
                           key={`j-${m.month}-${m.jours_travailles}`}
                           value={m.jours_travailles}
-                          onCommit={(v) => hoursMut.mutate({ month: m.month, field: "jours_travailles", value: v })}
+                          onCommit={(v) =>
+                            hoursMut.mutate({ month: m.month, field: "jours_travailles", value: v })
+                          }
                         />
                       </td>
                     )}
-                    {show("ca") && <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(m.ca)}</td>}
-                    {show("brut") && <td className="px-3 py-1.5 text-right font-medium tabular-nums text-primary">{m.brut != null ? `${m.brut.toFixed(0)} €/h` : "—"}</td>}
-                    {show("net") && <td className="px-3 py-1.5 text-right tabular-nums text-accent-foreground">{m.net != null ? `${m.net.toFixed(0)} €/h` : "—"}</td>}
-                    {show("caJour") && <td className="px-3 py-1.5 text-right tabular-nums">{m.caJour != null ? formatEuro(m.caJour) : "—"}</td>}
-                    {show("part") && <td className="px-3 py-1.5 text-right tabular-nums">{m.partTerrain != null ? `${(m.partTerrain * 100).toFixed(0)} %` : "—"}</td>}
+                    {show("ca") && (
+                      <td className="px-3 py-1.5 text-right tabular-nums">{formatEuro(m.ca)}</td>
+                    )}
+                    {show("brut") && (
+                      <td className="px-3 py-1.5 text-right font-medium tabular-nums text-primary">
+                        {m.brut != null ? `${m.brut.toFixed(0)} €/h` : "—"}
+                      </td>
+                    )}
+                    {show("net") && (
+                      <td className="px-3 py-1.5 text-right tabular-nums text-accent-foreground">
+                        {m.net != null ? `${m.net.toFixed(0)} €/h` : "—"}
+                      </td>
+                    )}
+                    {show("caJour") && (
+                      <td className="px-3 py-1.5 text-right tabular-nums">
+                        {m.caJour != null ? formatEuro(m.caJour) : "—"}
+                      </td>
+                    )}
+                    {show("part") && (
+                      <td className="px-3 py-1.5 text-right tabular-nums">
+                        {m.partTerrain != null ? `${(m.partTerrain * 100).toFixed(0)} %` : "—"}
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -295,27 +429,49 @@ export function HourlyRateSection() {
       </Card>
 
       <div className="space-y-1 text-xs text-muted-foreground">
-        <p><strong>Taux horaire brut</strong> : CA rapporté aux seules heures terrain (temps productif facturable).</p>
-        <p><strong>Taux horaire net</strong> : CA rapporté au temps réellement mobilisé, terrain + gestion (devis, administratif, fournisseurs, bureau).</p>
+        <p>
+          <strong>Taux horaire brut</strong> : CA rapporté aux seules heures terrain (temps
+          productif facturable).
+        </p>
+        <p>
+          <strong>Taux horaire net</strong> : CA rapporté au temps réellement mobilisé, terrain +
+          gestion (devis, administratif, fournisseurs, bureau).
+        </p>
         <p className="flex items-center gap-1.5">
           <Settings2 className="h-3.5 w-3.5" />
           Les paramètres TJM se règlent dans{" "}
-          <Link to="/pilot/parametres" className="font-medium text-primary underline-offset-2 hover:underline">
+          <Link
+            to="/pilot/parametres"
+            className="font-medium text-primary underline-offset-2 hover:underline"
+          >
             Paramètres &gt; Pilot Pro
-          </Link>.
+          </Link>
+          .
         </p>
       </div>
     </div>
   );
 }
 
-function Kpi({ icon, label, value, sub, accent }: {
-  icon: React.ReactNode; label: string; value: string; sub?: string; accent?: boolean;
+function Kpi({
+  icon,
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub?: string;
+  accent?: boolean;
 }) {
   return (
     <Card className={accent ? "border-primary/30 bg-primary/5" : ""}>
       <CardContent className="p-4">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">{icon} {label}</div>
+        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          {icon} {label}
+        </div>
         <p className="mt-1 font-serif text-2xl font-semibold text-foreground">{value}</p>
         {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
       </CardContent>
@@ -323,7 +479,15 @@ function Kpi({ icon, label, value, sub, accent }: {
   );
 }
 
-function NumCell({ value, onCommit, placeholder }: { value: number | null; onCommit: (v: number | null) => void; placeholder?: string }) {
+function NumCell({
+  value,
+  onCommit,
+  placeholder,
+}: {
+  value: number | null;
+  onCommit: (v: number | null) => void;
+  placeholder?: string;
+}) {
   const [v, setV] = useState(value == null ? "" : String(value));
   return (
     <Input

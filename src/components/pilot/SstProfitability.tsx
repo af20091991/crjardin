@@ -75,15 +75,18 @@ import { listSstAudit, logSst, undoSstChange, type SstAuditEntry } from "@/lib/s
 import {
   Archive,
   ArrowLeftRight,
+  ClipboardList,
   Copy,
   Download,
   Pencil,
   Printer,
+  ReceiptText,
   Settings2,
   Trash2,
   Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/pilot/EmptyState";
 
 const pct = (n: number | null | undefined) => (n == null ? "—" : `${n.toFixed(1)} %`);
 
@@ -556,9 +559,11 @@ export function SstProfitabilityTab() {
         </CardHeader>
         <CardContent className="space-y-4">
           {chargeLines.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Aucune charge de sous-traitance sur cette période.
-            </p>
+            <EmptyState
+              icon={ReceiptText}
+              title="Aucune charge de sous-traitance sur cette période."
+              compact
+            />
           ) : (
             <>
               <div className="grid gap-3 sm:grid-cols-3">
@@ -600,9 +605,11 @@ export function SstProfitabilityTab() {
         </CardHeader>
         <CardContent>
           {rows.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              Aucune mission sur cette période. Créez-la depuis l'onglet <strong>Missions</strong>.
-            </p>
+            <EmptyState
+              icon={ClipboardList}
+              title="Aucune mission sur cette période."
+              description="Créez-la depuis l'onglet Missions."
+            />
           ) : (
             <>
               <div className="hidden overflow-x-auto md:block">

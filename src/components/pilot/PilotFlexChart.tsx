@@ -40,6 +40,7 @@ import { AlertTriangle, BarChart3, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import {
   Select,
   SelectContent,
@@ -147,12 +148,10 @@ export function PilotFlexChart({
     return (
       <Card className="p-4">
         <p className="text-sm font-medium">{title}</p>
-        <div className="flex flex-col items-center gap-2 py-10 text-center">
-          <BarChart3 className="h-6 w-6 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            Aucune donnée enregistrée à représenter sur la période affichée.
-          </p>
-        </div>
+        <EmptyState
+          icon={BarChart3}
+          title="Aucune donnée enregistrée à représenter sur la période affichée."
+        />
       </Card>
     );
   }
