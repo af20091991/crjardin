@@ -14,8 +14,6 @@ import {
   Settings,
   CalendarDays,
   BarChart3,
-  History,
-  Mail,
   MoreHorizontal,
   ClipboardList,
   FileText,
@@ -390,22 +388,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         },
         ...(isAdmin
           ? [
-              {
-                to: "/versions",
-                label: "Version",
-                short: "Version",
-                icon: History,
-                exact: false,
-                primary: false,
-              },
-              {
-                to: "/emails",
-                label: "Suivi des emails",
-                short: "E-mails",
-                icon: Mail,
-                exact: false,
-                primary: false,
-              },
               {
                 to: "/backend",
                 label: "Backend",
