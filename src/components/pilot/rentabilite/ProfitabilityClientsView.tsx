@@ -251,11 +251,11 @@ export function ProfitabilityClientsView() {
                         />
                       ) : (
                         <ReliabilityBadge
-                            reliability={reliabilityOf(c)}
-                            compact
-                            clientId={c.clientId}
-                            clientLabel={c.name}
-                          />
+                          reliability={reliabilityOf(c)}
+                          compact
+                          clientId={c.clientId}
+                          clientLabel={c.name}
+                        />
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -294,7 +294,7 @@ export function ProfitabilityClientsView() {
                   (A = 80 % du CA, B = 15 %, C = 5 %)
                 </span>
               </div>
-              <div className="overflow-x-auto">
+              <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -407,11 +407,11 @@ export function ProfitabilityClientsView() {
                             />
                           ) : (
                             <ReliabilityBadge
-                            reliability={reliabilityOf(c)}
-                            compact
-                            clientId={c.clientId}
-                            clientLabel={c.name}
-                          />
+                              reliability={reliabilityOf(c)}
+                              compact
+                              clientId={c.clientId}
+                              clientLabel={c.name}
+                            />
                           )}
                         </TableCell>
                         <TableCell className="text-center">
@@ -421,6 +421,83 @@ export function ProfitabilityClientsView() {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+
+              <div className="space-y-2 p-4 md:hidden">
+                {stats.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">Aucune donnée</p>
+                ) : (
+                  stats.map((c) => (
+                    <div key={c.key} className="rounded-lg border p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 truncate text-sm font-medium">
+                          <ClientLink clientId={c.clientId} clientKey={c.key} name={c.name} />
+                        </div>
+                        <Badge className={ABC_TONE[c.abc]}>{c.abc}</Badge>
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <Badge className={NATURE_TONE[c.nature] ?? NATURE_TONE.Autre}>
+                          {c.nature}
+                        </Badge>
+                        <EntityStatusQuickEdit
+                          clientId={c.clientId}
+                          clientName={c.name}
+                          status={statusOf(statusesQ.data, c.clientId)}
+                        />
+                        <CertifyReferentialAction
+                          clientId={c.clientId}
+                          clientName={c.name}
+                          certification={c.clientId ? certifByClient.get(c.clientId) : undefined}
+                          onCertified={certifQ.refetch}
+                        />
+                      </div>
+                      <div className="mt-2 grid grid-cols-3 gap-x-2 gap-y-2 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">CA</p>
+                          <p className="tabular-nums">{formatEuro(c.ca)}</p>
+                          <p className="text-xs text-muted-foreground">{c.share.toFixed(0)} %</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Lignes</p>
+                          <p className="tabular-nums">{c.count}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">CA moy.</p>
+                          <p className="tabular-nums">{formatEuro(c.avgCa)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Temps moy.</p>
+                          <p className="tabular-nums">{c.avgTime.toFixed(1)} h</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Taux/h</p>
+                          <p className="tabular-nums">{formatEuro(c.hourlyRate)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Rentabilité</p>
+                          {reliabilityOf(c).profitabilityTrusted ? (
+                            <ProfitSignal
+                              level={signalFromHourlyRate(
+                                c.hourlyRate,
+                                targetHourlyRate,
+                                thresholds,
+                              )}
+                              title={`Taux horaire ${formatEuro(c.hourlyRate)}/h vs cible ${formatEuro(targetHourlyRate)}/h`}
+                              compact
+                            />
+                          ) : (
+                            <ReliabilityBadge
+                              reliability={reliabilityOf(c)}
+                              compact
+                              clientId={c.clientId}
+                              clientLabel={c.name}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -525,4 +602,3 @@ function ClientLink({
     </Link>
   );
 }
-

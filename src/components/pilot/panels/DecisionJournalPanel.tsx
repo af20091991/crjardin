@@ -11,7 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from "sonner";
 import { Undo2 } from "lucide-react";
 import { listRecentDecisions, revertLastDecision, type MatchMethod } from "@/lib/pilot-ca-matching";
@@ -39,7 +46,10 @@ function fmtDate(iso: string) {
 
 export function DecisionJournalPanel() {
   const qc = useQueryClient();
-  const decisions = useQuery({ queryKey: ["pilot-ca-decisions", 100], queryFn: () => listRecentDecisions(100) });
+  const decisions = useQuery({
+    queryKey: ["pilot-ca-decisions", 100],
+    queryFn: () => listRecentDecisions(100),
+  });
   const merges = useQuery({ queryKey: ["client-merge-log"], queryFn: () => listMergeLog(50) });
   const clients = useQuery({ queryKey: ["clients"], queryFn: listClients });
 
@@ -48,7 +58,8 @@ export function DecisionJournalPanel() {
     for (const c of clients.data ?? []) m.set(c.id, c.name);
     return m;
   }, [clients.data]);
-  const label = (id: string | null) => (id ? (nameById.get(id) ?? "Client supprimé") : "Aucun client");
+  const label = (id: string | null) =>
+    id ? (nameById.get(id) ?? "Client supprimé") : "Aucun client";
 
   const invalidate = () => {
     for (const key of [
@@ -89,57 +100,97 @@ export function DecisionJournalPanel() {
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Décisions de rapprochement du chiffre d'affaires</CardTitle>
+          <CardTitle className="text-base">
+            Décisions de rapprochement du chiffre d'affaires
+          </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Chaque décision modifie réellement la donnée source et reste annulable. Annuler
-            restaure l'affectation précédente et remet la ligne dans la file d'attente.
+            Chaque décision modifie réellement la donnée source et reste annulable. Annuler restaure
+            l'affectation précédente et remet la ligne dans la file d'attente.
           </p>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Ancienne valeur</TableHead>
-                <TableHead>Nouvelle valeur</TableHead>
-                <TableHead className="text-right">Annuler</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((d) => (
-                <TableRow key={d.id}>
-                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                    {fmtDate(d.decided_at)}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {METHOD_LABEL[d.method] ?? d.method}
-                    {d.note ? <span className="block text-xs text-muted-foreground">{d.note}</span> : null}
-                  </TableCell>
-                  <TableCell className="text-sm">{label(d.previous_client_id)}</TableCell>
-                  <TableCell className="text-sm font-medium">{label(d.new_client_id)}</TableCell>
-                  <TableCell className="text-right">
+        <CardContent>
+          <div className="hidden overflow-x-auto md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Ancienne valeur</TableHead>
+                  <TableHead>Nouvelle valeur</TableHead>
+                  <TableHead className="text-right">Annuler</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((d) => (
+                  <TableRow key={d.id}>
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                      {fmtDate(d.decided_at)}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {METHOD_LABEL[d.method] ?? d.method}
+                      {d.note ? (
+                        <span className="block text-xs text-muted-foreground">{d.note}</span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-sm">{label(d.previous_client_id)}</TableCell>
+                    <TableCell className="text-sm font-medium">{label(d.new_client_id)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 text-xs"
+                        disabled={d.method === "reverted" || revertCa.isPending}
+                        onClick={() => revertCa.mutate(d.entry_id)}
+                      >
+                        <Undo2 className="h-3.5 w-3.5" /> Annuler
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {rows.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                      Aucune décision enregistrée.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="space-y-2 md:hidden">
+            {rows.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Aucune décision enregistrée.
+              </p>
+            ) : (
+              rows.map((d) => (
+                <div key={d.id} className="rounded-lg border p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">{fmtDate(d.decided_at)}</p>
+                      <p className="text-sm font-medium">{METHOD_LABEL[d.method] ?? d.method}</p>
+                      {d.note && <p className="text-xs text-muted-foreground">{d.note}</p>}
+                    </div>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 gap-1 text-xs"
+                      className="h-7 shrink-0 gap-1 text-xs"
                       disabled={d.method === "reverted" || revertCa.isPending}
                       onClick={() => revertCa.mutate(d.entry_id)}
                     >
                       <Undo2 className="h-3.5 w-3.5" /> Annuler
                     </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {rows.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                    Aucune décision enregistrée.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                  </div>
+                  <p className="mt-2 text-sm">
+                    <span className="text-muted-foreground">{label(d.previous_client_id)}</span>
+                    {" → "}
+                    <span className="font-medium">{label(d.new_client_id)}</span>
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -150,57 +201,99 @@ export function DecisionJournalPanel() {
             Fusions manuelles uniquement. La fiche absorbée est conservée et peut être réactivée.
           </p>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Fiche absorbée</TableHead>
-                <TableHead>Fiche conservée</TableHead>
-                <TableHead>Éléments déplacés</TableHead>
-                <TableHead className="text-right">Annuler</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mergeRows.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                    {fmtDate(m.created_at)}
-                  </TableCell>
-                  <TableCell className="text-sm">{m.source_client_name}</TableCell>
-                  <TableCell className="text-sm font-medium">{m.target_client_name}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {Object.entries(m.moved ?? {})
-                      .filter(([, n]) => Number(n) > 0)
-                      .map(([t, n]) => `${t} : ${n}`)
-                      .join(" · ") || "aucun"}
-                  </TableCell>
-                  <TableCell className="text-right">
+        <CardContent>
+          <div className="hidden overflow-x-auto md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Fiche absorbée</TableHead>
+                  <TableHead>Fiche conservée</TableHead>
+                  <TableHead>Éléments déplacés</TableHead>
+                  <TableHead className="text-right">Annuler</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mergeRows.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                      {fmtDate(m.created_at)}
+                    </TableCell>
+                    <TableCell className="text-sm">{m.source_client_name}</TableCell>
+                    <TableCell className="text-sm font-medium">{m.target_client_name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {Object.entries(m.moved ?? {})
+                        .filter(([, n]) => Number(n) > 0)
+                        .map(([t, n]) => `${t} : ${n}`)
+                        .join(" · ") || "aucun"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {m.reverted_at ? (
+                        <Badge variant="outline">Annulée</Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1 text-xs"
+                          disabled={revertMergeMut.isPending}
+                          onClick={() => revertMergeMut.mutate(m.id)}
+                        >
+                          <Undo2 className="h-3.5 w-3.5" /> Annuler
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {mergeRows.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                      Aucune fusion enregistrée.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="space-y-2 md:hidden">
+            {mergeRows.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Aucune fusion enregistrée.
+              </p>
+            ) : (
+              mergeRows.map((m) => (
+                <div key={m.id} className="rounded-lg border p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">{fmtDate(m.created_at)}</p>
                     {m.reverted_at ? (
                       <Badge variant="outline">Annulée</Badge>
                     ) : (
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-7 gap-1 text-xs"
+                        className="h-7 shrink-0 gap-1 text-xs"
                         disabled={revertMergeMut.isPending}
                         onClick={() => revertMergeMut.mutate(m.id)}
                       >
                         <Undo2 className="h-3.5 w-3.5" /> Annuler
                       </Button>
                     )}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {mergeRows.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                    Aucune fusion enregistrée.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                  </div>
+                  <p className="mt-2 text-sm">
+                    <span className="text-muted-foreground">{m.source_client_name}</span>
+                    {" → "}
+                    <span className="font-medium">{m.target_client_name}</span>
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {Object.entries(m.moved ?? {})
+                      .filter(([, n]) => Number(n) > 0)
+                      .map(([t, n]) => `${t} : ${n}`)
+                      .join(" · ") || "aucun élément déplacé"}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
