@@ -27,7 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Trophy, AlertTriangle, UserX, TrendingUp } from "lucide-react";
+import { Trophy, AlertTriangle, UserX, TrendingUp, Users } from "lucide-react";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { CoverageBanner } from "@/components/pilot/CoverageBanner";
 import { entriesForMode } from "@/lib/pilot-realized";
 import { usePilotMode, usePilotYear, usePilotPeriod } from "@/lib/pilot-mode";
@@ -344,11 +345,8 @@ export function ProfitabilityClientsView() {
                   <TableBody>
                     {stats.length === 0 && (
                       <TableRow>
-                        <TableCell
-                          colSpan={8}
-                          className="py-8 text-center text-sm text-muted-foreground"
-                        >
-                          Aucune donnée
+                        <TableCell colSpan={8}>
+                          <EmptyState icon={Users} title="Aucune donnée" compact />
                         </TableCell>
                       </TableRow>
                     )}
@@ -425,7 +423,7 @@ export function ProfitabilityClientsView() {
 
               <div className="space-y-2 p-4 md:hidden">
                 {stats.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">Aucune donnée</p>
+                  <EmptyState icon={Users} title="Aucune donnée" compact />
                 ) : (
                   stats.map((c) => (
                     <div key={c.key} className="rounded-lg border p-3">

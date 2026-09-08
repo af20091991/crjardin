@@ -4,7 +4,8 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Check, Pencil, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Pencil, Table2, X } from "lucide-react";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -159,8 +160,8 @@ export function PilotDataGrid({ def }: { def: DatasetDef }) {
             )}
             {!isLoading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={def.columns.length} className="text-sm text-muted-foreground">
-                  Aucune ligne.
+                <TableCell colSpan={def.columns.length}>
+                  <EmptyState icon={Table2} title="Aucune ligne." compact />
                 </TableCell>
               </TableRow>
             )}
@@ -243,7 +244,7 @@ export function PilotDataGrid({ def }: { def: DatasetDef }) {
       <div className="space-y-2 md:hidden">
         {isLoading && <p className="text-sm text-muted-foreground">Chargement…</p>}
         {!isLoading && filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground">Aucune ligne.</p>
+          <EmptyState icon={Table2} title="Aucune ligne." compact />
         )}
         {filtered.slice(0, 400).map((row) => (
           <div key={String(row.id)} className="space-y-1.5 rounded-lg border p-3">

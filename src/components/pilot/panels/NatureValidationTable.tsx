@@ -9,7 +9,8 @@
 // pilot-nature-validation.ts sur un clic humain.
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileSpreadsheet, Upload } from "lucide-react";
+import { CheckCircle2, FileSpreadsheet, Upload } from "lucide-react";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -150,7 +151,7 @@ export function NatureValidationTable({ rows }: { rows?: NatureLine[] } = {}) {
       )}
 
       {queue.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucune donnée à valider.</p>
+        <EmptyState icon={CheckCircle2} title="Aucune donnée à valider." compact />
       ) : (
         <>
           <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">

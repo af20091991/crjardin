@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { Briefcase, Search } from "lucide-react";
 import { formatEuro } from "@/lib/pilot";
 import type { PilotEntry } from "@/lib/pilot";
@@ -120,9 +121,7 @@ export function PortfolioExplorer({ entries, year }: { entries: PilotEntry[]; ye
         {loading ? (
           <Skeleton className="h-48 w-full rounded-lg" />
         ) : visible.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            Aucun client ne correspond à cette recherche.
-          </p>
+          <EmptyState icon={Search} title="Aucun client ne correspond à cette recherche." compact />
         ) : (
           <>
             <div className="hidden overflow-x-auto rounded-lg border md:block">

@@ -7,6 +7,8 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Users } from "lucide-react";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import {
   Select,
   SelectContent,
@@ -227,9 +229,7 @@ export function ClientProfitabilityTable({
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">
-          Aucun client ne correspond aux filtres sélectionnés.
-        </p>
+        <EmptyState icon={Users} title="Aucun client ne correspond aux filtres sélectionnés." />
       ) : (
         <div className="space-y-4">
           {shownGroups.map((g) =>

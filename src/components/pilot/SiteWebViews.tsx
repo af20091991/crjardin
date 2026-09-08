@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import {
   friendlyConnectionError,
   SiteWebGoogleConnection,
@@ -200,7 +201,11 @@ function VisibilityView() {
           {loading ? (
             <LoadingState />
           ) : chartData.length === 0 ? (
-            <EmptyState text="Aucune donnée Search Console disponible sur la période." />
+            <EmptyState
+              icon={Search}
+              title="Aucune donnée Search Console disponible sur la période."
+              compact
+            />
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -298,9 +303,6 @@ function LoadingState() {
   return (
     <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
   );
-}
-function EmptyState({ text }: { text: string }) {
-  return <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
 }
 function yearStart() {
   return `${new Date().getFullYear()}-01-01`;

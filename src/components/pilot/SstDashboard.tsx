@@ -12,7 +12,8 @@ import { SstCreateMissionDialog } from "@/components/pilot/SstCreateMissionDialo
 import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
 import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import { PP_COLORS } from "@/lib/pilot-colors";
-import { Plus } from "lucide-react";
+import { Plus, ReceiptText } from "lucide-react";
+import { EmptyState } from "@/components/pilot/EmptyState";
 
 const eur = (n: number) => formatEuro(n);
 
@@ -239,7 +240,7 @@ export function SstDashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             {providers.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">Aucune charge SST.</p>
+              <EmptyState icon={ReceiptText} title="Aucune charge SST." compact />
             ) : (
               providers.map((p) => (
                 <div key={p.key} className="space-y-1">

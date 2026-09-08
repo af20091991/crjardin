@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { Gauge, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import { listEntries, getSettings, formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
 import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
@@ -53,7 +54,16 @@ export function ClientProfitabilityCard({
         statuses: statusesQ.data,
       }).find((r) => r.clientId === clientId) ?? null
     );
-  }, [entriesQ.data, ledgerQ.data, statusesQ.data, year, target, thresholds, clientId, interventions]);
+  }, [
+    entriesQ.data,
+    ledgerQ.data,
+    statusesQ.data,
+    year,
+    target,
+    thresholds,
+    clientId,
+    interventions,
+  ]);
 
   const suggestions = useMemo(
     () => (entriesQ.data ? suggestCrossSell({ clientId, entries: entriesQ.data }) : []),
@@ -75,9 +85,11 @@ export function ClientProfitabilityCard({
           {loading ? (
             <Skeleton className="h-32 w-full" />
           ) : !row ? (
-            <p className="text-sm text-muted-foreground">
-              Aucune donnée économique exploitable pour ce client.
-            </p>
+            <EmptyState
+              icon={Gauge}
+              title="Aucune donnée économique exploitable pour ce client."
+              compact
+            />
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2">

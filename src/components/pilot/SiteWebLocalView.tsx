@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
 import { Metric } from "@/components/pilot/SiteWebMetric";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
 import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
@@ -469,7 +470,11 @@ export function SiteWebLocalView() {
           {loading ? (
             <LoadingState />
           ) : !hasLocalSearchData ? (
-            <EmptyState text="Aucune requête locale observée sur la période." />
+            <EmptyState
+              icon={Search}
+              title="Aucune requête locale observée sur la période."
+              compact
+            />
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2">
@@ -500,7 +505,11 @@ export function SiteWebLocalView() {
 
               <div className="mt-4">
                 {filteredLocalQueries.length === 0 ? (
-                  <EmptyState text="Aucune requête ne correspond à ce filtre." />
+                  <EmptyState
+                    icon={Search}
+                    title="Aucune requête ne correspond à ce filtre."
+                    compact
+                  />
                 ) : (
                   <PilotFlexChart
                     title="Top requêtes locales"
@@ -563,7 +572,12 @@ export function SiteWebLocalView() {
         {favoriteError && <SourceError title="Search Console" code={favoriteError} compact />}
         <div className="mt-4">
           {favorites.length === 0 ? (
-            <EmptyState text="Aucun mot-clé suivi pour l'instant : cliquez sur l'étoile d'une requête ci-dessus pour commencer." />
+            <EmptyState
+              icon={Star}
+              title="Aucun mot-clé suivi pour l'instant"
+              description="Cliquez sur l'étoile d'une requête ci-dessus pour commencer."
+              compact
+            />
           ) : favoriteLoading ? (
             <LoadingState />
           ) : (
@@ -692,10 +706,6 @@ function LoadingState() {
   return (
     <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
   );
-}
-
-function EmptyState({ text }: { text: string }) {
-  return <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
 }
 
 function truncateLabel(value: string, maxLength = 28) {
