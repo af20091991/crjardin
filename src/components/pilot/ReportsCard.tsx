@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
 import { useAnalytics } from "@/lib/pilot-analytics";
-import { formatEuro, MONTHS } from "@/lib/pilot";
+import { formatEuro } from "@/lib/pilot";
 
 /** Exports dirigeant (PDF / Excel) — intégrés aux Paramètres PP. */
 export function ReportsCard() {
@@ -20,14 +20,14 @@ export function ReportsCard() {
   const reportRows = useMemo(() => {
     if (!snapshot || !kpis) return [];
     return [
-      { label: "CA annuel HT", value: kpis.ca_annuel.value },
-      { label: "Charges", value: kpis.charges.value },
-      { label: "Bénéfice", value: kpis.benefice_brut.value },
-      { label: "Marge %", value: kpis.marge.value },
-      { label: "Projection", value: snapshot.projection.caProjete },
-      { label: "Taux horaire vendu", value: kpis.taux_horaire_vendu.value },
-      { label: "Taux horaire réel", value: kpis.taux_horaire_reel.value },
-      { label: "TJM réel", value: snapshot.tjm.result?.tauxJournalier ?? null },
+      { label: "CA annuel HT", value: kpis.ca_annuel.value, unit: "eur" },
+      { label: "Charges", value: kpis.charges.value, unit: "eur" },
+      { label: "Bénéfice", value: kpis.benefice_brut.value, unit: "eur" },
+      { label: "Marge %", value: kpis.marge.value, unit: "pct" },
+      { label: "Projection", value: snapshot.projection.caProjete, unit: "eur" },
+      { label: "Taux horaire vendu", value: kpis.taux_horaire_vendu.value, unit: "eur_heure" },
+      { label: "Taux horaire réel", value: kpis.taux_horaire_reel.value, unit: "eur_heure" },
+      { label: "TJM réel", value: snapshot.tjm.result?.tauxJournalier ?? null, unit: "eur_jour" },
     ];
   }, [snapshot, kpis]);
 
@@ -38,10 +38,11 @@ export function ReportsCard() {
       doc.setFontSize(18);
       doc.text(`Rapport dirigeant — ${year}`, 14, 20);
       doc.setFontSize(11);
-      const lines = reportRows.map(({ label, value }) => {
+      const lines = reportRows.map(({ label, value, unit }) => {
         if (value == null) return `${label} : n/a`;
-        if (label.endsWith("%")) return `${label} : ${Number(value).toFixed(0)} %`;
-        if (label.includes("taux") || label.includes("TJM")) return `${label} : ${formatEuro(Number(value))}/h`;
+        if (unit === "pct") return `${label} : ${Number(value).toFixed(0)} %`;
+        if (unit === "eur_heure") return `${label} : ${formatEuro(Number(value))}/h`;
+        if (unit === "eur_jour") return `${label} : ${formatEuro(Number(value))}/jour`;
         return `${label} : ${formatEuro(Number(value))}`;
       });
       let yy = 34;
