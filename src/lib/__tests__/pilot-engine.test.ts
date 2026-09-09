@@ -217,4 +217,54 @@ describe("auditCoherence — vérifications additionnelles", () => {
       expect(keys).toContain(key);
     }
   });
+
+  test("un jeu de données non vide passe réellement tous les contrôles de cohérence", () => {
+    const inputs = engineInputs({
+      entries: [
+        sale({
+          id: "audit-sale-1",
+          entry_date: `${YEAR}-03-15`,
+          amount_ht: 10_000,
+          hours: 100,
+          client_id: "c1",
+          client_name: "Adagios",
+        }),
+        sale({
+          id: "audit-sale-2",
+          entry_date: `${YEAR}-07-15`,
+          amount_ht: 5_000,
+          hours: 0,
+          client_id: "c1",
+          client_name: "Adagios",
+          intervention_type: "sst",
+        }),
+      ],
+      chargeRows: [charge({ id: "audit-charge", year: YEAR, month: 3, amount_ht: 3_000 })],
+      ledger: [
+        ledgerSale({
+          id: "audit-ledger-1",
+          year: YEAR,
+          month: 3,
+          hours: 100,
+          clientId: "c1",
+          clientName: "Adagios",
+        }),
+        ledgerSale({
+          id: "audit-ledger-2",
+          year: YEAR,
+          month: 7,
+          hours: 0,
+          clientId: "c1",
+          clientName: "Adagios",
+        }),
+      ],
+      statuses: statuses({ c1: "certified_client" }),
+    });
+
+    const snap = buildAnalytics(inputs, NOW);
+    const report = auditCoherence(inputs, snap, inputs.chargeRows, NOW);
+
+    expect(report.every((check) => check.ok)).toBe(true);
+    expect(report.some((check) => check.engine !== null && check.other !== null)).toBe(true);
+  });
 });
