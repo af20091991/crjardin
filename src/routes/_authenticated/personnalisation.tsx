@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/AppShell";
+import { AppShell, NAV_GROUP_LABELS } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   useAppearance,
   PRIMARY_PRESETS,
@@ -43,8 +44,6 @@ export const Route = createFileRoute("/_authenticated/personnalisation")({
   component: PersonnalisationPage,
 });
 
-const ALL_GROUPS = ["CR Pro", "SST Pro", "Catalogue Pro", "Pilot Pro", "Administration"];
-
 function Swatch({
   color,
   active,
@@ -66,6 +65,16 @@ function Swatch({
     >
       {active && <Check className="h-4 w-4 text-primary-foreground" />}
     </button>
+  );
+}
+
+/** Titre + description courte introduisant un groupe de cartes de réglages. */
+function SectionHeading({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="pt-2 first:pt-0">
+      <h3 className="font-serif text-base font-semibold">{title}</h3>
+      <p className="text-sm text-muted-foreground">{description}</p>
+    </div>
   );
 }
 
@@ -117,6 +126,8 @@ function PersonnalisationPage() {
           </div>
         </div>
 
+        <SectionHeading title="Apparence" description="Couleurs, thème et style général." />
+
         {/* Typographie : 3 rôles indépendants, polices déjà chargées */}
         <Card>
           <CardHeader>
@@ -124,16 +135,14 @@ function PersonnalisationPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              25 familles disponibles (sans-serif, serif, display, monospace). « Par défaut du
-              thème » conserve le rendu actuel.
+              25 familles disponibles (sans-serif, serif, display, monospace). « Par défaut du thème
+              » conserve le rendu actuel.
             </p>
-            {(
-              [
-                { key: "fontHeading" as const, label: "Titres (h1/h2/h3)" },
-                { key: "fontBody" as const, label: "Texte courant (interface, libellés)" },
-                { key: "fontNumeric" as const, label: "Valeurs numériques (montants, KPI)" },
-              ]
-            ).map((role) => (
+            {[
+              { key: "fontHeading" as const, label: "Titres (h1/h2/h3)" },
+              { key: "fontBody" as const, label: "Texte courant (interface, libellés)" },
+              { key: "fontNumeric" as const, label: "Valeurs numériques (montants, KPI)" },
+            ].map((role) => (
               <div key={role.key} className="space-y-2">
                 <Label htmlFor={role.key}>{role.label}</Label>
                 <select
@@ -144,7 +153,10 @@ function PersonnalisationPage() {
                   style={
                     appearance[role.key] === "auto"
                       ? undefined
-                      : { fontFamily: FONT_STACKS[appearance[role.key] as Exclude<FontChoice, "auto">] }
+                      : {
+                          fontFamily:
+                            FONT_STACKS[appearance[role.key] as Exclude<FontChoice, "auto">],
+                        }
                   }
                 >
                   {FONT_GROUPS.map((g) => (
@@ -310,6 +322,11 @@ function PersonnalisationPage() {
           </CardContent>
         </Card>
 
+        <SectionHeading
+          title="Mise en page"
+          description="Densité, arrondis et largeur du contenu."
+        />
+
         {/* Densité & arrondis */}
         <Card>
           <CardHeader>
@@ -350,45 +367,147 @@ function PersonnalisationPage() {
                 onValueChange={([v]) => setAppearance({ radius: v })}
               />
             </div>
+            <SegRow<TableDensity>
+              label="Densité des tableaux"
+              hint="Indépendante de la densité générale."
+              value={appearance.tableDensity}
+              onChange={(v) => setAppearance({ tableDensity: v })}
+              options={[
+                { value: "auto", label: "Suivre la densité générale" },
+                { value: "comfortable", label: "Confortable" },
+                { value: "compact", label: "Compact" },
+              ]}
+            />
+            <SegRow<ContentWidth>
+              label="Largeur maximale du contenu"
+              value={appearance.contentWidth}
+              onChange={(v) => setAppearance({ contentWidth: v })}
+              options={[
+                { value: "comfortable", label: "Confortable" },
+                { value: "full", label: "Pleine largeur" },
+              ]}
+            />
           </CardContent>
         </Card>
+
+        <SectionHeading
+          title="Menu latéral"
+          description="Rubriques affichées, ouverture par défaut et style du lien actif."
+        />
 
         {/* Agencement du menu */}
         <Card>
           <CardHeader>
             <CardTitle className="font-serif text-base">Agencement du menu</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Masquez les groupes que vous n'utilisez pas dans la barre latérale.
-            </p>
-            {ALL_GROUPS.map((g) => {
-              const visible = !appearance.hiddenGroups.includes(g);
-              return (
-                <div
-                  key={g}
-                  className="flex items-center justify-between rounded-xl border border-border px-4 py-2.5"
-                >
-                  <span className="text-sm font-medium">{g}</span>
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(g)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                      visible ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                    }`}
+          <CardContent className="space-y-5">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Masquez les groupes que vous n'utilisez pas dans la barre latérale.
+              </p>
+              {NAV_GROUP_LABELS.map((g) => {
+                const visible = !appearance.hiddenGroups.includes(g);
+                return (
+                  <div
+                    key={g}
+                    className="flex items-center justify-between rounded-xl border border-border px-4 py-2.5"
                   >
-                    {visible ? "Affiché" : "Masqué"}
-                  </button>
-                </div>
-              );
-            })}
+                    <span className="text-sm font-medium">{g}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(g)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        visible ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {visible ? "Affiché" : "Masqué"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="defaultOpenGroup">Groupe ouvert par défaut</Label>
+              <select
+                id="defaultOpenGroup"
+                value={appearance.defaultOpenGroup}
+                onChange={(e) => setAppearance({ defaultOpenGroup: e.target.value })}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Comportement actuel</option>
+                {NAV_GROUP_LABELS.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <SwitchRow
+              label="Barre latérale repliée par défaut"
+              hint="S'applique tant que vous ne l'avez pas repliée/dépliée manuellement."
+              checked={appearance.sidebarCollapsedDefault}
+              onChange={(v) => setAppearance({ sidebarCollapsedDefault: v })}
+            />
+            <SegRow<NavIndicator>
+              label="Indicateur du lien actif"
+              value={appearance.navIndicator}
+              onChange={(v) => setAppearance({ navIndicator: v })}
+              options={[
+                { value: "auto", label: "Actuel (fond coloré)" },
+                { value: "dot", label: "Pastille pleine" },
+                { value: "bar", label: "Trait fin" },
+              ]}
+            />
           </CardContent>
         </Card>
 
-        <CardReadingSettings />
+        <SectionHeading
+          title="Lisibilité & accessibilité"
+          description="Contraste, taille du texte et animations."
+        />
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            <SwitchRow
+              label="Contraste renforcé"
+              hint="Texte secondaire et bordures accentués."
+              checked={appearance.highContrast}
+              onChange={(v) => setAppearance({ highContrast: v })}
+            />
+            <SegRow<TextScale>
+              label="Échelle de texte globale"
+              value={appearance.textScale}
+              onChange={(v) => setAppearance({ textScale: v })}
+              options={[
+                { value: "small", label: "Petit" },
+                { value: "normal", label: "Normal" },
+                { value: "large", label: "Grand" },
+              ]}
+            />
+            <SwitchRow
+              label="Réduire les animations"
+              checked={appearance.reducedMotion}
+              onChange={(v) => setAppearance({ reducedMotion: v })}
+            />
+          </CardContent>
+        </Card>
 
-        <VisualSettingsCard />
-
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between rounded-xl border border-border px-4 py-3 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+            >
+              <span>Réglages avancés</span>
+              <span className="text-xs text-muted-foreground">
+                Bordures, couleurs fines, lecture des cartes, régional…
+              </span>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-5 pt-3">
+            <CardReadingSettings />
+            <VisualSettingsCard />
+          </CollapsibleContent>
+        </Collapsible>
 
         <div className="flex justify-end">
           <Button variant="outline" onClick={reset}>
@@ -405,15 +524,6 @@ function PersonnalisationPage() {
    Chaque réglage n'agit que sur son propre rôle et sa valeur par défaut
    reproduit exactement le rendu actuel de l'application.
    ------------------------------------------------------------------ */
-
-const SIDEBAR_GROUPS = [
-  "Aujourd'hui",
-  "Clients",
-  "Chantiers",
-  "Catalogue",
-  "Pilotage",
-  "Administration",
-];
 
 function SegRow<T extends string>({
   label,
@@ -553,61 +663,6 @@ function VisualSettingsCard() {
           </div>
         </div>
 
-        {/* Lisibilité & accessibilité */}
-        <div className="space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Lisibilité & accessibilité
-          </p>
-          <SwitchRow
-            label="Contraste renforcé"
-            hint="Texte secondaire et bordures accentués."
-            checked={a.highContrast}
-            onChange={(v) => setAppearance({ highContrast: v })}
-          />
-          <SegRow<TextScale>
-            label="Échelle de texte globale"
-            value={a.textScale}
-            onChange={(v) => setAppearance({ textScale: v })}
-            options={[
-              { value: "small", label: "Petit" },
-              { value: "normal", label: "Normal" },
-              { value: "large", label: "Grand" },
-            ]}
-          />
-          <SwitchRow
-            label="Réduire les animations"
-            checked={a.reducedMotion}
-            onChange={(v) => setAppearance({ reducedMotion: v })}
-          />
-        </div>
-
-        {/* Densité & mise en page */}
-        <div className="space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Densité & mise en page
-          </p>
-          <SegRow<TableDensity>
-            label="Densité des tableaux"
-            hint="Indépendante de la densité générale."
-            value={a.tableDensity}
-            onChange={(v) => setAppearance({ tableDensity: v })}
-            options={[
-              { value: "auto", label: "Suivre la densité générale" },
-              { value: "comfortable", label: "Confortable" },
-              { value: "compact", label: "Compact" },
-            ]}
-          />
-          <SegRow<ContentWidth>
-            label="Largeur maximale du contenu"
-            value={a.contentWidth}
-            onChange={(v) => setAppearance({ contentWidth: v })}
-            options={[
-              { value: "comfortable", label: "Confortable" },
-              { value: "full", label: "Pleine largeur" },
-            ]}
-          />
-        </div>
-
         {/* Icônes & indicateurs */}
         <div className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -618,16 +673,6 @@ function VisualSettingsCard() {
             hint="Icônes illustratives des cartes et KPI."
             checked={a.decorativeIcons}
             onChange={(v) => setAppearance({ decorativeIcons: v })}
-          />
-          <SegRow<NavIndicator>
-            label="Indicateur du lien actif (barre latérale)"
-            value={a.navIndicator}
-            onChange={(v) => setAppearance({ navIndicator: v })}
-            options={[
-              { value: "auto", label: "Actuel (fond coloré)" },
-              { value: "dot", label: "Pastille pleine" },
-              { value: "bar", label: "Trait fin" },
-            ]}
           />
         </div>
 
@@ -654,35 +699,6 @@ function VisualSettingsCard() {
               { value: "colored", label: "Accent coloré conservé" },
               { value: "neutral", label: "Gris neutre" },
             ]}
-          />
-        </div>
-
-        {/* Sidebar & navigation */}
-        <div className="space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Barre latérale
-          </p>
-          <div className="space-y-2">
-            <Label htmlFor="defaultOpenGroup">Groupe ouvert par défaut</Label>
-            <select
-              id="defaultOpenGroup"
-              value={a.defaultOpenGroup}
-              onChange={(e) => setAppearance({ defaultOpenGroup: e.target.value })}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">Comportement actuel</option>
-              {SIDEBAR_GROUPS.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </select>
-          </div>
-          <SwitchRow
-            label="Barre latérale repliée par défaut"
-            hint="S'applique tant que vous ne l'avez pas repliée/dépliée manuellement."
-            checked={a.sidebarCollapsedDefault}
-            onChange={(v) => setAppearance({ sidebarCollapsedDefault: v })}
           />
         </div>
 

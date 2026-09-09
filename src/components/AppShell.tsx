@@ -15,7 +15,6 @@ import {
   CalendarDays,
   BarChart3,
   MoreHorizontal,
-  ClipboardList,
   FileText,
   ChevronDown,
   Database,
@@ -40,6 +39,10 @@ import {
   MapPin,
   Leaf,
   Globe2,
+  FileBarChart,
+  Files,
+  Table2,
+  FlaskConical,
 } from "lucide-react";
 import {
   Sheet,
@@ -72,6 +75,10 @@ type NavItem = {
   icon: typeof LayoutDashboard;
   exact: boolean;
   primary: boolean;
+  /** Sous-légende facultative affichée au-dessus de cet item quand elle
+   * diffère de celle de l'item précédent (repère visuel, pas une rubrique
+   * pliable supplémentaire). */
+  section?: string;
 };
 type NavGroup = { label: string; items: NavItem[]; emptyLabel?: string };
 
@@ -81,6 +88,19 @@ type NavGroup = { label: string; items: NavItem[]; emptyLabel?: string };
 // eslint-disable-next-line react-refresh/only-export-components
 export const DEFAULT_OPEN_GROUP = "Aujourd'hui";
 let navGroupState: Record<string, boolean> = { [DEFAULT_OPEN_GROUP]: true };
+
+// Source unique des noms de rubriques du menu latéral : à tenir à jour ici
+// et nulle part ailleurs (la page Personnalisation les importe pour ses
+// réglages "masquer un groupe" / "groupe ouvert par défaut", afin qu'ils ne
+// puissent plus se désynchroniser des rubriques réellement affichées).
+// eslint-disable-next-line react-refresh/only-export-components
+export const NAV_GROUP_LABELS = [
+  "Aujourd'hui",
+  "Pilotage",
+  "Clients",
+  "Activité",
+  "Paramètres",
+] as const;
 
 /** Filtre de la palette de commande : recherche insensible casse/accents. */
 // eslint-disable-next-line react-refresh/only-export-components
@@ -212,14 +232,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               icon: BarChart3,
               exact: false,
               primary: false,
-            },
-            {
-              to: "/pilot/ceev",
-              label: "Rentabilité CEEV",
-              short: "CEEV €",
-              icon: ClipboardList,
-              exact: false,
-              primary: false,
+              section: "Vue d'ensemble",
             },
             {
               to: "/pilot/objectifs",
@@ -228,6 +241,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               icon: Target,
               exact: false,
               primary: false,
+              section: "Vue d'ensemble",
             },
             {
               to: "/pilot/benchmark",
@@ -236,6 +250,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               icon: CalendarRange,
               exact: false,
               primary: false,
+              section: "Vue d'ensemble",
+            },
+            {
+              to: "/pilot/ceev",
+              label: "Rentabilité CEEV",
+              short: "CEEV €",
+              icon: FileBarChart,
+              exact: false,
+              primary: false,
+              section: "Rentabilité",
             },
             {
               to: "/pilot/temps",
@@ -244,6 +268,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               icon: Clock,
               exact: false,
               primary: false,
+              section: "Rentabilité",
             },
             {
               to: "/pilot/finance",
@@ -252,6 +277,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               icon: Calculator,
               exact: false,
               primary: false,
+              section: "Finance",
             },
             {
               to: "/pilot/charges",
@@ -260,14 +286,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               icon: Receipt,
               exact: false,
               primary: false,
+              section: "Finance",
             },
             {
               to: "/pilot/simulations",
               label: "Simulations",
               short: "Simul.",
-              icon: Calculator,
+              icon: FlaskConical,
               exact: false,
               primary: false,
+              section: "Finance",
             },
           ]
         : [],
@@ -315,7 +343,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 to: "/fiches",
                 label: "Fiches SST",
                 short: "Fiches",
-                icon: ClipboardList,
+                icon: Files,
                 exact: false,
                 primary: false,
               },
@@ -343,14 +371,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 icon: ShieldCheck,
                 exact: false,
                 primary: false,
+                section: "Données & référentiels",
               },
               {
                 to: "/pilot/donnees",
                 label: "Classeur de données",
                 short: "Classeur",
-                icon: ClipboardList,
+                icon: Table2,
                 exact: false,
                 primary: false,
+                section: "Données & référentiels",
               },
               {
                 to: "/pilot/sites",
@@ -359,6 +389,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 icon: MapPin,
                 exact: false,
                 primary: false,
+                section: "Données & référentiels",
               },
               {
                 to: "/pilot/parametres",
@@ -367,6 +398,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 icon: Settings2,
                 exact: false,
                 primary: false,
+                section: "Données & référentiels",
               },
             ]
           : []),
@@ -377,6 +409,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           icon: Settings,
           exact: false,
           primary: false,
+          section: "Compte & système",
         },
         {
           to: "/personnalisation",
@@ -385,6 +418,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           icon: Palette,
           exact: false,
           primary: false,
+          section: "Compte & système",
         },
         ...(isAdmin
           ? [
@@ -395,6 +429,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 icon: Database,
                 exact: false,
                 primary: false,
+                section: "Compte & système",
               },
             ]
           : []),
@@ -493,7 +528,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 )}
                 {(collapsed || isGroupOpen(group.label)) && (
                   <div className="space-y-1">
-                    {group.items.map((item) =>
+                    {group.items.map((item, index) =>
                       collapsed ? (
                         <Tooltip key={item.to}>
                           <TooltipTrigger asChild>
@@ -511,19 +546,25 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                           <TooltipContent side="right">{item.label}</TooltipContent>
                         </Tooltip>
                       ) : (
-                        <Link
-                          key={item.to}
-                          to={item.to}
-                          data-active={isActive(item.to, item.exact) ? "true" : undefined}
-                          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                            isActive(item.to, item.exact)
-                              ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-                          }`}
-                        >
-                          <item.icon className="nav-link-icon h-5 w-5" />
-                          <span className="nav-text">{item.label}</span>
-                        </Link>
+                        <div key={item.to}>
+                          {item.section && item.section !== group.items[index - 1]?.section && (
+                            <p className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/50">
+                              {item.section}
+                            </p>
+                          )}
+                          <Link
+                            to={item.to}
+                            data-active={isActive(item.to, item.exact) ? "true" : undefined}
+                            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                              isActive(item.to, item.exact)
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                            }`}
+                          >
+                            <item.icon className="nav-link-icon h-5 w-5" />
+                            <span className="nav-text">{item.label}</span>
+                          </Link>
+                        </div>
                       ),
                     )}
                     {!collapsed && group.items.length === 0 && group.emptyLabel && (
