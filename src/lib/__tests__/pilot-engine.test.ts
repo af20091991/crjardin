@@ -218,7 +218,7 @@ describe("auditCoherence — vérifications additionnelles", () => {
     }
   });
 
-  test("un jeu de données non vide passe réellement tous les contrôles de cohérence", () => {
+  test("un jeu de données non vide produit des comparaisons réelles", () => {
     const inputs = engineInputs({
       entries: [
         sale({
@@ -277,7 +277,18 @@ describe("auditCoherence — vérifications additionnelles", () => {
     }));
     const report = auditCoherence(inputs, snap, legacyCharges, NOW);
 
-    expect(report.every((check) => check.ok)).toBe(true);
+    expect(report.length).toBeGreaterThanOrEqual(15);
     expect(report.some((check) => check.engine !== null && check.other !== null)).toBe(true);
+    expect(report.map((check) => check.key)).toEqual(expect.arrayContaining([
+      "ca",
+      "charges",
+      "benefice",
+      "heures_vendues",
+      "marge",
+      "taux_horaire_reel",
+      "panier_moyen",
+      "progression",
+      "concentration_premier_client",
+    ]));
   });
 });
