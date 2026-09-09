@@ -217,4 +217,78 @@ describe("auditCoherence — vérifications additionnelles", () => {
       expect(keys).toContain(key);
     }
   });
+
+  test("un jeu de données non vide produit des comparaisons réelles", () => {
+    const inputs = engineInputs({
+      entries: [
+        sale({
+          id: "audit-sale-1",
+          entry_date: `${YEAR}-03-15`,
+          amount_ht: 10_000,
+          hours: 100,
+          client_id: "c1",
+          client_name: "Adagios",
+        }),
+        sale({
+          id: "audit-sale-2",
+          entry_date: `${YEAR}-07-15`,
+          amount_ht: 5_000,
+          hours: 0,
+          client_id: "c1",
+          client_name: "Adagios",
+          intervention_type: "sst",
+        }),
+      ],
+      chargeRows: [charge({ id: "audit-charge", year: YEAR, month: 3, amount_ht: 3_000 })],
+      ledger: [
+        ledgerSale({
+          id: "audit-ledger-1",
+          year: YEAR,
+          month: 3,
+          hours: 100,
+          clientId: "c1",
+          clientName: "Adagios",
+        }),
+        ledgerSale({
+          id: "audit-ledger-2",
+          year: YEAR,
+          month: 7,
+          hours: 0,
+          clientId: "c1",
+          clientName: "Adagios",
+        }),
+      ],
+      statuses: statuses({ c1: "certified_client" }),
+    });
+
+    const snap = buildAnalytics(inputs, NOW);
+    const legacyCharges = inputs.chargeRows.map((c) => ({
+      id: c.id,
+      user_id: "u1",
+      label: c.designation ?? "Charge test",
+      category: c.charge_category ?? null,
+      kind: "variable" as const,
+      amount: c.amount_ht,
+      period: "ponctuel" as const,
+      charge_date: `${c.year}-${String(c.month).padStart(2, "0")}-01`,
+      is_investment: c.is_investment,
+      created_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
+    }));
+    const report = auditCoherence(inputs, snap, legacyCharges, NOW);
+
+    expect(report.length).toBeGreaterThanOrEqual(15);
+    expect(report.some((check) => check.engine !== null && check.other !== null)).toBe(true);
+    expect(report.map((check) => check.key)).toEqual(expect.arrayContaining([
+      "ca",
+      "charges",
+      "benefice",
+      "heures_vendues",
+      "marge",
+      "taux_horaire_reel",
+      "panier_moyen",
+      "progression",
+      "concentration_premier_client",
+    ]));
+  });
 });
