@@ -25,9 +25,21 @@ export function ReportsCard() {
       { label: "Bénéfice", value: kpis.benefice_brut.value, unit: "eur" },
       { label: "Marge %", value: kpis.marge.value, unit: "pct" },
       { label: "Projection", value: snapshot.projection.caProjete, unit: "eur" },
-      { label: "Taux horaire vendu", value: kpis.taux_horaire_vendu.value, unit: "eur_heure" },
-      { label: "Taux horaire réel", value: kpis.taux_horaire_reel.value, unit: "eur_heure" },
-      { label: "TJM réel", value: snapshot.tjm.result?.tauxJournalier ?? null, unit: "eur_jour" },
+      {
+        label: "Taux horaire vendu",
+        value: kpis.taux_horaire_vendu.value,
+        unit: "eur_heure",
+      },
+      {
+        label: "Taux horaire réel",
+        value: kpis.taux_horaire_reel.value,
+        unit: "eur_heure",
+      },
+      {
+        label: "TJM réel",
+        value: snapshot.tjm.result?.tauxJournalier ?? null,
+        unit: "eur_jour",
+      },
     ];
   }, [snapshot, kpis]);
 
@@ -69,12 +81,19 @@ export function ReportsCard() {
     if (!snapshot || !kpis) return;
     try {
       const wb = XLSX.utils.book_new();
-      const kpi = reportRows.map(({ label, value }) => ({ Indicateur: label, Valeur: value }));
+      const kpi = reportRows.map(({ label, value }) => ({
+        Indicateur: label,
+        Valeur: value,
+      }));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kpi), "Synthese");
       XLSX.utils.book_append_sheet(
         wb,
         XLSX.utils.json_to_sheet(
-          series.map((item) => ({ Mois: item.month, [`${year}`]: item.current, [`${year - 1}`]: item.previous })),
+          series.map((item) => ({
+            Mois: item.month,
+            [`${year}`]: item.current,
+            [`${year - 1}`]: item.previous,
+          })),
         ),
         "CA mensuel",
       );
@@ -97,11 +116,17 @@ export function ReportsCard() {
   }
 
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Chargement des indicateurs…</p>;
+    return (
+      <p className="text-sm text-muted-foreground">Chargement des indicateurs…</p>
+    );
   }
 
   if (isError || !snapshot) {
-    return <p className="text-sm text-muted-foreground">Les indicateurs Pilot sont indisponibles.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        Les indicateurs Pilot sont indisponibles.
+      </p>
+    );
   }
 
   return (
@@ -111,15 +136,25 @@ export function ReportsCard() {
         <Card>
           <CardContent className="space-y-3 pt-6">
             <h4 className="font-medium">Rapport dirigeant (PDF)</h4>
-            <p className="text-sm text-muted-foreground">Synthèse des indicateurs clés et du CA mensuel pour {year}.</p>
-            <Button onClick={exportPdf}><FileDown className="mr-1.5 h-4 w-4" />Générer le PDF</Button>
+            <p className="text-sm text-muted-foreground">
+              Synthèse des indicateurs clés et du CA mensuel pour {year}.
+            </p>
+            <Button onClick={exportPdf}>
+              <FileDown className="mr-1.5 h-4 w-4" />
+              Générer le PDF
+            </Button>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="space-y-3 pt-6">
             <h4 className="font-medium">Export Excel</h4>
-            <p className="text-sm text-muted-foreground">Synthèse, CA mensuel et rentabilité clients en tableur.</p>
-            <Button variant="outline" onClick={exportXlsx}><FileSpreadsheet className="mr-1.5 h-4 w-4" />Générer l'Excel</Button>
+            <p className="text-sm text-muted-foreground">
+              Synthèse, CA mensuel et rentabilité clients en tableur.
+            </p>
+            <Button variant="outline" onClick={exportXlsx}>
+              <FileSpreadsheet className="mr-1.5 h-4 w-4" />
+              Générer l’Excel
+            </Button>
           </CardContent>
         </Card>
       </div>
