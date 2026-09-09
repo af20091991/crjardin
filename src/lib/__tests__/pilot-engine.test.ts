@@ -262,7 +262,20 @@ describe("auditCoherence — vérifications additionnelles", () => {
     });
 
     const snap = buildAnalytics(inputs, NOW);
-    const report = auditCoherence(inputs, snap, inputs.chargeRows, NOW);
+    const legacyCharges = inputs.chargeRows.map((c) => ({
+      id: c.id,
+      user_id: "u1",
+      label: c.designation ?? "Charge test",
+      category: c.charge_category ?? null,
+      kind: "variable" as const,
+      amount: c.amount_ht,
+      period: "ponctuel" as const,
+      charge_date: `${c.year}-${String(c.month).padStart(2, "0")}-01`,
+      is_investment: c.is_investment,
+      created_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
+    }));
+    const report = auditCoherence(inputs, snap, legacyCharges, NOW);
 
     expect(report.every((check) => check.ok)).toBe(true);
     expect(report.some((check) => check.engine !== null && check.other !== null)).toBe(true);
