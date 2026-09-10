@@ -224,8 +224,16 @@ export const CARD_STYLES: { value: Exclude<CardStyle, "auto">; label: string; hi
   { value: "minimal", label: "Minimal", hint: "Très peu de bordures, valeur dominante." },
   { value: "epure", label: "Épuré", hint: "Respiration importante, fond discret." },
   { value: "pilotage", label: "Pilotage", hint: "Valeur dominante, voyant et comparaison nets." },
-  { value: "editorial", label: "Éditorial", hint: "Hiérarchie typographique forte, espaces généreux." },
-  { value: "contour", label: "Contour", hint: "Carte définie par une bordure fine, intérieur sobre." },
+  {
+    value: "editorial",
+    label: "Éditorial",
+    hint: "Hiérarchie typographique forte, espaces généreux.",
+  },
+  {
+    value: "contour",
+    label: "Contour",
+    hint: "Carte définie par une bordure fine, intérieur sobre.",
+  },
   { value: "accent", label: "Accent", hint: "Filet d'accent discret sur le côté." },
 ];
 
@@ -240,7 +248,6 @@ export function effectiveValueAlign(a: Appearance): "left" | "right" {
   if (a.valueAlign !== "auto") return a.valueAlign;
   return a.ui === "next" ? "right" : "left";
 }
-
 
 export type Appearance = {
   theme: ThemeMode;
@@ -363,7 +370,6 @@ export const DEFAULT_APPEARANCE: Appearance = {
   valueAlign: "auto",
   labelLevel: "full",
 };
-
 
 export const PRIMARY_PRESETS = ["#4F8E33", "#1F3D2B", "#3E7D44", "#2E8CCC", "#825A41", "#0F766E"];
 export const ACCENT_PRESETS = ["#EE8627", "#D98A3D", "#E0A21B", "#C97B4A", "#B4531F", "#DC2626"];
@@ -490,7 +496,6 @@ export function applyAppearance(a: Appearance) {
   setFlag(root, "data-value-align", effectiveValueAlign(a) === "left" ? null : "right");
   setFlag(root, "data-label-level", a.labelLevel === "full" ? null : "short");
 }
-
 
 type Ctx = {
   appearance: Appearance;
