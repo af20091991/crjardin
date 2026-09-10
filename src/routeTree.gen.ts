@@ -24,6 +24,7 @@ import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPilotRouteImport } from './routes/_authenticated/pilot'
 import { Route as AuthenticatedPersonnalisationRouteImport } from './routes/_authenticated/personnalisation'
 import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
+import { Route as AuthenticatedJournalSstRouteImport } from './routes/_authenticated/journal-sst'
 import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
 import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -37,7 +38,6 @@ import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_auth
 import { Route as AuthenticatedPilotTempsRouteImport } from './routes/_authenticated/pilot.temps'
 import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
 import { Route as AuthenticatedPilotSitesRouteImport } from './routes/_authenticated/pilot.sites'
-import { Route as AuthenticatedPilotSiteWebRouteImport } from './routes/_authenticated/pilot.site-web'
 import { Route as AuthenticatedPilotSimulationsRouteImport } from './routes/_authenticated/pilot.simulations'
 import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
 import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
@@ -147,6 +147,11 @@ const AuthenticatedModelesRoute = AuthenticatedModelesRouteImport.update({
   path: '/modeles',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedJournalSstRoute = AuthenticatedJournalSstRouteImport.update({
+  id: '/journal-sst',
+  path: '/journal-sst',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEmailsRoute = AuthenticatedEmailsRouteImport.update({
   id: '/emails',
   path: '/emails',
@@ -216,12 +221,6 @@ const AuthenticatedPilotSitesRoute = AuthenticatedPilotSitesRouteImport.update({
   path: '/sites',
   getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
-const AuthenticatedPilotSiteWebRoute =
-  AuthenticatedPilotSiteWebRouteImport.update({
-    id: '/site-web',
-    path: '/site-web',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
 const AuthenticatedPilotSimulationsRoute =
   AuthenticatedPilotSimulationsRouteImport.update({
     id: '/simulations',
@@ -420,6 +419,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/backend': typeof AuthenticatedBackendRoute
   '/emails': typeof AuthenticatedEmailsRoute
+  '/journal-sst': typeof AuthenticatedJournalSstRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/pilot': typeof AuthenticatedPilotRouteWithChildren
@@ -454,7 +454,6 @@ export interface FileRoutesByFullPath {
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
-  '/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -481,6 +480,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/backend': typeof AuthenticatedBackendRoute
   '/emails': typeof AuthenticatedEmailsRoute
+  '/journal-sst': typeof AuthenticatedJournalSstRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/planning': typeof AuthenticatedPlanningRoute
@@ -514,7 +514,6 @@ export interface FileRoutesByTo {
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
-  '/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -543,6 +542,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/backend': typeof AuthenticatedBackendRoute
   '/_authenticated/emails': typeof AuthenticatedEmailsRoute
+  '/_authenticated/journal-sst': typeof AuthenticatedJournalSstRoute
   '/_authenticated/modeles': typeof AuthenticatedModelesRoute
   '/_authenticated/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/_authenticated/pilot': typeof AuthenticatedPilotRouteWithChildren
@@ -578,7 +578,6 @@ export interface FileRoutesById {
   '/_authenticated/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/_authenticated/pilot/sante': typeof AuthenticatedPilotSanteRoute
   '/_authenticated/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
-  '/_authenticated/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/_authenticated/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/_authenticated/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/_authenticated/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -608,6 +607,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/backend'
     | '/emails'
+    | '/journal-sst'
     | '/modeles'
     | '/personnalisation'
     | '/pilot'
@@ -642,7 +642,6 @@ export interface FileRouteTypes {
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulations'
-    | '/pilot/site-web'
     | '/pilot/sites'
     | '/pilot/taux'
     | '/pilot/temps'
@@ -669,6 +668,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/backend'
     | '/emails'
+    | '/journal-sst'
     | '/modeles'
     | '/personnalisation'
     | '/planning'
@@ -702,7 +702,6 @@ export interface FileRouteTypes {
     | '/pilot/saison'
     | '/pilot/sante'
     | '/pilot/simulations'
-    | '/pilot/site-web'
     | '/pilot/sites'
     | '/pilot/taux'
     | '/pilot/temps'
@@ -730,6 +729,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/backend'
     | '/_authenticated/emails'
+    | '/_authenticated/journal-sst'
     | '/_authenticated/modeles'
     | '/_authenticated/personnalisation'
     | '/_authenticated/pilot'
@@ -765,7 +765,6 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/saison'
     | '/_authenticated/pilot/sante'
     | '/_authenticated/pilot/simulations'
-    | '/_authenticated/pilot/site-web'
     | '/_authenticated/pilot/sites'
     | '/_authenticated/pilot/taux'
     | '/_authenticated/pilot/temps'
@@ -904,6 +903,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedModelesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/journal-sst': {
+      id: '/_authenticated/journal-sst'
+      path: '/journal-sst'
+      fullPath: '/journal-sst'
+      preLoaderRoute: typeof AuthenticatedJournalSstRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/emails': {
       id: '/_authenticated/emails'
       path: '/emails'
@@ -993,13 +999,6 @@ declare module '@tanstack/react-router' {
       path: '/sites'
       fullPath: '/pilot/sites'
       preLoaderRoute: typeof AuthenticatedPilotSitesRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/site-web': {
-      id: '/_authenticated/pilot/site-web'
-      path: '/site-web'
-      fullPath: '/pilot/site-web'
-      preLoaderRoute: typeof AuthenticatedPilotSiteWebRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
     '/_authenticated/pilot/simulations': {
@@ -1267,7 +1266,6 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotSaisonRoute: typeof AuthenticatedPilotSaisonRoute
   AuthenticatedPilotSanteRoute: typeof AuthenticatedPilotSanteRoute
   AuthenticatedPilotSimulationsRoute: typeof AuthenticatedPilotSimulationsRoute
-  AuthenticatedPilotSiteWebRoute: typeof AuthenticatedPilotSiteWebRoute
   AuthenticatedPilotSitesRoute: typeof AuthenticatedPilotSitesRoute
   AuthenticatedPilotTauxRoute: typeof AuthenticatedPilotTauxRoute
   AuthenticatedPilotTempsRoute: typeof AuthenticatedPilotTempsRoute
@@ -1300,7 +1298,6 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotSaisonRoute: AuthenticatedPilotSaisonRoute,
   AuthenticatedPilotSanteRoute: AuthenticatedPilotSanteRoute,
   AuthenticatedPilotSimulationsRoute: AuthenticatedPilotSimulationsRoute,
-  AuthenticatedPilotSiteWebRoute: AuthenticatedPilotSiteWebRoute,
   AuthenticatedPilotSitesRoute: AuthenticatedPilotSitesRoute,
   AuthenticatedPilotTauxRoute: AuthenticatedPilotTauxRoute,
   AuthenticatedPilotTempsRoute: AuthenticatedPilotTempsRoute,
@@ -1321,6 +1318,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBackendRoute: typeof AuthenticatedBackendRoute
   AuthenticatedEmailsRoute: typeof AuthenticatedEmailsRoute
+  AuthenticatedJournalSstRoute: typeof AuthenticatedJournalSstRoute
   AuthenticatedModelesRoute: typeof AuthenticatedModelesRoute
   AuthenticatedPersonnalisationRoute: typeof AuthenticatedPersonnalisationRoute
   AuthenticatedPilotRoute: typeof AuthenticatedPilotRouteWithChildren
@@ -1344,6 +1342,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedBackendRoute: AuthenticatedBackendRoute,
   AuthenticatedEmailsRoute: AuthenticatedEmailsRoute,
+  AuthenticatedJournalSstRoute: AuthenticatedJournalSstRoute,
   AuthenticatedModelesRoute: AuthenticatedModelesRoute,
   AuthenticatedPersonnalisationRoute: AuthenticatedPersonnalisationRoute,
   AuthenticatedPilotRoute: AuthenticatedPilotRouteWithChildren,

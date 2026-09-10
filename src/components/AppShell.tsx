@@ -199,7 +199,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         ...(canEdit
           ? [
               { to: "/pilot/rentabilite", label: "Rentabilité clients", short: "Rentab.", icon: LineChart, exact: false, primary: false },
-              { to: "/fiches", label: "Fiches SST", short: "Fiches", icon: ClipboardList, exact: false, primary: false },
+              { to: "/fiches", label: "Fiches SST", short: "Fiches", icon: Files, exact: false, primary: false },
               { to: "/sst", label: "Sous-traitance", short: "SST", icon: HardHat, exact: false, primary: false },
             ]
           : []),
@@ -210,7 +210,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       items: canEdit
         ? [
             { to: "/pilot/direction", label: "Direction", short: "Direction", icon: BarChart3, exact: false, primary: false },
-            { to: "/pilot/ceev", label: "Rentabilité CEEV", short: "CEEV €", icon: ClipboardList, exact: false, primary: false },
+            { to: "/pilot/ceev", label: "Rentabilité CEEV", short: "CEEV €", icon: FileBarChart, exact: false, primary: false },
             { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
             { to: "/pilot/benchmark", label: "Comparatifs et prévisions", short: "Compar.", icon: CalendarRange, exact: false, primary: false },
             { to: "/pilot/temps", label: "Temps & rentabilité", short: "Temps", icon: Clock, exact: false, primary: false },
@@ -227,7 +227,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         ...(canEdit
           ? [
               { to: "/pilot/controle", label: "Contrôle des données", short: "Contrôle", icon: ShieldCheck, exact: false, primary: false },
-              { to: "/pilot/donnees", label: "Classeur de données", short: "Classeur", icon: ClipboardList, exact: false, primary: false },
+              { to: "/pilot/donnees", label: "Classeur de données", short: "Classeur", icon: Table2, exact: false, primary: false },
               { to: "/pilot/sites", label: "Sites & contacts", short: "Sites", icon: MapPin, exact: false, primary: false },
               { to: "/pilot/parametres", label: "Règles de calcul", short: "Règles", icon: Settings2, exact: false, primary: false },
             ]
