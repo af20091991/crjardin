@@ -26,6 +26,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-09",
+    version: "2.3.4",
+    theme: "Général",
+    title: "Personnalisation et navigation simplifiées",
+    details: [
+      "La personnalisation est organisée en cinq familles synthétiques avec aperçu immédiat.",
+      "Cinq nouveaux réglages contrôlent les surfaces, l’élévation des cartes et le confort du menu latéral.",
+      "Le menu latéral regroupe désormais les écrans en quatre ensembles plus faciles à parcourir.",
+    ],
+  },
+  {
     date: "2026-08-30",
     version: "2.3.3",
     theme: "Général",
@@ -37,7 +48,6 @@ export const CHANGELOG: ChangeEntry[] = [
     ],
   },
   {
-
     date: "2026-08-28",
     version: "2.3.2",
     theme: "Général",
@@ -158,7 +168,8 @@ export const CHANGELOG: ChangeEntry[] = [
     date: "2026-07-29",
     version: "1.17.0",
     theme: "Général",
-    title: "Pilot Pro V1.1 — classeur des données, historique des corrections et contrôle anti-régression",
+    title:
+      "Pilot Pro V1.1 — classeur des données, historique des corrections et contrôle anti-régression",
     details: [
       "Nouveau « Classeur des données » : CA et charges, clients, contrats CEEV, missions de sous-traitance, catégories et rapprochements se corrigent directement comme dans un tableur.",
       "Chaque correction manuelle conserve la valeur précédente, la date et le motif : le journal permet d'annuler n'importe quelle modification.",

@@ -197,6 +197,11 @@ export type NavIndicator = "auto" | "dot" | "bar";
 export type AccentSaturation = "normal" | "soft" | "vivid";
 export type DarkTint = "colored" | "neutral";
 export type WeekStart = "auto" | "monday" | "sunday";
+export type SurfaceTone = "white" | "soft";
+export type CardElevation = "flat" | "soft" | "raised";
+export type SidebarWidth = "narrow" | "standard" | "wide";
+export type NavSpacing = "compact" | "comfortable";
+export type ActiveIndicator = "subtle" | "strong";
 
 /* ---------- Lecture des cartes (présentation seule) ---------- */
 export type CardReading = "synthetic" | "standard" | "detailed";
@@ -219,8 +224,16 @@ export const CARD_STYLES: { value: Exclude<CardStyle, "auto">; label: string; hi
   { value: "minimal", label: "Minimal", hint: "Très peu de bordures, valeur dominante." },
   { value: "epure", label: "Épuré", hint: "Respiration importante, fond discret." },
   { value: "pilotage", label: "Pilotage", hint: "Valeur dominante, voyant et comparaison nets." },
-  { value: "editorial", label: "Éditorial", hint: "Hiérarchie typographique forte, espaces généreux." },
-  { value: "contour", label: "Contour", hint: "Carte définie par une bordure fine, intérieur sobre." },
+  {
+    value: "editorial",
+    label: "Éditorial",
+    hint: "Hiérarchie typographique forte, espaces généreux.",
+  },
+  {
+    value: "contour",
+    label: "Contour",
+    hint: "Carte définie par une bordure fine, intérieur sobre.",
+  },
   { value: "accent", label: "Accent", hint: "Filet d'accent discret sur le côté." },
 ];
 
@@ -235,7 +248,6 @@ export function effectiveValueAlign(a: Appearance): "left" | "right" {
   if (a.valueAlign !== "auto") return a.valueAlign;
   return a.ui === "next" ? "right" : "left";
 }
-
 
 export type Appearance = {
   theme: ThemeMode;
@@ -283,6 +295,16 @@ export type Appearance = {
   sidebarCollapsedDefault: boolean;
   // 15 — Premier jour de la semaine
   weekStart: WeekStart;
+  /** Ton général des surfaces de travail. */
+  surfaceTone: SurfaceTone;
+  /** Élévation permanente des cartes. */
+  cardElevation: CardElevation;
+  /** Largeur du menu latéral déplié. */
+  sidebarWidth: SidebarWidth;
+  /** Espacement vertical des liens du menu. */
+  navSpacing: NavSpacing;
+  /** Intensité visuelle de la page active. */
+  activeIndicator: ActiveIndicator;
 
   /* ---------- Lecture des cartes (présentation seule) ---------- */
   // Niveau de lecture des cartes
@@ -332,6 +354,11 @@ export const DEFAULT_APPEARANCE: Appearance = {
   defaultOpenGroup: "",
   sidebarCollapsedDefault: false,
   weekStart: "auto",
+  surfaceTone: "soft",
+  cardElevation: "soft",
+  sidebarWidth: "standard",
+  navSpacing: "comfortable",
+  activeIndicator: "subtle",
   cardReading: "standard",
   cardComparisons: true,
   euroFormat: "normal",
@@ -343,7 +370,6 @@ export const DEFAULT_APPEARANCE: Appearance = {
   valueAlign: "auto",
   labelLevel: "full",
 };
-
 
 export const PRIMARY_PRESETS = ["#4F8E33", "#1F3D2B", "#3E7D44", "#2E8CCC", "#825A41", "#0F766E"];
 export const ACCENT_PRESETS = ["#EE8627", "#D98A3D", "#E0A21B", "#C97B4A", "#B4531F", "#DC2626"];
@@ -455,6 +481,11 @@ export function applyAppearance(a: Appearance) {
   setFlag(root, "data-dark-tint", a.darkTint === "colored" ? null : a.darkTint);
   // 15 — Premier jour de la semaine (lundi = comportement actuel des helpers)
   setWeekStartDay(a.weekStart === "sunday" ? 0 : 1);
+  setFlag(root, "data-surface-tone", a.surfaceTone === "soft" ? null : a.surfaceTone);
+  setFlag(root, "data-card-elevation", a.cardElevation === "soft" ? null : a.cardElevation);
+  setFlag(root, "data-sidebar-width", a.sidebarWidth === "standard" ? null : a.sidebarWidth);
+  setFlag(root, "data-nav-spacing", a.navSpacing === "comfortable" ? null : a.navSpacing);
+  setFlag(root, "data-active-indicator", a.activeIndicator === "subtle" ? null : a.activeIndicator);
 
   /* ---------- Lecture des cartes : présentation seule, jamais de calcul ---------- */
   setFlag(root, "data-card-reading", a.cardReading === "standard" ? null : a.cardReading);
@@ -465,7 +496,6 @@ export function applyAppearance(a: Appearance) {
   setFlag(root, "data-value-align", effectiveValueAlign(a) === "left" ? null : "right");
   setFlag(root, "data-label-level", a.labelLevel === "full" ? null : "short");
 }
-
 
 type Ctx = {
   appearance: Appearance;
