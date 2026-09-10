@@ -281,7 +281,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       <TooltipProvider delayDuration={150}>
         <aside
           data-shell="sidebar"
-          className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card transition-[width] duration-200 md:flex ${
+          className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card/95 shadow-sm backdrop-blur transition-[width] duration-200 md:flex ${
             collapsed ? "w-16" : "w-60"
           }`}
         >
@@ -323,7 +323,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                     type="button"
                     onClick={() => toggleGroup(group.label)}
                     data-shell="nav-group-title"
-                    className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 transition-colors hover:text-foreground"
+                    className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase text-muted-foreground/70 transition-colors hover:text-foreground"
                   >
                     <span>{group.label}</span>
                     <ChevronDown
