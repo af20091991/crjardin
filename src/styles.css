@@ -1128,3 +1128,35 @@ html[data-clean-reading="on"] .pp-card .pp-card-detail {
 html[data-clean-reading="on"] .pp-card .pp-card-progress {
   opacity: 0.6;
 }
+
+/* Personnalisation synthétique — cinq réglages d'apparence supplémentaires. */
+html[data-surface-tone="white"] {
+  --background: oklch(1 0 0);
+  --secondary: oklch(0.975 0.008 145);
+}
+html[data-card-elevation="flat"] .bg-card {
+  box-shadow: none !important;
+}
+html[data-card-elevation="raised"] .bg-card {
+  box-shadow: var(--shadow-elegant);
+}
+html[data-nav-spacing="compact"] [data-shell="nav"] a {
+  min-height: 34px;
+  padding-block: 0.35rem;
+}
+html[data-active-indicator="strong"] [data-shell="nav"] a[data-active="true"] {
+  box-shadow: inset 3px 0 0 var(--primary);
+  background-color: color-mix(in oklab, var(--primary) 16%, transparent);
+  font-weight: 650;
+}
+html[data-sidebar-width="narrow"] [data-shell="sidebar"] { width: 13rem; }
+html[data-sidebar-width="narrow"] [data-shell="content"] { padding-left: 13rem; }
+html[data-sidebar-width="wide"] [data-shell="sidebar"] { width: 18rem; }
+html[data-sidebar-width="wide"] [data-shell="content"] { padding-left: 18rem; }
+
+[data-personalization="root"] {
+  --personalization-panel: color-mix(in oklab, var(--card) 96%, var(--secondary));
+}
+[data-personalization="preview"] {
+  background-color: color-mix(in oklab, var(--secondary) 55%, var(--card));
+}
