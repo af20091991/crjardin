@@ -30,6 +30,11 @@ import {
   type EuroFormat,
   type HoursFormat,
   type PercentFormat,
+  type SurfaceTone,
+  type CardElevation,
+  type SidebarWidth,
+  type NavSpacing,
+  type ActiveIndicator,
   CARD_STYLES,
   effectiveCardStyle,
   effectiveValueAlign,
@@ -37,7 +42,20 @@ import {
   FONT_STACKS,
 } from "@/lib/appearance";
 
-import { Palette, Sun, Moon, Monitor, RotateCcw, Check } from "lucide-react";
+import {
+  Palette,
+  Sun,
+  Moon,
+  Monitor,
+  RotateCcw,
+  Check,
+  Sparkles,
+  Type,
+  Layers3,
+  LayoutPanelLeft,
+  PanelLeft,
+  BarChart3,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/personnalisation")({
   head: () => ({ meta: [{ title: "Personnalisation — De la graine au jardin" }] }),
@@ -71,7 +89,7 @@ function Swatch({
 /** Titre + description courte introduisant un groupe de cartes de réglages. */
 function SectionHeading({ title, description }: { title: string; description: string }) {
   return (
-    <div className="pt-2 first:pt-0">
+    <div className="pt-2 first:pt-0 lg:col-span-2">
       <h3 className="font-serif text-base font-semibold">{title}</h3>
       <p className="text-sm text-muted-foreground">{description}</p>
     </div>
@@ -112,8 +130,9 @@ function PersonnalisationPage() {
 
   return (
     <AppShell title="Personnalisation">
-      <div className="mx-auto max-w-3xl space-y-5">
-        <div className="flex items-center gap-3">
+      <div data-personalization="root" className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-2">
+        <div className="flex items-center justify-between gap-4 lg:col-span-2">
+          <div className="flex items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
             <Palette className="h-6 w-6" />
           </div>
@@ -124,9 +143,49 @@ function PersonnalisationPage() {
               instantanément sur cet appareil.
             </p>
           </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={reset}>
+            <RotateCcw className="mr-1.5 h-4 w-4" /> Réinitialiser
+          </Button>
         </div>
 
-        <SectionHeading title="Apparence" description="Couleurs, thème et style général." />
+        <div className="flex flex-wrap gap-2 lg:col-span-2" aria-label="Familles de réglages">
+          {[
+            { label: "Apparence", icon: Sparkles },
+            { label: "Typographie", icon: Type },
+            { label: "Cartes", icon: Layers3 },
+            { label: "Mise en page", icon: LayoutPanelLeft },
+            { label: "Navigation", icon: PanelLeft },
+          ].map(({ label, icon: Icon }) => (
+            <span key={label} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground">
+              <Icon className="h-4 w-4 text-primary" /> {label}
+            </span>
+          ))}
+        </div>
+
+        <AppearanceEssentials />
+
+        <Card data-personalization="preview" className="overflow-hidden">
+          <CardHeader className="border-b border-border/70 pb-4">
+            <CardTitle className="font-serif text-base">Aperçu immédiat</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-5">
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
+              <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary"><BarChart3 className="h-4 w-4" /></div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">Exemple de carte</p>
+                <p className="text-xs text-muted-foreground">Résultat de la période</p>
+              </div>
+              <p className="font-serif text-xl font-semibold tabular-nums">12 480 €</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-2">
+              <div className="rounded-md bg-primary/10 px-3 py-2 text-sm font-medium text-primary">Page active</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">Autre destination</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <SectionHeading title="Typographie" description="Titres, textes courants et valeurs numériques." />
 
         {/* Typographie : 3 rôles indépendants, polices déjà chargées */}
         <Card>
@@ -173,6 +232,8 @@ function PersonnalisationPage() {
             ))}
           </CardContent>
         </Card>
+
+        <SectionHeading title="Apparence" description="Couleurs, thème et style général." />
 
         {/* Nouvelle interface : bascule de jeu de tokens (data-theme) */}
         <Card>
@@ -391,7 +452,7 @@ function PersonnalisationPage() {
         </Card>
 
         <SectionHeading
-          title="Menu latéral"
+          title="Navigation"
           description="Rubriques affichées, ouverture par défaut et style du lien actif."
         />
 
@@ -462,7 +523,7 @@ function PersonnalisationPage() {
         </Card>
 
         <SectionHeading
-          title="Lisibilité & accessibilité"
+          title="Accessibilité"
           description="Contraste, taille du texte et animations."
         />
         <Card>
@@ -491,7 +552,10 @@ function PersonnalisationPage() {
           </CardContent>
         </Card>
 
-        <Collapsible>
+        <div className="lg:col-span-2">
+          <SectionHeading title="Cartes" description="Hiérarchie, formats et détails visuels avancés." />
+        </div>
+        <Collapsible className="lg:col-span-2">
           <CollapsibleTrigger asChild>
             <button
               type="button"
@@ -509,11 +573,6 @@ function PersonnalisationPage() {
           </CollapsibleContent>
         </Collapsible>
 
-        <div className="flex justify-end">
-          <Button variant="outline" onClick={reset}>
-            <RotateCcw className="mr-1.5 h-4 w-4" /> Réinitialiser
-          </Button>
-        </div>
       </div>
     </AppShell>
   );

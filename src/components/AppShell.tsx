@@ -96,10 +96,9 @@ let navGroupState: Record<string, boolean> = { [DEFAULT_OPEN_GROUP]: true };
 // eslint-disable-next-line react-refresh/only-export-components
 export const NAV_GROUP_LABELS = [
   "Aujourd'hui",
+  "Activité & clients",
   "Pilotage",
-  "Clients",
-  "Activité",
-  "Paramètres",
+  "Configuration",
 ] as const;
 
 /** Filtre de la palette de commande : recherche insensible casse/accents. */
