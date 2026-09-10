@@ -197,6 +197,11 @@ export type NavIndicator = "auto" | "dot" | "bar";
 export type AccentSaturation = "normal" | "soft" | "vivid";
 export type DarkTint = "colored" | "neutral";
 export type WeekStart = "auto" | "monday" | "sunday";
+export type SurfaceTone = "white" | "soft";
+export type CardElevation = "flat" | "soft" | "raised";
+export type SidebarWidth = "narrow" | "standard" | "wide";
+export type NavSpacing = "compact" | "comfortable";
+export type ActiveIndicator = "subtle" | "strong";
 
 /* ---------- Lecture des cartes (présentation seule) ---------- */
 export type CardReading = "synthetic" | "standard" | "detailed";
@@ -283,6 +288,16 @@ export type Appearance = {
   sidebarCollapsedDefault: boolean;
   // 15 — Premier jour de la semaine
   weekStart: WeekStart;
+  /** Ton général des surfaces de travail. */
+  surfaceTone: SurfaceTone;
+  /** Élévation permanente des cartes. */
+  cardElevation: CardElevation;
+  /** Largeur du menu latéral déplié. */
+  sidebarWidth: SidebarWidth;
+  /** Espacement vertical des liens du menu. */
+  navSpacing: NavSpacing;
+  /** Intensité visuelle de la page active. */
+  activeIndicator: ActiveIndicator;
 
   /* ---------- Lecture des cartes (présentation seule) ---------- */
   // Niveau de lecture des cartes
@@ -332,6 +347,11 @@ export const DEFAULT_APPEARANCE: Appearance = {
   defaultOpenGroup: "",
   sidebarCollapsedDefault: false,
   weekStart: "auto",
+  surfaceTone: "soft",
+  cardElevation: "soft",
+  sidebarWidth: "standard",
+  navSpacing: "comfortable",
+  activeIndicator: "subtle",
   cardReading: "standard",
   cardComparisons: true,
   euroFormat: "normal",
@@ -455,6 +475,11 @@ export function applyAppearance(a: Appearance) {
   setFlag(root, "data-dark-tint", a.darkTint === "colored" ? null : a.darkTint);
   // 15 — Premier jour de la semaine (lundi = comportement actuel des helpers)
   setWeekStartDay(a.weekStart === "sunday" ? 0 : 1);
+  setFlag(root, "data-surface-tone", a.surfaceTone === "soft" ? null : a.surfaceTone);
+  setFlag(root, "data-card-elevation", a.cardElevation === "soft" ? null : a.cardElevation);
+  setFlag(root, "data-sidebar-width", a.sidebarWidth === "standard" ? null : a.sidebarWidth);
+  setFlag(root, "data-nav-spacing", a.navSpacing === "comfortable" ? null : a.navSpacing);
+  setFlag(root, "data-active-indicator", a.activeIndicator === "subtle" ? null : a.activeIndicator);
 
   /* ---------- Lecture des cartes : présentation seule, jamais de calcul ---------- */
   setFlag(root, "data-card-reading", a.cardReading === "standard" ? null : a.cardReading);

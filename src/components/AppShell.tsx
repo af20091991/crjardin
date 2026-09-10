@@ -96,10 +96,9 @@ let navGroupState: Record<string, boolean> = { [DEFAULT_OPEN_GROUP]: true };
 // eslint-disable-next-line react-refresh/only-export-components
 export const NAV_GROUP_LABELS = [
   "Aujourd'hui",
+  "Activité & clients",
   "Pilotage",
-  "Clients",
-  "Activité",
-  "Paramètres",
+  "Configuration",
 ] as const;
 
 /** Filtre de la palette de commande : recherche insensible casse/accents. */
@@ -177,268 +176,72 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const isActive = (to: string, exact: boolean) =>
     exact ? pathname === to : pathname.startsWith(to);
 
-  // Menu condensé en 5 rubriques (PP v2.3+).
+  // Navigation regroupée en quatre ensembles : chaque destination existante est conservée.
   const groups: NavGroup[] = [
     {
       label: "Aujourd'hui",
       items: [
-        {
-          to: "/pilot",
-          label: "Centre de décision",
-          short: "Accueil",
-          icon: Home,
-          exact: true,
-          primary: true,
-        },
+        { to: "/pilot", label: "Centre de décision", short: "Accueil", icon: Home, exact: true, primary: true },
         ...(canEdit
           ? [
-              {
-                to: "/pilot/ca",
-                label: "Chiffre d'affaires",
-                short: "CA",
-                icon: Euro,
-                exact: false,
-                primary: false,
-              },
-              {
-                to: "/pilot/sante",
-                label: "Santé de l'activité",
-                short: "Santé",
-                icon: HeartPulse,
-                exact: false,
-                primary: false,
-              },
+              { to: "/pilot/ca", label: "Chiffre d'affaires", short: "CA", icon: Euro, exact: false, primary: false },
+              { to: "/pilot/sante", label: "Santé de l'activité", short: "Santé", icon: HeartPulse, exact: false, primary: false },
             ]
           : []),
-
-        {
-          to: "/pilot/site-web",
-          label: "Site web",
-          short: "Site web",
-          icon: Globe2,
-          exact: false,
-          primary: false,
-        },
+        { to: "/pilot/site-web", label: "Site web", short: "Site web", icon: Globe2, exact: false, primary: false },
+      ],
+    },
+    {
+      label: "Activité & clients",
+      items: [
+        { to: "/clients", label: "Fiches clients", short: "Clients", icon: Users, exact: false, primary: true },
+        { to: "/interventions", label: "CR chantier", short: "CR", icon: FileText, exact: false, primary: true },
+        ...(canEdit
+          ? [
+              { to: "/pilot/rentabilite", label: "Rentabilité clients", short: "Rentab.", icon: LineChart, exact: false, primary: false },
+              { to: "/fiches", label: "Fiches SST", short: "Fiches", icon: ClipboardList, exact: false, primary: false },
+              { to: "/sst", label: "Sous-traitance", short: "SST", icon: HardHat, exact: false, primary: false },
+            ]
+          : []),
       ],
     },
     {
       label: "Pilotage",
       items: canEdit
         ? [
-            {
-              to: "/pilot/direction",
-              label: "Direction",
-              short: "Direction",
-              icon: BarChart3,
-              exact: false,
-              primary: false,
-              section: "Vue d'ensemble",
-            },
-            {
-              to: "/pilot/objectifs",
-              label: "Objectifs",
-              short: "Objectifs",
-              icon: Target,
-              exact: false,
-              primary: false,
-              section: "Vue d'ensemble",
-            },
-            {
-              to: "/pilot/benchmark",
-              label: "Comparatifs et prévisions",
-              short: "Compar.",
-              icon: CalendarRange,
-              exact: false,
-              primary: false,
-              section: "Vue d'ensemble",
-            },
-            {
-              to: "/pilot/ceev",
-              label: "Rentabilité CEEV",
-              short: "CEEV €",
-              icon: FileBarChart,
-              exact: false,
-              primary: false,
-              section: "Rentabilité",
-            },
-            {
-              to: "/pilot/temps",
-              label: "Analyse temps & rentabilité",
-              short: "Temps",
-              icon: Clock,
-              exact: false,
-              primary: false,
-              section: "Rentabilité",
-            },
-            {
-              to: "/pilot/finance",
-              label: "Finance",
-              short: "Finance",
-              icon: Calculator,
-              exact: false,
-              primary: false,
-              section: "Finance",
-            },
-            {
-              to: "/pilot/charges",
-              label: "Charges & investissements",
-              short: "Charges",
-              icon: Receipt,
-              exact: false,
-              primary: false,
-              section: "Finance",
-            },
-            {
-              to: "/pilot/simulations",
-              label: "Simulations",
-              short: "Simul.",
-              icon: FlaskConical,
-              exact: false,
-              primary: false,
-              section: "Finance",
-            },
+            { to: "/pilot/direction", label: "Direction", short: "Direction", icon: BarChart3, exact: false, primary: false },
+            { to: "/pilot/ceev", label: "Rentabilité CEEV", short: "CEEV €", icon: ClipboardList, exact: false, primary: false },
+            { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
+            { to: "/pilot/benchmark", label: "Comparatifs et prévisions", short: "Compar.", icon: CalendarRange, exact: false, primary: false },
+            { to: "/pilot/temps", label: "Temps & rentabilité", short: "Temps", icon: Clock, exact: false, primary: false },
+            { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
+            { to: "/pilot/charges", label: "Charges & investissements", short: "Charges", icon: Receipt, exact: false, primary: false },
+            { to: "/pilot/simulations", label: "Simulations", short: "Simul.", icon: Calculator, exact: false, primary: false },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Réservé",
     },
     {
-      label: "Clients",
-      items: [
-        {
-          to: "/clients",
-          label: "Fiches clients",
-          short: "Clients",
-          icon: Users,
-          exact: false,
-          primary: true,
-        },
-        ...(canEdit
-          ? [
-              {
-                to: "/pilot/rentabilite",
-                label: "Rentabilité",
-                short: "Rentab.",
-                icon: LineChart,
-                exact: false,
-                primary: false,
-              },
-            ]
-          : []),
-      ],
-    },
-    {
-      label: "Activité",
-      items: [
-        {
-          to: "/interventions",
-          label: "CR chantier",
-          short: "CR",
-          icon: FileText,
-          exact: false,
-          primary: true,
-        },
-        ...(canEdit
-          ? [
-              {
-                to: "/fiches",
-                label: "Fiches SST",
-                short: "Fiches",
-                icon: Files,
-                exact: false,
-                primary: false,
-              },
-              {
-                to: "/sst",
-                label: "SST",
-                short: "SST",
-                icon: HardHat,
-                exact: false,
-                primary: false,
-              },
-            ]
-          : []),
-      ],
-    },
-    {
-      label: "Paramètres",
+      label: "Configuration",
       items: [
         ...(canEdit
           ? [
-              {
-                to: "/pilot/controle",
-                label: "Centre de contrôle des données",
-                short: "Contrôle",
-                icon: ShieldCheck,
-                exact: false,
-                primary: false,
-                section: "Données & référentiels",
-              },
-              {
-                to: "/pilot/donnees",
-                label: "Classeur de données",
-                short: "Classeur",
-                icon: Table2,
-                exact: false,
-                primary: false,
-                section: "Données & référentiels",
-              },
-              {
-                to: "/pilot/sites",
-                label: "Sites & contacts",
-                short: "Sites",
-                icon: MapPin,
-                exact: false,
-                primary: false,
-                section: "Données & référentiels",
-              },
-              {
-                to: "/pilot/parametres",
-                label: "Règles de calcul",
-                short: "Règles",
-                icon: Settings2,
-                exact: false,
-                primary: false,
-                section: "Données & référentiels",
-              },
+              { to: "/pilot/controle", label: "Contrôle des données", short: "Contrôle", icon: ShieldCheck, exact: false, primary: false },
+              { to: "/pilot/donnees", label: "Classeur de données", short: "Classeur", icon: ClipboardList, exact: false, primary: false },
+              { to: "/pilot/sites", label: "Sites & contacts", short: "Sites", icon: MapPin, exact: false, primary: false },
+              { to: "/pilot/parametres", label: "Règles de calcul", short: "Règles", icon: Settings2, exact: false, primary: false },
             ]
           : []),
-        {
-          to: "/settings",
-          label: "Paramètres généraux",
-          short: "Réglages",
-          icon: Settings,
-          exact: false,
-          primary: false,
-          section: "Compte & système",
-        },
-        {
-          to: "/personnalisation",
-          label: "Personnalisation",
-          short: "Apparence",
-          icon: Palette,
-          exact: false,
-          primary: false,
-          section: "Compte & système",
-        },
+        { to: "/settings", label: "Paramètres généraux", short: "Réglages", icon: Settings, exact: false, primary: false },
+        { to: "/personnalisation", label: "Personnalisation", short: "Apparence", icon: Palette, exact: false, primary: false },
         ...(isAdmin
-          ? [
-              {
-                to: "/backend",
-                label: "Backend",
-                short: "Backend",
-                icon: Database,
-                exact: false,
-                primary: false,
-                section: "Compte & système",
-              },
-            ]
+          ? [{ to: "/backend", label: "Administration", short: "Admin", icon: Database, exact: false, primary: false }]
           : []),
       ],
     },
   ]
     .filter((g) => !appearance.hiddenGroups.includes(g.label))
     .filter((g) => g.items.length > 0 || g.emptyLabel);
-
   const navItems = groups.flatMap((g) => g.items);
   const primaryItems = navItems.filter((i) => i.primary);
   const moreItems = navItems.filter((i) => !i.primary);
@@ -470,14 +273,25 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     Catalogue: BookOpen,
     Pilotage: Compass,
   };
+  const expandedSidebarClass = {
+    narrow: "w-52",
+    standard: "w-60",
+    wide: "w-72",
+  }[appearance.sidebarWidth];
+  const expandedContentClass = {
+    narrow: "md:pl-52",
+    standard: "md:pl-60",
+    wide: "md:pl-72",
+  }[appearance.sidebarWidth];
 
   return (
     <div data-shell="root" className="min-h-screen bg-secondary/30">
       {/* Sidebar desktop */}
       <TooltipProvider delayDuration={150}>
         <aside
-          className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card transition-[width] duration-200 md:flex ${
-            collapsed ? "w-16" : "w-60"
+          data-shell="sidebar"
+          className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card/95 shadow-sm backdrop-blur transition-[width] duration-200 md:flex ${
+            collapsed ? "w-16" : expandedSidebarClass
           }`}
         >
           <div
@@ -518,7 +332,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                     type="button"
                     onClick={() => toggleGroup(group.label)}
                     data-shell="nav-group-title"
-                    className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70 transition-colors hover:text-foreground"
+                    className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase text-muted-foreground/70 transition-colors hover:text-foreground"
                   >
                     <span>{group.label}</span>
                     <ChevronDown
@@ -621,7 +435,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       </TooltipProvider>
 
       {/* Main */}
-      <div className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : "md:pl-60"}`}>
+      <div data-shell="content" className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : expandedContentClass}`}>
         {/* Mobile header */}
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2">
