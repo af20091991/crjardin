@@ -273,6 +273,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     Catalogue: BookOpen,
     Pilotage: Compass,
   };
+  const expandedSidebarClass = {
+    narrow: "w-52",
+    standard: "w-60",
+    wide: "w-72",
+  }[appearance.sidebarWidth];
+  const expandedContentClass = {
+    narrow: "md:pl-52",
+    standard: "md:pl-60",
+    wide: "md:pl-72",
+  }[appearance.sidebarWidth];
 
   return (
     <div data-shell="root" className="min-h-screen bg-secondary/30">
@@ -281,7 +291,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         <aside
           data-shell="sidebar"
           className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card/95 shadow-sm backdrop-blur transition-[width] duration-200 md:flex ${
-            collapsed ? "w-16" : "w-60"
+            collapsed ? "w-16" : expandedSidebarClass
           }`}
         >
           <div
@@ -425,7 +435,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       </TooltipProvider>
 
       {/* Main */}
-      <div data-shell="content" className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : "md:pl-60"}`}>
+      <div data-shell="content" className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : expandedContentClass}`}>
         {/* Mobile header */}
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2">

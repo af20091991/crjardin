@@ -659,6 +659,67 @@ function SwitchRow({
   );
 }
 
+function AppearanceEssentials() {
+  const { appearance, setAppearance } = useAppearance();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-serif text-base">Confort visuel</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <SegRow<SurfaceTone>
+          label="Ton des surfaces"
+          value={appearance.surfaceTone}
+          onChange={(surfaceTone) => setAppearance({ surfaceTone })}
+          options={[
+            { value: "soft", label: "Doux" },
+            { value: "white", label: "Blanc" },
+          ]}
+        />
+        <SegRow<CardElevation>
+          label="Élévation des cartes"
+          value={appearance.cardElevation}
+          onChange={(cardElevation) => setAppearance({ cardElevation })}
+          options={[
+            { value: "flat", label: "Plate" },
+            { value: "soft", label: "Douce" },
+            { value: "raised", label: "Marquée" },
+          ]}
+        />
+        <SegRow<SidebarWidth>
+          label="Largeur du menu"
+          value={appearance.sidebarWidth}
+          onChange={(sidebarWidth) => setAppearance({ sidebarWidth })}
+          options={[
+            { value: "narrow", label: "Étroit" },
+            { value: "standard", label: "Standard" },
+            { value: "wide", label: "Large" },
+          ]}
+        />
+        <SegRow<NavSpacing>
+          label="Espacement des liens"
+          value={appearance.navSpacing}
+          onChange={(navSpacing) => setAppearance({ navSpacing })}
+          options={[
+            { value: "compact", label: "Compact" },
+            { value: "comfortable", label: "Confortable" },
+          ]}
+        />
+        <SegRow<ActiveIndicator>
+          label="Indicateur de page active"
+          value={appearance.activeIndicator}
+          onChange={(activeIndicator) => setAppearance({ activeIndicator })}
+          options={[
+            { value: "subtle", label: "Discret" },
+            { value: "strong", label: "Renforcé" },
+          ]}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 function VisualSettingsCard() {
   const { appearance, setAppearance } = useAppearance();
   const a = appearance;

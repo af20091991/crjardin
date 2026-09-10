@@ -1149,11 +1149,6 @@ html[data-active-indicator="strong"] [data-shell="nav"] a[data-active="true"] {
   background-color: color-mix(in oklab, var(--primary) 16%, transparent);
   font-weight: 650;
 }
-html[data-sidebar-width="narrow"] [data-shell="sidebar"] { width: 13rem; }
-html[data-sidebar-width="narrow"] [data-shell="content"] { padding-left: 13rem; }
-html[data-sidebar-width="wide"] [data-shell="sidebar"] { width: 18rem; }
-html[data-sidebar-width="wide"] [data-shell="content"] { padding-left: 18rem; }
-
 [data-personalization="root"] {
   --personalization-panel: color-mix(in oklab, var(--card) 96%, var(--secondary));
 }
