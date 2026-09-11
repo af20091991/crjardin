@@ -177,7 +177,6 @@ export function AnnualMonthsTable({
             </p>
           </div>
         </div>
-
       </CardContent>
     </Card>
   );
