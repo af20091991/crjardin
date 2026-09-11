@@ -181,26 +181,89 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     {
       label: "Aujourd'hui",
       items: [
-        { to: "/pilot", label: "Centre de décision", short: "Accueil", icon: Home, exact: true, primary: true },
+        {
+          to: "/pilot",
+          label: "Centre de décision",
+          short: "Accueil",
+          icon: Home,
+          exact: true,
+          primary: true,
+        },
         ...(canEdit
           ? [
-              { to: "/pilot/ca", label: "Chiffre d'affaires", short: "CA", icon: Euro, exact: false, primary: false },
-              { to: "/pilot/sante", label: "Santé de l'activité", short: "Santé", icon: HeartPulse, exact: false, primary: false },
+              {
+                to: "/pilot/ca",
+                label: "Chiffre d'affaires",
+                short: "CA",
+                icon: Euro,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/pilot/sante",
+                label: "Santé de l'activité",
+                short: "Santé",
+                icon: HeartPulse,
+                exact: false,
+                primary: false,
+              },
             ]
           : []),
-        { to: "/pilot/site-web", label: "Site web", short: "Site web", icon: Globe2, exact: false, primary: false },
+        {
+          to: "/pilot/site-web",
+          label: "Site web",
+          short: "Site web",
+          icon: Globe2,
+          exact: false,
+          primary: false,
+        },
       ],
     },
     {
       label: "Activité & clients",
       items: [
-        { to: "/clients", label: "Fiches clients", short: "Clients", icon: Users, exact: false, primary: true },
-        { to: "/interventions", label: "CR chantier", short: "CR", icon: FileText, exact: false, primary: true },
+        {
+          to: "/clients",
+          label: "Fiches clients",
+          short: "Clients",
+          icon: Users,
+          exact: false,
+          primary: true,
+        },
+        {
+          to: "/interventions",
+          label: "CR chantier",
+          short: "CR",
+          icon: FileText,
+          exact: false,
+          primary: true,
+        },
         ...(canEdit
           ? [
-              { to: "/pilot/rentabilite", label: "Rentabilité clients", short: "Rentab.", icon: LineChart, exact: false, primary: false },
-              { to: "/fiches", label: "Fiches SST", short: "Fiches", icon: ClipboardList, exact: false, primary: false },
-              { to: "/sst", label: "Sous-traitance", short: "SST", icon: HardHat, exact: false, primary: false },
+              {
+                to: "/pilot/rentabilite",
+                label: "Rentabilité clients",
+                short: "Rentab.",
+                icon: LineChart,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/fiches",
+                label: "Fiches SST",
+                short: "Fiches",
+                icon: ClipboardList,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/sst",
+                label: "Sous-traitance",
+                short: "SST",
+                icon: HardHat,
+                exact: false,
+                primary: false,
+              },
             ]
           : []),
       ],
@@ -209,14 +272,70 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Pilotage",
       items: canEdit
         ? [
-            { to: "/pilot/direction", label: "Direction", short: "Direction", icon: BarChart3, exact: false, primary: false },
-            { to: "/pilot/ceev", label: "Rentabilité CEEV", short: "CEEV €", icon: ClipboardList, exact: false, primary: false },
-            { to: "/pilot/objectifs", label: "Objectifs", short: "Objectifs", icon: Target, exact: false, primary: false },
-            { to: "/pilot/benchmark", label: "Comparatifs et prévisions", short: "Compar.", icon: CalendarRange, exact: false, primary: false },
-            { to: "/pilot/temps", label: "Temps & rentabilité", short: "Temps", icon: Clock, exact: false, primary: false },
-            { to: "/pilot/finance", label: "Finance", short: "Finance", icon: Calculator, exact: false, primary: false },
-            { to: "/pilot/charges", label: "Charges & investissements", short: "Charges", icon: Receipt, exact: false, primary: false },
-            { to: "/pilot/simulations", label: "Simulations", short: "Simul.", icon: Calculator, exact: false, primary: false },
+            {
+              to: "/pilot/direction",
+              label: "Direction",
+              short: "Direction",
+              icon: BarChart3,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/ceev",
+              label: "Rentabilité CEEV",
+              short: "CEEV €",
+              icon: ClipboardList,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/objectifs",
+              label: "Objectifs",
+              short: "Objectifs",
+              icon: Target,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/benchmark",
+              label: "Comparatifs et prévisions",
+              short: "Compar.",
+              icon: CalendarRange,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/temps",
+              label: "Temps & rentabilité",
+              short: "Temps",
+              icon: Clock,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/finance",
+              label: "Finance",
+              short: "Finance",
+              icon: Calculator,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/charges",
+              label: "Charges & investissements",
+              short: "Charges",
+              icon: Receipt,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/simulations",
+              label: "Simulations",
+              short: "Simul.",
+              icon: Calculator,
+              exact: false,
+              primary: false,
+            },
           ]
         : [],
       emptyLabel: canEdit ? undefined : "Réservé",
@@ -226,16 +345,67 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       items: [
         ...(canEdit
           ? [
-              { to: "/pilot/controle", label: "Contrôle des données", short: "Contrôle", icon: ShieldCheck, exact: false, primary: false },
-              { to: "/pilot/donnees", label: "Classeur de données", short: "Classeur", icon: ClipboardList, exact: false, primary: false },
-              { to: "/pilot/sites", label: "Sites & contacts", short: "Sites", icon: MapPin, exact: false, primary: false },
-              { to: "/pilot/parametres", label: "Règles de calcul", short: "Règles", icon: Settings2, exact: false, primary: false },
+              {
+                to: "/pilot/controle",
+                label: "Contrôle des données",
+                short: "Contrôle",
+                icon: ShieldCheck,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/pilot/donnees",
+                label: "Classeur de données",
+                short: "Classeur",
+                icon: ClipboardList,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/pilot/sites",
+                label: "Sites & contacts",
+                short: "Sites",
+                icon: MapPin,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/pilot/parametres",
+                label: "Règles de calcul",
+                short: "Règles",
+                icon: Settings2,
+                exact: false,
+                primary: false,
+              },
             ]
           : []),
-        { to: "/settings", label: "Paramètres généraux", short: "Réglages", icon: Settings, exact: false, primary: false },
-        { to: "/personnalisation", label: "Personnalisation", short: "Apparence", icon: Palette, exact: false, primary: false },
+        {
+          to: "/settings",
+          label: "Paramètres généraux",
+          short: "Réglages",
+          icon: Settings,
+          exact: false,
+          primary: false,
+        },
+        {
+          to: "/personnalisation",
+          label: "Personnalisation",
+          short: "Apparence",
+          icon: Palette,
+          exact: false,
+          primary: false,
+        },
         ...(isAdmin
-          ? [{ to: "/backend", label: "Administration", short: "Admin", icon: Database, exact: false, primary: false }]
+          ? [
+              {
+                to: "/backend",
+                label: "Administration",
+                short: "Admin",
+                icon: Database,
+                exact: false,
+                primary: false,
+              },
+            ]
           : []),
       ],
     },
@@ -435,7 +605,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       </TooltipProvider>
 
       {/* Main */}
-      <div data-shell="content" className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : expandedContentClass}`}>
+      <div
+        data-shell="content"
+        className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : expandedContentClass}`}
+      >
         {/* Mobile header */}
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2">
