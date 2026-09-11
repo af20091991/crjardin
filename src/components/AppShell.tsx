@@ -16,6 +16,7 @@ import {
   BarChart3,
   MoreHorizontal,
   FileText,
+  ClipboardList,
   ChevronDown,
   Database,
   BookOpen,
