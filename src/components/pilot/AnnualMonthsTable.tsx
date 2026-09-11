@@ -178,12 +178,6 @@ export function AnnualMonthsTable({
           </div>
         </div>
 
-        {totals.chargesFixesReportees > 0 && (
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Dont {formatEuro(totals.chargesFixesReportees)} de charges fixes reportées (estimation «
-            Année complète » pour les mois sans ligne dédiée).
-          </p>
-        )}
       </CardContent>
     </Card>
   );
