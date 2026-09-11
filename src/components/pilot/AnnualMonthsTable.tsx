@@ -56,7 +56,6 @@ export function AnnualMonthsTable({
                 <TableHead>Mois</TableHead>
                 <TableHead className="text-right">Ventes saisies</TableHead>
                 <TableHead className="text-right">Charges saisies</TableHead>
-                <TableHead className="text-right">Investissements</TableHead>
                 <TableHead className="text-right">Résultat des saisies</TableHead>
                 <TableHead>Nature</TableHead>
               </TableRow>
@@ -73,17 +72,6 @@ export function AnnualMonthsTable({
                   </TableCell>
                   <TableCell className="text-right tabular-nums text-rose-600">
                     {r.nature === "aucun" ? "—" : formatEuro(r.chargesHt)}
-                    {r.chargesFixesReportees ? (
-                      <span
-                        className="block text-[10px] text-amber-600"
-                        title="Charge fixe reportée (estimation)"
-                      >
-                        dont {formatEuro(r.chargesFixesReportees)} reporté
-                      </span>
-                    ) : null}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums text-sky-600">
-                    {r.investissements ? formatEuro(r.investissements) : "—"}
                   </TableCell>
                   <TableCell
                     className={`text-right tabular-nums ${
@@ -110,9 +98,6 @@ export function AnnualMonthsTable({
                 </TableCell>
                 <TableCell className="text-right tabular-nums text-rose-600">
                   {formatEuro(totals.chargesHt)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums text-sky-600">
-                  {totals.investissements ? formatEuro(totals.investissements) : "—"}
                 </TableCell>
                 <TableCell
                   className={`text-right tabular-nums ${
@@ -154,17 +139,6 @@ export function AnnualMonthsTable({
                   <p className="tabular-nums text-rose-600">
                     {r.nature === "aucun" ? "—" : formatEuro(r.chargesHt)}
                   </p>
-                  {r.chargesFixesReportees ? (
-                    <p className="text-[10px] text-amber-600">
-                      dont {formatEuro(r.chargesFixesReportees)} reporté
-                    </p>
-                  ) : null}
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Investissements</p>
-                  <p className="tabular-nums text-sky-600">
-                    {r.investissements ? formatEuro(r.investissements) : "—"}
-                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Résultat</p>
@@ -203,13 +177,6 @@ export function AnnualMonthsTable({
             </p>
           </div>
         </div>
-
-        {totals.chargesFixesReportees > 0 && (
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Dont {formatEuro(totals.chargesFixesReportees)} de charges fixes reportées (estimation «
-            Année complète » pour les mois sans ligne dédiée).
-          </p>
-        )}
       </CardContent>
     </Card>
   );

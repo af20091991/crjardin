@@ -26,6 +26,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-11",
+    version: "2.3.5",
+    theme: "Général",
+    title: "Tableau annuel du chiffre d’affaires simplifié",
+    details: [
+      "Le tableau Exercice complet n’affiche plus la colonne Investissements ni le détail des charges reportées.",
+    ],
+  },
+  {
     date: "2026-09-09",
     version: "2.3.4",
     theme: "Général",
