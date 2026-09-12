@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { AddMaintenanceDialog } from "@/components/pilot/parc-materiel/AddMaintenanceDialog";
@@ -57,21 +57,27 @@ function EquipmentDetailPage() {
 
   if (equipmentQuery.isLoading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-32 w-full" />
-      </div>
+      <AppShell title="Équipement">
+        <div className="mx-auto max-w-3xl space-y-3">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </AppShell>
     );
   }
 
   if (equipmentQuery.isError || !equipmentQuery.data) {
     return (
-      <EmptyState
-        icon={AlertTriangle}
-        title="Équipement introuvable"
-        description="Il a peut-être été supprimé."
-        action={{ label: "Retour au parc", onClick: () => history.back() }}
-      />
+      <AppShell title="Équipement">
+        <div className="mx-auto max-w-3xl">
+          <EmptyState
+            icon={AlertTriangle}
+            title="Équipement introuvable"
+            description="Il a peut-être été supprimé."
+            action={{ label: "Retour au parc", onClick: () => history.back() }}
+          />
+        </div>
+      </AppShell>
     );
   }
 
@@ -80,29 +86,38 @@ function EquipmentDetailPage() {
   const maintenance = maintenanceQuery.data ?? [];
 
   return (
-    <div className="space-y-6">
-      <div>
+    <AppShell title={equipment.name}>
+      <div className="mx-auto max-w-3xl space-y-4">
         <Link
           to="/parc-materiel"
-          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <ArrowLeft className="h-4 w-4" />
           Retour au parc
         </Link>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">{equipment.name}</h1>
-            <p className="text-sm text-muted-foreground">{categoryLabel(equipment)}</p>
-          </div>
-          <Badge variant={STATUS_VARIANT[equipment.status]}>{EQUIPMENT_STATUS_LABELS[equipment.status]}</Badge>
-        </div>
-      </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-primary/10 font-serif text-xl font-semibold text-primary">
+                  <Wrench className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="truncate font-serif text-xl font-semibold">{equipment.name}</h2>
+                  <p className="text-sm text-muted-foreground">{categoryLabel(equipment)}</p>
+                </div>
+              </div>
+              <Badge variant={STATUS_VARIANT[equipment.status]}>{EQUIPMENT_STATUS_LABELS[equipment.status]}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-3 sm:grid-cols-3">
         <Card>
           <CardContent className="pt-5">
             <p className="text-xs text-muted-foreground">Prix d'achat HT</p>
-            <p className="text-lg font-semibold">
+            <p className="font-serif text-lg font-semibold tabular-nums">
               {equipment.purchase_cost != null ? formatEuro(equipment.purchase_cost) : "—"}
             </p>
             {equipment.purchase_date && (
@@ -115,7 +130,7 @@ function EquipmentDetailPage() {
         <Card>
           <CardContent className="pt-5">
             <p className="text-xs text-muted-foreground">Valeur actuelle</p>
-            <p className="text-lg font-semibold">{value != null ? formatEuro(value) : "—"}</p>
+            <p className="font-serif text-lg font-semibold tabular-nums">{value != null ? formatEuro(value) : "—"}</p>
             {equipment.amortization_years != null && (
               <p className="text-xs text-muted-foreground">
                 Amorti sur {equipment.amortization_years} an{equipment.amortization_years > 1 ? "s" : ""}
@@ -126,7 +141,7 @@ function EquipmentDetailPage() {
         <Card>
           <CardContent className="pt-5">
             <p className="text-xs text-muted-foreground">Coût total d'entretien</p>
-            <p className="text-lg font-semibold">
+            <p className="font-serif text-lg font-semibold tabular-nums">
               {formatEuro(maintenance.reduce((sum, m) => sum + (m.cost ?? 0), 0))}
             </p>
             <p className="text-xs text-muted-foreground">
@@ -134,13 +149,13 @@ function EquipmentDetailPage() {
             </p>
           </CardContent>
         </Card>
-      </div>
+        </div>
 
-      {equipment.notes && (
-        <Card>
-          <CardContent className="pt-5 text-sm text-muted-foreground">{equipment.notes}</CardContent>
-        </Card>
-      )}
+        {equipment.notes && (
+          <Card>
+            <CardContent className="pt-5 text-sm text-muted-foreground">{equipment.notes}</CardContent>
+          </Card>
+        )}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -196,6 +211,7 @@ function EquipmentDetailPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </AppShell>
   );
 }

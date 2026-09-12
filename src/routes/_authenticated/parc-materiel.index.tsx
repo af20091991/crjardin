@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -64,124 +65,132 @@ function ParcMaterielPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Parc matériel</h1>
-          <p className="text-sm text-muted-foreground">
-            Inventaire, valeur du parc et suivi des entretiens.
-          </p>
+    <AppShell title="Parc matériel">
+      <div className="w-full space-y-6 px-4 py-5 lg:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="font-serif text-xl font-semibold tracking-tight">Parc matériel</h1>
+            <p className="text-sm text-muted-foreground">
+              Inventaire, valeur du parc et suivi des entretiens.
+            </p>
+          </div>
+          <AddEquipmentDialog onCreated={refresh} />
         </div>
-        <AddEquipmentDialog onCreated={refresh} />
-      </div>
 
-      {/* Vue d'ensemble */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-5">
-            <div className="rounded-full bg-primary/10 p-2 text-primary">
-              <PackageSearch className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Équipements actifs</p>
-              <p className="text-lg font-semibold">{equipmentQuery.isLoading ? "…" : active.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-5">
-            <div className="rounded-full bg-primary/10 p-2 text-primary">
-              <Wrench className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Valeur totale du parc</p>
-              <p className="text-lg font-semibold">
-                {equipmentQuery.isLoading ? "…" : formatEuro(totalValue)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className={overdue.length > 0 ? "border-destructive/40 bg-destructive/5" : undefined}>
-          <CardContent className="flex items-center gap-3 pt-5">
-            <div className="rounded-full bg-destructive/10 p-2 text-destructive">
-              <AlertTriangle className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Entretiens en retard</p>
-              <p className="text-lg font-semibold">{maintenanceQuery.isLoading ? "…" : overdue.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className={soon.length > 0 ? "border-amber-300 bg-amber-50/60" : undefined}>
-          <CardContent className="flex items-center gap-3 pt-5">
-            <div className="rounded-full bg-amber-100 p-2 text-amber-700">
-              <Clock className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Entretiens sous 30 jours</p>
-              <p className="text-lg font-semibold">{maintenanceQuery.isLoading ? "…" : soon.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {Object.keys(byCategory).length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(byCategory).map(([label, count]) => (
-            <Badge key={label} variant="outline" className="font-normal">
-              {label} · {count}
-            </Badge>
-          ))}
+        {/* Vue d'ensemble */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-5">
+              <div className="rounded-full bg-primary/10 p-2 text-primary">
+                <PackageSearch className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Équipements actifs</p>
+                <p className="font-serif text-lg font-semibold tabular-nums">
+                  {equipmentQuery.isLoading ? "…" : active.length}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-5">
+              <div className="rounded-full bg-primary/10 p-2 text-primary">
+                <Wrench className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Valeur totale du parc</p>
+                <p className="font-serif text-lg font-semibold tabular-nums">
+                  {equipmentQuery.isLoading ? "…" : formatEuro(totalValue)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={overdue.length > 0 ? "border-destructive/40 bg-destructive/5" : undefined}>
+            <CardContent className="flex items-center gap-3 pt-5">
+              <div className="rounded-full bg-destructive/10 p-2 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Entretiens en retard</p>
+                <p className="font-serif text-lg font-semibold tabular-nums">
+                  {maintenanceQuery.isLoading ? "…" : overdue.length}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={soon.length > 0 ? "border-amber-300 bg-amber-50/60" : undefined}>
+            <CardContent className="flex items-center gap-3 pt-5">
+              <div className="rounded-full bg-amber-100 p-2 text-amber-700">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Entretiens sous 30 jours</p>
+                <p className="font-serif text-lg font-semibold tabular-nums">
+                  {maintenanceQuery.isLoading ? "…" : soon.length}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      )}
 
-      {/* Liste des équipements */}
-      <Card>
-        <CardContent className="p-0">
-          {equipmentQuery.isLoading ? (
-            <div className="space-y-2 p-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : equipment.length === 0 ? (
-            <EmptyState
-              icon={Wrench}
-              title="Aucun équipement enregistré"
-              description="Ajoute ton premier équipement pour démarrer le suivi du parc."
-            />
-          ) : (
-            <>
-              {/* Desktop : tableau */}
-              <div className="hidden overflow-x-auto md:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nom</TableHead>
-                      <TableHead>Catégorie</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead className="text-right">Valeur actuelle</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {equipment.map((e) => (
-                      <EquipmentRow key={e.id} equipment={e} />
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+        {Object.keys(byCategory).length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(byCategory).map(([label, count]) => (
+              <Badge key={label} variant="outline" className="font-normal">
+                {label} · {count}
+              </Badge>
+            ))}
+          </div>
+        )}
 
-              {/* Mobile : cartes */}
-              <div className="space-y-2 p-4 md:hidden">
-                {equipment.map((e) => (
-                  <EquipmentCard key={e.id} equipment={e} />
-                ))}
+        {/* Liste des équipements */}
+        <Card>
+          <CardContent className="p-0">
+            {equipmentQuery.isLoading ? (
+              <div className="space-y-2 p-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            ) : equipment.length === 0 ? (
+              <EmptyState
+                icon={Wrench}
+                title="Aucun équipement enregistré"
+                description="Ajoute ton premier équipement pour démarrer le suivi du parc."
+              />
+            ) : (
+              <>
+                {/* Desktop : tableau */}
+                <div className="hidden overflow-x-auto md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nom</TableHead>
+                        <TableHead>Catégorie</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Valeur actuelle</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {equipment.map((e) => (
+                        <EquipmentRow key={e.id} equipment={e} />
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile : cartes */}
+                <div className="space-y-2 p-4 md:hidden">
+                  {equipment.map((e) => (
+                    <EquipmentCard key={e.id} equipment={e} />
+                  ))}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </AppShell>
   );
 }
 
