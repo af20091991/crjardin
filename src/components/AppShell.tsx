@@ -43,6 +43,7 @@ import {
   Files,
   Table2,
   FlaskConical,
+  Wrench,
 } from "lucide-react";
 import {
   Sheet,
@@ -329,10 +330,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               primary: false,
             },
             {
-              to: "/pilot/simulations",
-              label: "Simulations",
-              short: "Simul.",
-              icon: Calculator,
+              to: "/parc-materiel",
+              label: "Parc matériel",
+              short: "Parc",
+              icon: Wrench,
               exact: false,
               primary: false,
             },

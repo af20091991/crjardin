@@ -1033,6 +1033,98 @@ export type Database = {
         }
         Relationships: []
       }
+      equipment: {
+        Row: {
+          amortization_years: number | null
+          category: string
+          created_at: string
+          custom_category: string | null
+          id: string
+          name: string
+          notes: string | null
+          purchase_cost: number | null
+          purchase_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amortization_years?: number | null
+          category?: string
+          created_at?: string
+          custom_category?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          purchase_cost?: number | null
+          purchase_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amortization_years?: number | null
+          category?: string
+          created_at?: string
+          custom_category?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          purchase_cost?: number | null
+          purchase_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      equipment_maintenance: {
+        Row: {
+          cost: number | null
+          created_at: string
+          description: string
+          equipment_id: string
+          id: string
+          maintenance_date: string
+          next_due_date: string | null
+          reminder_sent_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          description: string
+          equipment_id: string
+          id?: string
+          maintenance_date?: string
+          next_due_date?: string | null
+          reminder_sent_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          description?: string
+          equipment_id?: string
+          id?: string
+          maintenance_date?: string
+          next_due_date?: string | null
+          reminder_sent_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorite_clients: {
         Row: {
           client_id: string

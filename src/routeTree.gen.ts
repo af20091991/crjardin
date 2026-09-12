@@ -24,11 +24,11 @@ import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPilotRouteImport } from './routes/_authenticated/pilot'
 import { Route as AuthenticatedPersonnalisationRouteImport } from './routes/_authenticated/personnalisation'
 import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
-import { Route as AuthenticatedJournalSstRouteImport } from './routes/_authenticated/journal-sst'
 import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
 import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedPilotIndexRouteImport } from './routes/_authenticated/pilot.index'
+import { Route as AuthenticatedParcMaterielIndexRouteImport } from './routes/_authenticated/parc-materiel.index'
 import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
@@ -38,7 +38,7 @@ import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_auth
 import { Route as AuthenticatedPilotTempsRouteImport } from './routes/_authenticated/pilot.temps'
 import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
 import { Route as AuthenticatedPilotSitesRouteImport } from './routes/_authenticated/pilot.sites'
-import { Route as AuthenticatedPilotSimulationsRouteImport } from './routes/_authenticated/pilot.simulations'
+import { Route as AuthenticatedPilotSiteWebRouteImport } from './routes/_authenticated/pilot.site-web'
 import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
 import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
 import { Route as AuthenticatedPilotRentabiliteRouteImport } from './routes/_authenticated/pilot.rentabilite'
@@ -58,6 +58,7 @@ import { Route as AuthenticatedPilotChargesRouteImport } from './routes/_authent
 import { Route as AuthenticatedPilotCeevRouteImport } from './routes/_authenticated/pilot.ceev'
 import { Route as AuthenticatedPilotCaRouteImport } from './routes/_authenticated/pilot.ca'
 import { Route as AuthenticatedPilotBenchmarkRouteImport } from './routes/_authenticated/pilot.benchmark'
+import { Route as AuthenticatedParcMaterielEquipmentIdRouteImport } from './routes/_authenticated/parc-materiel.$equipmentId'
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
 import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './routes/_authenticated/interventions.$interventionId'
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
@@ -147,11 +148,6 @@ const AuthenticatedModelesRoute = AuthenticatedModelesRouteImport.update({
   path: '/modeles',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedJournalSstRoute = AuthenticatedJournalSstRouteImport.update({
-  id: '/journal-sst',
-  path: '/journal-sst',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedEmailsRoute = AuthenticatedEmailsRouteImport.update({
   id: '/emails',
   path: '/emails',
@@ -172,6 +168,12 @@ const AuthenticatedPilotIndexRoute = AuthenticatedPilotIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
+const AuthenticatedParcMaterielIndexRoute =
+  AuthenticatedParcMaterielIndexRouteImport.update({
+    id: '/parc-materiel/',
+    path: '/parc-materiel/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedInterventionsIndexRoute =
   AuthenticatedInterventionsIndexRouteImport.update({
     id: '/interventions/',
@@ -221,10 +223,10 @@ const AuthenticatedPilotSitesRoute = AuthenticatedPilotSitesRouteImport.update({
   path: '/sites',
   getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
-const AuthenticatedPilotSimulationsRoute =
-  AuthenticatedPilotSimulationsRouteImport.update({
-    id: '/simulations',
-    path: '/simulations',
+const AuthenticatedPilotSiteWebRoute =
+  AuthenticatedPilotSiteWebRouteImport.update({
+    id: '/site-web',
+    path: '/site-web',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
 const AuthenticatedPilotSanteRoute = AuthenticatedPilotSanteRouteImport.update({
@@ -338,6 +340,12 @@ const AuthenticatedPilotBenchmarkRoute =
     path: '/benchmark',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedParcMaterielEquipmentIdRoute =
+  AuthenticatedParcMaterielEquipmentIdRouteImport.update({
+    id: '/parc-materiel/$equipmentId',
+    path: '/parc-materiel/$equipmentId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedInterventionsNewRoute =
   AuthenticatedInterventionsNewRouteImport.update({
     id: '/interventions/new',
@@ -419,7 +427,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/backend': typeof AuthenticatedBackendRoute
   '/emails': typeof AuthenticatedEmailsRoute
-  '/journal-sst': typeof AuthenticatedJournalSstRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/pilot': typeof AuthenticatedPilotRouteWithChildren
@@ -434,6 +441,7 @@ export interface FileRoutesByFullPath {
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/parc-materiel/$equipmentId': typeof AuthenticatedParcMaterielEquipmentIdRoute
   '/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/pilot/ceev': typeof AuthenticatedPilotCeevRoute
@@ -453,7 +461,7 @@ export interface FileRoutesByFullPath {
   '/pilot/rentabilite': typeof AuthenticatedPilotRentabiliteRoute
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
-  '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
+  '/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -463,6 +471,7 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/fiches/': typeof AuthenticatedFichesIndexRoute
   '/interventions/': typeof AuthenticatedInterventionsIndexRoute
+  '/parc-materiel/': typeof AuthenticatedParcMaterielIndexRoute
   '/pilot/': typeof AuthenticatedPilotIndexRoute
   '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
@@ -480,7 +489,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/backend': typeof AuthenticatedBackendRoute
   '/emails': typeof AuthenticatedEmailsRoute
-  '/journal-sst': typeof AuthenticatedJournalSstRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/planning': typeof AuthenticatedPlanningRoute
@@ -495,6 +503,7 @@ export interface FileRoutesByTo {
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/parc-materiel/$equipmentId': typeof AuthenticatedParcMaterielEquipmentIdRoute
   '/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/pilot/ceev': typeof AuthenticatedPilotCeevRoute
@@ -513,7 +522,7 @@ export interface FileRoutesByTo {
   '/pilot/rentabilite': typeof AuthenticatedPilotRentabiliteRoute
   '/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/pilot/sante': typeof AuthenticatedPilotSanteRoute
-  '/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
+  '/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -523,6 +532,7 @@ export interface FileRoutesByTo {
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/fiches': typeof AuthenticatedFichesIndexRoute
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
+  '/parc-materiel': typeof AuthenticatedParcMaterielIndexRoute
   '/pilot': typeof AuthenticatedPilotIndexRoute
   '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
@@ -542,7 +552,6 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/backend': typeof AuthenticatedBackendRoute
   '/_authenticated/emails': typeof AuthenticatedEmailsRoute
-  '/_authenticated/journal-sst': typeof AuthenticatedJournalSstRoute
   '/_authenticated/modeles': typeof AuthenticatedModelesRoute
   '/_authenticated/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/_authenticated/pilot': typeof AuthenticatedPilotRouteWithChildren
@@ -558,6 +567,7 @@ export interface FileRoutesById {
   '/_authenticated/fiches/new': typeof AuthenticatedFichesNewRoute
   '/_authenticated/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/_authenticated/interventions/new': typeof AuthenticatedInterventionsNewRoute
+  '/_authenticated/parc-materiel/$equipmentId': typeof AuthenticatedParcMaterielEquipmentIdRoute
   '/_authenticated/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/_authenticated/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/_authenticated/pilot/ceev': typeof AuthenticatedPilotCeevRoute
@@ -577,7 +587,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/rentabilite': typeof AuthenticatedPilotRentabiliteRoute
   '/_authenticated/pilot/saison': typeof AuthenticatedPilotSaisonRoute
   '/_authenticated/pilot/sante': typeof AuthenticatedPilotSanteRoute
-  '/_authenticated/pilot/simulations': typeof AuthenticatedPilotSimulationsRoute
+  '/_authenticated/pilot/site-web': typeof AuthenticatedPilotSiteWebRoute
   '/_authenticated/pilot/sites': typeof AuthenticatedPilotSitesRoute
   '/_authenticated/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/_authenticated/pilot/temps': typeof AuthenticatedPilotTempsRoute
@@ -587,6 +597,7 @@ export interface FileRoutesById {
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/fiches/': typeof AuthenticatedFichesIndexRoute
   '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
+  '/_authenticated/parc-materiel/': typeof AuthenticatedParcMaterielIndexRoute
   '/_authenticated/pilot/': typeof AuthenticatedPilotIndexRoute
   '/_authenticated/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/_authenticated/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
@@ -607,7 +618,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/backend'
     | '/emails'
-    | '/journal-sst'
     | '/modeles'
     | '/personnalisation'
     | '/pilot'
@@ -622,6 +632,7 @@ export interface FileRouteTypes {
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
+    | '/parc-materiel/$equipmentId'
     | '/pilot/benchmark'
     | '/pilot/ca'
     | '/pilot/ceev'
@@ -641,7 +652,7 @@ export interface FileRouteTypes {
     | '/pilot/rentabilite'
     | '/pilot/saison'
     | '/pilot/sante'
-    | '/pilot/simulations'
+    | '/pilot/site-web'
     | '/pilot/sites'
     | '/pilot/taux'
     | '/pilot/temps'
@@ -651,6 +662,7 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/fiches/'
     | '/interventions/'
+    | '/parc-materiel/'
     | '/pilot/'
     | '/pilot/ceev-contrats/$agreementId'
     | '/pilot/clients/$clientKey'
@@ -668,7 +680,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/backend'
     | '/emails'
-    | '/journal-sst'
     | '/modeles'
     | '/personnalisation'
     | '/planning'
@@ -683,6 +694,7 @@ export interface FileRouteTypes {
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
+    | '/parc-materiel/$equipmentId'
     | '/pilot/benchmark'
     | '/pilot/ca'
     | '/pilot/ceev'
@@ -701,7 +713,7 @@ export interface FileRouteTypes {
     | '/pilot/rentabilite'
     | '/pilot/saison'
     | '/pilot/sante'
-    | '/pilot/simulations'
+    | '/pilot/site-web'
     | '/pilot/sites'
     | '/pilot/taux'
     | '/pilot/temps'
@@ -711,6 +723,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/fiches'
     | '/interventions'
+    | '/parc-materiel'
     | '/pilot'
     | '/pilot/ceev-contrats/$agreementId'
     | '/pilot/clients/$clientKey'
@@ -729,7 +742,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/backend'
     | '/_authenticated/emails'
-    | '/_authenticated/journal-sst'
     | '/_authenticated/modeles'
     | '/_authenticated/personnalisation'
     | '/_authenticated/pilot'
@@ -745,6 +757,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fiches/new'
     | '/_authenticated/interventions/$interventionId'
     | '/_authenticated/interventions/new'
+    | '/_authenticated/parc-materiel/$equipmentId'
     | '/_authenticated/pilot/benchmark'
     | '/_authenticated/pilot/ca'
     | '/_authenticated/pilot/ceev'
@@ -764,7 +777,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/rentabilite'
     | '/_authenticated/pilot/saison'
     | '/_authenticated/pilot/sante'
-    | '/_authenticated/pilot/simulations'
+    | '/_authenticated/pilot/site-web'
     | '/_authenticated/pilot/sites'
     | '/_authenticated/pilot/taux'
     | '/_authenticated/pilot/temps'
@@ -774,6 +787,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clients/'
     | '/_authenticated/fiches/'
     | '/_authenticated/interventions/'
+    | '/_authenticated/parc-materiel/'
     | '/_authenticated/pilot/'
     | '/_authenticated/pilot/ceev-contrats/$agreementId'
     | '/_authenticated/pilot/clients/$clientKey'
@@ -903,13 +917,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedModelesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/journal-sst': {
-      id: '/_authenticated/journal-sst'
-      path: '/journal-sst'
-      fullPath: '/journal-sst'
-      preLoaderRoute: typeof AuthenticatedJournalSstRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/emails': {
       id: '/_authenticated/emails'
       path: '/emails'
@@ -937,6 +944,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/pilot/'
       preLoaderRoute: typeof AuthenticatedPilotIndexRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/parc-materiel/': {
+      id: '/_authenticated/parc-materiel/'
+      path: '/parc-materiel'
+      fullPath: '/parc-materiel/'
+      preLoaderRoute: typeof AuthenticatedParcMaterielIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/interventions/': {
       id: '/_authenticated/interventions/'
@@ -1001,11 +1015,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotSitesRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
-    '/_authenticated/pilot/simulations': {
-      id: '/_authenticated/pilot/simulations'
-      path: '/simulations'
-      fullPath: '/pilot/simulations'
-      preLoaderRoute: typeof AuthenticatedPilotSimulationsRouteImport
+    '/_authenticated/pilot/site-web': {
+      id: '/_authenticated/pilot/site-web'
+      path: '/site-web'
+      fullPath: '/pilot/site-web'
+      preLoaderRoute: typeof AuthenticatedPilotSiteWebRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
     '/_authenticated/pilot/sante': {
@@ -1141,6 +1155,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotBenchmarkRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/parc-materiel/$equipmentId': {
+      id: '/_authenticated/parc-materiel/$equipmentId'
+      path: '/parc-materiel/$equipmentId'
+      fullPath: '/parc-materiel/$equipmentId'
+      preLoaderRoute: typeof AuthenticatedParcMaterielEquipmentIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/interventions/new': {
       id: '/_authenticated/interventions/new'
       path: '/interventions/new'
@@ -1265,7 +1286,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotRentabiliteRoute: typeof AuthenticatedPilotRentabiliteRoute
   AuthenticatedPilotSaisonRoute: typeof AuthenticatedPilotSaisonRoute
   AuthenticatedPilotSanteRoute: typeof AuthenticatedPilotSanteRoute
-  AuthenticatedPilotSimulationsRoute: typeof AuthenticatedPilotSimulationsRoute
+  AuthenticatedPilotSiteWebRoute: typeof AuthenticatedPilotSiteWebRoute
   AuthenticatedPilotSitesRoute: typeof AuthenticatedPilotSitesRoute
   AuthenticatedPilotTauxRoute: typeof AuthenticatedPilotTauxRoute
   AuthenticatedPilotTempsRoute: typeof AuthenticatedPilotTempsRoute
@@ -1297,7 +1318,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotRentabiliteRoute: AuthenticatedPilotRentabiliteRoute,
   AuthenticatedPilotSaisonRoute: AuthenticatedPilotSaisonRoute,
   AuthenticatedPilotSanteRoute: AuthenticatedPilotSanteRoute,
-  AuthenticatedPilotSimulationsRoute: AuthenticatedPilotSimulationsRoute,
+  AuthenticatedPilotSiteWebRoute: AuthenticatedPilotSiteWebRoute,
   AuthenticatedPilotSitesRoute: AuthenticatedPilotSitesRoute,
   AuthenticatedPilotTauxRoute: AuthenticatedPilotTauxRoute,
   AuthenticatedPilotTempsRoute: AuthenticatedPilotTempsRoute,
@@ -1318,7 +1339,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBackendRoute: typeof AuthenticatedBackendRoute
   AuthenticatedEmailsRoute: typeof AuthenticatedEmailsRoute
-  AuthenticatedJournalSstRoute: typeof AuthenticatedJournalSstRoute
   AuthenticatedModelesRoute: typeof AuthenticatedModelesRoute
   AuthenticatedPersonnalisationRoute: typeof AuthenticatedPersonnalisationRoute
   AuthenticatedPilotRoute: typeof AuthenticatedPilotRouteWithChildren
@@ -1333,16 +1353,17 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFichesNewRoute: typeof AuthenticatedFichesNewRoute
   AuthenticatedInterventionsInterventionIdRoute: typeof AuthenticatedInterventionsInterventionIdRoute
   AuthenticatedInterventionsNewRoute: typeof AuthenticatedInterventionsNewRoute
+  AuthenticatedParcMaterielEquipmentIdRoute: typeof AuthenticatedParcMaterielEquipmentIdRoute
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute
   AuthenticatedFichesIndexRoute: typeof AuthenticatedFichesIndexRoute
   AuthenticatedInterventionsIndexRoute: typeof AuthenticatedInterventionsIndexRoute
+  AuthenticatedParcMaterielIndexRoute: typeof AuthenticatedParcMaterielIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedBackendRoute: AuthenticatedBackendRoute,
   AuthenticatedEmailsRoute: AuthenticatedEmailsRoute,
-  AuthenticatedJournalSstRoute: AuthenticatedJournalSstRoute,
   AuthenticatedModelesRoute: AuthenticatedModelesRoute,
   AuthenticatedPersonnalisationRoute: AuthenticatedPersonnalisationRoute,
   AuthenticatedPilotRoute: AuthenticatedPilotRouteWithChildren,
@@ -1358,9 +1379,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInterventionsInterventionIdRoute:
     AuthenticatedInterventionsInterventionIdRoute,
   AuthenticatedInterventionsNewRoute: AuthenticatedInterventionsNewRoute,
+  AuthenticatedParcMaterielEquipmentIdRoute:
+    AuthenticatedParcMaterielEquipmentIdRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
   AuthenticatedFichesIndexRoute: AuthenticatedFichesIndexRoute,
   AuthenticatedInterventionsIndexRoute: AuthenticatedInterventionsIndexRoute,
+  AuthenticatedParcMaterielIndexRoute: AuthenticatedParcMaterielIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -1380,13 +1404,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
