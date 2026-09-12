@@ -32,7 +32,10 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 };
 
 const URGENCY_BADGE: Record<string, { label: string; className: string } | null> = {
-  overdue: { label: "En retard", className: "bg-destructive/10 text-destructive border-destructive/30" },
+  overdue: {
+    label: "En retard",
+    className: "bg-destructive/10 text-destructive border-destructive/30",
+  },
   soon: { label: "Sous 30 jours", className: "bg-amber-50 text-amber-700 border-amber-300" },
   ok: null,
   none: null,
@@ -108,109 +111,122 @@ function EquipmentDetailPage() {
                   <p className="text-sm text-muted-foreground">{categoryLabel(equipment)}</p>
                 </div>
               </div>
-              <Badge variant={STATUS_VARIANT[equipment.status]}>{EQUIPMENT_STATUS_LABELS[equipment.status]}</Badge>
+              <Badge variant={STATUS_VARIANT[equipment.status]}>
+                {EQUIPMENT_STATUS_LABELS[equipment.status]}
+              </Badge>
             </div>
           </CardContent>
         </Card>
 
         <div className="grid gap-3 sm:grid-cols-3">
-        <Card>
-          <CardContent className="pt-5">
-            <p className="text-xs text-muted-foreground">Prix d'achat HT</p>
-            <p className="font-serif text-lg font-semibold tabular-nums">
-              {equipment.purchase_cost != null ? formatEuro(equipment.purchase_cost) : "—"}
-            </p>
-            {equipment.purchase_date && (
-              <p className="text-xs text-muted-foreground">
-                Acheté le {new Date(equipment.purchase_date).toLocaleDateString("fr-FR")}
+          <Card>
+            <CardContent className="pt-5">
+              <p className="text-xs text-muted-foreground">Prix d'achat HT</p>
+              <p className="font-serif text-lg font-semibold tabular-nums">
+                {equipment.purchase_cost != null ? formatEuro(equipment.purchase_cost) : "—"}
               </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5">
-            <p className="text-xs text-muted-foreground">Valeur actuelle</p>
-            <p className="font-serif text-lg font-semibold tabular-nums">{value != null ? formatEuro(value) : "—"}</p>
-            {equipment.amortization_years != null && (
-              <p className="text-xs text-muted-foreground">
-                Amorti sur {equipment.amortization_years} an{equipment.amortization_years > 1 ? "s" : ""}
+              {equipment.purchase_date && (
+                <p className="text-xs text-muted-foreground">
+                  Acheté le {new Date(equipment.purchase_date).toLocaleDateString("fr-FR")}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-5">
+              <p className="text-xs text-muted-foreground">Valeur actuelle</p>
+              <p className="font-serif text-lg font-semibold tabular-nums">
+                {value != null ? formatEuro(value) : "—"}
               </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5">
-            <p className="text-xs text-muted-foreground">Coût total d'entretien</p>
-            <p className="font-serif text-lg font-semibold tabular-nums">
-              {formatEuro(maintenance.reduce((sum, m) => sum + (m.cost ?? 0), 0))}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {maintenance.length} intervention{maintenance.length > 1 ? "s" : ""}
-            </p>
-          </CardContent>
-        </Card>
+              {equipment.amortization_years != null && (
+                <p className="text-xs text-muted-foreground">
+                  Amorti sur {equipment.amortization_years} an
+                  {equipment.amortization_years > 1 ? "s" : ""}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-5">
+              <p className="text-xs text-muted-foreground">Coût total d'entretien</p>
+              <p className="font-serif text-lg font-semibold tabular-nums">
+                {formatEuro(maintenance.reduce((sum, m) => sum + (m.cost ?? 0), 0))}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {maintenance.length} intervention{maintenance.length > 1 ? "s" : ""}
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {equipment.notes && (
           <Card>
-            <CardContent className="pt-5 text-sm text-muted-foreground">{equipment.notes}</CardContent>
+            <CardContent className="pt-5 text-sm text-muted-foreground">
+              {equipment.notes}
+            </CardContent>
           </Card>
         )}
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">Historique d'entretien</CardTitle>
-          <AddMaintenanceDialog equipmentId={equipmentId} onCreated={refresh} />
-        </CardHeader>
-        <CardContent className="p-0">
-          {maintenanceQuery.isLoading ? (
-            <div className="space-y-2 p-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : maintenance.length === 0 ? (
-            <EmptyState
-              icon={Wrench}
-              title="Aucune intervention enregistrée"
-              description="Ajoute la première intervention d'entretien pour cet équipement."
-              compact
-            />
-          ) : (
-            <div className="divide-y divide-border">
-              {maintenance.map((m) => {
-                const urgency = URGENCY_BADGE[maintenanceUrgency(m.next_due_date)];
-                return (
-                  <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 p-4">
-                    <div>
-                      <p className="font-medium">{m.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(m.maintenance_date).toLocaleDateString("fr-FR")}
-                        {m.next_due_date && (
-                          <>
-                            {" "}
-                            · Prochaine échéance : {new Date(m.next_due_date).toLocaleDateString("fr-FR")}
-                          </>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">Historique d'entretien</CardTitle>
+            <AddMaintenanceDialog equipmentId={equipmentId} onCreated={refresh} />
+          </CardHeader>
+          <CardContent className="p-0">
+            {maintenanceQuery.isLoading ? (
+              <div className="space-y-2 p-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : maintenance.length === 0 ? (
+              <EmptyState
+                icon={Wrench}
+                title="Aucune intervention enregistrée"
+                description="Ajoute la première intervention d'entretien pour cet équipement."
+                compact
+              />
+            ) : (
+              <div className="divide-y divide-border">
+                {maintenance.map((m) => {
+                  const urgency = URGENCY_BADGE[maintenanceUrgency(m.next_due_date)];
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex flex-wrap items-center justify-between gap-2 p-4"
+                    >
+                      <div>
+                        <p className="font-medium">{m.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(m.maintenance_date).toLocaleDateString("fr-FR")}
+                          {m.next_due_date && (
+                            <>
+                              {" "}
+                              · Prochaine échéance :{" "}
+                              {new Date(m.next_due_date).toLocaleDateString("fr-FR")}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {urgency && (
+                          <Badge variant="outline" className={urgency.className}>
+                            <Clock className="mr-1 h-3 w-3" />
+                            {urgency.label}
+                          </Badge>
                         )}
-                      </p>
+                        {m.cost != null && (
+                          <span className="text-sm tabular-nums text-muted-foreground">
+                            {formatEuro(m.cost)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {urgency && (
-                        <Badge variant="outline" className={urgency.className}>
-                          <Clock className="mr-1 h-3 w-3" />
-                          {urgency.label}
-                        </Badge>
-                      )}
-                      {m.cost != null && (
-                        <span className="text-sm tabular-nums text-muted-foreground">{formatEuro(m.cost)}</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AppShell>
   );

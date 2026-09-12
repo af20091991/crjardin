@@ -4,7 +4,14 @@ import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { AddEquipmentDialog } from "@/components/pilot/parc-materiel/AddEquipmentDialog";
 import { formatEuro } from "@/lib/pilot";
@@ -23,7 +30,10 @@ export const Route = createFileRoute("/_authenticated/parc-materiel/")({
   head: () => ({
     meta: [
       { title: "Parc matériel — Pilot Pro" },
-      { name: "description", content: "Inventaire du matériel, valeur du parc et alertes d'entretien." },
+      {
+        name: "description",
+        content: "Inventaire du matériel, valeur du parc et alertes d'entretien.",
+      },
     ],
   }),
   component: ParcMaterielPage,
@@ -39,7 +49,10 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 function ParcMaterielPage() {
   const queryClient = useQueryClient();
 
-  const equipmentQuery = useQuery({ queryKey: ["parc-materiel", "equipment"], queryFn: listEquipment });
+  const equipmentQuery = useQuery({
+    queryKey: ["parc-materiel", "equipment"],
+    queryFn: listEquipment,
+  });
   const maintenanceQuery = useQuery({
     queryKey: ["parc-materiel", "maintenance-upcoming"],
     queryFn: listUpcomingMaintenance,
@@ -52,7 +65,9 @@ function ParcMaterielPage() {
   const overdue = (maintenanceQuery.data ?? []).filter(
     (m) => maintenanceUrgency(m.next_due_date) === "overdue",
   );
-  const soon = (maintenanceQuery.data ?? []).filter((m) => maintenanceUrgency(m.next_due_date) === "soon");
+  const soon = (maintenanceQuery.data ?? []).filter(
+    (m) => maintenanceUrgency(m.next_due_date) === "soon",
+  );
 
   const byCategory = active.reduce<Record<string, number>>((acc, e) => {
     const label = categoryLabel(e);
@@ -105,7 +120,9 @@ function ParcMaterielPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className={overdue.length > 0 ? "border-destructive/40 bg-destructive/5" : undefined}>
+          <Card
+            className={overdue.length > 0 ? "border-destructive/40 bg-destructive/5" : undefined}
+          >
             <CardContent className="flex items-center gap-3 pt-5">
               <div className="rounded-full bg-destructive/10 p-2 text-destructive">
                 <AlertTriangle className="h-4 w-4" />
@@ -200,14 +217,20 @@ function EquipmentRow({ equipment }: { equipment: Equipment }) {
   return (
     <TableRow
       className="cursor-pointer"
-      onClick={() => navigate({ to: "/parc-materiel/$equipmentId", params: { equipmentId: equipment.id } })}
+      onClick={() =>
+        navigate({ to: "/parc-materiel/$equipmentId", params: { equipmentId: equipment.id } })
+      }
     >
       <TableCell className="font-medium">{equipment.name}</TableCell>
       <TableCell className="text-muted-foreground">{categoryLabel(equipment)}</TableCell>
       <TableCell>
-        <Badge variant={STATUS_VARIANT[equipment.status]}>{EQUIPMENT_STATUS_LABELS[equipment.status]}</Badge>
+        <Badge variant={STATUS_VARIANT[equipment.status]}>
+          {EQUIPMENT_STATUS_LABELS[equipment.status]}
+        </Badge>
       </TableCell>
-      <TableCell className="text-right tabular-nums">{value != null ? formatEuro(value) : "—"}</TableCell>
+      <TableCell className="text-right tabular-nums">
+        {value != null ? formatEuro(value) : "—"}
+      </TableCell>
     </TableRow>
   );
 }
@@ -222,7 +245,9 @@ function EquipmentCard({ equipment }: { equipment: Equipment }) {
     >
       <div className="flex items-center justify-between gap-2">
         <p className="font-medium">{equipment.name}</p>
-        <Badge variant={STATUS_VARIANT[equipment.status]}>{EQUIPMENT_STATUS_LABELS[equipment.status]}</Badge>
+        <Badge variant={STATUS_VARIANT[equipment.status]}>
+          {EQUIPMENT_STATUS_LABELS[equipment.status]}
+        </Badge>
       </div>
       <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
         <span>{categoryLabel(equipment)}</span>

@@ -50,9 +50,12 @@ export function categoryLabel(equipment: Pick<Equipment, "category" | "custom_ca
 }
 
 /** Valeur actuelle d'un équipement (amortissement linéaire). Jamais négative. */
-export function currentValue(equipment: Pick<Equipment, "purchase_cost" | "purchase_date" | "amortization_years">): number | null {
+export function currentValue(
+  equipment: Pick<Equipment, "purchase_cost" | "purchase_date" | "amortization_years">,
+): number | null {
   const { purchase_cost, purchase_date, amortization_years } = equipment;
-  if (!purchase_cost || !purchase_date || !amortization_years || amortization_years <= 0) return null;
+  if (!purchase_cost || !purchase_date || !amortization_years || amortization_years <= 0)
+    return null;
   const years = (Date.now() - new Date(purchase_date).getTime()) / (1000 * 60 * 60 * 24 * 365.25);
   const remaining = 1 - Math.min(Math.max(years, 0), amortization_years) / amortization_years;
   return Math.round(purchase_cost * remaining * 100) / 100;
@@ -61,7 +64,10 @@ export function currentValue(equipment: Pick<Equipment, "purchase_cost" | "purch
 export type MaintenanceUrgency = "overdue" | "soon" | "ok" | "none";
 
 /** Urgence d'entretien à partir de la prochaine échéance. */
-export function maintenanceUrgency(nextDueDate: string | null, withinDays = 30): MaintenanceUrgency {
+export function maintenanceUrgency(
+  nextDueDate: string | null,
+  withinDays = 30,
+): MaintenanceUrgency {
   if (!nextDueDate) return "none";
   const days = (new Date(nextDueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
   if (days < 0) return "overdue";
@@ -109,7 +115,10 @@ export async function createEquipment(input: EquipmentInput): Promise<Equipment>
   return data as Equipment;
 }
 
-export async function updateEquipment(id: string, input: Partial<EquipmentInput>): Promise<Equipment> {
+export async function updateEquipment(
+  id: string,
+  input: Partial<EquipmentInput>,
+): Promise<Equipment> {
   const { data, error } = await supabase
     .from("equipment")
     .update(input)
@@ -131,14 +140,19 @@ export async function listMaintenanceFor(equipmentId: string): Promise<Equipment
 }
 
 /** Toutes les échéances d'entretien à venir/en retard, tous équipements confondus (pour la vue d'ensemble). */
-export async function listUpcomingMaintenance(): Promise<(EquipmentMaintenance & { equipment_name: string })[]> {
+export async function listUpcomingMaintenance(): Promise<
+  (EquipmentMaintenance & { equipment_name: string })[]
+> {
   const { data, error } = await supabase
     .from("equipment_maintenance")
     .select("*, equipment:equipment_id(name)")
     .not("next_due_date", "is", null)
     .order("next_due_date", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((row: any) => ({ ...row, equipment_name: row.equipment?.name ?? "—" }));
+  return (data ?? []).map((row: EquipmentMaintenance & { equipment: { name: string } | null }) => ({
+    ...row,
+    equipment_name: row.equipment?.name ?? "—",
+  }));
 }
 
 export interface MaintenanceInput {
