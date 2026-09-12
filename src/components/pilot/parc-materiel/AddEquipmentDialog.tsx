@@ -52,7 +52,8 @@ export function AddEquipmentDialog({ onCreated }: { onCreated: () => void }) {
       createEquipment({
         name: name.trim(),
         category,
-        custom_category: category === "autre" && customCategory.trim() ? customCategory.trim() : null,
+        custom_category:
+          category === "autre" && customCategory.trim() ? customCategory.trim() : null,
         purchase_date: purchaseDate || null,
         purchase_cost: purchaseCost ? Number(purchaseCost.replace(",", ".")) : null,
         amortization_years: amortizationYears ? Number(amortizationYears.replace(",", ".")) : null,
@@ -192,15 +193,28 @@ export function AddEquipmentDialog({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="eq-notes">Notes (facultatif)</Label>
-            <Textarea id="eq-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+            <Textarea
+              id="eq-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+            />
           </div>
           {error && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
               {error}
             </p>
           )}
           <DialogFooter className="gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={m.isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={m.isPending}
+            >
               Annuler
             </Button>
             <Button type="submit" disabled={m.isPending}>

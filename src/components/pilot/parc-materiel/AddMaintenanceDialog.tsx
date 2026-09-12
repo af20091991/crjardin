@@ -107,7 +107,12 @@ export function AddMaintenanceDialog({
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="maint-date">Date *</Label>
-              <Input id="maint-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input
+                id="maint-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="maint-cost">Coût</Label>
@@ -130,12 +135,20 @@ export function AddMaintenanceDialog({
             </div>
           </div>
           {error && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
               {error}
             </p>
           )}
           <DialogFooter className="gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={m.isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={m.isPending}
+            >
               Annuler
             </Button>
             <Button type="submit" disabled={m.isPending}>
