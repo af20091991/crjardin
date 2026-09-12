@@ -226,7 +226,7 @@ export const CONTROL_REGISTRY: readonly ControlDefinition[] = [
     label: "Charges fixes récurrentes",
     source: "pilot_fixed_charges",
     field: "amount, frequency",
-    consumers: ["Charges", "Simulations"],
+    consumers: ["Charges"],
     period: "Exercice sélectionné",
     validity: "Montant et fréquence renseignés.",
     notApplicable: "Charge désactivée.",
