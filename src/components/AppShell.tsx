@@ -44,6 +44,7 @@ import {
   Table2,
   FlaskConical,
   Wrench,
+  Sparkles,
 } from "lucide-react";
 import {
   Sheet,
@@ -286,6 +287,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               label: "Rentabilité CEEV",
               short: "CEEV €",
               icon: FileBarChart,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/ceev-live",
+              label: "CEEV temps réel (bêta)",
+              short: "CEEV bêta",
+              icon: Sparkles,
               exact: false,
               primary: false,
             },

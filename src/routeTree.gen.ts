@@ -55,6 +55,7 @@ import { Route as AuthenticatedPilotCorrectionsRouteImport } from './routes/_aut
 import { Route as AuthenticatedPilotControleRouteImport } from './routes/_authenticated/pilot.controle'
 import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
 import { Route as AuthenticatedPilotChargesRouteImport } from './routes/_authenticated/pilot.charges'
+import { Route as AuthenticatedPilotCeevLiveRouteImport } from './routes/_authenticated/pilot.ceev-live'
 import { Route as AuthenticatedPilotCeevRouteImport } from './routes/_authenticated/pilot.ceev'
 import { Route as AuthenticatedPilotCaRouteImport } from './routes/_authenticated/pilot.ca'
 import { Route as AuthenticatedPilotBenchmarkRouteImport } from './routes/_authenticated/pilot.benchmark'
@@ -324,6 +325,12 @@ const AuthenticatedPilotChargesRoute =
     path: '/charges',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedPilotCeevLiveRoute =
+  AuthenticatedPilotCeevLiveRouteImport.update({
+    id: '/ceev-live',
+    path: '/ceev-live',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotCeevRoute = AuthenticatedPilotCeevRouteImport.update({
   id: '/ceev',
   path: '/ceev',
@@ -445,6 +452,7 @@ export interface FileRoutesByFullPath {
   '/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/pilot/ceev': typeof AuthenticatedPilotCeevRoute
+  '/pilot/ceev-live': typeof AuthenticatedPilotCeevLiveRoute
   '/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
   '/pilot/controle': typeof AuthenticatedPilotControleRoute
@@ -507,6 +515,7 @@ export interface FileRoutesByTo {
   '/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/pilot/ceev': typeof AuthenticatedPilotCeevRoute
+  '/pilot/ceev-live': typeof AuthenticatedPilotCeevLiveRoute
   '/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/pilot/controle': typeof AuthenticatedPilotControleRoute
   '/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
@@ -571,6 +580,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/_authenticated/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/_authenticated/pilot/ceev': typeof AuthenticatedPilotCeevRoute
+  '/_authenticated/pilot/ceev-live': typeof AuthenticatedPilotCeevLiveRoute
   '/_authenticated/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/_authenticated/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
   '/_authenticated/pilot/controle': typeof AuthenticatedPilotControleRoute
@@ -636,6 +646,7 @@ export interface FileRouteTypes {
     | '/pilot/benchmark'
     | '/pilot/ca'
     | '/pilot/ceev'
+    | '/pilot/ceev-live'
     | '/pilot/charges'
     | '/pilot/clients'
     | '/pilot/controle'
@@ -698,6 +709,7 @@ export interface FileRouteTypes {
     | '/pilot/benchmark'
     | '/pilot/ca'
     | '/pilot/ceev'
+    | '/pilot/ceev-live'
     | '/pilot/charges'
     | '/pilot/controle'
     | '/pilot/corrections'
@@ -761,6 +773,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/benchmark'
     | '/_authenticated/pilot/ca'
     | '/_authenticated/pilot/ceev'
+    | '/_authenticated/pilot/ceev-live'
     | '/_authenticated/pilot/charges'
     | '/_authenticated/pilot/clients'
     | '/_authenticated/pilot/controle'
@@ -1134,6 +1147,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotChargesRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/ceev-live': {
+      id: '/_authenticated/pilot/ceev-live'
+      path: '/ceev-live'
+      fullPath: '/pilot/ceev-live'
+      preLoaderRoute: typeof AuthenticatedPilotCeevLiveRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/ceev': {
       id: '/_authenticated/pilot/ceev'
       path: '/ceev'
@@ -1270,6 +1290,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotBenchmarkRoute: typeof AuthenticatedPilotBenchmarkRoute
   AuthenticatedPilotCaRoute: typeof AuthenticatedPilotCaRoute
   AuthenticatedPilotCeevRoute: typeof AuthenticatedPilotCeevRoute
+  AuthenticatedPilotCeevLiveRoute: typeof AuthenticatedPilotCeevLiveRoute
   AuthenticatedPilotChargesRoute: typeof AuthenticatedPilotChargesRoute
   AuthenticatedPilotClientsRoute: typeof AuthenticatedPilotClientsRouteWithChildren
   AuthenticatedPilotControleRoute: typeof AuthenticatedPilotControleRoute
@@ -1302,6 +1323,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotBenchmarkRoute: AuthenticatedPilotBenchmarkRoute,
   AuthenticatedPilotCaRoute: AuthenticatedPilotCaRoute,
   AuthenticatedPilotCeevRoute: AuthenticatedPilotCeevRoute,
+  AuthenticatedPilotCeevLiveRoute: AuthenticatedPilotCeevLiveRoute,
   AuthenticatedPilotChargesRoute: AuthenticatedPilotChargesRoute,
   AuthenticatedPilotClientsRoute: AuthenticatedPilotClientsRouteWithChildren,
   AuthenticatedPilotControleRoute: AuthenticatedPilotControleRoute,
@@ -1404,13 +1426,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
