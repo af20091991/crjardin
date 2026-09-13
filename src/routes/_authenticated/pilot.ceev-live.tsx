@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Sparkles, TrendingUp, Wallet, Clock, Users } from "lucide-react";
+import { Sparkles, TrendingUp, Wallet, Clock, Users, FileClock, CalendarClock } from "lucide-react";
 import { formatEuro } from "@/lib/pilot";
 import { getCeevLiveYear, CEEV_LIVE_CLASS_META, type CeevLiveClient } from "@/lib/ceev-live";
 
@@ -90,16 +90,42 @@ function CeevLivePage() {
       </div>
 
       {/* KPI */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardContent className="flex items-center gap-3 pt-5">
             <div className="rounded-full bg-primary/10 p-2 text-primary">
               <TrendingUp className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">CA réalisé</p>
+              <p className="text-xs text-muted-foreground">CA encaissé (réglé)</p>
               <p className="text-lg font-semibold tabular-nums">
                 {q.isLoading ? "…" : formatEuro(data?.totals.ca ?? 0)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 pt-5">
+            <div className="rounded-full bg-amber-100 p-2 text-amber-700">
+              <FileClock className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Facturé, en attente de règlement</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {q.isLoading ? "…" : formatEuro(data?.totals.caFactureNonRegle ?? 0)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 pt-5">
+            <div className="rounded-full bg-sky-100 p-2 text-sky-700">
+              <CalendarClock className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Prévisionnel (planifié)</p>
+              <p className="text-lg font-semibold tabular-nums">
+                {q.isLoading ? "…" : formatEuro(data?.totals.caPlanifie ?? 0)}
               </p>
             </div>
           </CardContent>
@@ -169,7 +195,8 @@ function CeevLivePage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Client</TableHead>
-                      <TableHead className="text-right">CA réalisé</TableHead>
+                      <TableHead className="text-right">CA encaissé</TableHead>
+                      <TableHead className="text-right">En attente / prévu</TableHead>
                       <TableHead className="text-right">Charges</TableHead>
                       <TableHead className="text-right">Marge</TableHead>
                       <TableHead className="text-right">Heures</TableHead>
@@ -213,6 +240,11 @@ function ClientRow({ client }: { client: CeevLiveClient }) {
         </Link>
       </TableCell>
       <TableCell className="text-right tabular-nums">{formatEuro(client.ca)}</TableCell>
+      <TableCell className="text-right text-xs tabular-nums text-muted-foreground">
+        {client.caFactureNonRegle > 0 && <div>{formatEuro(client.caFactureNonRegle)} facturé</div>}
+        {client.caPlanifie > 0 && <div>{formatEuro(client.caPlanifie)} prévu</div>}
+        {client.caFactureNonRegle === 0 && client.caPlanifie === 0 && "—"}
+      </TableCell>
       <TableCell className="text-right tabular-nums text-muted-foreground">
         {formatEuro(client.charges)}
       </TableCell>
@@ -245,12 +277,16 @@ function ClientCard({ client }: { client: CeevLiveClient }) {
         </Badge>
       </div>
       <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-sm text-muted-foreground">
-        <span>CA : {formatEuro(client.ca)}</span>
+        <span>CA encaissé : {formatEuro(client.ca)}</span>
         <span>Marge : {formatEuro(client.margin)}</span>
         <span>Heures : {client.hours.toFixed(1)} h</span>
         <span>
           Taux : {client.tauxHoraire != null ? `${client.tauxHoraire.toFixed(0)} €/h` : "—"}
         </span>
+        {client.caFactureNonRegle > 0 && (
+          <span>Facturé non réglé : {formatEuro(client.caFactureNonRegle)}</span>
+        )}
+        {client.caPlanifie > 0 && <span>Prévisionnel : {formatEuro(client.caPlanifie)}</span>}
       </div>
     </Link>
   );
