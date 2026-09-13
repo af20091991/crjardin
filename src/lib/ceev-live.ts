@@ -28,7 +28,12 @@ export const CEEV_LIVE_CLASS_META: Record<CeevLiveClass, { label: string; badge:
 export interface CeevLiveClient {
   clientId: string;
   clientName: string;
+  /** CA encaissé (statut Réglé/Particulier) — seule base retenue pour la marge et le taux horaire. */
   ca: number;
+  /** CA facturé mais pas encore réglé (statut Réalisé/Facturé) — en attente d'encaissement. */
+  caFactureNonRegle: number;
+  /** CA prévisionnel (statut Planifié) — devis/visites programmées, pas encore réalisées. */
+  caPlanifie: number;
   charges: number;
   margin: number;
   hours: number;
@@ -41,13 +46,22 @@ export interface CeevLiveYear {
   year: number;
   targetHourlyRate: number;
   clients: CeevLiveClient[];
-  totals: { ca: number; charges: number; margin: number; hours: number };
+  totals: {
+    ca: number;
+    caFactureNonRegle: number;
+    caPlanifie: number;
+    charges: number;
+    margin: number;
+    hours: number;
+  };
 }
 
 /**
  * Rentabilité CEEV en direct, calculée à partir des lignes de Chiffre d'affaires
- * déjà catégorisées « CEEV » (aucune ressaisie) — CA et charges comptabilisés
- * selon les mêmes règles que la page Chiffre d'affaires (Réglé / Facturé).
+ * déjà catégorisées « CEEV » (aucune ressaisie). Le CA encaissé (Réglé) sert de
+ * base à la marge et au taux horaire, comme sur la page Chiffre d'affaires ;
+ * le facturé non réglé et le prévisionnel sont affichés à part, jamais masqués,
+ * pour qu'aucun montant saisi ne disparaisse silencieusement de l'écran.
  */
 export async function getCeevLiveYear(year: number): Promise<CeevLiveYear> {
   const [entries, clients, settings] = await Promise.all([
@@ -61,12 +75,29 @@ export async function getCeevLiveYear(year: number): Promise<CeevLiveYear> {
 
   const ceevEntries = entries.filter((e: CaEntry) => e.category === "CEEV" && e.client_id);
 
-  const agg = new Map<string, { ca: number; charges: number; hours: number }>();
+  const agg = new Map<
+    string,
+    { ca: number; caFactureNonRegle: number; caPlanifie: number; charges: number; hours: number }
+  >();
   for (const e of ceevEntries) {
     const key = e.client_id as string;
-    const cur = agg.get(key) ?? { ca: 0, charges: 0, hours: 0 };
+    const cur = agg.get(key) ?? {
+      ca: 0,
+      caFactureNonRegle: 0,
+      caPlanifie: 0,
+      charges: 0,
+      hours: 0,
+    };
     if (e.kind === "vente") {
-      if (revenueCounted(e.sale_status)) cur.ca += Number(e.amount_ht) || 0;
+      const amount = Number(e.amount_ht) || 0;
+      if (revenueCounted(e.sale_status)) {
+        cur.ca += amount;
+      } else if (e.sale_status === "planifie") {
+        cur.caPlanifie += amount;
+      } else {
+        // Réalisé/Facturé : la prestation a eu lieu, la facture n'est pas réglée.
+        cur.caFactureNonRegle += amount;
+      }
       if (hoursCounted(e.sale_status)) cur.hours += Number(e.hours) || 0;
     } else if (e.kind === "charge" && !e.is_investment) {
       cur.charges += Number(e.amount_ht) || 0;
@@ -99,12 +130,17 @@ export async function getCeevLiveYear(year: number): Promise<CeevLiveYear> {
         classe = "chronophage";
         why = `Taux horaire ${tauxHoraire.toFixed(0)} €/h très en dessous de la cible sur ${a.hours.toFixed(1)} h.`;
       }
+    } else if (a.ca === 0 && (a.caFactureNonRegle > 0 || a.caPlanifie > 0)) {
+      why =
+        "Aucune ligne encore réglée cette année : uniquement du facturé en attente et/ou du prévisionnel.";
     }
 
     return {
       clientId,
       clientName: clientNameById.get(clientId) ?? "Client",
       ca: a.ca,
+      caFactureNonRegle: a.caFactureNonRegle,
+      caPlanifie: a.caPlanifie,
       charges: a.charges,
       margin,
       hours: a.hours,
@@ -114,16 +150,18 @@ export async function getCeevLiveYear(year: number): Promise<CeevLiveYear> {
     };
   });
 
-  clientRows.sort((a, b) => b.ca - a.ca);
+  clientRows.sort((a, b) => b.ca + b.caFactureNonRegle - (a.ca + a.caFactureNonRegle));
 
   const totals = clientRows.reduce(
     (acc, c) => ({
       ca: acc.ca + c.ca,
+      caFactureNonRegle: acc.caFactureNonRegle + c.caFactureNonRegle,
+      caPlanifie: acc.caPlanifie + c.caPlanifie,
       charges: acc.charges + c.charges,
       margin: acc.margin + c.margin,
       hours: acc.hours + c.hours,
     }),
-    { ca: 0, charges: 0, margin: 0, hours: 0 },
+    { ca: 0, caFactureNonRegle: 0, caPlanifie: 0, charges: 0, margin: 0, hours: 0 },
   );
 
   return { year, targetHourlyRate, clients: clientRows, totals };
