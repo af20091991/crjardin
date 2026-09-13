@@ -1,21 +1,36 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { AddMaintenanceDialog } from "@/components/pilot/parc-materiel/AddMaintenanceDialog";
+import { EditEquipmentDialog } from "@/components/pilot/parc-materiel/EditEquipmentDialog";
+import { toast } from "sonner";
 import { formatEuro } from "@/lib/pilot";
 import {
   categoryLabel,
   currentValue,
+  deleteEquipment,
   EQUIPMENT_STATUS_LABELS,
   getEquipment,
   listMaintenanceFor,
   maintenanceUrgency,
 } from "@/lib/parc-materiel";
-import { ArrowLeft, Wrench, AlertTriangle, Clock } from "lucide-react";
+import { ArrowLeft, Wrench, AlertTriangle, Clock, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/parc-materiel/$equipmentId")({
   head: () => ({
@@ -44,6 +59,7 @@ const URGENCY_BADGE: Record<string, { label: string; className: string } | null>
 function EquipmentDetailPage() {
   const { equipmentId } = useParams({ from: "/_authenticated/parc-materiel/$equipmentId" });
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const equipmentQuery = useQuery({
     queryKey: ["parc-materiel", "equipment", equipmentId],
@@ -57,6 +73,16 @@ function EquipmentDetailPage() {
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ["parc-materiel"] });
   }
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteEquipment(equipmentId),
+    onSuccess: () => {
+      toast.success("Équipement supprimé.");
+      queryClient.invalidateQueries({ queryKey: ["parc-materiel"] });
+      navigate({ to: "/parc-materiel" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   if (equipmentQuery.isLoading) {
     return (
@@ -111,9 +137,46 @@ function EquipmentDetailPage() {
                   <p className="text-sm text-muted-foreground">{categoryLabel(equipment)}</p>
                 </div>
               </div>
-              <Badge variant={STATUS_VARIANT[equipment.status]}>
-                {EQUIPMENT_STATUS_LABELS[equipment.status]}
-              </Badge>
+              <div className="flex flex-col items-end gap-2">
+                <Badge variant={STATUS_VARIANT[equipment.status]}>
+                  {EQUIPMENT_STATUS_LABELS[equipment.status]}
+                </Badge>
+                <div className="flex items-center gap-2">
+                  <EditEquipmentDialog equipment={equipment} onUpdated={refresh} />
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="mr-1 h-3.5 w-3.5" />
+                        Supprimer
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer « {equipment.name} » ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Cette action supprime aussi tout l'historique d'entretien de cet
+                          équipement ({maintenance.length} intervention
+                          {maintenance.length > 1 ? "s" : ""}). Elle est irréversible.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => deleteMutation.mutate()}
+                          disabled={deleteMutation.isPending}
+                        >
+                          {deleteMutation.isPending ? "Suppression…" : "Supprimer"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
