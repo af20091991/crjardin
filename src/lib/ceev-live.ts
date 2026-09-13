@@ -57,6 +57,15 @@ export interface CeevLiveYear {
 }
 
 /**
+ * Seuil minimum d'heures/an en dessous duquel on ne classe pas la rentabilité
+ * d'un client CEEV (trop peu de données pour juger). Volontairement plus bas
+ * que le seuil général de classification client : les petits contrats
+ * d'entretien résidentiel CEEV représentent couramment 5 à 10h/an et sont
+ * pourtant des contrats réels et jugeables.
+ */
+export const CEEV_MIN_HOURS = 5;
+
+/**
  * Rentabilité CEEV en direct, calculée à partir des lignes de Chiffre d'affaires
  * déjà catégorisées « CEEV » (aucune ressaisie). Le CA encaissé (Réglé) sert de
  * base à la marge et au taux horaire, comme sur la page Chiffre d'affaires ;
@@ -110,13 +119,8 @@ export async function getCeevLiveYear(year: number): Promise<CeevLiveYear> {
     const tauxHoraire = a.hours > 0 ? a.ca / a.hours : null;
 
     let classe: CeevLiveClass = "non_classe";
-    let why = "CA ou heures insuffisants pour juger la rentabilité de ce contrat cette année.";
-    if (
-      a.hours >= thresholds.heuresMinClient &&
-      a.ca > 0 &&
-      targetHourlyRate > 0 &&
-      tauxHoraire != null
-    ) {
+    let why = `Moins de ${CEEV_MIN_HOURS}h réalisées cette année, pas assez de recul pour juger la rentabilité.`;
+    if (a.hours >= CEEV_MIN_HOURS && a.ca > 0 && targetHourlyRate > 0 && tauxHoraire != null) {
       if (tauxHoraire >= targetHourlyRate * thresholds.clientTresRentableRatio) {
         classe = "tres_rentable";
         why = `Taux horaire ${tauxHoraire.toFixed(0)} €/h ≥ ${(thresholds.clientTresRentableRatio * 100).toFixed(0)} % de la cible (${targetHourlyRate} €/h).`;
