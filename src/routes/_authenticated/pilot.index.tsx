@@ -1497,11 +1497,13 @@ function TodayPage() {
                   Début exercice
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {interventionsAnnee} intervention{interventionsAnnee > 1 ? "s" : ""}
+                  {interventionsAnnee} intervention{interventionsAnnee > 1 ? "s" : ""} facturée
+                  {interventionsAnnee > 1 ? "s" : ""}
                   {heuresRealiseesAnnee > 0
-                    ? ` · ${formatHours(heuresRealiseesAnnee)} (Vente → Temps)`
-                    : ""}
+                    ? ` · ${formatHours(heuresRealiseesAnnee)} (Vente → Temps) sur ${scopeAnnee.interventionsWithHours} intervention${scopeAnnee.interventionsWithHours > 1 ? "s" : ""} avec temps renseigné`
+                    : " · aucun temps renseigné"}
                 </p>
+
               </div>
               <p className="font-serif text-2xl font-semibold tabular-nums">
                 {formatEuro(caLecture)}
