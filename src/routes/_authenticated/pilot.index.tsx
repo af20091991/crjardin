@@ -690,14 +690,14 @@ function TodayPage() {
         const d = new Date(e.entry_date);
         return Number.isFinite(d.getTime()) && keep(d) ? s + (Number(e.amount_ht) || 0) : s;
       }, 0);
-    // Règle unique : 1 ligne de Vente = 1 intervention (0 h inclus).
-    const nbItv = (keep: (d: Date) => boolean) => countSaleInterventionsWhere(realEntries, keep);
+    // Règle unique : 1 ligne de Vente comptabilisée = 1 intervention (0 h inclus).
+    // Interventions et heures proviennent des MÊMES lignes : les deux chiffres
+    // affichés côte à côte décrivent toujours le même périmètre.
+    const nbItv = (keep: (d: Date) => boolean) =>
+      saleInterventionScopeWhere(realEntries, keep).interventions;
     const heures = (keep: (d: Date) => boolean) =>
-      realEntries.reduce((s, e) => {
-        const d = new Date(e.entry_date);
-        if (!Number.isFinite(d.getTime()) || !keep(d)) return s;
-        return s + (Number(e.hours) || 0);
-      }, 0);
+      saleInterventionScopeWhere(realEntries, keep).hours;
+
 
     const moisN = (d: Date) =>
       d.getFullYear() === year && d.getMonth() === month && d.getDate() <= limitDay;
