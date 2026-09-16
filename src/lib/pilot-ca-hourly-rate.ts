@@ -19,12 +19,20 @@ export function monthlyCaHourlyRates(
   month: number,
   gestionHours: number,
 ): CaHourlyRates {
-  const sales = entries.filter((entry) => entry.kind === "vente" && entry.month === month);
+  const sales = entries.filter(
+    (entry) => entry.kind === "vente" && entry.month === month,
+  );
   const paidSales = sales.filter((entry) => entry.sale_status === "regle");
   const gestion = Math.max(0, Number(gestionHours) || 0);
 
   return {
-    previsionnel: rate(sum(sales, "amount_ht"), sum(sales, "hours") + gestion),
-    en_cours: rate(sum(paidSales, "amount_ht"), sum(paidSales, "hours") + gestion),
+    previsionnel: rate(
+      sum(sales, "amount_ht"),
+      sum(sales, "hours") + gestion,
+    ),
+    en_cours: rate(
+      sum(paidSales, "amount_ht"),
+      sum(paidSales, "hours") + gestion,
+    ),
   };
 }
