@@ -2,7 +2,8 @@ name: CA refinement patch
 
 on:
   push:
-    branches: [feat/ca-dashboard-refinement]
+    branches:
+      - feat/ca-dashboard-refinement
 
 permissions:
   contents: write
@@ -18,8 +19,8 @@ jobs:
           fetch-depth: 0
 
       - name: Apply CA UI refinements
-        shell: python
         run: |
+          python3 <<'PY'
           from pathlib import Path
 
           ca = Path("src/routes/_authenticated/pilot.ca.tsx")
@@ -51,15 +52,15 @@ jobs:
           const gestionMois = gestionHoursForMonth(hoursRowsQ.data ?? [], month);
           const tauxMoisAffiche = rateWithGestion(mt.ventesHt, mt.hours, gestionMois, includeGestion);'''
           new_rate = '''  // Taux horaire : gestion déclarée toujours incluse.
-          // Prévisionnel = toutes les prestations du mois ; En cours = prestations déjà réglées.
-          const [hourlyRateMode, setHourlyRateMode] = useState<CaHourlyRateMode>("previsionnel");
-          const hoursRowsQ = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
-          const gestionMois = gestionHoursForMonth(hoursRowsQ.data ?? [], month);
-          const tauxHoraires = useMemo(
-            () => monthlyCaHourlyRates(entries, month, gestionMois),
-            [entries, month, gestionMois],
-          );
-          const tauxMoisAffiche = tauxHoraires[hourlyRateMode];'''
+  // Prévisionnel = toutes les prestations du mois ; En cours = prestations déjà réglées.
+  const [hourlyRateMode, setHourlyRateMode] = useState<CaHourlyRateMode>("previsionnel");
+  const hoursRowsQ = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
+  const gestionMois = gestionHoursForMonth(hoursRowsQ.data ?? [], month);
+  const tauxHoraires = useMemo(
+    () => monthlyCaHourlyRates(entries, month, gestionMois),
+    [entries, month, gestionMois],
+  );
+  const tauxMoisAffiche = tauxHoraires[hourlyRateMode];'''
           if old_rate not in s:
               raise SystemExit("legacy hourly-rate calculation block not found")
           s = s.replace(old_rate, new_rate, 1)
@@ -127,19 +128,20 @@ jobs:
               cs = cs.replace(marker, marker + entry, 1)
               changelog.write_text(cs)
 
-          # Guard against the regression explicitly requested for the CA presentation.
-          ca_text = ca.read_text()
-          if "reporté" in ca_text or "reportées" in ca_text or "chargesFixesReportees" in ca_text:
+          if "reporté" in ca.read_text() or "reportées" in ca.read_text() or "chargesFixesReportees" in ca.read_text():
               raise SystemExit("forbidden CA presentation regression detected")
+          PY
+
+      - name: Validate patch syntax
+        run: |
+          git diff --check
+          git diff -- src/routes/_authenticated/pilot.ca.tsx src/components/pilot/CaSection.tsx src/lib/changelog.ts
 
       - name: Commit patched files
-        shell: bash
         run: |
           rm -f .github/workflows/_ca_patch.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/routes/_authenticated/pilot.ca.tsx src/components/pilot/CaSection.tsx src/lib/changelog.ts .github/workflows/_ca_patch.yml
-          git diff --cached --check
-          git diff --cached --quiet && exit 0
           git commit -m "feat(ca): simplify monthly dashboard controls"
           git push origin HEAD:feat/ca-dashboard-refinement
