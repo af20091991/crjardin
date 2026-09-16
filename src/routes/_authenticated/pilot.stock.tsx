@@ -13,15 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { AddStockMovementDialog } from "@/components/pilot/stock/AddStockMovementDialog";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { formatEuro } from "@/lib/pilot";
@@ -202,7 +194,9 @@ function StockPage() {
                         <Icon className="h-3.5 w-3.5" />
                         {STOCK_MOVEMENT_TYPE_LABELS[mv.movement_type]}
                       </Badge>
-                      <span className="flex-1 font-medium">{mv.item?.name ?? "Article supprimé"}</span>
+                      <span className="flex-1 font-medium">
+                        {mv.item?.name ?? "Article supprimé"}
+                      </span>
                       <span className="font-medium">{mv.quantity}</span>
                       {mv.reason && (
                         <span className="w-48 shrink-0 truncate text-right text-xs text-muted-foreground">
