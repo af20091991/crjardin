@@ -3,20 +3,44 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Calculator, Trash2, ArrowLeftRight, Percent, Coins, HeartHandshake } from "lucide-react";
 import {
-  calcHtToTtc, calcTtcToHt, calcDechetterie, calcSap, calcRemise,
+  Calculator,
+  Trash2,
+  ArrowLeftRight,
+  Percent,
+  Coins,
+  HeartHandshake,
+} from "lucide-react";
+import {
+  calcHtToTtc,
+  calcTtcToHt,
+  calcDechetterie,
+  calcSap,
+  calcRemise,
 } from "@/lib/pilot-ca";
 import { formatEuro } from "@/lib/pilot";
 
-function ResultLine({ label, value, onUse }: { label: string; value: number; onUse?: (v: number) => void }) {
+function ResultLine({
+  label,
+  value,
+  onUse,
+}: {
+  label: string;
+  value: number;
+  onUse?: (v: number) => void;
+}) {
   return (
     <div className="flex items-center justify-between gap-2 border-t py-1.5 first:border-t-0">
       <span className="text-xs text-muted-foreground">{label}</span>
       <div className="flex items-center gap-1.5">
         <span className="text-sm font-semibold tabular-nums">{formatEuro(value)}</span>
         {onUse && (
-          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => onUse(Math.round(value * 100) / 100)}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-xs"
+            onClick={() => onUse(Math.round(value * 100) / 100)}
+          >
             Utiliser
           </Button>
         )}
@@ -25,16 +49,38 @@ function ResultLine({ label, value, onUse }: { label: string; value: number; onU
   );
 }
 
-function NumField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function NumField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <div className="space-y-1">
       <Label className="text-xs">{label}</Label>
-      <Input type="number" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} className="h-8" />
+      <Input
+        type="number"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8"
+      />
     </div>
   );
 }
 
-function CalculatorBlock({ title, icon: Icon, children }: { title: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
+function CalculatorBlock({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
   return (
     <section className="rounded-lg border border-border/70 bg-background p-3">
       <h3 className="mb-2 flex items-center gap-2 text-sm font-medium">
