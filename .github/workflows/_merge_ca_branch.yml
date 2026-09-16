@@ -29,30 +29,25 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BRANCH_SHA=$(git rev-parse HEAD)
           git fetch origin main
           git merge origin/main -X ours --no-edit
+          git checkout "$BRANCH_SHA" -- \
+            src/components/pilot/AnnualMonthsTable.tsx \
+            src/components/pilot/SiteWebGoogleConnection.tsx \
+            src/components/pilot/SiteWebViews.tsx \
+            src/lib/changelog.ts \
+            src/lib/site-web-api.ts \
+            supabase/functions/site-web-api/index.ts
 
-      - name: Normalize SiteWebViews helpers after merge
+      - name: Verify conflict-sensitive files are normalized
         run: |
-          node --input-type=module <<'NODE'
-          import fs from "node:fs";
-          const path = "src/components/pilot/SiteWebViews.tsx";
-          let source = fs.readFileSync(path, "utf8");
-          const marker = "function LoadingState()";
-          const first = source.indexOf(marker);
-          const second = source.indexOf(marker, first + marker.length);
-          if (first !== -1 && second !== -1) {
-            const nextSection = source.indexOf("function formatNumber", second);
-            if (nextSection === -1) throw new Error("Cannot locate end of duplicated helper block");
-            source = source.slice(0, second) + source.slice(nextSection);
-            fs.writeFileSync(path, source);
-          }
-          NODE
           test "$(grep -c '^function LoadingState()' src/components/pilot/SiteWebViews.tsx)" = "1"
           test "$(grep -c '^function yearStart()' src/components/pilot/SiteWebViews.tsx)" = "1"
           test "$(grep -c '^function yesterday()' src/components/pilot/SiteWebViews.tsx)" = "1"
           test "$(grep -c '^function formatDateLabel' src/components/pilot/SiteWebViews.tsx)" = "1"
           test "$(grep -c '^function formatShortDate' src/components/pilot/SiteWebViews.tsx)" = "1"
+          test "$(grep -c '^async function invokeDirect' src/lib/site-web-api.ts)" = "1"
 
       - name: Install dependencies
         run: bun ci
@@ -88,4 +83,4 @@ jobs:
           git commit -m "chore(ca): remove temporary merge workflow"
           git push origin HEAD:feat/ca-dashboard-refinement
 
-# Validation trigger: normalization must run before typecheck.
+# Validation trigger: restore branch versions for the six conflict-sensitive files before checks.
