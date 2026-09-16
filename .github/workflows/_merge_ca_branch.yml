@@ -32,6 +32,24 @@ jobs:
           git fetch origin main
           git merge origin/main -X ours --no-edit
 
+      - name: Remove duplicated SiteWebViews helpers
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("src/components/pilot/SiteWebViews.tsx")
+          text = path.read_text()
+          marker = "function LoadingState() {"
+          first = text.find(marker)
+          second = text.find(marker, first + len(marker)) if first >= 0 else -1
+          if second < 0:
+              raise SystemExit("Second LoadingState declaration not found")
+          path.write_text(text[:second].rstrip() + "\n")
+          PY
+          test "$(grep -c '^function LoadingState()' src/components/pilot/SiteWebViews.tsx)" = "1"
+          test "$(grep -c '^function yearStart()' src/components/pilot/SiteWebViews.tsx)" = "1"
+          test "$(grep -c '^function yesterday()' src/components/pilot/SiteWebViews.tsx)" = "1"
+          test "$(grep -c '^function formatDateLabel' src/components/pilot/SiteWebViews.tsx)" = "1"
+
       - name: Install dependencies
         run: bun ci
 
@@ -57,7 +75,7 @@ jobs:
       - name: Push validated merge
         run: |
           git add -A
-          git commit -m "chore(ca): merge main into dashboard refinement" || true
+          git commit -m "fix(ca): resolve duplicate SiteWebViews helpers" || true
           git push origin HEAD:feat/ca-dashboard-refinement
 
       - name: Remove temporary workflow
