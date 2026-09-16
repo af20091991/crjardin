@@ -15,4 +15,9 @@ describe("présentation CA — régressions interdites", () => {
     expect(annualTableSource).not.toContain("reportées");
     expect(annualTableSource).not.toContain("chargesFixesReportees");
   });
+
+  test("le masquage des investissements reste disponible", () => {
+    expect(annualTableSource).toContain("Masquer investissements");
+    expect(annualTableSource).toContain("Afficher investissements");
+  });
 });
