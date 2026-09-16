@@ -67,7 +67,7 @@ jobs:
         run: bun run build
 
       - name: Formatting check
-        run: bunx prettier@3.8.3 --check src/components/pilot/AnnualMonthsTable.tsx src/components/pilot/Calculators.tsx src/lib/__tests__/pilot-ca-month-status.test.ts src/lib/__tests__/pilot-ca-presentation-regression.test.ts src/lib/pilot-ca-month-status.ts
+        run: bunx prettier@3.8.3 --check src/components/pilot/AnnualMonthsTable.tsx src/components/pilot/Calculators.tsx src/lib/__tests__/pilot-ca-month-status.test.ts src/lib/__tests__/pilot-ca-presentation-regression.test.ts src/lib/__tests__/pilot-ca-hourly-rate.test.ts src/lib/pilot-ca-month-status.ts
 
       - name: Verify CA regression guard
         run: |
