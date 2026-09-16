@@ -13,7 +13,10 @@
 // ce module : il n'existe pas d'autre méthode de comptabilisation.
 // ---------------------------------------------------------------------------
 
+import { hoursCounted } from "@/lib/pilot-sale-accounting";
+
 export interface SaleLineRef {
+
   id?: string | null;
   /** 'vente' | 'charge' | 'remuneration'… (absent = ligne de vente déjà filtrée). */
   kind?: string | null;
