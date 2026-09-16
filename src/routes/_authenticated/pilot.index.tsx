@@ -52,10 +52,8 @@ import {
 import { listCeevContracts } from "@/lib/ceev";
 import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
 // Comptage unique des interventions : 1 ligne de Vente = 1 intervention.
-import {
-  countSaleInterventions,
-  countSaleInterventionsWhere,
-} from "@/lib/pilot-intervention-count";
+import { saleInterventionScopeWhere } from "@/lib/pilot-intervention-count";
+
 // Taux horaire : gestion incluse / exclue (dénominateur uniquement).
 import { gestionHoursForYear, rateWithGestion, GESTION_MODE_HELP } from "@/lib/pilot-gestion-hours";
 import { useGestionMode } from "@/lib/pilot-gestion-mode";
