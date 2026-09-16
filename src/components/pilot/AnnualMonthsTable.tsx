@@ -43,6 +43,7 @@ export function AnnualMonthsTable({
   // Chaque mois doit afficher uniquement les lignes réellement saisies pour ce mois.
   const rows = monthlyCaRows(entries, year, { now, period });
   const totals = monthlyCaTotals(rows);
+  const activeMonth = now.getFullYear() === year ? now.getMonth() + 1 : null;
 
   return (
     <Card>
@@ -69,7 +70,34 @@ export function AnnualMonthsTable({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
+      <CardContent className="space-y-4 overflow-x-auto">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+          {rows.map((row) => {
+            const isActive = activeMonth === row.month;
+            const tone =
+              isActive
+                ? "border-emerald-700 bg-emerald-700 text-white"
+                : row.resultat > 0
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : row.resultat < 0
+                    ? "border-rose-200 bg-rose-50 text-rose-800"
+                    : "border-border bg-muted/40 text-muted-foreground";
+
+            return (
+              <div
+                key={row.month}
+                className={`min-w-0 rounded-lg border px-2 py-2 text-center ${tone}`}
+                title={`${row.monthLabel} : ${row.nature === "aucun" ? "aucune saisie" : formatEuro(row.resultat)}`}
+              >
+                <div className="truncate text-xs font-medium">{row.monthLabel}</div>
+                <div className="mt-1 truncate text-sm font-semibold tabular-nums">
+                  {row.nature === "aucun" ? "—" : formatEuro(row.resultat)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <Table>
           <TableHeader>
             <TableRow>
