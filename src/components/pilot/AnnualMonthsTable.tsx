@@ -71,7 +71,9 @@ export function AnnualMonthsTable({
         </div>
       </CardHeader>
       <CardContent className="space-y-4 overflow-x-auto">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+        <div
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12"
+        >
           {rows.map((row) => {
             const isActive = activeMonth === row.month;
             const tone = isActive
