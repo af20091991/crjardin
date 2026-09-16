@@ -1,5 +1,6 @@
 // Tableau « Année complète » : 12 mois de l'exercice, saisies telles quelles.
 // Aucun calcul ici : tout vient de `pilot-ca-months.ts`.
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { formatEuro } from "@/lib/pilot";
 import type { CaEntry } from "@/lib/pilot-ca";
 import {
@@ -19,12 +21,15 @@ import {
   type MonthNature,
 } from "@/lib/pilot-ca-months";
 import { periodScopeLabel, type PeriodMode } from "@/lib/pilot-realized";
+import { monthResultTone } from "@/lib/pilot-ca-month-status";
 
 const NATURE_TONE: Record<MonthNature, string> = {
   realise_a_date: "border-emerald-300 text-emerald-700",
   saisi_futur: "border-amber-300 text-amber-700",
   aucun: "text-muted-foreground",
 };
+
+const INVESTMENTS_VISIBILITY_KEY = "pilot-ca-annual-investments-visible-v1";
 
 export function AnnualMonthsTable({
   entries,
@@ -39,13 +44,48 @@ export function AnnualMonthsTable({
 }) {
   const rows = monthlyCaRows(entries, year, { now, period }, true);
   const totals = monthlyCaTotals(rows);
+  const [showInvestments, setShowInvestments] = useState(true);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(INVESTMENTS_VISIBILITY_KEY);
+      if (saved === "false") setShowInvestments(false);
+    } catch {
+      /* stockage local indisponible */
+    }
+  }, []);
+
+  const toggleInvestments = () => {
+    setShowInvestments((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem(INVESTMENTS_VISIBILITY_KEY, String(next));
+      } catch {
+        /* le réglage reste valable pour la session */
+      }
+      return next;
+    });
+  };
+
+  const activeMonth = now.getFullYear() === year ? now.getMonth() + 1 : null;
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">Exercice {year} — les 12 mois</CardTitle>
-          <Badge variant="outline">{periodScopeLabel(year, period, now)}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{periodScopeLabel(year, period, now)}</Badge>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-muted-foreground"
+              onClick={toggleInvestments}
+            >
+              {showInvestments ? "Masquer investissements" : "Afficher investissements"}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="overflow-x-auto">
@@ -55,7 +95,7 @@ export function AnnualMonthsTable({
               <TableHead>Mois</TableHead>
               <TableHead className="text-right">Ventes saisies</TableHead>
               <TableHead className="text-right">Charges saisies</TableHead>
-              <TableHead className="text-right">Investissements</TableHead>
+              {showInvestments && <TableHead className="text-right">Investissements</TableHead>}
               <TableHead className="text-right">Résultat des saisies</TableHead>
               <TableHead>Nature</TableHead>
             </TableRow>
@@ -72,18 +112,12 @@ export function AnnualMonthsTable({
                 </TableCell>
                 <TableCell className="text-right tabular-nums text-rose-600">
                   {r.nature === "aucun" ? "—" : formatEuro(r.chargesHt)}
-                  {r.chargesFixesReportees ? (
-                    <span
-                      className="block text-[10px] text-amber-600"
-                      title="Charge fixe reportée (estimation)"
-                    >
-                      dont {formatEuro(r.chargesFixesReportees)} reporté
-                    </span>
-                  ) : null}
                 </TableCell>
-                <TableCell className="text-right tabular-nums text-sky-600">
-                  {r.investissements ? formatEuro(r.investissements) : "—"}
-                </TableCell>
+                {showInvestments && (
+                  <TableCell className="text-right tabular-nums text-sky-600">
+                    {r.investissements ? formatEuro(r.investissements) : "—"}
+                  </TableCell>
+                )}
                 <TableCell
                   className={`text-right tabular-nums ${
                     r.nature === "aucun"
@@ -110,9 +144,11 @@ export function AnnualMonthsTable({
               <TableCell className="text-right tabular-nums text-rose-600">
                 {formatEuro(totals.chargesHt)}
               </TableCell>
-              <TableCell className="text-right tabular-nums text-sky-600">
-                {totals.investissements ? formatEuro(totals.investissements) : "—"}
-              </TableCell>
+              {showInvestments && (
+                <TableCell className="text-right tabular-nums text-sky-600">
+                  {totals.investissements ? formatEuro(totals.investissements) : "—"}
+                </TableCell>
+              )}
               <TableCell
                 className={`text-right tabular-nums ${
                   totals.resultat >= 0 ? "text-emerald-600" : "text-rose-600"
@@ -127,12 +163,24 @@ export function AnnualMonthsTable({
             </TableRow>
           </TableBody>
         </Table>
-        {totals.chargesFixesReportees > 0 && (
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Dont {formatEuro(totals.chargesFixesReportees)} de charges fixes reportées
-            (estimation « Année complète » pour les mois sans ligne dédiée).
-          </p>
-        )}
+
+        <div className="mt-3 rounded-lg border border-border bg-muted/20 p-2" aria-label="Chronologie des résultats mensuels">
+          <div className="grid grid-cols-12 gap-1">
+            {rows.map((r) => {
+              const active = r.month === activeMonth;
+              const tone = monthResultTone(r.resultat, r.nature, active);
+              return (
+                <div
+                  key={r.month}
+                  title={`${r.monthLabel} — ${r.nature === "aucun" ? "aucune donnée" : formatEuro(r.resultat)}`}
+                  className={`min-w-0 rounded-md px-1 py-2 text-center text-[10px] font-medium ${tone}`}
+                >
+                  {r.monthLabel.slice(0, 3)}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
