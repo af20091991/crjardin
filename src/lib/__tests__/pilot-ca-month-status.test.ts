@@ -15,8 +15,6 @@ describe("monthResultTone", () => {
   });
 
   test("active month keeps the dark green treatment", () => {
-    expect(monthResultTone(-500, "realise_a_date", true)).toBe(
-      "bg-primary text-primary-foreground",
-    );
+    expect(monthResultTone(-500, "realise_a_date", true)).toBe("bg-emerald-700 text-white");
   });
 });
