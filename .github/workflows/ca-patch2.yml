@@ -1,0 +1,27 @@
+name: CA patch runner
+on:
+  push:
+    branches:
+      - feat/ca-dashboard-refinement
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ca-dashboard-refinement
+          fetch-depth: 0
+      - name: Patch files
+        run: python3 .github/ca_patch.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/_authenticated/pilot.ca.tsx src/components/pilot/CaSection.tsx src/lib/changelog.ts
+          git diff --cached --check
+          git diff --cached --quiet && exit 0
+          git commit -m "feat(ca): simplify monthly dashboard controls"
+          git push origin HEAD:feat/ca-dashboard-refinement
