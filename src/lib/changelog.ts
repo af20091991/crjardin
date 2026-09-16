@@ -26,6 +26,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-16",
+    version: "2.3.4",
+    theme: "Général",
+    title: "Chiffre d'affaires — lecture mensuelle simplifiée",
+    details: [
+      "Le taux horaire mensuel inclut systématiquement le temps de gestion déclaré, avec une lecture Prévisionnel et une lecture En cours basée sur les prestations déjà réglées.",
+      "Le tableau annuel permet de masquer les investissements et ajoute une chronologie visuelle du résultat mensuel, sans modifier les calculs économiques.",
+      "Les détails ventes / charges et les calculateurs sont présentés dans des encarts plus compacts.",
+    ],
+  },
+  {
     date: "2026-08-30",
     version: "2.3.3",
     theme: "Général",

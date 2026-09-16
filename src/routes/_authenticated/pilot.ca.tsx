@@ -19,15 +19,10 @@ import {
   type CaCategory,
 } from "@/lib/pilot-ca";
 import { monthForecastHt } from "@/lib/pilot-ca-forecast";
-// Taux horaire : gestion incluse / exclue (seul le dénominateur change).
-import {
-  gestionHoursForMonth,
-  rateWithGestion,
-  GESTION_MODE_HELP,
-} from "@/lib/pilot-gestion-hours";
-import { useGestionMode } from "@/lib/pilot-gestion-mode";
-import { GestionToggle } from "@/components/pilot/GestionToggle";
+// Le temps de gestion déclaré est toujours inclus dans le taux horaire.
+import { gestionHoursForMonth } from "@/lib/pilot-gestion-hours";
 import { listHours } from "@/lib/pilot-hours";
+import { monthlyCaHourlyRates, type CaHourlyRateMode } from "@/lib/pilot-ca-hourly-rate";
 
 import { FixedChargesDetail } from "@/components/pilot/FixedChargesPanel";
 import { formatEuro } from "@/lib/pilot";
@@ -321,14 +316,16 @@ function CaPage() {
     ? previsionnelHt - mt.chargesHt
     : mt.benefice;
 
-  // Taux horaire du mois : même règle que la Vue exercice.
-  // Gestion exclue  → CA du mois / heures d'intervention du mois.
-  // Gestion incluse → CA du mois / (heures d'intervention + Temps gestion du mois),
-  // le Temps gestion venant d'Analyse temps & rentabilité → Suivi mensuel.
-  const { includeGestion } = useGestionMode();
+  // Taux horaire : gestion déclarée toujours incluse.
+  // Prévisionnel = toutes les prestations du mois ; En cours = prestations déjà réglées.
+  const [hourlyRateMode, setHourlyRateMode] = useState<CaHourlyRateMode>("previsionnel");
   const hoursRowsQ = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
   const gestionMois = gestionHoursForMonth(hoursRowsQ.data ?? [], month);
-  const tauxMoisAffiche = rateWithGestion(mt.ventesHt, mt.hours, gestionMois, includeGestion);
+  const tauxHoraires = useMemo(
+    () => monthlyCaHourlyRates(entries, month, gestionMois),
+    [entries, month, gestionMois],
+  );
+  const tauxMoisAffiche = tauxHoraires[hourlyRateMode];
 
   const catTotals = useMemo(
     () => categoryTotals(entries, month, { period }),
@@ -557,8 +554,23 @@ function CaPage() {
           label="Taux horaire"
           value={tauxMoisAffiche != null ? `${formatEuro(tauxMoisAffiche)}/h` : "—"}
           icon={TrendingUp}
-          action={<GestionToggle />}
-          title={includeGestion ? GESTION_MODE_HELP.incluse : GESTION_MODE_HELP.exclue}
+          action={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-[11px]"
+              onClick={() => setHourlyRateMode((mode) => mode === "previsionnel" ? "en_cours" : "previsionnel")}
+              title={hourlyRateMode === "previsionnel"
+                ? "Afficher le taux calculé uniquement sur les interventions déjà réglées"
+                : "Afficher le taux calculé sur toutes les prestations du mois"}
+            >
+              {hourlyRateMode === "previsionnel" ? "Prévisionnel" : "En cours"}
+            </Button>
+          }
+          title={hourlyRateMode === "previsionnel"
+            ? "Toutes les prestations du mois + temps de gestion déclaré"
+            : "Prestations déjà réglées du mois + temps de gestion déclaré"}
         />
       </div>}
 
