@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -78,8 +78,8 @@ function CalculatorBlock({
   children,
 }: {
   title: string;
-  icon: React.ComponentType<{ className?: string }>;
-  children: React.ReactNode;
+  icon: ComponentType<{ className?: string }>;
+  children: ReactNode;
 }) {
   return (
     <section className="rounded-lg border border-border/70 bg-background p-3">
