@@ -649,17 +649,26 @@ function TodayPage() {
    * Nombre d'interventions : 1 ligne de Vente = 1 intervention (règle unique,
    * cf. pilot-intervention-count). Les CR Chantier et les données SST ne sont
    * jamais utilisés pour ce comptage.
+   *
+   * COHÉRENCE : le périmètre est exactement celui du CA affiché à côté —
+   * lignes de vente comptabilisées (dès 🟠 Facturé), bornées « à date ». Les
+   * heures affichées proviennent des mêmes lignes.
    */
-  // Périmètre du comptage : TOUTES les lignes de vente de l'exercice
-  // (1er janvier → 31 décembre), sans limitation « à date ».
-  const interventionsMois = useMemo(
-    () => countSaleInterventions(entries.data ?? [], { year, month: month + 1 }),
-    [entries.data, year, month],
+  const scopeMois = useMemo(
+    () =>
+      saleInterventionScopeWhere(
+        realEntries,
+        (d) => d.getFullYear() === year && d.getMonth() === month && d.getDate() <= now.getDate(),
+      ),
+    [realEntries, year, month, now],
   );
-  const interventionsAnnee = useMemo(
-    () => countSaleInterventions(entries.data ?? [], { year }),
-    [entries.data, year],
+  const scopeAnnee = useMemo(
+    () => saleInterventionScopeWhere(realEntries, (d) => d.getFullYear() === year),
+    [realEntries, year],
   );
+  const interventionsMois = scopeMois.interventions;
+  const interventionsAnnee = scopeAnnee.interventions;
+
 
   // ---- Comparatifs à date équivalente N-1 (uniquement l'enregistré) ----
   // CA : lignes de vente enregistrées (pilot_ca_entries).
