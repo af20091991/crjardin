@@ -2632,6 +2632,134 @@ export type Database = {
           },
         ]
       }
+      pilot_stock_import_snapshots: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          is_perishable: boolean | null
+          item_label: string
+          observations: string | null
+          quantity: number | null
+          snapshot_date: string
+          source_sheet: string
+          total_ht: number | null
+          unit: string | null
+          unit_price_ht: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_perishable?: boolean | null
+          item_label: string
+          observations?: string | null
+          quantity?: number | null
+          snapshot_date: string
+          source_sheet: string
+          total_ht?: number | null
+          unit?: string | null
+          unit_price_ht?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_perishable?: boolean | null
+          item_label?: string
+          observations?: string | null
+          quantity?: number | null
+          snapshot_date?: string
+          source_sheet?: string
+          total_ht?: number | null
+          unit?: string | null
+          unit_price_ht?: number | null
+        }
+        Relationships: []
+      }
+      pilot_stock_items: {
+        Row: {
+          category: string
+          created_at: string
+          current_quantity: number
+          id: string
+          is_perishable: boolean
+          name: string
+          notes: string | null
+          unit: string | null
+          unit_price_ht: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          current_quantity?: number
+          id?: string
+          is_perishable?: boolean
+          name: string
+          notes?: string | null
+          unit?: string | null
+          unit_price_ht?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          current_quantity?: number
+          id?: string
+          is_perishable?: boolean
+          name?: string
+          notes?: string | null
+          unit?: string | null
+          unit_price_ht?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pilot_stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          movement_type: string
+          occurred_at: string
+          quantity: number
+          reason: string | null
+          unit_price_ht: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          movement_type: string
+          occurred_at?: string
+          quantity: number
+          reason?: string | null
+          unit_price_ht?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          movement_type?: string
+          occurred_at?: string
+          quantity?: number
+          reason?: string | null
+          unit_price_ht?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilot_stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "pilot_stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pilot_tjm_settings: {
         Row: {
           bureau: number
