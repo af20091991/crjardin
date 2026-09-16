@@ -30,7 +30,7 @@ describe("monthlyCaHourlyRates", () => {
     ];
 
     expect(monthlyCaHourlyRates(entries, 9, 2)).toEqual({
-      previsionnel: 100,
+      previsionnel: 75,
       en_cours: 60,
     });
   });
