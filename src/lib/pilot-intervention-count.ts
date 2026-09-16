@@ -22,7 +22,12 @@ export interface SaleLineRef {
   /** Repères année / mois quand la date précise n'existe pas. */
   year?: number | null;
   month?: number | null;
+  /** Pastille de la ligne de vente ('planifie' | 'realise' | 'regle' | …). */
+  sale_status?: string | null;
+  /** Temps interne de la ligne (colonne Vente → Temps). */
+  hours?: number | null;
 }
+
 
 /** true = la ligne est une ligne de VENTE, donc une intervention. */
 export function isSaleLine(row: SaleLineRef): boolean {
