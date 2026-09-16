@@ -9,6 +9,7 @@ const annualTableSource = readFileSync(
   "utf8",
 );
 
+// Ces tests verrouillent les deux regressions d'affichage les plus sensibles.
 describe("présentation CA — régressions interdites", () => {
   test("le tableau annuel n'affiche plus de montant présenté comme reporté", () => {
     expect(annualTableSource).not.toContain("reporté");
