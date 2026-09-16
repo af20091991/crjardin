@@ -23,8 +23,6 @@ describe("présentation CA — régressions interdites", () => {
   });
 
   test("le tableau annuel reste branché sur la source mensuelle unique", () => {
-    expect(annualTableSource).toContain(
-      "monthlyCaRows(entries, year, { now, period })",
-    );
+    expect(annualTableSource).toContain("monthlyCaRows(entries, year, { now, period })");
   });
 });
