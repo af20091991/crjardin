@@ -25,18 +25,20 @@ jobs:
         with:
           bun-version-file: .bun-version
 
-      - name: Merge main, preferring branch changes on conflicts
+      - name: Pull main then merge into CA branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           BRANCH_SHA=$(git rev-parse HEAD)
           git fetch origin main
-          git merge origin/main -X ours --no-edit
-          git checkout "$BRANCH_SHA" -- \
-            src/components/pilot/AnnualMonthsTable.tsx \
+          git checkout main
+          git reset --hard origin/main
+          git checkout feat/ca-dashboard-refinement
+          git merge origin/main --no-edit -X ours
+          git checkout "$BRANCH_SHA" -- src/components/pilot/AnnualMonthsTable.tsx
+          git checkout origin/main -- \
             src/components/pilot/SiteWebGoogleConnection.tsx \
             src/components/pilot/SiteWebViews.tsx \
-            src/lib/changelog.ts \
             src/lib/site-web-api.ts \
             supabase/functions/site-web-api/index.ts
 
@@ -82,5 +84,3 @@ jobs:
           git rm .github/workflows/_merge_ca_branch.yml
           git commit -m "chore(ca): remove temporary merge workflow"
           git push origin HEAD:feat/ca-dashboard-refinement
-
-# Validation trigger: restore branch versions for the six conflict-sensitive files before checks.
