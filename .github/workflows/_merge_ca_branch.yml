@@ -1,0 +1,60 @@
+name: CA branch merge validation
+
+on:
+  push:
+    branches:
+      - feat/ca-dashboard-refinement
+
+permissions:
+  contents: write
+
+jobs:
+  merge-and-validate:
+    if: github.event.head_commit.message != 'chore(ca): remove temporary merge workflow'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ca-dashboard-refinement
+          fetch-depth: 0
+
+      - name: Merge main, preferring branch changes on conflicts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge origin/main -X ours --no-edit
+
+      - name: Install dependencies
+        run: bun ci
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Tests
+        run: bun test
+
+      - name: Build
+        run: bun run build
+
+      - name: Formatting check
+        run: bunx prettier@3.8.3 --check src/components/pilot/AnnualMonthsTable.tsx src/components/pilot/Calculators.tsx src/lib/__tests__/pilot-ca-month-status.test.ts src/lib/__tests__/pilot-ca-presentation-regression.test.ts src/lib/pilot-ca-month-status.ts
+
+      - name: Verify CA regression guard
+        run: |
+          ! grep -nE 'reporté|reportées|chargesFixesReportees' src/components/pilot/AnnualMonthsTable.tsx
+
+      - name: Push validated merge
+        run: |
+          git add -A
+          git commit -m "chore(ca): merge main into dashboard refinement" || true
+          git push origin HEAD:feat/ca-dashboard-refinement
+
+      - name: Remove temporary workflow
+        run: |
+          git rm .github/workflows/_merge_ca_branch.yml
+          git commit -m "chore(ca): remove temporary merge workflow"
+          git push origin HEAD:feat/ca-dashboard-refinement
