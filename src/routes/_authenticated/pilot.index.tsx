@@ -1334,12 +1334,18 @@ function TodayPage() {
             }
           />
           <PilotCard
-            label="Interventions réalisées"
+            label="Interventions facturées"
             value={safeValue(itvSources, () => String(interventionsMois)).value}
             icon={Leaf}
             to="/pilot/ca"
-            help="Nombre de lignes de Vente du mois (Chiffre d'affaires → Ventes) : 1 ligne = 1 intervention, une ligne à 0 h incluse."
+            help="Lignes de Vente facturées ou réglées du 1er du mois à aujourd'hui : 1 ligne = 1 intervention. Même périmètre que le CA affiché ci-contre ; les lignes encore planifiées ne sont pas comptées."
+            sub={
+              interventionsMois > 0
+                ? `${scopeMois.interventionsWithHours}/${interventionsMois} avec un temps renseigné`
+                : undefined
+            }
           />
+
           <PilotCard
             label="Heures d'intervention"
             value={
