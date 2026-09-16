@@ -1422,12 +1422,18 @@ function TodayPage() {
           />
           <PilotCard
             className="lg:col-span-2"
-            label="Interventions réalisées"
+            label="Interventions facturées"
             value={safeValue(itvSources, () => String(interventionsAnnee)).value}
             icon={Leaf}
             to="/pilot/ca"
-            help="Nombre de lignes de Vente de l'exercice (Chiffre d'affaires → Ventes) : 1 ligne = 1 intervention, une ligne à 0 h incluse."
+            help="Lignes de Vente facturées ou réglées depuis le 1er janvier, à date : 1 ligne = 1 intervention. Même périmètre que le CA cumulé affiché ci-contre."
+            sub={
+              interventionsAnnee > 0
+                ? `${scopeAnnee.interventionsWithHours}/${interventionsAnnee} avec un temps renseigné`
+                : undefined
+            }
           />
+
           <PilotCard
             className="lg:col-span-4"
             emphasis="important"
