@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { AddStockMovementDialog } from "@/components/pilot/stock/AddStockMovementDialog";
+import { EditStockItemDialog } from "@/components/pilot/stock/EditStockItemDialog";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { formatEuro } from "@/lib/pilot";
 import { PP_COLORS } from "@/lib/pilot-colors";
@@ -26,9 +28,10 @@ import {
   importSnapshotsYearlyValue,
   stockCategoryBreakdown,
   STOCK_MOVEMENT_TYPE_LABELS,
+  type StockItem,
   type StockMovementType,
 } from "@/lib/pilot-stock";
-import { Leaf, ArrowDownCircle, ArrowUpCircle, Settings2 } from "lucide-react";
+import { Leaf, ArrowDownCircle, ArrowUpCircle, Settings2, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/stock")({
   head: () => ({
@@ -59,6 +62,7 @@ function StockPage() {
   const { isAdmin, isLoading: adminLoading } = useIsAdmin();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [editingItem, setEditingItem] = useState<StockItem | null>(null);
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) navigate({ to: "/pilot/direction", replace: true });
@@ -100,6 +104,13 @@ function StockPage() {
     .reduce((sum, it) => sum + it.current_quantity * it.unit_price_ht, 0);
   const categoryBreakdown = stockCategoryBreakdown(items);
   const yearlyValue = importSnapshotsYearlyValue(snapshots);
+  const itemsByCategory = new Map<string, StockItem[]>();
+  for (const it of items) {
+    const list = itemsByCategory.get(it.category) ?? [];
+    list.push(it);
+    itemsByCategory.set(it.category, list);
+  }
+  const sortedCategories = [...itemsByCategory.keys()].sort((a, b) => a.localeCompare(b));
 
   return (
     <div className="w-full space-y-6 px-4 py-5 lg:px-6">
@@ -140,33 +151,65 @@ function StockPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Article</TableHead>
-                      <TableHead>Catégorie</TableHead>
                       <TableHead className="text-right">Quantité</TableHead>
                       <TableHead className="text-right">Valeur HT</TableHead>
                       <TableHead>Périssable</TableHead>
+                      <TableHead className="w-10" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {items.map((it) => (
-                      <TableRow key={it.id}>
-                        <TableCell className="font-medium">{it.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{it.category}</TableCell>
-                        <TableCell className="text-right">
-                          {it.current_quantity}
-                          {it.unit ? ` ${it.unit}` : ""}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatEuro(it.current_quantity * it.unit_price_ht)}
-                        </TableCell>
-                        <TableCell>
-                          {it.is_perishable ? (
-                            <Leaf className="h-4 w-4 text-emerald-600" aria-label="Périssable" />
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {sortedCategories.map((cat) => {
+                      const catItems = itemsByCategory.get(cat)!;
+                      const catValue = catItems.reduce(
+                        (sum, it) => sum + it.current_quantity * it.unit_price_ht,
+                        0,
+                      );
+                      return (
+                        <Fragment key={cat}>
+                          <TableRow className="bg-muted/50 hover:bg-muted/50">
+                            <TableCell colSpan={4} className="py-2 font-semibold">
+                              {cat}
+                            </TableCell>
+                            <TableCell className="py-2 text-right text-xs text-muted-foreground">
+                              {formatEuro(catValue)}
+                            </TableCell>
+                          </TableRow>
+                          {catItems.map((it) => (
+                            <TableRow key={it.id}>
+                              <TableCell className="font-medium">{it.name}</TableCell>
+                              <TableCell className="text-right">
+                                {it.current_quantity}
+                                {it.unit ? ` ${it.unit}` : ""}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {formatEuro(it.current_quantity * it.unit_price_ht)}
+                              </TableCell>
+                              <TableCell>
+                                {it.is_perishable ? (
+                                  <Leaf
+                                    className="h-4 w-4 text-emerald-600"
+                                    aria-label="Périssable"
+                                  />
+                                ) : (
+                                  "—"
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setEditingItem(it)}
+                                  aria-label={`Modifier ${it.name}`}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </Fragment>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -239,6 +282,15 @@ function StockPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {editingItem && (
+        <EditStockItemDialog
+          item={editingItem}
+          open={!!editingItem}
+          onOpenChange={(v) => !v && setEditingItem(null)}
+          onUpdated={refresh}
+        />
+      )}
     </div>
   );
 }
