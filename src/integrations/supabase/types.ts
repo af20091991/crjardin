@@ -2632,6 +2632,134 @@ export type Database = {
           },
         ]
       }
+      pilot_stock_import_snapshots: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          is_perishable: boolean | null
+          item_label: string
+          observations: string | null
+          quantity: number | null
+          snapshot_date: string
+          source_sheet: string
+          total_ht: number | null
+          unit: string | null
+          unit_price_ht: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_perishable?: boolean | null
+          item_label: string
+          observations?: string | null
+          quantity?: number | null
+          snapshot_date: string
+          source_sheet: string
+          total_ht?: number | null
+          unit?: string | null
+          unit_price_ht?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_perishable?: boolean | null
+          item_label?: string
+          observations?: string | null
+          quantity?: number | null
+          snapshot_date?: string
+          source_sheet?: string
+          total_ht?: number | null
+          unit?: string | null
+          unit_price_ht?: number | null
+        }
+        Relationships: []
+      }
+      pilot_stock_items: {
+        Row: {
+          category: string
+          created_at: string
+          current_quantity: number
+          id: string
+          is_perishable: boolean
+          name: string
+          notes: string | null
+          unit: string | null
+          unit_price_ht: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          current_quantity?: number
+          id?: string
+          is_perishable?: boolean
+          name: string
+          notes?: string | null
+          unit?: string | null
+          unit_price_ht?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          current_quantity?: number
+          id?: string
+          is_perishable?: boolean
+          name?: string
+          notes?: string | null
+          unit?: string | null
+          unit_price_ht?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pilot_stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          movement_type: string
+          occurred_at: string
+          quantity: number
+          reason: string | null
+          unit_price_ht: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          movement_type: string
+          occurred_at?: string
+          quantity: number
+          reason?: string | null
+          unit_price_ht?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          movement_type?: string
+          occurred_at?: string
+          quantity?: number
+          reason?: string | null
+          unit_price_ht?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pilot_stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "pilot_stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pilot_tjm_settings: {
         Row: {
           bureau: number
@@ -3698,6 +3826,120 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      site_web_connections: {
+        Row: {
+          access_token_secret_id: string | null
+          created_at: string
+          external_account_id: string | null
+          external_account_name: string | null
+          id: string
+          last_error: string | null
+          last_sync_at: string | null
+          last_sync_status: string | null
+          metadata: Json
+          provider: string
+          refresh_token_secret_id: string | null
+          scopes: string[]
+          status: string
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_secret_id?: string | null
+          created_at?: string
+          external_account_id?: string | null
+          external_account_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          last_sync_status?: string | null
+          metadata?: Json
+          provider: string
+          refresh_token_secret_id?: string | null
+          scopes?: string[]
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_secret_id?: string | null
+          created_at?: string
+          external_account_id?: string | null
+          external_account_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          last_sync_status?: string | null
+          metadata?: Json
+          provider?: string
+          refresh_token_secret_id?: string | null
+          scopes?: string[]
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      site_web_oauth_states: {
+        Row: {
+          created_at: string
+          expires_at: string
+          provider: string
+          state_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          provider: string
+          state_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          provider?: string
+          state_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      site_web_watchlist: {
+        Row: {
+          created_at: string
+          entity_key: string
+          entity_type: string
+          id: string
+          note: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_key: string
+          entity_type: string
+          id?: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_key?: string
+          entity_type?: string
+          id?: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       sites: {
         Row: {
@@ -4894,12 +5136,20 @@ export type Database = {
       }
       admin_delete_user: { Args: { p_user_id: string }; Returns: undefined }
       clear_share_access_log: { Args: never; Returns: undefined }
+      consume_site_web_oauth_state: {
+        Args: { p_provider: string; p_state_hash: string; p_user_id: string }
+        Returns: boolean
+      }
       get_or_create_unsubscribe_token: {
         Args: { p_email: string }
         Returns: string
       }
       get_shared_client: { Args: { p_token: string }; Returns: Json }
       get_shared_messages: { Args: { p_token: string }; Returns: Json }
+      get_site_web_google_tokens: {
+        Args: { p_provider: string; p_user_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5009,6 +5259,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      store_site_web_google_tokens: {
+        Args: {
+          p_access_token: string
+          p_expires_at: string
+          p_external_account_id?: string
+          p_external_account_name?: string
+          p_provider: string
+          p_refresh_token: string
+          p_scopes?: string[]
+          p_user_id: string
+        }
+        Returns: string
+      }
       unaccent_lite: { Args: { t: string }; Returns: string }
     }
     Enums: {
@@ -5028,12 +5291,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5057,11 +5320,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5082,11 +5345,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5107,11 +5370,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5124,11 +5387,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
