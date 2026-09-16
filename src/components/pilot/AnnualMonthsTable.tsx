@@ -36,11 +36,15 @@ export function AnnualMonthsTable({
   year,
   period,
   now = new Date(),
+  activeMonth,
+  onMonthSelect,
 }: {
   entries: CaEntry[];
   year: number;
   period: PeriodMode;
   now?: Date;
+  activeMonth?: number;
+  onMonthSelect?: (month: number) => void;
 }) {
   const rows = monthlyCaRows(entries, year, { now, period });
   const totals = monthlyCaTotals(rows);
@@ -67,7 +71,8 @@ export function AnnualMonthsTable({
     });
   };
 
-  const activeMonth = now.getFullYear() === year ? now.getMonth() + 1 : null;
+  const currentMonth = now.getFullYear() === year ? now.getMonth() + 1 : null;
+  const selectedMonth = activeMonth ?? currentMonth;
 
   return (
     <Card>
@@ -166,24 +171,61 @@ export function AnnualMonthsTable({
 
         <div
           className="mt-3 rounded-lg border border-border bg-muted/20 p-2"
-          aria-label="Chronologie des résultats mensuels"
+          aria-label="Chronologie mensuelle du CA et du résultat"
         >
-          <div className="grid grid-cols-12 gap-1">
+          <div className="mb-2 flex items-center justify-between gap-2 px-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              CA HT mensuel · résultat mensuel
+            </span>
+            <span className="text-[10px] text-muted-foreground">Cliquer sur un mois pour l'afficher</span>
+          </div>
+          <div className="grid min-w-[720px] grid-cols-12 gap-1">
             {rows.map((r) => {
-              const active = r.month === activeMonth;
+              const active = r.month === selectedMonth;
               const tone = monthResultTone(r.resultat, r.nature, active);
-              return (
+              const clickable = !!onMonthSelect;
+              const content = (
+                <>
+                  <span className="truncate text-[10px] font-medium">{r.monthLabel.slice(0, 3)}</span>
+                  <span className="mt-1 truncate text-[10px] tabular-nums">
+                    {r.nature === "aucun" ? "—" : formatEuro(r.ventesHt)}
+                  </span>
+                  <span className="truncate text-[10px] tabular-nums opacity-80">
+                    {r.nature === "aucun" ? "—" : formatEuro(r.resultat)}
+                  </span>
+                </>
+              );
+
+              return clickable ? (
+                <button
+                  key={r.month}
+                  type="button"
+                  title={`${r.monthLabel} — CA HT ${
+                    r.nature === "aucun" ? "aucun" : formatEuro(r.ventesHt)
+                  } · résultat ${r.nature === "aucun" ? "aucun" : formatEuro(r.resultat)}`}
+                  aria-pressed={active}
+                  onClick={() => onMonthSelect?.(r.month)}
+                  className={`min-w-0 rounded-md px-1 py-2 text-center transition-opacity hover:opacity-85 ${tone}`}
+                >
+                  {content}
+                </button>
+              ) : (
                 <div
                   key={r.month}
-                  title={`${r.monthLabel} — ${
-                    r.nature === "aucun" ? "aucune donnée" : formatEuro(r.resultat)
-                  }`}
-                  className={`min-w-0 rounded-md px-1 py-2 text-center text-[10px] font-medium ${tone}`}
+                  title={`${r.monthLabel} — CA HT ${
+                    r.nature === "aucun" ? "aucun" : formatEuro(r.ventesHt)
+                  } · résultat ${r.nature === "aucun" ? "aucun" : formatEuro(r.resultat)}`}
+                  className={`min-w-0 rounded-md px-1 py-2 text-center ${tone}`}
                 >
-                  {r.monthLabel.slice(0, 3)}
+                  {content}
                 </div>
               );
             })}
+          </div>
+          <div className="mt-1 grid min-w-[720px] grid-cols-12 gap-1 px-1 text-[9px] text-muted-foreground">
+            <span className="col-span-12">
+              Le fond indique le résultat du mois : vert si positif, rouge si négatif, neutre si aucune donnée. Le mois actif reste prioritaire.
+            </span>
           </div>
         </div>
       </CardContent>
