@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { monthlyCaHourlyRates } from "@/lib/pilot-ca-hourly-rate";
 import type { CaEntry } from "@/lib/pilot-ca";
 
