@@ -42,7 +42,7 @@ export function AnnualMonthsTable({
   period: PeriodMode;
   now?: Date;
 }) {
-  const rows = monthlyCaRows(entries, year, { now, period }, true);
+  const rows = monthlyCaRows(entries, year, { now, period });
   const totals = monthlyCaTotals(rows);
   const [showInvestments, setShowInvestments] = useState(true);
 
