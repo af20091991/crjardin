@@ -164,7 +164,10 @@ export function AnnualMonthsTable({
           </TableBody>
         </Table>
 
-        <div className="mt-3 rounded-lg border border-border bg-muted/20 p-2" aria-label="Chronologie des résultats mensuels">
+        <div
+          className="mt-3 rounded-lg border border-border bg-muted/20 p-2"
+          aria-label="Chronologie des résultats mensuels"
+        >
           <div className="grid grid-cols-12 gap-1">
             {rows.map((r) => {
               const active = r.month === activeMonth;
@@ -172,7 +175,9 @@ export function AnnualMonthsTable({
               return (
                 <div
                   key={r.month}
-                  title={`${r.monthLabel} — ${r.nature === "aucun" ? "aucune donnée" : formatEuro(r.resultat)}`}
+                  title={`${r.monthLabel} — ${
+                    r.nature === "aucun" ? "aucune donnée" : formatEuro(r.resultat)
+                  }`}
                   className={`min-w-0 rounded-md px-1 py-2 text-center text-[10px] font-medium ${tone}`}
                 >
                   {r.monthLabel.slice(0, 3)}
