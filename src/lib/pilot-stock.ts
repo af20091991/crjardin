@@ -147,6 +147,28 @@ export async function createStockMovement(input: StockMovementInput): Promise<St
   return data as StockMovement;
 }
 
+export interface StockItemUpdateInput {
+  name?: string;
+  category?: string;
+  unit?: string | null;
+  unit_price_ht?: number;
+  is_perishable?: boolean;
+  notes?: string | null;
+}
+
+/** Met à jour les attributs d'un article. Ne touche jamais current_quantity :
+ * cette colonne est dérivée des mouvements (voir createStockMovement). */
+export async function updateStockItem(id: string, input: StockItemUpdateInput): Promise<StockItem> {
+  const { data, error } = await supabase
+    .from("pilot_stock_items")
+    .update(input)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as StockItem;
+}
+
 export interface StockItemInput {
   name: string;
   category: string;
