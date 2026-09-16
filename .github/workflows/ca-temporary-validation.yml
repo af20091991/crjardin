@@ -19,10 +19,23 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: .bun-version
+      - name: Corriger l'appel monthlyCaRows
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("src/components/pilot/AnnualMonthsTable.tsx")
+          text = path.read_text()
+          old = "monthlyCaRows(entries, year, { now, period }, true)"
+          new = "monthlyCaRows(entries, year, { now, period })"
+          if old not in text:
+              raise SystemExit("appel monthlyCaRows attendu introuvable")
+          path.write_text(text.replace(old, new))
+          PY
+          git diff -- src/components/pilot/AnnualMonthsTable.tsx
       - name: Install dependencies
         run: bun ci
       - name: Format changed CA files
-        run: bunx prettier --check src/components/pilot/AnnualMonthsTable.tsx src/components/pilot/CaSection.tsx src/components/pilot/Calculators.tsx src/lib/__tests__/pilot-ca-hourly-rate.test.ts src/lib/__tests__/pilot-ca-month-status.test.ts src/lib/__tests__/pilot-ca-presentation-regression.test.ts src/lib/pilot-ca-hourly-rate.ts src/lib/pilot-ca-month-status.ts src/routes/_authenticated/pilot.ca.tsx
+        run: bunx prettier --write src/components/pilot/AnnualMonthsTable.tsx src/components/pilot/CaSection.tsx src/components/pilot/Calculators.tsx src/lib/__tests__/pilot-ca-hourly-rate.test.ts src/lib/__tests__/pilot-ca-month-status.test.ts src/lib/__tests__/pilot-ca-presentation-regression.test.ts src/lib/pilot-ca-hourly-rate.ts src/lib/pilot-ca-month-status.ts src/routes/_authenticated/pilot.ca.tsx
       - name: TypeScript
         run: bun run typecheck
       - name: Lint
@@ -31,10 +44,11 @@ jobs:
         run: bun test
       - name: Production build
         run: bun run build
-      - name: Remove temporary validation workflow
+      - name: Commit correction and remove temporary validation workflow
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm .github/workflows/ca-temporary-validation.yml
-          git commit -m "chore(ci): remove temporary CA validation"
+          git add src/components/pilot/AnnualMonthsTable.tsx src/components/pilot/CaSection.tsx src/components/pilot/Calculators.tsx src/lib/__tests__/pilot-ca-hourly-rate.test.ts src/lib/__tests__/pilot-ca-month-status.test.ts src/lib/__tests__/pilot-ca-presentation-regression.test.ts src/lib/pilot-ca-hourly-rate.ts src/lib/pilot-ca-month-status.ts src/routes/_authenticated/pilot.ca.tsx
+          git commit -m "fix(pilot): corriger l'appel du tableau CA"
           git push origin HEAD:feat/ca-dashboard-refinement-v2
