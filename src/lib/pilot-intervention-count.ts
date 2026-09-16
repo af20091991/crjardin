@@ -95,3 +95,58 @@ export function countSaleInterventionsWhere(
   }
   return count;
 }
+
+// ---------------------------------------------------------------------------
+// COHÉRENCE CA / INTERVENTIONS / HEURES
+//
+// Une carte qui affiche un CA comptabilisé doit afficher le nombre
+// d'interventions du MÊME périmètre : mêmes lignes, même statut, même période.
+// Une ligne encore 🔵 Planifié ne produit ni CA ni heures : elle n'est donc pas
+// comptée comme intervention réalisée.
+// ---------------------------------------------------------------------------
+
+/** true = ligne de vente comptabilisée (dès 🟠 Facturé), donc réalisée. */
+export function isBilledSaleLine(row: SaleLineRef): boolean {
+  return isSaleLine(row) && hoursCounted(row.sale_status);
+}
+
+export interface SaleInterventionScope {
+  /** Interventions réalisées = lignes de vente comptabilisées du périmètre. */
+  interventions: number;
+  /** Heures Vente → Temps de ces mêmes lignes (source unique). */
+  hours: number;
+  /** Lignes du périmètre dont le Temps est renseigné (> 0 h). */
+  interventionsWithHours: number;
+}
+
+/**
+ * Périmètre unique et cohérent : mêmes lignes pour le comptage et les heures.
+ * `keep` reçoit la date comptable de la ligne (bornes déjà appliquées par
+ * l'appelant : exercice, mois, « à date »).
+ */
+export function saleInterventionScopeWhere(
+  rows: SaleLineRef[],
+  keep: (date: Date) => boolean,
+): SaleInterventionScope {
+  const seen = new Set<string>();
+  const scope: SaleInterventionScope = { interventions: 0, hours: 0, interventionsWithHours: 0 };
+  for (const row of rows) {
+    if (!isBilledSaleLine(row)) continue;
+    const iso =
+      row.entry_date ??
+      (row.year && row.month ? `${row.year}-${String(row.month).padStart(2, "0")}-01` : null);
+    if (!iso) continue;
+    const d = new Date(iso);
+    if (!Number.isFinite(d.getTime()) || !keep(d)) continue;
+    if (row.id) {
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+    }
+    scope.interventions += 1;
+    const h = Number(row.hours) || 0;
+    scope.hours += h;
+    if (h > 0) scope.interventionsWithHours += 1;
+  }
+  return scope;
+}
+
