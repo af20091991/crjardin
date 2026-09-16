@@ -1515,11 +1515,13 @@ function TodayPage() {
                   Mois en cours ({moisCourtLabel})
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {interventionsMois} intervention{interventionsMois > 1 ? "s" : ""}
+                  {interventionsMois} intervention{interventionsMois > 1 ? "s" : ""} facturée
+                  {interventionsMois > 1 ? "s" : ""}
                   {heuresRealiseesMois > 0
-                    ? ` · ${formatHours(heuresRealiseesMois)} (Vente → Temps)`
-                    : ""}
+                    ? ` · ${formatHours(heuresRealiseesMois)} (Vente → Temps) sur ${scopeMois.interventionsWithHours} intervention${scopeMois.interventionsWithHours > 1 ? "s" : ""} avec temps renseigné`
+                    : " · aucun temps renseigné"}
                 </p>
+
               </div>
               <p className="font-serif text-2xl font-semibold tabular-nums">
                 {formatEuro(k.caMonth)}
