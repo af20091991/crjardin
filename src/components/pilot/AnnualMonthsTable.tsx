@@ -1,7 +1,7 @@
-// Tableau « Année complète » : 12 mois de l'exercice, saisies telles quelles.
-// Aucun calcul ici : tout vient de `pilot-ca-months.ts`.
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -37,7 +37,11 @@ export function AnnualMonthsTable({
   period: PeriodMode;
   now?: Date;
 }) {
-  const rows = monthlyCaRows(entries, year, { now, period }, true);
+  const [showInvestments, setShowInvestments] = useState(true);
+
+  // IMPORTANT : ne jamais activer la propagation automatique des charges fixes.
+  // Chaque mois doit afficher uniquement les lignes réellement saisies pour ce mois.
+  const rows = monthlyCaRows(entries, year, { now, period }, false);
   const totals = monthlyCaTotals(rows);
 
   return (
@@ -45,7 +49,20 @@ export function AnnualMonthsTable({
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">Exercice {year} — les 12 mois</CardTitle>
-          <Badge variant="outline">{periodScopeLabel(year, period, now)}</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setShowInvestments((visible) => !visible)}
+              aria-pressed={showInvestments}
+              title={showInvestments ? "Masquer la colonne Investissements" : "Afficher la colonne Investissements"}
+            >
+              {showInvestments ? "Masquer investissements" : "Afficher investissements"}
+            </Button>
+            <Badge variant="outline">{periodScopeLabel(year, period, now)}</Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="overflow-x-auto">
@@ -55,7 +72,9 @@ export function AnnualMonthsTable({
               <TableHead>Mois</TableHead>
               <TableHead className="text-right">Ventes saisies</TableHead>
               <TableHead className="text-right">Charges saisies</TableHead>
-              <TableHead className="text-right">Investissements</TableHead>
+              {showInvestments ? (
+                <TableHead className="text-right">Investissements</TableHead>
+              ) : null}
               <TableHead className="text-right">Résultat des saisies</TableHead>
               <TableHead>Nature</TableHead>
             </TableRow>
@@ -72,18 +91,12 @@ export function AnnualMonthsTable({
                 </TableCell>
                 <TableCell className="text-right tabular-nums text-rose-600">
                   {r.nature === "aucun" ? "—" : formatEuro(r.chargesHt)}
-                  {r.chargesFixesReportees ? (
-                    <span
-                      className="block text-[10px] text-amber-600"
-                      title="Charge fixe reportée (estimation)"
-                    >
-                      dont {formatEuro(r.chargesFixesReportees)} reporté
-                    </span>
-                  ) : null}
                 </TableCell>
-                <TableCell className="text-right tabular-nums text-sky-600">
-                  {r.investissements ? formatEuro(r.investissements) : "—"}
-                </TableCell>
+                {showInvestments ? (
+                  <TableCell className="text-right tabular-nums text-sky-600">
+                    {r.investissements ? formatEuro(r.investissements) : "—"}
+                  </TableCell>
+                ) : null}
                 <TableCell
                   className={`text-right tabular-nums ${
                     r.nature === "aucun"
@@ -110,9 +123,11 @@ export function AnnualMonthsTable({
               <TableCell className="text-right tabular-nums text-rose-600">
                 {formatEuro(totals.chargesHt)}
               </TableCell>
-              <TableCell className="text-right tabular-nums text-sky-600">
-                {totals.investissements ? formatEuro(totals.investissements) : "—"}
-              </TableCell>
+              {showInvestments ? (
+                <TableCell className="text-right tabular-nums text-sky-600">
+                  {totals.investissements ? formatEuro(totals.investissements) : "—"}
+                </TableCell>
+              ) : null}
               <TableCell
                 className={`text-right tabular-nums ${
                   totals.resultat >= 0 ? "text-emerald-600" : "text-rose-600"
@@ -127,12 +142,6 @@ export function AnnualMonthsTable({
             </TableRow>
           </TableBody>
         </Table>
-        {totals.chargesFixesReportees > 0 && (
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Dont {formatEuro(totals.chargesFixesReportees)} de charges fixes reportées
-            (estimation « Année complète » pour les mois sans ligne dédiée).
-          </p>
-        )}
       </CardContent>
     </Card>
   );
