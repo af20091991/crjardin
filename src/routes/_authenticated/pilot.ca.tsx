@@ -197,7 +197,8 @@ function CaPage() {
     calculateurs: false,
   });
   useEffect(() => {
-    if (typeof window !== "undefined") setSections(parseCaSections(window.localStorage.getItem(CA_SECTIONS_KEY)));
+    if (typeof window !== "undefined")
+      setSections(parseCaSections(window.localStorage.getItem(CA_SECTIONS_KEY)));
   }, []);
   const toggleSection = (id: CaSectionId) =>
     setSections((s) => {
@@ -212,23 +213,71 @@ function CaPage() {
 
   const CA_PERSONALIZATION_KEY = "pilot-ca-personalization-v1";
   type CaPersonalization = {
-    showAnnualSummary: boolean; showMonthlySummary: boolean; showMonthTabs: boolean;
-    showStatusLegend: boolean; showTotals: boolean;
-    salesColumns: { client: boolean; designation: boolean; category: boolean; type: boolean; amount: boolean; hours: boolean };
+    showAnnualSummary: boolean;
+    showMonthlySummary: boolean;
+    showMonthTabs: boolean;
+    showStatusLegend: boolean;
+    showTotals: boolean;
+    salesColumns: {
+      client: boolean;
+      designation: boolean;
+      category: boolean;
+      type: boolean;
+      amount: boolean;
+      hours: boolean;
+    };
   };
   const DEFAULT_CA_PERSONALIZATION: CaPersonalization = {
-    showAnnualSummary: true, showMonthlySummary: true, showMonthTabs: true, showStatusLegend: true, showTotals: true,
-    salesColumns: { client: true, designation: true, category: true, type: true, amount: true, hours: true },
+    showAnnualSummary: true,
+    showMonthlySummary: true,
+    showMonthTabs: true,
+    showStatusLegend: true,
+    showTotals: true,
+    salesColumns: {
+      client: true,
+      designation: true,
+      category: true,
+      type: true,
+      amount: true,
+      hours: true,
+    },
   };
   const loadCaPersonalization = (): CaPersonalization => {
     if (typeof window === "undefined") return DEFAULT_CA_PERSONALIZATION;
-    try { const raw = JSON.parse(window.localStorage.getItem(CA_PERSONALIZATION_KEY) || "{}"); return { ...DEFAULT_CA_PERSONALIZATION, ...raw, salesColumns: { ...DEFAULT_CA_PERSONALIZATION.salesColumns, ...(raw.salesColumns || {}) } }; } catch { return DEFAULT_CA_PERSONALIZATION; }
+    try {
+      const raw = JSON.parse(window.localStorage.getItem(CA_PERSONALIZATION_KEY) || "{}");
+      return {
+        ...DEFAULT_CA_PERSONALIZATION,
+        ...raw,
+        salesColumns: { ...DEFAULT_CA_PERSONALIZATION.salesColumns, ...(raw.salesColumns || {}) },
+      };
+    } catch {
+      return DEFAULT_CA_PERSONALIZATION;
+    }
   };
-  const [personalization, setPersonalization] = useState<CaPersonalization>(DEFAULT_CA_PERSONALIZATION);
+  const [personalization, setPersonalization] = useState<CaPersonalization>(
+    DEFAULT_CA_PERSONALIZATION,
+  );
   const [personalizationOpen, setPersonalizationOpen] = useState(false);
   useEffect(() => setPersonalization(loadCaPersonalization()), []);
-  const updatePersonalization = (patch: Partial<CaPersonalization>) => setPersonalization((current) => { const next = { ...current, ...patch, salesColumns: { ...current.salesColumns, ...(patch.salesColumns || {}) } }; try { window.localStorage.setItem(CA_PERSONALIZATION_KEY, JSON.stringify(next)); } catch {} return next; });
-  const resetPersonalization = () => { setPersonalization(DEFAULT_CA_PERSONALIZATION); try { window.localStorage.removeItem(CA_PERSONALIZATION_KEY); } catch {} };
+  const updatePersonalization = (patch: Partial<CaPersonalization>) =>
+    setPersonalization((current) => {
+      const next = {
+        ...current,
+        ...patch,
+        salesColumns: { ...current.salesColumns, ...(patch.salesColumns || {}) },
+      };
+      try {
+        window.localStorage.setItem(CA_PERSONALIZATION_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  const resetPersonalization = () => {
+    setPersonalization(DEFAULT_CA_PERSONALIZATION);
+    try {
+      window.localStorage.removeItem(CA_PERSONALIZATION_KEY);
+    } catch {}
+  };
 
   const entriesQ = useQuery({ queryKey: ["pilot-ca", year], queryFn: () => listCaEntries(year) });
   const entries = entriesQ.data ?? [];
@@ -287,7 +336,9 @@ function CaPage() {
   const now = new Date();
   const isCurrentYear = year === now.getFullYear();
   const monthsVisible =
-    period === "exercice_complet" || !isCurrentYear ? 12 : Math.max(realizedMonthLimit(year, now), 1);
+    period === "exercice_complet" || !isCurrentYear
+      ? 12
+      : Math.max(realizedMonthLimit(year, now), 1);
 
   useMemo(() => {
     if (month > monthsVisible) setMonth(monthsVisible);
@@ -309,12 +360,9 @@ function CaPage() {
    *   prévisionnel (prévisionnel total HT toutes ventes − charges du mois).
    */
   const currentMonth = now.getMonth() + 1;
-  const isFutureMonth =
-    year > now.getFullYear() || (isCurrentYear && month > currentMonth);
+  const isFutureMonth = year > now.getFullYear() || (isCurrentYear && month > currentMonth);
   const beneficePrevisionnel = period === "exercice_complet" && isFutureMonth;
-  const beneficeMois = beneficePrevisionnel
-    ? previsionnelHt - mt.chargesHt
-    : mt.benefice;
+  const beneficeMois = beneficePrevisionnel ? previsionnelHt - mt.chargesHt : mt.benefice;
 
   // Taux horaire : gestion déclarée toujours incluse.
   // Prévisionnel = toutes les prestations du mois ; En cours = prestations déjà réglées.
@@ -373,38 +421,61 @@ function CaPage() {
 
   const save = (id: string, input: Partial<CaEntry>) => updateMut.mutate({ id, input });
 
-  type ChargeType = "Charge fixe" | "Charge variable" | "Achats" | "Charge chantier" | "Rémunération" | "Investissement";
+  type ChargeType =
+    | "Charge fixe"
+    | "Charge variable"
+    | "Achats"
+    | "Charge chantier"
+    | "Rémunération"
+    | "Investissement";
 
-  const CHARGE_TYPE_META: Record<ChargeType, { charge_class: "fixe" | "variable" | "a_classer"; is_investment: boolean }> = {
+  const CHARGE_TYPE_META: Record<
+    ChargeType,
+    { charge_class: "fixe" | "variable" | "a_classer"; is_investment: boolean }
+  > = {
     "Charge fixe": { charge_class: "fixe", is_investment: false },
     "Charge variable": { charge_class: "variable", is_investment: false },
     Achats: { charge_class: "variable", is_investment: false },
     "Charge chantier": { charge_class: "variable", is_investment: false },
-    "Rémunération": { charge_class: "variable", is_investment: false },
+    Rémunération: { charge_class: "variable", is_investment: false },
     Investissement: { charge_class: "a_classer", is_investment: true },
   };
 
-  const chargeTypeForRow = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }) => {
+  const chargeTypeForRow = (
+    row: CaEntry & { charge_category?: string | null; charge_class?: string | null },
+  ) => {
     if (row.is_fixed) return "Charge fixe" as const;
     if (row.is_investment) return "Investissement" as const;
     const current = row.charge_category;
     if (current === "Charge fixe" || row.charge_class === "fixe") return "Charge fixe" as const;
     if (current === "Achats" || current === "Charge de fonctionnement") return "Achats" as const;
-    if (current === "Charge chantier" || current === "Charges chantier") return "Charge chantier" as const;
+    if (current === "Charge chantier" || current === "Charges chantier")
+      return "Charge chantier" as const;
     if (current === "Rémunération") return "Rémunération" as const;
     // Les anciennes sous-catégories Alimentaire / Carburant / Déchèterie
     // restent des informations issues de la désignation, pas des choix de classement.
-    if (current === "Alimentaire" || current === "Carburant" || current === "Déchèterie" || row.charge_class === "variable") {
+    if (
+      current === "Alimentaire" ||
+      current === "Carburant" ||
+      current === "Déchèterie" ||
+      row.charge_class === "variable"
+    ) {
       return "Charge variable" as const;
     }
     return null;
   };
 
-  const saveChargeType = (row: CaEntry & { charge_category?: string | null; charge_class?: string | null }, type: ChargeType) => {
+  const saveChargeType = (
+    row: CaEntry & { charge_category?: string | null; charge_class?: string | null },
+    type: ChargeType,
+  ) => {
     const meta = CHARGE_TYPE_META[type];
-    save(row.id, { charge_category: type, charge_class: meta.charge_class, is_investment: meta.is_investment });
+    save(row.id, {
+      charge_category: type,
+      charge_class: meta.charge_class,
+      is_investment: meta.is_investment,
+    });
   };
-
 
   /**
    * Saisie en net : le net est stocké tel quel (ressaisie sans dérive) et la
@@ -415,7 +486,6 @@ function CaPage() {
     if (net === Number(row.net_amount_ht ?? NaN) && amount === row.amount_ht) return;
     save(row.id, { net_amount_ht: net, amount_ht: amount });
   };
-
 
   return (
     <div className="space-y-5">
@@ -430,25 +500,95 @@ function CaPage() {
           )}
           <Sheet open={personalizationOpen} onOpenChange={setPersonalizationOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground" title="Personnaliser la page">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                title="Personnaliser la page"
+              >
                 <Settings2 className="h-3.5 w-3.5" /> <span>Personnaliser</span>
               </Button>
             </SheetTrigger>
             <SheetContent className="w-[360px] sm:w-[400px] overflow-y-auto">
-              <SheetHeader><SheetTitle>Personnaliser le chiffre d'affaires</SheetTitle></SheetHeader>
+              <SheetHeader>
+                <SheetTitle>Personnaliser le chiffre d'affaires</SheetTitle>
+              </SheetHeader>
               <div className="mt-5 space-y-6 text-sm">
-                <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Page</p><div className="space-y-1">
-                  {([["showAnnualSummary","Synthèse annuelle"],["showMonthlySummary","Synthèse du mois"],["showMonthTabs","Navigation par mois"],["showStatusLegend","Légende des statuts"],["showTotals","Totaux du tableau"]] as const).map(([key,label]) => (
-                    <label key={key} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"><span>{label}</span><input type="checkbox" checked={personalization[key]} onChange={(e) => updatePersonalization({ [key]: e.target.checked } as Partial<CaPersonalization>)} /></label>
-                  ))}
-                </div></section>
-                <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Colonnes des ventes</p><div className="space-y-1">
-                  {([["client","Client"],["designation","Désignation"],["category","Catégorie"],["type","Type d'intervention"],["amount","Montant HT"],["hours","Temps"]] as const).map(([key,label]) => (
-                    <label key={key} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"><span>{label}</span><input type="checkbox" checked={personalization.salesColumns[key]} onChange={(e) => updatePersonalization({ salesColumns: { ...personalization.salesColumns, [key]: e.target.checked } })} /></label>
-                  ))}
-                  <p className="mt-2 text-xs text-muted-foreground">Masquer une colonne ne supprime aucune donnée et ne modifie aucun calcul.</p>
-                </div></section>
-                <Button variant="outline" size="sm" onClick={resetPersonalization}><RotateCcw className="mr-1.5 h-3.5 w-3.5" />Réinitialiser</Button>
+                <section>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Page
+                  </p>
+                  <div className="space-y-1">
+                    {(
+                      [
+                        ["showAnnualSummary", "Synthèse annuelle"],
+                        ["showMonthlySummary", "Synthèse du mois"],
+                        ["showMonthTabs", "Navigation par mois"],
+                        ["showStatusLegend", "Légende des statuts"],
+                        ["showTotals", "Totaux du tableau"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <label
+                        key={key}
+                        className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"
+                      >
+                        <span>{label}</span>
+                        <input
+                          type="checkbox"
+                          checked={personalization[key]}
+                          onChange={(e) =>
+                            updatePersonalization({
+                              [key]: e.target.checked,
+                            } as Partial<CaPersonalization>)
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </section>
+                <section>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Colonnes des ventes
+                  </p>
+                  <div className="space-y-1">
+                    {(
+                      [
+                        ["client", "Client"],
+                        ["designation", "Désignation"],
+                        ["category", "Catégorie"],
+                        ["type", "Type d'intervention"],
+                        ["amount", "Montant HT"],
+                        ["hours", "Temps"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <label
+                        key={key}
+                        className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"
+                      >
+                        <span>{label}</span>
+                        <input
+                          type="checkbox"
+                          checked={personalization.salesColumns[key]}
+                          onChange={(e) =>
+                            updatePersonalization({
+                              salesColumns: {
+                                ...personalization.salesColumns,
+                                [key]: e.target.checked,
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                    ))}
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Masquer une colonne ne supprime aucune donnée et ne modifie aucun calcul.
+                    </p>
+                  </div>
+                </section>
+                <Button variant="outline" size="sm" onClick={resetPersonalization}>
+                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                  Réinitialiser
+                </Button>
               </div>
             </SheetContent>
           </Sheet>
@@ -456,66 +596,73 @@ function CaPage() {
       </div>
 
       {/* Synthèse annuelle */}
-      {personalization.showAnnualSummary && <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
-        <StatBox label={`CA HT ${year}`} value={formatEuro(yt.ventesHt)} icon={TrendingUp} />
+      {personalization.showAnnualSummary && (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
+          <StatBox label={`CA HT ${year}`} value={formatEuro(yt.ventesHt)} icon={TrendingUp} />
 
-        <StatBox
-          label="Charges HT"
-          value={formatEuro(yt.chargesHt)}
-          icon={Wallet}
-          tone="text-rose-600"
-        />
-        <StatBox
-          label="Bénéfices nets"
-          value={formatEuro(yt.benefice)}
-          icon={PiggyBank}
-          tone="text-emerald-600"
-        />
-        <StatBox label="Temps total" value={`${yt.hours.toLocaleString("fr-FR")} h`} icon={Clock} />
-        {/* Investissements : jamais des charges d'exploitation, comptés une seule fois */}
-        <StatBox
-          label={`Investissements ${year}`}
-          value={formatEuro(yearInvestments)}
-          icon={Sprout}
-        />
-        <StatBox
-          label="Résultat après investissements"
-          value={formatEuro(resultAfterInvest)}
-          icon={PiggyBank}
-          tone={resultAfterInvest >= 0 ? "text-emerald-600" : "text-rose-600"}
-        />
-      </div>}
+          <StatBox
+            label="Charges HT"
+            value={formatEuro(yt.chargesHt)}
+            icon={Wallet}
+            tone="text-rose-600"
+          />
+          <StatBox
+            label="Bénéfices nets"
+            value={formatEuro(yt.benefice)}
+            icon={PiggyBank}
+            tone="text-emerald-600"
+          />
+          <StatBox
+            label="Temps total"
+            value={`${yt.hours.toLocaleString("fr-FR")} h`}
+            icon={Clock}
+          />
+          {/* Investissements : jamais des charges d'exploitation, comptés une seule fois */}
+          <StatBox
+            label={`Investissements ${year}`}
+            value={formatEuro(yearInvestments)}
+            icon={Sprout}
+          />
+          <StatBox
+            label="Résultat après investissements"
+            value={formatEuro(resultAfterInvest)}
+            icon={PiggyBank}
+            tone={resultAfterInvest >= 0 ? "text-emerald-600" : "text-rose-600"}
+          />
+        </div>
+      )}
 
       {/* Mode « année complète » : les 12 mois de l'exercice, saisies telles quelles */}
       {period === "exercice_complet" && (
         <AnnualMonthsTable entries={entries} year={year} period={period} now={now} />
       )}
 
-
       {/* Onglets mois */}
-      {personalization.showMonthTabs && <div className="-mx-1 overflow-x-auto pb-1">
-        <div className="flex min-w-max gap-1 rounded-xl border border-border bg-card p-1">
-          {MONTH_NAMES.slice(0, monthsVisible).map((name, i) => {
-            const m = i + 1;
-            const t = yt.months[i];
-            const activeM = m === month;
-            return (
-              <button
-                key={m}
-                onClick={() => setMonth(m)}
-                className={`flex min-w-[76px] flex-col items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${activeM ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"}`}
-              >
-                <span>{name.slice(0, 4)}</span>
-                <span
-                  className={`text-[10px] ${activeM ? "text-primary-foreground/80" : "text-muted-foreground/70"}`}
+      {personalization.showMonthTabs && (
+        <div className="-mx-1 overflow-x-auto pb-1">
+          <div className="flex min-w-max gap-1 rounded-xl border border-border bg-card p-1">
+            {MONTH_NAMES.slice(0, monthsVisible).map((name, i) => {
+              const m = i + 1;
+              const t = yt.months[i];
+              const activeM = m === month;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setMonth(m)}
+                  className={`flex min-w-[76px] flex-col items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${activeM ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"}`}
                 >
-                  {t.ventesHt ? formatEuro(t.ventesHt) : "—"}
-                </span>
-              </button>
-            );
-          })}
+                  <span>{name.slice(0, 4)}</span>
+                  <span
+                    className={`text-[10px] ${activeM ? "text-primary-foreground/80" : "text-muted-foreground/70"}`}
+                  >
+                    {t.ventesHt ? formatEuro(t.ventesHt) : "—"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>}
+      )}
 
       {/* En-tête mois */}
       <div className="flex flex-wrap items-center gap-2">
@@ -524,55 +671,65 @@ function CaPage() {
         </h2>
         <Badge variant="outline">Trimestre {QUARTER_OF(month)}</Badge>
       </div>
-      {personalization.showMonthlySummary && <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        <StatBox label="CA HT mois" value={formatEuro(mt.ventesHt)} icon={TrendingUp} />
-        <StatBox
-          label="Prévisionnel total HT — ventes du mois"
-          value={formatEuro(previsionnelHt)}
-          icon={Wallet}
-        />
+      {personalization.showMonthlySummary && (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+          <StatBox label="CA HT mois" value={formatEuro(mt.ventesHt)} icon={TrendingUp} />
+          <StatBox
+            label="Prévisionnel total HT — ventes du mois"
+            value={formatEuro(previsionnelHt)}
+            icon={Wallet}
+          />
 
-        <StatBox
-          label="Charges HT"
-          value={formatEuro(mt.chargesHt)}
-          icon={Wallet}
-          tone="text-rose-600"
-        />
-        <StatBox
-          label={beneficePrevisionnel ? "Bénéfice prévisionnel" : "Bénéfice"}
-          value={formatEuro(beneficeMois)}
-          icon={PiggyBank}
-          tone={beneficeMois >= 0 ? "text-emerald-600" : "text-rose-600"}
-          title={
-            beneficePrevisionnel
-              ? "Mois à venir : prévisionnel total HT (toutes ventes) − charges du mois"
-              : "CA HT réglé − charges du mois"
-          }
-        />
-        <StatBox label="Temps" value={`${mt.hours} h`} icon={Clock} />
-        <StatBox
-          label="Taux horaire"
-          value={tauxMoisAffiche != null ? `${formatEuro(tauxMoisAffiche)}/h` : "—"}
-          icon={TrendingUp}
-          action={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 text-[11px]"
-              onClick={() => setHourlyRateMode((mode) => mode === "previsionnel" ? "en_cours" : "previsionnel")}
-              title={hourlyRateMode === "previsionnel"
-                ? "Afficher le taux calculé uniquement sur les interventions déjà réglées"
-                : "Afficher le taux calculé sur toutes les prestations du mois"}
-            >
-              {hourlyRateMode === "previsionnel" ? "Prévisionnel" : "En cours"}
-            </Button>
-          }
-          title={hourlyRateMode === "previsionnel"
-            ? "Toutes les prestations du mois + temps de gestion déclaré"
-            : "Prestations déjà réglées du mois + temps de gestion déclaré"}
-        />
-      </div>}
+          <StatBox
+            label="Charges HT"
+            value={formatEuro(mt.chargesHt)}
+            icon={Wallet}
+            tone="text-rose-600"
+          />
+          <StatBox
+            label={beneficePrevisionnel ? "Bénéfice prévisionnel" : "Bénéfice"}
+            value={formatEuro(beneficeMois)}
+            icon={PiggyBank}
+            tone={beneficeMois >= 0 ? "text-emerald-600" : "text-rose-600"}
+            title={
+              beneficePrevisionnel
+                ? "Mois à venir : prévisionnel total HT (toutes ventes) − charges du mois"
+                : "CA HT réglé − charges du mois"
+            }
+          />
+          <StatBox label="Temps" value={`${mt.hours} h`} icon={Clock} />
+          <StatBox
+            label="Taux horaire"
+            value={tauxMoisAffiche != null ? `${formatEuro(tauxMoisAffiche)}/h` : "—"}
+            icon={TrendingUp}
+            action={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-[11px]"
+                onClick={() =>
+                  setHourlyRateMode((mode) =>
+                    mode === "previsionnel" ? "en_cours" : "previsionnel",
+                  )
+                }
+                title={
+                  hourlyRateMode === "previsionnel"
+                    ? "Afficher le taux calculé uniquement sur les interventions déjà réglées"
+                    : "Afficher le taux calculé sur toutes les prestations du mois"
+                }
+              >
+                {hourlyRateMode === "previsionnel" ? "Prévisionnel" : "En cours"}
+              </Button>
+            }
+            title={
+              hourlyRateMode === "previsionnel"
+                ? "Toutes les prestations du mois + temps de gestion déclaré"
+                : "Prestations déjà réglées du mois + temps de gestion déclaré"
+            }
+          />
+        </div>
+      )}
 
       {/*
        * Corps de saisie : VENTES en haut, CHARGES en bas.
@@ -599,298 +756,400 @@ function CaPage() {
               </Button>
             }
           >
-              <p className="px-4 pb-2 text-xs text-muted-foreground">
-                Source unique de vérité économique. Chaque ligne porte le client, la prestation, le
-                montant HT, le temps et le type d'intervention. Largeur des colonnes ajustable en
-                glissant leur bord droit.
-              </p>
-              <div className="overflow-x-auto">
-                <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
-                  <colgroup>
-                    <col style={{ width: salesCols.widths.statut }} />
-                    <col style={{ display: personalization.salesColumns.client ? undefined : "none", width: salesCols.widths.client }} />
-                    <col style={{ display: personalization.salesColumns.designation ? undefined : "none", width: salesCols.widths.designation }} />
-                    <col style={{ display: personalization.salesColumns.category ? undefined : "none", width: salesCols.widths.categorie }} />
-                    <col style={{ display: personalization.salesColumns.type ? undefined : "none", width: salesCols.widths.type }} />
-                    <col style={{ display: personalization.salesColumns.amount ? undefined : "none", width: salesCols.widths.montant }} />
-                    <col style={{ display: personalization.salesColumns.hours ? undefined : "none", width: salesCols.widths.temps }} />
-                    <col style={{ width: salesCols.widths.actions }} />
-                  </colgroup>
-                  <TableHeader>
+            <p className="px-4 pb-2 text-xs text-muted-foreground">
+              Source unique de vérité économique. Chaque ligne porte le client, la prestation, le
+              montant HT, le temps et le type d'intervention. Largeur des colonnes ajustable en
+              glissant leur bord droit.
+            </p>
+            <div className="overflow-x-auto">
+              <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
+                <colgroup>
+                  <col style={{ width: salesCols.widths.statut }} />
+                  <col
+                    style={{
+                      display: personalization.salesColumns.client ? undefined : "none",
+                      width: salesCols.widths.client,
+                    }}
+                  />
+                  <col
+                    style={{
+                      display: personalization.salesColumns.designation ? undefined : "none",
+                      width: salesCols.widths.designation,
+                    }}
+                  />
+                  <col
+                    style={{
+                      display: personalization.salesColumns.category ? undefined : "none",
+                      width: salesCols.widths.categorie,
+                    }}
+                  />
+                  <col
+                    style={{
+                      display: personalization.salesColumns.type ? undefined : "none",
+                      width: salesCols.widths.type,
+                    }}
+                  />
+                  <col
+                    style={{
+                      display: personalization.salesColumns.amount ? undefined : "none",
+                      width: salesCols.widths.montant,
+                    }}
+                  />
+                  <col
+                    style={{
+                      display: personalization.salesColumns.hours ? undefined : "none",
+                      width: salesCols.widths.temps,
+                    }}
+                  />
+                  <col style={{ width: salesCols.widths.actions }} />
+                </colgroup>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead />
+                    <TableHead
+                      style={{ display: personalization.salesColumns.client ? undefined : "none" }}
+                      className="relative"
+                    >
+                      Client
+                      <ResizeHandle
+                        width={salesCols.widths.client}
+                        onResize={(w) => salesCols.setWidth("client", w)}
+                      />
+                    </TableHead>
+                    <TableHead
+                      style={{
+                        display: personalization.salesColumns.designation ? undefined : "none",
+                      }}
+                      className="relative"
+                    >
+                      Désignation
+                      <ResizeHandle
+                        width={salesCols.widths.designation}
+                        onResize={(w) => salesCols.setWidth("designation", w)}
+                      />
+                    </TableHead>
+                    <TableHead
+                      style={{
+                        display: personalization.salesColumns.category ? undefined : "none",
+                      }}
+                      className="relative"
+                    >
+                      Catégorie
+                      <ResizeHandle
+                        width={salesCols.widths.categorie}
+                        onResize={(w) => salesCols.setWidth("categorie", w)}
+                      />
+                    </TableHead>
+                    <TableHead
+                      style={{ display: personalization.salesColumns.type ? undefined : "none" }}
+                      className="relative"
+                    >
+                      Type d'intervention
+                      <ResizeHandle
+                        width={salesCols.widths.type}
+                        onResize={(w) => salesCols.setWidth("type", w)}
+                      />
+                    </TableHead>
+                    <TableHead
+                      style={{ display: personalization.salesColumns.amount ? undefined : "none" }}
+                      className="relative text-right"
+                    >
+                      Montant HT
+                      <ResizeHandle
+                        width={salesCols.widths.montant}
+                        onResize={(w) => salesCols.setWidth("montant", w)}
+                      />
+                    </TableHead>
+                    <TableHead
+                      style={{ display: personalization.salesColumns.hours ? undefined : "none" }}
+                      className="relative text-right"
+                    >
+                      Temps
+                      <ResizeHandle
+                        width={salesCols.widths.temps}
+                        onResize={(w) => salesCols.setWidth("temps", w)}
+                      />
+                    </TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ventes.length === 0 && (
                     <TableRow>
-                      <TableHead />
-                      <TableHead style={{ display: personalization.salesColumns.client ? undefined : "none" }} className="relative">Client
-                        <ResizeHandle
-                          width={salesCols.widths.client}
-                          onResize={(w) => salesCols.setWidth("client", w)}
-                        />
-                      </TableHead>
-                      <TableHead style={{ display: personalization.salesColumns.designation ? undefined : "none" }} className="relative">Désignation
-                        <ResizeHandle
-                          width={salesCols.widths.designation}
-                          onResize={(w) => salesCols.setWidth("designation", w)}
-                        />
-                      </TableHead>
-                      <TableHead style={{ display: personalization.salesColumns.category ? undefined : "none" }} className="relative">Catégorie
-                        <ResizeHandle
-                          width={salesCols.widths.categorie}
-                          onResize={(w) => salesCols.setWidth("categorie", w)}
-                        />
-                      </TableHead>
-                      <TableHead style={{ display: personalization.salesColumns.type ? undefined : "none" }} className="relative">Type d'intervention
-                        <ResizeHandle
-                          width={salesCols.widths.type}
-                          onResize={(w) => salesCols.setWidth("type", w)}
-                        />
-                      </TableHead>
-                      <TableHead style={{ display: personalization.salesColumns.amount ? undefined : "none" }} className="relative text-right">Montant HT
-                        <ResizeHandle
-                          width={salesCols.widths.montant}
-                          onResize={(w) => salesCols.setWidth("montant", w)}
-                        />
-                      </TableHead>
-                      <TableHead style={{ display: personalization.salesColumns.hours ? undefined : "none" }} className="relative text-right">Temps
-                        <ResizeHandle
-                          width={salesCols.widths.temps}
-                          onResize={(w) => salesCols.setWidth("temps", w)}
-                        />
-                      </TableHead>
-                      <TableHead />
+                      <TableCell
+                        colSpan={
+                          2 + Object.values(personalization.salesColumns).filter(Boolean).length
+                        }
+                        className="py-6 text-center text-sm text-muted-foreground"
+                      >
+                        Aucune vente — ajoutez une ligne
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {ventes.length === 0 && (
-                      <TableRow>
-                        <TableCell
-                          colSpan={2 + Object.values(personalization.salesColumns).filter(Boolean).length}
-                          className="py-6 text-center text-sm text-muted-foreground"
-                        >
-                          Aucune vente — ajoutez une ligne
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {ventes.map((row) => {
-                      const hasNote = !!row.note;
-                      // Commentaire replié par défaut : aucune donnée perdue,
-                      // ouverture en un clic via « Voir le commentaire ».
-                      const opened = !!openNote[row.id];
-                      const status = ((row.sale_status as SaleStatus | undefined) ??
-                        "realise") as SaleStatus;
-                      const kind = interventionKind(row.intervention_type);
-                      const timeState = saleTimeState(row);
-                      return (
-                        <Fragment key={row.id}>
-                          <TableRow className={SALE_STATUS[status].row}>
-                            <TableCell className="pr-0">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <button
-                                    type="button"
-                                    title={SALE_STATUS[status].label}
-                                    className={`h-3.5 w-3.5 rounded-full ${SALE_STATUS[status].dot}`}
-                                  />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start">
-                                  {SALE_STATUS_ORDER.map((s) => (
-                                    <DropdownMenuItem
-                                      key={s}
-                                      onClick={() => statusMut.mutate({ id: row.id, status: s })}
-                                      className="gap-2"
-                                    >
-                                      <span
-                                        className={`h-2.5 w-2.5 rounded-full ${SALE_STATUS[s].dot}`}
-                                      />
-                                      {SALE_STATUS[s].label}
-                                    </DropdownMenuItem>
-                                  ))}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                            <TableCell style={{ display: personalization.salesColumns.client ? undefined : "none" }}>
-                              <ClientPicker
-                                clients={clients}
-                                value={row.client_id ?? ""}
-                                onChange={(id) => save(row.id, { client_id: id })}
-                                placeholder="Client…"
-                              />
-                            </TableCell>
-                            <TableCell style={{ display: personalization.salesColumns.designation ? undefined : "none" }}>
-                              <Input
-                                defaultValue={row.designation ?? ""}
-                                placeholder="Désignation"
-                                title={row.designation ?? undefined}
-                                className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input"
-                                onBlur={(e) => {
-                                  if (e.target.value !== (row.designation ?? ""))
-                                    save(row.id, { designation: e.target.value });
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell style={{ display: personalization.salesColumns.category ? undefined : "none" }}>
-                              <Select
-                                value={row.category ?? "AP"}
-                                onValueChange={(v) => save(row.id, { category: v as CaCategory })}
-                              >
-                                <SelectTrigger className="h-8">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {CA_CATEGORIES.map((c) => (
-                                    <SelectItem key={c} value={c}>
-                                      {c}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell style={{ display: personalization.salesColumns.type ? undefined : "none" }}>
-                              <Select
-                                value={kind}
-                                onValueChange={(v) =>
-                                  save(row.id, { intervention_type: v as InterventionKind })
-                                }
-                              >
-                                <SelectTrigger
-                                  className="h-8"
-                                  title={INTERVENTION_KIND_META[kind].help}
-                                >
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {INTERVENTION_KINDS.map((k) => (
-                                    <SelectItem key={k} value={k}>
-                                      {INTERVENTION_KIND_META[k].label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell className="text-right" style={{ display: personalization.salesColumns.amount ? undefined : "none" }}>
-                              <Input
-                                defaultValue={row.amount_ht || ""}
-                                type="number"
-                                inputMode="decimal"
-                                className="h-8 text-right"
-                                onBlur={(e) => {
-                                  const v = num(e.target.value);
-                                  if (v !== row.amount_ht) save(row.id, { amount_ht: v });
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell className="text-right" style={{ display: personalization.salesColumns.hours ? undefined : "none" }}>
-                              <Input
-                                defaultValue={row.hours == null ? "" : String(row.hours)}
-                                type="number"
-                                inputMode="decimal"
-                                placeholder={kind === "sst" ? "0" : "—"}
-                                title={SALE_TIME_STATE_LABEL[timeState]}
-                                className={`h-8 text-right ${timeState === "absent" ? "border-amber-300 bg-amber-50/60" : ""}`}
-                                onBlur={(e) => {
-                                  const raw = e.target.value.trim();
-                                  const v = raw === "" ? null : num(raw);
-                                  if (v !== (row.hours ?? null)) save(row.id, { hours: v });
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className={`h-8 w-8 ${row.client_id ? "text-primary" : "text-muted-foreground"}`}
-                                title={
-                                  row.client_id
-                                    ? "Rattachée à une recommandation"
-                                    : "Rattacher à une recommandation"
-                                }
-                                onClick={() => setOriginFor(row)}
-                              >
-                                <Link2 className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`}
-                                title={hasNote ? "Voir le commentaire" : "Ajouter un commentaire"}
-                                onClick={() => toggleNote(row.id)}
-                              >
-                                <MessageSquare className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => deleteMut.mutate(row.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                          {hasNote && !opened && (
-                            <TableRow>
-                              <TableCell colSpan={2 + Object.values(personalization.salesColumns).filter(Boolean).length} className="py-1">
+                  )}
+                  {ventes.map((row) => {
+                    const hasNote = !!row.note;
+                    // Commentaire replié par défaut : aucune donnée perdue,
+                    // ouverture en un clic via « Voir le commentaire ».
+                    const opened = !!openNote[row.id];
+                    const status = ((row.sale_status as SaleStatus | undefined) ??
+                      "realise") as SaleStatus;
+                    const kind = interventionKind(row.intervention_type);
+                    const timeState = saleTimeState(row);
+                    return (
+                      <Fragment key={row.id}>
+                        <TableRow className={SALE_STATUS[status].row}>
+                          <TableCell className="pr-0">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
                                 <button
                                   type="button"
-                                  className="text-xs font-medium text-primary hover:underline"
-                                  onClick={() => toggleNote(row.id)}
-                                >
-                                  Voir le commentaire
-                                </button>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                          {opened && (
-                            <TableRow>
-                              <TableCell colSpan={2 + Object.values(personalization.salesColumns).filter(Boolean).length} className="bg-muted/20 py-2">
-                                <Textarea
-                                  defaultValue={row.note ?? ""}
-                                  placeholder="Commentaire (optionnel)…"
-                                  className="min-h-[60px] text-sm"
-                                  onBlur={(e) => {
-                                    const v = e.target.value;
-                                    if (v !== (row.note ?? "")) save(row.id, { note: v });
-                                  }}
+                                  title={SALE_STATUS[status].label}
+                                  className={`h-3.5 w-3.5 rounded-full ${SALE_STATUS[status].dot}`}
                                 />
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </Fragment>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-              {ventes.length > 0 && personalization.showStatusLegend && (
-                <div className="flex flex-wrap items-center gap-3 border-t px-4 py-2 text-[11px] text-muted-foreground">
-                  <span className="uppercase tracking-wide">Statut :</span>
-                  {SALE_STATUS_ORDER.map((s) => (
-                    <span key={s} className="flex items-center gap-1.5">
-                      <span className={`h-2.5 w-2.5 rounded-full ${SALE_STATUS[s].dot}`} />
-                      {SALE_STATUS[s].label}
-                    </span>
-                  ))}
-                  <span className="ml-auto">
-                    Type SST : un temps de 0 h est une valeur valide. Case ambrée = temps non
-                    renseigné.
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start">
+                                {SALE_STATUS_ORDER.map((s) => (
+                                  <DropdownMenuItem
+                                    key={s}
+                                    onClick={() => statusMut.mutate({ id: row.id, status: s })}
+                                    className="gap-2"
+                                  >
+                                    <span
+                                      className={`h-2.5 w-2.5 rounded-full ${SALE_STATUS[s].dot}`}
+                                    />
+                                    {SALE_STATUS[s].label}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                          <TableCell
+                            style={{
+                              display: personalization.salesColumns.client ? undefined : "none",
+                            }}
+                          >
+                            <ClientPicker
+                              clients={clients}
+                              value={row.client_id ?? ""}
+                              onChange={(id) => save(row.id, { client_id: id })}
+                              placeholder="Client…"
+                            />
+                          </TableCell>
+                          <TableCell
+                            style={{
+                              display: personalization.salesColumns.designation
+                                ? undefined
+                                : "none",
+                            }}
+                          >
+                            <Input
+                              defaultValue={row.designation ?? ""}
+                              placeholder="Désignation"
+                              title={row.designation ?? undefined}
+                              className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input"
+                              onBlur={(e) => {
+                                if (e.target.value !== (row.designation ?? ""))
+                                  save(row.id, { designation: e.target.value });
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell
+                            style={{
+                              display: personalization.salesColumns.category ? undefined : "none",
+                            }}
+                          >
+                            <Select
+                              value={row.category ?? "AP"}
+                              onValueChange={(v) => save(row.id, { category: v as CaCategory })}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CA_CATEGORIES.map((c) => (
+                                  <SelectItem key={c} value={c}>
+                                    {c}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell
+                            style={{
+                              display: personalization.salesColumns.type ? undefined : "none",
+                            }}
+                          >
+                            <Select
+                              value={kind}
+                              onValueChange={(v) =>
+                                save(row.id, { intervention_type: v as InterventionKind })
+                              }
+                            >
+                              <SelectTrigger
+                                className="h-8"
+                                title={INTERVENTION_KIND_META[kind].help}
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {INTERVENTION_KINDS.map((k) => (
+                                  <SelectItem key={k} value={k}>
+                                    {INTERVENTION_KIND_META[k].label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell
+                            className="text-right"
+                            style={{
+                              display: personalization.salesColumns.amount ? undefined : "none",
+                            }}
+                          >
+                            <Input
+                              defaultValue={row.amount_ht || ""}
+                              type="number"
+                              inputMode="decimal"
+                              className="h-8 text-right"
+                              onBlur={(e) => {
+                                const v = num(e.target.value);
+                                if (v !== row.amount_ht) save(row.id, { amount_ht: v });
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell
+                            className="text-right"
+                            style={{
+                              display: personalization.salesColumns.hours ? undefined : "none",
+                            }}
+                          >
+                            <Input
+                              defaultValue={row.hours == null ? "" : String(row.hours)}
+                              type="number"
+                              inputMode="decimal"
+                              placeholder={kind === "sst" ? "0" : "—"}
+                              title={SALE_TIME_STATE_LABEL[timeState]}
+                              className={`h-8 text-right ${timeState === "absent" ? "border-amber-300 bg-amber-50/60" : ""}`}
+                              onBlur={(e) => {
+                                const raw = e.target.value.trim();
+                                const v = raw === "" ? null : num(raw);
+                                if (v !== (row.hours ?? null)) save(row.id, { hours: v });
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={`h-8 w-8 ${row.client_id ? "text-primary" : "text-muted-foreground"}`}
+                              title={
+                                row.client_id
+                                  ? "Rattachée à une recommandation"
+                                  : "Rattacher à une recommandation"
+                              }
+                              onClick={() => setOriginFor(row)}
+                            >
+                              <Link2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`}
+                              title={hasNote ? "Voir le commentaire" : "Ajouter un commentaire"}
+                              onClick={() => toggleNote(row.id)}
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => deleteMut.mutate(row.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                        {hasNote && !opened && (
+                          <TableRow>
+                            <TableCell
+                              colSpan={
+                                2 +
+                                Object.values(personalization.salesColumns).filter(Boolean).length
+                              }
+                              className="py-1"
+                            >
+                              <button
+                                type="button"
+                                className="text-xs font-medium text-primary hover:underline"
+                                onClick={() => toggleNote(row.id)}
+                              >
+                                Voir le commentaire
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {opened && (
+                          <TableRow>
+                            <TableCell
+                              colSpan={
+                                2 +
+                                Object.values(personalization.salesColumns).filter(Boolean).length
+                              }
+                              className="bg-muted/20 py-2"
+                            >
+                              <Textarea
+                                defaultValue={row.note ?? ""}
+                                placeholder="Commentaire (optionnel)…"
+                                className="min-h-[60px] text-sm"
+                                onBlur={(e) => {
+                                  const v = e.target.value;
+                                  if (v !== (row.note ?? "")) save(row.id, { note: v });
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            {ventes.length > 0 && personalization.showStatusLegend && (
+              <div className="flex flex-wrap items-center gap-3 border-t px-4 py-2 text-[11px] text-muted-foreground">
+                <span className="uppercase tracking-wide">Statut :</span>
+                {SALE_STATUS_ORDER.map((s) => (
+                  <span key={s} className="flex items-center gap-1.5">
+                    <span className={`h-2.5 w-2.5 rounded-full ${SALE_STATUS[s].dot}`} />
+                    {SALE_STATUS[s].label}
                   </span>
-                </div>
-              )}
-              {personalization.showTotals && <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
+                ))}
+                <span className="ml-auto">
+                  Type SST : un temps de 0 h est une valeur valide. Case ambrée = temps non
+                  renseigné.
+                </span>
+              </div>
+            )}
+            {personalization.showTotals && (
+              <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
                 <span className="font-medium">Total CA HT {MONTH_NAMES[month - 1]}</span>
                 <div className="flex gap-4">
                   <span className="text-muted-foreground">{mt.hours} h</span>
                   <span className="font-semibold text-emerald-600">{formatEuro(mt.ventesHt)}</span>
                 </div>
-              </div>}
-              {catTotals.length > 0 && (
-                <div className="flex flex-wrap gap-2 border-t px-4 py-2.5">
-                  {catTotals.map((c) => (
-                    <Badge key={c.category} variant="secondary" className="gap-1 font-normal">
-                      {c.category} · {formatEuro(c.ht)}
-                      {c.hours ? ` · ${c.hours} h` : ""}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+              </div>
+            )}
+            {catTotals.length > 0 && (
+              <div className="flex flex-wrap gap-2 border-t px-4 py-2.5">
+                {catTotals.map((c) => (
+                  <Badge key={c.category} variant="secondary" className="gap-1 font-normal">
+                    {c.category} · {formatEuro(c.ht)}
+                    {c.hours ? ` · ${c.hours} h` : ""}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </CaSection>
         </div>
         <div data-testid="ca-charges-column" className="min-w-0 space-y-4">
@@ -909,217 +1168,265 @@ function CaPage() {
               </Button>
             }
           >
-              <div className="overflow-x-auto">
-                <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
-                  <colgroup>
-                    <col style={{ width: chargeCols.widths.designation }} />
-                    <col style={{ width: chargeCols.widths.type }} />
-                    <col style={{ width: chargeCols.widths.montant }} />
-                    <col style={{ width: chargeCols.widths.actions }} />
-                  </colgroup>
-                  <TableHeader>
+            <div className="overflow-x-auto">
+              <Table style={{ tableLayout: "fixed", width: "max-content", minWidth: "100%" }}>
+                <colgroup>
+                  <col style={{ width: chargeCols.widths.designation }} />
+                  <col style={{ width: chargeCols.widths.type }} />
+                  <col style={{ width: chargeCols.widths.montant }} />
+                  <col style={{ width: chargeCols.widths.actions }} />
+                </colgroup>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="relative">
+                      Désignation
+                      <ResizeHandle
+                        width={chargeCols.widths.designation}
+                        onResize={(w) => chargeCols.setWidth("designation", w)}
+                      />
+                    </TableHead>
+                    <TableHead className="relative">
+                      Type de charge
+                      <ResizeHandle
+                        width={chargeCols.widths.type}
+                        onResize={(w) => chargeCols.setWidth("type", w)}
+                      />
+                    </TableHead>
+                    <TableHead className="relative text-right">
+                      Montant HT
+                      <ResizeHandle
+                        width={chargeCols.widths.montant}
+                        onResize={(w) => chargeCols.setWidth("montant", w)}
+                      />
+                    </TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {charges.length === 0 && (
                     <TableRow>
-                      <TableHead className="relative">
-                        Désignation
-                        <ResizeHandle
-                          width={chargeCols.widths.designation}
-                          onResize={(w) => chargeCols.setWidth("designation", w)}
-                        />
-                      </TableHead>
-                      <TableHead className="relative">
-                        Type de charge
-                        <ResizeHandle
-                          width={chargeCols.widths.type}
-                          onResize={(w) => chargeCols.setWidth("type", w)}
-                        />
-                      </TableHead>
-                      <TableHead className="relative text-right">
-                        Montant HT
-                        <ResizeHandle
-                          width={chargeCols.widths.montant}
-                          onResize={(w) => chargeCols.setWidth("montant", w)}
-                        />
-                      </TableHead>
-                      <TableHead />
+                      <TableCell
+                        colSpan={4}
+                        className="py-6 text-center text-sm text-muted-foreground"
+                      >
+                        Aucune charge — ajoutez une ligne
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {charges.length === 0 && (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="py-6 text-center text-sm text-muted-foreground"
-                        >
-                          Aucune charge — ajoutez une ligne
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {charges.map((row) => {
-                      const hasNote = !!row.note;
-                      // Commentaire replié par défaut : aucune donnée perdue,
-                      // ouverture en un clic via « Voir le commentaire ».
-                      const opened = !!openNote[row.id];
-                      // Ligne « Charges fixes » : son montant est la somme du
-                      // détail (pilot_fixed_charges), jamais ressaisi à part.
-                      const isFixed = !!row.is_fixed;
-                      const fixedOpen = !!openFixed[row.id];
-                      return (
-                        <Fragment key={row.id}>
-                          <TableRow>
-                            <TableCell>
-                              {isFixed ? (
-                                <button
-                                  type="button"
-                                  data-testid="ca-fixed-row-toggle"
-                                  className="flex h-8 items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-                                  onClick={() => toggleFixed(row.id)}
-                                >
-                                  <ChevronDown
-                                    className={`h-4 w-4 transition-transform ${fixedOpen ? "" : "-rotate-90"}`}
-                                  />
-                                  {row.designation || "Charges fixes"}
-                                </button>
-                              ) : (
-                                <Input
-                                  defaultValue={row.designation ?? ""}
-                                  placeholder="Désignation"
-                                  title={row.designation ?? undefined}
-                                  className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input"
-                                  onBlur={(e) => {
-                                    if (e.target.value !== (row.designation ?? ""))
-                                      save(row.id, { designation: e.target.value });
-                                  }}
+                  )}
+                  {charges.map((row) => {
+                    const hasNote = !!row.note;
+                    // Commentaire replié par défaut : aucune donnée perdue,
+                    // ouverture en un clic via « Voir le commentaire ».
+                    const opened = !!openNote[row.id];
+                    // Ligne « Charges fixes » : son montant est la somme du
+                    // détail (pilot_fixed_charges), jamais ressaisi à part.
+                    const isFixed = !!row.is_fixed;
+                    const fixedOpen = !!openFixed[row.id];
+                    return (
+                      <Fragment key={row.id}>
+                        <TableRow>
+                          <TableCell>
+                            {isFixed ? (
+                              <button
+                                type="button"
+                                data-testid="ca-fixed-row-toggle"
+                                className="flex h-8 items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                                onClick={() => toggleFixed(row.id)}
+                              >
+                                <ChevronDown
+                                  className={`h-4 w-4 transition-transform ${fixedOpen ? "" : "-rotate-90"}`}
                                 />
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {isFixed ? (
-                                <span className="text-sm font-medium text-muted-foreground">Charges fixes</span>
-                              ) : (() => {
-                                const typedRow = row as CaEntry & { charge_category?: string | null; charge_class?: string | null };
+                                {row.designation || "Charges fixes"}
+                              </button>
+                            ) : (
+                              <Input
+                                defaultValue={row.designation ?? ""}
+                                placeholder="Désignation"
+                                title={row.designation ?? undefined}
+                                className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input"
+                                onBlur={(e) => {
+                                  if (e.target.value !== (row.designation ?? ""))
+                                    save(row.id, { designation: e.target.value });
+                                }}
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {isFixed ? (
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Charges fixes
+                              </span>
+                            ) : (
+                              (() => {
+                                const typedRow = row as CaEntry & {
+                                  charge_category?: string | null;
+                                  charge_class?: string | null;
+                                };
                                 const selectedType = chargeTypeForRow(typedRow);
                                 return (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <button type="button" className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 text-left text-sm hover:bg-muted/40">
-                                        <span className={selectedType ? "" : "text-muted-foreground"}>{selectedType ?? "Choisir…"}</span>
+                                      <button
+                                        type="button"
+                                        className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 text-left text-sm hover:bg-muted/40"
+                                      >
+                                        <span
+                                          className={selectedType ? "" : "text-muted-foreground"}
+                                        >
+                                          {selectedType ?? "Choisir…"}
+                                        </span>
                                         <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
                                       </button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start" className="w-64">
-                                       <DropdownMenuItem title="Charges récurrentes de structure : le détail est saisi dans la ligne « Charges fixes »." onSelect={() => saveChargeType(typedRow, "Charge fixe")}>Charge fixe</DropdownMenuItem>
-                                       <DropdownMenuItem title="Charges variables : le classement détaillé peut être précisé par Achats, Charge chantier ou Rémunération." onSelect={() => saveChargeType(typedRow, "Charge variable")}>Charge variable</DropdownMenuItem>
-                                       <DropdownMenuSub>
-                                         <DropdownMenuSubTrigger>Préciser la charge variable</DropdownMenuSubTrigger>
-                                         <DropdownMenuSubContent className="w-72">
-                                           <DropdownMenuItem title="Toutes les charges nécessaires au fonctionnement de l'entreprise, autre que les charges de chantier" onSelect={() => saveChargeType(typedRow, "Achats")}>Achats</DropdownMenuItem>
-                                           <DropdownMenuItem title="Charges directement liées à la réalisation d'un chantier." onSelect={() => saveChargeType(typedRow, "Charge chantier")}>Charge chantier</DropdownMenuItem>
-                                           <DropdownMenuItem title="Rémunération versée, suivie comme charge variable." onSelect={() => saveChargeType(typedRow, "Rémunération")}>Rémunération</DropdownMenuItem>
-                                         </DropdownMenuSubContent>
-                                       </DropdownMenuSub>
-                                       <DropdownMenuItem title="Apparaît dans le mois en cours mais n'impacte pas le résultat du mois. L'investissement est rapporté à l'exercice, pas au mois auquel il a été affecté." onSelect={() => saveChargeType(typedRow, "Investissement")}>Investissement</DropdownMenuItem>
-
+                                      <DropdownMenuItem
+                                        title="Charges récurrentes de structure : le détail est saisi dans la ligne « Charges fixes »."
+                                        onSelect={() => saveChargeType(typedRow, "Charge fixe")}
+                                      >
+                                        Charge fixe
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        title="Charges variables : le classement détaillé peut être précisé par Achats, Charge chantier ou Rémunération."
+                                        onSelect={() => saveChargeType(typedRow, "Charge variable")}
+                                      >
+                                        Charge variable
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>
+                                          Préciser la charge variable
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent className="w-72">
+                                          <DropdownMenuItem
+                                            title="Toutes les charges nécessaires au fonctionnement de l'entreprise, autre que les charges de chantier"
+                                            onSelect={() => saveChargeType(typedRow, "Achats")}
+                                          >
+                                            Achats
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            title="Charges directement liées à la réalisation d'un chantier."
+                                            onSelect={() =>
+                                              saveChargeType(typedRow, "Charge chantier")
+                                            }
+                                          >
+                                            Charge chantier
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            title="Rémunération versée, suivie comme charge variable."
+                                            onSelect={() =>
+                                              saveChargeType(typedRow, "Rémunération")
+                                            }
+                                          >
+                                            Rémunération
+                                          </DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                      </DropdownMenuSub>
+                                      <DropdownMenuItem
+                                        title="Apparaît dans le mois en cours mais n'impacte pas le résultat du mois. L'investissement est rapporté à l'exercice, pas au mois auquel il a été affecté."
+                                        onSelect={() => saveChargeType(typedRow, "Investissement")}
+                                      >
+                                        Investissement
+                                      </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 );
-                              })()}
-                            </TableCell>
+                              })()
+                            )}
+                          </TableCell>
 
-                            <TableCell className="text-right">
-                              {isFixed ? (
-                                <span
-                                  data-testid="ca-fixed-row-amount"
-                                  className="block px-3 text-sm font-semibold"
-                                  title="Somme du détail des charges fixes"
-                                >
-                                  {formatEuro(row.amount_ht)}
-                                </span>
-                              ) : (
-                                <Input
-                                  defaultValue={row.amount_ht || ""}
-                                  type="number"
-                                  inputMode="decimal"
-                                  className="h-8 text-right"
-                                  onBlur={(e) => {
-                                    const v = num(e.target.value);
-                                    if (v !== row.amount_ht) save(row.id, { amount_ht: v });
-                                  }}
-                                />
-                              )}
-                            </TableCell>
+                          <TableCell className="text-right">
+                            {isFixed ? (
+                              <span
+                                data-testid="ca-fixed-row-amount"
+                                className="block px-3 text-sm font-semibold"
+                                title="Somme du détail des charges fixes"
+                              >
+                                {formatEuro(row.amount_ht)}
+                              </span>
+                            ) : (
+                              <Input
+                                defaultValue={row.amount_ht || ""}
+                                type="number"
+                                inputMode="decimal"
+                                className="h-8 text-right"
+                                onBlur={(e) => {
+                                  const v = num(e.target.value);
+                                  if (v !== row.amount_ht) save(row.id, { amount_ht: v });
+                                }}
+                              />
+                            )}
+                          </TableCell>
 
-                            <TableCell className="whitespace-nowrap">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`}
-                                title={hasNote ? "Voir le commentaire" : "Ajouter un commentaire"}
-                                onClick={() => toggleNote(row.id)}
-                              >
-                                <MessageSquare className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => deleteMut.mutate(row.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                          <TableCell className="whitespace-nowrap">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={`h-8 w-8 ${hasNote ? "text-primary" : "text-muted-foreground"}`}
+                              title={hasNote ? "Voir le commentaire" : "Ajouter un commentaire"}
+                              onClick={() => toggleNote(row.id)}
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => deleteMut.mutate(row.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                        {isFixed && fixedOpen && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="py-2">
+                              <FixedChargesDetail
+                                caEntryId={row.id}
+                                year={year}
+                                onSumChange={(sum) => {
+                                  if (sum !== row.amount_ht) save(row.id, { amount_ht: sum });
+                                }}
+                              />
                             </TableCell>
                           </TableRow>
-                          {isFixed && fixedOpen && (
-                            <TableRow>
-                              <TableCell colSpan={4} className="py-2">
-                                <FixedChargesDetail
-                                  caEntryId={row.id}
-                                  year={year}
-                                  onSumChange={(sum) => {
-                                    if (sum !== row.amount_ht) save(row.id, { amount_ht: sum });
-                                  }}
-                                />
-                              </TableCell>
-                            </TableRow>
-                          )}
-                          {hasNote && !opened && (
-
-                            <TableRow>
-                              <TableCell colSpan={4} className="py-1">
-                                <button
-                                  type="button"
-                                  className="text-xs font-medium text-primary hover:underline"
-                                  onClick={() => toggleNote(row.id)}
-                                >
-                                  Voir le commentaire
-                                </button>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                          {opened && (
-                            <TableRow>
-                              <TableCell colSpan={4} className="bg-muted/20 py-2">
-                                <Textarea
-                                  defaultValue={row.note ?? ""}
-                                  placeholder="Commentaire (optionnel)…"
-                                  className="min-h-[60px] text-sm"
-                                  onBlur={(e) => {
-                                    const v = e.target.value;
-                                    if (v !== (row.note ?? "")) save(row.id, { note: v });
-                                  }}
-                                />
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </Fragment>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-              <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
-                <span className="font-medium">Total charges {MONTH_NAMES[month - 1]}</span>
-                <span className="font-semibold text-rose-600">{formatEuro(mt.chargesHt)}</span>
-              </div>
+                        )}
+                        {hasNote && !opened && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="py-1">
+                              <button
+                                type="button"
+                                className="text-xs font-medium text-primary hover:underline"
+                                onClick={() => toggleNote(row.id)}
+                              >
+                                Voir le commentaire
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {opened && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="bg-muted/20 py-2">
+                              <Textarea
+                                defaultValue={row.note ?? ""}
+                                placeholder="Commentaire (optionnel)…"
+                                className="min-h-[60px] text-sm"
+                                onBlur={(e) => {
+                                  const v = e.target.value;
+                                  if (v !== (row.note ?? "")) save(row.id, { note: v });
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex items-center justify-between border-t px-4 py-2.5 text-sm">
+              <span className="font-medium">Total charges {MONTH_NAMES[month - 1]}</span>
+              <span className="font-semibold text-rose-600">{formatEuro(mt.chargesHt)}</span>
+            </div>
           </CaSection>
 
           {/*

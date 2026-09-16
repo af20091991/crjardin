@@ -36,10 +36,7 @@ describe("monthlyCaHourlyRates", () => {
   });
 
   it("uses only paid services for En cours", () => {
-    const entries = [
-      sale("paid", 300, 0, "regle"),
-      sale("unpaid", 900, 9, "realise"),
-    ];
+    const entries = [sale("paid", 300, 0, "regle"), sale("unpaid", 900, 9, "realise")];
 
     expect(monthlyCaHourlyRates(entries, 9, 1).en_cours).toBe(300);
   });

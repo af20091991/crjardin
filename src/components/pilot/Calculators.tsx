@@ -3,21 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  Calculator,
-  Trash2,
-  ArrowLeftRight,
-  Percent,
-  Coins,
-  HeartHandshake,
-} from "lucide-react";
-import {
-  calcHtToTtc,
-  calcTtcToHt,
-  calcDechetterie,
-  calcSap,
-  calcRemise,
-} from "@/lib/pilot-ca";
+import { Calculator, Trash2, ArrowLeftRight, Percent, Coins, HeartHandshake } from "lucide-react";
+import { calcHtToTtc, calcTtcToHt, calcDechetterie, calcSap, calcRemise } from "@/lib/pilot-ca";
 import { formatEuro } from "@/lib/pilot";
 
 function ResultLine({
