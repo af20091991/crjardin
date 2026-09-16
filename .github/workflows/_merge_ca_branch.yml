@@ -87,3 +87,5 @@ jobs:
           git rm .github/workflows/_merge_ca_branch.yml
           git commit -m "chore(ca): remove temporary merge workflow"
           git push origin HEAD:feat/ca-dashboard-refinement
+
+# Validation trigger: normalization must run before typecheck.
