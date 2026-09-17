@@ -75,7 +75,12 @@ export function AnnualMonthsTable({
   const selectedMonth = activeMonth ?? currentMonth;
 
   return (
-    <Card>
+    <Card className="pp-annual-ca-fresque">
+      <style>{`
+        .pp-annual-ca-fresque + div:has(> div > button) {
+          display: none !important;
+        }
+      `}</style>
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">Exercice {year} — les 12 mois</CardTitle>
@@ -177,7 +182,9 @@ export function AnnualMonthsTable({
             <span className="text-xs font-medium text-muted-foreground">
               CA HT mensuel · résultat mensuel
             </span>
-            <span className="text-[10px] text-muted-foreground">Cliquer sur un mois pour l'afficher</span>
+            <span className="text-[10px] text-muted-foreground">
+              Le mois actif est en vert foncé
+            </span>
           </div>
           <div className="grid min-w-[720px] grid-cols-12 gap-1">
             {rows.map((r) => {
