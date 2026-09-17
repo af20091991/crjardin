@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { HeartPulse, CheckCircle2, AlertTriangle, Target, TrendingUp, Users, Wallet, Megaphone } from "lucide-react";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { listGoals, THEME_META, PRIORITY_META } from "@/lib/pilot-goals";
+import { listChargeRows } from "@/lib/pilot-charges";
 import { annualSummary } from "@/lib/pilot-annual";
 import { entriesForMode } from "@/lib/pilot-realized";
 import { currentYear } from "@/lib/date-utils";
@@ -52,11 +53,12 @@ function HistoricalBar({ actual, reference }: { actual: number | null; reference
 }
 
 function SantePage() {
-  const { entries, charges } = usePilotData();
+  const { entries } = usePilotData();
   const year = currentYear();
   const now = new Date();
   const todayIso = now.toISOString().slice(0, 10);
   const goalsQ = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
+  const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
 
   const realEntries = useMemo(
     () => entriesForMode(entries.data ?? [], "reel", now, "a_date"),
@@ -64,8 +66,8 @@ function SantePage() {
   );
 
   const annualRows = useMemo(
-    () => annualSummary(entries.data ?? [], charges.data ?? [], { mode: "reel", period: "a_date", now }),
-    [entries.data, charges.data, todayIso],
+    () => annualSummary(entries.data ?? [], chargeRowsQ.data ?? [], { mode: "reel", period: "a_date", now }),
+    [entries.data, chargeRowsQ.data, todayIso],
   );
 
   const current = annualRows.find((row) => row.year === year) ?? null;
@@ -93,7 +95,7 @@ function SantePage() {
     [goals.active],
   );
 
-  if (entries.isLoading || charges.isLoading) return <Skeleton className="h-96 rounded-xl" />;
+  if (entries.isLoading || chargeRowsQ.isLoading) return <Skeleton className="h-96 rounded-xl" />;
 
   return (
     <div className="space-y-5">
