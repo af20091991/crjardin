@@ -54,7 +54,10 @@ describe("monthlyCaHourlyRate", () => {
   });
 
   it("ignores services from another month", () => {
-    const entries = [sale("september", 300, 3, "realise"), sale("october", 900, 3, "realise")];
+    const entries = [
+      sale("september", 300, 3, "realise"),
+      sale("october", 900, 3, "realise"),
+    ];
 
     expect(monthlyCaHourlyRate(entries, 9)).toBe(100);
   });
