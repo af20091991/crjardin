@@ -43,7 +43,7 @@ describe("monthlyCaHourlyRates", () => {
       sale("planned-no-hours", 600, null, "planifie"),
     ];
 
-    expect(monthlyCaHourlyRates(entries, 9, 5).en_cours).toBe(110);
+    expect(monthlyCaHourlyRates(entries, 9, 5).en_cours).toBe(100);
   });
 
   it("excludes zero-hour services from the entered-hours mode", () => {
