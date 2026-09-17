@@ -5,7 +5,7 @@ import type { CaEntry } from "@/lib/pilot-ca";
 const sale = (
   id: string,
   amount_ht: number,
-  hours: number,
+  hours: number | null,
   sale_status: CaEntry["sale_status"],
 ): CaEntry =>
   ({
@@ -31,14 +31,25 @@ describe("monthlyCaHourlyRates", () => {
 
     expect(monthlyCaHourlyRates(entries, 9, 2)).toEqual({
       previsionnel: 75,
-      en_cours: 60,
+      en_cours: 100,
     });
   });
 
-  it("uses only paid services for En cours", () => {
-    const entries = [sale("paid", 300, 0, "regle"), sale("unpaid", 900, 9, "realise")];
+  it("uses only services with entered hours in En cours, regardless of payment status", () => {
+    const entries = [
+      sale("paid-no-hours", 300, null, "regle"),
+      sale("timed-paid", 200, 2, "regle"),
+      sale("timed-unpaid", 900, 9, "realise"),
+      sale("planned-no-hours", 600, null, "planifie"),
+    ];
 
-    expect(monthlyCaHourlyRates(entries, 9, 1).en_cours).toBe(300);
+    expect(monthlyCaHourlyRates(entries, 9, 5).en_cours).toBe(110);
+  });
+
+  it("excludes zero-hour services from the entered-hours mode", () => {
+    const entries = [sale("untimed", 900, 0, "regle"), sale("timed", 100, 2, "realise")];
+
+    expect(monthlyCaHourlyRates(entries, 9, 0).en_cours).toBe(50);
   });
 
   it("returns null when a mode has no denominator", () => {
@@ -46,5 +57,7 @@ describe("monthlyCaHourlyRates", () => {
       previsionnel: null,
       en_cours: null,
     });
+
+    expect(monthlyCaHourlyRates([sale("untimed", 900, null, "regle")], 9, 0).en_cours).toBeNull();
   });
 });
