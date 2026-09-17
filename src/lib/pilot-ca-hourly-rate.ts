@@ -44,11 +44,12 @@ if (typeof document !== "undefined") {
   const styleId = "pilot-ca-hourly-rate-single-value";
   if (!document.getElementById(styleId)) {
     const style = document.createElement("style");
-    style.id = styleId;
-    style.textContent = [
+    const hiddenToggleSelectors = [
       '[title^="Afficher le taux calculé uniquement sur les interventions déjà réglées"],',
       '[title^="Afficher le taux calculé sur toutes les prestations du mois"]',
-    ].join(" ") + " { display: none !important; }";
+    ].join(" ");
+    style.id = styleId;
+    style.textContent = `${hiddenToggleSelectors} { display: none !important; }`;
     document.head.appendChild(style);
   }
 }
