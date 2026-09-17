@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -12,14 +12,10 @@ import {
   Users,
   LogOut,
   Settings,
-  CalendarDays,
-  BarChart3,
   MoreHorizontal,
   FileText,
   ChevronDown,
   Database,
-  BookOpen,
-  Compass,
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
@@ -30,21 +26,12 @@ import {
   Calculator,
   CalendarRange,
   Receipt,
-  Activity,
   LineChart,
   Clock,
   HeartPulse,
-  Settings2,
-  ShieldCheck,
-  MapPin,
-  Leaf,
   Globe2,
   FileBarChart,
-  Files,
-  Table2,
-  FlaskConical,
   Wrench,
-  Sparkles,
   PackageSearch,
 } from "lucide-react";
 import {
@@ -55,7 +42,6 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
 import { useAppearance } from "@/lib/appearance";
@@ -78,34 +64,21 @@ type NavItem = {
   icon: typeof LayoutDashboard;
   exact: boolean;
   primary: boolean;
-  /** Sous-légende facultative affichée au-dessus de cet item quand elle
-   * diffère de celle de l'item précédent (repère visuel, pas une rubrique
-   * pliable supplémentaire). */
   section?: string;
 };
 type NavGroup = { label: string; items: NavItem[]; emptyLabel?: string };
 
-// État d'ouverture des rubriques : conservé pendant toute la navigation interne
-// (module scope = réinitialisé uniquement au rechargement complet de la page).
-// Un seul bloc ouvert par défaut : la rubrique la plus utilisée.
-// eslint-disable-next-line react-refresh/only-export-components
-export const DEFAULT_OPEN_GROUP = "Aujourd'hui";
+export const DEFAULT_OPEN_GROUP = "Entreprise";
 let navGroupState: Record<string, boolean> = { [DEFAULT_OPEN_GROUP]: true };
 
-// Source unique des noms de rubriques du menu latéral : à tenir à jour ici
-// et nulle part ailleurs (la page Personnalisation les importe pour ses
-// réglages "masquer un groupe" / "groupe ouvert par défaut", afin qu'ils ne
-// puissent plus se désynchroniser des rubriques réellement affichées).
-// eslint-disable-next-line react-refresh/only-export-components
 export const NAV_GROUP_LABELS = [
-  "Aujourd'hui",
-  "Activité & clients",
-  "Pilotage",
+  "Entreprise",
+  "Financier",
+  "Client",
+  "Activité",
   "Configuration",
 ] as const;
 
-/** Filtre de la palette de commande : recherche insensible casse/accents. */
-// eslint-disable-next-line react-refresh/only-export-components
 export function filterNavItems<T extends { label: string; short: string; to: string }>(
   items: T[],
   query: string,
@@ -127,8 +100,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const { canEdit } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { appearance } = useAppearance();
-  // Pages qui dépendent du périmètre partagé (exercice / à date-exercice
-  // complet) et doivent donc afficher son sélecteur dans l'en-tête.
   const isPilot =
     pathname === "/pilot" ||
     pathname.startsWith("/pilot/") ||
@@ -139,13 +110,13 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem("cr-sidebar-collapsed") === "1";
   });
-  // Réglage « sidebar repliée par défaut » : appliqué uniquement si l'utilisateur
-  // n'a jamais replié/déplié manuellement la sidebar sur cet appareil.
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.localStorage.getItem("cr-sidebar-collapsed") !== null) return;
     if (appearance.sidebarCollapsedDefault) setCollapsed(true);
   }, [appearance.sidebarCollapsedDefault]);
+
   const toggleCollapsed = () =>
     setCollapsed((c) => {
       const next = !c;
@@ -157,10 +128,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       return next;
     });
 
-  // Palette de commande : ⌘K / Ctrl+K, capture pour rester la seule à s'ouvrir.
   const [paletteOpen, setPaletteOpen] = useState(false);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         e.stopPropagation();
@@ -179,10 +149,9 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const isActive = (to: string, exact: boolean) =>
     exact ? pathname === to : pathname.startsWith(to);
 
-  // Navigation regroupée en quatre ensembles : chaque destination existante est conservée.
   const groups: NavGroup[] = [
     {
-      label: "Aujourd'hui",
+      label: "Entreprise",
       items: [
         {
           to: "/pilot",
@@ -202,14 +171,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 exact: false,
                 primary: false,
               },
-              {
-                to: "/pilot/sante",
-                label: "Santé de l'activité",
-                short: "Santé",
-                icon: HeartPulse,
-                exact: false,
-                primary: false,
-              },
             ]
           : []),
         {
@@ -220,24 +181,84 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           exact: false,
           primary: false,
         },
+        ...(isAdmin
+          ? [
+              {
+                to: "/pilot/stock",
+                label: "Stock",
+                short: "Stock",
+                icon: PackageSearch,
+                exact: false,
+                primary: false,
+              },
+            ]
+          : []),
+        {
+          to: "/parc-materiel",
+          label: "Parc matériel",
+          short: "Parc",
+          icon: Wrench,
+          exact: false,
+          primary: false,
+        },
       ],
     },
     {
-      label: "Activité & clients",
+      label: "Financier",
+      items: canEdit
+        ? [
+            {
+              to: "/pilot/direction",
+              label: "Direction",
+              short: "Direction",
+              icon: FileBarChart,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/finance",
+              label: "Finance",
+              short: "Finance",
+              icon: Calculator,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/temps",
+              label: "Temps & rentabilité",
+              short: "Temps",
+              icon: Clock,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/ceev",
+              label: "CEEV",
+              short: "CEEV",
+              icon: FileBarChart,
+              exact: false,
+              primary: false,
+            },
+            {
+              to: "/pilot/charges",
+              label: "Charges",
+              short: "Charges",
+              icon: Receipt,
+              exact: false,
+              primary: false,
+            },
+          ]
+        : [],
+      emptyLabel: canEdit ? undefined : "Réservé",
+    },
+    {
+      label: "Client",
       items: [
         {
           to: "/clients",
-          label: "Fiches clients",
+          label: "Fiches client",
           short: "Clients",
           icon: Users,
-          exact: false,
-          primary: true,
-        },
-        {
-          to: "/interventions",
-          label: "CR chantier",
-          short: "CR",
-          icon: FileText,
           exact: false,
           primary: true,
         },
@@ -251,17 +272,54 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 exact: false,
                 primary: false,
               },
+            ]
+          : []),
+      ],
+    },
+    {
+      label: "Activité",
+      items: [
+        ...(canEdit
+          ? [
               {
-                to: "/fiches",
-                label: "Fiches SST",
-                short: "Fiches",
-                icon: Files,
+                to: "/pilot/sante",
+                label: "Santé de l'activité",
+                short: "Santé",
+                icon: HeartPulse,
                 exact: false,
                 primary: false,
               },
               {
+                to: "/pilot/objectifs",
+                label: "Objectifs",
+                short: "Objectifs",
+                icon: Target,
+                exact: false,
+                primary: false,
+              },
+              {
+                to: "/pilot/benchmark",
+                label: "Comparatifs et prévisions",
+                short: "Compar.",
+                icon: CalendarRange,
+                exact: false,
+                primary: false,
+              },
+            ]
+          : []),
+        {
+          to: "/interventions",
+          label: "CR Chantier",
+          short: "CR",
+          icon: FileText,
+          exact: false,
+          primary: true,
+        },
+        ...(canEdit
+          ? [
+              {
                 to: "/sst",
-                label: "Sous-traitance",
+                label: "SST",
                 short: "SST",
                 icon: HardHat,
                 exact: false,
@@ -272,131 +330,15 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       ],
     },
     {
-      label: "Pilotage",
-      items: canEdit
-        ? [
-            {
-              to: "/pilot/direction",
-              label: "Direction",
-              short: "Direction",
-              icon: BarChart3,
-              exact: false,
-              primary: false,
-            },
-            {
-              to: "/pilot/ceev",
-              label: "Rentabilité CEEV",
-              short: "CEEV €",
-              icon: FileBarChart,
-              exact: false,
-              primary: false,
-            },
-            {
-              to: "/pilot/ceev-live",
-              label: "CEEV temps réel (bêta)",
-              short: "CEEV bêta",
-              icon: Sparkles,
-              exact: false,
-              primary: false,
-            },
-            {
-              to: "/pilot/objectifs",
-              label: "Objectifs",
-              short: "Objectifs",
-              icon: Target,
-              exact: false,
-              primary: false,
-            },
-            {
-              to: "/pilot/benchmark",
-              label: "Comparatifs et prévisions",
-              short: "Compar.",
-              icon: CalendarRange,
-              exact: false,
-              primary: false,
-            },
-            {
-              to: "/pilot/temps",
-              label: "Temps & rentabilité",
-              short: "Temps",
-              icon: Clock,
-              exact: false,
-              primary: false,
-            },
-            {
-              to: "/pilot/finance",
-              label: "Finance",
-              short: "Finance",
-              icon: Calculator,
-              exact: false,
-              primary: false,
-            },
-            {
-              to: "/pilot/charges",
-              label: "Charges & investissements",
-              short: "Charges",
-              icon: Receipt,
-              exact: false,
-              primary: false,
-            },
-            ...(isAdmin
-              ? [
-                  {
-                    to: "/pilot/stock",
-                    label: "Stock",
-                    short: "Stock",
-                    icon: PackageSearch,
-                    exact: false,
-                    primary: false,
-                  },
-                ]
-              : []),
-            {
-              to: "/parc-materiel",
-              label: "Parc matériel",
-              short: "Parc",
-              icon: Wrench,
-              exact: false,
-              primary: false,
-            },
-          ]
-        : [],
-      emptyLabel: canEdit ? undefined : "Réservé",
-    },
-    {
       label: "Configuration",
       items: [
         ...(canEdit
           ? [
               {
-                to: "/pilot/controle",
-                label: "Contrôle des données",
-                short: "Contrôle",
-                icon: ShieldCheck,
-                exact: false,
-                primary: false,
-              },
-              {
                 to: "/pilot/donnees",
-                label: "Classeur de données",
-                short: "Classeur",
-                icon: Table2,
-                exact: false,
-                primary: false,
-              },
-              {
-                to: "/pilot/sites",
-                label: "Sites & contacts",
-                short: "Sites",
-                icon: MapPin,
-                exact: false,
-                primary: false,
-              },
-              {
-                to: "/pilot/parametres",
-                label: "Règles de calcul",
-                short: "Règles",
-                icon: Settings2,
+                label: "Classeur des données & contrôle",
+                short: "Données",
+                icon: Database,
                 exact: false,
                 primary: false,
               },
@@ -410,6 +352,18 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           exact: false,
           primary: false,
         },
+        ...(canEdit
+          ? [
+              {
+                to: "/emails",
+                label: "E-mails et modèles d'e-mails",
+                short: "E-mails",
+                icon: FileText,
+                exact: false,
+                primary: false,
+              },
+            ]
+          : []),
         {
           to: "/personnalisation",
           label: "Personnalisation",
@@ -432,24 +386,26 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           : []),
       ],
     },
-  ]
+  ];
+
+  const visibleGroups = groups
     .filter((g) => !appearance.hiddenGroups.includes(g.label))
     .filter((g) => g.items.length > 0 || g.emptyLabel);
-  const navItems = groups.flatMap((g) => g.items);
+  const navItems = visibleGroups.flatMap((g) => g.items);
   const primaryItems = navItems.filter((i) => i.primary);
   const moreItems = navItems.filter((i) => !i.primary);
-
-  // La rubrique de la page courante reste dépliée jusqu'à fermeture manuelle
-  // ou rechargement complet de la page.
-  const activeGroup = groups.find((g) => g.items.some((i) => isActive(i.to, i.exact)))?.label;
+  const activeGroup = visibleGroups.find((g) =>
+    g.items.some((i) => isActive(i.to, i.exact)),
+  )?.label;
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => navGroupState);
+
   useEffect(() => {
     if (!activeGroup) return;
-    if (navGroupState[activeGroup] === false || navGroupState[activeGroup] === true) return;
+    if (typeof navGroupState[activeGroup] === "boolean") return;
     navGroupState = { ...navGroupState, [activeGroup]: true };
     setOpenGroups(navGroupState);
   }, [activeGroup]);
-  // Réglage « groupe ouvert par défaut » : ajout seul, aucune fermeture forcée.
+
   const defaultOpenGroup = appearance.defaultOpenGroup;
   useEffect(() => {
     if (!defaultOpenGroup) return;
@@ -457,15 +413,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     navGroupState = { ...navGroupState, [defaultOpenGroup]: true };
     setOpenGroups(navGroupState);
   }, [defaultOpenGroup]);
+
   const isGroupOpen = (label: string) => openGroups[label] ?? false;
   const toggleGroup = (label: string) => {
-    navGroupState = { ...navGroupState, [label]: !(navGroupState[label] ?? false) };
+    navGroupState = {
+      ...navGroupState,
+      [label]: !(navGroupState[label] ?? false),
+    };
     setOpenGroups(navGroupState);
   };
-  const groupIcon: Record<string, typeof LayoutDashboard> = {
-    Catalogue: BookOpen,
-    Pilotage: Compass,
-  };
+
   const expandedSidebarClass = {
     narrow: "w-52",
     standard: "w-60",
@@ -479,7 +436,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
 
   return (
     <div data-shell="root" className="min-h-screen bg-secondary/30">
-      {/* Sidebar desktop */}
       <TooltipProvider delayDuration={150}>
         <aside
           data-shell="sidebar"
@@ -516,7 +472,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             data-shell="nav"
             className={`flex-1 space-y-4 overflow-y-auto pb-3 ${collapsed ? "px-2" : "px-3"}`}
           >
-            {groups.map((group) => (
+            {visibleGroups.map((group) => (
               <div key={group.label} data-nav-group={group.label} className="space-y-1">
                 {collapsed ? (
                   <div className="mx-2 my-1 border-t border-border/60" />
@@ -535,7 +491,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 )}
                 {(collapsed || isGroupOpen(group.label)) && (
                   <div className="space-y-1">
-                    {group.items.map((item, index) =>
+                    {group.items.map((item) =>
                       collapsed ? (
                         <Tooltip key={item.to}>
                           <TooltipTrigger asChild>
@@ -553,33 +509,23 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                           <TooltipContent side="right">{item.label}</TooltipContent>
                         </Tooltip>
                       ) : (
-                        <div key={item.to}>
-                          {item.section && item.section !== group.items[index - 1]?.section && (
-                            <p className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/50">
-                              {item.section}
-                            </p>
-                          )}
-                          <Link
-                            to={item.to}
-                            data-active={isActive(item.to, item.exact) ? "true" : undefined}
-                            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                              isActive(item.to, item.exact)
-                                ? "bg-primary/10 text-primary"
-                                : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-                            }`}
-                          >
-                            <item.icon className="nav-link-icon h-5 w-5" />
-                            <span className="nav-text">{item.label}</span>
-                          </Link>
-                        </div>
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          data-active={isActive(item.to, item.exact) ? "true" : undefined}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                            isActive(item.to, item.exact)
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                          }`}
+                        >
+                          <item.icon className="nav-link-icon h-5 w-5" />
+                          <span className="nav-text">{item.label}</span>
+                        </Link>
                       ),
                     )}
                     {!collapsed && group.items.length === 0 && group.emptyLabel && (
                       <p className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground/60">
-                        {(() => {
-                          const Icon = groupIcon[group.label];
-                          return Icon ? <Icon className="nav-link-icon h-5 w-5" /> : null;
-                        })()}
                         {group.emptyLabel}
                       </p>
                     )}
@@ -627,12 +573,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         </aside>
       </TooltipProvider>
 
-      {/* Main */}
       <div
         data-shell="content"
         className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : expandedContentClass}`}
       >
-        {/* Mobile header */}
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2">
             <img
@@ -675,7 +619,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         </main>
       </div>
 
-      {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around gap-0.5 border-t border-border bg-card/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1.5 backdrop-blur md:hidden">
         {primaryItems.map((item) => (
           <Link
@@ -708,48 +651,36 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 <SheetTitle className="font-serif">Menu</SheetTitle>
               </SheetHeader>
               <div className="mt-2 space-y-4 pb-[env(safe-area-inset-bottom)]">
-                {groups
-                  .map((g) => ({
-                    label: g.label,
-                    emptyLabel: g.emptyLabel,
-                    items: g.items.filter((i) => !i.primary),
-                  }))
-                  .filter((g) => g.items.length > 0 || g.emptyLabel)
-                  .map((group) => (
-                    <div key={group.label} className="space-y-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
-                        {group.label}
-                      </p>
-                      {group.items.length === 0 && group.emptyLabel ? (
-                        <p className="rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground/60">
-                          {group.emptyLabel}
-                        </p>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-2">
-                          {group.items.map((item) => (
-                            <SheetClose asChild key={item.to}>
-                              <Link
-                                to={item.to}
-                                className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
-                                  isActive(item.to, item.exact)
-                                    ? "bg-primary/10 text-primary"
-                                    : "text-foreground"
-                                }`}
-                              >
-                                <item.icon className="h-5 w-5 shrink-0" />
-                                <span className="truncate">{item.label}</span>
-                              </Link>
-                            </SheetClose>
-                          ))}
-                        </div>
-                      )}
+                {visibleGroups.map((group) => (
+                  <div key={group.label} className="space-y-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+                      {group.label}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {group.items.map((item) => (
+                        <SheetClose asChild key={item.to}>
+                          <Link
+                            to={item.to}
+                            className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
+                              isActive(item.to, item.exact)
+                                ? "bg-primary/10 text-primary"
+                                : "text-foreground"
+                            }`}
+                          >
+                            <item.icon className="h-5 w-5 shrink-0" />
+                            <span className="truncate">{item.label}</span>
+                          </Link>
+                        </SheetClose>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                ))}
               </div>
             </SheetContent>
           </Sheet>
         )}
       </nav>
+
       <NavCommandPalette
         items={navItems}
         open={paletteOpen}
@@ -762,11 +693,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   );
 }
 
-/**
- * Palette de commande : filtre les liens déjà présents dans la sidebar,
- * navigation aux flèches, validation à Entrée, fermeture à Échap.
- * Aucun lien ajouté ni destination modifiée : la liste vient de la sidebar.
- */
 export function NavCommandPalette({
   items,
   open,
@@ -791,7 +717,7 @@ export function NavCommandPalette({
 
   if (!open) return null;
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Escape") {
       e.preventDefault();
       onOpenChange(false);
@@ -870,7 +796,6 @@ export function NavCommandPalette({
   );
 }
 
-/** Exercice partagé : tous les écrans Pilot Pro suivent cette sélection. */
 function PilotYearSwitcher({ compact = false }: { compact?: boolean }) {
   const { year, setYear } = usePilotYear();
   const now = new Date().getFullYear();
@@ -894,10 +819,6 @@ function PilotYearSwitcher({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/**
- * Périmètre temporel partagé : « À date » (défaut, arrêté à aujourd'hui) ou
- * « Exercice complet », choix explicite et visible de l'utilisateur.
- */
 function PilotPeriodSwitcher({ compact = false }: { compact?: boolean }) {
   const { period, setPeriod } = usePilotPeriod();
   return (
