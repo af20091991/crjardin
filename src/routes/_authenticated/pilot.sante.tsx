@@ -190,9 +190,16 @@ function SantePage() {
               <HealthMetric
                 label="Prestations enregistrées"
                 value={number(commercial.salesCount)}
-                note={volumeRef.value != null ? `Repère annuel : ${number(volumeRef.value)}` : undefined}
+                note={
+                  volumeRef.value != null
+                    ? `Repère annuel : ${number(volumeRef.value)}`
+                    : undefined
+                }
               />
-              <HealthMetric label="Clients actifs dans le CA" value={number(commercial.clientCount)} />
+              <HealthMetric
+                label="Clients actifs dans le CA"
+                value={number(commercial.clientCount)}
+              />
               <HealthMetric label="Panier moyen" value={euro(commercial.ticket)} />
             </div>
             <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
@@ -311,7 +318,10 @@ function SantePage() {
             <div className="space-y-2">
               <div className="text-sm font-medium">Priorités en cours</div>
               {priorityGoals.map((goal) => (
-                <div key={goal.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+                <div
+                  key={goal.id}
+                  className="flex items-center gap-3 rounded-lg border border-border p-3"
+                >
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{goal.title}</div>
