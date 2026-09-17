@@ -107,7 +107,9 @@ export function AnnualMonthsTable({
     });
 
     return () => {
-      listeners.forEach(({ button, handleClick }) => button.removeEventListener("click", handleClick));
+      listeners.forEach(({ button, handleClick }) =>
+        button.removeEventListener("click", handleClick),
+      );
     };
   }, [rows, selectedMonth, onMonthSelect]);
 
