@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Table,
   TableBody,
@@ -20,6 +21,7 @@ import { EditStockItemDialog } from "@/components/pilot/stock/EditStockItemDialo
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { formatEuro } from "@/lib/pilot";
 import { PP_COLORS } from "@/lib/pilot-colors";
+import { toCsv, downloadCsv } from "@/lib/csv";
 import { useIsAdmin } from "@/hooks/use-admin";
 import {
   listStockItems,
@@ -31,7 +33,15 @@ import {
   type StockItem,
   type StockMovementType,
 } from "@/lib/pilot-stock";
-import { Leaf, ArrowDownCircle, ArrowUpCircle, Settings2, Pencil } from "lucide-react";
+import {
+  Leaf,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Settings2,
+  Pencil,
+  ChevronDown,
+  Download,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/stock")({
   head: () => ({
@@ -63,6 +73,16 @@ function StockPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+
+  function toggleCategory(cat: string) {
+    setCollapsedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) navigate({ to: "/pilot/direction", replace: true });
@@ -112,6 +132,21 @@ function StockPage() {
   }
   const sortedCategories = [...itemsByCategory.keys()].sort((a, b) => a.localeCompare(b));
 
+  function exportStockState() {
+    const today = new Date().toISOString().slice(0, 10);
+    const rows = items.map((it) => ({
+      Article: it.name,
+      Catégorie: it.category,
+      Unité: it.unit ?? "",
+      Quantité: it.current_quantity,
+      "Prix unitaire HT": it.unit_price_ht,
+      "Total HT": Math.round(it.current_quantity * it.unit_price_ht * 100) / 100,
+      Périssable: it.is_perishable ? "OUI" : "NON",
+      Observations: it.notes ?? "",
+    }));
+    downloadCsv(`etat-des-stocks-${today}.csv`, toCsv(rows));
+  }
+
   return (
     <div className="w-full space-y-6 px-4 py-5 lg:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -121,7 +156,13 @@ function StockPage() {
             Inventaire à jour, mouvements en temps réel et historique importé.
           </p>
         </div>
-        <AddStockMovementDialog items={items} onCreated={refresh} />
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={exportStockState}>
+            <Download className="mr-1 h-3.5 w-3.5" />
+            Exporter l'état des stocks
+          </Button>
+          <AddStockMovementDialog items={items} onCreated={refresh} />
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -145,75 +186,106 @@ function StockPage() {
               description="Enregistre un premier mouvement pour créer un article."
             />
           ) : (
-            <Card>
-              <CardContent className="pt-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Article</TableHead>
-                      <TableHead className="text-right">Quantité</TableHead>
-                      <TableHead className="text-right">Valeur HT</TableHead>
-                      <TableHead>Périssable</TableHead>
-                      <TableHead className="w-10" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedCategories.map((cat) => {
-                      const catItems = itemsByCategory.get(cat)!;
-                      const catValue = catItems.reduce(
-                        (sum, it) => sum + it.current_quantity * it.unit_price_ht,
-                        0,
-                      );
-                      return (
-                        <Fragment key={cat}>
-                          <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            <TableCell colSpan={4} className="py-2 font-semibold">
-                              {cat}
-                            </TableCell>
-                            <TableCell className="py-2 text-right text-xs text-muted-foreground">
-                              {formatEuro(catValue)}
-                            </TableCell>
-                          </TableRow>
-                          {catItems.map((it) => (
-                            <TableRow key={it.id}>
-                              <TableCell className="font-medium">{it.name}</TableCell>
-                              <TableCell className="text-right">
-                                {it.current_quantity}
-                                {it.unit ? ` ${it.unit}` : ""}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {formatEuro(it.current_quantity * it.unit_price_ht)}
-                              </TableCell>
-                              <TableCell>
-                                {it.is_perishable ? (
-                                  <Leaf
-                                    className="h-4 w-4 text-emerald-600"
-                                    aria-label="Périssable"
-                                  />
-                                ) : (
-                                  "—"
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => setEditingItem(it)}
-                                  aria-label={`Modifier ${it.name}`}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </Fragment>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <div className="space-y-3">
+              {sortedCategories.map((cat) => {
+                const catItems = itemsByCategory.get(cat)!;
+                const catValue = catItems.reduce(
+                  (sum, it) => sum + it.current_quantity * it.unit_price_ht,
+                  0,
+                );
+                const isCollapsed = collapsedCategories.has(cat);
+                return (
+                  <Collapsible
+                    key={cat}
+                    open={!isCollapsed}
+                    onOpenChange={() => toggleCategory(cat)}
+                  >
+                    <Card>
+                      <CollapsibleTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                        >
+                          <span className="flex items-center gap-2 font-semibold">
+                            <ChevronDown
+                              className={`h-4 w-4 shrink-0 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
+                            />
+                            {cat}
+                            <span className="text-xs font-normal text-muted-foreground">
+                              ({catItems.length})
+                            </span>
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {formatEuro(catValue)}
+                          </span>
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="pt-0">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Article</TableHead>
+                                <TableHead>Unité</TableHead>
+                                <TableHead className="text-right">Quantité</TableHead>
+                                <TableHead className="text-right">Prix unitaire HT</TableHead>
+                                <TableHead className="text-right">Total HT</TableHead>
+                                <TableHead>Périssable</TableHead>
+                                <TableHead>Observations</TableHead>
+                                <TableHead className="w-10" />
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {catItems.map((it) => (
+                                <TableRow key={it.id}>
+                                  <TableCell className="font-medium">{it.name}</TableCell>
+                                  <TableCell className="text-muted-foreground">
+                                    {it.unit ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {it.current_quantity}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {formatEuro(it.unit_price_ht)}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {formatEuro(it.current_quantity * it.unit_price_ht)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {it.is_perishable ? (
+                                      <Leaf
+                                        className="h-4 w-4 text-emerald-600"
+                                        aria-label="Périssable"
+                                      />
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="max-w-48 truncate text-xs text-muted-foreground">
+                                    {it.notes ?? ""}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => setEditingItem(it)}
+                                      aria-label={`Modifier ${it.name}`}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                );
+              })}
+            </div>
           )}
         </TabsContent>
 
