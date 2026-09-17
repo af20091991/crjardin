@@ -63,6 +63,6 @@ describe("pilot-health-dashboard", () => {
     expect(health.active).toHaveLength(3);
     expect(health.done).toHaveLength(1);
     expect(health.late).toHaveLength(1);
-    expect(health.completionRate).toBeCloseTo(100 / 3 * 100);
+    expect(health.completionRate).toBeCloseTo((1 / 3) * 100);
   });
 });
