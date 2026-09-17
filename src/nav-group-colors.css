@@ -3,7 +3,7 @@
 [data-shell="nav"] [data-nav-group="Financier"] { --nav-group-color: var(--brand-blue); }
 [data-shell="nav"] [data-nav-group="Client"] { --nav-group-color: var(--brand-brown); }
 [data-shell="nav"] [data-nav-group="Activité"] { --nav-group-color: var(--brand-orange); }
-[data-shell="nav"] [data-nav-group="Configuration"] { --nav-group-color: var(--brand-bark); }
+[data-shell="nav"] [data-nav-group="Configuration"] { --nav-group-color: var(--brand-yellow); }
 
 [data-shell="nav"] [data-nav-group] {
   border-left: 3px solid color-mix(in oklab, var(--nav-group-color) 32%, transparent);
