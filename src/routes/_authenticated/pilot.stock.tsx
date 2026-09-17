@@ -22,13 +22,13 @@ import { EmptyState } from "@/components/pilot/EmptyState";
 import { formatEuro } from "@/lib/pilot";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { toCsv, downloadCsv } from "@/lib/csv";
+import { usePilotYear } from "@/lib/pilot-mode";
 import { useIsAdmin } from "@/hooks/use-admin";
 import {
   listStockItems,
   listStockMovements,
   listImportSnapshots,
   importSnapshotsYearlyValue,
-  stockCategoryBreakdown,
   STOCK_MOVEMENT_TYPE_LABELS,
   type StockItem,
   type StockMovementType,
@@ -75,6 +75,9 @@ function StockPage() {
   const { isAdmin, isLoading: adminLoading } = useIsAdmin();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { year: selectedYear } = usePilotYear();
+  const liveYear = new Date().getFullYear();
+  const isLive = selectedYear >= liveYear;
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
@@ -118,36 +121,78 @@ function StockPage() {
   }
 
   const items = itemsQuery.data ?? [];
-  const movements = movementsQuery.data ?? [];
+  const movements = (movementsQuery.data ?? []).filter(
+    (mv) => new Date(mv.occurred_at).getFullYear() === selectedYear,
+  );
   const snapshots = snapshotsQuery.data ?? [];
 
-  const totalValue = items.reduce((sum, it) => sum + it.current_quantity * it.unit_price_ht, 0);
-  const perishableValue = items
-    .filter((it) => it.is_perishable)
-    .reduce((sum, it) => sum + it.current_quantity * it.unit_price_ht, 0);
-  const categoryBreakdown = stockCategoryBreakdown(items);
-  const yearlyValue = importSnapshotsYearlyValue(snapshots);
-  const itemsByCategory = new Map<string, StockItem[]>();
-  for (const it of items) {
-    const list = itemsByCategory.get(it.category) ?? [];
-    list.push(it);
-    itemsByCategory.set(it.category, list);
+  interface DisplayRow {
+    key: string;
+    name: string;
+    category: string;
+    unit: string | null;
+    quantity: number;
+    unitPrice: number;
+    totalHt: number;
+    isPerishable: boolean | null;
+    notes: string | null;
+    liveItem: StockItem | null;
   }
-  const sortedCategories = [...itemsByCategory.keys()].sort((a, b) => a.localeCompare(b));
+
+  const displayRows: DisplayRow[] = isLive
+    ? items.map((it) => ({
+        key: it.id,
+        name: it.name,
+        category: it.category,
+        unit: it.unit,
+        quantity: it.current_quantity,
+        unitPrice: it.unit_price_ht,
+        totalHt: it.current_quantity * it.unit_price_ht,
+        isPerishable: it.is_perishable,
+        notes: it.notes,
+        liveItem: it,
+      }))
+    : snapshots
+        .filter((s) => s.source_sheet === `Stock ${selectedYear}`)
+        .map((s) => ({
+          key: s.id,
+          name: s.item_label,
+          category: s.category ?? "Non catégorisé",
+          unit: s.unit,
+          quantity: s.quantity ?? 0,
+          unitPrice: s.unit_price_ht ?? 0,
+          totalHt: s.total_ht ?? 0,
+          isPerishable: s.is_perishable,
+          notes: s.observations,
+          liveItem: null,
+        }));
+
+  const totalValue = displayRows.reduce((sum, r) => sum + r.totalHt, 0);
+  const perishableValue = displayRows
+    .filter((r) => r.isPerishable)
+    .reduce((sum, r) => sum + r.totalHt, 0);
+  const yearlyValue = importSnapshotsYearlyValue(snapshots);
+  const rowsByCategory = new Map<string, DisplayRow[]>();
+  for (const r of displayRows) {
+    const list = rowsByCategory.get(r.category) ?? [];
+    list.push(r);
+    rowsByCategory.set(r.category, list);
+  }
+  const sortedCategories = [...rowsByCategory.keys()].sort((a, b) => a.localeCompare(b));
 
   function exportStockState() {
-    const today = new Date().toISOString().slice(0, 10);
-    const rows = items.map((it) => ({
-      Article: it.name,
-      Catégorie: it.category,
-      Unité: it.unit ?? "",
-      Quantité: it.current_quantity,
-      "Prix unitaire HT": it.unit_price_ht,
-      "Total HT": Math.round(it.current_quantity * it.unit_price_ht * 100) / 100,
-      Périssable: it.is_perishable ? "OUI" : "NON",
-      Observations: it.notes ?? "",
+    const label = isLive ? new Date().toISOString().slice(0, 10) : `${selectedYear}-historique`;
+    const rows = displayRows.map((r) => ({
+      Article: r.name,
+      Catégorie: r.category,
+      Unité: r.unit ?? "",
+      Quantité: r.quantity,
+      "Prix unitaire HT": r.unitPrice,
+      "Total HT": Math.round(r.totalHt * 100) / 100,
+      Périssable: r.isPerishable ? "OUI" : "NON",
+      Observations: r.notes ?? "",
     }));
-    downloadCsv(`etat-des-stocks-${today}.csv`, toCsv(rows));
+    downloadCsv(`etat-des-stocks-${label}.csv`, toCsv(rows));
   }
 
   return (
@@ -156,7 +201,9 @@ function StockPage() {
         <div>
           <h1 className="font-serif text-xl font-semibold tracking-tight">Stock</h1>
           <p className="text-sm text-muted-foreground">
-            Inventaire à jour, mouvements en temps réel et historique importé.
+            {isLive
+              ? "Inventaire à jour, mouvements en temps réel et historique importé."
+              : `Vue historique — état des stocks importé pour ${selectedYear}, lecture seule.`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -164,15 +211,21 @@ function StockPage() {
             <Download className="mr-1 h-3.5 w-3.5" />
             Exporter l'état des stocks
           </Button>
-          <AddStockMovementDialog items={items} onCreated={refresh} />
+          {isLive && <AddStockMovementDialog items={items} onCreated={refresh} />}
         </div>
       </div>
 
+      {!isLive && (
+        <Badge variant="secondary" className="w-fit">
+          Exercice {selectedYear} — données figées, non modifiables
+        </Badge>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Valeur totale HT" value={formatEuro(totalValue)} />
-        <Kpi label="Articles suivis" value={String(items.length)} />
+        <Kpi label="Articles suivis" value={String(displayRows.length)} />
         <Kpi label="Valeur périssable" value={formatEuro(perishableValue)} />
-        <Kpi label="Catégories" value={String(categoryBreakdown.length)} />
+        <Kpi label="Catégories" value={String(sortedCategories.length)} />
       </div>
 
       <Tabs defaultValue="inventaire">
@@ -183,19 +236,20 @@ function StockPage() {
         </TabsList>
 
         <TabsContent value="inventaire" className="mt-4">
-          {items.length === 0 ? (
+          {displayRows.length === 0 ? (
             <EmptyState
               title="Aucun article"
-              description="Enregistre un premier mouvement pour créer un article."
+              description={
+                isLive
+                  ? "Enregistre un premier mouvement pour créer un article."
+                  : `Aucun inventaire importé pour ${selectedYear}.`
+              }
             />
           ) : (
             <div className="space-y-3">
               {sortedCategories.map((cat) => {
-                const catItems = itemsByCategory.get(cat)!;
-                const catValue = catItems.reduce(
-                  (sum, it) => sum + it.current_quantity * it.unit_price_ht,
-                  0,
-                );
+                const catRows = rowsByCategory.get(cat)!;
+                const catValue = catRows.reduce((sum, r) => sum + r.totalHt, 0);
                 const isCollapsed = collapsedCategories.has(cat);
                 return (
                   <Collapsible
@@ -215,7 +269,7 @@ function StockPage() {
                             />
                             {cat}
                             <span className="text-xs font-normal text-muted-foreground">
-                              ({catItems.length})
+                              ({catRows.length})
                             </span>
                           </span>
                           <span className="text-sm text-muted-foreground">
@@ -235,27 +289,25 @@ function StockPage() {
                                 <TableHead className="text-right">Total HT</TableHead>
                                 <TableHead>Périssable</TableHead>
                                 <TableHead>Observations</TableHead>
-                                <TableHead className="w-10" />
+                                {isLive && <TableHead className="w-10" />}
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {catItems.map((it) => (
-                                <TableRow key={it.id}>
-                                  <TableCell className="font-medium">{it.name}</TableCell>
+                              {catRows.map((r) => (
+                                <TableRow key={r.key}>
+                                  <TableCell className="font-medium">{r.name}</TableCell>
                                   <TableCell className="text-muted-foreground">
-                                    {it.unit ?? "—"}
+                                    {r.unit ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right">{r.quantity}</TableCell>
+                                  <TableCell className="text-right">
+                                    {formatEuro(r.unitPrice)}
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    {it.current_quantity}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    {formatEuro(it.unit_price_ht)}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    {formatEuro(it.current_quantity * it.unit_price_ht)}
+                                    {formatEuro(r.totalHt)}
                                   </TableCell>
                                   <TableCell>
-                                    {it.is_perishable ? (
+                                    {r.isPerishable ? (
                                       <Leaf
                                         className="h-4 w-4 text-emerald-600"
                                         aria-label="Périssable"
@@ -265,37 +317,39 @@ function StockPage() {
                                     )}
                                   </TableCell>
                                   <TableCell className="max-w-48 truncate text-xs text-muted-foreground">
-                                    {it.notes ?? ""}
+                                    {r.notes ?? ""}
                                   </TableCell>
-                                  <TableCell>
-                                    <div className="flex justify-end gap-1">
-                                      <AddStockMovementDialog
-                                        items={items}
-                                        onCreated={refresh}
-                                        presetItem={it}
-                                        presetMovementType="perte"
-                                        trigger={
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7 text-destructive hover:text-destructive"
-                                            aria-label={`Déclarer une perte pour ${it.name}`}
-                                          >
-                                            <AlertTriangle className="h-3.5 w-3.5" />
-                                          </Button>
-                                        }
-                                      />
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={() => setEditingItem(it)}
-                                        aria-label={`Modifier ${it.name}`}
-                                      >
-                                        <Pencil className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
+                                  {isLive && r.liveItem && (
+                                    <TableCell>
+                                      <div className="flex justify-end gap-1">
+                                        <AddStockMovementDialog
+                                          items={items}
+                                          onCreated={refresh}
+                                          presetItem={r.liveItem}
+                                          presetMovementType="perte"
+                                          trigger={
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 text-destructive hover:text-destructive"
+                                              aria-label={`Déclarer une perte pour ${r.name}`}
+                                            >
+                                              <AlertTriangle className="h-3.5 w-3.5" />
+                                            </Button>
+                                          }
+                                        />
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => setEditingItem(r.liveItem)}
+                                          aria-label={`Modifier ${r.name}`}
+                                        >
+                                          <Pencil className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  )}
                                 </TableRow>
                               ))}
                             </TableBody>
