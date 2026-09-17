@@ -74,6 +74,17 @@ export function AnnualMonthsTable({
   const currentMonth = now.getFullYear() === year ? now.getMonth() + 1 : null;
   const selectedMonth = activeMonth ?? currentMonth;
 
+  const selectMonth = (month: number) => {
+    if (onMonthSelect) {
+      onMonthSelect(month);
+      return;
+    }
+    const root = document.querySelector<HTMLElement>(".pp-annual-ca-fresque");
+    const monthNav = root?.nextElementSibling;
+    const buttons = monthNav?.querySelectorAll<HTMLButtonElement>("button");
+    buttons?.[month - 1]?.click();
+  };
+
   return (
     <Card className="pp-annual-ca-fresque">
       <style>{`
@@ -190,7 +201,6 @@ export function AnnualMonthsTable({
             {rows.map((r) => {
               const active = r.month === selectedMonth;
               const tone = monthResultTone(r.resultat, r.nature, active);
-              const clickable = !!onMonthSelect;
               const content = (
                 <>
                   <span className="truncate text-[10px] font-medium">{r.monthLabel.slice(0, 3)}</span>
@@ -203,7 +213,7 @@ export function AnnualMonthsTable({
                 </>
               );
 
-              return clickable ? (
+              return (
                 <button
                   key={r.month}
                   type="button"
@@ -211,21 +221,11 @@ export function AnnualMonthsTable({
                     r.nature === "aucun" ? "aucun" : formatEuro(r.ventesHt)
                   } · résultat ${r.nature === "aucun" ? "aucun" : formatEuro(r.resultat)}`}
                   aria-pressed={active}
-                  onClick={() => onMonthSelect?.(r.month)}
+                  onClick={() => selectMonth(r.month)}
                   className={`min-w-0 rounded-md px-1 py-2 text-center transition-opacity hover:opacity-85 ${tone}`}
                 >
                   {content}
                 </button>
-              ) : (
-                <div
-                  key={r.month}
-                  title={`${r.monthLabel} — CA HT ${
-                    r.nature === "aucun" ? "aucun" : formatEuro(r.ventesHt)
-                  } · résultat ${r.nature === "aucun" ? "aucun" : formatEuro(r.resultat)}`}
-                  className={`min-w-0 rounded-md px-1 py-2 text-center ${tone}`}
-                >
-                  {content}
-                </div>
               );
             })}
           </div>
