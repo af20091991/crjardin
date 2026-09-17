@@ -17,9 +17,10 @@ describe("présentation CA — régressions interdites", () => {
     expect(annualTableSource).not.toContain("chargesFixesReportees");
   });
 
-  test("le masquage des investissements reste disponible", () => {
-    expect(annualTableSource).toContain("Masquer investissements");
-    expect(annualTableSource).toContain("Afficher investissements");
+  test("le masquage des investissements reste disponible via Personnaliser", () => {
+    expect(annualTableSource).toContain("Colonne investissements");
+    expect(annualTableSource).toContain("showInvestments");
+    expect(annualTableSource).toContain("INVESTMENTS_VISIBILITY_KEY");
   });
 
   test("le tableau annuel reste branché sur la source mensuelle unique", () => {

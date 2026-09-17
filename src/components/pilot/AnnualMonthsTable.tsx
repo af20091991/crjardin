@@ -1,6 +1,7 @@
 // Tableau « Année complète » : 12 mois de l'exercice, saisies telles quelles.
 // Aucun calcul ici : tout vient de `pilot-ca-months.ts`.
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,7 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { formatEuro } from "@/lib/pilot";
 import type { CaEntry } from "@/lib/pilot-ca";
 import {
@@ -48,6 +48,7 @@ export function AnnualMonthsTable({
   const rows = monthlyCaRows(entries, year, { now, period });
   const totals = monthlyCaTotals(rows);
   const [showInvestments, setShowInvestments] = useState(true);
+  const [personalizationMount, setPersonalizationMount] = useState<HTMLElement | null>(null);
   const selectedMonth =
     activeMonth ?? (now.getFullYear() === year ? now.getMonth() + 1 : undefined);
 
@@ -58,6 +59,63 @@ export function AnnualMonthsTable({
     } catch {
       /* stockage local indisponible */
     }
+  }, []);
+
+  useEffect(() => {
+    const applyFresqueWidth = () => {
+      const root = document.querySelector<HTMLElement>(".pp-annual-ca-fresque");
+      const monthNav = root?.nextElementSibling as HTMLElement | null;
+      if (!monthNav) return;
+
+      const nav = monthNav.firstElementChild as HTMLElement | null;
+      if (nav) {
+        nav.style.width = "100%";
+        nav.style.minWidth = "912px";
+        nav.style.display = "grid";
+        nav.style.gridTemplateColumns = "repeat(12, minmax(0, 1fr))";
+      }
+      monthNav.style.width = "100%";
+      monthNav.style.maxWidth = "100%";
+      monthNav.style.overflowX = "auto";
+      nav?.querySelectorAll<HTMLElement>("button").forEach((button) => {
+        button.style.minWidth = "0";
+        button.style.width = "100%";
+      });
+    };
+
+    const findPersonalizationMount = () => {
+      const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]'));
+      for (const dialog of dialogs) {
+        const pageSection = Array.from(dialog.querySelectorAll<HTMLElement>("section")).find(
+          (section) => section.querySelector("p")?.textContent?.trim() === "Page",
+        );
+        const options = pageSection?.querySelector<HTMLElement>("div.space-y-1");
+        if (!options) continue;
+        let mount = options.querySelector<HTMLElement>('[data-ca-investments-setting="true"]');
+        if (!mount) {
+          mount = document.createElement("div");
+          mount.dataset.caInvestmentsSetting = "true";
+          options.appendChild(mount);
+        }
+        setPersonalizationMount((current) => (current === mount ? current : mount));
+        return;
+      }
+      setPersonalizationMount(null);
+    };
+
+    applyFresqueWidth();
+    findPersonalizationMount();
+    const observer = new MutationObserver(() => {
+      applyFresqueWidth();
+      findPersonalizationMount();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      const mount = document.querySelector<HTMLElement>('[data-ca-investments-setting="true"]');
+      mount?.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -112,113 +170,115 @@ export function AnnualMonthsTable({
     };
   }, [rows, selectedMonth]);
 
-  const toggleInvestments = () => {
-    setShowInvestments((current) => {
-      const next = !current;
-      try {
-        window.localStorage.setItem(INVESTMENTS_VISIBILITY_KEY, String(next));
-      } catch {
-        /* le réglage reste valable pour la session */
-      }
-      return next;
-    });
-  };
+  const investmentSetting: ReactNode = personalizationMount
+    ? createPortal(
+        <label className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50">
+          <span>Colonne investissements</span>
+          <input
+            type="checkbox"
+            checked={showInvestments}
+            onChange={(e) => {
+              const next = e.target.checked;
+              setShowInvestments(next);
+              try {
+                window.localStorage.setItem(INVESTMENTS_VISIBILITY_KEY, String(next));
+              } catch {
+                /* le réglage reste valable pour la session */
+              }
+            }}
+          />
+        </label>,
+        personalizationMount,
+      )
+    : null;
 
   return (
-    <Card className="pp-annual-ca-fresque">
-      <CardHeader className="pb-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-base">Exercice {year} — les 12 mois</CardTitle>
-          <div className="flex items-center gap-2">
+    <>
+      {investmentSetting}
+      <Card className="pp-annual-ca-fresque">
+        <CardHeader className="pb-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">Exercice {year} — les 12 mois</CardTitle>
             <Badge variant="outline">{periodScopeLabel(year, period, now)}</Badge>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground"
-              onClick={toggleInvestments}
-            >
-              {showInvestments ? "Masquer investissements" : "Afficher investissements"}
-            </Button>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Mois</TableHead>
-              <TableHead className="text-right">Ventes saisies</TableHead>
-              <TableHead className="text-right">Charges saisies</TableHead>
-              {showInvestments && <TableHead className="text-right">Investissements</TableHead>}
-              <TableHead className="text-right">Résultat des saisies</TableHead>
-              <TableHead>Nature</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow
-                key={r.month}
-                className={r.nature === "aucun" ? "text-muted-foreground" : ""}
-              >
-                <TableCell className="font-medium">{r.monthLabel}</TableCell>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Mois</TableHead>
+                <TableHead className="text-right">Ventes saisies</TableHead>
+                <TableHead className="text-right">Charges saisies</TableHead>
+                {showInvestments && <TableHead className="text-right">Investissements</TableHead>}
+                <TableHead className="text-right">Résultat des saisies</TableHead>
+                <TableHead>Nature</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow
+                  key={r.month}
+                  className={r.nature === "aucun" ? "text-muted-foreground" : ""}
+                >
+                  <TableCell className="font-medium">{r.monthLabel}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.nature === "aucun" ? "—" : formatEuro(r.ventesHt)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-rose-600">
+                    {r.nature === "aucun" ? "—" : formatEuro(r.chargesHt)}
+                  </TableCell>
+                  {showInvestments && (
+                    <TableCell className="text-right tabular-nums text-sky-600">
+                      {r.investissements ? formatEuro(r.investissements) : "—"}
+                    </TableCell>
+                  )}
+                  <TableCell
+                    className={`text-right tabular-nums ${
+                      r.nature === "aucun"
+                        ? ""
+                        : r.resultat >= 0
+                          ? "text-emerald-600"
+                          : "text-rose-600"
+                    }`}
+                  >
+                    {r.nature === "aucun" ? "—" : formatEuro(r.resultat)}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-xs ${NATURE_TONE[r.nature]}`}>
+                      {MONTH_NATURE_LABELS[r.nature]}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+              <TableRow className="border-t-2 font-semibold">
+                <TableCell>Total exercice</TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {r.nature === "aucun" ? "—" : formatEuro(r.ventesHt)}
+                  {formatEuro(totals.ventesHt)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums text-rose-600">
-                  {r.nature === "aucun" ? "—" : formatEuro(r.chargesHt)}
+                  {formatEuro(totals.chargesHt)}
                 </TableCell>
                 {showInvestments && (
                   <TableCell className="text-right tabular-nums text-sky-600">
-                    {r.investissements ? formatEuro(r.investissements) : "—"}
+                    {totals.investissements ? formatEuro(totals.investissements) : "—"}
                   </TableCell>
                 )}
                 <TableCell
                   className={`text-right tabular-nums ${
-                    r.nature === "aucun"
-                      ? ""
-                      : r.resultat >= 0
-                        ? "text-emerald-600"
-                        : "text-rose-600"
+                    totals.resultat >= 0 ? "text-emerald-600" : "text-rose-600"
                   }`}
                 >
-                  {r.nature === "aucun" ? "—" : formatEuro(r.resultat)}
+                  {formatEuro(totals.resultat)}
                 </TableCell>
-                <TableCell>
-                  <span className={`text-xs ${NATURE_TONE[r.nature]}`}>
-                    {MONTH_NATURE_LABELS[r.nature]}
-                  </span>
+                <TableCell className="text-xs font-normal text-muted-foreground">
+                  {totals.monthsWithData} mois renseigné(s)
+                  {totals.monthsFuture > 0 ? ` · dont ${totals.monthsFuture} à venir` : ""}
                 </TableCell>
               </TableRow>
-            ))}
-            <TableRow className="border-t-2 font-semibold">
-              <TableCell>Total exercice</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatEuro(totals.ventesHt)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums text-rose-600">
-                {formatEuro(totals.chargesHt)}
-              </TableCell>
-              {showInvestments && (
-                <TableCell className="text-right tabular-nums text-sky-600">
-                  {totals.investissements ? formatEuro(totals.investissements) : "—"}
-                </TableCell>
-              )}
-              <TableCell
-                className={`text-right tabular-nums ${
-                  totals.resultat >= 0 ? "text-emerald-600" : "text-rose-600"
-                }`}
-              >
-                {formatEuro(totals.resultat)}
-              </TableCell>
-              <TableCell className="text-xs font-normal text-muted-foreground">
-                {totals.monthsWithData} mois renseigné(s)
-                {totals.monthsFuture > 0 ? ` · dont ${totals.monthsFuture} à venir` : ""}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </>
   );
 }
