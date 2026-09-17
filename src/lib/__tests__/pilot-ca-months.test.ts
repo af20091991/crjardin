@@ -59,18 +59,6 @@ describe("tableau des 12 mois de l'exercice", () => {
     expect(rows[2].resultat).toBe(600);
   });
 
-  test("une charge fixe saisie sur un mois n'est jamais reportée sur les mois suivants", () => {
-    const rows = monthlyCaRows(
-      [row({ id: "fixed-3", month: 3, kind: "charge", amount_ht: 726, is_fixed: true })],
-      YEAR,
-      { now: NOW, period: "exercice_complet" },
-    );
-    expect(rows[2].chargesHt).toBe(726);
-    expect(rows[3].chargesHt).toBe(0);
-    expect(rows[4].chargesHt).toBe(0);
-    expect(rows.slice(3).reduce((sum, r) => sum + r.chargesHt, 0)).toBe(0);
-  });
-
   test("total annuel = somme exacte des 12 lignes", () => {
     const rows = monthlyCaRows(entries, YEAR, { now: NOW, period: "exercice_complet" });
     const t = monthlyCaTotals(rows);

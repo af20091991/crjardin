@@ -26,6 +26,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-16",
+    version: "2.3.5",
+    theme: "Général",
+    title: "Centre de décision — interventions cohérentes avec le chiffre d'affaires",
+    details: [
+      "Les cartes comptent désormais les interventions facturées du même périmètre que le chiffre d'affaires affiché à côté : les lignes encore planifiées ne sont plus comptées.",
+      "Les heures affichées proviennent exactement des mêmes lignes de vente, et le nombre d'interventions dont le temps est renseigné est précisé.",
+      "Même règle appliquée au mois en cours (du 1er à aujourd'hui) et au cumul depuis le 1er janvier.",
+    ],
+  },
+
+  {
     date: "2026-09-09",
     version: "2.3.4",
     theme: "Général",

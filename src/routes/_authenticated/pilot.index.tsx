@@ -52,10 +52,8 @@ import {
 import { listCeevContracts } from "@/lib/ceev";
 import { entriesForMode, goalsForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
 // Comptage unique des interventions : 1 ligne de Vente = 1 intervention.
-import {
-  countSaleInterventions,
-  countSaleInterventionsWhere,
-} from "@/lib/pilot-intervention-count";
+import { saleInterventionScopeWhere } from "@/lib/pilot-intervention-count";
+
 // Taux horaire : gestion incluse / exclue (dénominateur uniquement).
 import { gestionHoursForYear, rateWithGestion, GESTION_MODE_HELP } from "@/lib/pilot-gestion-hours";
 import { useGestionMode } from "@/lib/pilot-gestion-mode";
@@ -649,17 +647,26 @@ function TodayPage() {
    * Nombre d'interventions : 1 ligne de Vente = 1 intervention (règle unique,
    * cf. pilot-intervention-count). Les CR Chantier et les données SST ne sont
    * jamais utilisés pour ce comptage.
+   *
+   * COHÉRENCE : le périmètre est exactement celui du CA affiché à côté —
+   * lignes de vente comptabilisées (dès 🟠 Facturé), bornées « à date ». Les
+   * heures affichées proviennent des mêmes lignes.
    */
-  // Périmètre du comptage : TOUTES les lignes de vente de l'exercice
-  // (1er janvier → 31 décembre), sans limitation « à date ».
-  const interventionsMois = useMemo(
-    () => countSaleInterventions(entries.data ?? [], { year, month: month + 1 }),
-    [entries.data, year, month],
+  const scopeMois = useMemo(
+    () =>
+      saleInterventionScopeWhere(
+        realEntries,
+        (d) => d.getFullYear() === year && d.getMonth() === month && d.getDate() <= now.getDate(),
+      ),
+    [realEntries, year, month, now],
   );
-  const interventionsAnnee = useMemo(
-    () => countSaleInterventions(entries.data ?? [], { year }),
-    [entries.data, year],
+  const scopeAnnee = useMemo(
+    () => saleInterventionScopeWhere(realEntries, (d) => d.getFullYear() === year),
+    [realEntries, year],
   );
+  const interventionsMois = scopeMois.interventions;
+  const interventionsAnnee = scopeAnnee.interventions;
+
 
   // ---- Comparatifs à date équivalente N-1 (uniquement l'enregistré) ----
   // CA : lignes de vente enregistrées (pilot_ca_entries).
@@ -681,14 +688,14 @@ function TodayPage() {
         const d = new Date(e.entry_date);
         return Number.isFinite(d.getTime()) && keep(d) ? s + (Number(e.amount_ht) || 0) : s;
       }, 0);
-    // Règle unique : 1 ligne de Vente = 1 intervention (0 h inclus).
-    const nbItv = (keep: (d: Date) => boolean) => countSaleInterventionsWhere(realEntries, keep);
+    // Règle unique : 1 ligne de Vente comptabilisée = 1 intervention (0 h inclus).
+    // Interventions et heures proviennent des MÊMES lignes : les deux chiffres
+    // affichés côte à côte décrivent toujours le même périmètre.
+    const nbItv = (keep: (d: Date) => boolean) =>
+      saleInterventionScopeWhere(realEntries, keep).interventions;
     const heures = (keep: (d: Date) => boolean) =>
-      realEntries.reduce((s, e) => {
-        const d = new Date(e.entry_date);
-        if (!Number.isFinite(d.getTime()) || !keep(d)) return s;
-        return s + (Number(e.hours) || 0);
-      }, 0);
+      saleInterventionScopeWhere(realEntries, keep).hours;
+
 
     const moisN = (d: Date) =>
       d.getFullYear() === year && d.getMonth() === month && d.getDate() <= limitDay;
@@ -1327,12 +1334,18 @@ function TodayPage() {
             }
           />
           <PilotCard
-            label="Interventions réalisées"
+            label="Interventions facturées"
             value={safeValue(itvSources, () => String(interventionsMois)).value}
             icon={Leaf}
             to="/pilot/ca"
-            help="Nombre de lignes de Vente du mois (Chiffre d'affaires → Ventes) : 1 ligne = 1 intervention, une ligne à 0 h incluse."
+            help="Lignes de Vente facturées ou réglées du 1er du mois à aujourd'hui : 1 ligne = 1 intervention. Même périmètre que le CA affiché ci-contre ; les lignes encore planifiées ne sont pas comptées."
+            sub={
+              interventionsMois > 0
+                ? `${scopeMois.interventionsWithHours}/${interventionsMois} avec un temps renseigné`
+                : undefined
+            }
           />
+
           <PilotCard
             label="Heures d'intervention"
             value={
@@ -1409,12 +1422,18 @@ function TodayPage() {
           />
           <PilotCard
             className="lg:col-span-2"
-            label="Interventions réalisées"
+            label="Interventions facturées"
             value={safeValue(itvSources, () => String(interventionsAnnee)).value}
             icon={Leaf}
             to="/pilot/ca"
-            help="Nombre de lignes de Vente de l'exercice (Chiffre d'affaires → Ventes) : 1 ligne = 1 intervention, une ligne à 0 h incluse."
+            help="Lignes de Vente facturées ou réglées depuis le 1er janvier, à date : 1 ligne = 1 intervention. Même périmètre que le CA cumulé affiché ci-contre."
+            sub={
+              interventionsAnnee > 0
+                ? `${scopeAnnee.interventionsWithHours}/${interventionsAnnee} avec un temps renseigné`
+                : undefined
+            }
           />
+
           <PilotCard
             className="lg:col-span-4"
             emphasis="important"
@@ -1478,11 +1497,13 @@ function TodayPage() {
                   Début exercice
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {interventionsAnnee} intervention{interventionsAnnee > 1 ? "s" : ""}
+                  {interventionsAnnee} intervention{interventionsAnnee > 1 ? "s" : ""} facturée
+                  {interventionsAnnee > 1 ? "s" : ""}
                   {heuresRealiseesAnnee > 0
-                    ? ` · ${formatHours(heuresRealiseesAnnee)} (Vente → Temps)`
-                    : ""}
+                    ? ` · ${formatHours(heuresRealiseesAnnee)} (Vente → Temps) sur ${scopeAnnee.interventionsWithHours} intervention${scopeAnnee.interventionsWithHours > 1 ? "s" : ""} avec temps renseigné`
+                    : " · aucun temps renseigné"}
                 </p>
+
               </div>
               <p className="font-serif text-2xl font-semibold tabular-nums">
                 {formatEuro(caLecture)}
@@ -1494,11 +1515,13 @@ function TodayPage() {
                   Mois en cours ({moisCourtLabel})
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {interventionsMois} intervention{interventionsMois > 1 ? "s" : ""}
+                  {interventionsMois} intervention{interventionsMois > 1 ? "s" : ""} facturée
+                  {interventionsMois > 1 ? "s" : ""}
                   {heuresRealiseesMois > 0
-                    ? ` · ${formatHours(heuresRealiseesMois)} (Vente → Temps)`
-                    : ""}
+                    ? ` · ${formatHours(heuresRealiseesMois)} (Vente → Temps) sur ${scopeMois.interventionsWithHours} intervention${scopeMois.interventionsWithHours > 1 ? "s" : ""} avec temps renseigné`
+                    : " · aucun temps renseigné"}
                 </p>
+
               </div>
               <p className="font-serif text-2xl font-semibold tabular-nums">
                 {formatEuro(k.caMonth)}

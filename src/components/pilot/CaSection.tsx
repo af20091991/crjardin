@@ -37,9 +37,9 @@ export function CaSection({
       className={accent ? "" : undefined}
       style={accent ? { backgroundColor: accent } : undefined}
     >
-      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 py-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 py-3">
         <CardTitle
-          className="flex items-center gap-2 text-sm"
+          className="flex items-center gap-2 text-base"
           // Bouton d'en-tête cliquable pour replier/déplier l'encart.
           style={{ display: "flex", alignItems: "center" }}
         >
@@ -52,7 +52,7 @@ export function CaSection({
               if (open) setEverOpened(true);
               onToggle(id);
             }}
-            className="flex items-center gap-2 rounded text-left font-medium text-sm hover:underline"
+            className="flex items-center gap-2 rounded text-left font-medium hover:underline"
           >
             <ChevronDown
               className={`h-4 w-4 text-primary transition-transform ${open ? "" : "-rotate-90"}`}
@@ -64,7 +64,7 @@ export function CaSection({
         <div onClick={(e) => e.stopPropagation()}>{action}</div>
       </CardHeader>
       {shown && open && (
-        <CardContent id={`ca-section-${id}`} className="p-0 text-sm [&>div]:rounded-b-xl">
+        <CardContent id={`ca-section-${id}`} className="p-0 [&>div]:rounded-b-xl">
           {children}
         </CardContent>
       )}

@@ -45,7 +45,6 @@ import {
   FlaskConical,
   Wrench,
   Sparkles,
-  PackageSearch,
 } from "lucide-react";
 import {
   Sheet,
@@ -339,18 +338,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               exact: false,
               primary: false,
             },
-            ...(isAdmin
-              ? [
-                  {
-                    to: "/pilot/stock",
-                    label: "Stock",
-                    short: "Stock",
-                    icon: PackageSearch,
-                    exact: false,
-                    primary: false,
-                  },
-                ]
-              : []),
             {
               to: "/parc-materiel",
               label: "Parc matériel",
