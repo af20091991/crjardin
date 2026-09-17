@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, Crosshair, Eye, Lightbulb, ShieldCheck, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -27,7 +28,6 @@ type AnalyticsRow = {
 };
 
 type AnalyticsReport = { rows?: AnalyticsRow[] };
-
 type Channel = { name: string; sessions: number };
 
 export function SiteWebSeoDiagnostic() {
@@ -41,7 +41,6 @@ export function SiteWebSeoDiagnostic() {
     const load = async () => {
       setLoading(true);
       setError(null);
-
       const searchResult = await querySearchConsole({
         siteUrl: SITE_URL,
         startDate: yearStart(),
@@ -104,9 +103,7 @@ export function SiteWebSeoDiagnostic() {
     <div className="space-y-5">
       <Card className="border-primary/20 bg-primary/5 p-5">
         <div className="flex items-start gap-3">
-          <div className="rounded-lg bg-background p-2 text-primary shadow-sm">
-            <Crosshair className="h-5 w-5" />
-          </div>
+          <div className="rounded-lg bg-background p-2 text-primary shadow-sm"><Crosshair className="h-5 w-5" /></div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="font-serif text-xl font-semibold">Diagnostic SEO</h2>
@@ -116,18 +113,12 @@ export function SiteWebSeoDiagnostic() {
               PP ne liste plus les requêtes pour les lister : il les regroupe pour faire ressortir ce qui fonctionne,
               ce qui attire réellement des clics et ce qui mérite une action.
             </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Période : {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}
-            </p>
+            <p className="mt-2 text-xs text-muted-foreground">Période : {formatDateLabel(yearStart())} → {formatDateLabel(yesterday())}</p>
           </div>
         </div>
       </Card>
 
-      {error && (
-        <Card className="border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          Données Google indisponibles : {error}
-        </Card>
-      )}
+      {error && <Card className="border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">Données Google indisponibles : {error}</Card>}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric icon={Eye} label="Clics Google" value={loading ? "…" : formatNumber(summary.totalClicks)} detail="trafic organique généré par les recherches" />
@@ -153,9 +144,7 @@ export function SiteWebSeoDiagnostic() {
               Search Console indique où votre site apparaît, mais ne fournit pas les domaines concurrents présents devant lui.
               Le module ne fabriquera donc pas une liste de concurrents à partir d'une supposition.
             </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Pour mesurer réellement « qui est devant vous », il faut ajouter une source de résultats Google (SERP) dédiée.
-            </p>
+            <p className="mt-2 text-xs text-muted-foreground">Pour mesurer réellement « qui est devant vous », il faut ajouter une source de résultats Google (SERP) dédiée.</p>
           </div>
         </SwotCard>
       </div>
@@ -171,10 +160,7 @@ export function SiteWebSeoDiagnostic() {
 
       <Card className="p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div>
-            <h2 className="font-serif text-lg font-semibold">Lecture à retenir</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Une synthèse courte plutôt qu'un tableau de 1 000 mots-clés.</p>
-          </div>
+          <div><h2 className="font-serif text-lg font-semibold">Lecture à retenir</h2><p className="mt-1 text-sm text-muted-foreground">Une synthèse courte plutôt qu'un tableau de 1 000 mots-clés.</p></div>
           <Badge variant="outline" className="font-normal">{formatNumber(summary.totalImpressions)} impressions</Badge>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -191,7 +177,7 @@ function Metric({ icon: Icon, label, value, detail }: { icon: typeof Eye; label:
   return <Card className="p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Icon className="h-4 w-4" />{label}</div><p className="mt-2 text-2xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></Card>;
 }
 
-function SwotCard({ icon: Icon, title, tone, children }: { icon: typeof Eye; title: string; tone: "positive" | "warning" | "info" | "neutral"; children: React.ReactNode }) {
+function SwotCard({ icon: Icon, title, tone, children }: { icon: typeof Eye; title: string; tone: "positive" | "warning" | "info" | "neutral"; children: ReactNode }) {
   const toneClass = tone === "positive" ? "border-[#4AAC33]/30" : tone === "warning" ? "border-[#EE8627]/30" : tone === "info" ? "border-primary/30" : "border-border";
   return <Card className={`p-5 ${toneClass}`}><div className="flex items-center gap-2"><Icon className="h-4 w-4 text-primary" /><h2 className="font-serif text-lg font-semibold">{title}</h2></div><div className="mt-4 space-y-2">{children}</div></Card>;
 }
@@ -204,7 +190,7 @@ function PageLine({ item }: { item: SeoPage }) {
   return <div className="rounded-lg border border-border/60 p-3"><p className="truncate text-sm font-medium">{item.page.replace(SITE_URL, "/")}</p><p className="mt-1 text-xs text-muted-foreground">{formatNumber(item.clicks)} clics · {formatNumber(item.impressions)} impressions · position {formatPosition(item.position)}</p></div>;
 }
 
-function ListCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+function ListCard({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return <Card className="p-5"><h2 className="font-serif text-lg font-semibold">{title}</h2><p className="mt-1 text-sm text-muted-foreground">{subtitle}</p><div className="mt-4 space-y-2">{children}</div></Card>;
 }
 
