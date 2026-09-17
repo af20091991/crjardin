@@ -1,14 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { HeartPulse, CheckCircle2, AlertTriangle, Target, TrendingUp, Users, Wallet, Megaphone } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  HeartPulse,
+  Megaphone,
+  Target,
+  TrendingUp,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { usePilotData } from "@/components/pilot/usePilotData";
-import { listGoals, THEME_META, PRIORITY_META } from "@/lib/pilot-goals";
+import { listGoals, PRIORITY_META, THEME_META } from "@/lib/pilot-goals";
 import { listChargeRows } from "@/lib/pilot-charges";
 import { annualSummary } from "@/lib/pilot-annual";
 import { entriesForMode } from "@/lib/pilot-realized";
 import { currentYear } from "@/lib/date-utils";
-import { historicalReference, goalHealth } from "@/lib/pilot-health-dashboard";
+import { goalHealth, historicalReference } from "@/lib/pilot-health-dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -66,7 +75,12 @@ function SantePage() {
   );
 
   const annualRows = useMemo(
-    () => annualSummary(entries.data ?? [], chargeRowsQ.data ?? [], { mode: "reel", period: "a_date", now }),
+    () =>
+      annualSummary(entries.data ?? [], chargeRowsQ.data ?? [], {
+        mode: "reel",
+        period: "a_date",
+        now,
+      }),
     [entries.data, chargeRowsQ.data, todayIso],
   );
 
@@ -82,16 +96,23 @@ function SantePage() {
     const clientIds = new Set(
       sales.map((entry) => entry.client_id).filter((id): id is string => Boolean(id)),
     );
-    const ticket = sales.length ? sales.reduce((sum, entry) => sum + entry.amount_ht, 0) / sales.length : null;
+    const ticket = sales.length
+      ? sales.reduce((sum, entry) => sum + entry.amount_ht, 0) / sales.length
+      : null;
     return { salesCount: sales.length, clientCount: clientIds.size, ticket };
   }, [realEntries]);
 
   const goals = useMemo(() => goalHealth(goalsQ.data ?? [], todayIso), [goalsQ.data, todayIso]);
   const priorityGoals = useMemo(
-    () => goals.active.filter((goal) => goal.status === "en_cours").slice().sort((a, b) => {
-      const rank = { haute: 0, moyenne: 1, basse: 2 } as const;
-      return rank[a.priority] - rank[b.priority] || a.position - b.position;
-    }).slice(0, 5),
+    () =>
+      goals.active
+        .filter((goal) => goal.status === "en_cours")
+        .slice()
+        .sort((a, b) => {
+          const rank = { haute: 0, moyenne: 1, basse: 2 } as const;
+          return rank[a.priority] - rank[b.priority] || a.position - b.position;
+        })
+        .slice(0, 5),
     [goals.active],
   );
 
@@ -105,11 +126,13 @@ function SantePage() {
           <h1 className="text-2xl font-semibold text-foreground">Santé de l'activité</h1>
         </div>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-          Une lecture simple de l'entreprise, fondée sur vos données réelles et votre propre historique.
-          Aucun score arbitraire, aucune projection cachée et aucun seuil générique de TPE.
+          Une lecture simple de l'entreprise, fondée sur vos données réelles et votre propre
+          historique. Aucun score arbitraire, aucune projection cachée et aucun seuil générique de
+          TPE.
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Réalisé au {now.toLocaleDateString("fr-FR")} · les exercices passés servent de repères personnels.
+          Réalisé au {now.toLocaleDateString("fr-FR")} · les exercices passés servent de repères
+          personnels.
         </p>
       </header>
 
@@ -119,20 +142,34 @@ function SantePage() {
             <Wallet className="h-4 w-4 text-primary" /> Financier
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Ce que l'activité produit réellement aujourd'hui, comparé à votre historique — pas à une norme théorique.
+            Ce que l'activité produit réellement aujourd'hui, comparé à votre historique — pas à une
+            norme théorique.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <HealthMetric label={`CA ${year} à date`} value={euro(current?.caHt)} note={caRef.value != null ? `Repère : ${euro(caRef.value)} / an` : undefined} />
-            <HealthMetric label="Résultat brut à date" value={euro(current?.beneficeBrut)} note={resultRef.value != null ? `Repère : ${euro(resultRef.value)} / an` : undefined} />
-            <HealthMetric label="Marge" value={percent(current?.margePct)} note={marginRef.value != null ? `Repère : ${percent(marginRef.value)}` : undefined} />
+            <HealthMetric
+              label={`CA ${year} à date`}
+              value={euro(current?.caHt)}
+              note={caRef.value != null ? `Repère : ${euro(caRef.value)} / an` : undefined}
+            />
+            <HealthMetric
+              label="Résultat brut à date"
+              value={euro(current?.beneficeBrut)}
+              note={resultRef.value != null ? `Repère : ${euro(resultRef.value)} / an` : undefined}
+            />
+            <HealthMetric
+              label="Marge"
+              value={percent(current?.margePct)}
+              note={marginRef.value != null ? `Repère : ${percent(marginRef.value)}` : undefined}
+            />
             <HealthMetric label="Charges à date" value={euro(current?.charges)} />
           </div>
           <HistoricalBar actual={current?.caHt ?? null} reference={caRef.value} />
           <p className="text-xs text-muted-foreground">
-            Repère personnel = médiane des exercices antérieurs avec charges enregistrées ({caRef.years.length ? caRef.years.join(", ") : "aucun exercice"}).
-            Il s'agit d'un point de comparaison, pas d'une prévision de fin d'année.
+            Repère personnel = médiane des exercices antérieurs avec charges enregistrées (
+            {caRef.years.length ? caRef.years.join(", ") : "aucun exercice"}). Il s'agit d'un point
+            de comparaison, pas d'une prévision de fin d'année.
           </p>
         </CardContent>
       </Card>
@@ -143,16 +180,24 @@ function SantePage() {
             <CardTitle className="flex items-center gap-2 text-base">
               <Users className="h-4 w-4 text-primary" /> Commercial
             </CardTitle>
-            <p className="text-xs text-muted-foreground">Le volume commercial réellement enregistré, sans inventer de prospects ni de conversions.</p>
+            <p className="text-xs text-muted-foreground">
+              Le volume commercial réellement enregistré, sans inventer de prospects ni de
+              conversions.
+            </p>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-3">
-              <HealthMetric label="Prestations enregistrées" value={number(commercial.salesCount)} note={volumeRef.value != null ? `Repère annuel : ${number(volumeRef.value)}` : undefined} />
+              <HealthMetric
+                label="Prestations enregistrées"
+                value={number(commercial.salesCount)}
+                note={volumeRef.value != null ? `Repère annuel : ${number(volumeRef.value)}` : undefined}
+              />
               <HealthMetric label="Clients actifs dans le CA" value={number(commercial.clientCount)} />
               <HealthMetric label="Panier moyen" value={euro(commercial.ticket)} />
             </div>
             <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
-              Les indicateurs commerciaux sont calculés à partir des ventes réelles de Pilot Pro. Aucun objectif commercial automatique n'est créé à partir de ces chiffres.
+              Les indicateurs commerciaux sont calculés à partir des ventes réelles de Pilot Pro.
+              Aucun objectif commercial automatique n'est créé à partir de ces chiffres.
             </div>
           </CardContent>
         </Card>
@@ -162,19 +207,26 @@ function SantePage() {
             <CardTitle className="flex items-center gap-2 text-base">
               <Megaphone className="h-4 w-4 text-primary" /> Marketing
             </CardTitle>
-            <p className="text-xs text-muted-foreground">Visibilité et acquisition : uniquement si une source réelle est disponible.</p>
+            <p className="text-xs text-muted-foreground">
+              Visibilité et acquisition : uniquement si une source réelle est disponible.
+            </p>
           </CardHeader>
           <CardContent>
             <div className="rounded-lg border border-dashed border-border p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                 <div>
-                  <div className="font-medium text-foreground">Pas de KPI marketing fiable actuellement</div>
+                  <div className="font-medium text-foreground">
+                    Pas de KPI marketing fiable actuellement
+                  </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Les données SEO, Analytics et fiche établissement actuellement présentes dans PP comportent des données de démonstration. Elles sont volontairement exclues de cette page pour ne pas produire de faux résultats.
+                    Les données SEO, Analytics et fiche établissement actuellement présentes dans PP
+                    comportent des données de démonstration. Elles sont volontairement exclues de
+                    cette page pour ne pas produire de faux résultats.
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Tant qu'une source réelle n'est pas connectée, PP affiche « non mesuré » plutôt qu'un score ou une projection.
+                    Tant qu'une source réelle n'est pas connectée, PP affiche « non mesuré » plutôt
+                    qu'un score ou une projection.
                   </p>
                 </div>
               </div>
@@ -188,7 +240,10 @@ function SantePage() {
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-4 w-4 text-primary" /> Vos repères historiques
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Les années passées sont présentées telles qu'elles sont enregistrées. Aucune année ni valeur n'est extrapolée.</p>
+          <p className="text-xs text-muted-foreground">
+            Les années passées sont présentées telles qu'elles sont enregistrées. Aucune année ni
+            valeur n'est extrapolée.
+          </p>
         </CardHeader>
         <CardContent>
           {historicalRows.length ? (
@@ -204,20 +259,25 @@ function SantePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {historicalRows.slice().sort((a, b) => b.year - a.year).map((row) => (
-                    <tr key={row.year} className="border-b last:border-0">
-                      <td className="py-2 font-medium">{row.year}</td>
-                      <td className="py-2 text-right tabular-nums">{euro(row.caHt)}</td>
-                      <td className="py-2 text-right tabular-nums">{euro(row.beneficeBrut)}</td>
-                      <td className="py-2 text-right tabular-nums">{percent(row.margePct)}</td>
-                      <td className="py-2 text-right tabular-nums">{number(row.nbLignes)}</td>
-                    </tr>
-                  ))}
+                  {historicalRows
+                    .slice()
+                    .sort((a, b) => b.year - a.year)
+                    .map((row) => (
+                      <tr key={row.year} className="border-b last:border-0">
+                        <td className="py-2 font-medium">{row.year}</td>
+                        <td className="py-2 text-right tabular-nums">{euro(row.caHt)}</td>
+                        <td className="py-2 text-right tabular-nums">{euro(row.beneficeBrut)}</td>
+                        <td className="py-2 text-right tabular-nums">{percent(row.margePct)}</td>
+                        <td className="py-2 text-right tabular-nums">{number(row.nbLignes)}</td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="py-6 text-sm text-muted-foreground">Pas encore d'exercice historique suffisamment documenté pour servir de repère.</p>
+            <p className="py-6 text-sm text-muted-foreground">
+              Pas encore d'exercice historique suffisamment documenté pour servir de repère.
+            </p>
           )}
         </CardContent>
       </Card>
@@ -228,13 +288,22 @@ function SantePage() {
             <Target className="h-4 w-4 text-primary" /> Objectifs
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Cette partie reprend directement les objectifs saisis dans la page Objectifs de PP. La Santé ne les modifie pas et ne crée pas d'objectifs artificiels.
+            Cette partie reprend directement les objectifs saisis dans la page Objectifs de PP. La
+            Santé ne les modifie pas et ne crée pas d'objectifs artificiels.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <HealthMetric label="Objectifs actifs" value={number(goals.active.length)} />
-            <HealthMetric label="Objectifs terminés" value={number(goals.done.length)} note={goals.completionRate != null ? `${percent(goals.completionRate)} des objectifs actifs` : undefined} />
+            <HealthMetric
+              label="Objectifs terminés"
+              value={number(goals.done.length)}
+              note={
+                goals.completionRate != null
+                  ? `${percent(goals.completionRate)} des objectifs actifs`
+                  : undefined
+              }
+            />
             <HealthMetric label="Objectifs en retard" value={number(goals.late.length)} />
           </div>
 
@@ -246,29 +315,45 @@ function SantePage() {
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{goal.title}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">{THEME_META[goal.theme].short}{goal.deadline ? ` · échéance ${new Date(goal.deadline).toLocaleDateString("fr-FR")}` : ""}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">
+                      {THEME_META[goal.theme].short}
+                      {goal.deadline
+                        ? ` · échéance ${new Date(goal.deadline).toLocaleDateString("fr-FR")}`
+                        : ""}
+                    </div>
                   </div>
-                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${PRIORITY_META[goal.priority].tone}`}>
+                  <span
+                    className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${PRIORITY_META[goal.priority].tone}`}
+                  >
                     {PRIORITY_META[goal.priority].label}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">Aucun objectif en cours à afficher.</div>
+            <div className="rounded-lg bg-muted/40 p-4 text-sm text-muted-foreground">
+              Aucun objectif en cours à afficher.
+            </div>
           )}
 
           {goals.late.length > 0 && (
             <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{goals.late.length} objectif{goals.late.length > 1 ? "s" : ""} dépasse{goals.late.length > 1 ? "nt" : ""} son échéance. La Santé le signale mais ne change pas son statut.</span>
+              <span>
+                {goals.late.length} objectif{goals.late.length > 1 ? "s" : ""} dépasse
+                {goals.late.length > 1 ? "nt" : ""} son échéance. La Santé le signale mais ne
+                change pas son statut.
+              </span>
             </div>
           )}
         </CardContent>
       </Card>
 
       <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">Règle de fiabilité :</span> une donnée absente reste absente. Un indicateur non mesurable affiche « — » ou « non mesuré » ; PP ne transforme pas une donnée de démonstration, une projection ou une valeur manquante en performance réelle.
+        <span className="font-medium text-foreground">Règle de fiabilité :</span> une donnée absente
+        reste absente. Un indicateur non mesurable affiche « — » ou « non mesuré » ; PP ne
+        transforme pas une donnée de démonstration, une projection ou une valeur manquante en
+        performance réelle.
       </div>
     </div>
   );
