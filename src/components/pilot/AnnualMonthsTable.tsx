@@ -37,7 +37,6 @@ export function AnnualMonthsTable({
   period,
   now = new Date(),
   activeMonth,
-  onMonthSelect,
 }: {
   entries: CaEntry[];
   year: number;
@@ -111,7 +110,7 @@ export function AnnualMonthsTable({
         button.removeEventListener("click", handleClick),
       );
     };
-  }, [rows, selectedMonth, onMonthSelect]);
+  }, [rows, selectedMonth]);
 
   const toggleInvestments = () => {
     setShowInvestments((current) => {
