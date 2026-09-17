@@ -37,7 +37,6 @@ export function AnnualMonthsTable({
   period,
   now = new Date(),
   activeMonth,
-  onMonthSelect,
 }: {
   entries: CaEntry[];
   year: number;
@@ -49,6 +48,8 @@ export function AnnualMonthsTable({
   const rows = monthlyCaRows(entries, year, { now, period });
   const totals = monthlyCaTotals(rows);
   const [showInvestments, setShowInvestments] = useState(true);
+  const selectedMonth =
+    activeMonth ?? (now.getFullYear() === year ? now.getMonth() + 1 : undefined);
 
   useEffect(() => {
     try {
@@ -58,6 +59,58 @@ export function AnnualMonthsTable({
       /* stockage local indisponible */
     }
   }, []);
+
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>(".pp-annual-ca-fresque");
+    const monthNav = root?.nextElementSibling;
+    if (!monthNav) return;
+
+    const buttons = Array.from(monthNav.querySelectorAll<HTMLButtonElement>("button"));
+    const styleButtons = (activeIndex: number | null) => {
+      buttons.forEach((button, index) => {
+        const row = rows[index];
+        if (!row) return;
+
+        const active = index === activeIndex;
+        const tone = monthResultTone(row.resultat, row.nature, active);
+        button.classList.remove(
+          "!bg-emerald-100",
+          "!text-emerald-800",
+          "!bg-rose-100",
+          "!text-rose-800",
+          "!bg-muted",
+          "!text-muted-foreground",
+          "!bg-emerald-700",
+          "!text-white",
+        );
+        tone.split(" ").forEach((className) => button.classList.add(`!${className}`));
+
+        let result = button.querySelector<HTMLElement>(".pp-month-result");
+        if (!result) {
+          result = document.createElement("span");
+          result.className = "pp-month-result text-[10px] tabular-nums opacity-80";
+          button.appendChild(result);
+        }
+        result.textContent = row.nature === "aucun" ? "—" : formatEuro(row.resultat);
+      });
+    };
+
+    styleButtons(selectedMonth ? selectedMonth - 1 : null);
+
+    const listeners = buttons.map((button, index) => {
+      const handleClick = () => {
+        window.setTimeout(() => styleButtons(index), 0);
+      };
+      button.addEventListener("click", handleClick);
+      return { button, handleClick };
+    });
+
+    return () => {
+      listeners.forEach(({ button, handleClick }) =>
+        button.removeEventListener("click", handleClick),
+      );
+    };
+  }, [rows, selectedMonth]);
 
   const toggleInvestments = () => {
     setShowInvestments((current) => {
@@ -71,27 +124,8 @@ export function AnnualMonthsTable({
     });
   };
 
-  const currentMonth = now.getFullYear() === year ? now.getMonth() + 1 : null;
-  const selectedMonth = activeMonth ?? currentMonth;
-
-  const selectMonth = (month: number) => {
-    if (onMonthSelect) {
-      onMonthSelect(month);
-      return;
-    }
-    const root = document.querySelector<HTMLElement>(".pp-annual-ca-fresque");
-    const monthNav = root?.nextElementSibling;
-    const buttons = monthNav?.querySelectorAll<HTMLButtonElement>("button");
-    buttons?.[month - 1]?.click();
-  };
-
   return (
     <Card className="pp-annual-ca-fresque">
-      <style>{`
-        .pp-annual-ca-fresque + div:has(> div > button) {
-          display: none !important;
-        }
-      `}</style>
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">Exercice {year} — les 12 mois</CardTitle>
@@ -184,57 +218,6 @@ export function AnnualMonthsTable({
             </TableRow>
           </TableBody>
         </Table>
-
-        <div
-          className="mt-3 rounded-lg border border-border bg-muted/20 p-2"
-          aria-label="Chronologie mensuelle du CA et du résultat"
-        >
-          <div className="mb-2 flex items-center justify-between gap-2 px-1">
-            <span className="text-xs font-medium text-muted-foreground">
-              CA HT mensuel · résultat mensuel
-            </span>
-            <span className="text-[10px] text-muted-foreground">
-              Le mois actif est en vert foncé
-            </span>
-          </div>
-          <div className="grid min-w-[720px] grid-cols-12 gap-1">
-            {rows.map((r) => {
-              const active = r.month === selectedMonth;
-              const tone = monthResultTone(r.resultat, r.nature, active);
-              const content = (
-                <>
-                  <span className="truncate text-[10px] font-medium">{r.monthLabel.slice(0, 3)}</span>
-                  <span className="mt-1 truncate text-[10px] tabular-nums">
-                    {r.nature === "aucun" ? "—" : formatEuro(r.ventesHt)}
-                  </span>
-                  <span className="truncate text-[10px] tabular-nums opacity-80">
-                    {r.nature === "aucun" ? "—" : formatEuro(r.resultat)}
-                  </span>
-                </>
-              );
-
-              return (
-                <button
-                  key={r.month}
-                  type="button"
-                  title={`${r.monthLabel} — CA HT ${
-                    r.nature === "aucun" ? "aucun" : formatEuro(r.ventesHt)
-                  } · résultat ${r.nature === "aucun" ? "aucun" : formatEuro(r.resultat)}`}
-                  aria-pressed={active}
-                  onClick={() => selectMonth(r.month)}
-                  className={`min-w-0 rounded-md px-1 py-2 text-center transition-opacity hover:opacity-85 ${tone}`}
-                >
-                  {content}
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-1 grid min-w-[720px] grid-cols-12 gap-1 px-1 text-[9px] text-muted-foreground">
-            <span className="col-span-12">
-              Le fond indique le résultat du mois : vert si positif, rouge si négatif, neutre si aucune donnée. Le mois actif reste prioritaire.
-            </span>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

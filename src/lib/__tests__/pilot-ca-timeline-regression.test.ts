@@ -10,14 +10,18 @@ const annualTableSource = readFileSync(
 );
 
 describe("fresque annuelle CA — régression de présentation", () => {
-  test("la fresque affiche le CA HT mensuel et le résultat mensuel ensemble", () => {
-    expect(annualTableSource).toContain("CA HT mensuel · résultat mensuel");
-    expect(annualTableSource).toContain("formatEuro(r.ventesHt)");
-    expect(annualTableSource).toContain("formatEuro(r.resultat)");
+  test("l'ancienne fresque supérieure est supprimée", () => {
+    expect(annualTableSource).not.toContain("CA HT mensuel · résultat mensuel");
   });
 
-  test("la couleur de résultat et le mois actif restent pilotés par le même statut", () => {
-    expect(annualTableSource).toContain("monthResultTone(r.resultat, r.nature, active)");
+  test("la fresque mensuelle conservée reçoit le résultat et le statut actif", () => {
+    expect(annualTableSource).toContain("monthResultTone(row.resultat, row.nature, active)");
     expect(annualTableSource).toContain("selectedMonth");
+    expect(annualTableSource).toContain("pp-month-result");
+  });
+
+  test("la fusion reste rattachée au tableau annuel", () => {
+    expect(annualTableSource).toContain("pp-annual-ca-fresque");
+    expect(annualTableSource).toContain("monthlyCaRows(entries, year, { now, period })");
   });
 });
