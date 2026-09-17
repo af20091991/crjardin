@@ -196,7 +196,7 @@ function StockPage() {
   }
 
   return (
-    <div className="w-full space-y-6 px-4 py-5 lg:px-6">
+    <div key={selectedYear} className="w-full space-y-6 px-4 py-5 lg:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-serif text-xl font-semibold tracking-tight">Stock</h1>
