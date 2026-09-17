@@ -41,6 +41,7 @@ import {
   Pencil,
   ChevronDown,
   Download,
+  AlertTriangle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pilot/stock")({
@@ -60,12 +61,14 @@ const MOVEMENT_BADGE_VARIANT: Record<StockMovementType, "default" | "destructive
   entree: "default",
   sortie: "destructive",
   ajustement: "secondary",
+  perte: "destructive",
 };
 
 const MOVEMENT_ICON: Record<StockMovementType, typeof ArrowDownCircle> = {
   entree: ArrowDownCircle,
   sortie: ArrowUpCircle,
   ajustement: Settings2,
+  perte: AlertTriangle,
 };
 
 function StockPage() {
@@ -265,15 +268,33 @@ function StockPage() {
                                     {it.notes ?? ""}
                                   </TableCell>
                                   <TableCell>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => setEditingItem(it)}
-                                      aria-label={`Modifier ${it.name}`}
-                                    >
-                                      <Pencil className="h-3.5 w-3.5" />
-                                    </Button>
+                                    <div className="flex justify-end gap-1">
+                                      <AddStockMovementDialog
+                                        items={items}
+                                        onCreated={refresh}
+                                        presetItem={it}
+                                        presetMovementType="perte"
+                                        trigger={
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 text-destructive hover:text-destructive"
+                                            aria-label={`Déclarer une perte pour ${it.name}`}
+                                          >
+                                            <AlertTriangle className="h-3.5 w-3.5" />
+                                          </Button>
+                                        }
+                                      />
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => setEditingItem(it)}
+                                        aria-label={`Modifier ${it.name}`}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               ))}

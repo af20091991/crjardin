@@ -1,11 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type StockMovementType = "entree" | "sortie" | "ajustement";
+export type StockMovementType = "entree" | "sortie" | "ajustement" | "perte";
 
 export const STOCK_MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
   entree: "Entrée",
   sortie: "Sortie",
   ajustement: "Ajustement",
+  perte: "Perte / périmé",
 };
 
 export interface StockItem {

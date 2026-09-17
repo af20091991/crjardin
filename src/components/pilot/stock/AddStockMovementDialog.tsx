@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,17 +26,27 @@ import {
 export function AddStockMovementDialog({
   items,
   onCreated,
+  presetItem,
+  presetMovementType,
+  trigger,
 }: {
   items: StockItem[];
   onCreated: () => void;
+  /** Si fourni, verrouille l'article sur cette valeur (déclenché depuis une ligne). */
+  presetItem?: StockItem;
+  presetMovementType?: StockMovementType;
+  /** Élément déclencheur personnalisé (sinon le bouton "Nouveau mouvement" par défaut). */
+  trigger?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"existing" | "new">("existing");
-  const [itemId, setItemId] = useState("");
+  const [itemId, setItemId] = useState(presetItem?.id ?? "");
   const [newName, setNewName] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [newUnit, setNewUnit] = useState("");
-  const [movementType, setMovementType] = useState<StockMovementType>("entree");
+  const [movementType, setMovementType] = useState<StockMovementType>(
+    presetMovementType ?? "entree",
+  );
   const [quantity, setQuantity] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [reason, setReason] = useState("");
@@ -44,11 +54,11 @@ export function AddStockMovementDialog({
 
   function reset() {
     setMode("existing");
-    setItemId("");
+    setItemId(presetItem?.id ?? "");
     setNewName("");
     setNewCategory("");
     setNewUnit("");
-    setMovementType("entree");
+    setMovementType(presetMovementType ?? "entree");
     setQuantity("");
     setUnitPrice("");
     setReason("");
@@ -111,14 +121,20 @@ export function AddStockMovementDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button size="sm" variant="default">
-          <Plus className="mr-1 h-3.5 w-3.5" />
-          Nouveau mouvement
-        </Button>
+        {trigger ?? (
+          <Button size="sm" variant="default">
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            Nouveau mouvement
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Nouveau mouvement de stock</DialogTitle>
+          <DialogTitle>
+            {presetMovementType === "perte"
+              ? "Déclarer une perte / péremption"
+              : "Nouveau mouvement de stock"}
+          </DialogTitle>
           <DialogDescription>
             La quantité de l'article est mise à jour automatiquement à partir de ce mouvement.
           </DialogDescription>
@@ -130,26 +146,33 @@ export function AddStockMovementDialog({
             submit();
           }}
         >
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant={mode === "existing" ? "default" : "outline"}
-              onClick={() => setMode("existing")}
-            >
-              Article existant
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={mode === "new" ? "default" : "outline"}
-              onClick={() => setMode("new")}
-            >
-              Nouvel article
-            </Button>
-          </div>
+          {!presetItem && (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={mode === "existing" ? "default" : "outline"}
+                onClick={() => setMode("existing")}
+              >
+                Article existant
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={mode === "new" ? "default" : "outline"}
+                onClick={() => setMode("new")}
+              >
+                Nouvel article
+              </Button>
+            </div>
+          )}
 
-          {mode === "existing" ? (
+          {presetItem ? (
+            <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+              <span className="font-medium">{presetItem.name}</span>{" "}
+              <span className="text-muted-foreground">({presetItem.category})</span>
+            </div>
+          ) : mode === "existing" ? (
             <div className="space-y-1.5">
               <Label htmlFor="stk-item">Article *</Label>
               <select
@@ -204,9 +227,10 @@ export function AddStockMovementDialog({
               <Label htmlFor="stk-type">Type</Label>
               <select
                 id="stk-type"
-                className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+                className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm disabled:opacity-70"
                 value={movementType}
                 onChange={(e) => setMovementType(e.target.value as StockMovementType)}
+                disabled={!!presetMovementType}
               >
                 {Object.entries(STOCK_MOVEMENT_TYPE_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
