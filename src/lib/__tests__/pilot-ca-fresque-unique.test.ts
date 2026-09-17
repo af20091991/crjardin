@@ -20,8 +20,11 @@ describe("fresque mensuelle unique", () => {
     expect(source).toContain("monthResultTone(r.resultat, r.nature, active)");
   });
 
-  test("supprime la seconde navigation visuelle et conserve son action via la fresque", () => {
-    expect(source).toContain(".pp-annual-ca-fresque + div:has(> div > button)");
-    expect(source).toContain("buttons?.[month - 1]?.click()");
-  });
+  test(
+    "supprime la seconde navigation visuelle et conserve son action via la fresque",
+    () => {
+      expect(source).toContain(".pp-annual-ca-fresque + div:has(> div > button)");
+      expect(source).toContain("buttons?.[month - 1]?.click()");
+    },
+  );
 });
