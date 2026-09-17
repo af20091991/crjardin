@@ -49,8 +49,13 @@ export function AnnualMonthsTable({
   const totals = monthlyCaTotals(rows);
   const [showInvestments, setShowInvestments] = useState(true);
   const [personalizationMount, setPersonalizationMount] = useState<HTMLElement | null>(null);
-  const selectedMonth =
-    activeMonth ?? (now.getFullYear() === year ? now.getMonth() + 1 : undefined);
+  const [selectedMonth, setSelectedMonth] = useState<number | undefined>(
+    () => activeMonth ?? (now.getFullYear() === year ? now.getMonth() + 1 : undefined),
+  );
+
+  useEffect(() => {
+    if (activeMonth != null) setSelectedMonth(activeMonth);
+  }, [activeMonth]);
 
   useEffect(() => {
     try {
@@ -140,6 +145,11 @@ export function AnnualMonthsTable({
           "!text-muted-foreground",
           "!bg-emerald-700",
           "!text-white",
+          "!bg-[color-mix(in_oklab,#4AAC33_18%,transparent)]",
+          "!text-[#4F8E33]",
+          "!bg-[color-mix(in_oklab,#EE8627_18%,transparent)]",
+          "!text-[#EE8627]",
+          "!bg-[#4F8E33]",
         );
         tone.split(" ").forEach((className) => button.classList.add(`!${className}`));
 
@@ -157,7 +167,7 @@ export function AnnualMonthsTable({
 
     const listeners = buttons.map((button, index) => {
       const handleClick = () => {
-        window.setTimeout(() => styleButtons(index), 0);
+        setSelectedMonth(index + 1);
       };
       button.addEventListener("click", handleClick);
       return { button, handleClick };
