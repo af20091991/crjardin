@@ -191,9 +191,7 @@ function SantePage() {
                 label="Prestations enregistrées"
                 value={number(commercial.salesCount)}
                 note={
-                  volumeRef.value != null
-                    ? `Repère annuel : ${number(volumeRef.value)}`
-                    : undefined
+                  volumeRef.value != null ? `Repère annuel : ${number(volumeRef.value)}` : undefined
                 }
               />
               <HealthMetric
@@ -351,8 +349,8 @@ function SantePage() {
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
                 {goals.late.length} objectif{goals.late.length > 1 ? "s" : ""} dépasse
-                {goals.late.length > 1 ? "nt" : ""} son échéance. La Santé le signale mais ne
-                change pas son statut.
+                {goals.late.length > 1 ? "nt" : ""} son échéance. La Santé le signale mais ne change
+                pas son statut.
               </span>
             </div>
           )}
