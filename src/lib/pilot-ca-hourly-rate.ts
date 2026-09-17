@@ -39,3 +39,18 @@ export function monthlyCaHourlyRates(
   const value = monthlyCaHourlyRate(entries, month);
   return { previsionnel: value, en_cours: value };
 }
+
+// Le composant CA historique contient encore le bouton de bascule. Tant que
+// ce composant n'est refactoré, on masque uniquement ce contrôle obsolète pour
+// que l'interface n'expose qu'une seule donnée, sans modifier les autres boutons.
+if (typeof document !== "undefined") {
+  const styleId = "pilot-ca-hourly-rate-single-value";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent =
+      '[title^="Afficher le taux calculé uniquement sur les interventions déjà réglées"], ' +
+      '[title^="Afficher le taux calculé sur toutes les prestations du mois"] { display: none !important; }';
+    document.head.appendChild(style);
+  }
+}
