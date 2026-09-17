@@ -45,9 +45,10 @@ if (typeof document !== "undefined") {
   if (!document.getElementById(styleId)) {
     const style = document.createElement("style");
     style.id = styleId;
-    style.textContent =
-      '[title^="Afficher le taux calculé uniquement sur les interventions déjà réglées"], ' +
-      '[title^="Afficher le taux calculé sur toutes les prestations du mois"] { display: none !important; }';
+    style.textContent = [
+      '[title^="Afficher le taux calculé uniquement sur les interventions déjà réglées"],',
+      '[title^="Afficher le taux calculé sur toutes les prestations du mois"] { display: none !important; }',
+    ].join(" ");
     document.head.appendChild(style);
   }
 }
