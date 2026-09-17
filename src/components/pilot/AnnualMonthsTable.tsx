@@ -30,6 +30,8 @@ const NATURE_TONE: Record<MonthNature, string> = {
 };
 
 const INVESTMENTS_VISIBILITY_KEY = "pilot-ca-annual-investments-visible-v1";
+const LEGACY_MONTH_NAV_SELECTOR =
+  '.space-y-5 > div.-mx-1.overflow-x-auto.pb-1:not([data-pilot-ca-timeline="true"])';
 
 export function AnnualMonthsTable({
   entries,
@@ -49,6 +51,12 @@ export function AnnualMonthsTable({
   const rows = monthlyCaRows(entries, year, { now, period });
   const totals = monthlyCaTotals(rows);
   const [showInvestments, setShowInvestments] = useState(true);
+  const currentMonth = now.getFullYear() === year ? now.getMonth() + 1 : null;
+  const [selectedMonth, setSelectedMonth] = useState(activeMonth ?? currentMonth ?? 1);
+
+  useEffect(() => {
+    if (activeMonth != null) setSelectedMonth(activeMonth);
+  }, [activeMonth]);
 
   useEffect(() => {
     try {
@@ -71,8 +79,18 @@ export function AnnualMonthsTable({
     });
   };
 
-  const currentMonth = now.getFullYear() === year ? now.getMonth() + 1 : null;
-  const selectedMonth = activeMonth ?? currentMonth;
+  const selectMonth = (month: number) => {
+    setSelectedMonth(month);
+    if (onMonthSelect) {
+      onMonthSelect(month);
+      return;
+    }
+    // La navigation mensuelle historique est conservée comme source de sélection.
+    // Elle est masquée visuellement après fusion, mais son bouton React reste appelable.
+    const legacyNav = document.querySelector(LEGACY_MONTH_NAV_SELECTOR);
+    const button = legacyNav?.querySelectorAll("button")[month - 1] as HTMLButtonElement | undefined;
+    button?.click();
+  };
 
   return (
     <>
@@ -172,7 +190,7 @@ export function AnnualMonthsTable({
         </CardContent>
       </Card>
 
-      {/* Fresque unique : CA mensuel + règle de résultat, au-dessus des cartes mensuelles. */}
+      {/* Fresque unique : mois + CA, avec la règle rouge/verte du résultat. */}
       <div
         data-pilot-ca-timeline="true"
         className="-mx-1 overflow-x-auto pb-1"
@@ -183,7 +201,6 @@ export function AnnualMonthsTable({
             {rows.map((r) => {
               const active = r.month === selectedMonth;
               const tone = monthResultTone(r.resultat, r.nature, active);
-              const clickable = !!onMonthSelect;
               const content = (
                 <>
                   <span className="truncate text-[10px] font-medium">{r.monthLabel.slice(0, 4)}</span>
@@ -193,7 +210,7 @@ export function AnnualMonthsTable({
                 </>
               );
 
-              return clickable ? (
+              return (
                 <button
                   key={r.month}
                   type="button"
@@ -201,21 +218,11 @@ export function AnnualMonthsTable({
                     r.nature === "aucun" ? "aucun" : formatEuro(r.ventesHt)
                   } · résultat ${r.nature === "aucun" ? "aucun" : formatEuro(r.resultat)}`}
                   aria-pressed={active}
-                  onClick={() => onMonthSelect?.(r.month)}
+                  onClick={() => selectMonth(r.month)}
                   className={`min-w-0 rounded-lg px-1.5 py-2 text-center transition-opacity hover:opacity-85 ${tone}`}
                 >
                   {content}
                 </button>
-              ) : (
-                <div
-                  key={r.month}
-                  title={`${r.monthLabel} — CA HT ${
-                    r.nature === "aucun" ? "aucun" : formatEuro(r.ventesHt)
-                  } · résultat ${r.nature === "aucun" ? "aucun" : formatEuro(r.resultat)}`}
-                  className={`min-w-0 rounded-lg px-1.5 py-2 text-center ${tone}`}
-                >
-                  {content}
-                </div>
               );
             })}
           </div>
@@ -229,7 +236,7 @@ export function AnnualMonthsTable({
 
       {/* Masque uniquement l'ancienne navigation CA, remplacée par la fresque unique ci-dessus. */}
       <style>{`
-        .space-y-5 > div.-mx-1.overflow-x-auto.pb-1:not([data-pilot-ca-timeline="true"]) {
+        ${LEGACY_MONTH_NAV_SELECTOR} {
           display: none !important;
         }
       `}</style>
