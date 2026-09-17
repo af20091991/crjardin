@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { monthlyCaHourlyRates } from "@/lib/pilot-ca-hourly-rate";
+import { monthlyCaHourlyRate } from "@/lib/pilot-ca-hourly-rate";
 import type { CaEntry } from "@/lib/pilot-ca";
 
 const sale = (
@@ -21,43 +21,58 @@ const sale = (
     sale_status,
   }) as CaEntry;
 
-describe("monthlyCaHourlyRates", () => {
-  it("includes every service in the default forecast and always adds management time", () => {
+describe("monthlyCaHourlyRate", () => {
+  it("calculates CA divided by hours for realized or paid services", () => {
     const entries = [
-      sale("paid", 300, 3, "regle"),
-      sale("invoiced", 200, 2, "realise"),
-      sale("planned", 100, 1, "planifie"),
+      sale("paid", 300, 1, "regle"),
+      sale("realized-1", 300, 1, "realise"),
+      sale("realized-2", 400, 1, "realise"),
     ];
 
-    expect(monthlyCaHourlyRates(entries, 9, 2)).toEqual({
-      previsionnel: 75,
-      en_cours: 100,
-    });
+    expect(monthlyCaHourlyRate(entries, 9)).toBeCloseTo(1000 / 3);
   });
 
-  it("uses only services with entered hours in En cours, regardless of payment status", () => {
+  it("includes zero-hour services in CA without adding hours", () => {
     const entries = [
-      sale("paid-no-hours", 300, null, "regle"),
-      sale("timed-paid", 200, 2, "regle"),
-      sale("timed-unpaid", 900, 9, "realise"),
-      sale("planned-no-hours", 600, null, "planifie"),
+      sale("subcontracted", 500, 0, "regle"),
+      sale("timed-1", 250, 1, "realise"),
+      sale("timed-2", 250, 1, "regle"),
     ];
 
-    expect(monthlyCaHourlyRates(entries, 9, 5).en_cours).toBe(100);
+    expect(monthlyCaHourlyRate(entries, 9)).toBe(500);
   });
 
-  it("excludes zero-hour services from the entered-hours mode", () => {
-    const entries = [sale("untimed", 900, 0, "regle"), sale("timed", 100, 2, "realise")];
+  it("accepts either realized/invoiced or paid status", () => {
+    const entries = [
+      sale("realized", 600, 2, "realise"),
+      sale("paid", 400, 2, "regle"),
+      sale("planned", 1000, 10, "planifie"),
+      sale("other", 1000, 10, "particulier"),
+    ];
 
-    expect(monthlyCaHourlyRates(entries, 9, 0).en_cours).toBe(50);
+    expect(monthlyCaHourlyRate(entries, 9)).toBe(250);
   });
 
-  it("returns null when a mode has no denominator", () => {
-    expect(monthlyCaHourlyRates([], 9, 0)).toEqual({
-      previsionnel: null,
-      en_cours: null,
-    });
+  it("ignores services from another month", () => {
+    const entries = [sale("september", 300, 3, "realise"), sale("october", 900, 3, "realise")];
 
-    expect(monthlyCaHourlyRates([sale("untimed", 900, null, "regle")], 9, 0).en_cours).toBeNull();
+    expect(monthlyCaHourlyRate(entries, 9)).toBe(100);
+  });
+
+  it("returns null when qualifying services have no hours", () => {
+    expect(monthlyCaHourlyRate([sale("untimed", 900, null, "regle")], 9)).toBeNull();
+    expect(monthlyCaHourlyRate([sale("zero", 900, 0, "realise")], 9)).toBeNull();
+  });
+
+  it("returns null when there are no qualifying services", () => {
+    expect(
+      monthlyCaHourlyRate(
+        [
+          sale("planned", 900, 3, "planifie"),
+          sale("other", 900, 3, "particulier"),
+        ],
+        9,
+      ),
+    ).toBeNull();
   });
 });
