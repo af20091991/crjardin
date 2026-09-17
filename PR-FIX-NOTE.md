@@ -1,0 +1,1 @@
+Correctif de mise en page : une seule fresque CA + résultat est conservée à l'emplacement de l'ancienne navigation mensuelle, juste au-dessus des cartes du mois.
