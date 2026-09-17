@@ -172,13 +172,9 @@ export function AnnualMonthsTable({
         </CardContent>
       </Card>
 
-      {/*
-       * Fresque unique : elle reprend la navigation mensuelle existante (mois + CA,
-       * mois actif en vert foncé) et lui ajoute la règle de résultat rouge/verte.
-       * Elle est volontairement hors de la carte annuelle, à l'emplacement de
-       * l'ancienne fresque de navigation située juste au-dessus des cartes mensuelles.
-       */}
+      {/* Fresque unique : CA mensuel + règle de résultat, au-dessus des cartes mensuelles. */}
       <div
+        data-pilot-ca-timeline="true"
         className="-mx-1 overflow-x-auto pb-1"
         aria-label="Chronologie mensuelle du CA et du résultat"
       >
@@ -231,9 +227,11 @@ export function AnnualMonthsTable({
         </div>
       </div>
 
-      {/* Masque uniquement l'ancienne navigation CA, remplacée ci-dessus par la fresque unique. */}
+      {/* Masque uniquement l'ancienne navigation CA, remplacée par la fresque unique ci-dessus. */}
       <style>{`
-        .space-y-5 > div.-mx-1.overflow-x-auto.pb-1 { display: none !important; }
+        .space-y-5 > div.-mx-1.overflow-x-auto.pb-1:not([data-pilot-ca-timeline="true"]) {
+          display: none !important;
+        }
       `}</style>
     </>
   );
