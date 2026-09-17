@@ -49,6 +49,8 @@ export function AnnualMonthsTable({
   const rows = monthlyCaRows(entries, year, { now, period });
   const totals = monthlyCaTotals(rows);
   const [showInvestments, setShowInvestments] = useState(true);
+  const selectedMonth =
+    activeMonth ?? (now.getFullYear() === year ? now.getMonth() + 1 : undefined);
 
   useEffect(() => {
     try {
@@ -64,34 +66,50 @@ export function AnnualMonthsTable({
     const monthNav = root?.nextElementSibling;
     if (!monthNav) return;
 
-    const buttons = monthNav.querySelectorAll<HTMLButtonElement>("button");
-    buttons.forEach((button, index) => {
-      const row = rows[index];
-      if (!row) return;
+    const buttons = Array.from(monthNav.querySelectorAll<HTMLButtonElement>("button"));
+    const styleButtons = (activeIndex: number | null) => {
+      buttons.forEach((button, index) => {
+        const row = rows[index];
+        if (!row) return;
 
-      const active = row.month === activeMonth;
-      const tone = monthResultTone(row.resultat, row.nature, active);
-      button.classList.remove(
-        "!bg-emerald-100",
-        "!text-emerald-800",
-        "!bg-rose-100",
-        "!text-rose-800",
-        "!bg-muted",
-        "!text-muted-foreground",
-        "!bg-emerald-700",
-        "!text-white",
-      );
-      tone.split(" ").forEach((className) => button.classList.add(`!${className}`));
+        const active = index === activeIndex;
+        const tone = monthResultTone(row.resultat, row.nature, active);
+        button.classList.remove(
+          "!bg-emerald-100",
+          "!text-emerald-800",
+          "!bg-rose-100",
+          "!text-rose-800",
+          "!bg-muted",
+          "!text-muted-foreground",
+          "!bg-emerald-700",
+          "!text-white",
+        );
+        tone.split(" ").forEach((className) => button.classList.add(`!${className}`));
 
-      let result = button.querySelector<HTMLElement>(".pp-month-result");
-      if (!result) {
-        result = document.createElement("span");
-        result.className = "pp-month-result text-[10px] tabular-nums opacity-80";
-        button.appendChild(result);
-      }
-      result.textContent = row.nature === "aucun" ? "—" : formatEuro(row.resultat);
+        let result = button.querySelector<HTMLElement>(".pp-month-result");
+        if (!result) {
+          result = document.createElement("span");
+          result.className = "pp-month-result text-[10px] tabular-nums opacity-80";
+          button.appendChild(result);
+        }
+        result.textContent = row.nature === "aucun" ? "—" : formatEuro(row.resultat);
+      });
+    };
+
+    styleButtons(selectedMonth ? selectedMonth - 1 : null);
+
+    const listeners = buttons.map((button, index) => {
+      const handleClick = () => {
+        window.setTimeout(() => styleButtons(index), 0);
+      };
+      button.addEventListener("click", handleClick);
+      return { button, handleClick };
     });
-  }, [rows, activeMonth]);
+
+    return () => {
+      listeners.forEach(({ button, handleClick }) => button.removeEventListener("click", handleClick));
+    };
+  }, [rows, selectedMonth, onMonthSelect]);
 
   const toggleInvestments = () => {
     setShowInvestments((current) => {
