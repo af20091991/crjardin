@@ -218,11 +218,11 @@ function CaPage() {
   const CA_PERSONALIZATION_KEY = "pilot-ca-personalization-v1";
   type CaPersonalization = {
     showAnnualSummary: boolean; showMonthlySummary: boolean; showMonthTabs: boolean;
-    showStatusLegend: boolean; showTotals: boolean;
+    showStatusLegend: boolean; showTotals: boolean; showAnnualInvestments: boolean;
     salesColumns: { client: boolean; designation: boolean; category: boolean; type: boolean; amount: boolean; hours: boolean };
   };
   const DEFAULT_CA_PERSONALIZATION: CaPersonalization = {
-    showAnnualSummary: true, showMonthlySummary: true, showMonthTabs: true, showStatusLegend: true, showTotals: true,
+    showAnnualSummary: true, showMonthlySummary: true, showMonthTabs: true, showStatusLegend: true, showTotals: true, showAnnualInvestments: true,
     salesColumns: { client: true, designation: true, category: true, type: true, amount: true, hours: true },
   };
   const loadCaPersonalization = (): CaPersonalization => {
@@ -441,7 +441,7 @@ function CaPage() {
               <SheetHeader><SheetTitle>Personnaliser le chiffre d'affaires</SheetTitle></SheetHeader>
               <div className="mt-5 space-y-6 text-sm">
                 <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Page</p><div className="space-y-1">
-                  {([["showAnnualSummary","Synthèse annuelle"],["showMonthlySummary","Synthèse du mois"],["showMonthTabs","Navigation par mois"],["showStatusLegend","Légende des statuts"],["showTotals","Totaux du tableau"]] as const).map(([key,label]) => (
+                  {([["showAnnualSummary","Synthèse annuelle"],["showMonthlySummary","Synthèse du mois"],["showMonthTabs","Navigation par mois"],["showStatusLegend","Légende des statuts"],["showTotals","Totaux du tableau"],["showAnnualInvestments","Colonne investissements"]] as const).map(([key,label]) => (
                     <label key={key} className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"><span>{label}</span><input type="checkbox" checked={personalization[key]} onChange={(e) => updatePersonalization({ [key]: e.target.checked } as Partial<CaPersonalization>)} /></label>
                   ))}
                 </div></section>
@@ -491,13 +491,19 @@ function CaPage() {
 
       {/* Mode « année complète » : les 12 mois de l'exercice, saisies telles quelles */}
       {period === "exercice_complet" && (
-        <AnnualMonthsTable entries={entries} year={year} period={period} now={now} />
+        <AnnualMonthsTable
+          entries={entries}
+          year={year}
+          period={period}
+          showInvestments={personalization.showAnnualInvestments}
+          now={now}
+        />
       )}
 
 
       {/* Onglets mois */}
       {personalization.showMonthTabs && <div className="-mx-1 overflow-x-auto pb-1">
-        <div className="flex min-w-max gap-1 rounded-xl border border-border bg-card p-1">
+        <div className="grid min-w-[912px] grid-cols-12 gap-1 rounded-xl border border-border bg-card p-1 md:w-full md:min-w-0">
           {MONTH_NAMES.slice(0, monthsVisible).map((name, i) => {
             const m = i + 1;
             const t = yt.months[i];
@@ -506,7 +512,7 @@ function CaPage() {
               <button
                 key={m}
                 onClick={() => setMonth(m)}
-                className={`flex min-w-[76px] flex-col items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${activeM ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"}`}
+                className={`flex min-w-0 flex-col items-center rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${activeM ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"}`}
               >
                 <span>{name.slice(0, 4)}</span>
                 <span

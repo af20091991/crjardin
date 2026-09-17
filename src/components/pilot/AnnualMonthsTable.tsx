@@ -30,11 +30,13 @@ export function AnnualMonthsTable({
   entries,
   year,
   period,
+  showInvestments = true,
   now = new Date(),
 }: {
   entries: CaEntry[];
   year: number;
   period: PeriodMode;
+  showInvestments?: boolean;
   now?: Date;
 }) {
   const rows = monthlyCaRows(entries, year, { now, period }, true);
@@ -56,7 +58,7 @@ export function AnnualMonthsTable({
                 <TableHead>Mois</TableHead>
                 <TableHead className="text-right">Ventes saisies</TableHead>
                 <TableHead className="text-right">Charges saisies</TableHead>
-                <TableHead className="text-right">Investissements</TableHead>
+                {showInvestments && <TableHead className="text-right">Investissements</TableHead>}
                 <TableHead className="text-right">Résultat des saisies</TableHead>
                 <TableHead>Nature</TableHead>
               </TableRow>
@@ -82,9 +84,11 @@ export function AnnualMonthsTable({
                       </span>
                     ) : null}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-sky-600">
-                    {r.investissements ? formatEuro(r.investissements) : "—"}
-                  </TableCell>
+                  {showInvestments && (
+                    <TableCell className="text-right tabular-nums text-sky-600">
+                      {r.investissements ? formatEuro(r.investissements) : "—"}
+                    </TableCell>
+                  )}
                   <TableCell
                     className={`text-right tabular-nums ${
                       r.nature === "aucun"
@@ -111,9 +115,11 @@ export function AnnualMonthsTable({
                 <TableCell className="text-right tabular-nums text-rose-600">
                   {formatEuro(totals.chargesHt)}
                 </TableCell>
-                <TableCell className="text-right tabular-nums text-sky-600">
-                  {totals.investissements ? formatEuro(totals.investissements) : "—"}
-                </TableCell>
+                {showInvestments && (
+                  <TableCell className="text-right tabular-nums text-sky-600">
+                    {totals.investissements ? formatEuro(totals.investissements) : "—"}
+                  </TableCell>
+                )}
                 <TableCell
                   className={`text-right tabular-nums ${
                     totals.resultat >= 0 ? "text-emerald-600" : "text-rose-600"
@@ -160,12 +166,14 @@ export function AnnualMonthsTable({
                     </p>
                   ) : null}
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Investissements</p>
-                  <p className="tabular-nums text-sky-600">
-                    {r.investissements ? formatEuro(r.investissements) : "—"}
-                  </p>
-                </div>
+                {showInvestments && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Investissements</p>
+                    <p className="tabular-nums text-sky-600">
+                      {r.investissements ? formatEuro(r.investissements) : "—"}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-muted-foreground">Résultat</p>
                   <p
