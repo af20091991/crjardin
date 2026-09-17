@@ -86,10 +86,10 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          STATUS_SHA: ${{ github.sha }}
           STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
         run: |
-          gh api "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${STATUS_SHA}" \
             -f state="${STATE}" \
             -f context="ADPP Validation / validate" \
             -f description="ADPP validation ${STATE}"
