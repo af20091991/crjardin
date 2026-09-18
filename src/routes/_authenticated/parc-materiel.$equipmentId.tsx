@@ -333,7 +333,8 @@ function EquipmentDetailPage() {
             <DialogHeader>
               <DialogTitle>Enregistrer l'entretien</DialogTitle>
               <DialogDescription>
-                La date saisie sert de point de départ pour calculer la prochaine échéance.
+                La date saisie sert de point de départ pour calculer la prochaine
+                échéance.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
@@ -367,7 +368,10 @@ function EquipmentDetailPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setCompletionScheduleId(null)}>
+              <Button
+                variant="outline"
+                onClick={() => setCompletionScheduleId(null)}
+              >
                 Annuler
               </Button>
               <Button
