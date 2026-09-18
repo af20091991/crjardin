@@ -11,40 +11,28 @@ import {
 describe("site-web SEO diagnostic", () => {
   const rows = [
     {
-      keys: [
-        "paysagiste Montpellier",
-        "https://www.delagraineaujardin.com/",
-      ],
+      keys: ["paysagiste Montpellier", "https://www.delagraineaujardin.com/"],
       clicks: 12,
       impressions: 100,
       ctr: 0.12,
       position: 4,
     },
     {
-      keys: [
-        "paysagiste Montpellier",
-        "https://www.delagraineaujardin.com/conseil",
-      ],
+      keys: ["paysagiste Montpellier", "https://www.delagraineaujardin.com/conseil"],
       clicks: 8,
       impressions: 100,
       ctr: 0.08,
       position: 8,
     },
     {
-      keys: [
-        "jardin mediterraneen Montpellier",
-        "https://www.delagraineaujardin.com/jardin-sec",
-      ],
+      keys: ["jardin mediterraneen Montpellier", "https://www.delagraineaujardin.com/jardin-sec"],
       clicks: 2,
       impressions: 120,
       ctr: 0.016,
       position: 8,
     },
     {
-      keys: [
-        "entretien jardin Montpellier",
-        "https://www.delagraineaujardin.com/entretien",
-      ],
+      keys: ["entretien jardin Montpellier", "https://www.delagraineaujardin.com/entretien"],
       clicks: 1,
       impressions: 80,
       ctr: 0.0125,
