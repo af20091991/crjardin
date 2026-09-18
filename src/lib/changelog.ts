@@ -27,6 +27,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-18",
+    version: "2.3.7",
+    theme: "Général",
+    title: "Parc matériel — entretien récurrent",
+    details: [
+      "Les types de matériel peuvent recevoir plusieurs règles d'entretien récurrentes.",
+      "Les échéances et rappels sont calculés automatiquement et les entretiens effectués restent archivés avec leur date.",
+    ],
+  },
+
+  {
+    date: "2026-09-18",
     version: "2.3.6",
     theme: "Compte-rendus",
     title: "Notification à l'ouverture d'un e-mail client",
