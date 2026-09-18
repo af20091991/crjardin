@@ -256,7 +256,9 @@ export function MaintenanceRulesDialog({ onChanged }: { onChanged?: () => void }
                   {type.name}
                 </Button>
               ))}
-              {types.data?.length === 0 && <p className="text-sm text-muted-foreground">Aucun type de matériel créé.</p>}
+              {types.data?.length === 0 && (
+                <p className="text-sm text-muted-foreground">Aucun type de matériel créé.</p>
+              )}
             </div>
             {selectedTypeId && (
               <>
