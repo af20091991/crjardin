@@ -4,6 +4,9 @@ import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
@@ -62,6 +65,10 @@ function EquipmentDetailPage() {
   const { equipmentId } = useParams({ from: "/_authenticated/parc-materiel/$equipmentId" });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [completionScheduleId, setCompletionScheduleId] = useState<string | null>(null);
+  const [completionDate, setCompletionDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [completionCost, setCompletionCost] = useState("");
+  const [completionComment, setCompletionComment] = useState("");
 
   const equipmentQuery = useQuery({
     queryKey: ["parc-materiel", "equipment", equipmentId],
@@ -76,14 +83,31 @@ function EquipmentDetailPage() {
     queryFn: () => listMaintenanceSchedules(equipmentId),
   });
   const completeMutation = useMutation({
-    mutationFn: (scheduleId: string) => completeMaintenanceSchedule(scheduleId, new Date().toISOString().slice(0, 10)),
+    mutationFn: () =>
+      completeMaintenanceSchedule(
+        completionScheduleId!,
+        completionDate,
+        completionCost ? Number(completionCost.replace(",", ".")) : null,
+        completionComment,
+      ),
     onSuccess: () => {
       toast.success("Entretien enregistré et prochaine échéance calculée.");
+      setCompletionScheduleId(null);
+      setCompletionCost("");
+      setCompletionComment("");
+      setCompletionDate(new Date().toISOString().slice(0, 10));
       refresh();
       queryClient.invalidateQueries({ queryKey: ["parc-materiel", "maintenance-schedules", equipmentId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  function openCompletion(scheduleId: string) {
+    setCompletionScheduleId(scheduleId);
+    setCompletionDate(new Date().toISOString().slice(0, 10));
+    setCompletionCost("");
+    setCompletionComment("");
+  }
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ["parc-materiel"] });
@@ -266,7 +290,7 @@ function EquipmentDetailPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         {badge && <Badge variant="outline" className={badge.className}>{badge.label}</Badge>}
-                        <Button size="sm" onClick={() => completeMutation.mutate(schedule.id)} disabled={completeMutation.isPending}>
+                        <Button size="sm" onClick={() => openCompletion(schedule.id)} disabled={completeMutation.isPending}>
                           <Check className="mr-1 h-3.5 w-3.5" />
                           Effectué
                         </Button>
@@ -278,6 +302,37 @@ function EquipmentDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={!!completionScheduleId} onOpenChange={(open) => !open && setCompletionScheduleId(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Enregistrer l'entretien</DialogTitle>
+              <DialogDescription>
+                La date saisie sert de point de départ pour calculer la prochaine échéance.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="completion-date">Date réelle *</Label>
+                <Input id="completion-date" type="date" value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="completion-cost">Coût</Label>
+                <Input id="completion-cost" inputMode="decimal" value={completionCost} onChange={(e) => setCompletionCost(e.target.value)} placeholder="0,00" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="completion-comment">Commentaire</Label>
+                <Input id="completion-comment" value={completionComment} onChange={(e) => setCompletionComment(e.target.value)} placeholder="Facultatif" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCompletionScheduleId(null)}>Annuler</Button>
+              <Button onClick={() => completeMutation.mutate()} disabled={!completionDate || completeMutation.isPending}>
+                {completeMutation.isPending ? "Enregistrement…" : "Enregistrer"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {equipment.notes && (
           <Card>
