@@ -64,7 +64,9 @@ describe("site-web SEO diagnostic", () => {
 
   it("agrège les lignes Search Console par page", () => {
     const result = aggregateSeoPages(rows);
-    expect(result.find((entry) => entry.page.endsWith("/"))?.clicks).toBe(12);
+    expect(
+      result.find((entry) => entry.page.endsWith("/"))?.clicks,
+    ).toBe(12);
     expect(
       result.find((entry) => entry.page.endsWith("/jardin-sec"))?.impressions,
     ).toBe(120);
