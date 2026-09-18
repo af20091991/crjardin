@@ -72,7 +72,7 @@ export function SiteWebDashboard() {
       )}
 
       {activeView === "actions" && (
-        <div className="space-y-5"><Card className="p-5"><h2 className="font-serif text-xl font-semibold">Actions</h2><p className="mt-1 text-sm text-muted-foreground">Le suivi opérationnel reste séparé des mesures et des recommandations.</p></div><SiteWebActionsView /></div>
+        <div className="space-y-5"><Card className="p-5"><h2 className="font-serif text-xl font-semibold">Actions</h2><p className="mt-1 text-sm text-muted-foreground">Le suivi opérationnel reste séparé des mesures et des recommandations.</p></Card><SiteWebActionsView /></div>
       )}
     </div>
   );
