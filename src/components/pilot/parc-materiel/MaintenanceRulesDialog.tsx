@@ -262,8 +262,15 @@ export function MaintenanceRulesDialog({ onChanged }: { onChanged?: () => void }
               <>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {(maintenanceTypes.data ?? []).map((type: MaintenanceType) => (
-                    <label key={type.id} className="flex items-center gap-2 rounded-md border border-border p-2">
-                      <input type="checkbox" checked={selectedMaintenanceIds.includes(type.id)} onChange={() => toggleMaintenance(type.id)} />
+                    <label
+                      key={type.id}
+                      className="flex items-center gap-2 rounded-md border border-border p-2"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedMaintenanceIds.includes(type.id)}
+                        onChange={() => toggleMaintenance(type.id)}
+                      />
                       <span className="text-sm">{type.name}</span>
                     </label>
                   ))}
