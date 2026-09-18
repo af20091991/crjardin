@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { AddEquipmentDialog } from "@/components/pilot/parc-materiel/AddEquipmentDialog";
+import { MaintenanceRulesDialog } from "@/components/pilot/parc-materiel/MaintenanceRulesDialog";
 import { formatEuro } from "@/lib/pilot";
 import {
   categoryLabel,
@@ -89,7 +90,7 @@ function ParcMaterielPage() {
               Inventaire, valeur du parc et suivi des entretiens.
             </p>
           </div>
-          <AddEquipmentDialog onCreated={refresh} />
+          <div className="flex flex-wrap gap-2"><MaintenanceRulesDialog onChanged={refresh} /><AddEquipmentDialog onCreated={refresh} /></div>
         </div>
 
         {/* Vue d'ensemble */}
