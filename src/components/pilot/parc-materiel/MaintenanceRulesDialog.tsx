@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Pencil, Plus, Save, Settings2, Trash2, X } from "lucide-react";
 import {
@@ -28,9 +36,21 @@ export function MaintenanceRulesDialog({ onChanged }: { onChanged?: () => void }
   const [selectedMaintenanceIds, setSelectedMaintenanceIds] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
-  const types = useQuery({ queryKey: ["parc-materiel", "equipment-types"], queryFn: listEquipmentTypes, enabled: open });
-  const maintenanceTypes = useQuery({ queryKey: ["parc-materiel", "maintenance-types"], queryFn: listMaintenanceTypes, enabled: open });
-  const usageCounts = useQuery({ queryKey: ["parc-materiel", "maintenance-usage"], queryFn: listMaintenanceUsageCounts, enabled: open });
+  const types = useQuery({
+    queryKey: ["parc-materiel", "equipment-types"],
+    queryFn: listEquipmentTypes,
+    enabled: open,
+  });
+  const maintenanceTypes = useQuery({
+    queryKey: ["parc-materiel", "maintenance-types"],
+    queryFn: listMaintenanceTypes,
+    enabled: open,
+  });
+  const usageCounts = useQuery({
+    queryKey: ["parc-materiel", "maintenance-usage"],
+    queryFn: listMaintenanceUsageCounts,
+    enabled: open,
+  });
 
   useEffect(() => {
     if (!selectedTypeId) {
@@ -63,7 +83,13 @@ export function MaintenanceRulesDialog({ onChanged }: { onChanged?: () => void }
         interval_months: Number(intervalMonths),
         reminder_days: Number(reminderDays),
       };
-      if (!input.name || !Number.isInteger(input.interval_months) || input.interval_months <= 0 || !Number.isInteger(input.reminder_days) || input.reminder_days < 0) {
+      if (
+        !input.name ||
+        !Number.isInteger(input.interval_months) ||
+        input.interval_months <= 0 ||
+        !Number.isInteger(input.reminder_days) ||
+        input.reminder_days < 0
+      ) {
         throw new Error("Renseigne un nom, une fréquence en mois et un rappel valides.");
       }
       return editingId ? updateMaintenanceType(editingId, input) : createMaintenanceType(input);
@@ -134,29 +160,59 @@ export function MaintenanceRulesDialog({ onChanged }: { onChanged?: () => void }
             </div>
 
             <div className="grid gap-2 sm:grid-cols-[1fr_100px_100px_auto_auto]">
-              <Input value={maintenanceName} onChange={(e) => setMaintenanceName(e.target.value)} placeholder="Nom de l'intervention" />
-              <Input value={intervalMonths} onChange={(e) => setIntervalMonths(e.target.value)} inputMode="numeric" placeholder="Mois" />
-              <Input value={reminderDays} onChange={(e) => setReminderDays(e.target.value)} inputMode="numeric" placeholder="Rappel (j)" />
-              <Button size="icon" onClick={() => saveMaintenance.mutate()} disabled={saveMaintenance.isPending}>
+              <Input
+                value={maintenanceName}
+                onChange={(e) => setMaintenanceName(e.target.value)}
+                placeholder="Nom de l'intervention"
+              />
+              <Input
+                value={intervalMonths}
+                onChange={(e) => setIntervalMonths(e.target.value)}
+                inputMode="numeric"
+                placeholder="Mois"
+              />
+              <Input
+                value={reminderDays}
+                onChange={(e) => setReminderDays(e.target.value)}
+                inputMode="numeric"
+                placeholder="Rappel (j)"
+              />
+              <Button
+                size="icon"
+                onClick={() => saveMaintenance.mutate()}
+                disabled={saveMaintenance.isPending}
+              >
                 {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               </Button>
               {editingId ? (
                 <Button size="icon" variant="ghost" onClick={resetForm} title="Annuler la modification">
                   <X className="h-4 w-4" />
                 </Button>
-              ) : <span />}
+              ) : (
+                <span />
+              )}
             </div>
 
             <div className="space-y-2">
               {(maintenanceTypes.data ?? []).map((type: MaintenanceType) => (
-                <div key={type.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
+                <div
+                  key={type.id}
+                  className="flex items-center gap-2 rounded-md border border-border px-3 py-2"
+                >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">{type.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      Tous les {type.interval_months} mois · rappel {type.reminder_days} j avant · {usageCounts.data?.[type.id] ?? 0} type{(usageCounts.data?.[type.id] ?? 0) > 1 ? "s" : ""} de matériel
+                      Tous les {type.interval_months} mois · rappel {type.reminder_days} j avant ·{" "}
+                      {usageCounts.data?.[type.id] ?? 0} type
+                      {(usageCounts.data?.[type.id] ?? 0) > 1 ? "s" : ""} de matériel
                     </p>
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => startEdit(type)} title="Modifier">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => startEdit(type)}
+                    title="Modifier"
+                  >
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
@@ -168,7 +224,9 @@ export function MaintenanceRulesDialog({ onChanged }: { onChanged?: () => void }
                         toast.error("Cette intervention est encore affectée à un type de matériel.");
                         return;
                       }
-                      if (window.confirm(`Supprimer « ${type.name} » ?`)) removeMaintenance.mutate(type.id);
+                      if (window.confirm(`Supprimer « ${type.name} » ?`)) {
+                        removeMaintenance.mutate(type.id);
+                      }
                     }}
                     title="Supprimer"
                   >
