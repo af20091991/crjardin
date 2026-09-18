@@ -100,7 +100,7 @@ export function AddMaintenanceDialog({
               id="maint-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ex. Vidange, contrôle technique…"
+              placeholder="Nom de l'intervention"
               autoFocus
             />
           </div>
