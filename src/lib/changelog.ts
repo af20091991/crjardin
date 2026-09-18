@@ -26,6 +26,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-18",
+    version: "2.3.6",
+    theme: "Compte-rendus",
+    title: "Notification à l'ouverture d'un e-mail client",
+    details: [
+      "Une notification PP et un e-mail sont envoyés dès qu'un client ouvre le compte-rendu reçu par e-mail.",
+      "Le menu « Gestion et suivi des emails clients » (Configuration) regroupe désormais ce suivi.",
+    ],
+  },
+  {
     date: "2026-09-17",
     version: "2.3.5",
     theme: "Général",

@@ -16,10 +16,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Mail, MailOpen, CheckCircle2, Clock, AlertTriangle, RefreshCw } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  MailOpen,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  RefreshCw,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/emails")({
-  head: () => ({ meta: [{ title: "Suivi des e-mails — De la graine au jardin" }] }),
+  head: () => ({
+    meta: [{ title: "Gestion et suivi des emails clients — De la graine au jardin" }],
+  }),
   component: EmailsPage,
 });
 
@@ -96,7 +106,7 @@ function EmailsPage() {
 
   if (isLoading || !isAdmin) {
     return (
-      <AppShell title="Suivi des e-mails">
+      <AppShell title="Gestion et suivi des emails clients">
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
@@ -105,14 +115,38 @@ function EmailsPage() {
   }
 
   const cards = [
-    { key: "all" as const, label: "Total", value: counts.all, icon: Mail, color: "text-foreground" },
-    { key: "sent" as const, label: "Envoyés", value: counts.sent, icon: CheckCircle2, color: "text-primary" },
-    { key: "pending" as const, label: "En attente", value: counts.pending, icon: Clock, color: "text-muted-foreground" },
-    { key: "failed" as const, label: "Échoués", value: counts.failed, icon: AlertTriangle, color: "text-destructive" },
+    {
+      key: "all" as const,
+      label: "Total",
+      value: counts.all,
+      icon: Mail,
+      color: "text-foreground",
+    },
+    {
+      key: "sent" as const,
+      label: "Envoyés",
+      value: counts.sent,
+      icon: CheckCircle2,
+      color: "text-primary",
+    },
+    {
+      key: "pending" as const,
+      label: "En attente",
+      value: counts.pending,
+      icon: Clock,
+      color: "text-muted-foreground",
+    },
+    {
+      key: "failed" as const,
+      label: "Échoués",
+      value: counts.failed,
+      icon: AlertTriangle,
+      color: "text-destructive",
+    },
   ];
 
   return (
-    <AppShell title="Suivi des e-mails">
+    <AppShell title="Gestion et suivi des emails clients">
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm text-muted-foreground">
@@ -130,7 +164,9 @@ function EmailsPage() {
                 <CardContent className="flex items-center gap-3 p-4">
                   <c.icon className={`h-6 w-6 ${c.color}`} />
                   <div>
-                    <p className="font-serif text-2xl font-semibold leading-none tabular-nums">{c.value}</p>
+                    <p className="font-serif text-2xl font-semibold leading-none tabular-nums">
+                      {c.value}
+                    </p>
                     <p className="text-xs text-muted-foreground">{c.label}</p>
                   </div>
                 </CardContent>
