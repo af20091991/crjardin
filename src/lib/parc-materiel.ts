@@ -306,9 +306,9 @@ export async function setEquipmentTypeMaintenanceTypes(
       .from("equipment_type_maintenance_types")
       .insert(
         maintenanceTypeIds.map((maintenanceTypeId) => ({
-        equipment_type_id: equipmentTypeId,
-        maintenance_type_id: maintenanceTypeId,
-        user_id: userId,
+          equipment_type_id: equipmentTypeId,
+          maintenance_type_id: maintenanceTypeId,
+          user_id: userId,
         })),
       );
     if (error) throw error;
