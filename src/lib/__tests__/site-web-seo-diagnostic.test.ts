@@ -38,7 +38,7 @@ describe("site-web SEO diagnostic", () => {
       clicks: 2,
       impressions: 120,
       ctr: 0.016,
-      position: 12,
+      position: 8,
     },
     {
       keys: [
