@@ -75,16 +75,6 @@ function EquipmentDetailPage() {
     queryKey: ["parc-materiel", "maintenance-schedules", equipmentId],
     queryFn: () => listMaintenanceSchedules(equipmentId),
   });
-  const completeMutation = useMutation({
-    mutationFn: (scheduleId: string) => completeMaintenanceSchedule(scheduleId, new Date().toISOString().slice(0, 10)),
-    onSuccess: () => {
-      toast.success("Entretien enregistré et prochaine échéance calculée.");
-      refresh();
-      queryClient.invalidateQueries({ queryKey: ["parc-materiel", "maintenance-schedules", equipmentId] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ["parc-materiel"] });
   }
