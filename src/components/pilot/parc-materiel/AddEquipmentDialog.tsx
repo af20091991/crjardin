@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,8 @@ import {
   EQUIPMENT_STATUS_LABELS,
   type EquipmentCategory,
   type EquipmentStatus,
+  listEquipmentTypes,
+  type EquipmentType,
 } from "@/lib/parc-materiel";
 
 export function AddEquipmentDialog({ onCreated }: { onCreated: () => void }) {
@@ -33,6 +35,8 @@ export function AddEquipmentDialog({ onCreated }: { onCreated: () => void }) {
   const [amortizationYears, setAmortizationYears] = useState("");
   const [status, setStatus] = useState<EquipmentStatus>("en_service");
   const [notes, setNotes] = useState("");
+  const [equipmentTypeId, setEquipmentTypeId] = useState("");
+  const equipmentTypes = useQuery({ queryKey: ["parc-materiel", "equipment-types"], queryFn: listEquipmentTypes, enabled: open });
   const [error, setError] = useState<string | null>(null);
 
   function reset() {
@@ -44,6 +48,7 @@ export function AddEquipmentDialog({ onCreated }: { onCreated: () => void }) {
     setAmortizationYears("");
     setStatus("en_service");
     setNotes("");
+    setEquipmentTypeId("");
     setError(null);
   }
 
@@ -54,6 +59,7 @@ export function AddEquipmentDialog({ onCreated }: { onCreated: () => void }) {
         category,
         custom_category:
           category === "autre" && customCategory.trim() ? customCategory.trim() : null,
+        equipment_type_id: equipmentTypeId || null,
         purchase_date: purchaseDate || null,
         purchase_cost: purchaseCost ? Number(purchaseCost.replace(",", ".")) : null,
         amortization_years: amortizationYears ? Number(amortizationYears.replace(",", ".")) : null,
@@ -148,6 +154,13 @@ export function AddEquipmentDialog({ onCreated }: { onCreated: () => void }) {
                 ))}
               </select>
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="eq-equipment-type">Type de matériel</Label>
+            <select id="eq-equipment-type" className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm" value={equipmentTypeId} onChange={(e) => setEquipmentTypeId(e.target.value)}>
+              <option value="">Aucun type d'entretien récurrent</option>
+              {(equipmentTypes.data ?? []).map((type: EquipmentType) => <option key={type.id} value={type.id}>{type.name}</option>)}
+            </select>
           </div>
           {category === "autre" && (
             <div className="space-y-1.5">
