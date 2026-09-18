@@ -168,16 +168,104 @@ export interface MaintenanceInput {
   next_due_date?: string | null;
 }
 
-export async function createMaintenance(input: MaintenanceInput): Promise<EquipmentMaintenance> {
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id;
-  if (!userId) throw new Error("Utilisateur non authentifié");
 
-  const { data, error } = await supabase
-    .from("equipment_maintenance")
-    .insert({ ...input, user_id: userId })
-    .select("*")
-    .single();
+export interface EquipmentType {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaintenanceType {
+  id: string;
+  user_id: string;
+  name: string;
+  interval_months: number;
+  reminder_days: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaintenanceSchedule {
+  id: string;
+  equipment_id: string;
+  maintenance_type_id: string;
+  last_completed_date: string | null;
+  next_due_date: string;
+  last_maintenance_id: string | null;
+  maintenance_type_name: string;
+  reminder_days: number;
+}
+
+export async function listEquipmentTypes(): Promise<EquipmentType[]> {
+  const { data, error } = await supabase.from("equipment_types").select("*").order("name");
+  if (error) throw error;
+  return (data ?? []) as EquipmentType[];
+}
+
+export async function createEquipmentType(name: string): Promise<EquipmentType> {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error("Utilisateur non authentifié");
+  const { data, error } = await supabase.from("equipment_types").insert({ name: name.trim(), user_id: userData.user.id }).select("*").single();
+  if (error) throw error;
+  return data as EquipmentType;
+}
+
+export async function listMaintenanceTypes(): Promise<MaintenanceType[]> {
+  const { data, error } = await supabase.from("maintenance_types").select("*").order("name");
+  if (error) throw error;
+  return (data ?? []) as MaintenanceType[];
+}
+
+export async function createMaintenanceType(input: { name: string; interval_months: number; reminder_days: number }): Promise<MaintenanceType> {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error("Utilisateur non authentifié");
+  const { data, error } = await supabase.from("maintenance_types").insert({ ...input, name: input.name.trim(), user_id: userData.user.id }).select("*").single();
+  if (error) throw error;
+  return data as MaintenanceType;
+}
+
+export async function setEquipmentTypeMaintenanceTypes(equipmentTypeId: string, maintenanceTypeIds: string[]): Promise<void> {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error("Utilisateur non authentifié");
+  const userId = userData.user.id;
+  const { error: deleteError } = await supabase.from("equipment_type_maintenance_types").delete().eq("equipment_type_id", equipmentTypeId).eq("user_id", userId);
+  if (deleteError) throw deleteError;
+  if (maintenanceTypeIds.length) {
+    const { error } = await supabase.from("equipment_type_maintenance_types").insert(
+      maintenanceTypeIds.map((maintenanceTypeId) => ({ equipment_type_id: equipmentTypeId, maintenance_type_id: maintenanceTypeId, user_id: userId })),
+    );
+    if (error) throw error;
+  }
+}
+
+export async function syncEquipmentMaintenanceSchedules(equipmentId: string): Promise<void> {
+  const { error } = await supabase.rpc("sync_equipment_maintenance_schedules", { p_equipment_id: equipmentId });
+  if (error) throw error;
+}
+
+export async function listMaintenanceSchedules(equipmentId?: string): Promise<MaintenanceSchedule[]> {
+  let query = supabase
+    .from("equipment_maintenance_schedules")
+    .select("*, maintenance_type:maintenance_type_id(name, reminder_days)")
+    .order("next_due_date", { ascending: true });
+  if (equipmentId) query = query.eq("equipment_id", equipmentId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    maintenance_type_name: row.maintenance_type?.name ?? "Entretien",
+    reminder_days: row.maintenance_type?.reminder_days ?? 14,
+  })) as MaintenanceSchedule[];
+}
+
+export async function completeMaintenanceSchedule(scheduleId: string, maintenanceDate: string, cost?: number | null): Promise<EquipmentMaintenance> {
+  const { data, error } = await supabase.rpc("complete_equipment_maintenance", {
+    p_schedule_id: scheduleId,
+    p_maintenance_date: maintenanceDate,
+    p_cost: cost ?? null,
+  });
   if (error) throw error;
   return data as EquipmentMaintenance;
 }
