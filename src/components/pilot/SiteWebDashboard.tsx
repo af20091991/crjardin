@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { BarChart3, FileText, Globe2, MapPin, Target } from "lucide-react";
 import { SiteWebActionsView, SiteWebContentView } from "@/components/pilot/SiteWebContentActions";
+import { SiteWebSeoDiagnostic } from "@/components/pilot/SiteWebSeoDiagnostic";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
 import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
@@ -9,9 +10,17 @@ import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
 import { SiteWebTodaySummary } from "@/components/pilot/SiteWebTodaySummary";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
 
-type ModuleView = "today" | "traffic" | "local" | "content" | "opportunities" | "actions";
+type ModuleView =
+  | "diagnostic"
+  | "today"
+  | "traffic"
+  | "local"
+  | "content"
+  | "opportunities"
+  | "actions";
 
 const moduleViews: Array<{ id: ModuleView; label: string }> = [
+  { id: "diagnostic", label: "Diagnostic SEO" },
   { id: "today", label: "Aujourd'hui" },
   { id: "traffic", label: "Trafic & Recherche" },
   { id: "local", label: "Présence locale" },
@@ -21,7 +30,7 @@ const moduleViews: Array<{ id: ModuleView; label: string }> = [
 ];
 
 export function SiteWebDashboard() {
-  const [activeView, setActiveView] = useState<ModuleView>("today");
+  const [activeView, setActiveView] = useState<ModuleView>("diagnostic");
 
   return (
     <div className="space-y-6">
@@ -58,6 +67,8 @@ export function SiteWebDashboard() {
           </button>
         ))}
       </nav>
+
+      {activeView === "diagnostic" && <SiteWebSeoDiagnostic />}
 
       {activeView === "today" && (
         <SiteWebTodaySummary onOpenOpportunities={() => setActiveView("opportunities")} />
