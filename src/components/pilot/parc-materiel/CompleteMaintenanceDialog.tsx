@@ -56,7 +56,12 @@ export function CompleteMaintenanceDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+      }}
+    >
       <DialogTrigger asChild>
         <Button size="sm" disabled={m.isPending}>
           <Check className="mr-1 h-3.5 w-3.5" />
