@@ -255,9 +255,24 @@ export async function setEquipmentTypeMaintenanceTypes(equipmentTypeId: string, 
   if (deleteError) throw deleteError;
   if (maintenanceTypeIds.length) {
     const { error } = await supabase.from("equipment_type_maintenance_types").insert(
-      maintenanceTypeIds.map((maintenanceTypeId) => ({ equipment_type_id: equipmentTypeId, maintenance_type_id: maintenanceTypeId, user_id: userId })),
+      maintenanceTypeIds.map((maintenanceTypeId) => ({
+        equipment_type_id: equipmentTypeId,
+        maintenance_type_id: maintenanceTypeId,
+        user_id: userId,
+      })),
     );
     if (error) throw error;
+  }
+
+  const { data: equipmentRows, error: equipmentError } = await supabase
+    .from("equipment")
+    .select("id")
+    .eq("equipment_type_id", equipmentTypeId)
+    .eq("user_id", userId);
+  if (equipmentError) throw equipmentError;
+
+  for (const equipment of equipmentRows ?? []) {
+    await syncEquipmentMaintenanceSchedules(equipment.id);
   }
 }
 
