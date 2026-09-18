@@ -73,8 +73,7 @@ function EquipmentDetailPage() {
   const { equipmentId } = useParams({ from: "/_authenticated/parc-materiel/$equipmentId" });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [completionScheduleId, setCompletionScheduleId] =
-    useState<string | null>(null);
+  const [completionScheduleId, setCompletionScheduleId] = useState<string | null>(null);
   const [completionDate, setCompletionDate] = useState(() =>
     new Date().toISOString().slice(0, 10),
   );
@@ -367,10 +366,7 @@ function EquipmentDetailPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setCompletionScheduleId(null)}
-              >
+              <Button variant="outline" onClick={() => setCompletionScheduleId(null)}>
                 Annuler
               </Button>
               <Button
