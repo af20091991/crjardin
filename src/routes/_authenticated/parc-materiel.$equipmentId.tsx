@@ -28,9 +28,11 @@ import {
   EQUIPMENT_STATUS_LABELS,
   getEquipment,
   listMaintenanceFor,
+  listMaintenanceSchedules,
+  completeMaintenanceSchedule,
   maintenanceUrgency,
 } from "@/lib/parc-materiel";
-import { ArrowLeft, Wrench, AlertTriangle, Clock, Trash2 } from "lucide-react";
+import { ArrowLeft, Wrench, AlertTriangle, Clock, Trash2, Check } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/parc-materiel/$equipmentId")({
   head: () => ({
@@ -68,6 +70,19 @@ function EquipmentDetailPage() {
   const maintenanceQuery = useQuery({
     queryKey: ["parc-materiel", "maintenance", equipmentId],
     queryFn: () => listMaintenanceFor(equipmentId),
+  });
+  const schedulesQuery = useQuery({
+    queryKey: ["parc-materiel", "maintenance-schedules", equipmentId],
+    queryFn: () => listMaintenanceSchedules(equipmentId),
+  });
+  const completeMutation = useMutation({
+    mutationFn: (scheduleId: string) => completeMaintenanceSchedule(scheduleId, new Date().toISOString().slice(0, 10)),
+    onSuccess: () => {
+      toast.success("Entretien enregistré et prochaine échéance calculée.");
+      refresh();
+      queryClient.invalidateQueries({ queryKey: ["parc-materiel", "maintenance-schedules", equipmentId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   function refresh() {
@@ -221,6 +236,48 @@ function EquipmentDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Entretiens récurrents</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {schedulesQuery.isLoading ? (
+              <div className="p-4 text-sm text-muted-foreground">Chargement des échéances…</div>
+            ) : (schedulesQuery.data ?? []).length === 0 ? (
+              <div className="p-4 text-sm text-muted-foreground">
+                Aucun entretien récurrent configuré pour ce matériel.
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {(schedulesQuery.data ?? []).map((schedule) => {
+                  const urgency = maintenanceUrgency(schedule.next_due_date, schedule.reminder_days);
+                  const badge = URGENCY_BADGE[urgency];
+                  return (
+                    <div key={schedule.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                      <div>
+                        <p className="font-medium">{schedule.maintenance_type_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {schedule.last_completed_date
+                            ? `Dernier entretien : ${new Date(schedule.last_completed_date).toLocaleDateString("fr-FR")}`
+                            : "Aucun entretien enregistré"}
+                          {" · "}Échéance : {new Date(schedule.next_due_date).toLocaleDateString("fr-FR")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {badge && <Badge variant="outline" className={badge.className}>{badge.label}</Badge>}
+                        <Button size="sm" onClick={() => completeMutation.mutate(schedule.id)} disabled={completeMutation.isPending}>
+                          <Check className="mr-1 h-3.5 w-3.5" />
+                          Effectué
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {equipment.notes && (
           <Card>

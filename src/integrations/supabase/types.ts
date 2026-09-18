@@ -1033,6 +1033,7 @@ export type Database = {
           category: string;
           created_at: string;
           custom_category: string | null;
+          equipment_type_id: string | null;
           id: string;
           name: string;
           notes: string | null;
@@ -1047,6 +1048,7 @@ export type Database = {
           category?: string;
           created_at?: string;
           custom_category?: string | null;
+          equipment_type_id?: string | null;
           id?: string;
           name: string;
           notes?: string | null;
@@ -1061,6 +1063,7 @@ export type Database = {
           category?: string;
           created_at?: string;
           custom_category?: string | null;
+          equipment_type_id?: string | null;
           id?: string;
           name?: string;
           notes?: string | null;
@@ -1070,7 +1073,15 @@ export type Database = {
           updated_at?: string;
           user_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "equipment_equipment_type_id_fkey";
+            columns: ["equipment_type_id"];
+            isOneToOne: false;
+            referencedRelation: "equipment_types";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       equipment_maintenance: {
         Row: {
@@ -1080,6 +1091,7 @@ export type Database = {
           equipment_id: string;
           id: string;
           maintenance_date: string;
+          maintenance_type_id: string | null;
           next_due_date: string | null;
           reminder_sent_at: string | null;
           updated_at: string;
@@ -1092,6 +1104,7 @@ export type Database = {
           equipment_id: string;
           id?: string;
           maintenance_date?: string;
+          maintenance_type_id?: string | null;
           next_due_date?: string | null;
           reminder_sent_at?: string | null;
           updated_at?: string;
@@ -1104,12 +1117,20 @@ export type Database = {
           equipment_id?: string;
           id?: string;
           maintenance_date?: string;
+          maintenance_type_id?: string | null;
           next_due_date?: string | null;
           reminder_sent_at?: string | null;
           updated_at?: string;
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "equipment_maintenance_maintenance_type_id_fkey";
+            columns: ["maintenance_type_id"];
+            isOneToOne: false;
+            referencedRelation: "maintenance_types";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "equipment_maintenance_equipment_id_fkey";
             columns: ["equipment_id"];
@@ -1118,6 +1139,154 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      equipment_maintenance_schedules: {
+        Row: {
+          created_at: string;
+          equipment_id: string;
+          id: string;
+          last_completed_date: string | null;
+          last_maintenance_id: string | null;
+          maintenance_type_id: string;
+          next_due_date: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          equipment_id: string;
+          id?: string;
+          last_completed_date?: string | null;
+          last_maintenance_id?: string | null;
+          maintenance_type_id: string;
+          next_due_date: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          equipment_id?: string;
+          id?: string;
+          last_completed_date?: string | null;
+          last_maintenance_id?: string | null;
+          maintenance_type_id?: string;
+          next_due_date?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "equipment_maintenance_schedules_equipment_id_fkey";
+            columns: ["equipment_id"];
+            isOneToOne: false;
+            referencedRelation: "equipment";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipment_maintenance_schedules_last_maintenance_id_fkey";
+            columns: ["last_maintenance_id"];
+            isOneToOne: false;
+            referencedRelation: "equipment_maintenance";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipment_maintenance_schedules_maintenance_type_id_fkey";
+            columns: ["maintenance_type_id"];
+            isOneToOne: false;
+            referencedRelation: "maintenance_types";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      equipment_type_maintenance_types: {
+        Row: {
+          created_at: string;
+          equipment_type_id: string;
+          maintenance_type_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          equipment_type_id: string;
+          maintenance_type_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          equipment_type_id?: string;
+          maintenance_type_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "equipment_type_maintenance_types_equipment_type_id_fkey";
+            columns: ["equipment_type_id"];
+            isOneToOne: false;
+            referencedRelation: "equipment_types";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "equipment_type_maintenance_types_maintenance_type_id_fkey";
+            columns: ["maintenance_type_id"];
+            isOneToOne: false;
+            referencedRelation: "maintenance_types";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      equipment_types: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          name: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      maintenance_types: {
+        Row: {
+          created_at: string;
+          id: string;
+          interval_months: number;
+          name: string;
+          reminder_days: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          interval_months: number;
+          name: string;
+          reminder_days?: number;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          interval_months?: number;
+          name?: string;
+          reminder_days?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
       };
       favorite_clients: {
         Row: {
@@ -5122,6 +5291,30 @@ export type Database = {
       };
       set_user_approval: {
         Args: { p_status: string; p_user_id: string };
+        Returns: undefined;
+      };
+      complete_equipment_maintenance: {
+        Args: {
+          p_cost?: number | null;
+          p_maintenance_date: string;
+          p_schedule_id: string;
+        };
+        Returns: {
+          cost: number | null;
+          created_at: string;
+          description: string;
+          equipment_id: string;
+          id: string;
+          maintenance_date: string;
+          maintenance_type_id: string | null;
+          next_due_date: string | null;
+          reminder_sent_at: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+      };
+      sync_equipment_maintenance_schedules: {
+        Args: { p_equipment_id: string };
         Returns: undefined;
       };
       set_user_role: {
