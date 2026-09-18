@@ -11,7 +11,10 @@ import {
 describe("site-web SEO diagnostic", () => {
   const rows = [
     {
-      keys: ["paysagiste Montpellier", "https://www.delagraineaujardin.com/"],
+      keys: [
+        "paysagiste Montpellier",
+        "https://www.delagraineaujardin.com/",
+      ],
       clicks: 12,
       impressions: 100,
       ctr: 0.12,
