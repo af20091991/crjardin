@@ -130,6 +130,7 @@ export async function updateEquipment(
     .select("*")
     .single();
   if (error) throw error;
+  await syncEquipmentMaintenanceSchedules(id);
   return data as Equipment;
 }
 
@@ -150,17 +151,18 @@ export async function listMaintenanceFor(equipmentId: string): Promise<Equipment
 
 /** Toutes les échéances d'entretien à venir/en retard, tous équipements confondus (pour la vue d'ensemble). */
 export async function listUpcomingMaintenance(): Promise<
-  (EquipmentMaintenance & { equipment_name: string })[]
+  (MaintenanceSchedule & { equipment_name: string })[]
 > {
   const { data, error } = await supabase
-    .from("equipment_maintenance")
-    .select("*, equipment:equipment_id(name)")
-    .not("next_due_date", "is", null)
+    .from("equipment_maintenance_schedules")
+    .select("*, equipment:equipment_id(name), maintenance_type:maintenance_type_id(name, reminder_days)")
     .order("next_due_date", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((row: EquipmentMaintenance & { equipment: { name: string } | null }) => ({
+  return (data ?? []).map((row: any) => ({
     ...row,
     equipment_name: row.equipment?.name ?? "—",
+    maintenance_type_name: row.maintenance_type?.name ?? "Entretien",
+    reminder_days: row.maintenance_type?.reminder_days ?? 14,
   }));
 }
 
