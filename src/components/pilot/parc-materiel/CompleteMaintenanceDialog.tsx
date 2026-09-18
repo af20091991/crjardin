@@ -51,6 +51,10 @@ export function CompleteMaintenanceDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  function submit() {
+    m.mutate();
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -59,15 +63,20 @@ export function CompleteMaintenanceDialog({
           Effectué
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Enregistrer l'entretien</DialogTitle>
           <DialogDescription>
-            La date saisie sert de point de départ pour calculer la prochaine
-            échéance.
+            La date saisie sert de point de départ pour calculer la prochaine échéance.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
           <div className="space-y-1.5">
             <Label htmlFor="completion-date">Date réelle *</Label>
             <Input
@@ -96,13 +105,15 @@ export function CompleteMaintenanceDialog({
               placeholder="Facultatif"
             />
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
-          <Button onClick={() => m.mutate()} disabled={!date || m.isPending}>
-            {m.isPending ? "Enregistrement…" : "Enregistrer"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Annuler
+            </Button>
+            <Button type="submit" disabled={m.isPending}>
+              {m.isPending ? "Enregistrement…" : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
