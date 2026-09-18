@@ -74,7 +74,9 @@ function EquipmentDetailPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [completionScheduleId, setCompletionScheduleId] = useState<string | null>(null);
-  const [completionDate, setCompletionDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [completionDate, setCompletionDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
   const [completionCost, setCompletionCost] = useState("");
   const [completionComment, setCompletionComment] = useState("");
 
