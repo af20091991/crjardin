@@ -52,12 +52,7 @@ export function CompleteMaintenanceDialog({
   });
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        setOpen(v);
-      }}
-    >
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" disabled={m.isPending}>
           <Check className="mr-1 h-3.5 w-3.5" />
@@ -103,9 +98,7 @@ export function CompleteMaintenanceDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Annuler
-          </Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
           <Button onClick={() => m.mutate()} disabled={!date || m.isPending}>
             {m.isPending ? "Enregistrement…" : "Enregistrer"}
           </Button>
