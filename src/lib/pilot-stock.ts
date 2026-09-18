@@ -196,3 +196,107 @@ export async function createStockItem(input: StockItemInput): Promise<StockItem>
   if (error) throw error;
   return data as StockItem;
 }
+
+export interface StockBulkItemInput extends StockItemInput {
+  /** Quantité initiale : si > 0, un mouvement d'entrée est créé après la création de l'article. */
+  initialQuantity?: number;
+}
+
+export interface StockBulkParseResult {
+  rows: StockBulkItemInput[];
+  /** Lignes ignorées (vides, mal formées) avec le motif, pour affichage avant validation. */
+  errors: string[];
+}
+
+const STOCK_BULK_PERISHABLE_TRUE = /^(oui|o|yes|y|true|vrai|1|x)$/i;
+
+/**
+ * Parse un texte collé depuis un tableur (Excel/LibreOffice/Google Sheets, séparateur
+ * tabulation) ou un CSV français (séparateur point-virgule). Colonnes attendues, dans
+ * l'ordre : Nom, Catégorie, Unité, Prix unitaire HT, Quantité initiale, Périssable (oui/non).
+ * Seul le nom est obligatoire ; les autres colonnes peuvent être omises en fin de ligne.
+ */
+export function parseStockBulkPaste(text: string): StockBulkParseResult {
+  const rows: StockBulkItemInput[] = [];
+  const errors: string[] = [];
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  lines.forEach((line, index) => {
+    const separator = line.includes("\t") ? "\t" : ";";
+    const cols = line.split(separator).map((c) => c.trim());
+    const [name, category, unit, unitPriceRaw, quantityRaw, perishableRaw] = cols;
+    const lineNo = index + 1;
+
+    if (!name) {
+      errors.push(`Ligne ${lineNo} : nom d'article manquant, ignorée.`);
+      return;
+    }
+
+    let unitPrice = 0;
+    if (unitPriceRaw) {
+      unitPrice = Number(unitPriceRaw.replace(",", "."));
+      if (Number.isNaN(unitPrice)) {
+        errors.push(`Ligne ${lineNo} (${name}) : prix unitaire invalide, ignorée.`);
+        return;
+      }
+    }
+
+    let quantity = 0;
+    if (quantityRaw) {
+      quantity = Number(quantityRaw.replace(",", "."));
+      if (Number.isNaN(quantity)) {
+        errors.push(`Ligne ${lineNo} (${name}) : quantité invalide, ignorée.`);
+        return;
+      }
+    }
+
+    rows.push({
+      name,
+      category: category || "Non catégorisé",
+      unit: unit || null,
+      unit_price_ht: unitPrice,
+      is_perishable: STOCK_BULK_PERISHABLE_TRUE.test((perishableRaw ?? "").trim()),
+      initialQuantity: quantity,
+    });
+  });
+
+  return { rows, errors };
+}
+
+export interface StockBulkCreateResult {
+  name: string;
+  status: "ok" | "error";
+  message?: string;
+}
+
+/**
+ * Crée plusieurs articles à la suite (et leur mouvement d'entrée initial si une quantité
+ * est fournie). Séquentiel et tolérant aux erreurs unitaires (ex. doublon de nom) : chaque
+ * ligne réussie ou échouée est rapportée individuellement, sans bloquer les suivantes.
+ */
+export async function createStockItemsBulk(
+  inputs: StockBulkItemInput[],
+): Promise<StockBulkCreateResult[]> {
+  const results: StockBulkCreateResult[] = [];
+  for (const input of inputs) {
+    try {
+      const created = await createStockItem(input);
+      if (input.initialQuantity && input.initialQuantity > 0) {
+        await createStockMovement({
+          item_id: created.id,
+          movement_type: "entree",
+          quantity: input.initialQuantity,
+          unit_price_ht: input.unit_price_ht ?? null,
+          reason: "Ajout en masse — stock initial",
+        });
+      }
+      results.push({ name: input.name, status: "ok" });
+    } catch (e) {
+      results.push({ name: input.name, status: "error", message: (e as Error).message });
+    }
+  }
+  return results;
+}
