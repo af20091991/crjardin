@@ -1,12 +1,20 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
@@ -97,7 +105,9 @@ function EquipmentDetailPage() {
       setCompletionComment("");
       setCompletionDate(new Date().toISOString().slice(0, 10));
       refresh();
-      queryClient.invalidateQueries({ queryKey: ["parc-materiel", "maintenance-schedules", equipmentId] });
+      queryClient.invalidateQueries({
+        queryKey: ["parc-materiel", "maintenance-schedules", equipmentId],
+      });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -289,8 +299,16 @@ function EquipmentDetailPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {badge && <Badge variant="outline" className={badge.className}>{badge.label}</Badge>}
-                        <Button size="sm" onClick={() => openCompletion(schedule.id)} disabled={completeMutation.isPending}>
+                        {badge && (
+                          <Badge variant="outline" className={badge.className}>
+                            {badge.label}
+                          </Badge>
+                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => openCompletion(schedule.id)}
+                          disabled={completeMutation.isPending}
+                        >
                           <Check className="mr-1 h-3.5 w-3.5" />
                           Effectué
                         </Button>
@@ -303,7 +321,10 @@ function EquipmentDetailPage() {
           </CardContent>
         </Card>
 
-        <Dialog open={!!completionScheduleId} onOpenChange={(open) => !open && setCompletionScheduleId(null)}>
+        <Dialog
+          open={!!completionScheduleId}
+          onOpenChange={(open) => !open && setCompletionScheduleId(null)}
+        >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Enregistrer l'entretien</DialogTitle>
@@ -314,20 +335,41 @@ function EquipmentDetailPage() {
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="completion-date">Date réelle *</Label>
-                <Input id="completion-date" type="date" value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} />
+                <Input
+                  id="completion-date"
+                  type="date"
+                  value={completionDate}
+                  onChange={(e) => setCompletionDate(e.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="completion-cost">Coût</Label>
-                <Input id="completion-cost" inputMode="decimal" value={completionCost} onChange={(e) => setCompletionCost(e.target.value)} placeholder="0,00" />
+                <Input
+                  id="completion-cost"
+                  inputMode="decimal"
+                  value={completionCost}
+                  onChange={(e) => setCompletionCost(e.target.value)}
+                  placeholder="0,00"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="completion-comment">Commentaire</Label>
-                <Input id="completion-comment" value={completionComment} onChange={(e) => setCompletionComment(e.target.value)} placeholder="Facultatif" />
+                <Input
+                  id="completion-comment"
+                  value={completionComment}
+                  onChange={(e) => setCompletionComment(e.target.value)}
+                  placeholder="Facultatif"
+                />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setCompletionScheduleId(null)}>Annuler</Button>
-              <Button onClick={() => completeMutation.mutate()} disabled={!completionDate || completeMutation.isPending}>
+              <Button variant="outline" onClick={() => setCompletionScheduleId(null)}>
+                Annuler
+              </Button>
+              <Button
+                onClick={() => completeMutation.mutate()}
+                disabled={!completionDate || completeMutation.isPending}
+              >
                 {completeMutation.isPending ? "Enregistrement…" : "Enregistrer"}
               </Button>
             </DialogFooter>
