@@ -169,6 +169,15 @@ export interface MaintenanceInput {
 }
 
 
+export async function createMaintenance(input: MaintenanceInput): Promise<EquipmentMaintenance> {
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) throw new Error("Utilisateur non authentifié");
+  const { data, error } = await supabase.from("equipment_maintenance").insert({ ...input, user_id: userId }).select("*").single();
+  if (error) throw error;
+  return data as EquipmentMaintenance;
+}
+
 export interface EquipmentType {
   id: string;
   user_id: string;
