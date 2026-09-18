@@ -90,8 +90,10 @@ function ParcMaterielPage() {
               Inventaire, valeur du parc et suivi des entretiens.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2"><MaintenanceRulesDialog onChanged={refresh} /><AddEquipmentDialog onCreated={refresh} /></div>
+          <div className="flex flex-wrap gap-2"><AddEquipmentDialog onCreated={refresh} /></div>
         </div>
+
+        <MaintenanceRulesDialog onChanged={refresh} />
 
         {/* Vue d'ensemble */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
