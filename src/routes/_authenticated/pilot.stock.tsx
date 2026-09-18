@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { AddStockMovementDialog } from "@/components/pilot/stock/AddStockMovementDialog";
+import { BulkAddStockItemsDialog } from "@/components/pilot/stock/BulkAddStockItemsDialog";
 import { EditStockItemDialog } from "@/components/pilot/stock/EditStockItemDialog";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { formatEuro } from "@/lib/pilot";
@@ -211,6 +212,7 @@ function StockPage() {
             <Download className="mr-1 h-3.5 w-3.5" />
             Exporter l'état des stocks
           </Button>
+          {isLive && <BulkAddStockItemsDialog onCreated={refresh} />}
           {isLive && <AddStockMovementDialog items={items} onCreated={refresh} />}
         </div>
       </div>
