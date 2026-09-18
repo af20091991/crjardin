@@ -26,7 +26,7 @@ function renderPalette() {
 
 describe("palette de commande", () => {
   it("un seul bloc de la sidebar est ouvert par défaut", () => {
-    expect(DEFAULT_OPEN_GROUP).toBe("Aujourd'hui");
+    expect(DEFAULT_OPEN_GROUP).toBe("Entreprise");
   });
 
   it("filtre les liens existants sans en inventer", () => {

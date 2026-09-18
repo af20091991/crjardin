@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, "adpp/*"]
   workflow_dispatch:
     inputs:
       ref:
@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 concurrency:
   group: adpp-validation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.sha }}
@@ -80,3 +81,15 @@ jobs:
 
       - name: Validation summary
         run: echo "ADPP validation passed for $GITHUB_SHA"
+
+      - name: Publish required status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS_SHA: ${{ github.sha }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${STATUS_SHA}" \
+            -f state="${STATE}" \
+            -f context="ADPP Validation / validate" \
+            -f description="ADPP validation ${STATE}"

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { monthlyCaHourlyRates } from "@/lib/pilot-ca-hourly-rate";
+import { monthlyCaHourlyRate } from "@/lib/pilot-ca-hourly-rate";
 import type { CaEntry } from "@/lib/pilot-ca";
 
 const sale = (
   id: string,
   amount_ht: number,
-  hours: number,
+  hours: number | null,
   sale_status: CaEntry["sale_status"],
 ): CaEntry =>
   ({
@@ -21,30 +21,34 @@ const sale = (
     sale_status,
   }) as CaEntry;
 
-describe("monthlyCaHourlyRates", () => {
-  it("includes every service in the default forecast and always adds management time", () => {
+describe("monthlyCaHourlyRate", () => {
+  it("uses realized or paid services and divides CA by their hours", () => {
     const entries = [
-      sale("paid", 300, 3, "regle"),
-      sale("invoiced", 200, 2, "realise"),
-      sale("planned", 100, 1, "planifie"),
+      sale("realized", 300, 1, "realise"),
+      sale("paid", 300, 1, "regle"),
+      sale("realized-2", 400, 1, "realise"),
+      sale("planned", 1000, 10, "planifie"),
     ];
 
-    expect(monthlyCaHourlyRates(entries, 9, 2)).toEqual({
-      previsionnel: 75,
-      en_cours: 60,
-    });
+    expect(monthlyCaHourlyRate(entries, 9)).toBe(1000 / 3);
   });
 
-  it("uses only paid services for En cours", () => {
-    const entries = [sale("paid", 300, 0, "regle"), sale("unpaid", 900, 9, "realise")];
+  it("keeps zero-hour services in the CA without adding hours", () => {
+    const entries = [
+      sale("subcontracted", 500, 0, "regle"),
+      sale("timed-1", 250, 1, "realise"),
+      sale("timed-2", 250, 1, "regle"),
+    ];
 
-    expect(monthlyCaHourlyRates(entries, 9, 1).en_cours).toBe(300);
+    expect(monthlyCaHourlyRate(entries, 9)).toBe(500);
   });
 
-  it("returns null when a mode has no denominator", () => {
-    expect(monthlyCaHourlyRates([], 9, 0)).toEqual({
-      previsionnel: null,
-      en_cours: null,
-    });
+  it("returns null when qualifying services have no positive hours", () => {
+    const entries = [
+      sale("subcontracted-1", 500, 0, "regle"),
+      sale("subcontracted-2", 400, null, "realise"),
+    ];
+
+    expect(monthlyCaHourlyRate(entries, 9)).toBeNull();
   });
 });
