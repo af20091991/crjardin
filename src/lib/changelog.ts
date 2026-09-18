@@ -26,6 +26,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-17",
+    version: "2.3.5",
+    theme: "Général",
+    title: "Ajout en masse d'articles de stock",
+    details: [
+      "Le Stock permet de créer plusieurs articles en une fois, par collage depuis un tableur ou saisie ligne par ligne.",
+      "Une quantité initiale par article génère automatiquement son mouvement d'entrée.",
+    ],
+  },
+  {
     date: "2026-09-09",
     version: "2.3.4",
     theme: "Général",
