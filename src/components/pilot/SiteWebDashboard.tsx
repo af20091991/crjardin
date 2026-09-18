@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { BarChart3, FileText, Globe2, MapPin, Target } from "lucide-react";
-import { SiteWebActionsView, SiteWebContentView } from "@/components/pilot/SiteWebContentActions";
+import {\n  SiteWebActionsView,\n  SiteWebContentView,\n} from "@/components/pilot/SiteWebContentActions";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
 import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
@@ -60,7 +60,7 @@ export function SiteWebDashboard() {
             key={view.id}
             type="button"
             onClick={() => setActiveView(view.id)}
-            className={`shrink-0 rounded-t-lg px-3 py-2 text-sm font-medium transition-colors ${activeView === view.id ? "border-b-2 border-primary text-foreground" : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"}`}
+            className={`shrink-0 rounded-t-lg px-3 py-2 text-sm font-medium transition-colors ${\n              activeView === view.id\n                ? "border-b-2 border-primary text-foreground"\n                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"\n            }`}
           >
             {view.label}
           </button>
@@ -106,7 +106,7 @@ export function SiteWebDashboard() {
                 <h2 className="font-serif text-xl font-semibold">
                   Présence locale
                 </h2>
-                <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                <p\n                  className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground"\n                >
                   Uniquement ce qui est spécifique au local : requêtes
                   géolocalisées et fiche Google Business Profile. Le trafic
                   global est dans « Trafic & Recherche ».
@@ -124,7 +124,7 @@ export function SiteWebDashboard() {
             <div className="flex items-start gap-3">
               <FileText className="mt-0.5 h-4 w-4 text-primary" />
               <div>
-                <h2 className="font-serif text-xl font-semibold">Contenus</h2>
+                <h2 className="font-serif text-xl font-semibold">\n                  Contenus\n                </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Pages réellement visibles dans Google, issues de Search
                   Console.
