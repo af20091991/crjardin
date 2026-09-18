@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { AddMaintenanceDialog } from "@/components/pilot/parc-materiel/AddMaintenanceDialog";
+import { CompleteMaintenanceDialog } from "@/components/pilot/parc-materiel/CompleteMaintenanceDialog";
 import { EditEquipmentDialog } from "@/components/pilot/parc-materiel/EditEquipmentDialog";
 import { toast } from "sonner";
 import { formatEuro } from "@/lib/pilot";
@@ -29,7 +30,6 @@ import {
   getEquipment,
   listMaintenanceFor,
   listMaintenanceSchedules,
-  completeMaintenanceSchedule,
   maintenanceUrgency,
 } from "@/lib/parc-materiel";
 import { ArrowLeft, Wrench, AlertTriangle, Clock, Trash2, Check } from "lucide-react";
@@ -75,16 +75,6 @@ function EquipmentDetailPage() {
     queryKey: ["parc-materiel", "maintenance-schedules", equipmentId],
     queryFn: () => listMaintenanceSchedules(equipmentId),
   });
-  const completeMutation = useMutation({
-    mutationFn: (scheduleId: string) => completeMaintenanceSchedule(scheduleId, new Date().toISOString().slice(0, 10)),
-    onSuccess: () => {
-      toast.success("Entretien enregistré et prochaine échéance calculée.");
-      refresh();
-      queryClient.invalidateQueries({ queryKey: ["parc-materiel", "maintenance-schedules", equipmentId] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ["parc-materiel"] });
   }
@@ -266,10 +256,10 @@ function EquipmentDetailPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         {badge && <Badge variant="outline" className={badge.className}>{badge.label}</Badge>}
-                        <Button size="sm" onClick={() => completeMutation.mutate(schedule.id)} disabled={completeMutation.isPending}>
-                          <Check className="mr-1 h-3.5 w-3.5" />
-                          Effectué
-                        </Button>
+                        <CompleteMaintenanceDialog
+                          scheduleId={schedule.id}
+                          onCompleted={refresh}
+                        />
                       </div>
                     </div>
                   );

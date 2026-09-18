@@ -233,34 +233,84 @@ export async function listMaintenanceTypes(): Promise<MaintenanceType[]> {
   return (data ?? []) as MaintenanceType[];
 }
 
-export async function createMaintenanceType(input: { name: string; interval_months: number; reminder_days: number }): Promise<MaintenanceType> {
+export async function createMaintenanceType(input: {
+  name: string;
+  interval_months: number;
+  reminder_days: number;
+}): Promise<MaintenanceType> {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error("Utilisateur non authentifié");
-  const { data, error } = await supabase.from("maintenance_types").insert({ ...input, name: input.name.trim(), user_id: userData.user.id }).select("*").single();
+  const { data, error } = await supabase
+    .from("maintenance_types")
+    .insert({ ...input, name: input.name.trim(), user_id: userData.user.id })
+    .select("*")
+    .single();
   if (error) throw error;
   return data as MaintenanceType;
 }
 
+export async function updateMaintenanceType(
+  id: string,
+  input: { name: string; interval_months: number; reminder_days: number },
+): Promise<MaintenanceType> {
+  const { data, error } = await supabase
+    .from("maintenance_types")
+    .update({ ...input, name: input.name.trim() })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as MaintenanceType;
+}
+
+export async function deleteMaintenanceType(id: string): Promise<void> {
+  const { error } = await supabase.from("maintenance_types").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function listMaintenanceUsageCounts(): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from("equipment_type_maintenance_types")
+    .select("maintenance_type_id");
+  if (error) throw error;
+  return (data ?? []).reduce<Record<string, number>>((counts, row) => {
+    counts[row.maintenance_type_id] = (counts[row.maintenance_type_id] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
 export async function listMaintenanceRuleIds(equipmentTypeId: string): Promise<string[]> {
-  const { data, error } = await supabase.from("equipment_type_maintenance_types").select("maintenance_type_id").eq("equipment_type_id", equipmentTypeId);
+  const { data, error } = await supabase
+    .from("equipment_type_maintenance_types")
+    .select("maintenance_type_id")
+    .eq("equipment_type_id", equipmentTypeId);
   if (error) throw error;
   return (data ?? []).map((row) => row.maintenance_type_id);
 }
 
-export async function setEquipmentTypeMaintenanceTypes(equipmentTypeId: string, maintenanceTypeIds: string[]): Promise<void> {
+export async function setEquipmentTypeMaintenanceTypes(
+  equipmentTypeId: string,
+  maintenanceTypeIds: string[],
+): Promise<void> {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error("Utilisateur non authentifié");
   const userId = userData.user.id;
-  const { error: deleteError } = await supabase.from("equipment_type_maintenance_types").delete().eq("equipment_type_id", equipmentTypeId).eq("user_id", userId);
+  const { error: deleteError } = await supabase
+    .from("equipment_type_maintenance_types")
+    .delete()
+    .eq("equipment_type_id", equipmentTypeId)
+    .eq("user_id", userId);
   if (deleteError) throw deleteError;
   if (maintenanceTypeIds.length) {
-    const { error } = await supabase.from("equipment_type_maintenance_types").insert(
-      maintenanceTypeIds.map((maintenanceTypeId) => ({
-        equipment_type_id: equipmentTypeId,
-        maintenance_type_id: maintenanceTypeId,
-        user_id: userId,
-      })),
-    );
+    const { error } = await supabase
+      .from("equipment_type_maintenance_types")
+      .insert(
+        maintenanceTypeIds.map((maintenanceTypeId) => ({
+          equipment_type_id: equipmentTypeId,
+          maintenance_type_id: maintenanceTypeId,
+          user_id: userId,
+        })),
+      );
     if (error) throw error;
   }
 
@@ -296,12 +346,30 @@ export async function listMaintenanceSchedules(equipmentId?: string): Promise<Ma
   })) as MaintenanceSchedule[];
 }
 
-export async function completeMaintenanceSchedule(scheduleId: string, maintenanceDate: string, cost?: number | null): Promise<EquipmentMaintenance> {
+export async function completeMaintenanceSchedule(
+  scheduleId: string,
+  maintenanceDate: string,
+  cost?: number | null,
+  comment?: string,
+): Promise<EquipmentMaintenance> {
   const { data, error } = await supabase.rpc("complete_equipment_maintenance", {
     p_schedule_id: scheduleId,
     p_maintenance_date: maintenanceDate,
     p_cost: cost ?? null,
   });
   if (error) throw error;
-  return data as EquipmentMaintenance;
+
+  const maintenance = data as EquipmentMaintenance;
+  if (comment?.trim()) {
+    const { data: updated, error: updateError } = await supabase
+      .from("equipment_maintenance")
+      .update({ description: `${maintenance.description} — ${comment.trim()}` })
+      .eq("id", maintenance.id)
+      .select("*")
+      .single();
+    if (updateError) throw updateError;
+    return updated as EquipmentMaintenance;
+  }
+
+  return maintenance;
 }
