@@ -326,12 +326,30 @@ export async function listMaintenanceSchedules(equipmentId?: string): Promise<Ma
   })) as MaintenanceSchedule[];
 }
 
-export async function completeMaintenanceSchedule(scheduleId: string, maintenanceDate: string, cost?: number | null): Promise<EquipmentMaintenance> {
+export async function completeMaintenanceSchedule(
+  scheduleId: string,
+  maintenanceDate: string,
+  cost?: number | null,
+  comment?: string,
+): Promise<EquipmentMaintenance> {
   const { data, error } = await supabase.rpc("complete_equipment_maintenance", {
     p_schedule_id: scheduleId,
     p_maintenance_date: maintenanceDate,
     p_cost: cost ?? null,
   });
   if (error) throw error;
-  return data as EquipmentMaintenance;
+
+  const maintenance = data as EquipmentMaintenance;
+  if (comment?.trim()) {
+    const { data: updated, error: updateError } = await supabase
+      .from("equipment_maintenance")
+      .update({ description: `${maintenance.description} — ${comment.trim()}` })
+      .eq("id", maintenance.id)
+      .select("*")
+      .single();
+    if (updateError) throw updateError;
+    return updated as EquipmentMaintenance;
+  }
+
+  return maintenance;
 }
