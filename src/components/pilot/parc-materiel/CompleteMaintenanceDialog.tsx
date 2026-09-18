@@ -72,8 +72,7 @@ export function CompleteMaintenanceDialog({
         <DialogHeader>
           <DialogTitle>Enregistrer l'entretien</DialogTitle>
           <DialogDescription>
-            La date saisie sert de point de départ pour calculer la prochaine
-            échéance.
+            La date saisie sert de point de départ pour calculer la prochaine échéance.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -112,11 +111,7 @@ export function CompleteMaintenanceDialog({
             />
           </div>
           <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>
             <Button type="submit" disabled={m.isPending}>
