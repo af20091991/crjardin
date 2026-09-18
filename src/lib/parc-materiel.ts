@@ -241,6 +241,36 @@ export async function createMaintenanceType(input: { name: string; interval_mont
   return data as MaintenanceType;
 }
 
+export async function updateMaintenanceType(
+  id: string,
+  input: { name: string; interval_months: number; reminder_days: number },
+): Promise<MaintenanceType> {
+  const { data, error } = await supabase
+    .from("maintenance_types")
+    .update({ ...input, name: input.name.trim() })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as MaintenanceType;
+}
+
+export async function deleteMaintenanceType(id: string): Promise<void> {
+  const { error } = await supabase.from("maintenance_types").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function listMaintenanceUsageCounts(): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from("equipment_type_maintenance_types")
+    .select("maintenance_type_id");
+  if (error) throw error;
+  return (data ?? []).reduce<Record<string, number>>((counts, row) => {
+    counts[row.maintenance_type_id] = (counts[row.maintenance_type_id] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
 export async function listMaintenanceRuleIds(equipmentTypeId: string): Promise<string[]> {
   const { data, error } = await supabase.from("equipment_type_maintenance_types").select("maintenance_type_id").eq("equipment_type_id", equipmentTypeId);
   if (error) throw error;
