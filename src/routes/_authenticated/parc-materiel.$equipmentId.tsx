@@ -256,10 +256,10 @@ function EquipmentDetailPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         {badge && <Badge variant="outline" className={badge.className}>{badge.label}</Badge>}
-                        <Button size="sm" onClick={() => completeMutation.mutate(schedule.id)} disabled={completeMutation.isPending}>
-                          <Check className="mr-1 h-3.5 w-3.5" />
-                          Effectué
-                        </Button>
+                        <CompleteMaintenanceDialog
+                          scheduleId={schedule.id}
+                          onCompleted={refresh}
+                        />
                       </div>
                     </div>
                   );
