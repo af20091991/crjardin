@@ -5,7 +5,9 @@ import {
   SiteWebActionsView,
   SiteWebContentView,
 } from "@/components/pilot/SiteWebContentActions";
-import {\n  SiteWebGoogleConnection,\n} from "@/components/pilot/SiteWebGoogleConnection";
+import {
+  SiteWebGoogleConnection,
+} from "@/components/pilot/SiteWebGoogleConnection";
 import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
 import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
 import { SiteWebSeoDiagnostic } from "@/components/pilot/SiteWebSeoDiagnostic";
@@ -106,7 +108,9 @@ export function SiteWebDashboard() {
         <div className="space-y-5">
           <Card className="border-primary/20 bg-primary/5 p-5">
             <div className="flex items-start gap-3">
-              <div\n                className="rounded-lg bg-background p-2 text-primary shadow-sm"\n              >
+              <div
+                className="rounded-lg bg-background p-2 text-primary shadow-sm"
+              >
                 <MapPin className="h-5 w-5" />
               </div>
               <div>
