@@ -352,11 +352,11 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           exact: false,
           primary: false,
         },
-        ...(canEdit
+        ...(isAdmin
           ? [
               {
                 to: "/emails",
-                label: "E-mails et modèles d'e-mails",
+                label: "Gestion et suivi des emails clients",
                 short: "E-mails",
                 icon: FileText,
                 exact: false,
