@@ -23,6 +23,7 @@ export interface Equipment {
   name: string;
   category: EquipmentCategory;
   custom_category: string | null;
+  equipment_type_id: string | null;
   purchase_date: string | null;
   purchase_cost: number | null;
   amortization_years: number | null;
@@ -94,6 +95,7 @@ export interface EquipmentInput {
   name: string;
   category: EquipmentCategory;
   custom_category?: string | null;
+  equipment_type_id?: string | null;
   purchase_date?: string | null;
   purchase_cost?: number | null;
   amortization_years?: number | null;
@@ -112,7 +114,9 @@ export async function createEquipment(input: EquipmentInput): Promise<Equipment>
     .select("*")
     .single();
   if (error) throw error;
-  return data as Equipment;
+  const equipment = data as Equipment;
+  await syncEquipmentMaintenanceSchedules(equipment.id);
+  return equipment;
 }
 
 export async function updateEquipment(
@@ -233,6 +237,12 @@ export async function createMaintenanceType(input: { name: string; interval_mont
   const { data, error } = await supabase.from("maintenance_types").insert({ ...input, name: input.name.trim(), user_id: userData.user.id }).select("*").single();
   if (error) throw error;
   return data as MaintenanceType;
+}
+
+export async function listMaintenanceRuleIds(equipmentTypeId: string): Promise<string[]> {
+  const { data, error } = await supabase.from("equipment_type_maintenance_types").select("maintenance_type_id").eq("equipment_type_id", equipmentTypeId);
+  if (error) throw error;
+  return (data ?? []).map((row) => row.maintenance_type_id);
 }
 
 export async function setEquipmentTypeMaintenanceTypes(equipmentTypeId: string, maintenanceTypeIds: string[]): Promise<void> {
