@@ -73,9 +73,8 @@ function EquipmentDetailPage() {
   const { equipmentId } = useParams({ from: "/_authenticated/parc-materiel/$equipmentId" });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [completionScheduleId, setCompletionScheduleId] = useState<string | null>(
-    null,
-  );
+  const [completionScheduleId, setCompletionScheduleId] =
+    useState<string | null>(null);
   const [completionDate, setCompletionDate] = useState(() =>
     new Date().toISOString().slice(0, 10),
   );
@@ -333,8 +332,8 @@ function EquipmentDetailPage() {
             <DialogHeader>
               <DialogTitle>Enregistrer l'entretien</DialogTitle>
               <DialogDescription>
-                La date saisie sert de point de départ pour calculer la prochaine
-                échéance.
+                La date saisie sert de point de départ pour calculer la
+                prochaine échéance.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
