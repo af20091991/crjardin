@@ -370,10 +370,7 @@ export async function listPremiumPhotos(clientId: string) {
         storage_path: photo.storage_path,
         caption: photo.caption,
         created_at: photo.created_at,
-        intervention_date:
-          intervention?.intervention_date ??
-          photo.created_at?.slice(0, 10) ??
-          null,
+        intervention_date: intervention?.intervention_date ?? photo.created_at?.slice(0, 10) ?? null,
         intervention_title: intervention?.title ?? null,
         url,
       };
