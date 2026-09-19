@@ -9,6 +9,7 @@ export interface PlanningRow {
   label: string; // libellé de l'intervention, ex "Juin 2"
   type: string; // type d'intervention, ex "Rotofil · Taille"
   tasks: string[];
+  year: number | null;
 }
 
 const MONTHS: { name: string; num: number }[] = [
@@ -55,6 +56,7 @@ function splitCellTasks(cell: string): string[] {
     const cleaned = raw
       .replace(/^[\s•·▪‣◦*\-–—]+/, "")
       .replace(/^\d+[.)]\s*/, "")
+      .replace(/([a-zà-ÿ])([1-9])$/i, "$1")
       .trim();
     if (cleaned.length < 2) continue;
     if (cleaned.length > 200) continue;
@@ -63,6 +65,25 @@ function splitCellTasks(cell: string): string[] {
     out.push(cleaned);
   }
   return Array.from(new Set(out));
+}
+
+function mergeTaskLines(tasks: string[]): string[] {
+  const merged: string[] = [];
+  for (const task of tasks) {
+    const current = task.trim();
+    if (!current) continue;
+
+    const previous = merged[merged.length - 1];
+    const continuation =
+      previous && (previous.endsWith(":") || current.startsWith("(") || /^[a-zà-ÿ]/.test(current));
+
+    if (continuation) {
+      merged[merged.length - 1] = `${previous} ${current}`;
+    } else {
+      merged.push(current);
+    }
+  }
+  return Array.from(new Set(merged));
 }
 
 // Lignes parasites (en-têtes de page, notes, totaux, signature…)
@@ -96,8 +117,8 @@ function isNoiseRow(joined: string): boolean {
 // Sections après lesquelles il n'y a plus d'interventions (on arrête le parsing)
 function isStopRow(joined: string): boolean {
   const d = deburr(joined);
-  return ["total entretien", "ce planning", "respect de la saisonnalite", "note :"].some(
-    (p) => d.includes(p),
+  return ["total entretien", "ce planning", "respect de la saisonnalite", "note :"].some((p) =>
+    d.includes(p),
   );
 }
 
@@ -113,29 +134,32 @@ async function tableFromDocx(file: File): Promise<string[][]> {
   const rows: string[][] = [];
   tables.forEach((table) => {
     table.querySelectorAll("tr").forEach((tr) => {
-    const cells: string[] = [];
-    tr.querySelectorAll("th,td").forEach((td) => {
-      // remplace les blocs par des sauts de ligne pour conserver les tâches
-      const blocks = td.querySelectorAll("p,li,br");
-      let text: string;
-      if (blocks.length) {
-        text = Array.from(td.querySelectorAll("p,li"))
-          .map((b) => (b.textContent || "").trim())
-          .filter(Boolean)
-          .join("\n");
-        if (!text) text = (td.textContent || "").trim();
-      } else {
-        text = (td.textContent || "").trim();
-      }
-      cells.push(text);
-    });
-    if (cells.length) rows.push(cells);
+      const cells: string[] = [];
+      tr.querySelectorAll("th,td").forEach((td) => {
+        // remplace les blocs par des sauts de ligne pour conserver les tâches
+        const blocks = td.querySelectorAll("p,li,br");
+        let text: string;
+        if (blocks.length) {
+          text = Array.from(td.querySelectorAll("p,li"))
+            .map((b) => (b.textContent || "").trim())
+            .filter(Boolean)
+            .join("\n");
+          if (!text) text = (td.textContent || "").trim();
+        } else {
+          text = (td.textContent || "").trim();
+        }
+        cells.push(text);
+      });
+      if (cells.length) rows.push(cells);
     });
   });
   return rows;
 }
 
-async function planningFromPdf(file: File): Promise<PlanningRow[]> {
+async function planningFromPdf(
+  file: File,
+  fallbackYear: number | null = null,
+): Promise<PlanningRow[]> {
   const pdfjs = await import("pdfjs-dist");
   const workerMod = (await import(
     /* @vite-ignore */ "pdfjs-dist/build/pdf.worker.min.mjs?url"
@@ -158,26 +182,60 @@ async function planningFromPdf(file: File): Promise<PlanningRow[]> {
     }
   }
 
-  // Détection des 3 colonnes (Mois | Type | Travaux) par pics de densité des
-  // positions horizontales : l'en-tête est centré, mais le contenu est calé à
-  // gauche de chaque colonne, formant 3 pics nets.
-  const BIN = 10;
-  const hist = new Map<number, number>();
-  for (const it of all) {
-    const b = Math.round(it.x / BIN) * BIN;
-    hist.set(b, (hist.get(b) ?? 0) + 1);
+  // Détection prioritaire à partir de l'en-tête réel du tableau.
+  // Les positions de texte « Mois / Type / Travaux / Remarques » sont beaucoup
+  // plus fiables que les pics de densité : les tâches elles-mêmes peuvent créer
+  // des pics plus forts que les colonnes.
+  const headerWords = all.filter((it) => {
+    const d = deburr(it.str).trim();
+    return ["mois", "type", "travaux", "remarques", "d intervention"].includes(d);
+  });
+  const firstX = (words: Item[]) => (words.length ? Math.min(...words.map((it) => it.x)) : -1);
+
+  const monthHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "mois"));
+  const typeHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "type"));
+  const travauxHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "travaux"));
+  const remarksHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "remarques"));
+
+  let columnStarts: [number, number, number, number?] | null = null;
+  if (monthHeaderX >= 0 && typeHeaderX >= 0 && travauxHeaderX >= 0) {
+    columnStarts = [
+      monthHeaderX,
+      typeHeaderX,
+      travauxHeaderX,
+      remarksHeaderX >= 0 ? remarksHeaderX : undefined,
+    ];
+  } else {
+    // Repli pour les PDF sans en-tête exploitable.
+    const BIN = 10;
+    const hist = new Map<number, number>();
+    for (const it of all) {
+      const b = Math.round(it.x / BIN) * BIN;
+      hist.set(b, (hist.get(b) ?? 0) + 1);
+    }
+    const bins = [...hist.entries()].sort((a, b) => a[0] - b[0]);
+    const peaks = bins
+      .filter(([, n]) => n >= 5)
+      .filter(([x, n]) => !bins.some(([x2, n2]) => Math.abs(x2 - x) <= 20 && n2 > n))
+      .sort((a, b) => b[1] - a[1]);
+    const chosen: number[] = [];
+    for (const [x] of peaks) {
+      if (chosen.every((c) => Math.abs(c - x) >= 80)) chosen.push(x);
+      if (chosen.length === 3) break;
+    }
+    chosen.sort((a, b) => a - b);
+    if (chosen.length === 3) {
+      columnStarts = [chosen[0], chosen[1], chosen[2], undefined];
+    }
   }
-  const bins = [...hist.entries()].sort((a, b) => a[0] - b[0]);
-  const peaks = bins
-    .filter(([, n]) => n >= 5)
-    .filter(([x, n]) => !bins.some(([x2, n2]) => Math.abs(x2 - x) <= 20 && n2 > n))
-    .sort((a, b) => b[1] - a[1]);
-  const chosen: number[] = [];
-  for (const [x] of peaks) {
-    if (chosen.every((c) => Math.abs(c - x) >= 80)) chosen.push(x);
-    if (chosen.length === 3) break;
-  }
-  chosen.sort((a, b) => a - b);
+
+  // Années présentes dans le titre du calendrier (ex. 2025-2026).
+  const allText = all.map((it) => it.str).join(" ");
+  const yearMatches = [...allText.matchAll(/\b(20\d{2})\s*[-–]\s*(20\d{2})\b/g)];
+  const calendarStartYear =
+    yearMatches.length > 0
+      ? Number(yearMatches[0][1])
+      : ([...allText.matchAll(/\b(20\d{2})\b/g)].map((m) => Number(m[1]))[0] ?? fallbackYear);
 
   // Regroupement en lignes par coordonnée Y
   all.sort((a, b) => a.y - b.y || a.x - b.x);
@@ -196,21 +254,27 @@ async function planningFromPdf(file: File): Promise<PlanningRow[]> {
   if (current.length) rawLines.push(current);
 
   // Sans 3 colonnes fiables : repli sur une seule colonne « travaux »
-  const typeStart = chosen.length === 3 ? (chosen[0] + chosen[1]) / 2 : -1;
-  const travauxStart = chosen.length === 3 ? (chosen[1] + chosen[2]) / 2 : -1;
+  const typeStart = columnStarts ? (columnStarts[0] + columnStarts[1]) / 2 : -1;
+  const travauxStart = columnStarts ? (columnStarts[1] + columnStarts[2]) / 2 : -1;
+  const remarksStart =
+    columnStarts?.[3] != null ? (columnStarts[2] + columnStarts[3]) / 2 : Number.POSITIVE_INFINITY;
 
   const lines: Line[] = rawLines.map((line) => {
     const sorted = [...line].sort((a, b) => a.x - b.x);
     const join = (pred: (x: number) => boolean) =>
-      sorted.filter((i) => pred(i.x)).map((i) => i.str).join(" ").trim();
+      sorted
+        .filter((i) => pred(i.x))
+        .map((i) => i.str)
+        .join(" ")
+        .trim();
     if (travauxStart < 0) {
-      return { y: sorted[0].y, month: "", type: "", travaux: join(() => true) };
+      return { y: sorted[0].y, month: join(() => true), type: "", travaux: join(() => true) };
     }
     return {
       y: sorted[0].y,
       month: join((x) => x < typeStart),
       type: join((x) => x >= typeStart && x < travauxStart),
-      travaux: join((x) => x >= travauxStart),
+      travaux: join((x) => x >= travauxStart && x < remarksStart),
     };
   });
 
@@ -259,9 +323,7 @@ async function planningFromPdf(file: File): Promise<PlanningRow[]> {
   for (let i = 0; i < anchors.length; i++) {
     lowB[i] = i === 0 ? Number.NEGATIVE_INFINITY : (anchors[i - 1].y + anchors[i].y) / 2;
     highB[i] =
-      i === anchors.length - 1
-        ? Number.POSITIVE_INFINITY
-        : (anchors[i].y + anchors[i + 1].y) / 2;
+      i === anchors.length - 1 ? Number.POSITIVE_INFINITY : (anchors[i].y + anchors[i + 1].y) / 2;
   }
 
   for (const l of lines) {
@@ -280,14 +342,24 @@ async function planningFromPdf(file: File): Promise<PlanningRow[]> {
     }
   }
 
-  return anchors.map<PlanningRow>((a, i) => ({
-    index: i,
-    month: a.month,
-    monthLabel: a.monthLabel,
-    label: a.label,
-    type: [...a.typeTokens].slice(0, 6).join(" · "),
-    tasks: Array.from(new Set(a.tasks)),
-  }));
+  let inferredYear = calendarStartYear ?? fallbackYear ?? null;
+  let previousMonth: number | null = null;
+
+  return anchors.map<PlanningRow>((a, i) => {
+    if (inferredYear != null && previousMonth != null && a.month < previousMonth) {
+      inferredYear += 1;
+    }
+    previousMonth = a.month;
+    return {
+      index: i,
+      month: a.month,
+      monthLabel: a.monthLabel,
+      label: a.label,
+      type: [...a.typeTokens].slice(0, 6).join(" · "),
+      tasks: mergeTaskLines(a.tasks),
+      year: inferredYear,
+    };
+  });
 }
 
 // ───────────────────────── Construction du planning ─────────────────────────
@@ -338,9 +410,7 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
   const cleanLabel = (s: string) => s.replace(/\s+/g, " ").trim();
   const mergeType = (existing: string, add: string) => {
     const tokens = new Set(
-      [...existing.split("·"), ...add.split(/\r?\n|·/)]
-        .map((t) => t.trim())
-        .filter(Boolean),
+      [...existing.split("·"), ...add.split(/\r?\n|·/)].map((t) => t.trim()).filter(Boolean),
     );
     return Array.from(tokens).join(" · ");
   };
@@ -370,6 +440,7 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
         label: cleanLabel(monthInMonth ? monthText : typeText) || m.label,
         type: cleanLabel(monthInMonth ? typeText.replace(/\r?\n/g, " · ") : ""),
         tasks: [...tasks],
+        year: Number(monthText.match(/\b(20\d{2})\b/)?.[1] ?? NaN) || null,
       };
       result.push(lastRow);
     } else if (lastRow && monthText.trim() === "" && tasks.length) {
@@ -383,10 +454,13 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
   return result;
 }
 
-export async function parsePlanning(file: File): Promise<PlanningRow[]> {
+export async function parsePlanning(
+  file: File,
+  fallbackYear: number | null = null,
+): Promise<PlanningRow[]> {
   const name = file.name.toLowerCase();
   if (name.endsWith(".pdf") || file.type === "application/pdf") {
-    return planningFromPdf(file);
+    return planningFromPdf(file, fallbackYear);
   }
   if (
     name.endsWith(".docx") ||
