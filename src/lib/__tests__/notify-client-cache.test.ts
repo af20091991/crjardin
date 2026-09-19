@@ -19,7 +19,7 @@ describe("notifyClient — invalidation des fiches client", () => {
   });
 });
 
-describe("fiche client classique — badge d'envoi par intervention", () => {
+describe("fiche client classique — badge d'envoi par intervention", () => { // Premium UI removed separately
   const src = readFileSync("src/routes/_authenticated/clients.$clientId.tsx", "utf8");
 
   test("affiche « Envoyé au client » quand sent_to_client_at est renseigné", () => {
