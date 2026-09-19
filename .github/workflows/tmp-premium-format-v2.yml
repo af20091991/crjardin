@@ -1,0 +1,24 @@
+name: Temporary Premium Format
+
+on:
+  push:
+    branches:
+      - feat/premium-client-workspace-v2
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bunx prettier --write src/components/PremiumClientDashboard.tsx src/routes/partage.$token.tsx
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/PremiumClientDashboard.tsx src/routes/partage.$token.tsx
+          git diff --cached --quiet || git commit -m "chore: format Premium client workspace"
+          git push
