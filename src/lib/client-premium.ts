@@ -65,9 +65,7 @@ export type PremiumPlanningItem = {
 
 const db = supabase as any;
 
-export async function getClientPremium(
-  clientId: string,
-): Promise<PremiumRow | null> {
+export async function getClientPremium(clientId: string): Promise<PremiumRow | null> {
   const { data, error } = await db
     .from("client_premium")
     .select("*")
@@ -79,19 +77,13 @@ export async function getClientPremium(
 }
 
 export async function listPremiumClientIds(): Promise<string[]> {
-  const { data, error } = await db
-    .from("client_premium")
-    .select("client_id")
-    .eq("enabled", true);
+  const { data, error } = await db.from("client_premium").select("client_id").eq("enabled", true);
 
   if (error) throw new Error(error.message);
   return (data ?? []).map((row: { client_id: string }) => row.client_id);
 }
 
-export async function setClientPremiumEnabled(
-  clientId: string,
-  enabled: boolean,
-): Promise<void> {
+export async function setClientPremiumEnabled(clientId: string, enabled: boolean): Promise<void> {
   const existing = await getClientPremium(clientId);
   const now = new Date().toISOString();
 
@@ -121,21 +113,14 @@ export async function setClientPremiumEnabled(
 
 export async function updateClientPremium(
   clientId: string,
-  patch: Partial<
-    Pick<PremiumRow, "cover_photo_id" | "google_review_url" | "commercial_note">
-  >,
+  patch: Partial<Pick<PremiumRow, "cover_photo_id" | "google_review_url" | "commercial_note">>,
 ): Promise<void> {
-  const { error } = await db
-    .from("client_premium")
-    .update(patch)
-    .eq("client_id", clientId);
+  const { error } = await db.from("client_premium").update(patch).eq("client_id", clientId);
 
   if (error) throw new Error(error.message);
 }
 
-export async function listPremiumDocuments(
-  clientId: string,
-): Promise<PremiumDocument[]> {
+export async function listPremiumDocuments(clientId: string): Promise<PremiumDocument[]> {
   const { data, error } = await db
     .from("client_premium_documents")
     .select("*")
@@ -146,10 +131,7 @@ export async function listPremiumDocuments(
   return data ?? [];
 }
 
-export async function setPremiumDocumentVisibility(
-  id: string,
-  visible: boolean,
-): Promise<void> {
+export async function setPremiumDocumentVisibility(id: string, visible: boolean): Promise<void> {
   const { error } = await db
     .from("client_premium_documents")
     .update({ visible_to_client: visible })
@@ -158,9 +140,7 @@ export async function setPremiumDocumentVisibility(
   if (error) throw new Error(error.message);
 }
 
-export async function listPremiumPlanning(
-  clientId: string,
-): Promise<PremiumPlanningItem[]> {
+export async function listPremiumPlanning(clientId: string): Promise<PremiumPlanningItem[]> {
   const { data, error } = await db
     .from("client_premium_planning_items")
     .select("*")
@@ -176,19 +156,13 @@ export async function updatePlanningItem(
   id: string,
   patch: Partial<PremiumPlanningItem>,
 ): Promise<void> {
-  const { error } = await db
-    .from("client_premium_planning_items")
-    .update(patch)
-    .eq("id", id);
+  const { error } = await db.from("client_premium_planning_items").update(patch).eq("id", id);
 
   if (error) throw new Error(error.message);
 }
 
 export async function deletePlanningItem(id: string): Promise<void> {
-  const { error } = await db
-    .from("client_premium_planning_items")
-    .delete()
-    .eq("id", id);
+  const { error } = await db.from("client_premium_planning_items").delete().eq("id", id);
 
   if (error) throw new Error(error.message);
 }
@@ -214,9 +188,7 @@ export async function createPlanningItems(
     position: index,
   }));
 
-  const { error } = await db
-    .from("client_premium_planning_items")
-    .insert(items);
+  const { error } = await db.from("client_premium_planning_items").insert(items);
 
   if (error) throw new Error(error.message);
 }
@@ -228,10 +200,7 @@ export async function uploadPremiumDocument(
   title: string,
   year: number | null,
 ): Promise<{ document: PremiumDocument; extractedCount: number }> {
-  const path = `${clientId}/${crypto.randomUUID()}-${file.name.replace(
-    /[^a-zA-Z0-9._-]/g,
-    "_",
-  )}`;
+  const path = `${clientId}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 
   const { error: uploadError } = await supabase.storage
     .from("client-premium")
@@ -274,9 +243,7 @@ export async function uploadPremiumDocument(
 }
 
 export async function signedPremiumDocumentUrl(path: string): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from("client-premium")
-    .createSignedUrl(path, 3600);
+  const { data, error } = await supabase.storage.from("client-premium").createSignedUrl(path, 3600);
 
   if (error || !data?.signedUrl) {
     throw new Error(error?.message ?? "Lien indisponible");
@@ -285,17 +252,11 @@ export async function signedPremiumDocumentUrl(path: string): Promise<string> {
   return data.signedUrl;
 }
 
-export async function sharedPremiumDocumentUrl(
-  token: string,
-  documentId: string,
-): Promise<string> {
-  const { data, error } = await db.rpc(
-    "get_shared_premium_document_url",
-    {
-      p_token: token,
-      p_document_id: documentId,
-    },
-  );
+export async function sharedPremiumDocumentUrl(token: string, documentId: string): Promise<string> {
+  const { data, error } = await db.rpc("get_shared_premium_document_url", {
+    p_token: token,
+    p_document_id: documentId,
+  });
 
   if (error || !data) {
     throw new Error(error?.message ?? "Document indisponible");
@@ -356,11 +317,8 @@ export async function listPremiumPhotos(clientId: string) {
 
       try {
         url =
-          (
-            await supabase.storage
-              .from("chantier-photos")
-              .createSignedUrl(photo.storage_path, 3600)
-          ).data?.signedUrl ?? null;
+          (await supabase.storage.from("chantier-photos").createSignedUrl(photo.storage_path, 3600))
+            .data?.signedUrl ?? null;
       } catch {
         // A missing photo URL should not block the Premium workspace.
       }
