@@ -63,6 +63,7 @@ import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
 import { Route as AuthenticatedFichesFicheIdRouteImport } from './routes/_authenticated/fiches.$ficheId'
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients.$clientId'
+import { Route as AuthenticatedClientsClientIdPremiumRouteImport } from './routes/_authenticated/clients.$clientId.premium'
 import { Route as AuthenticatedPilotClientsIndexRouteImport } from './routes/_authenticated/pilot.clients.index'
 import { Route as AuthenticatedPilotCeevContratsIndexRouteImport } from './routes/_authenticated/pilot.ceev-contrats.index'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -366,7 +367,13 @@ const AuthenticatedClientsClientIdRoute =
     id: '/clients/$clientId',
     path: '/clients/$clientId',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)const AuthenticatedClientsClientIdPremiumRoute =
+  AuthenticatedClientsClientIdPremiumRouteImport.update({
+    id: '/clients/$clientId/premium',
+    path: '/clients/$clientId/premium',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+
 const AuthenticatedPilotClientsIndexRoute =
   AuthenticatedPilotClientsIndexRouteImport.update({
     id: '/',
@@ -1353,6 +1360,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVersionsRoute: AuthenticatedVersionsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedClientsClientIdRoute: AuthenticatedClientsClientIdRoute,
+  AuthenticatedClientsClientIdPremiumRoute,
   AuthenticatedFichesFicheIdRoute: AuthenticatedFichesFicheIdRoute,
   AuthenticatedFichesNewRoute: AuthenticatedFichesNewRoute,
   AuthenticatedInterventionsInterventionIdRoute:
