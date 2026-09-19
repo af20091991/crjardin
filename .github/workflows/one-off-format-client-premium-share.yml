@@ -23,7 +23,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: .bun-version
-      - run: bunx prettier@3.8.3 --write src/routes/partage.$token.tsx
+      - run: bunx prettier@3.8.3 --write 'src/routes/partage.$token.tsx'
       - name: Commit formatted file to target branch
         run: |
           git config user.name "github-actions[bot]"
