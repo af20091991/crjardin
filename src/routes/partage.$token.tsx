@@ -193,9 +193,9 @@ function SharePage() {
 
   const unreadRecos = recommendations.filter((r) => !r.client_viewed_at).length;
   const premiumCoverUrl = premium?.cover_photo_id
-    ? interventions
+    ? (interventions
         .flatMap((intervention) => intervention.photos)
-        .find((photo) => photo.id === premium.cover_photo_id)?.url ?? null
+        .find((photo) => photo.id === premium.cover_photo_id)?.url ?? null)
     : null;
 
   function openRecos() {
@@ -379,11 +379,7 @@ function PremiumSharedSection({
   return (
     <Card className="overflow-hidden border-primary/30 bg-primary/5">
       {coverPhotoUrl && (
-        <img
-          src={coverPhotoUrl}
-          alt=""
-          className="h-44 w-full object-cover sm:h-56"
-        />
+        <img src={coverPhotoUrl} alt="" className="h-44 w-full object-cover sm:h-56" />
       )}
       <CardContent className="space-y-5 pt-6">
         <div className="flex items-start gap-3">
@@ -391,10 +387,13 @@ function PremiumSharedSection({
             <Crown className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">Espace Premium</p>
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">
+              Espace Premium
+            </p>
             <h2 className="mt-1 font-serif text-2xl font-semibold">Votre espace privilégié</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Un espace dédié pour retrouver vos documents, votre planning et les informations préparées pour votre jardin.
+              Un espace dédié pour retrouver vos documents, votre planning et les informations
+              préparées pour votre jardin.
             </p>
           </div>
         </div>
