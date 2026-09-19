@@ -1,11 +1,24 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useSuspenseQuery,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import {
-  getSharedClient, markSharedRead, addClientMessage, getSharedMessages, setRecommendationInterest,
+  getSharedClient,
+  markSharedRead,
+  addClientMessage,
+  getSharedMessages,
+  setRecommendationInterest,
   markRecommendationsViewed,
   getSharedInterventionPdfUrl,
-  type SharedIntervention, type ClientMessage, type SharedRecommendation, type SharedClientData,
+  type SharedIntervention,
+  type ClientMessage,
+  type SharedRecommendation,
+  type SharedClientData,
 } from "@/lib/share.functions";
 import { exportSharedInterventionPdf } from "@/lib/share-pdf";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,10 +28,37 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  MapPin, Phone, Mail, Leaf, ClipboardList, CheckCircle2, MessageSquarePlus, HelpCircle, Send, Loader2,
-  Download, Sparkles, ThumbsUp, ThumbsDown, Search, CalendarDays, List, Images, Moon, Sun, Type, Reply, RotateCcw,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  MapPin,
+  Phone,
+  Mail,
+  Leaf,
+  ClipboardList,
+  CheckCircle2,
+  MessageSquarePlus,
+  HelpCircle,
+  Send,
+  Loader2,
+  Download,
+  Sparkles,
+  ThumbsUp,
+  ThumbsDown,
+  Search,
+  CalendarDays,
+  List,
+  Images,
+  Moon,
+  Sun,
+  Type,
+  Reply,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -54,13 +94,20 @@ export const Route = createFileRoute("/partage/$token")({
   head: () => ({
     meta: [
       { title: "Suivi de votre jardin" },
-      { name: "description", content: "Consultez votre fiche et l'historique de vos interventions de jardinage." },
+      {
+        name: "description",
+        content: "Consultez votre fiche et l'historique de vos interventions de jardinage.",
+      },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: SharePage,
-  errorComponent: () => <Centered title="Lien indisponible" text="Ce lien de partage n'est plus accessible." />,
-  notFoundComponent: () => <Centered title="Lien introuvable" text="Ce lien de partage est invalide ou a été révoqué." />,
+  errorComponent: () => (
+    <Centered title="Lien indisponible" text="Ce lien de partage n'est plus accessible." />
+  ),
+  notFoundComponent: () => (
+    <Centered title="Lien introuvable" text="Ce lien de partage est invalide ou a été révoqué." />
+  ),
 });
 
 function Centered({ title, text }: { title: string; text: string }) {
@@ -75,11 +122,18 @@ function Centered({ title, text }: { title: string; text: string }) {
 }
 
 const TASK_LABELS: Record<string, string> = {
-  realise: "Réalisé", partiel: "Partiel", reporte: "Reporté", impossible: "Non réalisable",
+  realise: "Réalisé",
+  partiel: "Partiel",
+  reporte: "Reporté",
+  impossible: "Non réalisable",
 };
 
 function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(d).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 /* ---------- Accessibility / theme controls (client #10) ---------- */
@@ -91,20 +145,23 @@ function useShareTheme() {
     const s = localStorage.getItem("share-text");
     const d = t === "dark";
     const l = s === "large";
-    setDark(d); setLarge(l);
+    setDark(d);
+    setLarge(l);
     document.documentElement.classList.toggle("dark", d);
   }, []);
-  const toggleDark = () => setDark((v) => {
-    const n = !v;
-    document.documentElement.classList.toggle("dark", n);
-    localStorage.setItem("share-theme", n ? "dark" : "light");
-    return n;
-  });
-  const toggleLarge = () => setLarge((v) => {
-    const n = !v;
-    localStorage.setItem("share-text", n ? "large" : "normal");
-    return n;
-  });
+  const toggleDark = () =>
+    setDark((v) => {
+      const n = !v;
+      document.documentElement.classList.toggle("dark", n);
+      localStorage.setItem("share-theme", n ? "dark" : "light");
+      return n;
+    });
+  const toggleLarge = () =>
+    setLarge((v) => {
+      const n = !v;
+      localStorage.setItem("share-text", n ? "large" : "normal");
+      return n;
+    });
   return { dark, large, toggleDark, toggleLarge };
 }
 
@@ -112,7 +169,11 @@ function SharePage() {
   const { token } = Route.useParams();
   const { data } = useSuspenseQuery(sharedQuery(token));
   const { data: messages } = useQuery(messagesQuery(token));
-  const { data: premium } = useQuery({ queryKey: ["shared-premium", token], queryFn: () => getSharedPremium(token), staleTime: 60_000 });
+  const { data: premium } = useQuery({
+    queryKey: ["shared-premium", token],
+    queryFn: () => getSharedPremium(token),
+    staleTime: 60_000,
+  });
   const { dark, large, toggleDark, toggleLarge } = useShareTheme();
   const qc = useQueryClient();
   const [tab, setTab] = useState("reports");
@@ -149,14 +210,27 @@ function SharePage() {
         <div className="mx-auto max-w-3xl px-4 py-6">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-primary">Suivi d'entretien</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-primary">
+                Suivi d'entretien
+              </p>
               <h1 className="mt-1 font-serif text-2xl font-semibold">{client.name}</h1>
             </div>
             <div className="flex items-center gap-1.5">
-              <Button variant="outline" size="icon" aria-label={dark ? "Mode clair" : "Mode sombre"} onClick={toggleDark}>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label={dark ? "Mode clair" : "Mode sombre"}
+                onClick={toggleDark}
+              >
                 {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
-              <Button variant="outline" size="icon" aria-label="Agrandir le texte" onClick={toggleLarge} className={large ? "bg-primary/10 text-primary" : ""}>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Agrandir le texte"
+                onClick={toggleLarge}
+                className={large ? "bg-primary/10 text-primary" : ""}
+              >
                 <Type className="h-4 w-4" />
               </Button>
             </div>
@@ -177,12 +251,17 @@ function SharePage() {
         {/* Synthèse (client #8) */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Comptes-rendus" value={String(interventions.length)} />
-          <StatCard label="Dernière visite jardin" value={lastIntervention ? fmtDate(lastIntervention.intervention_date) : "—"} />
+          <StatCard
+            label="Dernière visite jardin"
+            value={lastIntervention ? fmtDate(lastIntervention.intervention_date) : "—"}
+          />
           <StatCard label="Préconisations" value={String(recommendations.length)} />
           <StatCard label="Non lus" value={String(unread)} highlight={unread > 0} />
         </div>
         {lastVisit && (
-          <p className="text-xs text-muted-foreground">Vous avez consulté votre fiche pour la dernière fois le {fmtDate(lastVisit)}.</p>
+          <p className="text-xs text-muted-foreground">
+            Vous avez consulté votre fiche pour la dernière fois le {fmtDate(lastVisit)}.
+          </p>
         )}
 
         {unreadRecos > 0 && (
@@ -207,13 +286,20 @@ function SharePage() {
 
         <Tabs value={tab} onValueChange={(v) => (v === "recos" ? openRecos() : setTab(v))}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="reports"><ClipboardList className="mr-1.5 h-4 w-4" />Comptes-rendus</TabsTrigger>
-            <TabsTrigger value="photos"><Images className="mr-1.5 h-4 w-4" />Photos</TabsTrigger>
+            <TabsTrigger value="reports">
+              <ClipboardList className="mr-1.5 h-4 w-4" />
+              Comptes-rendus
+            </TabsTrigger>
+            <TabsTrigger value="photos">
+              <Images className="mr-1.5 h-4 w-4" />
+              Photos
+            </TabsTrigger>
             <TabsTrigger
               value="recos"
               className="relative data-[state=inactive]:animate-pulse data-[state=inactive]:bg-accent/15 data-[state=inactive]:text-accent-foreground"
             >
-              <Sparkles className="mr-1.5 h-4 w-4" />Préconisations
+              <Sparkles className="mr-1.5 h-4 w-4" />
+              Préconisations
               {unreadRecos > 0 && (
                 <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground shadow">
                   +{unreadRecos}
@@ -223,7 +309,12 @@ function SharePage() {
           </TabsList>
 
           <TabsContent value="reports" className="space-y-4">
-            <ReportsTab interventions={interventions} token={token} messages={messages ?? []} client={client} />
+            <ReportsTab
+              interventions={interventions}
+              token={token}
+              messages={messages ?? []}
+              client={client}
+            />
           </TabsContent>
           <TabsContent value="photos">
             <PhotoGallery interventions={interventions} />
@@ -235,7 +326,10 @@ function SharePage() {
 
         {premium?.enabled && <PremiumSharedSection premium={premium} premiumToken={token} />}
 
-        <GeneralMessages token={token} messages={(messages ?? []).filter((m) => !m.intervention_id)} />
+        <GeneralMessages
+          token={token}
+          messages={(messages ?? []).filter((m) => !m.intervention_id)}
+        />
 
         <ShareInstallGuide />
       </main>
@@ -254,27 +348,17 @@ function PremiumSharedSection({
     <Card className="border-primary/30 bg-primary/5">
       <CardContent className="space-y-4 pt-6">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-primary">
-            Espace Premium
-          </p>
-          <h2 className="mt-1 font-serif text-xl font-semibold">
-            Votre suivi Premium
-          </h2>
+          <p className="text-xs font-medium uppercase tracking-wide text-primary">Espace Premium</p>
+          <h2 className="mt-1 font-serif text-xl font-semibold">Votre suivi Premium</h2>
         </div>
 
         {premium.commercial_note && (
-          <p className="whitespace-pre-wrap text-sm">
-            {premium.commercial_note}
-          </p>
+          <p className="whitespace-pre-wrap text-sm">{premium.commercial_note}</p>
         )}
 
         {premium.google_review_url && (
           <Button variant="outline" size="sm" asChild>
-            <a
-              href={premium.google_review_url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={premium.google_review_url} target="_blank" rel="noopener noreferrer">
               Donner votre avis Google
             </a>
           </Button>
@@ -284,37 +368,25 @@ function PremiumSharedSection({
           <div className="rounded-lg border bg-background p-3">
             <p className="mb-2 text-sm font-medium">Documents</p>
             {premium.documents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Aucun document disponible.
-              </p>
+              <p className="text-sm text-muted-foreground">Aucun document disponible.</p>
             ) : (
               <div className="space-y-2">
                 {premium.documents.map((document) => (
-                  <div
-                    key={document.id}
-                    className="flex items-center gap-2 text-sm"
-                  >
+                  <div key={document.id} className="flex items-center gap-2 text-sm">
                     <FileText className="h-4 w-4 shrink-0" />
-                    <span className="min-w-0 flex-1 truncate">
-                      {document.title}
-                    </span>
+                    <span className="min-w-0 flex-1 truncate">{document.title}</span>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={async () => {
                         try {
                           window.open(
-                            await sharedPremiumDocumentUrl(
-                              premiumToken,
-                              document.id,
-                            ),
+                            await sharedPremiumDocumentUrl(premiumToken, document.id),
                             "_blank",
                           );
                         } catch (error) {
                           toast.error(
-                            error instanceof Error
-                              ? error.message
-                              : "Document indisponible",
+                            error instanceof Error ? error.message : "Document indisponible",
                           );
                         }
                       }}
@@ -333,23 +405,17 @@ function PremiumSharedSection({
               Planning annuel
             </p>
             {premium.planning.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Aucun élément validé pour le moment.
-              </p>
+              <p className="text-sm text-muted-foreground">Aucun élément validé pour le moment.</p>
             ) : (
               <div className="space-y-2">
                 {premium.planning.map((item) => (
                   <div key={item.id} className="rounded-md border p-2 text-sm">
                     <div className="font-medium">{item.label}</div>
                     {item.period_label && (
-                      <div className="text-xs text-muted-foreground">
-                        {item.period_label}
-                      </div>
+                      <div className="text-xs text-muted-foreground">{item.period_label}</div>
                     )}
                     {item.notes && (
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {item.notes}
-                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">{item.notes}</div>
                     )}
                   </div>
                 ))}
@@ -366,9 +432,19 @@ function PremiumSharedSection({
   );
 }
 
-function StatCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function StatCard({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
   return (
-    <div className={`rounded-lg border bg-background p-3 ${highlight ? "border-primary/50 bg-primary/5" : ""}`}>
+    <div
+      className={`rounded-lg border bg-background p-3 ${highlight ? "border-primary/50 bg-primary/5" : ""}`}
+    >
       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className={`mt-0.5 text-sm font-semibold ${highlight ? "text-primary" : ""}`}>{value}</p>
     </div>
@@ -377,9 +453,15 @@ function StatCard({ label, value, highlight }: { label: string; value: string; h
 
 /* ---------- Reports tab: filters (#7) + list/calendar (#1) ---------- */
 function ReportsTab({
-  interventions, token, messages, client,
+  interventions,
+  token,
+  messages,
+  client,
 }: {
-  interventions: SharedIntervention[]; token: string; messages: ClientMessage[]; client: SharedClientData["client"];
+  interventions: SharedIntervention[];
+  token: string;
+  messages: ClientMessage[];
+  client: SharedClientData["client"];
 }) {
   const [view, setView] = useState<"list" | "calendar">("list");
   const [q, setQ] = useState("");
@@ -388,21 +470,37 @@ function ReportsTab({
   const [day, setDay] = useState<Date | undefined>();
 
   const years = useMemo(
-    () => Array.from(new Set(interventions.map((i) => new Date(i.intervention_date).getFullYear()))).sort((a, b) => b - a),
+    () =>
+      Array.from(
+        new Set(interventions.map((i) => new Date(i.intervention_date).getFullYear())),
+      ).sort((a, b) => b - a),
     [interventions],
   );
   const types = useMemo(
-    () => Array.from(new Set(interventions.map((i) => i.intervention_type).filter(Boolean))) as string[],
+    () =>
+      Array.from(
+        new Set(interventions.map((i) => i.intervention_type).filter(Boolean)),
+      ) as string[],
     [interventions],
   );
 
   const filtered = useMemo(() => {
     return interventions.filter((iv) => {
-      if (year !== "all" && new Date(iv.intervention_date).getFullYear() !== Number(year)) return false;
+      if (year !== "all" && new Date(iv.intervention_date).getFullYear() !== Number(year))
+        return false;
       if (type !== "all" && iv.intervention_type !== type) return false;
       if (q.trim()) {
-        const hay = [iv.title, iv.summary, iv.intervention_type, iv.reference, iv.garden_state, iv.recommendations_text]
-          .filter(Boolean).join(" ").toLowerCase();
+        const hay = [
+          iv.title,
+          iv.summary,
+          iv.intervention_type,
+          iv.reference,
+          iv.garden_state,
+          iv.recommendations_text,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
         if (!hay.includes(q.toLowerCase())) return false;
       }
       if (view === "calendar" && day) {
@@ -431,29 +529,57 @@ function ReportsTab({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" className="pl-8" aria-label="Rechercher" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Rechercher…"
+            className="pl-8"
+            aria-label="Rechercher"
+          />
         </div>
         <Select value={year} onValueChange={setYear}>
-          <SelectTrigger className="sm:w-32" aria-label="Année"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="sm:w-32" aria-label="Année">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Toutes années</SelectItem>
-            {years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            {years.map((y) => (
+              <SelectItem key={y} value={String(y)}>
+                {y}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         {types.length > 0 && (
           <Select value={type} onValueChange={setType}>
-            <SelectTrigger className="sm:w-40" aria-label="Type"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="sm:w-40" aria-label="Type">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous types</SelectItem>
-              {types.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              {types.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         )}
         <div className="flex gap-1">
-          <Button variant={view === "list" ? "default" : "outline"} size="icon" aria-label="Vue liste" onClick={() => setView("list")}>
+          <Button
+            variant={view === "list" ? "default" : "outline"}
+            size="icon"
+            aria-label="Vue liste"
+            onClick={() => setView("list")}
+          >
             <List className="h-4 w-4" />
           </Button>
-          <Button variant={view === "calendar" ? "default" : "outline"} size="icon" aria-label="Vue calendrier" onClick={() => setView("calendar")}>
+          <Button
+            variant={view === "calendar" ? "default" : "outline"}
+            size="icon"
+            aria-label="Vue calendrier"
+            onClick={() => setView("calendar")}
+          >
             <CalendarDays className="h-4 w-4" />
           </Button>
         </div>
@@ -480,11 +606,18 @@ function ReportsTab({
       )}
 
       {filtered.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">Aucun compte-rendu ne correspond.</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          Aucun compte-rendu ne correspond.
+        </p>
       ) : (
         filtered.map((iv) => (
-          <InterventionCard key={iv.id} iv={iv} token={token} client={client}
-            messages={messages.filter((m) => m.intervention_id === iv.id)} />
+          <InterventionCard
+            key={iv.id}
+            iv={iv}
+            token={token}
+            client={client}
+            messages={messages.filter((m) => m.intervention_id === iv.id)}
+          />
         ))
       )}
     </div>
@@ -492,8 +625,16 @@ function ReportsTab({
 }
 
 function InterventionCard({
-  iv, token, messages, client,
-}: { iv: SharedIntervention; token: string; messages: ClientMessage[]; client: SharedClientData["client"] }) {
+  iv,
+  token,
+  messages,
+  client,
+}: {
+  iv: SharedIntervention;
+  token: string;
+  messages: ClientMessage[];
+  client: SharedClientData["client"];
+}) {
   const [downloading, setDownloading] = useState(false);
   const isNew = !iv.client_read_at;
 
@@ -526,7 +667,10 @@ function InterventionCard({
               <h3 className="font-medium">{iv.title ?? iv.intervention_type ?? "Intervention"}</h3>
               {isNew && <Badge className="bg-primary text-primary-foreground">Nouveau</Badge>}
               {iv.sent_to_client_at && (
-                <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
+                <Badge
+                  variant="outline"
+                  className="border-emerald-300 bg-emerald-50 text-emerald-700"
+                >
                   Envoyé le {fmtDate(iv.sent_to_client_at)}
                 </Badge>
               )}
@@ -537,7 +681,11 @@ function InterventionCard({
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={download} disabled={downloading}>
-            {downloading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+            {downloading ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-1.5 h-4 w-4" />
+            )}
             PDF
           </Button>
         </div>
@@ -546,14 +694,18 @@ function InterventionCard({
 
         {iv.tasks.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Travaux réalisés</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Travaux réalisés
+            </p>
             {iv.tasks.map((t) => (
               <div key={t.id} className="flex items-start gap-2 text-sm">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <span className="flex-1">
                   {t.label}
                   {t.status && t.status !== "realise" && (
-                    <Badge variant="outline" className="ml-1.5">{TASK_LABELS[t.status] ?? t.status}</Badge>
+                    <Badge variant="outline" className="ml-1.5">
+                      {TASK_LABELS[t.status] ?? t.status}
+                    </Badge>
                   )}
                   {t.note && <span className="block text-xs text-muted-foreground">{t.note}</span>}
                 </span>
@@ -563,23 +715,40 @@ function InterventionCard({
         )}
 
         {iv.garden_state && <Section title="État du jardin" text={iv.garden_state} />}
-        {iv.recommendations_text && <Section title="Préconisations" text={iv.recommendations_text} />}
+        {iv.recommendations_text && (
+          <Section title="Préconisations" text={iv.recommendations_text} />
+        )}
         {iv.upcoming_works && <Section title="Travaux à prévoir" text={iv.upcoming_works} />}
 
         {iv.photos.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Photos</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Photos
+            </p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {iv.photos.map((p) => (
+              {iv.photos.map((p) =>
                 p.url ? (
                   <figure key={p.id} className="overflow-hidden rounded-lg border">
-                    <ImageLightbox src={p.url} alt={p.caption ?? "Photo d'intervention"} caption={p.caption}>
-                      <img src={p.url} alt={p.caption ?? "Photo d'intervention"} loading="lazy" className="h-32 w-full object-cover" />
+                    <ImageLightbox
+                      src={p.url}
+                      alt={p.caption ?? "Photo d'intervention"}
+                      caption={p.caption}
+                    >
+                      <img
+                        src={p.url}
+                        alt={p.caption ?? "Photo d'intervention"}
+                        loading="lazy"
+                        className="h-32 w-full object-cover"
+                      />
                     </ImageLightbox>
-                    {p.caption && <figcaption className="px-2 py-1 text-xs text-muted-foreground">{p.caption}</figcaption>}
+                    {p.caption && (
+                      <figcaption className="px-2 py-1 text-xs text-muted-foreground">
+                        {p.caption}
+                      </figcaption>
+                    )}
                   </figure>
-                ) : null
-              ))}
+                ) : null,
+              )}
             </div>
           </div>
         )}
@@ -593,7 +762,9 @@ function InterventionCard({
 /* ---------- Photo gallery (client #3) ---------- */
 function PhotoGallery({ interventions }: { interventions: SharedIntervention[] }) {
   const photos = interventions.flatMap((iv) =>
-    iv.photos.filter((p) => p.url).map((p) => ({ ...p, date: iv.intervention_date, ivTitle: iv.title })),
+    iv.photos
+      .filter((p) => p.url)
+      .map((p) => ({ ...p, date: iv.intervention_date, ivTitle: iv.title })),
   );
   if (photos.length === 0) {
     return (
@@ -610,10 +781,16 @@ function PhotoGallery({ interventions }: { interventions: SharedIntervention[] }
       {photos.map((p) => (
         <figure key={p.id} className="overflow-hidden rounded-lg border bg-background">
           <ImageLightbox src={p.url!} alt={p.caption ?? "Photo"} caption={p.caption}>
-            <img src={p.url!} alt={p.caption ?? "Photo du jardin"} loading="lazy" className="h-36 w-full object-cover" />
+            <img
+              src={p.url!}
+              alt={p.caption ?? "Photo du jardin"}
+              loading="lazy"
+              className="h-36 w-full object-cover"
+            />
           </ImageLightbox>
           <figcaption className="px-2 py-1 text-[11px] text-muted-foreground">
-            {fmtDate(p.date)}{p.caption ? ` · ${p.caption}` : ""}
+            {fmtDate(p.date)}
+            {p.caption ? ` · ${p.caption}` : ""}
           </figcaption>
         </figure>
       ))}
@@ -622,7 +799,13 @@ function PhotoGallery({ interventions }: { interventions: SharedIntervention[] }
 }
 
 /* ---------- Recommendations + interest (client #9) ---------- */
-function RecommendationsTab({ recommendations, token }: { recommendations: SharedRecommendation[]; token: string }) {
+function RecommendationsTab({
+  recommendations,
+  token,
+}: {
+  recommendations: SharedRecommendation[];
+  token: string;
+}) {
   if (recommendations.length === 0) {
     return (
       <Card className="border-dashed">
@@ -635,7 +818,9 @@ function RecommendationsTab({ recommendations, token }: { recommendations: Share
   }
   return (
     <div className="space-y-3">
-      {recommendations.map((r) => <RecoCard key={r.id} reco={r} token={token} />)}
+      {recommendations.map((r) => (
+        <RecoCard key={r.id} reco={r} token={token} />
+      ))}
     </div>
   );
 }
@@ -659,17 +844,30 @@ function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="font-medium">{reco.title}</h3>
-            {reco.category && <Badge variant="outline" className="mt-1">{reco.category}</Badge>}
+            {reco.category && (
+              <Badge variant="outline" className="mt-1">
+                {reco.category}
+              </Badge>
+            )}
           </div>
-          {price != null && <span className="shrink-0 font-semibold text-primary">{formatEuro(price)}</span>}
+          {price != null && (
+            <span className="shrink-0 font-semibold text-primary">{formatEuro(price)}</span>
+          )}
         </div>
         {reco.description && <p className="text-sm text-muted-foreground">{reco.description}</p>}
         {reco.client_interest ? (
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={reco.client_interest === "interested" ? "default" : "secondary"}>
-              {reco.client_interest === "interested" ? "Vous êtes intéressé(e)" : "Non souhaité pour le moment"}
+              {reco.client_interest === "interested"
+                ? "Vous êtes intéressé(e)"
+                : "Non souhaité pour le moment"}
             </Badge>
-            <Button size="sm" variant="ghost" disabled={m.isPending} onClick={() => m.mutate("none")}>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={m.isPending}
+              onClick={() => m.mutate("none")}
+            >
               <RotateCcw className="mr-1.5 h-4 w-4" /> Modifier mon choix
             </Button>
           </div>
@@ -678,7 +876,12 @@ function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }
             <Button size="sm" disabled={m.isPending} onClick={() => m.mutate("interested")}>
               <ThumbsUp className="mr-1.5 h-4 w-4" /> Je suis intéressé(e)
             </Button>
-            <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate("not_interested")}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={m.isPending}
+              onClick={() => m.mutate("not_interested")}
+            >
               <ThumbsDown className="mr-1.5 h-4 w-4" /> Pas pour l'instant
             </Button>
           </div>
@@ -703,7 +906,15 @@ function GeneralMessages({ token, messages }: { token: string; messages: ClientM
 }
 
 /* ---------- Message thread with gardener replies (client #4) ---------- */
-function MessageThread({ token, interventionId, messages }: { token: string; interventionId: string | null; messages: ClientMessage[] }) {
+function MessageThread({
+  token,
+  interventionId,
+  messages,
+}: {
+  token: string;
+  interventionId: string | null;
+  messages: ClientMessage[];
+}) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"annotation" | "question">("annotation");
@@ -712,10 +923,13 @@ function MessageThread({ token, interventionId, messages }: { token: string; int
 
   const send = useMutation({
     mutationFn: () =>
-      addClientMessage({ data: { token, interventionId, kind, content, authorName: name || null } }),
+      addClientMessage({
+        data: { token, interventionId, kind, content, authorName: name || null },
+      }),
     onSuccess: () => {
       toast.success("Message envoyé. Votre jardinier a été notifié.");
-      setContent(""); setOpen(false);
+      setContent("");
+      setOpen(false);
       qc.invalidateQueries({ queryKey: ["shared-messages", token] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
@@ -728,10 +942,23 @@ function MessageThread({ token, interventionId, messages }: { token: string; int
           {messages.map((m) => {
             const isGardener = m.sender === "gardener";
             return (
-              <div key={m.id} className={`rounded-lg px-3 py-2 text-sm ${isGardener ? "ml-6 bg-primary/10" : "bg-muted/60"}`}>
+              <div
+                key={m.id}
+                className={`rounded-lg px-3 py-2 text-sm ${isGardener ? "ml-6 bg-primary/10" : "bg-muted/60"}`}
+              >
                 <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
-                  {isGardener ? <Reply className="h-3 w-3" /> : m.kind === "question" ? <HelpCircle className="h-3 w-3" /> : <MessageSquarePlus className="h-3 w-3" />}
-                  {isGardener ? "Réponse de votre jardinier" : m.kind === "question" ? "Votre question" : "Votre annotation"}
+                  {isGardener ? (
+                    <Reply className="h-3 w-3" />
+                  ) : m.kind === "question" ? (
+                    <HelpCircle className="h-3 w-3" />
+                  ) : (
+                    <MessageSquarePlus className="h-3 w-3" />
+                  )}
+                  {isGardener
+                    ? "Réponse de votre jardinier"
+                    : m.kind === "question"
+                      ? "Votre question"
+                      : "Votre annotation"}
                   {m.author_name ? ` · ${m.author_name}` : ""}
                 </p>
                 <p className="mt-0.5 whitespace-pre-wrap">{m.content}</p>
@@ -748,26 +975,52 @@ function MessageThread({ token, interventionId, messages }: { token: string; int
       ) : (
         <div className="space-y-2">
           <div className="flex gap-2">
-            <Button type="button" size="sm" variant={kind === "annotation" ? "default" : "outline"} onClick={() => setKind("annotation")}>
+            <Button
+              type="button"
+              size="sm"
+              variant={kind === "annotation" ? "default" : "outline"}
+              onClick={() => setKind("annotation")}
+            >
               <MessageSquarePlus className="mr-1.5 h-4 w-4" /> Annotation
             </Button>
-            <Button type="button" size="sm" variant={kind === "question" ? "default" : "outline"} onClick={() => setKind("question")}>
+            <Button
+              type="button"
+              size="sm"
+              variant={kind === "question" ? "default" : "outline"}
+              onClick={() => setKind("question")}
+            >
               <HelpCircle className="mr-1.5 h-4 w-4" /> Question
             </Button>
           </div>
-          <Input placeholder="Votre nom (facultatif)" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input
+            placeholder="Votre nom (facultatif)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
           <Textarea
-            placeholder={kind === "question" ? "Posez votre question…" : "Votre remarque sur ce compte-rendu…"}
+            placeholder={
+              kind === "question" ? "Posez votre question…" : "Votre remarque sur ce compte-rendu…"
+            }
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={3}
           />
           <div className="flex gap-2">
-            <Button size="sm" disabled={!content.trim() || send.isPending} onClick={() => send.mutate()}>
-              {send.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Send className="mr-1.5 h-4 w-4" />}
+            <Button
+              size="sm"
+              disabled={!content.trim() || send.isPending}
+              onClick={() => send.mutate()}
+            >
+              {send.isPending ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-1.5 h-4 w-4" />
+              )}
               Envoyer
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+              Annuler
+            </Button>
           </div>
         </div>
       )}
