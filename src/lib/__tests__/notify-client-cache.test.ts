@@ -19,7 +19,7 @@ describe("notifyClient — invalidation des fiches client", () => {
   });
 });
 
-describe("fiche client classique — badge d'envoi par intervention", () => { // Premium UI removed separately
+describe("fiche client classique — badge d'envoi par intervention", () => {
   const src = readFileSync("src/routes/_authenticated/clients.$clientId.tsx", "utf8");
 
   test("affiche « Envoyé au client » quand sent_to_client_at est renseigné", () => {
@@ -31,7 +31,7 @@ describe("fiche client classique — badge d'envoi par intervention", () => { //
     expect(src).toContain('iv.status === "terminee" ? "Terminé" : "Brouillon"');
   });
 
-  test("ne modifie pas le badge global CR en haut de page", () => {
+  test("conserve le badge global CR en haut de page", () => {
     expect(src).toContain("{(interventions ?? []).some((iv) => iv.sent_to_client_at) && (");
     expect(src).toContain('className="border-primary/40 text-primary"');
     expect(src).toContain("CR");
