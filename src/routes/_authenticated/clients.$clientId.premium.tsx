@@ -29,12 +29,7 @@ import {
   type PremiumPlanningItem,
 } from "@/lib/client-premium";
 import { AppShell } from "@/components/AppShell";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -71,25 +66,16 @@ function UpcomingPlanningCard({ items }: { items: PremiumPlanningItem[] }) {
     return items
       .filter((item) => {
         if (!item.year || !item.period_label) return false;
-        const monthName = item.period_label
-          .replace(/\d{4}/g, "")
-          .trim()
-          .toLowerCase();
+        const monthName = item.period_label.replace(/\d{4}/g, "").trim().toLowerCase();
         const month = monthMap[monthName];
         if (!month) return false;
-        return (
-          item.year > currentYear ||
-          (item.year === currentYear && month >= currentMonth)
-        );
+        return item.year > currentYear || (item.year === currentYear && month >= currentMonth);
       })
       .sort((a, b) => {
         const ay = a.year ?? 9999;
         const by = b.year ?? 9999;
         if (ay !== by) return ay - by;
-        return String(a.period_label).localeCompare(
-          String(b.period_label),
-          "fr",
-        );
+        return String(a.period_label).localeCompare(String(b.period_label), "fr");
       });
   }, [items]);
 
@@ -99,8 +85,8 @@ function UpcomingPlanningCard({ items }: { items: PremiumPlanningItem[] }) {
         <div>
           <p className="text-sm font-medium">Travaux à venir détectés</p>
           <p className="text-xs text-muted-foreground">
-            Détectés automatiquement dans le calendrier PDF. Les éléments restent
-            à valider avant d’être présentés au client.
+            Détectés automatiquement dans le calendrier PDF. Les éléments restent à valider avant
+            d’être présentés au client.
           </p>
         </div>
         <Badge variant="outline">{upcoming.length} à venir</Badge>
@@ -108,20 +94,11 @@ function UpcomingPlanningCard({ items }: { items: PremiumPlanningItem[] }) {
       {upcoming.length > 0 ? (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {upcoming.slice(0, 8).map((item) => (
-            <div
-              key={item.id}
-              className="rounded-md border bg-background px-3 py-2"
-            >
+            <div key={item.id} className="rounded-md border bg-background px-3 py-2">
               <p className="text-sm">{item.label}</p>
-              <div
-                className="mt-1 flex items-center gap-2 text-xs text-muted-foreground"
-              >
+              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                 <span>{item.period_label}</span>
-                <Badge
-                  variant={
-                    item.status === "valide" ? "default" : "secondary"
-                  }
-                >
+                <Badge variant={item.status === "valide" ? "default" : "secondary"}>
                   {item.status === "valide" ? "Validé" : "À valider"}
                 </Badge>
               </div>
@@ -179,14 +156,12 @@ function ClientPremiumPage() {
   }, [premiumQ.data]);
 
   const toggle = useMutation({
-    mutationFn: (enabled: boolean) =>
-      setClientPremiumEnabled(clientId, enabled),
+    mutationFn: (enabled: boolean) => setClientPremiumEnabled(clientId, enabled),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
       qc.invalidateQueries({ queryKey: ["premium-client-ids"] });
     },
-    onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "Erreur"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Erreur"),
   });
 
   if (clientQ.isLoading) {
@@ -218,9 +193,7 @@ function ClientPremiumPage() {
           <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6">
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-serif text-2xl font-semibold">
-                  Espace Client Premium
-                </h1>
+                <h1 className="font-serif text-2xl font-semibold">Espace Client Premium</h1>
                 <Badge variant={premium?.enabled ? "default" : "secondary"}>
                   {premium?.enabled ? "Actif" : "Inactif"}
                 </Badge>
@@ -270,9 +243,7 @@ function ClientPremiumPage() {
                           queryKey: ["client-premium", clientId],
                         });
                       } catch (error) {
-                        toast.error(
-                          error instanceof Error ? error.message : "Erreur",
-                        );
+                        toast.error(error instanceof Error ? error.message : "Erreur");
                       }
                     }}
                   >
@@ -315,9 +286,7 @@ function ClientPremiumPage() {
                         });
                         event.currentTarget.value = "";
                       } catch (error) {
-                        toast.error(
-                          error instanceof Error ? error.message : "Erreur",
-                        );
+                        toast.error(error instanceof Error ? error.message : "Erreur");
                       }
                     }}
                   />
@@ -336,9 +305,7 @@ function ClientPremiumPage() {
                         className="flex items-center gap-2 rounded-lg border p-2 text-sm"
                       >
                         <FileText className="h-4 w-4" />
-                        <span className="min-w-0 flex-1 truncate">
-                          {document.title}
-                        </span>
+                        <span className="min-w-0 flex-1 truncate">{document.title}</span>
                         <Badge variant="outline">
                           {document.visible_to_client ? "Visible" : "Interne"}
                         </Badge>
@@ -360,16 +327,10 @@ function ClientPremiumPage() {
                                 queryKey: ["premium-documents", clientId],
                               });
                               toast.success(
-                                document.visible_to_client
-                                  ? "Document masqué"
-                                  : "Document visible",
+                                document.visible_to_client ? "Document masqué" : "Document visible",
                               );
                             } catch (error) {
-                              toast.error(
-                                error instanceof Error
-                                  ? error.message
-                                  : "Erreur",
-                              );
+                              toast.error(error instanceof Error ? error.message : "Erreur");
                             }
                           }}
                         >
@@ -385,16 +346,12 @@ function ClientPremiumPage() {
                           onClick={async () => {
                             try {
                               window.open(
-                                await signedPremiumDocumentUrl(
-                                  document.storage_path,
-                                ),
+                                await signedPremiumDocumentUrl(document.storage_path),
                                 "_blank",
                               );
                             } catch (error) {
                               toast.error(
-                                error instanceof Error
-                                  ? error.message
-                                  : "Document indisponible",
+                                error instanceof Error ? error.message : "Document indisponible",
                               );
                             }
                           }}
@@ -427,9 +384,7 @@ function ClientPremiumPage() {
                             queryKey: ["client-premium", clientId],
                           });
                         } catch (error) {
-                          toast.error(
-                            error instanceof Error ? error.message : "Erreur",
-                          );
+                          toast.error(error instanceof Error ? error.message : "Erreur");
                         }
                       }}
                       className={
@@ -454,17 +409,15 @@ function ClientPremiumPage() {
                   ))}
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Sans choix manuel, la couverture retenue est la photo de l’intervention la
-                  plus récente.
+                  Sans choix manuel, la couverture retenue est la photo de l’intervention la plus
+                  récente.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Calendrier des travaux
-                </CardTitle>
+                <CardTitle className="text-base">Calendrier des travaux</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <input
@@ -497,9 +450,7 @@ function ClientPremiumPage() {
                       });
                       event.currentTarget.value = "";
                     } catch (error) {
-                      toast.error(
-                        error instanceof Error ? error.message : "Erreur",
-                      );
+                      toast.error(error instanceof Error ? error.message : "Erreur");
                     }
                   }}
                 />
@@ -549,9 +500,7 @@ function ClientPremiumPage() {
                           });
                           toast.success("Élément ajouté au planning");
                         } catch (error) {
-                          toast.error(
-                            error instanceof Error ? error.message : "Erreur",
-                          );
+                          toast.error(error instanceof Error ? error.message : "Erreur");
                         }
                       }}
                     >
@@ -579,19 +528,11 @@ function ClientPremiumPage() {
                                 queryKey: ["premium-planning", clientId],
                               });
                             } catch (error) {
-                              toast.error(
-                                error instanceof Error
-                                  ? error.message
-                                  : "Erreur",
-                              );
+                              toast.error(error instanceof Error ? error.message : "Erreur");
                             }
                           }}
                         />
-                        <Badge
-                          variant={
-                            item.status === "valide" ? "default" : "secondary"
-                          }
-                        >
+                        <Badge variant={item.status === "valide" ? "default" : "secondary"}>
                           {item.status === "valide" ? "Validé" : "À valider"}
                         </Badge>
                       </div>
@@ -607,11 +548,7 @@ function ClientPremiumPage() {
                                 queryKey: ["premium-planning", clientId],
                               });
                             } catch (error) {
-                              toast.error(
-                                error instanceof Error
-                                  ? error.message
-                                  : "Erreur",
-                              );
+                              toast.error(error instanceof Error ? error.message : "Erreur");
                             }
                           }}
                           disabled={item.status === "valide"}
@@ -628,11 +565,7 @@ function ClientPremiumPage() {
                                 queryKey: ["premium-planning", clientId],
                               });
                             } catch (error) {
-                              toast.error(
-                                error instanceof Error
-                                  ? error.message
-                                  : "Erreur",
-                              );
+                              toast.error(error instanceof Error ? error.message : "Erreur");
                             }
                           }}
                         >
