@@ -303,7 +303,7 @@ export async function uploadPremiumDocument(
     (count, row) => count + row.tasks.length,
     0,
   );
-  if (extractedRows.length > 0) {
+  if (extractedCount > 0) {
     try {
       await createPlanningItems(clientId, data.id, extractedRows);
     } catch (error) {
