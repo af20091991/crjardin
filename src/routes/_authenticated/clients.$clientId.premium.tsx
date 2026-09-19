@@ -98,8 +98,8 @@ function UpcomingPlanningCard({ items }: { items: PremiumPlanningItem[] }) {
         <div>
           <p className="text-sm font-medium">Travaux à venir détectés</p>
           <p className="text-xs text-muted-foreground">
-            Détectés automatiquement dans le calendrier PDF. Les éléments restent à valider
-            avant d’être présentés au client.
+            Détectés automatiquement dans le calendrier PDF. Les éléments restent
+            à valider avant d’être présentés au client.
           </p>
         </div>
         <Badge variant="outline">{upcoming.length} à venir</Badge>
@@ -112,10 +112,14 @@ function UpcomingPlanningCard({ items }: { items: PremiumPlanningItem[] }) {
               className="rounded-md border bg-background px-3 py-2"
             >
               <p className="text-sm">{item.label}</p>
-              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+              <div
+                className="mt-1 flex items-center gap-2 text-xs text-muted-foreground"
+              >
                 <span>{item.period_label}</span>
                 <Badge
-                  variant={item.status === "valide" ? "default" : "secondary"}
+                  variant={
+                    item.status === "valide" ? "default" : "secondary"
+                  }
                 >
                   {item.status === "valide" ? "Validé" : "À valider"}
                 </Badge>
