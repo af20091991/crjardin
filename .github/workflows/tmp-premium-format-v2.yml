@@ -16,7 +16,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: ./node_modules/.bin/prettier --write src/components/PremiumClientDashboard.tsx src/routes/partage.$token.tsx
+      - run: bunx --no-install prettier --write src/components/PremiumClientDashboard.tsx src/routes/partage.$token.tsx
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
