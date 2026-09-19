@@ -243,16 +243,127 @@ function SharePage() {
   );
 }
 
-function PremiumSharedSection({ premium, premiumToken }: { premium: NonNullable<Awaited<ReturnType<typeof getSharedPremium>>>; premiumToken: string }) {
-  return <Card className="border-primary/30 bg-primary/5"><CardContent className="space-y-4 pt-6">
-    <div><p className="text-xs font-medium uppercase tracking-wide text-primary">Espace Premium</p><h2 className="mt-1 font-serif text-xl font-semibold">Votre suivi Premium</h2></div>
-    {premium.commercial_note && <p className="whitespace-pre-wrap text-sm">{premium.commercial_note}</p>}
-    {premium.google_review_url && <Button variant="outline" size="sm" asChild><a href={premium.google_review_url} target="_blank" rel="noopener noreferrer">Donner votre avis Google</a></Button>}
-    <div className="grid gap-3 md:grid-cols-2">
-      <div className="rounded-lg border bg-background p-3"><p className="mb-2 text-sm font-medium">Documents</p>{premium.documents.length===0?<p className="text-sm text-muted-foreground">Aucun document disponible.</p>:<div className="space-y-2">{premium.documents.map(d=><div key={d.id} className="flex items-center gap-2 text-sm"><FileText className="h-4 w-4 shrink-0"/><span className="min-w-0 flex-1 truncate">{d.title}</span><Button size="sm" variant="ghost" onClick={async()=>{try{window.open(await sharedPremiumDocumentUrl(premiumToken,d.id),"_blank")}catch{toast.error("Document indisponible")}}}>Télécharger</Button></div>)}</div>}</div>
-      <div className="rounded-lg border bg-background p-3"><p className="mb-2 flex items-center gap-1.5 text-sm font-medium"><CalendarDays className="h-4 w-4"/>Planning annuel</p>{premium.planning.length===0?<p className="text-sm text-muted-foreground">Aucun élément validé pour le moment.</p>:<div className="space-y-2">{premium.planning.map(i=><div key={i.id} className="rounded-md border p-2 text-sm"><div className="font-medium">{i.label}</div>{i.period_label&&<div className="text-xs text-muted-foreground">{i.period_label}</div>}{i.notes&&<div className="mt-1 text-xs text-muted-foreground">{i.notes}</div>}</div>)}</div>}<p className="mt-3 text-xs text-muted-foreground">Vous pouvez annoter ce planning via la messagerie ci-dessous ; les données PP restent sous le contrôle de votre jardinier.</p></div>
-    </div>
-  </CardContent></Card>;
+function PremiumSharedSection({
+  premium,
+  premiumToken,
+}: {
+  premium: NonNullable<Awaited<ReturnType<typeof getSharedPremium>>>;
+  premiumToken: string;
+}) {
+  return (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardContent className="space-y-4 pt-6">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-primary">
+            Espace Premium
+          </p>
+          <h2 className="mt-1 font-serif text-xl font-semibold">
+            Votre suivi Premium
+          </h2>
+        </div>
+
+        {premium.commercial_note && (
+          <p className="whitespace-pre-wrap text-sm">
+            {premium.commercial_note}
+          </p>
+        )}
+
+        {premium.google_review_url && (
+          <Button variant="outline" size="sm" asChild>
+            <a
+              href={premium.google_review_url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Donner votre avis Google
+            </a>
+          </Button>
+        )}
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-lg border bg-background p-3">
+            <p className="mb-2 text-sm font-medium">Documents</p>
+            {premium.documents.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Aucun document disponible.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {premium.documents.map((document) => (
+                  <div
+                    key={document.id}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <FileText className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">
+                      {document.title}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={async () => {
+                        try {
+                          window.open(
+                            await sharedPremiumDocumentUrl(
+                              premiumToken,
+                              document.id,
+                            ),
+                            "_blank",
+                          );
+                        } catch (error) {
+                          toast.error(
+                            error instanceof Error
+                              ? error.message
+                              : "Document indisponible",
+                          );
+                        }
+                      }}
+                    >
+                      Télécharger
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border bg-background p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+              <CalendarDays className="h-4 w-4" />
+              Planning annuel
+            </p>
+            {premium.planning.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Aucun élément validé pour le moment.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {premium.planning.map((item) => (
+                  <div key={item.id} className="rounded-md border p-2 text-sm">
+                    <div className="font-medium">{item.label}</div>
+                    {item.period_label && (
+                      <div className="text-xs text-muted-foreground">
+                        {item.period_label}
+                      </div>
+                    )}
+                    {item.notes && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {item.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="mt-3 text-xs text-muted-foreground">
+              Vous pouvez annoter ce planning via la messagerie ci-dessous ; les données PP restent
+              sous le contrôle de votre jardinier.
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function StatCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
