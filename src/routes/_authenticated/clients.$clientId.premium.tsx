@@ -1,0 +1,35 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { ArrowLeft, Check, ExternalLink, FileText, Upload, CalendarDays, Eye, EyeOff } from "lucide-react";
+import { getClient } from "@/lib/clients";
+import { getClientPremium, setClientPremiumEnabled, listPremiumDocuments, listPremiumPlanning, updatePlanningItem, deletePlanningItem, uploadPremiumDocument, signedPremiumDocumentUrl } from "@/lib/client-premium";
+import { AppShell } from "@/components/AppShell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+
+export const Route=createFileRoute("/_authenticated/clients/$clientId/premium")({component:ClientPremiumPage});
+function ClientPremiumPage(){
+ const {clientId}=Route.useParams(); const qc=useQueryClient(); const [title,setTitle]=useState(""); const [review,setReview]=useState(""); const [note,setNote]=useState("");
+ const clientQ=useQuery({queryKey:["client",clientId],queryFn:()=>getClient(clientId)});
+ const premiumQ=useQuery({queryKey:["client-premium",clientId],queryFn:()=>getClientPremium(clientId)});
+ const docsQ=useQuery({queryKey:["premium-documents",clientId],queryFn:()=>listPremiumDocuments(clientId),enabled:!!premiumQ.data});
+ const planQ=useQuery({queryKey:["premium-planning",clientId],queryFn:()=>listPremiumPlanning(clientId),enabled:!!premiumQ.data});
+ const toggle=useMutation({mutationFn:(v:boolean)=>setClientPremiumEnabled(clientId,v),onSuccess:()=>{qc.invalidateQueries({queryKey:["client-premium",clientId]});qc.invalidateQueries({queryKey:["premium-client-ids"]});},onError:e=>toast.error(e instanceof Error?e.message:"Erreur")});
+ if(clientQ.isLoading)return <AppShell title="Client Premium"><div className="p-6">Chargement…</div></AppShell>;
+ const client=clientQ.data; if(!client)return null; const p=premiumQ.data;
+ return <AppShell title={`Premium — ${client.name}`}><div className="mx-auto w-full max-w-5xl space-y-4">
+  <Link to="/clients/$clientId" params={{clientId}} className="inline-flex items-center gap-1 text-sm text-muted-foreground"><ArrowLeft className="h-4 w-4"/>Retour à la fiche</Link>
+  <Card><CardContent className="flex flex-wrap items-center justify-between gap-4 pt-6"><div><div className="flex items-center gap-2"><h1 className="font-serif text-2xl font-semibold">Espace Client Premium</h1><Badge variant={p?.enabled?"default":"secondary"}>{p?.enabled?"Actif":"Inactif"}</Badge></div><p className="mt-1 text-sm text-muted-foreground">Espace séparé des données métier. Désactiver Premium ne supprime rien.</p></div><div className="flex items-center gap-2"><span className="text-sm">Activer</span><Switch checked={!!p?.enabled} onCheckedChange={v=>toggle.mutate(v)} disabled={toggle.isPending}/></div></CardContent></Card>
+  {p?.enabled&&<><div className="grid gap-4 lg:grid-cols-2">
+   <Card><CardHeader><CardTitle className="text-base">Espace commercial</CardTitle></CardHeader><CardContent className="space-y-3"><Input value={review} onChange={e=>setReview(e.target.value)} placeholder="Lien d'avis Google"/><Textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Note commerciale / message au client"/><Button onClick={async()=>{const {updateClientPremium}=await import("@/lib/client-premium");await updateClientPremium(clientId,{google_review_url:review||null,commercial_note:note||null});toast.success("Enregistré");qc.invalidateQueries({queryKey:["client-premium",clientId]})}}><Check className="mr-1.5 h-4 w-4"/>Enregistrer</Button></CardContent></Card>
+   <Card><CardHeader><CardTitle className="text-base">Documents</CardTitle></CardHeader><CardContent className="space-y-3"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Titre du document"/><input type="file" id="premium-doc" className="hidden" onChange={async e=>{const f=e.target.files?.[0];if(!f)return;try{await uploadPremiumDocument(clientId,f,"document",title||f.name,null);toast.success("Document ajouté");setTitle("");qc.invalidateQueries({queryKey:["premium-documents",clientId]})}catch(err){toast.error(err instanceof Error?err.message:"Erreur")}}}/><label htmlFor="premium-doc" className="inline-flex cursor-pointer items-center rounded-md border px-3 py-2 text-sm"><Upload className="mr-1.5 h-4 w-4"/>Ajouter un document</label><div className="space-y-2">{(docsQ.data??[]).map(d=><div key={d.id} className="flex items-center gap-2 rounded-lg border p-2 text-sm"><FileText className="h-4 w-4"/><span className="min-w-0 flex-1 truncate">{d.title}</span><Badge variant="outline">{d.visible_to_client?"Visible":"Interne"}</Badge><Button size="icon" variant="ghost" onClick={async()=>window.open(await signedPremiumDocumentUrl(d.storage_path),"_blank")}><ExternalLink className="h-4 w-4"/></Button></div>)}</div></CardContent></Card>
+  </div>
+  <Card><CardHeader><CardTitle className="text-base">Calendrier des travaux</CardTitle></CardHeader><CardContent className="space-y-3"><input type="file" accept=".pdf,application/pdf" id="premium-plan" className="hidden" onChange={async e=>{const f=e.target.files?.[0];if(!f)return;try{await uploadPremiumDocument(clientId,f,"planning",f.name,new Date().getFullYear());toast.success("PDF importé : les éléments extraits sont à valider");qc.invalidateQueries({queryKey:["premium-documents",clientId]});qc.invalidateQueries({queryKey:["premium-planning",clientId]})}catch(err){toast.error(err instanceof Error?err.message:"Erreur")}}}/><label htmlFor="premium-plan" className="inline-flex cursor-pointer items-center rounded-md border px-3 py-2 text-sm"><CalendarDays className="mr-1.5 h-4 w-4"/>Importer le calendrier PDF</label><div className="space-y-2">{(planQ.data??[]).map(i=><div key={i.id} className="rounded-lg border p-3"><div className="flex items-center gap-2"><Input defaultValue={i.label} onBlur={e=>{if(e.target.value!==i.label)updatePlanningItem(i.id,{label:e.target.value}).then(()=>qc.invalidateQueries({queryKey:["premium-planning",clientId]}))}}/><Badge variant={i.status==="valide"?"default":"secondary"}>{i.status==="valide"?"Validé":"À valider"}</Badge></div><div className="mt-2 flex gap-2"><Button size="sm" onClick={()=>updatePlanningItem(i.id,{status:"valide"}).then(()=>qc.invalidateQueries({queryKey:["premium-planning",clientId]}))} disabled={i.status==="valide"}>Valider</Button><Button size="sm" variant="outline" onClick={()=>deletePlanningItem(i.id).then(()=>qc.invalidateQueries({queryKey:["premium-planning",clientId]}))}>Supprimer</Button></div></div>)}</div></CardContent></Card>
+  </>}</div></AppShell>;
+}
