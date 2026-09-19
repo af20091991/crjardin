@@ -33,7 +33,6 @@ import {
   FileBarChart,
   Wrench,
   PackageSearch,
-  Sparkles,
 } from "lucide-react";
 import {
   Sheet,
@@ -265,14 +264,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         },
         ...(canEdit
           ? [
-              {
-                to: "/clients/premium",
-                label: "Clients Premium",
-                short: "Premium",
-                icon: Sparkles,
-                exact: false,
-                primary: false,
-              },
               {
                 to: "/pilot/rentabilite",
                 label: "Rentabilité clients",
