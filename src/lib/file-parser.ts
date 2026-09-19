@@ -182,7 +182,7 @@ async function planningFromPdf(
     }
   }
 
-  // Détection prioritaire par l'en-tête réel du tableau.
+  // Détection prioritaire à partir de l'en-tête réel du tableau.
   // Les positions de texte « Mois / Type / Travaux / Remarques » sont beaucoup
   // plus fiables que les pics de densité : les tâches elles-mêmes peuvent créer
   // des pics plus forts que les colonnes.
