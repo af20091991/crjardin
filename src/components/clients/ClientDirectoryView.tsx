@@ -143,14 +143,6 @@ function DirectoryRow({
               {row.statusLabel}
             </Badge>
             {row.contractType && <span>{row.contractType}</span>}
-            {row.isPremium && (
-              <Badge
-                variant="outline"
-                className="border-primary/40 text-primary"
-              >
-                Premium
-              </Badge>
-            )}
           </div>
         </div>
       </div>
@@ -170,6 +162,35 @@ function DirectoryRow({
       </div>
 
       <div className="flex items-center justify-end gap-1.5">
+        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+          <Link to="/clients/$clientId" params={{ clientId: row.id }}>
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function MobileDirectoryRow({
+  row,
+  onToggleFavorite,
+  onTogglePremium,
+  canEdit,
+}: {
+  row: ClientDirectoryRow;
+  onToggleFavorite: (id: string) => void;
+  onTogglePremium?: (id: string, enabled: boolean) => void;
+  canEdit: boolean;
+}) {
+  return (
+    <Card className="p-3">
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          aria-label={
+            row.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
+          }
           onClick={() => onToggleFavorite(row.id)}
           className="mt-0.5 rounded-md p-1 text-muted-foreground hover:text-amber-500"
         >
@@ -200,24 +221,6 @@ function DirectoryRow({
               <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
                 {row.contractType}
               </Badge>
-            )}
-            {row.isPremium && (
-              <Badge
-                variant="outline"
-                className="h-5 border-primary/40 px-1.5 text-[10px] text-primary"
-              >
-                Premium
-              </Badge>
-            )}
-            {canEdit && onTogglePremium && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-[10px]"
-                onClick={() => onTogglePremium(row.id, !row.isPremium)}
-              >
-                {row.isPremium ? "Premium" : "Activer"}
-              </Button>
             )}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
