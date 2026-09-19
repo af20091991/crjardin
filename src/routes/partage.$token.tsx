@@ -439,7 +439,11 @@ function PremiumSharedSection({
             <PremiumFeature
               icon={CalendarDays}
               label="Planning"
-              value={premium.planning.length ? String(premium.planning.length) + " étape(s)" : "À venir"}
+              value={
+                premium.planning.length
+                  ? String(premium.planning.length) + " étape(s)"
+                  : "À venir"
+              }
             />
             <PremiumFeature
               icon={Images}
@@ -468,7 +472,10 @@ function PremiumSharedSection({
               </div>
               <div className="space-y-2">
                 {premium.documents.map((document) => (
-                  <div key={document.id} className="flex items-center gap-2 rounded-lg border p-2 text-sm">
+                  <div
+                    key={document.id}
+                    className="flex items-center gap-2 rounded-lg border p-2 text-sm"
+                  >
                     <FileText className="h-4 w-4 shrink-0" />
                     <span className="min-w-0 flex-1 truncate">{document.title}</span>
                     <Button
