@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useRole } from "@/hooks/use-role";
 import { ClientOpportunitiesWidget } from "@/components/ClientOpportunitiesWidget";
+import { getClientPremium, setClientPremiumEnabled } from "@/lib/client-premium";
 
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({
   validateSearch: (search: Record<string, unknown>): { edit?: boolean } => ({
@@ -71,6 +72,8 @@ function ClientDetail() {
     queryFn: () => listRecommendationsByClient(clientId),
   });
   const hasStale = (recos ?? []).some(isStalePending);
+  const { data: premium } = useQuery({ queryKey: ["client-premium", clientId], queryFn: () => getClientPremium(clientId) });
+  const premiumMutation = useMutation({ mutationFn: (enabled: boolean) => setClientPremiumEnabled(clientId, enabled), onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-premium", clientId] }); qc.invalidateQueries({ queryKey: ["premium-client-ids"] }); }, onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur") });
   const { data: health } = useQuery({
     queryKey: ["health", clientId],
     queryFn: () => listHealthByClient(clientId),
@@ -198,6 +201,21 @@ function ClientDetail() {
         </Card>
 
         <ShareLinkCard token={client.share_token} copied={copied} setCopied={setCopied} />
+
+        {canEdit && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2"><span className="font-medium">Client Premium</span><Badge variant={premium?.enabled ? "default" : "secondary"}>{premium?.enabled ? "Actif" : "Inactif"}</Badge></div>
+                <p className="mt-1 text-xs text-muted-foreground">Documents, planning annuel et espace client séparés des données métier.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {premium?.enabled && <Link to="/clients/$clientId/premium" params={{ clientId }}><Button variant="outline" size="sm">Ouvrir Premium</Button></Link>}
+                <Button size="sm" variant={premium?.enabled ? "outline" : "default"} onClick={() => premiumMutation.mutate(!premium?.enabled)} disabled={premiumMutation.isPending}>{premium?.enabled ? "Désactiver" : "Activer Premium"}</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs defaultValue="interventions">
           <TabsList className="w-full">
