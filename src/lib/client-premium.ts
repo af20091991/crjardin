@@ -174,12 +174,42 @@ export async function listPremiumPlanning(
 
 export async function updatePlanningItem(
   id: string,
-  patch: Partial<PremiumPlanningItem>,
+  patch: Partial<
+    Pick<
+      PremiumPlanningItem,
+      | "label"
+      | "period_label"
+      | "start_date"
+      | "end_date"
+      | "year"
+      | "status"
+      | "notes"
+      | "position"
+    >
+  >,
 ): Promise<void> {
   const { error } = await db
     .from("client_premium_planning_items")
     .update(patch)
     .eq("id", id);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function createManualPlanningItem(
+  clientId: string,
+  item: Pick<
+    PremiumPlanningItem,
+    "label" | "period_label" | "start_date" | "end_date" | "year" | "notes"
+  >,
+): Promise<void> {
+  const { error } = await db.from("client_premium_planning_items").insert({
+    client_id: clientId,
+    ...item,
+    status: "a_valider",
+    source: "manuel",
+    position: 0,
+  });
 
   if (error) throw new Error(error.message);
 }
@@ -228,6 +258,18 @@ export async function uploadPremiumDocument(
   title: string,
   year: number | null,
 ): Promise<{ document: PremiumDocument; extractedCount: number }> {
+  if (file.size > 25 * 1024 * 1024) {
+    throw new Error("Le fichier dépasse la taille maximale de 25 Mo.");
+  }
+  if (kind === "planning" && file.type !== "application/pdf") {
+    throw new Error("Le calendrier Premium doit être un fichier PDF.");
+  }
+
+  let extractedRows: Awaited<ReturnType<typeof parsePlanning>> = [];
+  if (kind === "planning") {
+    extractedRows = await parsePlanning(file);
+  }
+
   const path = `${clientId}/${crypto.randomUUID()}-${file.name.replace(
     /[^a-zA-Z0-9._-]/g,
     "_",
@@ -255,15 +297,16 @@ export async function uploadPremiumDocument(
 
   if (error) throw new Error(error.message);
 
-  let extractedCount = 0;
-
-  if (kind === "planning") {
+  const extractedCount = extractedRows.length;
+  if (extractedRows.length > 0) {
     try {
-      const rows = await parsePlanning(file);
-      extractedCount = rows.length;
-      await createPlanningItems(clientId, data.id, rows);
+      await createPlanningItems(clientId, data.id, extractedRows);
     } catch (error) {
-      console.warn("Extraction planning non disponible:", error);
+      await supabase.storage.from("client-premium").remove([path]);
+      await db.from("client_premium_documents").delete().eq("id", data.id);
+      throw error instanceof Error
+        ? error
+        : new Error("Impossible d’enregistrer le planning extrait.");
     }
   }
 

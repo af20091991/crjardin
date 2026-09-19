@@ -86,7 +86,7 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
-          STATUS_SHA: ${{ github.sha }}
+          STATUS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
         run: |
           gh api "repos/${GITHUB_REPOSITORY}/statuses/${STATUS_SHA}" \
