@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { getClient } from "@/lib/clients";
 import {
+  createManualPlanningItem,
   deletePlanningItem,
   getClientPremium,
   listPremiumDocuments,
@@ -49,6 +50,9 @@ function ClientPremiumPage() {
   const [title, setTitle] = useState("");
   const [review, setReview] = useState("");
   const [note, setNote] = useState("");
+  const [manualLabel, setManualLabel] = useState("");
+  const [manualPeriod, setManualPeriod] = useState("");
+  const [manualYear, setManualYear] = useState(String(new Date().getFullYear()));
 
   const clientQ = useQuery({
     queryKey: ["client", clientId],
@@ -413,6 +417,55 @@ function ClientPremiumPage() {
                   <CalendarDays className="mr-1.5 h-4 w-4" />
                   Importer le calendrier PDF
                 </label>
+
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="mb-2 text-sm font-medium">Ajouter manuellement</p>
+                  <div className="grid gap-2 sm:grid-cols-[1fr_160px_100px_auto]">
+                    <Input
+                      value={manualLabel}
+                      onChange={(event) => setManualLabel(event.target.value)}
+                      placeholder="Travail / intervention"
+                    />
+                    <Input
+                      value={manualPeriod}
+                      onChange={(event) => setManualPeriod(event.target.value)}
+                      placeholder="Période"
+                    />
+                    <Input
+                      type="number"
+                      value={manualYear}
+                      onChange={(event) => setManualYear(event.target.value)}
+                      placeholder="Année"
+                    />
+                    <Button
+                      disabled={!manualLabel.trim()}
+                      onClick={async () => {
+                        try {
+                          await createManualPlanningItem(clientId, {
+                            label: manualLabel.trim(),
+                            period_label: manualPeriod.trim() || null,
+                            start_date: null,
+                            end_date: null,
+                            year: manualYear ? Number(manualYear) : null,
+                            notes: null,
+                          });
+                          setManualLabel("");
+                          setManualPeriod("");
+                          await qc.invalidateQueries({
+                            queryKey: ["premium-planning", clientId],
+                          });
+                          toast.success("Élément ajouté au planning");
+                        } catch (error) {
+                          toast.error(
+                            error instanceof Error ? error.message : "Erreur",
+                          );
+                        }
+                      }}
+                    >
+                      Ajouter
+                    </Button>
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   {(planQ.data ?? []).map((item) => (
