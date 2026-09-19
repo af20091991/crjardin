@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarDays, CheckCircle2, ChevronRight, Clock3, Crown, FileText, Images, Leaf, Mail, MapPin, MessageSquare, UserRound } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronRight, Clock3, Crown, ExternalLink, FileText, Images, Leaf, Mail, MapPin, MessageSquare, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -80,6 +80,7 @@ export function PremiumClientDashboard({
               <p className="mt-1 font-serif text-xl font-semibold">Voici les informations préparées pour votre jardin.</p>
               {premium.commercial_note && <p className="mt-2 whitespace-pre-wrap text-sm">{premium.commercial_note}</p>}
             </div>
+            <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => setActive("messages")}><MessageSquare className="mr-1.5 h-4 w-4" />Contacter mon jardinier</Button>{premium.google_review_url && <Button variant="ghost" size="sm" asChild><a href={premium.google_review_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-1.5 h-4 w-4" />Donner mon avis Google</a></Button>}</div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Summary label="À consulter" value={unread + unreadRecos} onClick={() => setActive(unread ? "garden" : "recommendations")} />
               <Summary label="Planning" value={next.length} onClick={() => setActive("planning")} />
