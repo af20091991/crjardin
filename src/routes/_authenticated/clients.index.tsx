@@ -1,4 +1,4 @@
-// Premium is intentionally absent from the client directory UI.
+// Premium UI intentionally removed from the client directory.
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
