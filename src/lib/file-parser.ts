@@ -376,7 +376,11 @@ async function planningFromPdf(
   let previousMonth: number | null = null;
 
   return anchors.map<PlanningRow>((a, i) => {
-    if (inferredYear != null && previousMonth != null && a.month < previousMonth) {
+    if (
+      inferredYear != null &&
+      previousMonth != null &&
+      a.month < previousMonth
+    ) {
       inferredYear += 1;
     }
     previousMonth = a.month;
