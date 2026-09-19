@@ -29,6 +29,7 @@ export interface ClientDirectoryRow {
   hourlyLabel?: string;
   lastActivityLabel?: string;
   isFavorite: boolean;
+  isPremium?: boolean;
 }
 
 interface ClientDirectoryViewProps {
@@ -36,6 +37,7 @@ interface ClientDirectoryViewProps {
   search: string;
   onSearchChange: (value: string) => void;
   onToggleFavorite: (id: string) => void;
+  onTogglePremium?: (id: string, enabled: boolean) => void;
   canEdit: boolean;
 }
 
@@ -44,6 +46,7 @@ export function ClientDirectoryView({
   search,
   onSearchChange,
   onToggleFavorite,
+  onTogglePremium,
   canEdit,
 }: ClientDirectoryViewProps) {
   return (
@@ -74,6 +77,7 @@ export function ClientDirectoryView({
               key={row.id}
               row={row}
               onToggleFavorite={onToggleFavorite}
+              onTogglePremium={onTogglePremium}
               canEdit={canEdit}
             />
           ))}
@@ -86,6 +90,7 @@ export function ClientDirectoryView({
             key={row.id}
             row={row}
             onToggleFavorite={onToggleFavorite}
+            onTogglePremium={onTogglePremium}
             canEdit={canEdit}
           />
         ))}
@@ -97,10 +102,12 @@ export function ClientDirectoryView({
 function DirectoryRow({
   row,
   onToggleFavorite,
+  onTogglePremium,
   canEdit,
 }: {
   row: ClientDirectoryRow;
   onToggleFavorite: (id: string) => void;
+  onTogglePremium?: (id: string, enabled: boolean) => void;
   canEdit: boolean;
 }) {
   return (
@@ -140,6 +147,14 @@ function DirectoryRow({
               {row.statusLabel}
             </Badge>
             {row.contractType && <span>{row.contractType}</span>}
+            {row.isPremium && (
+              <Badge
+                variant="outline"
+                className="border-primary/40 text-primary"
+              >
+                Premium
+              </Badge>
+            )}
           </div>
         </div>
       </div>
@@ -158,7 +173,17 @@ function DirectoryRow({
         )}
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-1.5">
+        {canEdit && onTogglePremium && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs"
+            onClick={() => onTogglePremium(row.id, !row.isPremium)}
+          >
+            {row.isPremium ? "Premium" : "Activer"}
+          </Button>
+        )}
         <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
           <Link to="/clients/$clientId" params={{ clientId: row.id }}>
             <ChevronRight className="h-4 w-4" />
@@ -172,10 +197,12 @@ function DirectoryRow({
 function MobileDirectoryRow({
   row,
   onToggleFavorite,
+  onTogglePremium,
   canEdit,
 }: {
   row: ClientDirectoryRow;
   onToggleFavorite: (id: string) => void;
+  onTogglePremium?: (id: string, enabled: boolean) => void;
   canEdit: boolean;
 }) {
   return (
@@ -216,6 +243,24 @@ function MobileDirectoryRow({
               <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
                 {row.contractType}
               </Badge>
+            )}
+            {row.isPremium && (
+              <Badge
+                variant="outline"
+                className="h-5 border-primary/40 px-1.5 text-[10px] text-primary"
+              >
+                Premium
+              </Badge>
+            )}
+            {canEdit && onTogglePremium && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[10px]"
+                onClick={() => onTogglePremium(row.id, !row.isPremium)}
+              >
+                {row.isPremium ? "Premium" : "Activer"}
+              </Button>
             )}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-xs">

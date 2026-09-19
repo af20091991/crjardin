@@ -26,6 +26,7 @@ import { getClientActivityStatus, type ClientActivityStatus } from "@/lib/client
 import { findSuspectClients } from "@/lib/client-cleanup";
 import { listFavoriteClientIds, toggleFavoriteClient } from "@/lib/client-favorites";
 import { listClients, type Client } from "@/lib/clients";
+import { listPremiumClientIds, setClientPremiumEnabled } from "@/lib/client-premium";
 import { formatEuro, listEntries } from "@/lib/pilot";
 import { usePilotYear } from "@/lib/pilot-mode";
 import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
@@ -99,6 +100,11 @@ function ClientsPage() {
     queryFn: () => listEntries(),
     enabled: canEdit,
   });
+  const premiumQuery = useQuery({
+    queryKey: ["premium-client-ids"],
+    queryFn: listPremiumClientIds,
+    enabled: canEdit,
+  });
 
   const favorites = useMemo(
     () => new Set(favoritesQuery.data ?? []),
@@ -110,6 +116,16 @@ function ClientsPage() {
       toggleFavoriteClient(id, value),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["favorite-clients"] }),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const premiumMutation = useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      setClientPremiumEnabled(id, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["premium-client-ids"] });
+      toast.success("Client Premium mis à jour");
+    },
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -230,6 +246,7 @@ function ClientsPage() {
           })} €/h`
         : undefined,
     isFavorite: favorites.has(row.client.id),
+    isPremium: premiumQuery.data?.includes(row.client.id) ?? false,
   }));
 
   const suspects = useMemo(
@@ -332,6 +349,7 @@ function ClientsPage() {
               value: !favorites.has(id),
             })
           }
+          onTogglePremium={(id, enabled) => premiumMutation.mutate({ id, enabled })}
           canEdit={canEdit}
         />
 
