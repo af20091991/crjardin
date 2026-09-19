@@ -49,6 +49,7 @@ import {
   Loader2,
   Download,
   Sparkles,
+  Crown,
   ThumbsUp,
   ThumbsDown,
   Search,
@@ -187,6 +188,11 @@ function SharePage() {
   const { client, interventions, recommendations } = data;
 
   const unreadRecos = recommendations.filter((r) => !r.client_viewed_at).length;
+  const premiumCoverUrl = premium?.cover_photo_id
+    ? interventions
+        .flatMap((intervention) => intervention.photos)
+        .find((photo) => photo.id === premium.cover_photo_id)?.url ?? null
+    : null;
 
   function openRecos() {
     setTab("recos");
@@ -286,7 +292,7 @@ function SharePage() {
         )}
 
         <Tabs value={tab} onValueChange={(v) => (v === "recos" ? openRecos() : setTab(v))}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className={`grid w-full ${premium?.enabled ? "grid-cols-4" : "grid-cols-3"}`}>
             <TabsTrigger value="reports">
               <ClipboardList className="mr-1.5 h-4 w-4" />
               Comptes-rendus
@@ -307,6 +313,15 @@ function SharePage() {
                 </span>
               )}
             </TabsTrigger>
+            {premium?.enabled && (
+              <TabsTrigger
+                value="premium"
+                className="border-primary/20 bg-primary/5 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                <Crown className="mr-1.5 h-4 w-4" />
+                Premium
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="reports" className="space-y-4">
@@ -323,9 +338,16 @@ function SharePage() {
           <TabsContent value="recos">
             <RecommendationsTab recommendations={recommendations} token={token} />
           </TabsContent>
+          {premium?.enabled && (
+            <TabsContent value="premium" className="space-y-4">
+              <PremiumSharedSection
+                premium={premium}
+                premiumToken={token}
+                coverPhotoUrl={premiumCoverUrl}
+              />
+            </TabsContent>
+          )}
         </Tabs>
-
-        {premium?.enabled && <PremiumSharedSection premium={premium} premiumToken={token} />}
 
         <GeneralMessages
           token={token}
@@ -341,16 +363,33 @@ function SharePage() {
 function PremiumSharedSection({
   premium,
   premiumToken,
+  coverPhotoUrl,
 }: {
   premium: NonNullable<Awaited<ReturnType<typeof getSharedPremium>>>;
   premiumToken: string;
+  coverPhotoUrl: string | null;
 }) {
   return (
-    <Card className="border-primary/30 bg-primary/5">
-      <CardContent className="space-y-4 pt-6">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-primary">Espace Premium</p>
-          <h2 className="mt-1 font-serif text-xl font-semibold">Votre suivi Premium</h2>
+    <Card className="overflow-hidden border-primary/30 bg-primary/5">
+      {coverPhotoUrl && (
+        <img
+          src={coverPhotoUrl}
+          alt=""
+          className="h-44 w-full object-cover sm:h-56"
+        />
+      )}
+      <CardContent className="space-y-5 pt-6">
+        <div className="flex items-start gap-3">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+            <Crown className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">Espace Premium</p>
+            <h2 className="mt-1 font-serif text-2xl font-semibold">Votre espace privilégié</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Un espace dédié pour retrouver vos documents, votre planning et les informations préparées pour votre jardin.
+            </p>
+          </div>
         </div>
 
         {premium.commercial_note && (
