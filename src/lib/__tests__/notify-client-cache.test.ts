@@ -44,5 +44,4 @@ describe("fiche client Pilot Pro — badge d'envoi déjà géré", () => {
   test("affiche déjà « CR envoyé » pour les interventions envoyées", () => {
     expect(src).toContain('if (iv.sent_to_client_at) return { label: "CR envoyé"');
   });
-
 });
