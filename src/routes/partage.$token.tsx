@@ -219,7 +219,7 @@ function SharePage() {
   return (
     <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
       <header className="border-b bg-background">
-        <div className="mx-auto max-w-3xl px-4 py-6">
+        <div className={`mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 ${premium?.enabled ? "max-w-[1500px]" : "max-w-3xl"}`}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-primary">
@@ -259,7 +259,39 @@ function SharePage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-4 px-4 py-6">
+      <main className={`mx-auto w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8 ${premium?.enabled ? "max-w-[1500px]" : "max-w-3xl"}`}>
+        {premium?.enabled ? (
+          <PremiumClientDashboard
+            premium={premium}
+            client={client}
+            interventions={interventions}
+            recommendations={recommendations}
+            messages={messages ?? []}
+            coverPhotoUrl={premiumCoverUrl}
+            messageThread={
+              <MessageThread
+                token={token}
+                interventionId={null}
+                messages={(messages ?? []).filter((m) => !m.intervention_id)}
+              />
+            }
+            onDownloadDocument={async (document: PremiumDocument) => {
+              try {
+                window.open(
+                  await sharedPremiumDocumentUrl(token, document.id),
+                  "_blank",
+                  "noopener,noreferrer",
+                );
+              } catch (error) {
+                toast.error(
+                  error instanceof Error ? error.message : "Document indisponible",
+                );
+              }
+            }}
+          />
+        ) : (
+          <>
+
         {/* Synthèse (client #8) */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Comptes-rendus" value={String(interventions.length)} />
@@ -382,7 +414,10 @@ function SharePage() {
           messages={(messages ?? []).filter((m) => !m.intervention_id)}
         />
 
-        <ShareInstallGuide />
+
+          <ShareInstallGuide />
+          </>
+        )}
       </main>
     </div>
   );
