@@ -75,10 +75,7 @@ function mergeTaskLines(tasks: string[]): string[] {
 
     const previous = merged[merged.length - 1];
     const continuation =
-      previous &&
-      (previous.endsWith(":") ||
-        current.startsWith("(") ||
-        /^[a-zà-ÿ]/.test(current));
+      previous && (previous.endsWith(":") || current.startsWith("(") || /^[a-zà-ÿ]/.test(current));
 
     if (continuation) {
       merged[merged.length - 1] = `${previous} ${current}`;
@@ -120,8 +117,8 @@ function isNoiseRow(joined: string): boolean {
 // Sections après lesquelles il n'y a plus d'interventions (on arrête le parsing)
 function isStopRow(joined: string): boolean {
   const d = deburr(joined);
-  return ["total entretien", "ce planning", "respect de la saisonnalite", "note :"].some(
-    (p) => d.includes(p),
+  return ["total entretien", "ce planning", "respect de la saisonnalite", "note :"].some((p) =>
+    d.includes(p),
   );
 }
 
@@ -193,21 +190,12 @@ async function planningFromPdf(
     const d = deburr(it.str).trim();
     return ["mois", "type", "travaux", "remarques", "d intervention"].includes(d);
   });
-  const firstX = (words: Item[]) =>
-    words.length ? Math.min(...words.map((it) => it.x)) : -1;
+  const firstX = (words: Item[]) => (words.length ? Math.min(...words.map((it) => it.x)) : -1);
 
-  const monthHeaderX = firstX(
-    headerWords.filter((it) => deburr(it.str).trim() === "mois"),
-  );
-  const typeHeaderX = firstX(
-    headerWords.filter((it) => deburr(it.str).trim() === "type"),
-  );
-  const travauxHeaderX = firstX(
-    headerWords.filter((it) => deburr(it.str).trim() === "travaux"),
-  );
-  const remarksHeaderX = firstX(
-    headerWords.filter((it) => deburr(it.str).trim() === "remarques"),
-  );
+  const monthHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "mois"));
+  const typeHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "type"));
+  const travauxHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "travaux"));
+  const remarksHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "remarques"));
 
   let columnStarts: [number, number, number, number?] | null = null;
   if (monthHeaderX >= 0 && typeHeaderX >= 0 && travauxHeaderX >= 0) {
@@ -269,14 +257,16 @@ async function planningFromPdf(
   const typeStart = columnStarts ? (columnStarts[0] + columnStarts[1]) / 2 : -1;
   const travauxStart = columnStarts ? (columnStarts[1] + columnStarts[2]) / 2 : -1;
   const remarksStart =
-    columnStarts?.[3] != null
-      ? (columnStarts[2] + columnStarts[3]) / 2
-      : Number.POSITIVE_INFINITY;
+    columnStarts?.[3] != null ? (columnStarts[2] + columnStarts[3]) / 2 : Number.POSITIVE_INFINITY;
 
   const lines: Line[] = rawLines.map((line) => {
     const sorted = [...line].sort((a, b) => a.x - b.x);
     const join = (pred: (x: number) => boolean) =>
-      sorted.filter((i) => pred(i.x)).map((i) => i.str).join(" ").trim();
+      sorted
+        .filter((i) => pred(i.x))
+        .map((i) => i.str)
+        .join(" ")
+        .trim();
     if (travauxStart < 0) {
       return { y: sorted[0].y, month: join(() => true), type: "", travaux: join(() => true) };
     }
@@ -333,9 +323,7 @@ async function planningFromPdf(
   for (let i = 0; i < anchors.length; i++) {
     lowB[i] = i === 0 ? Number.NEGATIVE_INFINITY : (anchors[i - 1].y + anchors[i].y) / 2;
     highB[i] =
-      i === anchors.length - 1
-        ? Number.POSITIVE_INFINITY
-        : (anchors[i].y + anchors[i + 1].y) / 2;
+      i === anchors.length - 1 ? Number.POSITIVE_INFINITY : (anchors[i].y + anchors[i + 1].y) / 2;
   }
 
   for (const l of lines) {
@@ -422,9 +410,7 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
   const cleanLabel = (s: string) => s.replace(/\s+/g, " ").trim();
   const mergeType = (existing: string, add: string) => {
     const tokens = new Set(
-      [...existing.split("·"), ...add.split(/\r?\n|·/)]
-        .map((t) => t.trim())
-        .filter(Boolean),
+      [...existing.split("·"), ...add.split(/\r?\n|·/)].map((t) => t.trim()).filter(Boolean),
     );
     return Array.from(tokens).join(" · ");
   };
