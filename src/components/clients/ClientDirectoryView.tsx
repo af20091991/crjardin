@@ -90,6 +90,7 @@ export function ClientDirectoryView({
             key={row.id}
             row={row}
             onToggleFavorite={onToggleFavorite}
+            onTogglePremium={onTogglePremium}
             canEdit={canEdit}
           />
         ))}
@@ -193,6 +194,7 @@ function MobileDirectoryRow({
 }: {
   row: ClientDirectoryRow;
   onToggleFavorite: (id: string) => void;
+  onTogglePremium?: (id: string, enabled: boolean) => void;
   canEdit: boolean;
 }) {
   return (
