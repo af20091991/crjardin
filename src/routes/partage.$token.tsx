@@ -621,7 +621,11 @@ function PremiumRequest({ token }: { token: string }) {
       qc.invalidateQueries({ queryKey: ["shared-messages", token] });
     },
     onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "Impossible d'envoyer la demande."),
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Impossible d'envoyer la demande.",
+      ),
   });
 
   return (
