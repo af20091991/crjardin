@@ -175,7 +175,17 @@ export async function listPremiumPlanning(
 export async function updatePlanningItem(
   id: string,
   patch: Partial<
-    Pick<PremiumPlanningItem, "label" | "period_label" | "start_date" | "end_date" | "year" | "status" | "notes" | "position">
+    Pick<
+      PremiumPlanningItem,
+      | "label"
+      | "period_label"
+      | "start_date"
+      | "end_date"
+      | "year"
+      | "status"
+      | "notes"
+      | "position"
+    >
   >,
 ): Promise<void> {
   const { error } = await db
@@ -188,7 +198,10 @@ export async function updatePlanningItem(
 
 export async function createManualPlanningItem(
   clientId: string,
-  item: Pick<PremiumPlanningItem, "label" | "period_label" | "start_date" | "end_date" | "year" | "notes">,
+  item: Pick<
+    PremiumPlanningItem,
+    "label" | "period_label" | "start_date" | "end_date" | "year" | "notes"
+  >,
 ): Promise<void> {
   const { error } = await db.from("client_premium_planning_items").insert({
     client_id: clientId,
