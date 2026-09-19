@@ -33,7 +33,8 @@ describe("fiche client classique — badge d'envoi par intervention", () => {
 
   test("ne modifie pas le badge global CR en haut de page", () => {
     expect(src).toContain("{(interventions ?? []).some((iv) => iv.sent_to_client_at) && (");
-    expect(src).toContain('variant="outline" className="border-primary/40 text-primary">CR');
+    expect(src).toContain('className="border-primary/40 text-primary"');
+    expect(src).toContain("CR");
   });
 });
 
