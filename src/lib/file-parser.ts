@@ -136,7 +136,10 @@ async function tableFromDocx(file: File): Promise<string[][]> {
   return rows;
 }
 
-async function planningFromPdf(file: File, fallbackYear: number | null = null): Promise<PlanningRow[]> {
+async function planningFromPdf(
+  file: File,
+  fallbackYear: number | null = null,
+): Promise<PlanningRow[]> {
   const pdfjs = await import("pdfjs-dist");
   const workerMod = (await import(
     /* @vite-ignore */ "pdfjs-dist/build/pdf.worker.min.mjs?url"
@@ -170,14 +173,27 @@ async function planningFromPdf(file: File, fallbackYear: number | null = null): 
   const firstX = (words: Item[]) =>
     words.length ? Math.min(...words.map((it) => it.x)) : -1;
 
-  const monthHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "mois"));
-  const typeHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "type"));
-  const travauxHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "travaux"));
-  const remarksHeaderX = firstX(headerWords.filter((it) => deburr(it.str).trim() === "remarques"));
+  const monthHeaderX = firstX(
+    headerWords.filter((it) => deburr(it.str).trim() === "mois"),
+  );
+  const typeHeaderX = firstX(
+    headerWords.filter((it) => deburr(it.str).trim() === "type"),
+  );
+  const travauxHeaderX = firstX(
+    headerWords.filter((it) => deburr(it.str).trim() === "travaux"),
+  );
+  const remarksHeaderX = firstX(
+    headerWords.filter((it) => deburr(it.str).trim() === "remarques"),
+  );
 
   let columnStarts: [number, number, number, number?] | null = null;
   if (monthHeaderX >= 0 && typeHeaderX >= 0 && travauxHeaderX >= 0) {
-    columnStarts = [monthHeaderX, typeHeaderX, travauxHeaderX, remarksHeaderX >= 0 ? remarksHeaderX : undefined];
+    columnStarts = [
+      monthHeaderX,
+      typeHeaderX,
+      travauxHeaderX,
+      remarksHeaderX >= 0 ? remarksHeaderX : undefined,
+    ];
   } else {
     // Repli pour les PDF sans en-tête exploitable.
     const BIN = 10;
@@ -197,7 +213,9 @@ async function planningFromPdf(file: File, fallbackYear: number | null = null): 
       if (chosen.length === 3) break;
     }
     chosen.sort((a, b) => a - b);
-    if (chosen.length === 3) columnStarts = [chosen[0], chosen[1], chosen[2], undefined];
+    if (chosen.length === 3) {
+      columnStarts = [chosen[0], chosen[1], chosen[2], undefined];
+    }
   }
 
   // Années présentes dans le titre du calendrier (ex. 2025-2026).
@@ -206,7 +224,8 @@ async function planningFromPdf(file: File, fallbackYear: number | null = null): 
   const calendarStartYear =
     yearMatches.length > 0
       ? Number(yearMatches[0][1])
-      : ([...allText.matchAll(/\b(20\d{2})\b/g)].map((m) => Number(m[1]))[0] ?? fallbackYear);
+      : ([...allText.matchAll(/\b(20\d{2})\b/g)].map((m) => Number(m[1]))[0] ??
+        fallbackYear);
 
   // Regroupement en lignes par coordonnée Y
   all.sort((a, b) => a.y - b.y || a.x - b.x);
@@ -225,19 +244,28 @@ async function planningFromPdf(file: File, fallbackYear: number | null = null): 
   if (current.length) rawLines.push(current);
 
   // Sans 3 colonnes fiables : repli sur une seule colonne « travaux »
-  const typeStart =
-    columnStarts ? (columnStarts[0] + columnStarts[1]) / 2 : -1;
-  const travauxStart =
-    columnStarts ? (columnStarts[1] + columnStarts[2]) / 2 : -1;
+  const typeStart = columnStarts
+    ? (columnStarts[0] + columnStarts[1]) / 2
+    : -1;
+  const travauxStart = columnStarts
+    ? (columnStarts[1] + columnStarts[2]) / 2
+    : -1;
   const remarksStart =
-    columnStarts?.[3] != null ? (columnStarts[2] + columnStarts[3]) / 2 : Number.POSITIVE_INFINITY;
+    columnStarts?.[3] != null
+      ? (columnStarts[2] + columnStarts[3]) / 2
+      : Number.POSITIVE_INFINITY;
 
   const lines: Line[] = rawLines.map((line) => {
     const sorted = [...line].sort((a, b) => a.x - b.x);
     const join = (pred: (x: number) => boolean) =>
       sorted.filter((i) => pred(i.x)).map((i) => i.str).join(" ").trim();
     if (travauxStart < 0) {
-      return { y: sorted[0].y, month: "", type: "", travaux: join(() => true) };
+      return {
+        y: sorted[0].y,
+        month: join(() => true),
+        type: "",
+        travaux: join(() => true),
+      };
     }
     return {
       y: sorted[0].y,
@@ -278,7 +306,9 @@ async function planningFromPdf(file: File, fallbackYear: number | null = null): 
         y: l.y,
         month: m.num,
         monthLabel: m.label,
-        label: (mInMonth ? l.month : l.type).replace(/\s+/g, " ").trim() || m.label,
+        label:
+          (mInMonth ? l.month : l.type).replace(/\s+/g, " ").trim() ||
+          m.label,
         typeTokens: new Set(),
         tasks: [],
       });
@@ -411,8 +441,11 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
         month: m.num,
         monthLabel: m.label,
         label: cleanLabel(monthInMonth ? monthText : typeText) || m.label,
-        type: cleanLabel(monthInMonth ? typeText.replace(/\r?\n/g, " · ") : ""),
+        type: cleanLabel(
+          monthInMonth ? typeText.replace(/\r?\n/g, " · ") : "",
+        ),
         tasks: [...tasks],
+        year: Number(monthText.match(/\b(20\d{2})\b/)?.[1] ?? NaN) || null,
       };
       result.push(lastRow);
     } else if (lastRow && monthText.trim() === "" && tasks.length) {
