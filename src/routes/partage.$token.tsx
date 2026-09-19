@@ -66,7 +66,8 @@ import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
-import { getSharedPremium, sharedPremiumDocumentUrl } from "@/lib/client-premium";
+import { getSharedPremium, sharedPremiumDocumentUrl, type PremiumDocument } from "@/lib/client-premium";
+import { PremiumClientDashboard } from "@/components/PremiumClientDashboard";
 
 const sharedQuery = (token: string) =>
   queryOptions({
@@ -344,11 +345,33 @@ function SharePage() {
           </TabsContent>
           {premium?.enabled && (
             <TabsContent value="premium" className="space-y-4">
-              <PremiumSharedSection
+              <PremiumClientDashboard
                 premium={premium}
-                premiumToken={token}
-                coverPhotoUrl={premiumCoverUrl}
+                client={client}
+                interventions={interventions}
+                recommendations={recommendations}
                 messages={messages ?? []}
+                coverPhotoUrl={premiumCoverUrl}
+                messageThread={
+                  <MessageThread
+                    token={token}
+                    interventionId={null}
+                    messages={(messages ?? []).filter((m) => !m.intervention_id)}
+                  />
+                }
+                onDownloadDocument={async (document: PremiumDocument) => {
+                  try {
+                    window.open(
+                      await sharedPremiumDocumentUrl(token, document.id),
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
+                  } catch (error) {
+                    toast.error(
+                      error instanceof Error ? error.message : "Document indisponible",
+                    );
+                  }
+                }}
               />
             </TabsContent>
           )}
@@ -362,129 +385,6 @@ function SharePage() {
         <ShareInstallGuide />
       </main>
     </div>
-  );
-}
-
-function PremiumSharedSection({
-  premium,
-  premiumToken,
-  coverPhotoUrl,
-  messages,
-}: {
-  premium: NonNullable<Awaited<ReturnType<typeof getSharedPremium>>>;
-  premiumToken: string;
-  coverPhotoUrl: string | null;
-  messages: ClientMessage[];
-}) {
-  return (
-    <Card className="overflow-hidden border-primary/30 bg-primary/5">
-      {coverPhotoUrl && (
-        <img src={coverPhotoUrl} alt="" className="h-44 w-full object-cover sm:h-56" />
-      )}
-      <CardContent className="space-y-5 pt-6">
-        <div className="flex items-start gap-3">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-            <Crown className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">
-              Espace Premium
-            </p>
-            <h2 className="mt-1 font-serif text-2xl font-semibold">Votre espace privilégié</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Un espace dédié pour retrouver vos documents, votre planning et les informations
-              préparées pour votre jardin.
-            </p>
-          </div>
-        </div>
-
-        {premium.commercial_note && (
-          <p className="whitespace-pre-wrap text-sm">{premium.commercial_note}</p>
-        )}
-
-        <div className="rounded-lg border bg-background p-4">
-          <p className="font-medium">Votre service Premium</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Une question ou une demande particulière ? Écrivez directement à votre jardinier.
-          </p>
-          <div className="mt-3">
-            <MessageThread token={premiumToken} interventionId={null} messages={messages} />
-          </div>
-        </div>
-
-        {premium.google_review_url && (
-          <Button variant="outline" size="sm" asChild>
-            <a href={premium.google_review_url} target="_blank" rel="noopener noreferrer">
-              Donner votre avis Google
-            </a>
-          </Button>
-        )}
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg border bg-background p-3">
-            <p className="mb-2 text-sm font-medium">Documents</p>
-            {premium.documents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucun document disponible.</p>
-            ) : (
-              <div className="space-y-2">
-                {premium.documents.map((document) => (
-                  <div key={document.id} className="flex items-center gap-2 text-sm">
-                    <FileText className="h-4 w-4 shrink-0" />
-                    <span className="min-w-0 flex-1 truncate">{document.title}</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={async () => {
-                        try {
-                          window.open(
-                            await sharedPremiumDocumentUrl(premiumToken, document.id),
-                            "_blank",
-                          );
-                        } catch (error) {
-                          toast.error(
-                            error instanceof Error ? error.message : "Document indisponible",
-                          );
-                        }
-                      }}
-                    >
-                      Télécharger
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-lg border bg-background p-3">
-            <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
-              <CalendarDays className="h-4 w-4" />
-              Planning annuel
-            </p>
-            {premium.planning.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucun élément validé pour le moment.</p>
-            ) : (
-              <div className="space-y-2">
-                {premium.planning.map((item) => (
-                  <div key={item.id} className="rounded-md border p-2 text-sm">
-                    <div className="font-medium">{item.label}</div>
-                    {item.period_label && (
-                      <div className="text-xs text-muted-foreground">{item.period_label}</div>
-                    )}
-                    {item.notes && (
-                      <div className="mt-1 text-xs text-muted-foreground">{item.notes}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="mt-3 text-xs text-muted-foreground">
-              Vous pouvez annoter ce planning via la messagerie ci-dessous ; les données PP restent
-              sous le contrôle de votre jardinier.
-            </p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
