@@ -38,7 +38,10 @@ function monthFromString(s: string): { num: number; label: string } | null {
   const d = deburr(s);
   for (const m of MONTHS) {
     if (d.includes(m.name)) {
-      return { num: m.num, label: m.name.charAt(0).toUpperCase() + m.name.slice(1) };
+      return {
+        num: m.num,
+        label: m.name.charAt(0).toUpperCase() + m.name.slice(1),
+      };
     }
   }
   return null;
@@ -61,7 +64,11 @@ function splitCellTasks(cell: string): string[] {
     if (cleaned.length < 2) continue;
     if (cleaned.length > 200) continue;
     const d = deburr(cleaned);
-    if (d.includes("pas d'intervention") || d.includes("pas d intervention")) continue;
+    if (
+      d.includes("pas d'intervention") ||
+      d.includes("pas d intervention")
+    )
+      continue;
     out.push(cleaned);
   }
   return Array.from(new Set(out));
@@ -194,7 +201,13 @@ async function planningFromPdf(
   // des pics plus forts que les colonnes.
   const headerWords = all.filter((it) => {
     const d = deburr(it.str).trim();
-    return ["mois", "type", "travaux", "remarques", "d intervention"].includes(d);
+    return [
+      "mois",
+      "type",
+      "travaux",
+      "remarques",
+      "d intervention",
+    ].includes(d);
   });
   const firstX = (words: Item[]) =>
     words.length ? Math.min(...words.map((it) => it.x)) : -1;
@@ -231,7 +244,12 @@ async function planningFromPdf(
     const bins = [...hist.entries()].sort((a, b) => a[0] - b[0]);
     const peaks = bins
       .filter(([, n]) => n >= 5)
-      .filter(([x, n]) => !bins.some(([x2, n2]) => Math.abs(x2 - x) <= 20 && n2 > n))
+      .filter(
+        ([x, n]) =>
+          !bins.some(
+            ([x2, n2]) => Math.abs(x2 - x) <= 20 && n2 > n,
+          ),
+      )
       .sort((a, b) => b[1] - a[1]);
     const chosen: number[] = [];
     for (const [x] of peaks) {
@@ -246,7 +264,9 @@ async function planningFromPdf(
 
   // Années présentes dans le titre du calendrier (ex. 2025-2026).
   const allText = all.map((it) => it.str).join(" ");
-  const yearMatches = [...allText.matchAll(/\b(20\d{2})\s*[-–]\s*(20\d{2})\b/g)];
+  const yearMatches = [
+    ...allText.matchAll(/\b(20\d{2})\s*[-–]\s*(20\d{2})\b/g),
+  ];
   const calendarStartYear =
     yearMatches.length > 0
       ? Number(yearMatches[0][1])
@@ -406,7 +426,9 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
   let travauxCol = -1;
   for (let r = 0; r < rows.length; r++) {
     const cells = rows[r].map(deburr);
-    const c = cells.findIndex((x) => x.includes("travaux") && x.includes("effectuer"));
+    const c = cells.findIndex(
+      (x) => x.includes("travaux") && x.includes("effectuer"),
+    );
     if (c >= 0) {
       headerIdx = r;
       travauxCol = c;
@@ -466,7 +488,8 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
     // Nouvelle intervention : un mois dans la colonne mois (ou, à défaut,
     // dans la colonne type — cas des cellules fusionnées).
     const monthInMonth = monthFromString(monthText);
-    const monthInType = monthText.trim() === "" ? monthFromString(typeText) : null;
+    const monthInType =
+      monthText.trim() === "" ? monthFromString(typeText) : null;
     const m = monthInMonth || monthInType;
     if (m && (monthText.trim() !== "" || typeText.trim() !== "")) {
       lastRow = {
