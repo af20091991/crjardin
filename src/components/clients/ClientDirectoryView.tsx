@@ -29,6 +29,7 @@ export interface ClientDirectoryRow {
   hourlyLabel?: string;
   lastActivityLabel?: string;
   isFavorite: boolean;
+  isPremium?: boolean;
 }
 
 interface ClientDirectoryViewProps {
@@ -140,6 +141,7 @@ function DirectoryRow({
               {row.statusLabel}
             </Badge>
             {row.contractType && <span>{row.contractType}</span>}
+            {row.isPremium && <Badge variant="outline" className="border-primary/40 text-primary">Premium</Badge>}
           </div>
         </div>
       </div>
