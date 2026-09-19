@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -43,6 +43,85 @@ import { Switch } from "@/components/ui/switch";
 export const Route = createFileRoute("/_authenticated/clients/$clientId/premium")({
   component: ClientPremiumPage,
 });
+
+function UpcomingPlanningCard({ items }: { items: PremiumPlanningItem[] }) {
+  const upcoming = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const monthMap: Record<string, number> = {
+      janvier: 1,
+      fevrier: 2,
+      février: 2,
+      mars: 3,
+      avril: 4,
+      mai: 5,
+      juin: 6,
+      juillet: 7,
+      aout: 8,
+      août: 8,
+      septembre: 9,
+      octobre: 10,
+      novembre: 11,
+      decembre: 12,
+      décembre: 12,
+    };
+
+    return items
+      .filter((item) => {
+        if (!item.year || !item.period_label) return false;
+        const monthName = item.period_label
+          .replace(/\d{4}/g, "")
+          .trim()
+          .toLowerCase();
+        const month = monthMap[monthName];
+        if (!month) return false;
+        return (
+          item.year > currentYear ||
+          (item.year === currentYear && month >= currentMonth)
+        );
+      })
+      .sort((a, b) => {
+        const ay = a.year ?? 9999;
+        const by = b.year ?? 9999;
+        if (ay !== by) return ay - by;
+        return String(a.period_label).localeCompare(String(b.period_label), "fr");
+      });
+  }, [items]);
+
+  return (
+    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium">Travaux à venir détectés</p>
+          <p className="text-xs text-muted-foreground">
+            Détectés automatiquement dans le calendrier PDF. Les éléments restent à valider avant d’être présentés au client.
+          </p>
+        </div>
+        <Badge variant="outline">{upcoming.length} à venir</Badge>
+      </div>
+      {upcoming.length > 0 ? (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {upcoming.slice(0, 8).map((item) => (
+            <div key={item.id} className="rounded-md border bg-background px-3 py-2">
+              <p className="text-sm">{item.label}</p>
+              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{item.period_label}</span>
+                <Badge variant={item.status === "valide" ? "default" : "secondary"}>
+                  {item.status === "valide" ? "Validé" : "À valider"}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Aucun travail à venir n’a été détecté pour la période courante.
+        </p>
+      )}
+    </div>
+  );
+}
 
 function ClientPremiumPage() {
   const { clientId } = Route.useParams();
@@ -466,6 +545,8 @@ function ClientPremiumPage() {
                     </Button>
                   </div>
                 </div>
+
+                <UpcomingPlanningCard items={planQ.data ?? []} />
 
                 <div className="space-y-2">
                   {(planQ.data ?? []).map((item) => (
