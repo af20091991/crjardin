@@ -29,7 +29,6 @@ export interface ClientDirectoryRow {
   hourlyLabel?: string;
   lastActivityLabel?: string;
   isFavorite: boolean;
-  isPremium?: boolean;
 }
 
 interface ClientDirectoryViewProps {
@@ -37,7 +36,6 @@ interface ClientDirectoryViewProps {
   search: string;
   onSearchChange: (value: string) => void;
   onToggleFavorite: (id: string) => void;
-  onTogglePremium?: (id: string, enabled: boolean) => void;
   canEdit: boolean;
 }
 
@@ -46,7 +44,6 @@ export function ClientDirectoryView({
   search,
   onSearchChange,
   onToggleFavorite,
-  onTogglePremium,
   canEdit,
 }: ClientDirectoryViewProps) {
   return (
@@ -77,7 +74,6 @@ export function ClientDirectoryView({
               key={row.id}
               row={row}
               onToggleFavorite={onToggleFavorite}
-              onTogglePremium={onTogglePremium}
               canEdit={canEdit}
             />
           ))}
@@ -174,45 +170,6 @@ function DirectoryRow({
       </div>
 
       <div className="flex items-center justify-end gap-1.5">
-        {canEdit && onTogglePremium && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-xs"
-            onClick={() => onTogglePremium(row.id, !row.isPremium)}
-          >
-            {row.isPremium ? "Premium" : "Activer"}
-          </Button>
-        )}
-        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-          <Link to="/clients/$clientId" params={{ clientId: row.id }}>
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function MobileDirectoryRow({
-  row,
-  onToggleFavorite,
-  onTogglePremium,
-  canEdit,
-}: {
-  row: ClientDirectoryRow;
-  onToggleFavorite: (id: string) => void;
-  onTogglePremium?: (id: string, enabled: boolean) => void;
-  canEdit: boolean;
-}) {
-  return (
-    <Card className="p-3">
-      <div className="flex items-start gap-3">
-        <button
-          type="button"
-          aria-label={
-            row.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
-          }
           onClick={() => onToggleFavorite(row.id)}
           className="mt-0.5 rounded-md p-1 text-muted-foreground hover:text-amber-500"
         >
