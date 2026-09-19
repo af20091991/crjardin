@@ -52,12 +52,14 @@ function ClientsPremiumPage() {
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (clientsQ.data ?? [])
-      .filter((client) => !q || [client.name, client.email, client.phone, client.address]
+    const matches = (clientsQ.data ?? []).filter((client) => {
+      if (!q) return premiumIds.has(client.id);
+      return [client.name, client.email, client.phone, client.address]
         .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(q)))
-      .sort((a, b) => a.name.localeCompare(b.name, "fr"));
-  }, [clientsQ.data, search]);
+        .some((value) => value!.toLowerCase().includes(q));
+    });
+    return matches.sort((a, b) => a.name.localeCompare(b.name, "fr"));
+  }, [clientsQ.data, premiumIds, search]);
 
   if (!canEdit) {
     return (
@@ -111,9 +113,21 @@ function ClientsPremiumPage() {
             className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
           />
           <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-            {rows.length} client{rows.length > 1 ? "s" : ""}
+            {search.trim()
+              ? rows.length + " résultat" + (rows.length > 1 ? "s" : "")
+              : rows.length + " Premium actif" + (rows.length > 1 ? "s" : "")}
           </span>
         </div>
+
+        {search.trim() && rows.some((client) => !premiumIds.has(client.id)) && (
+          <div className="rounded-xl border border-dashed bg-muted/20 px-4 py-3 text-sm">
+            <p className="font-medium">Ajouter un client à Premium</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Les clients non activés apparaissent ici uniquement lorsque vous les recherchez.
+              Activez Premium pour les ajouter à votre espace de gestion.
+            </p>
+          </div>
+        )}
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {rows.map((client) => {
