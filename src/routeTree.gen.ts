@@ -32,7 +32,6 @@ import { Route as AuthenticatedParcMaterielIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
-import { Route as AuthenticatedClientsPremiumRouteImport } from './routes/_authenticated/clients.premium'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
 import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_authenticated/pilot.validation'
@@ -67,7 +66,6 @@ import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
 import { Route as AuthenticatedFichesFicheIdRouteImport } from './routes/_authenticated/fiches.$ficheId'
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients.$clientId'
-import { Route as AuthenticatedClientsClientIdPremiumRouteImport } from './routes/_authenticated/clients.$clientId.premium'
 import { Route as AuthenticatedPilotClientsIndexRouteImport } from './routes/_authenticated/pilot.clients.index'
 import { Route as AuthenticatedPilotCeevContratsIndexRouteImport } from './routes/_authenticated/pilot.ceev-contrats.index'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -196,11 +194,6 @@ const AuthenticatedClientsIndexRoute =
     path: '/clients/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedClientsPremiumRoute = AuthenticatedClientsPremiumRouteImport.update({
-  id: '/clients/premium',
-  path: '/clients/premium',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
   id: '/lovable/email/events',
   path: '/lovable/email/events',
@@ -395,12 +388,6 @@ const AuthenticatedClientsClientIdRoute =
     path: '/clients/$clientId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedClientsClientIdPremiumRoute =
-  AuthenticatedClientsClientIdPremiumRouteImport.update({
-    id: '/clients/$clientId/premium',
-    path: '/clients/$clientId/premium',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedPilotClientsIndexRoute =
   AuthenticatedPilotClientsIndexRouteImport.update({
     id: '/',
@@ -463,8 +450,6 @@ export interface FileRoutesByFullPath {
   '/versions': typeof AuthenticatedVersionsRoute
   '/partage/$token': typeof PartageTokenRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
-  '/clients/premium': typeof AuthenticatedClientsPremiumRoute
-  '/clients/$clientId/premium': typeof AuthenticatedClientsClientIdPremiumRoute
   '/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
@@ -499,7 +484,6 @@ export interface FileRoutesByFullPath {
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
-  '/clients/premium': typeof AuthenticatedClientsPremiumRoute
   '/fiches/': typeof AuthenticatedFichesIndexRoute
   '/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/parc-materiel/': typeof AuthenticatedParcMaterielIndexRoute
@@ -530,7 +514,6 @@ export interface FileRoutesByTo {
   '/partage/$token': typeof PartageTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
-  '/clients/premium': typeof AuthenticatedClientsPremiumRoute
   '/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
@@ -597,8 +580,6 @@ export interface FileRoutesById {
   '/partage/$token': typeof PartageTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
-  '/_authenticated/clients/premium': typeof AuthenticatedClientsPremiumRoute
-  '/_authenticated/clients/$clientId/premium': typeof AuthenticatedClientsClientIdPremiumRoute
   '/_authenticated/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
   '/_authenticated/fiches/new': typeof AuthenticatedFichesNewRoute
   '/_authenticated/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
@@ -666,7 +647,6 @@ export interface FileRouteTypes {
     | '/versions'
     | '/partage/$token'
     | '/clients/$clientId'
-    | '/clients/$clientId/premium'
     | '/fiches/$ficheId'
     | '/fiches/new'
     | '/interventions/$interventionId'
@@ -1257,13 +1237,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/clients/$clientId/premium': {
-      id: '/_authenticated/clients/$clientId/premium'
-      path: '/clients/$clientId/premium'
-      fullPath: '/clients/$clientId/premium'
-      preLoaderRoute: typeof AuthenticatedClientsClientIdPremiumRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/pilot/clients/': {
       id: '/_authenticated/pilot/clients/'
       path: '/'
@@ -1420,14 +1393,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVersionsRoute: typeof AuthenticatedVersionsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedClientsClientIdRoute: typeof AuthenticatedClientsClientIdRoute
-  AuthenticatedClientsClientIdPremiumRoute: typeof AuthenticatedClientsClientIdPremiumRoute
   AuthenticatedFichesFicheIdRoute: typeof AuthenticatedFichesFicheIdRoute
   AuthenticatedFichesNewRoute: typeof AuthenticatedFichesNewRoute
   AuthenticatedInterventionsInterventionIdRoute: typeof AuthenticatedInterventionsInterventionIdRoute
   AuthenticatedInterventionsNewRoute: typeof AuthenticatedInterventionsNewRoute
   AuthenticatedParcMaterielEquipmentIdRoute: typeof AuthenticatedParcMaterielEquipmentIdRoute
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute
-  AuthenticatedClientsPremiumRoute: typeof AuthenticatedClientsPremiumRoute
   AuthenticatedFichesIndexRoute: typeof AuthenticatedFichesIndexRoute
   AuthenticatedInterventionsIndexRoute: typeof AuthenticatedInterventionsIndexRoute
   AuthenticatedParcMaterielIndexRoute: typeof AuthenticatedParcMaterielIndexRoute
@@ -1447,7 +1418,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVersionsRoute: AuthenticatedVersionsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedClientsClientIdRoute: AuthenticatedClientsClientIdRoute,
-  AuthenticatedClientsClientIdPremiumRoute: AuthenticatedClientsClientIdPremiumRoute,
   AuthenticatedFichesFicheIdRoute: AuthenticatedFichesFicheIdRoute,
   AuthenticatedFichesNewRoute: AuthenticatedFichesNewRoute,
   AuthenticatedInterventionsInterventionIdRoute:
@@ -1456,7 +1426,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedParcMaterielEquipmentIdRoute:
     AuthenticatedParcMaterielEquipmentIdRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
-  AuthenticatedClientsPremiumRoute: AuthenticatedClientsPremiumRoute,
   AuthenticatedFichesIndexRoute: AuthenticatedFichesIndexRoute,
   AuthenticatedInterventionsIndexRoute: AuthenticatedInterventionsIndexRoute,
   AuthenticatedParcMaterielIndexRoute: AuthenticatedParcMaterielIndexRoute,
