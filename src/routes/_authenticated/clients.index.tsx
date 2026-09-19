@@ -38,13 +38,7 @@ export const Route = createFileRoute("/_authenticated/clients/")({
   component: ClientsPage,
 });
 
-type StatusFilter =
-  | "all"
-  | "actif"
-  | "a_relancer"
-  | "dormant"
-  | "perdu"
-  | "cr_a_qualifier";
+type StatusFilter = "all" | "actif" | "a_relancer" | "dormant" | "perdu" | "cr_a_qualifier";
 type SortKey = "name" | "ca" | "recent";
 
 type Row = {
@@ -56,10 +50,7 @@ type Row = {
   activity: ClientActivityStatus;
 };
 
-const statusMeta: Record<
-  ClientActivityStatus,
-  { label: string; className: string }
-> = {
+const statusMeta: Record<ClientActivityStatus, { label: string; className: string }> = {
   actif: {
     label: "Actif",
     className: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -100,16 +91,11 @@ function ClientsPage() {
     queryFn: () => listEntries(),
     enabled: canEdit,
   });
-  const favorites = useMemo(
-    () => new Set(favoritesQuery.data ?? []),
-    [favoritesQuery.data],
-  );
+  const favorites = useMemo(() => new Set(favoritesQuery.data ?? []), [favoritesQuery.data]);
 
   const favoriteMutation = useMutation({
-    mutationFn: ({ id, value }: { id: string; value: boolean }) =>
-      toggleFavoriteClient(id, value),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["favorite-clients"] }),
+    mutationFn: ({ id, value }: { id: string; value: boolean }) => toggleFavoriteClient(id, value),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["favorite-clients"] }),
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -140,8 +126,7 @@ function ClientsPage() {
         );
         ratedCaByClient.set(
           entry.client_id,
-          (ratedCaByClient.get(entry.client_id) ?? 0) +
-            (Number(entry.amount_ht) || 0),
+          (ratedCaByClient.get(entry.client_id) ?? 0) + (Number(entry.amount_ht) || 0),
         );
       }
     }
@@ -155,10 +140,7 @@ function ClientsPage() {
         hours,
         lastDate,
         hourlyRate: hourlyRate(ratedCaByClient.get(client.id) ?? 0, hours),
-        activity:
-          client.lifecycle_status === "perdu"
-            ? "perdu"
-            : getClientActivityStatus(lastDate),
+        activity: client.lifecycle_status === "perdu" ? "perdu" : getClientActivityStatus(lastDate),
       };
     });
   }, [clientsQuery.data, entriesQuery.data, year]);
@@ -176,23 +158,13 @@ function ClientsPage() {
         return false;
       }
 
-      if (
-        !showLost &&
-        status !== "perdu" &&
-        client.lifecycle_status === "perdu"
-      ) {
+      if (!showLost && status !== "perdu" && client.lifecycle_status === "perdu") {
         return false;
       }
 
       if (!query) return true;
 
-      return [
-        client.name,
-        client.address,
-        client.email,
-        client.phone,
-        client.contract_type,
-      ]
+      return [client.name, client.address, client.email, client.phone, client.contract_type]
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(query));
     });
@@ -215,9 +187,7 @@ function ClientsPage() {
     phone: row.client.phone,
     statusLabel: statusMeta[row.activity].label,
     statusClassName: statusMeta[row.activity].className,
-    activityLabel: row.lastDate
-      ? "Dernière activité"
-      : "Aucune vente enregistrée",
+    activityLabel: row.lastDate ? "Dernière activité" : "Aucune vente enregistrée",
     lastActivityLabel: row.lastDate
       ? new Date(row.lastDate).toLocaleDateString("fr-FR")
       : undefined,
@@ -232,13 +202,8 @@ function ClientsPage() {
     isFavorite: favorites.has(row.client.id),
   }));
 
-  const suspects = useMemo(
-    () => findSuspectClients(clientsQuery.data ?? []),
-    [clientsQuery.data],
-  );
-  const lostCount = rows.filter(
-    (row) => row.client.lifecycle_status === "perdu",
-  ).length;
+  const suspects = useMemo(() => findSuspectClients(clientsQuery.data ?? []), [clientsQuery.data]);
+  const lostCount = rows.filter((row) => row.client.lifecycle_status === "perdu").length;
 
   return (
     <AppShell title="Clients">
@@ -283,25 +248,18 @@ function ClientsPage() {
                 type="button"
                 onClick={() => setStatus(value as StatusFilter)}
                 className={`whitespace-nowrap rounded-md px-3 py-1.5 ${
-                  status === value
-                    ? "bg-muted font-medium"
-                    : "text-muted-foreground"
+                  status === value ? "bg-muted font-medium" : "text-muted-foreground"
                 }`}
               >
                 {label}
                 {value === "all" && (
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    {rows.length}
-                  </span>
+                  <span className="ml-1 text-xs text-muted-foreground">{rows.length}</span>
                 )}
               </button>
             ))}
           </div>
 
-          <Select
-            value={sort}
-            onValueChange={(value) => setSort(value as SortKey)}
-          >
+          <Select value={sort} onValueChange={(value) => setSort(value as SortKey)}>
             <SelectTrigger className="w-44">
               <SelectValue />
             </SelectTrigger>
@@ -347,9 +305,7 @@ function ClientsPage() {
                 <div className="mb-3 flex items-center gap-2 text-sm">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
                   <span className="font-medium">Nettoyage du référentiel</span>
-                  <span className="text-muted-foreground">
-                    Aucune correction automatique.
-                  </span>
+                  <span className="text-muted-foreground">Aucune correction automatique.</span>
                 </div>
                 <div className="grid gap-2 md:grid-cols-2">
                   {suspects.slice(0, 8).map(({ client, reason, suggestion }) => (
@@ -367,9 +323,7 @@ function ClientsPage() {
                         </Link>
                         <p className="text-xs text-muted-foreground">
                           {reason.label}
-                          {suggestion
-                            ? ` · suggestion : ${suggestion.name}`
-                            : ""}
+                          {suggestion ? ` · suggestion : ${suggestion.name}` : ""}
                         </p>
                       </div>
                       {clientsQuery.data && (
