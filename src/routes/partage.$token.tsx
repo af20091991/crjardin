@@ -41,6 +41,7 @@ import {
   Mail,
   Leaf,
   ClipboardList,
+  FileText,
   CheckCircle2,
   MessageSquarePlus,
   HelpCircle,
