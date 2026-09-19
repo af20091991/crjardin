@@ -348,6 +348,7 @@ function SharePage() {
                 premium={premium}
                 premiumToken={token}
                 coverPhotoUrl={premiumCoverUrl}
+                messages={messages ?? []}
               />
             </TabsContent>
           )}
@@ -368,10 +369,12 @@ function PremiumSharedSection({
   premium,
   premiumToken,
   coverPhotoUrl,
+  messages,
 }: {
   premium: NonNullable<Awaited<ReturnType<typeof getSharedPremium>>>;
   premiumToken: string;
   coverPhotoUrl: string | null;
+  messages: ClientMessage[];
 }) {
   return (
     <Card className="overflow-hidden border-primary/30 bg-primary/5">
@@ -400,7 +403,15 @@ function PremiumSharedSection({
           <p className="whitespace-pre-wrap text-sm">{premium.commercial_note}</p>
         )}
 
-        <PremiumRequest token={premiumToken} />
+        <div className="rounded-lg border bg-background p-4">
+          <p className="font-medium">Votre service Premium</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Une question ou une demande particulière ? Écrivez directement à votre jardinier.
+          </p>
+          <div className="mt-3">
+            <MessageThread token={premiumToken} interventionId={null} messages={messages} />
+          </div>
+        </div>
 
         {premium.google_review_url && (
           <Button variant="outline" size="sm" asChild>
@@ -473,77 +484,6 @@ function PremiumSharedSection({
             </p>
           </div>
         </div>
-      </CardContent>
-    </Card>
-  );
-}
-function PremiumRequest({ token }: { token: string }) {
-  const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [content, setContent] = useState("");
-
-  const send = useMutation({
-    mutationFn: () =>
-      addClientMessage({
-        data: {
-          token,
-          interventionId: null,
-          kind: "question",
-          content: `[DEMANDE PREMIUM] ${content.trim()}`,
-          authorName: null,
-        },
-      }),
-    onSuccess: () => {
-      toast.success("Votre demande a bien été envoyée à votre jardinier.");
-      setContent("");
-      setOpen(false);
-      qc.invalidateQueries({ queryKey: ["shared-messages", token] });
-    },
-    onError: (error) =>
-      toast.error(
-        error instanceof Error ? error.message : "Impossible d'envoyer la demande.",
-      ),
-  });
-
-  return (
-    <Card className="border-primary/30 bg-primary/5">
-      <CardContent className="space-y-3 pt-6">
-        <div>
-          <p className="font-medium">Votre service Premium</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Besoin d'un conseil, d'une intervention ou d'un document ?
-            Envoyez directement votre demande à votre jardinier.
-          </p>
-        </div>
-
-        {!open ? (
-          <Button size="sm" onClick={() => setOpen(true)}>
-            <MessageSquarePlus className="mr-1.5 h-4 w-4" />
-            Faire une demande Premium
-          </Button>
-        ) : (
-          <div className="space-y-2">
-            <Textarea
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              rows={4}
-              placeholder="Expliquez simplement ce dont vous avez besoin…"
-              autoFocus
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                disabled={!content.trim() || send.isPending}
-                onClick={() => send.mutate()}
-              >
-                {send.isPending ? "Envoi…" : "Envoyer ma demande"}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
-                Annuler
-              </Button>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
