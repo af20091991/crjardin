@@ -75,9 +75,10 @@ function ClientPremiumPage() {
   });
 
   useEffect(() => {
-    if (!premiumQ.data) return;
-    setReview((value) => value || premiumQ.data.google_review_url || "");
-    setNote((value) => value || premiumQ.data.commercial_note || "");
+    const premium = premiumQ.data;
+    if (!premium) return;
+    setReview((value) => value || premium.google_review_url || "");
+    setNote((value) => value || premium.commercial_note || "");
   }, [premiumQ.data]);
 
   const toggle = useMutation({
@@ -316,7 +317,7 @@ function ClientPremiumPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {(photosQ.data ?? []).slice(0, 12).map((photo: any) => (
+                  {(photosQ.data ?? []).slice(0, 12).map((photo) => (
                     <button
                       key={photo.id}
                       type="button"
