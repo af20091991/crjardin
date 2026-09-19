@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
-import { getSharedPremium, signedPremiumDocumentUrl } from "@/lib/client-premium";
+import { getSharedPremium, sharedPremiumDocumentUrl } from "@/lib/client-premium";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
 
 const sharedQuery = (token: string) =>
@@ -233,7 +233,7 @@ function SharePage() {
           </TabsContent>
         </Tabs>
 
-        {premium?.enabled && <PremiumSharedSection premium={premium} />}
+        {premium?.enabled && <PremiumSharedSection premium={premium} premiumToken={token} />}
 
         <GeneralMessages token={token} messages={(messages ?? []).filter((m) => !m.intervention_id)} />
 
@@ -565,13 +565,13 @@ function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }
   );
 }
 
-function PremiumSharedSection({ premium }: { premium: NonNullable<Awaited<ReturnType<typeof getSharedPremium>>> }) {
+function PremiumSharedSection({ premium, premiumToken }: { premium: NonNullable<Awaited<ReturnType<typeof getSharedPremium>>>; premiumToken: string }) {
   return <Card className="border-primary/30 bg-primary/5"><CardContent className="space-y-4 pt-6">
     <div><p className="text-xs font-medium uppercase tracking-wide text-primary">Espace Premium</p><h2 className="mt-1 font-serif text-xl font-semibold">Votre suivi Premium</h2></div>
     {premium.commercial_note && <p className="whitespace-pre-wrap text-sm">{premium.commercial_note}</p>}
     {premium.google_review_url && <Button variant="outline" size="sm" asChild><a href={premium.google_review_url} target="_blank" rel="noopener noreferrer">Donner votre avis Google</a></Button>}
     <div className="grid gap-3 md:grid-cols-2">
-      <div className="rounded-lg border bg-background p-3"><p className="mb-2 text-sm font-medium">Documents</p>{premium.documents.length===0?<p className="text-sm text-muted-foreground">Aucun document disponible.</p>:<div className="space-y-2">{premium.documents.map(d=><div key={d.id} className="flex items-center gap-2 text-sm"><FileText className="h-4 w-4 shrink-0"/><span className="min-w-0 flex-1 truncate">{d.title}</span><Button size="sm" variant="ghost" onClick={async()=>{try{window.open(await signedPremiumDocumentUrl(d.storage_path),"_blank")}catch{toast.error("Document indisponible")}}}>Télécharger</Button></div>)}</div>}</div>
+      <div className="rounded-lg border bg-background p-3"><p className="mb-2 text-sm font-medium">Documents</p>{premium.documents.length===0?<p className="text-sm text-muted-foreground">Aucun document disponible.</p>:<div className="space-y-2">{premium.documents.map(d=><div key={d.id} className="flex items-center gap-2 text-sm"><FileText className="h-4 w-4 shrink-0"/><span className="min-w-0 flex-1 truncate">{d.title}</span><Button size="sm" variant="ghost" onClick={async()=>{try{window.open(await sharedPremiumDocumentUrl(premiumToken,d.id),"_blank")}catch{toast.error("Document indisponible")}}}>Télécharger</Button></div>)}</div>}</div>
       <div className="rounded-lg border bg-background p-3"><p className="mb-2 flex items-center gap-1.5 text-sm font-medium"><CalendarDays className="h-4 w-4"/>Planning annuel</p>{premium.planning.length===0?<p className="text-sm text-muted-foreground">Aucun élément validé pour le moment.</p>:<div className="space-y-2">{premium.planning.map(i=><div key={i.id} className="rounded-md border p-2 text-sm"><div className="font-medium">{i.label}</div>{i.period_label&&<div className="text-xs text-muted-foreground">{i.period_label}</div>}{i.notes&&<div className="mt-1 text-xs text-muted-foreground">{i.notes}</div>}</div>)}</div>}<p className="mt-3 text-xs text-muted-foreground">Vous pouvez annoter ce planning via la messagerie ci-dessous ; les données PP restent sous le contrôle de votre jardinier.</p></div>
     </div>
   </CardContent></Card>;
