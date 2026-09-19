@@ -28,7 +28,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/routes/partage.$token.tsx
+          git add 'src/routes/partage.$token.tsx'
           if git diff --cached --quiet; then
             echo "No formatting changes."
             exit 0
