@@ -26,6 +26,7 @@ import { getClientActivityStatus, type ClientActivityStatus } from "@/lib/client
 import { findSuspectClients } from "@/lib/client-cleanup";
 import { listFavoriteClientIds, toggleFavoriteClient } from "@/lib/client-favorites";
 import { listClients, type Client } from "@/lib/clients";
+import { listPremiumClientIds } from "@/lib/client-premium";
 import { formatEuro, listEntries } from "@/lib/pilot";
 import { usePilotYear } from "@/lib/pilot-mode";
 import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
@@ -97,6 +98,11 @@ function ClientsPage() {
   const entriesQuery = useQuery({
     queryKey: ["pilot-entries"],
     queryFn: () => listEntries(),
+    enabled: canEdit,
+  });
+  const premiumQuery = useQuery({
+    queryKey: ["premium-client-ids"],
+    queryFn: listPremiumClientIds,
     enabled: canEdit,
   });
 
@@ -230,6 +236,7 @@ function ClientsPage() {
           })} €/h`
         : undefined,
     isFavorite: favorites.has(row.client.id),
+    isPremium: premiumQuery.data?.includes(row.client.id) ?? false,
   }));
 
   const suspects = useMemo(
