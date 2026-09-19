@@ -1,13 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import {
-  ChevronRight,
-  Mail,
-  MapPin,
-  MoreHorizontal,
-  Phone,
-  Search,
-  Star,
-} from "lucide-react";
+import { ChevronRight, Mail, MapPin, MoreHorizontal, Phone, Search, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,7 +21,6 @@ export interface ClientDirectoryRow {
   hourlyLabel?: string;
   lastActivityLabel?: string;
   isFavorite: boolean;
-  isPremium?: boolean;
 }
 
 interface ClientDirectoryViewProps {
@@ -37,7 +28,6 @@ interface ClientDirectoryViewProps {
   search: string;
   onSearchChange: (value: string) => void;
   onToggleFavorite: (id: string) => void;
-  onTogglePremium?: (id: string, enabled: boolean) => void;
   canEdit: boolean;
 }
 
@@ -46,7 +36,6 @@ export function ClientDirectoryView({
   search,
   onSearchChange,
   onToggleFavorite,
-  onTogglePremium,
   canEdit,
 }: ClientDirectoryViewProps) {
   return (
@@ -77,7 +66,6 @@ export function ClientDirectoryView({
               key={row.id}
               row={row}
               onToggleFavorite={onToggleFavorite}
-              onTogglePremium={onTogglePremium}
               canEdit={canEdit}
             />
           ))}
@@ -90,7 +78,6 @@ export function ClientDirectoryView({
             key={row.id}
             row={row}
             onToggleFavorite={onToggleFavorite}
-            onTogglePremium={onTogglePremium}
             canEdit={canEdit}
           />
         ))}
@@ -102,12 +89,10 @@ export function ClientDirectoryView({
 function DirectoryRow({
   row,
   onToggleFavorite,
-  onTogglePremium,
   canEdit,
 }: {
   row: ClientDirectoryRow;
   onToggleFavorite: (id: string) => void;
-  onTogglePremium?: (id: string, enabled: boolean) => void;
   canEdit: boolean;
 }) {
   return (
@@ -115,18 +100,11 @@ function DirectoryRow({
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
-          aria-label={
-            row.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
-          }
+          aria-label={row.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
           onClick={() => onToggleFavorite(row.id)}
           className="rounded-md p-1 text-muted-foreground hover:text-amber-500"
         >
-          <Star
-            className={cn(
-              "h-4 w-4",
-              row.isFavorite && "fill-amber-400 text-amber-500",
-            )}
-          />
+          <Star className={cn("h-4 w-4", row.isFavorite && "fill-amber-400 text-amber-500")} />
         </button>
         <div className="min-w-0">
           <Link
@@ -134,56 +112,29 @@ function DirectoryRow({
             params={{ clientId: row.id }}
             className="block truncate text-sm font-medium hover:text-primary"
           >
-            {row.civility ? (
-              <span className="text-muted-foreground">{row.civility} </span>
-            ) : null}
+            {row.civility ? <span className="text-muted-foreground">{row.civility} </span> : null}
             {row.name}
           </Link>
           <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            <Badge
-              variant="outline"
-              className={cn("h-5 px-1.5 text-[10px]", row.statusClassName)}
-            >
+            <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", row.statusClassName)}>
               {row.statusLabel}
             </Badge>
             {row.contractType && <span>{row.contractType}</span>}
-            {row.isPremium && (
-              <Badge
-                variant="outline"
-                className="border-primary/40 text-primary"
-              >
-                Premium
-              </Badge>
-            )}
           </div>
         </div>
       </div>
 
       <div className="min-w-0 text-xs text-muted-foreground">
-        <span className="block truncate text-foreground/80">
-          {row.activityLabel}
-        </span>
+        <span className="block truncate text-foreground/80">{row.activityLabel}</span>
         {row.lastActivityLabel && <span>{row.lastActivityLabel}</span>}
       </div>
 
       <div className="text-xs">
         <span className="block font-medium">{row.caLabel ?? "—"}</span>
-        {row.hourlyLabel && (
-          <span className="text-muted-foreground">{row.hourlyLabel}</span>
-        )}
+        {row.hourlyLabel && <span className="text-muted-foreground">{row.hourlyLabel}</span>}
       </div>
 
       <div className="flex items-center justify-end gap-1.5">
-        {canEdit && onTogglePremium && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-xs"
-            onClick={() => onTogglePremium(row.id, !row.isPremium)}
-          >
-            {row.isPremium ? "Premium" : "Activer"}
-          </Button>
-        )}
         <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
           <Link to="/clients/$clientId" params={{ clientId: row.id }}>
             <ChevronRight className="h-4 w-4" />
@@ -210,18 +161,11 @@ function MobileDirectoryRow({
       <div className="flex items-start gap-3">
         <button
           type="button"
-          aria-label={
-            row.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
-          }
+          aria-label={row.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
           onClick={() => onToggleFavorite(row.id)}
           className="mt-0.5 rounded-md p-1 text-muted-foreground hover:text-amber-500"
         >
-          <Star
-            className={cn(
-              "h-4 w-4",
-              row.isFavorite && "fill-amber-400 text-amber-500",
-            )}
-          />
+          <Star className={cn("h-4 w-4", row.isFavorite && "fill-amber-400 text-amber-500")} />
         </button>
         <div className="min-w-0 flex-1">
           <Link
@@ -233,34 +177,13 @@ function MobileDirectoryRow({
             {row.name}
           </Link>
           <div className="mt-1 flex flex-wrap gap-1.5">
-            <Badge
-              variant="outline"
-              className={cn("h-5 px-1.5 text-[10px]", row.statusClassName)}
-            >
+            <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", row.statusClassName)}>
               {row.statusLabel}
             </Badge>
             {row.contractType && (
               <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
                 {row.contractType}
               </Badge>
-            )}
-            {row.isPremium && (
-              <Badge
-                variant="outline"
-                className="h-5 border-primary/40 px-1.5 text-[10px] text-primary"
-              >
-                Premium
-              </Badge>
-            )}
-            {canEdit && onTogglePremium && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-[10px]"
-                onClick={() => onTogglePremium(row.id, !row.isPremium)}
-              >
-                {row.isPremium ? "Premium" : "Activer"}
-              </Button>
             )}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
