@@ -98,9 +98,7 @@ export function PremiumClientDashboard({
         return !Number.isNaN(date.getTime()) && date >= today;
       })
       .sort(
-        (a, b) =>
-          new Date(a.intervention_date).getTime() -
-          new Date(b.intervention_date).getTime(),
+        (a, b) => new Date(a.intervention_date).getTime() - new Date(b.intervention_date).getTime(),
       );
 
     const works = interventions
@@ -115,9 +113,7 @@ export function PremiumClientDashboard({
     return { scheduled, works };
   }, [interventions]);
 
-  const nextPremium = premium.planning
-    .filter((p) => p.status === "valide")
-    .slice(0, 4);
+  const nextPremium = premium.planning.filter((p) => p.status === "valide").slice(0, 4);
 
   const recent = interventions.slice(0, 6);
 
@@ -140,11 +136,7 @@ export function PremiumClientDashboard({
     <div className="overflow-hidden rounded-2xl border border-primary/20 bg-background shadow-sm">
       {coverPhotoUrl ? (
         <div className="relative">
-          <img
-            src={coverPhotoUrl}
-            alt=""
-            className="h-56 w-full object-cover sm:h-72 lg:h-80"
-          />
+          <img src={coverPhotoUrl} alt="" className="h-56 w-full object-cover sm:h-72 lg:h-80" />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent p-5 sm:p-7">
             <Badge className="border-white/30 bg-white/90 text-primary hover:bg-white">
               <Crown className="mr-1.5 h-3.5 w-3.5" />
@@ -165,9 +157,7 @@ export function PremiumClientDashboard({
               <p className="text-xs font-medium uppercase tracking-[.14em] text-primary">
                 Espace Premium
               </p>
-              <h2 className="mt-1 font-serif text-2xl font-semibold">
-                Votre espace jardin
-              </h2>
+              <h2 className="mt-1 font-serif text-2xl font-semibold">Votre espace jardin</h2>
             </div>
           </div>
         </div>
@@ -178,8 +168,8 @@ export function PremiumClientDashboard({
           <div className="min-w-0">
             <p className="text-sm text-muted-foreground">Bonjour {client.name},</p>
             <p className="mt-1 max-w-3xl text-lg font-medium sm:text-xl">
-              Retrouvez ici l'ensemble de votre suivi : travaux à venir, comptes-rendus,
-              photos, recommandations, documents et échanges avec votre jardinier.
+              Retrouvez ici l'ensemble de votre suivi : travaux à venir, comptes-rendus, photos,
+              recommandations, documents et échanges avec votre jardinier.
             </p>
             {premium.commercial_note && (
               <p className="mt-2 max-w-4xl whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
@@ -194,11 +184,7 @@ export function PremiumClientDashboard({
             </Button>
             {premium.google_review_url && (
               <Button variant="outline" asChild>
-                <a
-                  href={premium.google_review_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a href={premium.google_review_url} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-1.5 h-4 w-4" />
                   Donner mon avis Google
                 </a>
@@ -233,7 +219,9 @@ export function PremiumClientDashboard({
           <Summary
             label="Conseils"
             value={recommendations.length}
-            hint={unreadRecos ? `${unreadRecos} nouveau${unreadRecos > 1 ? "x" : ""}` : "à consulter"}
+            hint={
+              unreadRecos ? `${unreadRecos} nouveau${unreadRecos > 1 ? "x" : ""}` : "à consulter"
+            }
             onClick={() => setActive("recommendations")}
           />
           <Summary
@@ -279,7 +267,10 @@ export function PremiumClientDashboard({
                 {recommendations.length ? (
                   <div className="space-y-2">
                     {recommendations.slice(0, 4).map((r) => (
-                      <div key={r.id} className="flex items-start gap-2 border-b py-2 last:border-0">
+                      <div
+                        key={r.id}
+                        className="flex items-start gap-2 border-b py-2 last:border-0"
+                      >
                         <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium">{r.title}</p>
@@ -312,9 +303,7 @@ export function PremiumClientDashboard({
                         <p className="text-sm font-medium">
                           {i.title ?? i.intervention_type ?? "Intervention"}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {fmt(i.intervention_date)}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{fmt(i.intervention_date)}</p>
                       </div>
                     </div>
                   ))
@@ -330,7 +319,10 @@ export function PremiumClientDashboard({
               >
                 {premium.documents.length ? (
                   premium.documents.slice(0, 5).map((d) => (
-                    <div key={d.id} className="flex items-center gap-2 border-b py-2.5 last:border-0">
+                    <div
+                      key={d.id}
+                      className="flex items-center gap-2 border-b py-2.5 last:border-0"
+                    >
                       <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <span className="min-w-0 flex-1 truncate text-sm">{d.title}</span>
                       {d.year && <Badge variant="outline">{d.year}</Badge>}
@@ -352,9 +344,9 @@ export function PremiumClientDashboard({
                 <div>
                   <p className="font-medium">Votre planning des travaux</p>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Le programme détecte automatiquement les prochaines interventions et les
-                    travaux mentionnés dans vos comptes-rendus. Les éléments Premium validés
-                    depuis votre calendrier sont affichés avec eux.
+                    Le programme détecte automatiquement les prochaines interventions et les travaux
+                    mentionnés dans vos comptes-rendus. Les éléments Premium validés depuis votre
+                    calendrier sont affichés avec eux.
                   </p>
                 </div>
               </div>
@@ -370,9 +362,7 @@ export function PremiumClientDashboard({
                           <p className="font-medium">
                             {i.title ?? i.intervention_type ?? "Intervention"}
                           </p>
-                          <p className="mt-0.5 text-sm text-primary">
-                            {fmt(i.intervention_date)}
-                          </p>
+                          <p className="mt-0.5 text-sm text-primary">{fmt(i.intervention_date)}</p>
                           {i.summary && (
                             <p className="mt-1 text-sm leading-5 text-muted-foreground">
                               {i.summary}
@@ -466,9 +456,7 @@ export function PremiumClientDashboard({
                           {fmt(i.intervention_date)}
                         </p>
                       </div>
-                      <Badge variant="outline">
-                        {i.sent_to_client_at ? "Envoyé" : "Suivi"}
-                      </Badge>
+                      <Badge variant="outline">{i.sent_to_client_at ? "Envoyé" : "Suivi"}</Badge>
                     </div>
                   </div>
                 ))
@@ -558,11 +546,7 @@ export function PremiumClientDashboard({
                               ? "Pas pour le moment"
                               : "À consulter"}
                         </Badge>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setActive("messages")}
-                        >
+                        <Button size="sm" variant="outline" onClick={() => setActive("messages")}>
                           En parler
                         </Button>
                       </div>
@@ -708,9 +692,7 @@ function PlanningPreview({
           <Leaf className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div className="min-w-0">
             <p className="text-sm font-medium">{p.label}</p>
-            <p className="text-xs text-muted-foreground">
-              {p.period_label ?? p.year ?? "À venir"}
-            </p>
+            <p className="text-xs text-muted-foreground">{p.period_label ?? p.year ?? "À venir"}</p>
           </div>
         </div>
       ))}
@@ -832,15 +814,7 @@ function Panel({
   );
 }
 
-function Row({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon?: typeof MapPin;
-}) {
+function Row({ label, value, icon: Icon }: { label: string; value: string; icon?: typeof MapPin }) {
   return (
     <div className="flex min-w-0 items-start gap-2 border-b py-2.5 last:border-0">
       {Icon ? (
