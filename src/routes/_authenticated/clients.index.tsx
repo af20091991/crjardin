@@ -26,7 +26,7 @@ import { getClientActivityStatus, type ClientActivityStatus } from "@/lib/client
 import { findSuspectClients } from "@/lib/client-cleanup";
 import { listFavoriteClientIds, toggleFavoriteClient } from "@/lib/client-favorites";
 import { listClients, type Client } from "@/lib/clients";
-import { listPremiumClientIds } from "@/lib/client-premium";
+import { listPremiumClientIds, setClientPremiumEnabled } from "@/lib/client-premium";
 import { formatEuro, listEntries } from "@/lib/pilot";
 import { usePilotYear } from "@/lib/pilot-mode";
 import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
@@ -116,6 +116,15 @@ function ClientsPage() {
       toggleFavoriteClient(id, value),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["favorite-clients"] }),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const premiumMutation = useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) => setClientPremiumEnabled(id, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["premium-client-ids"] });
+      toast.success("Client Premium mis à jour");
+    },
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -339,6 +348,7 @@ function ClientsPage() {
               value: !favorites.has(id),
             })
           }
+          onTogglePremium={(id, enabled) => premiumMutation.mutate({ id, enabled })}
           canEdit={canEdit}
         />
 
