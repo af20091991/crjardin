@@ -501,9 +501,7 @@ function PremiumRequest({ token }: { token: string }) {
     },
     onError: (error) =>
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "Impossible d'envoyer la demande.",
+        error instanceof Error ? error.message : "Impossible d'envoyer la demande.",
       ),
   });
 
@@ -540,11 +538,7 @@ function PremiumRequest({ token }: { token: string }) {
               >
                 {send.isPending ? "Envoi…" : "Envoyer ma demande"}
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setOpen(false)}
-              >
+              <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
                 Annuler
               </Button>
             </div>
@@ -554,7 +548,6 @@ function PremiumRequest({ token }: { token: string }) {
     </Card>
   );
 }
-
 
 function StatCard({
   label,
