@@ -102,10 +102,6 @@ export function ClientDirectoryView({
 function DirectoryRow({
   row,
   onToggleFavorite,
-  canEdit,
-function DirectoryRow({
-  row,
-  onToggleFavorite,
   onTogglePremium,
   canEdit,
 }: {
@@ -182,10 +178,6 @@ function DirectoryRow({
   );
 }
 
-function MobileDirectoryRow({
-  row,
-  onToggleFavorite,
-  canEdit,
 function MobileDirectoryRow({
   row,
   onToggleFavorite,
