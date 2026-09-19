@@ -1,0 +1,34 @@
+name: one-off-format-client-premium-share
+
+on:
+  push:
+    branches:
+      - tmp/format-client-premium-share
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: adpp/client-premium-final
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bunx prettier@3.8.3 --write src/routes/partage.$token.tsx
+      - name: Commit formatted file to target branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/partage.$token.tsx
+          if git diff --cached --quiet; then
+            echo "No formatting changes."
+            exit 0
+          fi
+          git commit -m "style(client-premium): format shared Premium route"
+          git push origin HEAD:adpp/client-premium-final
