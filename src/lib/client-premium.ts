@@ -230,19 +230,21 @@ export async function createPlanningItems(
 ): Promise<void> {
   if (!rows.length) return;
 
-  const items = rows.map((row, index) => ({
-    client_id: clientId,
-    document_id: documentId,
-    label: row.label,
-    period_label: row.monthLabel,
-    start_date: null,
-    end_date: null,
-    year: null,
-    status: "a_valider",
-    source: "pdf",
-    notes: [row.type, ...row.tasks].filter(Boolean).join(" · "),
-    position: index,
-  }));
+  const items = rows.flatMap((row) =>
+    row.tasks.map((task, taskIndex) => ({
+      client_id: clientId,
+      document_id: documentId,
+      label: task,
+      period_label: row.year ? row.monthLabel + " " + row.year : row.monthLabel,
+      start_date: null,
+      end_date: null,
+      year: row.year,
+      status: "a_valider",
+      source: "pdf",
+      notes: row.type || null,
+      position: row.index * 100 + taskIndex,
+    })),
+  );
 
   const { error } = await db
     .from("client_premium_planning_items")
@@ -267,7 +269,7 @@ export async function uploadPremiumDocument(
 
   let extractedRows: Awaited<ReturnType<typeof parsePlanning>> = [];
   if (kind === "planning") {
-    extractedRows = await parsePlanning(file);
+    extractedRows = await parsePlanning(file, year);
   }
 
   const path = `${clientId}/${crypto.randomUUID()}-${file.name.replace(
@@ -297,7 +299,7 @@ export async function uploadPremiumDocument(
 
   if (error) throw new Error(error.message);
 
-  const extractedCount = extractedRows.length;
+  const extractedCount = extractedRows.reduce((count, row) => count + row.tasks.length, 0);
   if (extractedRows.length > 0) {
     try {
       await createPlanningItems(clientId, data.id, extractedRows);
