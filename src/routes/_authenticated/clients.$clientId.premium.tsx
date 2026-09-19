@@ -85,7 +85,7 @@ function UpcomingPlanningCard({ items }: { items: PremiumPlanningItem[] }) {
         <div>
           <p className="text-sm font-medium">Travaux à venir détectés</p>
           <p className="text-xs text-muted-foreground">
-            Détectés automatiquement dans le calendrier PDF. Les éléments restent à valider avant
+            Détectés automatiquement depuis le calendrier PDF. Les éléments restent à valider avant
             d’être présentés au client.
           </p>
         </div>
