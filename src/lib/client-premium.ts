@@ -359,6 +359,7 @@ export async function getSharedPremium(token: string) {
     enabled: boolean;
     google_review_url: string | null;
     commercial_note: string | null;
+    cover_photo_id: string | null;
     documents: PremiumDocument[];
     planning: PremiumPlanningItem[];
   } | null;
