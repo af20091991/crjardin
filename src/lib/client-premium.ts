@@ -24,6 +24,30 @@ export type PremiumDocument = {
   created_at: string;
 };
 
+type PremiumIntervention = {
+  id: string;
+  title: string | null;
+  intervention_date: string | null;
+};
+
+type PremiumPhoto = {
+  id: string;
+  intervention_id: string;
+  storage_path: string;
+  caption: string | null;
+  created_at: string | null;
+};
+
+export type PremiumPhotoRow = {
+  id: string;
+  storage_path: string;
+  caption: string | null;
+  created_at: string | null;
+  intervention_date: string | null;
+  intervention_title: string | null;
+  url: string | null;
+};
+
 export type PremiumPlanningItem = {
   id: string;
   client_id: string;
@@ -318,15 +342,15 @@ export async function listPremiumPhotos(clientId: string) {
 
   if (photoError) throw new Error(photoError.message);
 
-  const interventionMap = new Map(
-    (interventions ?? []).map((intervention: any) => [
+  const interventionMap = new Map<string, PremiumIntervention>(
+    (interventions ?? []).map((intervention: PremiumIntervention) => [
       intervention.id,
       intervention,
     ]),
   );
 
   const rows = await Promise.all(
-    (photos ?? []).map(async (photo: any) => {
+    (photos ?? []).map(async (photo: PremiumPhoto): Promise<PremiumPhotoRow> => {
       const intervention = interventionMap.get(photo.intervention_id);
       let url: string | null = null;
 
@@ -347,15 +371,14 @@ export async function listPremiumPhotos(clientId: string) {
         caption: photo.caption,
         created_at: photo.created_at,
         intervention_date:
-          intervention?.intervention_date ??
-          photo.created_at?.slice(0, 10),
+          intervention?.intervention_date ?? photo.created_at?.slice(0, 10) ?? null,
         intervention_title: intervention?.title ?? null,
         url,
       };
     }),
   );
 
-  return rows.sort((a: any, b: any) =>
+  return rows.sort((a, b) =>
     String(b.intervention_date).localeCompare(String(a.intervention_date)),
   );
 }
