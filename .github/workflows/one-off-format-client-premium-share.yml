@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - tmp/format-client-premium-share
+  pull_request:
+    branches:
+      - adpp/client-premium-final
 
 permissions:
   contents: write
