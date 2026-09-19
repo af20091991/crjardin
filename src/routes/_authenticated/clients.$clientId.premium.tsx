@@ -26,6 +26,7 @@ import {
   updateClientPremium,
   updatePlanningItem,
   uploadPremiumDocument,
+  type PremiumPlanningItem,
 } from "@/lib/client-premium";
 import { AppShell } from "@/components/AppShell";
 import {
