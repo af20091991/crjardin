@@ -120,12 +120,9 @@ function isNoiseRow(joined: string): boolean {
 // Sections après lesquelles il n'y a plus d'interventions (on arrête le parsing)
 function isStopRow(joined: string): boolean {
   const d = deburr(joined);
-  return [
-    "total entretien",
-    "ce planning",
-    "respect de la saisonnalite",
-    "note :",
-  ].some((p) => d.includes(p));
+  return ["total entretien", "ce planning", "respect de la saisonnalite", "note :"].some(
+    (p) => d.includes(p),
+  );
 }
 
 // ───────────────────────── Extraction du tableau ─────────────────────────
@@ -250,8 +247,7 @@ async function planningFromPdf(
   const calendarStartYear =
     yearMatches.length > 0
       ? Number(yearMatches[0][1])
-      : ([...allText.matchAll(/\b(20\d{2})\b/g)].map((m) => Number(m[1]))[0] ??
-        fallbackYear);
+      : ([...allText.matchAll(/\b(20\d{2})\b/g)].map((m) => Number(m[1]))[0] ?? fallbackYear);
 
   // Regroupement en lignes par coordonnée Y
   all.sort((a, b) => a.y - b.y || a.x - b.x);
@@ -270,12 +266,8 @@ async function planningFromPdf(
   if (current.length) rawLines.push(current);
 
   // Sans 3 colonnes fiables : repli sur une seule colonne « travaux »
-  const typeStart = columnStarts
-    ? (columnStarts[0] + columnStarts[1]) / 2
-    : -1;
-  const travauxStart = columnStarts
-    ? (columnStarts[1] + columnStarts[2]) / 2
-    : -1;
+  const typeStart = columnStarts ? (columnStarts[0] + columnStarts[1]) / 2 : -1;
+  const travauxStart = columnStarts ? (columnStarts[1] + columnStarts[2]) / 2 : -1;
   const remarksStart =
     columnStarts?.[3] != null
       ? (columnStarts[2] + columnStarts[3]) / 2
@@ -286,12 +278,7 @@ async function planningFromPdf(
     const join = (pred: (x: number) => boolean) =>
       sorted.filter((i) => pred(i.x)).map((i) => i.str).join(" ").trim();
     if (travauxStart < 0) {
-      return {
-        y: sorted[0].y,
-        month: join(() => true),
-        type: "",
-        travaux: join(() => true),
-      };
+      return { y: sorted[0].y, month: join(() => true), type: "", travaux: join(() => true) };
     }
     return {
       y: sorted[0].y,
@@ -332,9 +319,7 @@ async function planningFromPdf(
         y: l.y,
         month: m.num,
         monthLabel: m.label,
-        label:
-          (mInMonth ? l.month : l.type).replace(/\s+/g, " ").trim() ||
-          m.label,
+        label: (mInMonth ? l.month : l.type).replace(/\s+/g, " ").trim() || m.label,
         typeTokens: new Set(),
         tasks: [],
       });
@@ -346,10 +331,7 @@ async function planningFromPdf(
   const lowB: number[] = [];
   const highB: number[] = [];
   for (let i = 0; i < anchors.length; i++) {
-    lowB[i] =
-      i === 0
-        ? Number.NEGATIVE_INFINITY
-        : (anchors[i - 1].y + anchors[i].y) / 2;
+    lowB[i] = i === 0 ? Number.NEGATIVE_INFINITY : (anchors[i - 1].y + anchors[i].y) / 2;
     highB[i] =
       i === anchors.length - 1
         ? Number.POSITIVE_INFINITY
@@ -376,11 +358,7 @@ async function planningFromPdf(
   let previousMonth: number | null = null;
 
   return anchors.map<PlanningRow>((a, i) => {
-    if (
-      inferredYear != null &&
-      previousMonth != null &&
-      a.month < previousMonth
-    ) {
+    if (inferredYear != null && previousMonth != null && a.month < previousMonth) {
       inferredYear += 1;
     }
     previousMonth = a.month;
@@ -474,9 +452,7 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
         month: m.num,
         monthLabel: m.label,
         label: cleanLabel(monthInMonth ? monthText : typeText) || m.label,
-        type: cleanLabel(
-          monthInMonth ? typeText.replace(/\r?\n/g, " · ") : "",
-        ),
+        type: cleanLabel(monthInMonth ? typeText.replace(/\r?\n/g, " · ") : ""),
         tasks: [...tasks],
         year: Number(monthText.match(/\b(20\d{2})\b/)?.[1] ?? NaN) || null,
       };
