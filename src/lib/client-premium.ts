@@ -299,7 +299,10 @@ export async function uploadPremiumDocument(
 
   if (error) throw new Error(error.message);
 
-  const extractedCount = extractedRows.reduce((count, row) => count + row.tasks.length, 0);
+  const extractedCount = extractedRows.reduce(
+    (count, row) => count + row.tasks.length,
+    0,
+  );
   if (extractedRows.length > 0) {
     try {
       await createPlanningItems(clientId, data.id, extractedRows);
