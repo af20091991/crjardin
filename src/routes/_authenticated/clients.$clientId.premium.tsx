@@ -85,7 +85,10 @@ function UpcomingPlanningCard({ items }: { items: PremiumPlanningItem[] }) {
         const ay = a.year ?? 9999;
         const by = b.year ?? 9999;
         if (ay !== by) return ay - by;
-        return String(a.period_label).localeCompare(String(b.period_label), "fr");
+        return String(a.period_label).localeCompare(
+          String(b.period_label),
+          "fr",
+        );
       });
   }, [items]);
 
@@ -95,7 +98,8 @@ function UpcomingPlanningCard({ items }: { items: PremiumPlanningItem[] }) {
         <div>
           <p className="text-sm font-medium">Travaux à venir détectés</p>
           <p className="text-xs text-muted-foreground">
-            Détectés automatiquement dans le calendrier PDF. Les éléments restent à valider avant d’être présentés au client.
+            Détectés automatiquement dans le calendrier PDF. Les éléments restent à valider
+            avant d’être présentés au client.
           </p>
         </div>
         <Badge variant="outline">{upcoming.length} à venir</Badge>
@@ -103,11 +107,16 @@ function UpcomingPlanningCard({ items }: { items: PremiumPlanningItem[] }) {
       {upcoming.length > 0 ? (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {upcoming.slice(0, 8).map((item) => (
-            <div key={item.id} className="rounded-md border bg-background px-3 py-2">
+            <div
+              key={item.id}
+              className="rounded-md border bg-background px-3 py-2"
+            >
               <p className="text-sm">{item.label}</p>
               <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                 <span>{item.period_label}</span>
-                <Badge variant={item.status === "valide" ? "default" : "secondary"}>
+                <Badge
+                  variant={item.status === "valide" ? "default" : "secondary"}
+                >
                   {item.status === "valide" ? "Validé" : "À valider"}
                 </Badge>
               </div>
