@@ -120,7 +120,8 @@ function ClientsPage() {
   });
 
   const premiumMutation = useMutation({
-    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) => setClientPremiumEnabled(id, enabled),
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      setClientPremiumEnabled(id, enabled),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["premium-client-ids"] });
       toast.success("Client Premium mis à jour");
