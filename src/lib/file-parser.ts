@@ -271,7 +271,7 @@ async function planningFromPdf(
     yearMatches.length > 0
       ? Number(yearMatches[0][1])
       : ([...allText.matchAll(/\b(20\d{2})\b/g)].map((m) => Number(m[1]))[0] ??
-        fallbackYear);
+          fallbackYear);
 
   // Regroupement en lignes par coordonnée Y
   all.sort((a, b) => a.y - b.y || a.x - b.x);
