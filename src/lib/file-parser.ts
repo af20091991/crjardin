@@ -56,6 +56,7 @@ function splitCellTasks(cell: string): string[] {
     const cleaned = raw
       .replace(/^[\s•·▪‣◦*\-–—]+/, "")
       .replace(/^\d+[.)]\s*/, "")
+      .replace(/([a-zà-ÿ])([1-9])$/i, "$1")
       .trim();
     if (cleaned.length < 2) continue;
     if (cleaned.length > 200) continue;
@@ -64,6 +65,28 @@ function splitCellTasks(cell: string): string[] {
     out.push(cleaned);
   }
   return Array.from(new Set(out));
+}
+
+function mergeTaskLines(tasks: string[]): string[] {
+  const merged: string[] = [];
+  for (const task of tasks) {
+    const current = task.trim();
+    if (!current) continue;
+
+    const previous = merged[merged.length - 1];
+    const continuation =
+      previous &&
+      (previous.endsWith(":") ||
+        current.startsWith("(") ||
+        /^[a-zà-ÿ]/.test(current));
+
+    if (continuation) {
+      merged[merged.length - 1] = `${previous} ${current}`;
+    } else {
+      merged.push(current);
+    }
+  }
+  return Array.from(new Set(merged));
 }
 
 // Lignes parasites (en-têtes de page, notes, totaux, signature…)
@@ -357,7 +380,7 @@ async function planningFromPdf(
       monthLabel: a.monthLabel,
       label: a.label,
       type: [...a.typeTokens].slice(0, 6).join(" · "),
-      tasks: Array.from(new Set(a.tasks)),
+      tasks: mergeTaskLines(a.tasks),
       year: inferredYear,
     };
   });
