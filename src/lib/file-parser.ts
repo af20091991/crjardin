@@ -120,9 +120,12 @@ function isNoiseRow(joined: string): boolean {
 // Sections après lesquelles il n'y a plus d'interventions (on arrête le parsing)
 function isStopRow(joined: string): boolean {
   const d = deburr(joined);
-  return ["total entretien", "ce planning", "respect de la saisonnalite", "note :"].some(
-    (p) => d.includes(p),
-  );
+  return [
+    "total entretien",
+    "ce planning",
+    "respect de la saisonnalite",
+    "note :",
+  ].some((p) => d.includes(p));
 }
 
 // ───────────────────────── Extraction du tableau ─────────────────────────
@@ -137,23 +140,23 @@ async function tableFromDocx(file: File): Promise<string[][]> {
   const rows: string[][] = [];
   tables.forEach((table) => {
     table.querySelectorAll("tr").forEach((tr) => {
-    const cells: string[] = [];
-    tr.querySelectorAll("th,td").forEach((td) => {
-      // remplace les blocs par des sauts de ligne pour conserver les tâches
-      const blocks = td.querySelectorAll("p,li,br");
-      let text: string;
-      if (blocks.length) {
-        text = Array.from(td.querySelectorAll("p,li"))
-          .map((b) => (b.textContent || "").trim())
-          .filter(Boolean)
-          .join("\n");
-        if (!text) text = (td.textContent || "").trim();
-      } else {
-        text = (td.textContent || "").trim();
-      }
-      cells.push(text);
-    });
-    if (cells.length) rows.push(cells);
+      const cells: string[] = [];
+      tr.querySelectorAll("th,td").forEach((td) => {
+        // remplace les blocs par des sauts de ligne pour conserver les tâches
+        const blocks = td.querySelectorAll("p,li,br");
+        let text: string;
+        if (blocks.length) {
+          text = Array.from(td.querySelectorAll("p,li"))
+            .map((b) => (b.textContent || "").trim())
+            .filter(Boolean)
+            .join("\n");
+          if (!text) text = (td.textContent || "").trim();
+        } else {
+          text = (td.textContent || "").trim();
+        }
+        cells.push(text);
+      });
+      if (cells.length) rows.push(cells);
     });
   });
   return rows;
@@ -343,7 +346,10 @@ async function planningFromPdf(
   const lowB: number[] = [];
   const highB: number[] = [];
   for (let i = 0; i < anchors.length; i++) {
-    lowB[i] = i === 0 ? Number.NEGATIVE_INFINITY : (anchors[i - 1].y + anchors[i].y) / 2;
+    lowB[i] =
+      i === 0
+        ? Number.NEGATIVE_INFINITY
+        : (anchors[i - 1].y + anchors[i].y) / 2;
     highB[i] =
       i === anchors.length - 1
         ? Number.POSITIVE_INFINITY
@@ -482,7 +488,10 @@ function planningFromTable(rows: string[][]): PlanningRow[] {
   return result;
 }
 
-export async function parsePlanning(file: File, fallbackYear: number | null = null): Promise<PlanningRow[]> {
+export async function parsePlanning(
+  file: File,
+  fallbackYear: number | null = null,
+): Promise<PlanningRow[]> {
   const name = file.name.toLowerCase();
   if (name.endsWith(".pdf") || file.type === "application/pdf") {
     return planningFromPdf(file, fallbackYear);
