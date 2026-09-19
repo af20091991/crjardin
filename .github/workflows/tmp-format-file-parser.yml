@@ -1,0 +1,31 @@
+name: Temporary format file-parser
+
+on:
+  push:
+    branches:
+      - feat/client-premium-pdf-upcoming-works
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun ci
+      - run: bunx prettier --write src/lib/file-parser.ts
+      - name: Commit formatted file and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/file-parser.ts
+          git rm .github/workflows/tmp-format-file-parser.yml
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "style(premium): format PDF parser with repository Prettier"
+          git push
