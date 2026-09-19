@@ -181,6 +181,10 @@ function SharePage() {
   const [tab, setTab] = useState("reports");
 
   useEffect(() => {
+    if (premium?.enabled) setTab("premium");
+  }, [premium?.enabled]);
+
+  useEffect(() => {
     markSharedRead({ data: { token } }).catch(() => {});
   }, [token]);
 
@@ -344,6 +348,7 @@ function SharePage() {
                 premium={premium}
                 premiumToken={token}
                 coverPhotoUrl={premiumCoverUrl}
+                interventions={interventions}
               />
             </TabsContent>
           )}
@@ -364,65 +369,117 @@ function PremiumSharedSection({
   premium,
   premiumToken,
   coverPhotoUrl,
+  interventions,
 }: {
   premium: NonNullable<Awaited<ReturnType<typeof getSharedPremium>>>;
   premiumToken: string;
   coverPhotoUrl: string | null;
+  interventions: SharedIntervention[];
 }) {
+  const recentPhotos = interventions
+    .flatMap((intervention) =>
+      intervention.photos
+        .filter((photo) => photo.url)
+        .map((photo) => ({
+          ...photo,
+          date: intervention.intervention_date,
+          title: intervention.title,
+        })),
+    )
+    .slice(0, 6);
+
+  const nextItems = premium.planning.slice(0, 5);
+
   return (
-    <Card className="overflow-hidden border-primary/30 bg-primary/5">
-      {coverPhotoUrl && (
-        <img
-          src={coverPhotoUrl}
-          alt=""
-          className="h-44 w-full object-cover sm:h-56"
-        />
-      )}
-      <CardContent className="space-y-5 pt-6">
-        <div className="flex items-start gap-3">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-            <Crown className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">Espace Premium</p>
-            <h2 className="mt-1 font-serif text-2xl font-semibold">Votre espace privilégié</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Un espace dédié pour retrouver vos documents, votre planning et les informations préparées pour votre jardin.
-            </p>
-          </div>
-        </div>
-
-        {premium.commercial_note && (
-          <p className="whitespace-pre-wrap text-sm">{premium.commercial_note}</p>
+    <div className="space-y-4">
+      <Card className="overflow-hidden border-primary/40 bg-primary/5">
+        {coverPhotoUrl && (
+          <img
+            src={coverPhotoUrl}
+            alt=""
+            className="h-44 w-full object-cover sm:h-56"
+          />
         )}
+        <CardContent className="space-y-5 pt-6">
+          <div className="flex items-start gap-3">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+              <Crown className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">
+                Espace Premium
+              </p>
+              <h2 className="mt-1 font-serif text-2xl font-semibold">
+                Votre espace privilégié
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Un espace préparé spécialement pour vous : documents, planning,
+                photos du jardin et demandes directes à votre jardinier.
+              </p>
+            </div>
+          </div>
 
-        {premium.google_review_url && (
-          <Button variant="outline" size="sm" asChild>
-            <a href={premium.google_review_url} target="_blank" rel="noopener noreferrer">
-              Donner votre avis Google
-            </a>
-          </Button>
-        )}
+          {premium.commercial_note && (
+            <div className="rounded-xl border bg-background p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-primary">
+                Un mot pour vous
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-sm leading-6">
+                {premium.commercial_note}
+              </p>
+            </div>
+          )}
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg border bg-background p-3">
-            <p className="mb-2 text-sm font-medium">Documents</p>
-            {premium.documents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucun document disponible.</p>
-            ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <PremiumFeature
+              icon={FileText}
+              label="Documents"
+              value={premium.documents.length ? String(premium.documents.length) : "Aucun"}
+            />
+            <PremiumFeature
+              icon={CalendarDays}
+              label="Planning"
+              value={premium.planning.length ? String(premium.planning.length) + " étape(s)" : "À venir"}
+            />
+            <PremiumFeature
+              icon={Images}
+              label="Photos"
+              value={recentPhotos.length ? "Dernières photos" : "À venir"}
+            />
+            <PremiumFeature
+              icon={MessageSquarePlus}
+              label="Contact direct"
+              value="Demande Premium"
+            />
+          </div>
+
+          <PremiumRequest token={premiumToken} />
+
+          {premium.documents.length > 0 && (
+            <div className="rounded-xl border bg-background p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-medium">Vos documents</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Documents sélectionnés pour votre espace.
+                  </p>
+                </div>
+                <FileText className="h-4 w-4 text-primary" />
+              </div>
               <div className="space-y-2">
                 {premium.documents.map((document) => (
-                  <div key={document.id} className="flex items-center gap-2 text-sm">
+                  <div key={document.id} className="flex items-center gap-2 rounded-lg border p-2 text-sm">
                     <FileText className="h-4 w-4 shrink-0" />
                     <span className="min-w-0 flex-1 truncate">{document.title}</span>
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       onClick={async () => {
                         try {
                           window.open(
                             await sharedPremiumDocumentUrl(premiumToken, document.id),
                             "_blank",
+                            "noopener",
                           );
                         } catch (error) {
                           toast.error(
@@ -431,44 +488,178 @@ function PremiumSharedSection({
                         }
                       }}
                     >
-                      Télécharger
+                      Ouvrir
                     </Button>
                   </div>
                 ))}
               </div>
-            )}
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border bg-background p-4">
+              <h3 className="font-medium">Votre planning</h3>
+              {nextItems.length === 0 ? (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Votre planning personnalisé sera affiché ici dès qu’il sera préparé.
+                </p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {nextItems.map((item) => (
+                    <div key={item.id} className="rounded-lg border p-3">
+                      <p className="text-sm font-medium">{item.label}</p>
+                      {item.period_label && (
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {item.period_label}
+                        </p>
+                      )}
+                      {item.notes && (
+                        <p className="mt-1 text-xs text-muted-foreground">{item.notes}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border bg-background p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-medium">Dernières photos</h3>
+                <Images className="h-4 w-4 text-primary" />
+              </div>
+              {recentPhotos.length === 0 ? (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Les prochaines photos de votre jardin apparaîtront ici.
+                </p>
+              ) : (
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {recentPhotos.map((photo) => (
+                    <div key={photo.id} className="overflow-hidden rounded-lg border">
+                      <img
+                        src={photo.url!}
+                        alt={photo.caption ?? "Photo du jardin"}
+                        className="h-20 w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="rounded-lg border bg-background p-3">
-            <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
-              <CalendarDays className="h-4 w-4" />
-              Planning annuel
-            </p>
-            {premium.planning.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucun élément validé pour le moment.</p>
-            ) : (
-              <div className="space-y-2">
-                {premium.planning.map((item) => (
-                  <div key={item.id} className="rounded-md border p-2 text-sm">
-                    <div className="font-medium">{item.label}</div>
-                    {item.period_label && (
-                      <div className="text-xs text-muted-foreground">{item.period_label}</div>
-                    )}
-                    {item.notes && (
-                      <div className="mt-1 text-xs text-muted-foreground">{item.notes}</div>
-                    )}
-                  </div>
-                ))}
+          {premium.google_review_url && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-background p-4">
+              <div>
+                <p className="font-medium">Votre expérience vous a plu ?</p>
+                <p className="text-xs text-muted-foreground">
+                  Vous pouvez partager votre avis sur Google.
+                </p>
               </div>
-            )}
-            <p className="mt-3 text-xs text-muted-foreground">
-              Vous pouvez annoter ce planning via la messagerie ci-dessous ; les données PP restent
-              sous le contrôle de votre jardinier.
-            </p>
+              <Button variant="outline" size="sm" asChild>
+                <a
+                  href={premium.google_review_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Donner votre avis Google
+                </a>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function PremiumFeature({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof FileText;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border bg-background p-3">
+      <Icon className="h-4 w-4 text-primary" />
+      <p className="mt-2 text-xs text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-sm font-medium">{value}</p>
+    </div>
+  );
+}
+
+function PremiumRequest({ token }: { token: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [content, setContent] = useState("");
+
+  const send = useMutation({
+    mutationFn: () =>
+      addClientMessage({
+        data: {
+          token,
+          interventionId: null,
+          kind: "question",
+          content: `[DEMANDE PREMIUM] ${content.trim()}`,
+          authorName: null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Votre demande a bien été envoyée à votre jardinier.");
+      setContent("");
+      setOpen(false);
+      qc.invalidateQueries({ queryKey: ["shared-messages", token] });
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Impossible d'envoyer la demande."),
+  });
+
+  return (
+    <div className="rounded-xl border border-primary/30 bg-background p-4">
+      <div className="flex items-start gap-3">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+          <MessageSquarePlus className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium">Une demande particulière ?</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Depuis Premium, vous pouvez demander directement un conseil, une intervention
+            ou un document. Votre jardinier reçoit votre demande dans son suivi habituel.
+          </p>
+        </div>
+      </div>
+
+      {!open ? (
+        <Button className="mt-3" size="sm" onClick={() => setOpen(true)}>
+          Faire une demande Premium
+        </Button>
+      ) : (
+        <div className="mt-3 space-y-2">
+          <Textarea
+            value={content}
+            onChange={(event) => setContent(event.target.value)}
+            rows={4}
+            placeholder="Expliquez simplement ce dont vous avez besoin…"
+            autoFocus
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              disabled={!content.trim() || send.isPending}
+              onClick={() => send.mutate()}
+            >
+              {send.isPending ? "Envoi…" : "Envoyer ma demande"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+              Annuler
+            </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
 
