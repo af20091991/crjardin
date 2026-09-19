@@ -29,6 +29,7 @@ import { listClients, type Client } from "@/lib/clients";
 import { formatEuro, listEntries } from "@/lib/pilot";
 import { usePilotYear } from "@/lib/pilot-mode";
 import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
+import { listPremiumClientIds } from "@/lib/client-premium";
 
 export const Route = createFileRoute("/_authenticated/clients/")({
   head: () => ({
@@ -90,6 +91,7 @@ function ClientsPage() {
     queryKey: ["clients"],
     queryFn: listClients,
   });
+  const premiumQuery = useQuery({ queryKey: ["premium-client-ids"], queryFn: listPremiumClientIds, enabled: canEdit });
   const favoritesQuery = useQuery({
     queryKey: ["favorite-clients"],
     queryFn: listFavoriteClientIds,
@@ -230,6 +232,7 @@ function ClientsPage() {
           })} €/h`
         : undefined,
     isFavorite: favorites.has(row.client.id),
+    isPremium: premiumQuery.data?.includes(row.client.id) ?? false,
   }));
 
   const suspects = useMemo(
