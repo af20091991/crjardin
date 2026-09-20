@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/pilot/EmptyState";
@@ -190,7 +191,7 @@ function formatPercent(value: number) {
   return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(value);
 }
 
-function Header({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function Header({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {
   return (
     <div className="flex items-start gap-3">
       <div className="rounded-lg bg-muted/50 p-2">{icon}</div>
