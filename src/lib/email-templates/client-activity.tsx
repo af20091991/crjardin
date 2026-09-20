@@ -48,6 +48,7 @@ const Email = ({ clientName, actionText, contentPreview, clientUrl }: Props) => 
 
 export const template = {
   component: Email,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches TemplateEntry's signature
   subject: (data: Record<string, any>) => {
     const isDocument = data?.actionText === "a ajouté un document";
     return `${isDocument ? "Nouveau document" : "Nouveau message"} de ${data?.clientName ?? "votre client"}`;

@@ -1,9 +1,12 @@
 import type { ComponentType } from "react";
 
 export interface TemplateEntry {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous template registry
   component: ComponentType<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous template data
   subject: string | ((data: Record<string, any>) => string);
   displayName?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous template data
   previewData?: Record<string, any>;
   /** Fixed recipient — overrides caller-provided recipientEmail when set. */
   to?: string;
