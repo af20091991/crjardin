@@ -106,7 +106,7 @@ export function SiteWebDashboard() {
                 </p>
               </div>
             </div>
-          </div>
+          </Card>
           <SiteWebLocalView />
         </div>
       )}
