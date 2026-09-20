@@ -70,11 +70,13 @@ import {
   Send,
   ArrowRight,
   Sprout,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useRole } from "@/hooks/use-role";
 import { ClientOpportunitiesWidget } from "@/components/ClientOpportunitiesWidget";
+import { ClientPremiumTab } from "@/components/ClientPremiumTab";
 
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({
   validateSearch: (search: Record<string, unknown>): { edit?: boolean } => ({
@@ -301,6 +303,10 @@ function ClientDetail() {
               <TrendingUp className="mr-1.5 h-4 w-4" />
               Opportunités
             </TabsTrigger>
+            <TabsTrigger value="premium" className="flex-1">
+              <Crown className="mr-1.5 h-4 w-4" />
+              Premium
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="interventions">
             {(interventions?.length ?? 0) === 0 ? (
@@ -420,6 +426,9 @@ function ClientDetail() {
           </TabsContent>
           <TabsContent value="opps">
             <ClientOpportunitiesWidget clientId={clientId} />
+          </TabsContent>
+          <TabsContent value="premium">
+            <ClientPremiumTab clientId={clientId} />
           </TabsContent>
         </Tabs>
       </div>
