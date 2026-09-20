@@ -20,8 +20,8 @@ type ModuleView =
   | "actions";
 
 const moduleViews: Array<{ id: ModuleView; label: string }> = [
-  { id: "diagnostic", label: "Diagnostic SEO" },
   { id: "today", label: "Aujourd'hui" },
+  { id: "diagnostic", label: "Diagnostic SEO" },
   { id: "traffic", label: "Trafic & Recherche" },
   { id: "local", label: "Présence locale" },
   { id: "content", label: "Contenus" },
@@ -30,7 +30,7 @@ const moduleViews: Array<{ id: ModuleView; label: string }> = [
 ];
 
 export function SiteWebDashboard() {
-  const [activeView, setActiveView] = useState<ModuleView>("diagnostic");
+  const [activeView, setActiveView] = useState<ModuleView>("today");
 
   return (
     <div className="space-y-6">
@@ -41,7 +41,7 @@ export function SiteWebDashboard() {
         <div>
           <h1 className="font-serif text-2xl font-semibold tracking-tight">Site web</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Qui vient sur le site, comment on nous trouve, et quoi faire ensuite.
+            Visibilité Google, trafic, présence locale et actions concrètes à partir des données réelles.
           </p>
         </div>
       </header>
@@ -68,11 +68,11 @@ export function SiteWebDashboard() {
         ))}
       </nav>
 
-      {activeView === "diagnostic" && <SiteWebSeoDiagnostic />}
-
       {activeView === "today" && (
         <SiteWebTodaySummary onOpenOpportunities={() => setActiveView("opportunities")} />
       )}
+
+      {activeView === "diagnostic" && <SiteWebSeoDiagnostic />}
 
       {activeView === "traffic" && (
         <div className="space-y-5">
@@ -82,8 +82,7 @@ export function SiteWebDashboard() {
               <div>
                 <h2 className="font-serif text-xl font-semibold">Trafic & Recherche</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Le trafic réel du site (Analytics 4) et la façon dont Google l'amène jusque-là
-                  (Search Console), sur la même période.
+                  Le trafic réel du site (Analytics 4) et la façon dont Google l'amène jusque-là (Search Console), sans mélanger les deux mesures.
                 </p>
               </div>
             </div>
@@ -103,12 +102,11 @@ export function SiteWebDashboard() {
               <div>
                 <h2 className="font-serif text-xl font-semibold">Présence locale</h2>
                 <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                  Uniquement ce qui est spécifique au local : requêtes géolocalisées et fiche Google
-                  Business Profile. Le trafic global est dans « Trafic & Recherche ».
+                  Requêtes locales réellement observées et performances de la fiche Google Business Profile.
                 </p>
               </div>
             </div>
-          </Card>
+          </div>
           <SiteWebLocalView />
         </div>
       )}
@@ -134,11 +132,13 @@ export function SiteWebDashboard() {
         <div className="space-y-5">
           <Card className="p-5">
             <div className="flex items-start gap-3">
-              <Target className="mt-0.5 h-4 w-4 text-primary" />
+              <div className="rounded-lg bg-muted/50 p-2 text-primary">
+                <Target className="h-4 w-4" />
+              </div>
               <div>
                 <h2 className="font-serif text-xl font-semibold">Opportunités</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Les points à fort potentiel identifiés à partir des données disponibles.
+                  Requêtes et pages qui présentent un potentiel identifiable dans les données Google.
                 </p>
               </div>
             </div>
