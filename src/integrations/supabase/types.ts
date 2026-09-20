@@ -612,6 +612,141 @@ export type Database = {
           },
         ];
       };
+      client_premium: {
+        Row: {
+          activated_at: string | null;
+          client_id: string;
+          commercial_note: string | null;
+          cover_photo_id: string | null;
+          created_at: string;
+          deactivated_at: string | null;
+          enabled: boolean;
+          garden_state: string | null;
+          google_review_url: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          activated_at?: string | null;
+          client_id: string;
+          commercial_note?: string | null;
+          cover_photo_id?: string | null;
+          created_at?: string;
+          deactivated_at?: string | null;
+          enabled?: boolean;
+          garden_state?: string | null;
+          google_review_url?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Update: {
+          activated_at?: string | null;
+          client_id?: string;
+          commercial_note?: string | null;
+          cover_photo_id?: string | null;
+          created_at?: string;
+          deactivated_at?: string | null;
+          enabled?: boolean;
+          garden_state?: string | null;
+          google_review_url?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "client_premium_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: true;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "client_premium_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: true;
+            referencedRelation: "v_ca_orphans_report";
+            referencedColumns: ["best_candidate_id"];
+          },
+          {
+            foreignKeyName: "client_premium_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: true;
+            referencedRelation: "v_client_service_gaps";
+            referencedColumns: ["client_id"];
+          },
+          {
+            foreignKeyName: "client_premium_cover_photo_id_fkey";
+            columns: ["cover_photo_id"];
+            isOneToOne: false;
+            referencedRelation: "intervention_photos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      client_premium_documents: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          filename: string;
+          id: string;
+          size_bytes: number | null;
+          storage_path: string;
+          title: string;
+          updated_at: string;
+          uploaded_by: string;
+          user_id: string;
+          visible_to_client: boolean;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          filename: string;
+          id?: string;
+          size_bytes?: number | null;
+          storage_path: string;
+          title: string;
+          updated_at?: string;
+          uploaded_by?: string;
+          user_id?: string;
+          visible_to_client?: boolean;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          filename?: string;
+          id?: string;
+          size_bytes?: number | null;
+          storage_path?: string;
+          title?: string;
+          updated_at?: string;
+          uploaded_by?: string;
+          user_id?: string;
+          visible_to_client?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "client_premium_documents_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "client_premium_documents_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "v_ca_orphans_report";
+            referencedColumns: ["best_candidate_id"];
+          },
+          {
+            foreignKeyName: "client_premium_documents_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "v_client_service_gaps";
+            referencedColumns: ["client_id"];
+          },
+        ];
+      };
       clients: {
         Row: {
           address: string | null;
@@ -5191,6 +5326,11 @@ export type Database = {
       };
       get_shared_client: { Args: { p_token: string }; Returns: Json };
       get_shared_messages: { Args: { p_token: string }; Returns: Json };
+      get_shared_premium: { Args: { p_token: string }; Returns: Json };
+      get_shared_premium_document_url: {
+        Args: { p_document_id: string; p_token: string };
+        Returns: string;
+      };
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"];
