@@ -776,7 +776,6 @@ export interface FileRouteTypes {
     | '/partage/$token'
     | '/_authenticated/'
     | '/_authenticated/clients/$clientId'
-    | '/_authenticated/clients/$clientId/premium'
     | '/_authenticated/fiches/$ficheId'
     | '/_authenticated/fiches/new'
     | '/_authenticated/interventions/$interventionId'
