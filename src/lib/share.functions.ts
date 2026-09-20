@@ -62,14 +62,39 @@ export interface SharedClientData {
   interventions: SharedIntervention[];
 }
 
+export interface SharedPremiumDocument {
+  id: string;
+  title: string;
+  filename: string;
+  size_bytes: number | null;
+  uploaded_by: "gardener" | "client";
+  created_at: string;
+  url: string | null;
+}
+
+export interface SharedPremiumUpcoming {
+  id: string;
+  scheduled_date: string;
+  title: string;
+  details: string | null;
+}
+
+export interface SharedPremiumData {
+  enabled: boolean;
+  garden_state: string | null;
+  google_review_url: string | null;
+  commercial_note: string | null;
+  cover_photo_url: string | null;
+  documents: SharedPremiumDocument[];
+  upcoming: SharedPremiumUpcoming[];
+}
+
 const BUCKET = "chantier-photos";
 
 function publicClient() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+  return createClient<Database>(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export interface ClientMessage {
@@ -124,25 +149,33 @@ export const getSharedMessages = createServerFn({ method: "GET" })
     return { token: data.token };
   })
   .handler(async ({ data }): Promise<ClientMessage[]> => {
-    const { data: rows, error } = await publicClient().rpc("get_shared_messages", { p_token: data.token });
+    const { data: rows, error } = await publicClient().rpc("get_shared_messages", {
+      p_token: data.token,
+    });
     if (error) throw error;
     return (rows as unknown as ClientMessage[]) ?? [];
   });
 
 export const addClientMessage = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    token: string; interventionId: string | null; kind: string; content: string; authorName?: string | null;
-  }) => {
-    if (!data?.token) throw new Error("Lien invalide");
-    if (!data.content || data.content.trim().length === 0) throw new Error("Message vide");
-    return {
-      token: data.token,
-      interventionId: data.interventionId ?? null,
-      kind: data.kind === "question" ? "question" : "annotation",
-      content: data.content.trim().slice(0, 2000),
-      authorName: data.authorName ?? null,
-    };
-  })
+  .inputValidator(
+    (data: {
+      token: string;
+      interventionId: string | null;
+      kind: string;
+      content: string;
+      authorName?: string | null;
+    }) => {
+      if (!data?.token) throw new Error("Lien invalide");
+      if (!data.content || data.content.trim().length === 0) throw new Error("Message vide");
+      return {
+        token: data.token,
+        interventionId: data.interventionId ?? null,
+        kind: data.kind === "question" ? "question" : "annotation",
+        content: data.content.trim().slice(0, 2000),
+        authorName: data.authorName ?? null,
+      };
+    },
+  )
   .handler(async ({ data }) => {
     const { error } = await publicClient().rpc("add_client_message", {
       p_token: data.token,
@@ -156,12 +189,19 @@ export const addClientMessage = createServerFn({ method: "POST" })
   });
 
 export const setRecommendationInterest = createServerFn({ method: "POST" })
-  .inputValidator((data: { token: string; recoId: string; interest: "interested" | "not_interested" | "none" }) => {
-    if (!data?.token) throw new Error("Lien invalide");
-    if (!data?.recoId) throw new Error("Préconisation invalide");
-    if (!["interested", "not_interested", "none"].includes(data.interest)) throw new Error("Choix invalide");
-    return { token: data.token, recoId: data.recoId, interest: data.interest };
-  })
+  .inputValidator(
+    (data: {
+      token: string;
+      recoId: string;
+      interest: "interested" | "not_interested" | "none";
+    }) => {
+      if (!data?.token) throw new Error("Lien invalide");
+      if (!data?.recoId) throw new Error("Préconisation invalide");
+      if (!["interested", "not_interested", "none"].includes(data.interest))
+        throw new Error("Choix invalide");
+      return { token: data.token, recoId: data.recoId, interest: data.interest };
+    },
+  )
   .handler(async ({ data }) => {
     const { error } = await publicClient().rpc("set_recommendation_interest", {
       p_token: data.token,
@@ -211,6 +251,85 @@ export const getSharedClient = createServerFn({ method: "GET" })
     }
 
     return result;
+  });
+
+const PREMIUM_BUCKET = "client-premium";
+
+export const getSharedPremium = createServerFn({ method: "GET" })
+  .inputValidator((data: { token: string }) => {
+    if (!data?.token || typeof data.token !== "string") throw new Error("Lien invalide");
+    return { token: data.token };
+  })
+  .handler(async ({ data }): Promise<SharedPremiumData | null> => {
+    const { data: payload, error } = await publicClient().rpc("get_shared_premium", {
+      p_token: data.token,
+    });
+    if (error) throw error;
+    if (!payload) return null;
+
+    const raw = payload as unknown as {
+      enabled: boolean;
+      garden_state: string | null;
+      google_review_url: string | null;
+      commercial_note: string | null;
+      cover_photo_id: string | null;
+      documents: Array<{
+        id: string;
+        title: string;
+        filename: string;
+        storage_path: string;
+        size_bytes: number | null;
+        uploaded_by: "gardener" | "client";
+        created_at: string;
+      }>;
+      upcoming: SharedPremiumUpcoming[];
+    };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let coverPhotoUrl: string | null = null;
+    if (raw.cover_photo_id) {
+      const { data: photo } = await supabaseAdmin
+        .from("intervention_photos")
+        .select("storage_path")
+        .eq("id", raw.cover_photo_id)
+        .maybeSingle();
+      if (photo?.storage_path) {
+        const { data: signed } = await supabaseAdmin.storage
+          .from(BUCKET)
+          .createSignedUrl(photo.storage_path, 60 * 60 * 24 * 7);
+        coverPhotoUrl = signed?.signedUrl ?? null;
+      }
+    }
+
+    const docPaths = raw.documents.map((d) => d.storage_path);
+    const docUrlMap = new Map<string, string>();
+    if (docPaths.length > 0) {
+      const { data: signed } = await supabaseAdmin.storage
+        .from(PREMIUM_BUCKET)
+        .createSignedUrls(docPaths, 60 * 60 * 24);
+      (signed ?? []).forEach((s) => {
+        if (s.path && s.signedUrl) docUrlMap.set(s.path, s.signedUrl);
+      });
+    }
+
+    return {
+      enabled: raw.enabled,
+      garden_state: raw.garden_state,
+      google_review_url: raw.google_review_url,
+      commercial_note: raw.commercial_note,
+      cover_photo_url: coverPhotoUrl,
+      upcoming: raw.upcoming,
+      documents: raw.documents.map((d) => ({
+        id: d.id,
+        title: d.title,
+        filename: d.filename,
+        size_bytes: d.size_bytes,
+        uploaded_by: d.uploaded_by,
+        created_at: d.created_at,
+        url: docUrlMap.get(d.storage_path) ?? null,
+      })),
+    };
   });
 
 /**
