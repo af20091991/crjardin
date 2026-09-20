@@ -9,7 +9,6 @@ import {
 } from "@/lib/site-web-api";
 
 const SITE_URL = "https://www.delagraineaujardin.com/";
-const PREFERRED_GA4_PROPERTY_ID = "159443253";
 
 type SearchTotals = { clicks: number; impressions: number; position: number };
 type Ga4Totals = { sessions: number };
@@ -82,7 +81,6 @@ export function SiteWebTodaySummary({ onOpenOpportunities }: { onOpenOpportuniti
       if (!propertiesResult.error) {
         const properties = propertiesResult.data?.properties ?? [];
         const selected =
-          properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
           properties[0];
         if (selected) {
           const propertyId = selected.name.replace(/^properties\//, "");

@@ -4,7 +4,8 @@ export type ChangeTheme =
   | "Compte-rendus"
   | "PDF & Partage"
   | "Jardinier"
-  | "Général";
+  | "Général"
+  | "Web";
 
 export interface ChangeEntry {
   date: string; // ISO yyyy-mm-dd
@@ -21,10 +22,23 @@ export const THEME_LABELS: ChangeTheme[] = [
   "PDF & Partage",
   "Jardinier",
   "Général",
+  "Web",
 ];
 
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
+  {
+    date: "2026-09-20",
+    version: "2.3.8",
+    theme: "Web",
+    title: "Site web — pilotage SEO par les données Google",
+    details: [
+      "Le module Site web démarre désormais sur une lecture opérationnelle des données réelles plutôt que sur une simple liste de statistiques.",
+      "Les opportunités sont détectées séparément pour les requêtes et les pages, avec période de comparaison et règles explicables.",
+      "Les évolutions significatives des clics Search Console sont comparées aux 28 jours précédents sans score SEO opaque.",
+    ],
+  },
+
   {
     date: "2026-09-18",
     version: "2.3.7",
