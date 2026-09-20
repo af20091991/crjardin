@@ -148,12 +148,10 @@ function DirectoryRow({
 function MobileDirectoryRow({
   row,
   onToggleFavorite,
-  onTogglePremium,
   canEdit,
 }: {
   row: ClientDirectoryRow;
   onToggleFavorite: (id: string) => void;
-  onTogglePremium?: (id: string, enabled: boolean) => void;
   canEdit: boolean;
 }) {
   return (

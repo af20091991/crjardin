@@ -49,7 +49,6 @@ import {
   Loader2,
   Download,
   Sparkles,
-  Crown,
   ThumbsUp,
   ThumbsDown,
   Search,
@@ -66,12 +65,6 @@ import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
-import {
-  getSharedPremium,
-  sharedPremiumDocumentUrl,
-  type PremiumDocument,
-} from "@/lib/client-premium";
-import { PremiumClientDashboard } from "@/components/PremiumClientDashboard";
 
 const sharedQuery = (token: string) =>
   queryOptions({
@@ -176,18 +169,9 @@ function SharePage() {
   const { token } = Route.useParams();
   const { data } = useSuspenseQuery(sharedQuery(token));
   const { data: messages } = useQuery(messagesQuery(token));
-  const { data: premium } = useQuery({
-    queryKey: ["shared-premium", token],
-    queryFn: () => getSharedPremium(token),
-    staleTime: 60_000,
-  });
   const { dark, large, toggleDark, toggleLarge } = useShareTheme();
   const qc = useQueryClient();
   const [tab, setTab] = useState("reports");
-
-  useEffect(() => {
-    if (premium?.enabled) setTab("premium");
-  }, [premium?.enabled]);
 
   useEffect(() => {
     markSharedRead({ data: { token } }).catch(() => {});
@@ -197,11 +181,6 @@ function SharePage() {
   const { client, interventions, recommendations } = data;
 
   const unreadRecos = recommendations.filter((r) => !r.client_viewed_at).length;
-  const premiumCoverUrl = premium?.cover_photo_id
-    ? (interventions
-        .flatMap((intervention) => intervention.photos)
-        .find((photo) => photo.id === premium.cover_photo_id)?.url ?? null)
-    : null;
 
   function openRecos() {
     setTab("recos");
@@ -223,9 +202,7 @@ function SharePage() {
   return (
     <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
       <header className="border-b bg-background">
-        <div
-          className={`mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 ${premium?.enabled ? "max-w-[1500px]" : "max-w-3xl"}`}
-        >
+        <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-primary">
@@ -265,165 +242,91 @@ function SharePage() {
         </div>
       </header>
 
-      <main
-        className={`mx-auto w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8 ${premium?.enabled ? "max-w-[1500px]" : "max-w-3xl"}`}
-      >
-        {premium?.enabled ? (
-          <PremiumClientDashboard
-            premium={premium}
-            client={client}
-            interventions={interventions}
-            recommendations={recommendations}
-            messages={messages ?? []}
-            coverPhotoUrl={premiumCoverUrl}
-            messageThread={
-              <MessageThread
-                token={token}
-                interventionId={null}
-                messages={(messages ?? []).filter((m) => !m.intervention_id)}
-              />
-            }
-            onDownloadDocument={async (document: PremiumDocument) => {
-              try {
-                window.open(
-                  await sharedPremiumDocumentUrl(token, document.id),
-                  "_blank",
-                  "noopener,noreferrer",
-                );
-              } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Document indisponible");
-              }
-            }}
-          />
-        ) : (
-          <>
-            {/* Synthèse (client #8) */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatCard label="Comptes-rendus" value={String(interventions.length)} />
-              <StatCard
-                label="Dernière visite jardin"
-                value={lastIntervention ? fmtDate(lastIntervention.intervention_date) : "—"}
-              />
-              <StatCard label="Préconisations" value={String(recommendations.length)} />
-              <StatCard label="Non lus" value={String(unread)} highlight={unread > 0} />
-            </div>
-            {lastVisit && (
-              <p className="text-xs text-muted-foreground">
-                Vous avez consulté votre fiche pour la dernière fois le {fmtDate(lastVisit)}.
-              </p>
-            )}
-
-            {unreadRecos > 0 && (
-              <button
-                onClick={openRecos}
-                className="flex w-full items-center gap-3 rounded-lg border border-accent/40 bg-accent/10 p-3 text-left transition-colors hover:bg-accent/20"
-              >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent/20 text-accent-foreground">
-                  <Sparkles className="h-5 w-5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-accent-foreground">
-                    {unreadRecos} préconisation{unreadRecos > 1 ? "s" : ""} en attente
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    Découvrez ce que nous vous conseillons pour votre jardin.
-                  </span>
-                </span>
-                <Badge className="shrink-0 bg-accent text-accent-foreground">Voir</Badge>
-              </button>
-            )}
-
-            <Tabs value={tab} onValueChange={(v) => (v === "recos" ? openRecos() : setTab(v))}>
-              <TabsList
-                className={`grid w-full ${premium?.enabled ? "grid-cols-4" : "grid-cols-3"}`}
-              >
-                <TabsTrigger value="reports">
-                  <ClipboardList className="mr-1.5 h-4 w-4" />
-                  Comptes-rendus
-                </TabsTrigger>
-                <TabsTrigger value="photos">
-                  <Images className="mr-1.5 h-4 w-4" />
-                  Photos
-                </TabsTrigger>
-                <TabsTrigger
-                  value="recos"
-                  className="relative data-[state=inactive]:animate-pulse data-[state=inactive]:bg-accent/15 data-[state=inactive]:text-accent-foreground"
-                >
-                  <Sparkles className="mr-1.5 h-4 w-4" />
-                  Préconisations
-                  {unreadRecos > 0 && (
-                    <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground shadow">
-                      +{unreadRecos}
-                    </span>
-                  )}
-                </TabsTrigger>
-                {premium?.enabled && (
-                  <TabsTrigger
-                    value="premium"
-                    className="border-primary/20 bg-primary/5 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    <Crown className="mr-1.5 h-4 w-4" />
-                    Premium
-                  </TabsTrigger>
-                )}
-              </TabsList>
-
-              <TabsContent value="reports" className="space-y-4">
-                <ReportsTab
-                  interventions={interventions}
-                  token={token}
-                  messages={messages ?? []}
-                  client={client}
-                />
-              </TabsContent>
-              <TabsContent value="photos">
-                <PhotoGallery interventions={interventions} />
-              </TabsContent>
-              <TabsContent value="recos">
-                <RecommendationsTab recommendations={recommendations} token={token} />
-              </TabsContent>
-              {premium?.enabled && (
-                <TabsContent value="premium" className="space-y-4">
-                  <PremiumClientDashboard
-                    premium={premium}
-                    client={client}
-                    interventions={interventions}
-                    recommendations={recommendations}
-                    messages={messages ?? []}
-                    coverPhotoUrl={premiumCoverUrl}
-                    messageThread={
-                      <MessageThread
-                        token={token}
-                        interventionId={null}
-                        messages={(messages ?? []).filter((m) => !m.intervention_id)}
-                      />
-                    }
-                    onDownloadDocument={async (document: PremiumDocument) => {
-                      try {
-                        window.open(
-                          await sharedPremiumDocumentUrl(token, document.id),
-                          "_blank",
-                          "noopener,noreferrer",
-                        );
-                      } catch (error) {
-                        toast.error(
-                          error instanceof Error ? error.message : "Document indisponible",
-                        );
-                      }
-                    }}
-                  />
-                </TabsContent>
-              )}
-            </Tabs>
-
-            <GeneralMessages
-              token={token}
-              messages={(messages ?? []).filter((m) => !m.intervention_id)}
+      <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+        <>
+          {/* Synthèse (client #8) */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard label="Comptes-rendus" value={String(interventions.length)} />
+            <StatCard
+              label="Dernière visite jardin"
+              value={lastIntervention ? fmtDate(lastIntervention.intervention_date) : "—"}
             />
+            <StatCard label="Préconisations" value={String(recommendations.length)} />
+            <StatCard label="Non lus" value={String(unread)} highlight={unread > 0} />
+          </div>
+          {lastVisit && (
+            <p className="text-xs text-muted-foreground">
+              Vous avez consulté votre fiche pour la dernière fois le {fmtDate(lastVisit)}.
+            </p>
+          )}
 
-            <ShareInstallGuide />
-          </>
-        )}
+          {unreadRecos > 0 && (
+            <button
+              onClick={openRecos}
+              className="flex w-full items-center gap-3 rounded-lg border border-accent/40 bg-accent/10 p-3 text-left transition-colors hover:bg-accent/20"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent/20 text-accent-foreground">
+                <Sparkles className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-accent-foreground">
+                  {unreadRecos} préconisation{unreadRecos > 1 ? "s" : ""} en attente
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  Découvrez ce que nous vous conseillons pour votre jardin.
+                </span>
+              </span>
+              <Badge className="shrink-0 bg-accent text-accent-foreground">Voir</Badge>
+            </button>
+          )}
+
+          <Tabs value={tab} onValueChange={(v) => (v === "recos" ? openRecos() : setTab(v))}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="reports">
+                <ClipboardList className="mr-1.5 h-4 w-4" />
+                Comptes-rendus
+              </TabsTrigger>
+              <TabsTrigger value="photos">
+                <Images className="mr-1.5 h-4 w-4" />
+                Photos
+              </TabsTrigger>
+              <TabsTrigger
+                value="recos"
+                className="relative data-[state=inactive]:animate-pulse data-[state=inactive]:bg-accent/15 data-[state=inactive]:text-accent-foreground"
+              >
+                <Sparkles className="mr-1.5 h-4 w-4" />
+                Préconisations
+                {unreadRecos > 0 && (
+                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground shadow">
+                    +{unreadRecos}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="reports" className="space-y-4">
+              <ReportsTab
+                interventions={interventions}
+                token={token}
+                messages={messages ?? []}
+                client={client}
+              />
+            </TabsContent>
+            <TabsContent value="photos">
+              <PhotoGallery interventions={interventions} />
+            </TabsContent>
+            <TabsContent value="recos">
+              <RecommendationsTab recommendations={recommendations} token={token} />
+            </TabsContent>
+          </Tabs>
+
+          <GeneralMessages
+            token={token}
+            messages={(messages ?? []).filter((m) => !m.intervention_id)}
+          />
+
+          <ShareInstallGuide />
+        </>
       </main>
     </div>
   );
