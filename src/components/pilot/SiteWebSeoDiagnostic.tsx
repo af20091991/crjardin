@@ -20,7 +20,6 @@ import {
 } from "@/lib/site-web-seo-diagnostic";
 
 const SITE_URL = "https://www.delagraineaujardin.com/";
-const PREFERRED_GA4_PROPERTY_ID = "159443253";
 
 type AnalyticsRow = {
   dimensionValues?: Array<{ value?: string }>;
@@ -59,8 +58,6 @@ export function SiteWebSeoDiagnostic() {
       if (!active) return;
       const properties = propertiesResult.data?.properties ?? [];
       const selected =
-        properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
-        properties.find((item) => item.name === PREFERRED_GA4_PROPERTY_ID) ??
         properties[0];
 
       if (selected) {
