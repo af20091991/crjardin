@@ -177,7 +177,7 @@ export const addClientMessage = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data }) => {
-    const { error } = await publicClient().rpc("add_client_message", {
+    const { data: msgId, error } = await publicClient().rpc("add_client_message", {
       p_token: data.token,
       p_intervention_id: data.interventionId as string,
       p_kind: data.kind,
@@ -185,6 +185,38 @@ export const addClientMessage = createServerFn({ method: "POST" })
       p_author_name: data.authorName ?? undefined,
     });
     if (error) throw error;
+
+    // Email au jardinier — best-effort, ne doit jamais faire échouer l'envoi
+    // du message côté client. La notification PP (table notifications) est
+    // déjà garantie par la fonction SQL ci-dessus.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: client } = await supabaseAdmin
+        .from("clients")
+        .select("id, name, user_id")
+        .eq("share_token", data.token)
+        .maybeSingle();
+      if (client) {
+        const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(client.user_id);
+        const email = userRes.user?.email;
+        if (email) {
+          const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
+          await sendTemplateEmail("client-activity", email, {
+            templateData: {
+              clientName: client.name,
+              actionText:
+                data.kind === "question" ? "a posé une question" : "a ajouté une annotation",
+              contentPreview: data.content,
+              clientUrl: `https://crjardin.lovable.app/clients/${client.id}`,
+            },
+            idempotencyKey: `client-message-${msgId as string}`,
+          });
+        }
+      }
+    } catch {
+      // best-effort
+    }
+
     return { ok: true };
   });
 
@@ -363,4 +395,100 @@ export const getSharedInterventionPdfUrl = createServerFn({ method: "POST" })
       .createSignedUrl(path, 60 * 60);
     if (signErr) throw signErr;
     return { url: signed.signedUrl };
+  });
+
+const PREMIUM_DOC_MAX_BYTES = 15 * 1024 * 1024;
+
+async function requireEnabledPremiumClient(token: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: client } = await supabaseAdmin
+    .from("clients")
+    .select("id, name, user_id")
+    .eq("share_token", token)
+    .maybeSingle();
+  if (!client) throw new Error("Lien invalide");
+  const { data: premium } = await supabaseAdmin
+    .from("client_premium")
+    .select("enabled")
+    .eq("client_id", client.id)
+    .maybeSingle();
+  if (!premium?.enabled) throw new Error("Espace Premium non actif");
+  return { supabaseAdmin, client };
+}
+
+/** Étape 1 — prépare une URL d'upload signée pour un document déposé par le client. */
+export const createSharedPremiumDocumentUpload = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; filename: string; size: number }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.filename) throw new Error("Nom de fichier invalide");
+    if (!Number.isFinite(data.size) || data.size <= 0 || data.size > PREMIUM_DOC_MAX_BYTES) {
+      throw new Error("Le fichier ne doit pas dépasser 15 Mo");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const ext = data.filename.split(".").pop() || "bin";
+    const path = `${client.id}/client-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from(PREMIUM_BUCKET)
+      .createSignedUploadUrl(path);
+    if (error || !signed?.token) {
+      throw new Error(
+        `Préparation de l'envoi impossible : ${error?.message ?? "URL signée indisponible"}`,
+      );
+    }
+    return { path, token: signed.token };
+  });
+
+/** Étape 2 — vérifie l'upload, enregistre le document et notifie le jardinier. */
+export const finalizeSharedPremiumDocumentUpload = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: { token: string; path: string; filename: string; size: number; title: string }) => {
+      if (!data?.token) throw new Error("Lien invalide");
+      if (!data.path) throw new Error("Chemin invalide");
+      if (!data.title || data.title.trim().length === 0) throw new Error("Titre requis");
+      return { ...data, title: data.title.trim().slice(0, 200) };
+    },
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    if (!data.path.startsWith(`${client.id}/`)) throw new Error("Chemin de fichier invalide");
+    const filename = data.path.split("/").pop()!;
+    const { data: listed, error: listError } = await supabaseAdmin.storage
+      .from(PREMIUM_BUCKET)
+      .list(client.id, { search: filename, limit: 1 });
+    if (listError || !listed?.some((f) => f.name === filename)) {
+      throw new Error("Le fichier n'a pas été reçu par le stockage");
+    }
+
+    const { error } = await publicClient().rpc("add_client_premium_document", {
+      p_token: data.token,
+      p_title: data.title,
+      p_filename: data.filename,
+      p_storage_path: data.path,
+      p_size_bytes: data.size,
+    });
+    if (error) throw error;
+
+    try {
+      const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(client.user_id);
+      const email = userRes.user?.email;
+      if (email) {
+        const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
+        await sendTemplateEmail("client-activity", email, {
+          templateData: {
+            clientName: client.name,
+            actionText: "a ajouté un document",
+            contentPreview: data.title,
+            clientUrl: `https://crjardin.lovable.app/clients/${client.id}`,
+          },
+          idempotencyKey: `client-premium-document-${data.path}`,
+        });
+      }
+    } catch {
+      // best-effort
+    }
+
+    return { ok: true };
   });

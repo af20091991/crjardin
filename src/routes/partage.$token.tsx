@@ -6,13 +6,15 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import {
   getSharedClient,
   markSharedRead,
   addClientMessage,
   getSharedMessages,
   getSharedPremium,
+  createSharedPremiumDocumentUpload,
+  finalizeSharedPremiumDocumentUpload,
   setRecommendationInterest,
   markRecommendationsViewed,
   getSharedInterventionPdfUrl,
@@ -22,6 +24,7 @@ import {
   type SharedClientData,
   type SharedPremiumData,
 } from "@/lib/share.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { exportSharedInterventionPdf } from "@/lib/share-pdf";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +67,7 @@ import {
   RotateCcw,
   Crown,
   Star,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -825,6 +829,7 @@ function PremiumTab({
   token: string;
   messages: ClientMessage[];
 }) {
+  const qc = useQueryClient();
   return (
     <div className="space-y-4">
       {premium.cover_photo_url && (
@@ -880,13 +885,13 @@ function PremiumTab({
         </Card>
       )}
 
-      {premium.documents.length > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="mb-3 flex items-center gap-1.5 font-medium">
-              <FileText className="h-4 w-4 text-primary" /> Documents
-            </p>
-            <div className="space-y-2">
+      <Card>
+        <CardContent className="pt-6">
+          <p className="mb-3 flex items-center gap-1.5 font-medium">
+            <FileText className="h-4 w-4 text-primary" /> Documents
+          </p>
+          {premium.documents.length > 0 ? (
+            <div className="mb-3 space-y-2">
               {premium.documents.map((d) => (
                 <a
                   key={d.id}
@@ -900,9 +905,15 @@ function PremiumTab({
                 </a>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <p className="mb-3 text-sm text-muted-foreground">Aucun document pour le moment.</p>
+          )}
+          <PremiumDocumentUpload
+            token={token}
+            onUploaded={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })}
+          />
+        </CardContent>
+      </Card>
 
       {premium.commercial_note && (
         <Card>
@@ -923,6 +934,60 @@ function PremiumTab({
       )}
 
       <GeneralMessages token={token} messages={messages.filter((m) => !m.intervention_id)} />
+    </div>
+  );
+}
+
+function PremiumDocumentUpload({ token, onUploaded }: { token: string; onUploaded: () => void }) {
+  const [title, setTitle] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const upload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      const target = await createSharedPremiumDocumentUpload({
+        data: { token, filename: file.name, size: file.size },
+      });
+      const { error: uploadError } = await supabase.storage
+        .from("client-premium")
+        .uploadToSignedUrl(target.path, target.token, file);
+      if (uploadError) throw new Error(`Envoi impossible : ${uploadError.message}`);
+      await finalizeSharedPremiumDocumentUpload({
+        data: {
+          token,
+          path: target.path,
+          filename: file.name,
+          size: file.size,
+          title: title || file.name,
+        },
+      });
+      setTitle("");
+      toast.success("Document envoyé à votre jardinier");
+      onUploaded();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Échec de l'envoi");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex gap-2 border-t pt-3">
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Titre (ex : photo d'un problème)"
+        disabled={busy}
+      />
+      <Button type="button" variant="outline" disabled={busy} asChild>
+        <label className="cursor-pointer">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          <input type="file" className="hidden" onChange={upload} disabled={busy} />
+        </label>
+      </Button>
     </div>
   );
 }
