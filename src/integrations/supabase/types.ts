@@ -5318,6 +5318,16 @@ export type Database = {
         };
         Returns: string;
       };
+      add_client_premium_document: {
+        Args: {
+          p_filename: string;
+          p_size_bytes: number;
+          p_storage_path: string;
+          p_title: string;
+          p_token: string;
+        };
+        Returns: string;
+      };
       admin_delete_user: { Args: { p_user_id: string }; Returns: undefined };
       clear_share_access_log: { Args: never; Returns: undefined };
       get_or_create_unsubscribe_token: {
