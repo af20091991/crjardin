@@ -12,6 +12,7 @@ import {
   markSharedRead,
   addClientMessage,
   getSharedMessages,
+  getSharedPremium,
   setRecommendationInterest,
   markRecommendationsViewed,
   getSharedInterventionPdfUrl,
@@ -19,6 +20,7 @@ import {
   type ClientMessage,
   type SharedRecommendation,
   type SharedClientData,
+  type SharedPremiumData,
 } from "@/lib/share.functions";
 import { exportSharedInterventionPdf } from "@/lib/share-pdf";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,6 +62,8 @@ import {
   Type,
   Reply,
   RotateCcw,
+  Crown,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -169,6 +173,11 @@ function SharePage() {
   const { token } = Route.useParams();
   const { data } = useSuspenseQuery(sharedQuery(token));
   const { data: messages } = useQuery(messagesQuery(token));
+  const { data: premium } = useQuery({
+    queryKey: ["shared-premium", token],
+    queryFn: () => getSharedPremium({ data: { token } }),
+    staleTime: 60_000,
+  });
   const { dark, large, toggleDark, toggleLarge } = useShareTheme();
   const qc = useQueryClient();
   const [tab, setTab] = useState("reports");
@@ -281,7 +290,7 @@ function SharePage() {
           )}
 
           <Tabs value={tab} onValueChange={(v) => (v === "recos" ? openRecos() : setTab(v))}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className={`grid w-full ${premium?.enabled ? "grid-cols-4" : "grid-cols-3"}`}>
               <TabsTrigger value="reports">
                 <ClipboardList className="mr-1.5 h-4 w-4" />
                 Comptes-rendus
@@ -302,6 +311,15 @@ function SharePage() {
                   </span>
                 )}
               </TabsTrigger>
+              {premium?.enabled && (
+                <TabsTrigger
+                  value="premium"
+                  className="border-primary/20 bg-primary/5 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <Crown className="mr-1.5 h-4 w-4" />
+                  Premium
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="reports" className="space-y-4">
@@ -318,12 +336,19 @@ function SharePage() {
             <TabsContent value="recos">
               <RecommendationsTab recommendations={recommendations} token={token} />
             </TabsContent>
+            {premium?.enabled && (
+              <TabsContent value="premium" className="space-y-4">
+                <PremiumTab premium={premium} token={token} messages={messages ?? []} />
+              </TabsContent>
+            )}
           </Tabs>
 
-          <GeneralMessages
-            token={token}
-            messages={(messages ?? []).filter((m) => !m.intervention_id)}
-          />
+          {!premium?.enabled && (
+            <GeneralMessages
+              token={token}
+              messages={(messages ?? []).filter((m) => !m.intervention_id)}
+            />
+          )}
 
           <ShareInstallGuide />
         </>
@@ -788,6 +813,117 @@ function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function PremiumTab({
+  premium,
+  token,
+  messages,
+}: {
+  premium: SharedPremiumData;
+  token: string;
+  messages: ClientMessage[];
+}) {
+  return (
+    <div className="space-y-4">
+      {premium.cover_photo_url && (
+        <div className="overflow-hidden rounded-xl border">
+          <img
+            src={premium.cover_photo_url}
+            alt="Votre jardin"
+            className="h-48 w-full object-cover"
+          />
+        </div>
+      )}
+
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="flex items-start gap-3 pt-6">
+          <Crown className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+          <div>
+            <p className="font-serif text-lg font-semibold">Votre espace jardin</p>
+            <p className="text-sm text-muted-foreground">
+              Votre jardin est suivi de près. Retrouvez ici son état, le planning à venir et vos
+              documents.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {premium.garden_state && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="mb-1.5 flex items-center gap-1.5 font-medium">
+              <Leaf className="h-4 w-4 text-primary" /> État de votre jardin
+            </p>
+            <p className="text-sm text-muted-foreground">{premium.garden_state}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {premium.upcoming.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="mb-3 flex items-center gap-1.5 font-medium">
+              <CalendarDays className="h-4 w-4 text-primary" /> Prochaines interventions
+            </p>
+            <div className="space-y-2">
+              {premium.upcoming.map((u) => (
+                <div key={u.id} className="rounded-lg bg-muted/50 p-2.5 text-sm">
+                  <p className="font-medium">{u.title}</p>
+                  <p className="text-xs text-muted-foreground">{fmtDate(u.scheduled_date)}</p>
+                  {u.details && <p className="mt-1 text-muted-foreground">{u.details}</p>}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {premium.documents.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="mb-3 flex items-center gap-1.5 font-medium">
+              <FileText className="h-4 w-4 text-primary" /> Documents
+            </p>
+            <div className="space-y-2">
+              {premium.documents.map((d) => (
+                <a
+                  key={d.id}
+                  href={d.url ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-2 rounded-lg border p-2.5 text-sm transition-colors hover:border-primary/40"
+                >
+                  <span className="truncate">{d.title}</span>
+                  <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </a>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {premium.commercial_note && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">{premium.commercial_note}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {premium.google_review_url && (
+        <a href={premium.google_review_url} target="_blank" rel="noopener noreferrer">
+          <Card className="transition-colors hover:border-primary/40">
+            <CardContent className="flex items-center gap-2 py-4 text-sm font-medium">
+              <Star className="h-4 w-4 text-primary" /> Laisser un avis Google
+            </CardContent>
+          </Card>
+        </a>
+      )}
+
+      <GeneralMessages token={token} messages={messages.filter((m) => !m.intervention_id)} />
+    </div>
   );
 }
 
