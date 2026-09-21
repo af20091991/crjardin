@@ -1,5 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 
+type UntypedSupabase = {
+  from: (table: string) => any;
+  rpc: (fn: string, args?: Record<string, unknown>) => any;
+};
+
+const db = supabase as unknown as UntypedSupabase;
+
 export type EquipmentCategory = "vehicule" | "engin" | "batterie" | "smartphone" | "autre";
 export type EquipmentStatus = "en_service" | "en_panne" | "en_reparation" | "hors_service";
 
@@ -86,7 +93,7 @@ export async function listEquipment(): Promise<Equipment[]> {
 }
 
 export async function getEquipment(id: string): Promise<Equipment> {
-  const { data, error } = await supabase.from("equipment").select("*").eq("id", id).single();
+  const { data, error } = await db.from("equipment").select("*").eq("id", id).single();
   if (error) throw error;
   return data as Equipment;
 }
@@ -135,7 +142,7 @@ export async function updateEquipment(
 }
 
 export async function deleteEquipment(id: string): Promise<void> {
-  const { error } = await supabase.from("equipment").delete().eq("id", id);
+  const { error } = await db.from("equipment").delete().eq("id", id);
   if (error) throw error;
 }
 
@@ -179,7 +186,7 @@ export async function createMaintenance(input: MaintenanceInput): Promise<Equipm
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id;
   if (!userId) throw new Error("Utilisateur non authentifié");
-  const { data, error } = await supabase.from("equipment_maintenance").insert({ ...input, user_id: userId }).select("*").single();
+  const { data, error } = await db.from("equipment_maintenance").insert({ ...input, user_id: userId }).select("*").single();
   if (error) throw error;
   return data as EquipmentMaintenance;
 }
@@ -214,7 +221,7 @@ export interface MaintenanceSchedule {
 }
 
 export async function listEquipmentTypes(): Promise<EquipmentType[]> {
-  const { data, error } = await supabase.from("equipment_types").select("*").order("name");
+  const { data, error } = await db.from("equipment_types").select("*").order("name");
   if (error) throw error;
   return (data ?? []) as EquipmentType[];
 }
@@ -222,13 +229,13 @@ export async function listEquipmentTypes(): Promise<EquipmentType[]> {
 export async function createEquipmentType(name: string): Promise<EquipmentType> {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error("Utilisateur non authentifié");
-  const { data, error } = await supabase.from("equipment_types").insert({ name: name.trim(), user_id: userData.user.id }).select("*").single();
+  const { data, error } = await db.from("equipment_types").insert({ name: name.trim(), user_id: userData.user.id }).select("*").single();
   if (error) throw error;
   return data as EquipmentType;
 }
 
 export async function listMaintenanceTypes(): Promise<MaintenanceType[]> {
-  const { data, error } = await supabase.from("maintenance_types").select("*").order("name");
+  const { data, error } = await db.from("maintenance_types").select("*").order("name");
   if (error) throw error;
   return (data ?? []) as MaintenanceType[];
 }
@@ -264,7 +271,7 @@ export async function updateMaintenanceType(
 }
 
 export async function deleteMaintenanceType(id: string): Promise<void> {
-  const { error } = await supabase.from("maintenance_types").delete().eq("id", id);
+  const { error } = await db.from("maintenance_types").delete().eq("id", id);
   if (error) throw error;
 }
 
@@ -327,7 +334,7 @@ export async function setEquipmentTypeMaintenanceTypes(
 }
 
 export async function syncEquipmentMaintenanceSchedules(equipmentId: string): Promise<void> {
-  const { error } = await supabase.rpc("sync_equipment_maintenance_schedules", { p_equipment_id: equipmentId });
+  const { error } = await db.rpc("sync_equipment_maintenance_schedules", { p_equipment_id: equipmentId });
   if (error) throw error;
 }
 
@@ -352,7 +359,7 @@ export async function completeMaintenanceSchedule(
   cost?: number | null,
   comment?: string,
 ): Promise<EquipmentMaintenance> {
-  const { data, error } = await supabase.rpc("complete_equipment_maintenance", {
+  const { data, error } = await db.rpc("complete_equipment_maintenance", {
     p_schedule_id: scheduleId,
     p_maintenance_date: maintenanceDate,
     p_cost: cost ?? null,
