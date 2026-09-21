@@ -184,6 +184,7 @@ type UntypedSupabase = {
 };
 
 type QueryBuilder = {
+  select: (columns?: string) => QueryBuilder;
   eq: (column: string, value: unknown) => QueryBuilder;
   gte: (column: string, value: unknown) => QueryBuilder;
   lte: (column: string, value: unknown) => QueryBuilder;
