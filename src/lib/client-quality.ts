@@ -76,7 +76,10 @@ export function computeClientQuality(i: ClientQualityInput, clientId: string): C
   const level: ClientQuality["level"] =
     completeness >= 80 ? "excellente" : completeness >= 55 ? "correcte" : "a_verifier";
   const LEVEL_META = {
-    excellente: { label: "Qualité excellente", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+    excellente: {
+      label: "Qualité excellente",
+      badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    },
     correcte: { label: "Qualité correcte", badge: "border-sky-200 bg-sky-50 text-sky-700" },
     a_verifier: { label: "À vérifier", badge: "border-orange-200 bg-orange-50 text-orange-800" },
   } as const;
@@ -92,13 +95,21 @@ export function computeClientQuality(i: ClientQualityInput, clientId: string): C
     gaps.push({ key: "interv", label: "Associer une intervention", to: "/interventions" });
   }
   if (i.interventions > 0 && !hoursKnown) {
-    gaps.push({ key: "hours", label: "Renseigner les heures réalisées", to: "/pilot/rapprochement" });
+    gaps.push({
+      key: "hours",
+      label: "Renseigner les heures réalisées",
+      to: "/pilot/rapprochement",
+    });
   }
   if (!i.hasAddress || (!i.hasPhone && !i.hasEmail)) {
     gaps.push({ key: "coords", label: "Compléter les coordonnées", to: `/clients/${clientId}` });
   }
   if (i.caLines > 0 && i.recommendations === 0) {
-    gaps.push({ key: "presta", label: "Identifier une prestation à proposer", to: `/pilot/fiche/${clientId}` });
+    gaps.push({
+      key: "presta",
+      label: "Identifier une prestation à proposer",
+      to: `/clients/${clientId}`,
+    });
   }
 
   return {
@@ -108,8 +119,7 @@ export function computeClientQuality(i: ClientQualityInput, clientId: string): C
     levelBadge: LEVEL_META[level].badge,
     confidenceLabel: i.confidenceLevel ? CONFIDENCE_LABEL[i.confidenceLevel] : "non évaluée",
     lastQualifiedAt: i.lastQualifiedAt,
-    attachedCount:
-      i.caLines + i.interventions + i.ceev + i.sst + i.recommendations,
+    attachedCount: i.caLines + i.interventions + i.ceev + i.sst + i.recommendations,
     gaps,
     hasAnyData:
       i.caLines > 0 ||

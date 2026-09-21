@@ -28,7 +28,6 @@ interface ClientDirectoryViewProps {
   search: string;
   onSearchChange: (value: string) => void;
   onToggleFavorite: (id: string) => void;
-  canEdit: boolean;
 }
 
 export function ClientDirectoryView({
@@ -36,7 +35,6 @@ export function ClientDirectoryView({
   search,
   onSearchChange,
   onToggleFavorite,
-  canEdit,
 }: ClientDirectoryViewProps) {
   return (
     <div className="space-y-5">
@@ -62,24 +60,14 @@ export function ClientDirectoryView({
         </div>
         <div className="divide-y">
           {rows.map((row) => (
-            <DirectoryRow
-              key={row.id}
-              row={row}
-              onToggleFavorite={onToggleFavorite}
-              canEdit={canEdit}
-            />
+            <DirectoryRow key={row.id} row={row} onToggleFavorite={onToggleFavorite} />
           ))}
         </div>
       </div>
 
       <div className="grid gap-2 md:hidden">
         {rows.map((row) => (
-          <MobileDirectoryRow
-            key={row.id}
-            row={row}
-            onToggleFavorite={onToggleFavorite}
-            canEdit={canEdit}
-          />
+          <MobileDirectoryRow key={row.id} row={row} onToggleFavorite={onToggleFavorite} />
         ))}
       </div>
     </div>
@@ -89,11 +77,9 @@ export function ClientDirectoryView({
 function DirectoryRow({
   row,
   onToggleFavorite,
-  canEdit,
 }: {
   row: ClientDirectoryRow;
   onToggleFavorite: (id: string) => void;
-  canEdit: boolean;
 }) {
   return (
     <div className="group grid grid-cols-[minmax(260px,2fr)_minmax(160px,1fr)_minmax(150px,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/20">
@@ -108,7 +94,7 @@ function DirectoryRow({
         </button>
         <div className="min-w-0">
           <Link
-            to={canEdit ? "/pilot/fiche/$clientId" : "/clients/$clientId"}
+            to="/clients/$clientId"
             params={{ clientId: row.id }}
             className="block truncate text-sm font-medium hover:text-primary"
           >
@@ -148,11 +134,9 @@ function DirectoryRow({
 function MobileDirectoryRow({
   row,
   onToggleFavorite,
-  canEdit,
 }: {
   row: ClientDirectoryRow;
   onToggleFavorite: (id: string) => void;
-  canEdit: boolean;
 }) {
   return (
     <Card className="p-3">
@@ -167,7 +151,7 @@ function MobileDirectoryRow({
         </button>
         <div className="min-w-0 flex-1">
           <Link
-            to={canEdit ? "/pilot/fiche/$clientId" : "/clients/$clientId"}
+            to="/clients/$clientId"
             params={{ clientId: row.id }}
             className="block truncate text-sm font-medium"
           >

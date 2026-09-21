@@ -4,9 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertTriangle, BadgeCheck, HelpCircle, ShieldAlert } from "lucide-react";
-import {
-  ENTITY_STATUS_META,
-} from "@/lib/pilot-referential";
+import { ENTITY_STATUS_META } from "@/lib/pilot-referential";
 import {
   entityEligibility,
   HOURS_SOURCE_META,
@@ -14,11 +12,21 @@ import {
   type Reliability,
 } from "@/lib/pilot-entity-rules";
 
-export function EntityStatusBadge({ status, className }: { status: string | null | undefined; className?: string }) {
+export function EntityStatusBadge({
+  status,
+  className,
+}: {
+  status: string | null | undefined;
+  className?: string;
+}) {
   const e = entityEligibility(status);
   const meta = ENTITY_STATUS_META[e.status];
   return (
-    <Badge variant="outline" className={`gap-1 font-normal ${meta.badge} ${className ?? ""}`} title={e.warning ?? meta.hint}>
+    <Badge
+      variant="outline"
+      className={`gap-1 font-normal ${meta.badge} ${className ?? ""}`}
+      title={e.warning ?? meta.hint}
+    >
       {e.status === "certified_client" ? (
         <BadgeCheck className="h-3 w-3" />
       ) : e.level === "non_fiable" ? (
@@ -98,7 +106,7 @@ export function ReliabilityBadge({
         </p>
         <div className="flex flex-col gap-1 border-t pt-2">
           <Link
-            to="/pilot/fiche/$clientId"
+            to="/clients/$clientId"
             params={{ clientId }}
             className="font-medium text-primary underline-offset-2 hover:underline"
           >

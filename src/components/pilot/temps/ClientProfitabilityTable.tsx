@@ -262,7 +262,7 @@ export function ClientProfitabilityTable({
                           <tr key={c.clientId} className="border-b last:border-0">
                             <td className="py-2 pl-3 pr-3 font-medium">
                               <Link
-                                to="/pilot/fiche/$clientId"
+                                to="/clients/$clientId"
                                 params={{ clientId: c.clientId }}
                                 className="text-primary underline-offset-2 hover:underline"
                               >
@@ -325,7 +325,7 @@ export function ClientProfitabilityTable({
                       <div key={c.clientId} className="rounded-md border p-3">
                         <div className="flex items-start justify-between gap-2">
                           <Link
-                            to="/pilot/fiche/$clientId"
+                            to="/clients/$clientId"
                             params={{ clientId: c.clientId }}
                             className="min-w-0 truncate font-medium text-primary underline-offset-2 hover:underline"
                           >

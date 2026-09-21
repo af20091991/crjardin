@@ -10,7 +10,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { listAllInterventions, waiveInterventionReport } from "@/lib/interventions";
 import { listAllRecommendations } from "@/lib/garden";
-import { clientStatsWithHours, fetchConfirmedHoursByClient, formatEuro, DEFAULT_SETTINGS } from "@/lib/pilot";
+import {
+  clientStatsWithHours,
+  fetchConfirmedHoursByClient,
+  formatEuro,
+  DEFAULT_SETTINGS,
+} from "@/lib/pilot";
 import { CLIENT_ACTIVITY_RULES } from "@/lib/client-activity";
 import { FOCUS_META, isFocusTopic, type FocusTopic } from "@/lib/pilot-focus";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
@@ -28,10 +33,18 @@ export const Route = createFileRoute("/_authenticated/pilot/focus/$topic")({
   },
   component: FocusPage,
   notFoundComponent: () => (
-    <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Focus inconnu.</CardContent></Card>
+    <Card>
+      <CardContent className="py-10 text-center text-sm text-muted-foreground">
+        Focus inconnu.
+      </CardContent>
+    </Card>
   ),
   errorComponent: ({ error }) => (
-    <Card><CardContent className="py-10 text-center text-sm text-destructive">{error.message}</CardContent></Card>
+    <Card>
+      <CardContent className="py-10 text-center text-sm text-destructive">
+        {error.message}
+      </CardContent>
+    </Card>
   ),
 });
 
@@ -58,7 +71,10 @@ function FocusPage() {
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   const targetHR = set.target_hourly_rate || 0;
 
-  const interventions = useQuery({ queryKey: ["interventions-all"], queryFn: listAllInterventions });
+  const interventions = useQuery({
+    queryKey: ["interventions-all"],
+    queryFn: listAllInterventions,
+  });
   const recos = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
   const confirmedHours = useQuery({
     queryKey: ["confirmed-hours-by-client", year, mode, period],
@@ -77,7 +93,9 @@ function FocusPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("v_client_next_best_offers" as never)
-        .select("client_id, service_id, service_name, category_name, score_opportunity, reason, days_since_last_performed, estimated_value")
+        .select(
+          "client_id, service_id, service_name, category_name, score_opportunity, reason, days_since_last_performed, estimated_value",
+        )
         .gte("score_opportunity", 80)
         .order("score_opportunity", { ascending: false })
         .limit(50);
@@ -104,8 +122,11 @@ function FocusPage() {
   });
 
   const loading =
-    entries.isLoading || settings.isLoading || interventions.isLoading ||
-    recos.isLoading || confirmedHours.isLoading ||
+    entries.isLoading ||
+    settings.isLoading ||
+    interventions.isLoading ||
+    recos.isLoading ||
+    confirmedHours.isLoading ||
     (topic === "opportunites" && priorityOffers.isLoading);
 
   const rows: Row[] = useMemo(() => {
@@ -137,7 +158,10 @@ function FocusPage() {
           columns: [
             { label: "Date", value: new Date(i.intervention_date).toLocaleDateString("fr-FR") },
             { label: "Type", value: i.intervention_type ?? "—" },
-            { label: "Heures", value: i.hours_spent != null ? `${i.hours_spent.toFixed(1)} h` : "—" },
+            {
+              label: "Heures",
+              value: i.hours_spent != null ? `${i.hours_spent.toFixed(1)} h` : "—",
+            },
           ],
           reason: "Intervention terminée, aucun CR envoyé au client.",
           canWaiveReport: true,
@@ -154,7 +178,10 @@ function FocusPage() {
           interventionId: i.id,
           columns: [
             { label: "Date", value: new Date(i.intervention_date).toLocaleDateString("fr-FR") },
-            { label: "Heures", value: i.hours_spent != null ? `${i.hours_spent.toFixed(1)} h (estimé)` : "—" },
+            {
+              label: "Heures",
+              value: i.hours_spent != null ? `${i.hours_spent.toFixed(1)} h (estimé)` : "—",
+            },
           ],
           reason:
             "Aucune heure disponible dans Pilot Pro pour ce client sur l'année (ni suivi CA, ni historique).",
@@ -167,11 +194,14 @@ function FocusPage() {
         .slice(0, 100)
         .map((r) => ({
           key: r.id,
-          clientName: r.client_id ? nameByClient.get(r.client_id) ?? "Client" : "—",
+          clientName: r.client_id ? (nameByClient.get(r.client_id) ?? "Client") : "—",
           clientId: r.client_id,
           columns: [
             { label: "Prestation", value: r.title ?? "—" },
-            { label: "Créée le", value: r.created_at ? new Date(r.created_at).toLocaleDateString("fr-FR") : "—" },
+            {
+              label: "Créée le",
+              value: r.created_at ? new Date(r.created_at).toLocaleDateString("fr-FR") : "—",
+            },
           ],
           reason: "Recommandation acceptée sans intervention planifiée.",
         }));
@@ -210,7 +240,10 @@ function FocusPage() {
           { label: "Prestation", value: o.service_name },
           { label: "Catégorie", value: o.category_name ?? "—" },
           { label: "Score", value: `${Math.round(o.score_opportunity)}/100` },
-          { label: "Valeur estimée", value: o.estimated_value ? formatEuro(o.estimated_value) : "—" },
+          {
+            label: "Valeur estimée",
+            value: o.estimated_value ? formatEuro(o.estimated_value) : "—",
+          },
         ],
         reason: reasonText(o.reason, o.days_since_last_performed),
       }));
@@ -219,20 +252,25 @@ function FocusPage() {
     // Focus basés sur CA entries — lastByClientCa
     const lastByClientCa = new Map<
       string,
-      { name: string; clientId: string | null; last: number; families: Set<string>; lastByFamily: Map<string, number> }
+      {
+        name: string;
+        clientId: string | null;
+        last: number;
+        families: Set<string>;
+        lastByFamily: Map<string, number>;
+      }
     >();
     for (const e of allE) {
       const key = e.client_id ?? `name:${(e.client_name ?? "").toLowerCase()}`;
       if (!key) continue;
       const t = new Date(e.entry_date).getTime();
-      const cur =
-        lastByClientCa.get(key) ?? {
-          name: e.client_name ?? "Sans nom",
-          clientId: e.client_id,
-          last: 0,
-          families: new Set<string>(),
-          lastByFamily: new Map<string, number>(),
-        };
+      const cur = lastByClientCa.get(key) ?? {
+        name: e.client_name ?? "Sans nom",
+        clientId: e.client_id,
+        last: 0,
+        families: new Set<string>(),
+        lastByFamily: new Map<string, number>(),
+      };
       if (t > cur.last) cur.last = t;
       cur.families.add(e.family);
       const prevF = cur.lastByFamily.get(e.family) ?? 0;
@@ -286,7 +324,10 @@ function FocusPage() {
           clientName: v.name,
           clientId: v.clientId,
           columns: [
-            { label: "Dernier entretien", value: new Date(v.lastByFamily.get("sap") ?? v.last).toLocaleDateString("fr-FR") },
+            {
+              label: "Dernier entretien",
+              value: new Date(v.lastByFamily.get("sap") ?? v.last).toLocaleDateString("fr-FR"),
+            },
           ],
           reason: "Aucune prestation de conseil depuis 12 mois — proposer un audit.",
         }));
@@ -317,7 +358,8 @@ function FocusPage() {
           const a = avgMap.get(key) ?? 0;
           return {
             key: e.id,
-            clientName: (e.client_id ? nameByClient.get(e.client_id) : null) ?? e.client_name ?? "Client",
+            clientName:
+              (e.client_id ? nameByClient.get(e.client_id) : null) ?? e.client_name ?? "Client",
             clientId: e.client_id,
             columns: [
               { label: "Date", value: new Date(e.entry_date).toLocaleDateString("fr-FR") },
@@ -340,7 +382,7 @@ function FocusPage() {
       }
       return allE
         .filter((e) => {
-          const rh = e.client_id ? confirmedMap.get(e.client_id) ?? 0 : 0;
+          const rh = e.client_id ? (confirmedMap.get(e.client_id) ?? 0) : 0;
           if (rh > 0 && e.client_id) {
             const ca = caByClient.get(e.client_id) ?? 0;
             return ca > 0 && ca / rh < targetHR;
@@ -364,13 +406,30 @@ function FocusPage() {
     }
 
     return [];
-  }, [topic, loading, entries.data, interventions.data, recos.data, confirmedHours.data, hoursLedger.data, priorityOffers.data, targetHR, year, mode, period]);
+  }, [
+    topic,
+    loading,
+    entries.data,
+    interventions.data,
+    recos.data,
+    confirmedHours.data,
+    hoursLedger.data,
+    priorityOffers.data,
+    targetHR,
+    year,
+    mode,
+    period,
+  ]);
 
   return (
     <div className="space-y-4">
       <div>
-        <Link to="/pilot" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" />Retour au cockpit
+        <Link
+          to="/pilot"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour au cockpit
         </Link>
       </div>
       <Card>
@@ -395,7 +454,7 @@ function FocusPage() {
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         {r.clientId ? (
                           <Link
-                            to="/pilot/fiche/$clientId"
+                            to="/clients/$clientId"
                             params={{ clientId: r.clientId }}
                             className="text-sm font-semibold text-foreground hover:underline"
                           >
@@ -427,13 +486,20 @@ function FocusPage() {
                         </Button>
                       )}
                       {r.interventionId && (
-                        <Link to="/interventions/$interventionId" params={{ interventionId: r.interventionId }}>
-                          <Button size="sm" variant="outline">Ouvrir <ArrowRight className="ml-1 h-3 w-3" /></Button>
+                        <Link
+                          to="/interventions/$interventionId"
+                          params={{ interventionId: r.interventionId }}
+                        >
+                          <Button size="sm" variant="outline">
+                            Ouvrir <ArrowRight className="ml-1 h-3 w-3" />
+                          </Button>
                         </Link>
                       )}
                       {!r.interventionId && r.clientId && (
-                        <Link to="/pilot/fiche/$clientId" params={{ clientId: r.clientId }}>
-                          <Button size="sm" variant="outline">Fiche <ArrowRight className="ml-1 h-3 w-3" /></Button>
+                        <Link to="/clients/$clientId" params={{ clientId: r.clientId }}>
+                          <Button size="sm" variant="outline">
+                            Fiche <ArrowRight className="ml-1 h-3 w-3" />
+                          </Button>
                         </Link>
                       )}
                     </div>

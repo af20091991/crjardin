@@ -289,7 +289,6 @@ function ClientsPage() {
               value: !favorites.has(id),
             })
           }
-          canEdit={canEdit}
         />
 
         {canEdit && (

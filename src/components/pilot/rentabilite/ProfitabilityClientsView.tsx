@@ -564,8 +564,8 @@ export function ProfitabilityClientsView() {
   );
 }
 /**
- * Nom de client cliquable : ouvre la fiche client 360° du référentiel
- * (`/pilot/fiche/$clientId`). Sans identité économique rattachée, on retombe
+ * Nom de client cliquable : ouvre la fiche client (onglet Pilotage 360°)
+ * (`/clients/$clientId`). Sans identité économique rattachée, on retombe
  * sur la vue de rentabilité par clé de regroupement.
  */
 function ClientLink({
@@ -585,7 +585,7 @@ function ClientLink({
   }
   if (clientId) {
     return (
-      <Link to="/pilot/fiche/$clientId" params={{ clientId }} className={cls}>
+      <Link to="/clients/$clientId" params={{ clientId }} className={cls}>
         {name}
       </Link>
     );
