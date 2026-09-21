@@ -15,7 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { useRole } from "@/hooks/use-role";
@@ -99,9 +105,7 @@ function CalendrierSstPage() {
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [preferences, setPreferences] = useState<CalendarPreferences>(
-    DEFAULT_CALENDAR_PREFERENCES,
-  );
+  const [preferences, setPreferences] = useState<CalendarPreferences>(DEFAULT_CALENDAR_PREFERENCES);
 
   useEffect(() => {
     try {
@@ -200,7 +204,9 @@ function CalendrierSstPage() {
       <section className="mx-auto w-full max-w-[1500px] overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-3 sm:px-5">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase text-muted-foreground">Planning SST</p>
+            <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+              Planning SST
+            </p>
             <h2 className="truncate font-serif text-xl font-semibold sm:text-2xl">
               {monthLabel(cursor.year, cursor.month)}
             </h2>
@@ -243,84 +249,104 @@ function CalendrierSstPage() {
         </div>
 
         <div className="p-2 sm:p-4">
-            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase text-muted-foreground sm:mb-2 sm:gap-2 sm:text-xs">
-              {WEEKDAYS.map((label) => (
-                <div key={label}>{label}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1 sm:gap-2">
-              {grid.map((date) => {
-                const iso = isoDate(date);
-                const inMonth = date.getMonth() === cursor.month;
-                const dayEntries = byDate.get(iso) ?? [];
-                const isToday = iso === today;
-                const toneClass = preferences.tone === "accent" ? "bg-accent/15 text-accent" : "bg-primary/15 text-primary";
-                const selectedClass = preferences.tone === "accent" ? "border-accent bg-accent/5" : "border-primary bg-primary/5";
-                const styleClass =
-                  preferences.style === "soft"
-                    ? "border-transparent bg-muted/45"
-                    : preferences.style === "outline"
-                      ? "border-border bg-background"
-                      : "border-border/70 bg-card";
-                const heightClass = preferences.density === "compact" ? "min-h-16 sm:min-h-24" : "min-h-20 sm:min-h-32";
-                return (
-                  <Button
-                    key={iso}
-                    variant="ghost"
-                    onClick={() => setSelectedDate(iso)}
-                    className={cn(
-                      "h-auto min-w-0 flex-col items-stretch justify-start gap-1 overflow-hidden rounded-lg border p-1.5 text-left transition-all hover:border-primary/50 hover:bg-muted/40 sm:p-2",
-                      heightClass,
-                      styleClass,
-                      !inMonth && "bg-muted/20 opacity-35",
-                      isToday && selectedClass,
-                    )}
-                  >
-                    <span className="flex items-center justify-between">
+          <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase text-muted-foreground sm:mb-2 sm:gap-2 sm:text-xs">
+            {WEEKDAYS.map((label) => (
+              <div key={label}>{label}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+            {grid.map((date) => {
+              const iso = isoDate(date);
+              const inMonth = date.getMonth() === cursor.month;
+              const dayEntries = byDate.get(iso) ?? [];
+              const isToday = iso === today;
+              const toneClass =
+                preferences.tone === "accent"
+                  ? "bg-accent/15 text-accent"
+                  : "bg-primary/15 text-primary";
+              const selectedClass =
+                preferences.tone === "accent"
+                  ? "border-accent bg-accent/5"
+                  : "border-primary bg-primary/5";
+              const styleClass =
+                preferences.style === "soft"
+                  ? "border-transparent bg-muted/45"
+                  : preferences.style === "outline"
+                    ? "border-border bg-background"
+                    : "border-border/70 bg-card";
+              const heightClass =
+                preferences.density === "compact" ? "min-h-16 sm:min-h-24" : "min-h-20 sm:min-h-32";
+              return (
+                <Button
+                  key={iso}
+                  variant="ghost"
+                  onClick={() => setSelectedDate(iso)}
+                  className={cn(
+                    "h-auto min-w-0 flex-col items-stretch justify-start gap-1 overflow-hidden rounded-lg border p-1.5 text-left transition-all hover:border-primary/50 hover:bg-muted/40 sm:p-2",
+                    heightClass,
+                    styleClass,
+                    !inMonth && "bg-muted/20 opacity-35",
+                    isToday && selectedClass,
+                  )}
+                >
+                  <span className="flex items-center justify-between">
+                    <span
+                      className={cn(
+                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                        isToday ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {date.getDate()}
+                    </span>
+                    {dayEntries.length > 0 ? (
                       <span
                         className={cn(
-                          "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                          isToday
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground",
+                          "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
+                          toneClass,
                         )}
                       >
-                        {date.getDate()}
+                        {dayEntries.length}
                       </span>
-                      {dayEntries.length > 0 ? (
-                        <span className={cn("inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold", toneClass)}>
-                          {dayEntries.length}
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="hidden flex-col gap-1 sm:flex">
-                      {dayEntries.slice(0, MAX_VISIBLE).map((entry) => (
-                        <span
-                          key={entry.id}
-                          className={cn("rounded-md px-1.5 py-1 text-[11px] leading-tight text-foreground", toneClass)}
-                        >
-                          <span className="block font-medium">{entry.userLabel}</span>
-                          {entry.comment ? (
-                            <span className="block truncate text-muted-foreground">
-                              {entry.comment}
-                            </span>
-                          ) : null}
-                        </span>
-                      ))}
-                      {dayEntries.length > MAX_VISIBLE ? (
-                        <span className="text-[11px] text-muted-foreground">
-                          + {dayEntries.length - MAX_VISIBLE} autres
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="mt-auto flex justify-center sm:hidden">
-                      {dayEntries.length > 0 ? <span className={cn("h-1.5 w-1.5 rounded-full", preferences.tone === "accent" ? "bg-accent" : "bg-primary")} /> : null}
-                    </span>
-                  </Button>
-                );
-              })}
-            </div>
-            {isLoading ? <p className="mt-3 text-sm text-muted-foreground">Chargement…</p> : null}
+                    ) : null}
+                  </span>
+                  <span className="hidden flex-col gap-1 sm:flex">
+                    {dayEntries.slice(0, MAX_VISIBLE).map((entry) => (
+                      <span
+                        key={entry.id}
+                        className={cn(
+                          "rounded-md px-1.5 py-1 text-[11px] leading-tight text-foreground",
+                          toneClass,
+                        )}
+                      >
+                        <span className="block font-medium">{entry.userLabel}</span>
+                        {entry.comment ? (
+                          <span className="block truncate text-muted-foreground">
+                            {entry.comment}
+                          </span>
+                        ) : null}
+                      </span>
+                    ))}
+                    {dayEntries.length > MAX_VISIBLE ? (
+                      <span className="text-[11px] text-muted-foreground">
+                        + {dayEntries.length - MAX_VISIBLE} autres
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="mt-auto flex justify-center sm:hidden">
+                    {dayEntries.length > 0 ? (
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          preferences.tone === "accent" ? "bg-accent" : "bg-primary",
+                        )}
+                      />
+                    ) : null}
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+          {isLoading ? <p className="mt-3 text-sm text-muted-foreground">Chargement…</p> : null}
         </div>
       </section>
 
@@ -355,7 +381,12 @@ function CalendarAppearanceMenu({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" aria-label="Personnaliser le calendrier" title="Personnaliser le calendrier">
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Personnaliser le calendrier"
+          title="Personnaliser le calendrier"
+        >
           <Settings2 className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
@@ -366,8 +397,13 @@ function CalendarAppearanceMenu({
         </div>
         <div className="space-y-2">
           <Label>Style</Label>
-          <Select value={preferences.style} onValueChange={(value) => onChange({ style: value as CalendarStyle })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+          <Select
+            value={preferences.style}
+            onValueChange={(value) => onChange({ style: value as CalendarStyle })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="direct">Direct et compact</SelectItem>
               <SelectItem value="outline">Contour net</SelectItem>
@@ -378,18 +414,31 @@ function CalendarAppearanceMenu({
         <div className="space-y-2">
           <Label>Couleur des disponibilités</Label>
           <div className="grid grid-cols-2 gap-2">
-            <Button variant={preferences.tone === "primary" ? "default" : "outline"} size="sm" onClick={() => onChange({ tone: "primary" })}>
+            <Button
+              variant={preferences.tone === "primary" ? "default" : "outline"}
+              size="sm"
+              onClick={() => onChange({ tone: "primary" })}
+            >
               {preferences.tone === "primary" ? <Check className="h-3.5 w-3.5" /> : null} Vert
             </Button>
-            <Button variant={preferences.tone === "accent" ? "default" : "outline"} size="sm" onClick={() => onChange({ tone: "accent" })}>
+            <Button
+              variant={preferences.tone === "accent" ? "default" : "outline"}
+              size="sm"
+              onClick={() => onChange({ tone: "accent" })}
+            >
               {preferences.tone === "accent" ? <Check className="h-3.5 w-3.5" /> : null} Orange
             </Button>
           </div>
         </div>
         <div className="space-y-2">
           <Label>Hauteur des journées</Label>
-          <Select value={preferences.density} onValueChange={(value) => onChange({ density: value as CalendarDensity })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+          <Select
+            value={preferences.density}
+            onValueChange={(value) => onChange({ density: value as CalendarDensity })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="compact">Compacte</SelectItem>
               <SelectItem value="comfortable">Confortable</SelectItem>
@@ -459,21 +508,48 @@ function DayDialog({
             <div className="space-y-1.5">
               <Label>Auteur</Label>
               <Select value={currentUserId ?? undefined} disabled>
-                <SelectTrigger><SelectValue placeholder="Compte connecté">{authorLabel ?? mine?.userLabel ?? "Utilisateur PP"}</SelectValue></SelectTrigger>
-                <SelectContent><SelectItem value={currentUserId ?? "current"}>{authorLabel ?? mine?.userLabel ?? "Utilisateur PP"}</SelectItem></SelectContent>
+                <SelectTrigger>
+                  <SelectValue placeholder="Compte connecté">
+                    {authorLabel ?? mine?.userLabel ?? "Utilisateur PP"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={currentUserId ?? "current"}>
+                    {authorLabel ?? mine?.userLabel ?? "Utilisateur PP"}
+                  </SelectItem>
+                </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">Publication au nom du SST connecté.</p>
             </div>
             <div className="space-y-1.5">
               <Label>Disponibilité</Label>
               <div className="grid grid-cols-2 gap-2">
-                <Button type="button" variant={availability === "available" ? "default" : "outline"} onClick={() => setAvailability("available")}>Disponible</Button>
-                <Button type="button" variant={availability === "unavailable" ? "destructive" : "outline"} onClick={() => setAvailability("unavailable")}>Indisponible</Button>
+                <Button
+                  type="button"
+                  variant={availability === "available" ? "default" : "outline"}
+                  onClick={() => setAvailability("available")}
+                >
+                  Disponible
+                </Button>
+                <Button
+                  type="button"
+                  variant={availability === "unavailable" ? "destructive" : "outline"}
+                  onClick={() => setAvailability("unavailable")}
+                >
+                  Indisponible
+                </Button>
               </div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="sst-comment">Commentaire (facultatif)</Label>
-              <Textarea id="sst-comment" rows={2} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Précision utile pour la journée…" disabled={availability === "unavailable"} />
+              <Textarea
+                id="sst-comment"
+                rows={2}
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+                placeholder="Précision utile pour la journée…"
+                disabled={availability === "unavailable"}
+              />
             </div>
             <Button
               className="w-full"
