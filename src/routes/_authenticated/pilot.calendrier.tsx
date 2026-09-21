@@ -4,6 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
   CheckCircle2,
   FileWarning,
   MessageSquare,
@@ -43,7 +46,6 @@ import {
   detectSstCalendarConflicts,
   latestAvailabilityBySubcontractor,
   listSstCalendarData,
-  monthWindow,
   updateSstAssignmentStatus,
   updateSstCalendarSettings,
   updateSstConflictStatus,
@@ -53,6 +55,13 @@ import {
   type SstInterventionAssignment,
 } from "@/lib/calendrier-sst";
 import { cn } from "@/lib/utils";
+
+type CalendarMonth = {
+  key: string;
+  label: string;
+  shortLabel: string;
+  days: Array<string | null>;
+};
 
 export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
   head: () => ({
@@ -114,11 +123,13 @@ function CalendrierSstPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { role, isAdmin } = useRole();
-  const [month, setMonth] = useState(() => monthWindow());
+  const [year, setYear] = useState(() => new Date().getFullYear());
+  const yearRange = useMemo(() => ({ start: `${year}-01-01`, end: `${year}-12-31` }), [year]);
+  const months = useMemo(() => monthsOfYear(year), [year]);
 
   const query = useQuery({
-    queryKey: ["sst-calendar", month.start, month.end],
-    queryFn: () => listSstCalendarData(month.start, month.end),
+    queryKey: ["sst-calendar", yearRange.start, yearRange.end],
+    queryFn: () => listSstCalendarData(yearRange.start, yearRange.end),
   });
 
   const data = query.data;
@@ -149,7 +160,6 @@ function CalendrierSstPage() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["sst-calendar"] });
 
   const stats = useMemo(() => (data ? getStats(data, computedConflicts) : null), [data, computedConflicts]);
-  const days = useMemo(() => daysBetween(month.start, month.end), [month.start, month.end]);
 
   if (role === "observateur") {
     return (
@@ -175,7 +185,7 @@ function CalendrierSstPage() {
               Disponibilités, propositions, confirmations, conflits et comptes-rendus SST.
             </p>
           </div>
-          <MonthPicker start={month.start} onChange={(next) => setMonth(monthWindow(new Date(`${next}-01T00:00:00`)))} />
+          <YearPicker year={year} onChange={setYear} />
         </div>
 
         {query.isError && (
@@ -203,7 +213,7 @@ function CalendrierSstPage() {
           </TabsContent>
 
           <TabsContent value="calendrier" className="space-y-4">
-            <CalendarBoard data={data} days={days} isLoading={query.isLoading} />
+            <CalendarBoard data={data} months={months} year={year} isLoading={query.isLoading} />
           </TabsContent>
 
           <TabsContent value="disponibilites" className="space-y-4">
