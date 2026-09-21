@@ -4198,6 +4198,427 @@ export type Database = {
         }
         Relationships: []
       }
+      sst_availabilities: {
+        Row: {
+          availability_date: string
+          comment: string | null
+          created_at: string
+          created_by: string
+          end_time: string | null
+          id: string
+          start_time: string | null
+          status: string
+          subcontractor_id: string
+          updated_at: string
+        }
+        Insert: {
+          availability_date: string
+          comment?: string | null
+          created_at?: string
+          created_by?: string
+          end_time?: string | null
+          id?: string
+          start_time?: string | null
+          status?: string
+          subcontractor_id: string
+          updated_at?: string
+        }
+        Update: {
+          availability_date?: string
+          comment?: string | null
+          created_at?: string
+          created_by?: string
+          end_time?: string | null
+          id?: string
+          start_time?: string | null
+          status?: string
+          subcontractor_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sst_availabilities_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sst_availabilities_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "v_sst_summary"
+            referencedColumns: ["subcontractor_id"]
+          },
+        ]
+      }
+      sst_availability_request_targets: {
+        Row: {
+          created_at: string
+          id: string
+          request_id: string
+          responded_at: string | null
+          response_comment: string | null
+          status: string
+          subcontractor_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          request_id: string
+          responded_at?: string | null
+          response_comment?: string | null
+          status?: string
+          subcontractor_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          request_id?: string
+          responded_at?: string | null
+          response_comment?: string | null
+          status?: string
+          subcontractor_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sst_availability_request_targets_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "sst_availability_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sst_availability_request_targets_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sst_availability_request_targets_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "v_sst_summary"
+            referencedColumns: ["subcontractor_id"]
+          },
+        ]
+      }
+      sst_availability_requests: {
+        Row: {
+          comment: string | null
+          created_at: string
+          created_by: string
+          end_date: string
+          id: string
+          intervention_type: string | null
+          response_deadline: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string
+          end_date: string
+          id?: string
+          intervention_type?: string | null
+          response_deadline?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string
+          end_date?: string
+          id?: string
+          intervention_type?: string | null
+          response_deadline?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sst_calendar_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          new_value: Json | null
+          object_id: string | null
+          object_type: string
+          old_value: Json | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          object_id?: string | null
+          object_type: string
+          old_value?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          object_id?: string | null
+          object_type?: string
+          old_value?: Json | null
+        }
+        Relationships: []
+      }
+      sst_calendar_conflicts: {
+        Row: {
+          assignment_id: string | null
+          conflict_date: string | null
+          conflict_type: string
+          created_at: string
+          id: string
+          intervention_id: string | null
+          message: string
+          mission_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          subcontractor_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assignment_id?: string | null
+          conflict_date?: string | null
+          conflict_type: string
+          created_at?: string
+          id?: string
+          intervention_id?: string | null
+          message: string
+          mission_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          subcontractor_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string | null
+          conflict_date?: string | null
+          conflict_type?: string
+          created_at?: string
+          id?: string
+          intervention_id?: string | null
+          message?: string
+          mission_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          subcontractor_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sst_calendar_conflicts_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "sst_intervention_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sst_calendar_conflicts_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "interventions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sst_calendar_conflicts_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
+          },
+          {
+            foreignKeyName: "sst_calendar_conflicts_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractor_missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sst_calendar_conflicts_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "v_sst_mission_pnl"
+            referencedColumns: ["mission_id"]
+          },
+          {
+            foreignKeyName: "sst_calendar_conflicts_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sst_calendar_conflicts_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "v_sst_summary"
+            referencedColumns: ["subcontractor_id"]
+          },
+        ]
+      }
+      sst_calendar_settings: {
+        Row: {
+          availability_horizon_months: number
+          colors: Json
+          confirmation_deadline_days: number
+          created_at: string
+          id: boolean
+          intervention_reminder_days: number
+          notifications_enabled: boolean
+          reminder_lead_months: number
+          shared_view_options: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          availability_horizon_months?: number
+          colors?: Json
+          confirmation_deadline_days?: number
+          created_at?: string
+          id?: boolean
+          intervention_reminder_days?: number
+          notifications_enabled?: boolean
+          reminder_lead_months?: number
+          shared_view_options?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          availability_horizon_months?: number
+          colors?: Json
+          confirmation_deadline_days?: number
+          created_at?: string
+          id?: boolean
+          intervention_reminder_days?: number
+          notifications_enabled?: boolean
+          reminder_lead_months?: number
+          shared_view_options?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      sst_intervention_assignments: {
+        Row: {
+          created_at: string
+          created_by: string
+          ends_at: string | null
+          id: string
+          intervention_id: string | null
+          mission_id: string | null
+          planning_comment: string | null
+          proposed_at: string | null
+          required_people: number
+          responded_at: string | null
+          response_comment: string | null
+          starts_at: string | null
+          status: string
+          subcontractor_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          ends_at?: string | null
+          id?: string
+          intervention_id?: string | null
+          mission_id?: string | null
+          planning_comment?: string | null
+          proposed_at?: string | null
+          required_people?: number
+          responded_at?: string | null
+          response_comment?: string | null
+          starts_at?: string | null
+          status?: string
+          subcontractor_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          ends_at?: string | null
+          id?: string
+          intervention_id?: string | null
+          mission_id?: string | null
+          planning_comment?: string | null
+          proposed_at?: string | null
+          required_people?: number
+          responded_at?: string | null
+          response_comment?: string | null
+          starts_at?: string | null
+          status?: string
+          subcontractor_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sst_intervention_assignments_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "interventions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sst_intervention_assignments_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "v_intervention_pnl"
+            referencedColumns: ["intervention_id"]
+          },
+          {
+            foreignKeyName: "sst_intervention_assignments_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractor_missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sst_intervention_assignments_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "v_sst_mission_pnl"
+            referencedColumns: ["mission_id"]
+          },
+          {
+            foreignKeyName: "sst_intervention_assignments_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sst_intervention_assignments_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "v_sst_summary"
+            referencedColumns: ["subcontractor_id"]
+          },
+        ]
+      }
       sst_lists: {
         Row: {
           color: string | null
@@ -4233,6 +4654,51 @@ export type Database = {
           value?: string
         }
         Relationships: []
+      }
+      sst_user_links: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          subcontractor_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          subcontractor_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          subcontractor_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sst_user_links_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sst_user_links_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "v_sst_summary"
+            referencedColumns: ["subcontractor_id"]
+          },
+        ]
       }
       subcontractor_mission_photos: {
         Row: {
@@ -5309,6 +5775,10 @@ export type Database = {
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
       is_editor: { Args: { _user_id: string }; Returns: boolean }
+      is_linked_to_subcontractor: {
+        Args: { _subcontractor_id: string; _user_id: string }
+        Returns: boolean
+      }
       link_ca_entry_to_client: {
         Args: {
           _client_id: string
