@@ -151,60 +151,53 @@ function CalendrierSstPage() {
 
   return (
     <AppShell title="Calendrier SST">
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="flex items-center gap-2 font-display text-2xl font-semibold text-foreground">
-              <CalendarDays className="h-6 w-6 text-primary" />
-              Calendrier SST
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Calendrier partagé des disponibilités des utilisateurs.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => shiftMonth(-1)}
-              aria-label="Mois précédent"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" onClick={goToday}>
+      <div className="mx-auto w-full md:w-3/4">
+        <Card className="overflow-hidden shadow-sm">
+          <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/60 pb-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => shiftMonth(-1)}
+                aria-label="Mois précédent"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => shiftMonth(1)}
+                aria-label="Mois suivant"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="min-w-0 text-right sm:text-center">
+              <CardTitle className="truncate font-serif text-xl font-semibold">
+                {monthLabel(cursor.year, cursor.month)}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={goToday} className="justify-self-end">
               Aujourd'hui
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => shiftMonth(1)}
-              aria-label="Mois suivant"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <Card>
-          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
-            <CardTitle className="text-base">{monthLabel(cursor.year, cursor.month)}</CardTitle>
-            <Badge variant="secondary">
-              {monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois
-            </Badge>
           </CardHeader>
-          <CardContent>
-            <div className="mb-1 hidden grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground sm:grid">
+          <CardContent className="p-3 sm:p-4">
+            <div className="mb-2 hidden grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
               {WEEKDAYS.map((label) => (
                 <div key={label}>{label}</div>
               ))}
             </div>
-            <div className="grid grid-cols-1 gap-1 sm:grid-cols-7">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
               {grid.map((date) => {
                 const iso = isoDate(date);
                 const inMonth = date.getMonth() === cursor.month;
                 const dayEntries = byDate.get(iso) ?? [];
+                const isToday = iso === today;
                 if (!inMonth && dayEntries.length === 0) {
-                  return <div key={iso} className="hidden sm:block sm:min-h-24" />;
+                  return <div key={iso} className="hidden sm:block sm:min-h-28" />;
                 }
                 return (
                   <button
@@ -212,23 +205,36 @@ function CalendrierSstPage() {
                     type="button"
                     onClick={() => setSelectedDate(iso)}
                     className={cn(
-                      "flex min-h-24 flex-col gap-1 rounded-md border border-border bg-card p-2 text-left transition-colors hover:border-primary/60 hover:bg-accent/10",
-                      !inMonth && "opacity-60",
-                      iso === today && "border-primary ring-1 ring-primary/40",
+                      "flex min-h-28 flex-col gap-1.5 rounded-xl border border-border/70 bg-card p-2 text-left transition-all hover:-translate-y-px hover:border-primary/50 hover:shadow-sm",
+                      !inMonth && "opacity-50",
+                      isToday && "border-primary/70 bg-primary/5",
                     )}
                   >
-                    <span className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                      <span className="sm:hidden">{fullDateLabel(iso)}</span>
-                      <span className="hidden sm:inline">{date.getDate()}</span>
+                    <span className="flex items-center justify-between">
+                      <span className="sm:hidden text-xs font-semibold text-muted-foreground">
+                        {fullDateLabel(iso)}
+                      </span>
+                      <span
+                        className={cn(
+                          "hidden sm:inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                          isToday
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {date.getDate()}
+                      </span>
                       {dayEntries.length > 0 ? (
-                        <span className="text-primary">{dayEntries.length}</span>
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/15 px-1.5 text-[10px] font-semibold text-primary">
+                          {dayEntries.length}
+                        </span>
                       ) : null}
                     </span>
                     <span className="flex flex-col gap-1">
                       {dayEntries.slice(0, MAX_VISIBLE).map((entry) => (
                         <span
                           key={entry.id}
-                          className="rounded bg-primary/10 px-1.5 py-1 text-[11px] leading-tight text-foreground"
+                          className="rounded-md bg-primary/10 px-1.5 py-1 text-[11px] leading-tight text-foreground"
                         >
                           <span className="block font-medium">{entry.userLabel}</span>
                           {entry.comment ? (
