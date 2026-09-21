@@ -7,7 +7,14 @@ import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
@@ -31,7 +38,10 @@ export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
       { title: "Calendrier SST — De la graine au jardin" },
       { name: "description", content: "Calendrier partagé des disponibilités des utilisateurs." },
       { property: "og:title", content: "Calendrier SST" },
-      { property: "og:description", content: "Calendrier partagé des disponibilités des utilisateurs." },
+      {
+        property: "og:description",
+        content: "Calendrier partagé des disponibilités des utilisateurs.",
+      },
     ],
   }),
   component: CalendrierSstPage,
@@ -41,7 +51,10 @@ const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const MAX_VISIBLE = 3;
 
 function monthLabel(year: number, month: number) {
-  const label = new Date(year, month, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  const label = new Date(year, month, 1).toLocaleDateString("fr-FR", {
+    month: "long",
+    year: "numeric",
+  });
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
@@ -83,7 +96,8 @@ function CalendrierSstPage() {
   const grid = useMemo(() => monthGridDates(cursor.year, cursor.month), [cursor]);
   const monthRange = monthWindow(cursor.year, cursor.month);
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["sst-availability-calendar"] });
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["sst-availability-calendar"] });
 
   const declare = useMutation({
     mutationFn: ({ date, comment }: { date: string; comment: string }) =>
@@ -96,7 +110,8 @@ function CalendrierSstPage() {
   });
 
   const updateComment = useMutation({
-    mutationFn: ({ id, comment }: { id: string; comment: string }) => updateAvailabilityComment(id, comment),
+    mutationFn: ({ id, comment }: { id: string; comment: string }) =>
+      updateAvailabilityComment(id, comment),
     onSuccess: async () => {
       await invalidate();
       toast.success("Commentaire mis à jour");
@@ -124,7 +139,9 @@ function CalendrierSstPage() {
     setCursor({ year: next.getFullYear(), month: next.getMonth() });
   };
 
-  const monthCount = entries.filter((entry) => entry.date >= monthRange.start && entry.date <= monthRange.end).length;
+  const monthCount = entries.filter(
+    (entry) => entry.date >= monthRange.start && entry.date <= monthRange.end,
+  ).length;
 
   return (
     <AppShell title="Calendrier SST">
@@ -135,16 +152,28 @@ function CalendrierSstPage() {
               <CalendarDays className="h-6 w-6 text-primary" />
               Calendrier SST
             </h1>
-            <p className="text-sm text-muted-foreground">Calendrier partagé des disponibilités des utilisateurs.</p>
+            <p className="text-sm text-muted-foreground">
+              Calendrier partagé des disponibilités des utilisateurs.
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => shiftMonth(-1)} aria-label="Mois précédent">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => shiftMonth(-1)}
+              aria-label="Mois précédent"
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button variant="outline" onClick={goToday}>
               Aujourd'hui
             </Button>
-            <Button variant="outline" size="icon" onClick={() => shiftMonth(1)} aria-label="Mois suivant">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => shiftMonth(1)}
+              aria-label="Mois suivant"
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -191,15 +220,22 @@ function CalendrierSstPage() {
                     </span>
                     <span className="flex flex-col gap-1">
                       {dayEntries.slice(0, MAX_VISIBLE).map((entry) => (
-                        <span key={entry.id} className="rounded bg-primary/10 px-1.5 py-1 text-[11px] leading-tight text-foreground">
+                        <span
+                          key={entry.id}
+                          className="rounded bg-primary/10 px-1.5 py-1 text-[11px] leading-tight text-foreground"
+                        >
                           <span className="block font-medium">{entry.userLabel}</span>
                           {entry.comment ? (
-                            <span className="block truncate text-muted-foreground">{entry.comment}</span>
+                            <span className="block truncate text-muted-foreground">
+                              {entry.comment}
+                            </span>
                           ) : null}
                         </span>
                       ))}
                       {dayEntries.length > MAX_VISIBLE ? (
-                        <span className="text-[11px] text-muted-foreground">+ {dayEntries.length - MAX_VISIBLE} autres</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          + {dayEntries.length - MAX_VISIBLE} autres
+                        </span>
                       ) : null}
                     </span>
                   </button>
@@ -300,7 +336,9 @@ function DayDialog({
                 </div>
               ) : (
                 <>
-                  {mine.comment ? <p className="text-sm text-muted-foreground">{mine.comment}</p> : null}
+                  {mine.comment ? (
+                    <p className="text-sm text-muted-foreground">{mine.comment}</p>
+                  ) : null}
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Button
                       size="sm"
@@ -312,7 +350,12 @@ function DayDialog({
                     >
                       Modifier
                     </Button>
-                    <Button size="sm" variant="ghost" disabled={pending} onClick={() => onRemove(mine.id)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={pending}
+                      onClick={() => onRemove(mine.id)}
+                    >
                       Retirer ma disponibilité
                     </Button>
                   </div>
@@ -331,17 +374,26 @@ function DayDialog({
                 onChange={(event) => setComment(event.target.value)}
                 placeholder="Disponible toute la journée…"
               />
-              <Button size="sm" disabled={pending || !currentUserId} onClick={() => onDeclare(comment)}>
+              <Button
+                size="sm"
+                disabled={pending || !currentUserId}
+                onClick={() => onDeclare(comment)}
+              >
                 Je suis disponible
               </Button>
             </div>
           )}
 
           {others.map((entry) => (
-            <div key={entry.id} className="flex items-start justify-between gap-2 rounded-md border border-border p-3">
+            <div
+              key={entry.id}
+              className="flex items-start justify-between gap-2 rounded-md border border-border p-3"
+            >
               <div>
                 <p className="text-sm font-medium text-foreground">{entry.userLabel}</p>
-                {entry.comment ? <p className="text-sm text-muted-foreground">{entry.comment}</p> : null}
+                {entry.comment ? (
+                  <p className="text-sm text-muted-foreground">{entry.comment}</p>
+                ) : null}
               </div>
               {isAdmin ? (
                 <Button

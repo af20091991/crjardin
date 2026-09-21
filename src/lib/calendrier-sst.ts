@@ -48,7 +48,9 @@ export function monthGridDates(year: number, month: number): Date[] {
   return dates;
 }
 
-export function groupByDate(entries: SstAvailabilityWithUser[]): Map<string, SstAvailabilityWithUser[]> {
+export function groupByDate(
+  entries: SstAvailabilityWithUser[],
+): Map<string, SstAvailabilityWithUser[]> {
   const map = new Map<string, SstAvailabilityWithUser[]>();
   for (const entry of entries) {
     const list = map.get(entry.date) ?? [];
@@ -61,7 +63,10 @@ export function groupByDate(entries: SstAvailabilityWithUser[]): Map<string, Sst
   return map;
 }
 
-export async function listAvailabilities(start: string, end: string): Promise<SstAvailabilityWithUser[]> {
+export async function listAvailabilities(
+  start: string,
+  end: string,
+): Promise<SstAvailabilityWithUser[]> {
   const { data, error } = await db
     .from("sst_availability_calendar")
     .select("*")
@@ -78,7 +83,11 @@ export async function listAvailabilities(start: string, end: string): Promise<Ss
       .select("id, display_name, company_name")
       .in("id", ids);
     if (profileError) throw profileError;
-    for (const profile of (profiles ?? []) as Array<{ id: string; display_name: string | null; company_name: string | null }>) {
+    for (const profile of (profiles ?? []) as Array<{
+      id: string;
+      display_name: string | null;
+      company_name: string | null;
+    }>) {
       const label = profile.display_name?.trim() || profile.company_name?.trim() || "";
       if (label) labels.set(profile.id, label);
     }
@@ -99,7 +108,10 @@ export async function declareAvailability(userId: string, date: string, comment:
 
 export async function updateAvailabilityComment(id: string, comment: string | null) {
   const value = comment?.trim() ? comment.trim() : null;
-  const { error } = await db.from("sst_availability_calendar").update({ comment: value }).eq("id", id);
+  const { error } = await db
+    .from("sst_availability_calendar")
+    .update({ comment: value })
+    .eq("id", id);
   if (error) throw error;
 }
 

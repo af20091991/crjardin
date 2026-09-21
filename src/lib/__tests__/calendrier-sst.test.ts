@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { groupByDate, isoDate, monthGridDates, monthWindow, type SstAvailabilityWithUser } from "@/lib/calendrier-sst";
+import {
+  groupByDate,
+  isoDate,
+  monthGridDates,
+  monthWindow,
+  type SstAvailabilityWithUser,
+} from "@/lib/calendrier-sst";
 
 describe("calendrier SST — disponibilités partagées", () => {
   it("calcule la fenêtre du mois", () => {
@@ -15,9 +21,33 @@ describe("calendrier SST — disponibilités partagées", () => {
 
   it("regroupe les disponibilités par date et trie par nom", () => {
     const entries = [
-      { id: "1", user_id: "u1", date: "2026-09-02", comment: null, created_at: "", updated_at: "", userLabel: "Zoé" },
-      { id: "2", user_id: "u2", date: "2026-09-02", comment: "Matin", created_at: "", updated_at: "", userLabel: "Alex" },
-      { id: "3", user_id: "u1", date: "2026-09-03", comment: null, created_at: "", updated_at: "", userLabel: "Zoé" },
+      {
+        id: "1",
+        user_id: "u1",
+        date: "2026-09-02",
+        comment: null,
+        created_at: "",
+        updated_at: "",
+        userLabel: "Zoé",
+      },
+      {
+        id: "2",
+        user_id: "u2",
+        date: "2026-09-02",
+        comment: "Matin",
+        created_at: "",
+        updated_at: "",
+        userLabel: "Alex",
+      },
+      {
+        id: "3",
+        user_id: "u1",
+        date: "2026-09-03",
+        comment: null,
+        created_at: "",
+        updated_at: "",
+        userLabel: "Zoé",
+      },
     ] satisfies SstAvailabilityWithUser[];
     const grouped = groupByDate(entries);
     expect(grouped.get("2026-09-02")?.map((e) => e.userLabel)).toEqual(["Alex", "Zoé"]);
