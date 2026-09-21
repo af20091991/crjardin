@@ -312,6 +312,151 @@ function SummaryGrid({ stats, isLoading }: { stats: ReturnType<typeof getStats> 
   );
 }
 
+function CalendarToolbar({ anchorDate, view, search, isAdmin, onAnchorDateChange, onViewChange, onSearchChange, onCreate }: { anchorDate: string; view: CalendarView; search: string; isAdmin: boolean; onAnchorDateChange: (date: string) => void; onViewChange: (view: CalendarView) => void; onSearchChange: (value: string) => void; onCreate: () => void }) {
+  const move = (direction: -1 | 1) => {
+    if (view === "week") onAnchorDateChange(addDaysIso(anchorDate, direction * 7));
+    else if (view === "month") onAnchorDateChange(shiftMonth(anchorDate, direction));
+    else onAnchorDateChange(`${Number(anchorDate.slice(0, 4)) + direction}-${anchorDate.slice(5)}`);
+  };
+  return (
+    <header className="flex flex-col gap-3 rounded-md border bg-card p-3 xl:flex-row xl:items-center">
+      <div className="flex min-w-0 items-center gap-2">
+        <CalendarDays className="hidden h-6 w-6 text-primary sm:block" />
+        <h1 className="truncate font-serif text-xl font-semibold text-foreground">Planning SST</h1>
+        <Button variant="outline" size="sm" onClick={() => onAnchorDateChange(localToday())}>Aujourd’hui</Button>
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon" title="Période précédente" onClick={() => move(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" title="Période suivante" onClick={() => move(1)}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
+      </div>
+      <p className="min-w-0 flex-1 truncate font-serif text-lg font-semibold text-foreground">{periodLabel(anchorDate, view)}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-44 flex-1 xl:w-56 xl:flex-none">
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input value={search} onChange={(event) => onSearchChange(event.target.value)} className="pl-8" placeholder="Client, chantier, SST…" />
+        </div>
+        <div className="flex rounded-md border bg-background p-0.5">
+          {(["week", "month", "year"] as CalendarView[]).map((item) => (
+            <Button key={item} size="sm" variant={view === item ? "secondary" : "ghost"} onClick={() => onViewChange(item)}>
+              {item === "week" ? "Semaine" : item === "month" ? "Mois" : "Année"}
+            </Button>
+          ))}
+        </div>
+        {isAdmin && <Button onClick={onCreate}><Plus className="h-4 w-4" /> Créer</Button>}
+      </div>
+    </header>
+  );
+}
+
+function CalendarSidebar({ anchorDate, subcontractors, selected, stats, onAnchorDateChange, onSelectedChange }: { anchorDate: string; subcontractors: SstCalendarData["subcontractors"]; selected: string[]; stats: ReturnType<typeof getStats> | null; onAnchorDateChange: (date: string) => void; onSelectedChange: (ids: string[]) => void }) {
+  const month = monthsOfYear(Number(anchorDate.slice(0, 4)))[Number(anchorDate.slice(5, 7)) - 1];
+  return (
+    <aside className="hidden border-r bg-muted/20 p-3 lg:block">
+      <div className="mb-4 flex items-center justify-between">
+        <Button variant="ghost" size="icon" title="Mois précédent" onClick={() => onAnchorDateChange(shiftMonth(anchorDate, -1))}><ChevronLeft className="h-4 w-4" /></Button>
+        <p className="text-sm font-semibold text-foreground">{month?.label}</p>
+        <Button variant="ghost" size="icon" title="Mois suivant" onClick={() => onAnchorDateChange(shiftMonth(anchorDate, 1))}><ChevronRight className="h-4 w-4" /></Button>
+      </div>
+      <div className="grid grid-cols-7 text-center text-[10px] text-muted-foreground">
+        {WEEKDAY_LABELS.map((day) => <span key={day} className="py-1">{day.slice(0, 1)}</span>)}
+        {month?.days.map((date, index) => date ? (
+          <Button key={date} variant="ghost" size="icon" className={cn("h-7 w-7 text-[11px]", date === anchorDate && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground")} onClick={() => onAnchorDateChange(date)}>{Number(date.slice(8, 10))}</Button>
+        ) : <span key={`empty-${index}`} />)}
+      </div>
+      <div className="my-4 border-t" />
+      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground"><Filter className="h-4 w-4" /> Calendriers</div>
+      <div className="space-y-2">
+        {subcontractors.map((subcontractor) => {
+          const checked = selected.length === 0 || selected.includes(subcontractor.id);
+          return (
+            <label key={subcontractor.id} className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
+              <Checkbox checked={checked} onCheckedChange={() => onSelectedChange(toggleCalendarFilter(selected, subcontractor.id, subcontractors.map((item) => item.id)))} />
+              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+              <span className="truncate">{subcontractor.name}</span>
+            </label>
+          );
+        })}
+      </div>
+      <div className="my-4 border-t" />
+      <div className="space-y-2 text-xs text-muted-foreground">
+        <p className="flex justify-between"><span>Disponibles aujourd’hui</span><strong className="text-foreground">{stats?.availableToday ?? 0}</strong></p>
+        <p className="flex justify-between"><span>Réponses attendues</span><strong className="text-foreground">{stats?.pendingAnswers ?? 0}</strong></p>
+        <p className="flex justify-between"><span>Actions urgentes</span><strong className="text-destructive">{stats?.urgentActions ?? 0}</strong></p>
+      </div>
+    </aside>
+  );
+}
+
+function QuickCreateDialog({ open, date, data, subcontractors, onOpenChange, onCreated }: { open: boolean; date: string; data?: SstCalendarData; subcontractors: SstCalendarData["subcontractors"]; onOpenChange: (open: boolean) => void; onCreated: () => void }) {
+  const [source, setSource] = useState<"intervention" | "mission">("intervention");
+  const [sourceId, setSourceId] = useState("");
+  const [subcontractorId, setSubcontractorId] = useState("");
+  const [selectedDate, setSelectedDate] = useState(date);
+  const [requiredPeople, setRequiredPeople] = useState(1);
+  const [status, setStatus] = useState<SstAssignmentStatus>("proposed");
+  const [comment, setComment] = useState("");
+  const [advanced, setAdvanced] = useState(false);
+  const sourceOptions = source === "intervention" ? data?.interventions ?? [] : data?.missions ?? [];
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const assignment = await createSstAssignment({
+        intervention_id: source === "intervention" ? sourceId : null,
+        mission_id: source === "mission" ? sourceId : null,
+        subcontractor_id: subcontractorId,
+        starts_at: `${selectedDate}T12:00:00`,
+        ends_at: null,
+        required_people: requiredPeople,
+        planning_comment: comment.trim() || null,
+      });
+      if (status !== "proposed") await updateSstAssignmentStatus(assignment.id, status);
+    },
+    onSuccess: () => {
+      toast.success("Chantier ajouté au planning");
+      setSourceId("");
+      setComment("");
+      onCreated();
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (next) setSelectedDate(date); onOpenChange(next); }}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="font-serif text-xl">Planifier un chantier</DialogTitle>
+          <DialogDescription>Les informations indispensables, sans détail horaire.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Select value={source} onValueChange={(value) => { setSource(value as "intervention" | "mission"); setSourceId(""); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="intervention">Intervention PP</SelectItem><SelectItem value="mission">Mission SST</SelectItem></SelectContent>
+            </Select>
+            <Input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
+          </div>
+          <Select value={sourceId} onValueChange={setSourceId}>
+            <SelectTrigger><SelectValue placeholder="Choisir le chantier" /></SelectTrigger>
+            <SelectContent>{sourceOptions.map((item) => <SelectItem key={item.id} value={item.id}>{source === "intervention" ? interventionOptionLabel(data, item.id) : missionOptionLabel(data, item.id)}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={subcontractorId} onValueChange={setSubcontractorId}>
+            <SelectTrigger><SelectValue placeholder="Choisir le SST" /></SelectTrigger>
+            <SelectContent>{subcontractors.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Personnes</Label><Input type="number" min={1} value={requiredPeople} onChange={(event) => setRequiredPeople(Number(event.target.value) || 1)} /></div>
+            <div className="space-y-1.5"><Label>Statut</Label><Select value={status} onValueChange={(value) => setStatus(value as SstAssignmentStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUS_ORDER.slice(0, 6).map((item) => <SelectItem key={item} value={item}>{ASSIGNMENT_STATUS_LABEL[item]}</SelectItem>)}</SelectContent></Select></div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setAdvanced((current) => !current)}><LayoutGrid className="h-4 w-4" /> {advanced ? "Masquer le commentaire" : "Ajouter un commentaire"}</Button>
+          {advanced && <Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Consignes utiles au SST" />}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
+          <Button disabled={!sourceId || !subcontractorId || !selectedDate || mutation.isPending} onClick={() => mutation.mutate()}><Plus className="h-4 w-4" /> Planifier</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ActionsPanel({
   data,
   conflicts,
