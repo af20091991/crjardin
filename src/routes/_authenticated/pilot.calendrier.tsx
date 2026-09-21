@@ -9,8 +9,11 @@ import {
   Clock,
   CheckCircle2,
   FileWarning,
+  Filter,
+  LayoutGrid,
   MessageSquare,
   Plus,
+  Search,
   Send,
   Settings2,
   type LucideIcon,
@@ -22,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -63,6 +67,8 @@ type CalendarMonth = {
   shortLabel: string;
   days: Array<string | null>;
 };
+
+type CalendarView = "week" | "month" | "year";
 
 export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
   head: () => ({
@@ -124,7 +130,13 @@ function CalendrierSstPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { role, isAdmin } = useRole();
-  const [year, setYear] = useState(() => new Date().getFullYear());
+  const today = useMemo(() => localToday(), []);
+  const [anchorDate, setAnchorDate] = useState(today);
+  const [view, setView] = useState<CalendarView>("week");
+  const [search, setSearch] = useState("");
+  const [selectedSubcontractors, setSelectedSubcontractors] = useState<string[]>([]);
+  const [quickDate, setQuickDate] = useState<string | null>(null);
+  const year = Number(anchorDate.slice(0, 4));
   const yearRange = useMemo(() => ({ start: `${year}-01-01`, end: `${year}-12-31` }), [year]);
   const months = useMemo(() => monthsOfYear(year), [year]);
 
@@ -178,16 +190,17 @@ function CalendrierSstPage() {
 
   return (
     <AppShell title="Calendrier SST">
-      <div className="w-full space-y-5 px-4 py-5 lg:px-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="font-serif text-2xl font-semibold tracking-normal text-foreground">Calendrier SST</h1>
-            <p className="text-sm text-muted-foreground">
-              Disponibilités, propositions, confirmations, conflits et comptes-rendus SST.
-            </p>
-          </div>
-          <YearPicker year={year} onChange={setYear} />
-        </div>
+      <div className="w-full space-y-4 px-3 py-3 lg:px-5 lg:py-4">
+        <CalendarToolbar
+          anchorDate={anchorDate}
+          view={view}
+          search={search}
+          isAdmin={isAdmin}
+          onAnchorDateChange={setAnchorDate}
+          onViewChange={setView}
+          onSearchChange={setSearch}
+          onCreate={() => setQuickDate(anchorDate)}
+        />
 
         {query.isError && (
           <Alert variant="destructive">
@@ -197,24 +210,39 @@ function CalendrierSstPage() {
           </Alert>
         )}
 
-        <SummaryGrid stats={stats} isLoading={query.isLoading} />
+        <div className="grid min-h-[620px] overflow-hidden rounded-md border bg-card lg:grid-cols-[230px_minmax(0,1fr)]">
+          <CalendarSidebar
+            anchorDate={anchorDate}
+            subcontractors={visibleSubcontractors}
+            selected={selectedSubcontractors}
+            stats={stats}
+            onAnchorDateChange={setAnchorDate}
+            onSelectedChange={setSelectedSubcontractors}
+          />
+          <CalendarBoard
+            data={data}
+            months={months}
+            anchorDate={anchorDate}
+            view={view}
+            search={search}
+            selectedSubcontractors={selectedSubcontractors}
+            isLoading={query.isLoading}
+            canCreate={isAdmin}
+            onCreate={setQuickDate}
+          />
+        </div>
 
-        <Tabs defaultValue="synthese" className="space-y-4">
+        <Tabs defaultValue="actions" className="space-y-4">
           <TabsList className="flex w-full flex-wrap justify-start">
-            <TabsTrigger value="synthese">Synthèse</TabsTrigger>
-            <TabsTrigger value="calendrier">Calendrier</TabsTrigger>
+            <TabsTrigger value="actions">À traiter</TabsTrigger>
             <TabsTrigger value="disponibilites">Disponibilités</TabsTrigger>
             <TabsTrigger value="demandes">Demandes</TabsTrigger>
             <TabsTrigger value="affectations">Affectations</TabsTrigger>
             <TabsTrigger value="parametres">Paramètres</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="synthese" className="space-y-4">
+          <TabsContent value="actions" className="space-y-4">
             <ActionsPanel data={data} conflicts={computedConflicts} onRefresh={refresh} isAdmin={isAdmin} />
-          </TabsContent>
-
-          <TabsContent value="calendrier" className="space-y-4">
-            <CalendarBoard data={data} months={months} year={year} isLoading={query.isLoading} />
           </TabsContent>
 
           <TabsContent value="disponibilites" className="space-y-4">
@@ -238,6 +266,18 @@ function CalendrierSstPage() {
             <SettingsPanel data={data} isAdmin={isAdmin} onRefresh={refresh} />
           </TabsContent>
         </Tabs>
+
+        <QuickCreateDialog
+          open={Boolean(quickDate)}
+          date={quickDate ?? anchorDate}
+          data={data}
+          subcontractors={visibleSubcontractors}
+          onOpenChange={(open) => !open && setQuickDate(null)}
+          onCreated={() => {
+            setQuickDate(null);
+            refresh();
+          }}
+        />
       </div>
     </AppShell>
   );
