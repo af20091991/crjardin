@@ -326,16 +326,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 exact: false,
                 primary: false,
               },
-              {
-                to: "/pilot/calendrier",
-                label: "Calendrier SST",
-                short: "Calendrier SST",
-                icon: CalendarDays,
-                exact: false,
-                primary: false,
-              },
             ]
           : []),
+        {
+          to: "/pilot/calendrier",
+          label: "Calendrier SST",
+          short: "Calendrier SST",
+          icon: CalendarDays,
+          exact: false,
+          primary: false,
+        },
       ],
     },
     {
