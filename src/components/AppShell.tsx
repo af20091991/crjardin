@@ -329,7 +329,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               {
                 to: "/pilot/calendrier",
                 label: "Calendrier SST",
-                short: "Planning SST",
+                short: "Calendrier SST",
                 icon: CalendarDays,
                 exact: false,
                 primary: false,
