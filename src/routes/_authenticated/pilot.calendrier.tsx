@@ -615,7 +615,7 @@ function YearCalendar({ data, months, assignments, canCreate, onCreate }: { data
           <div className="grid grid-cols-7">
             {WEEKDAY_LABELS.map((label) => <div key={label} className="border-b px-2 py-2 text-center text-[10px] font-medium uppercase text-muted-foreground">{label}</div>)}
             {month.days.map((date, index) => date ? (
-              <Button key={date} type="button" variant="ghost" onClick={() => canCreate && onCreate(date)} className={cn("h-auto min-h-20 items-start justify-start rounded-none border-b border-r p-1.5 text-left hover:bg-muted/60", date === localToday() && "bg-primary/5")}>
+              <Button key={date} type="button" variant="ghost" onClick={() => canCreate && onCreate(date)} className={cn("h-auto min-h-20 flex-col items-stretch justify-start gap-0 rounded-none border-b border-r p-1.5 text-left hover:bg-muted/60", date === localToday() && "bg-primary/5")}>
                 <span className={cn("text-xs", date === localToday() && "font-semibold text-primary")}>{dayNumber(date)}</span>
                 <span className="min-w-0 flex-1">{assignmentsForDate(assignments, date).slice(0, 2).map((item) => <span key={item.id} className={cn("mt-1 block truncate rounded-sm border px-1 py-0.5 text-[9px]", assignmentStatusClass[item.status])}>{subcontractorName(data, item.subcontractor_id)}</span>)}</span>
               </Button>
@@ -1168,6 +1168,76 @@ function monthsOfYear(year: number): CalendarMonth[] {
 
 function localIsoDate(year: number, monthIndex: number, day: number): string {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function localToday(): string {
+  const now = new Date();
+  return localIsoDate(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function weekDates(anchorDate: string): string[] {
+  const date = new Date(`${anchorDate}T00:00:00`);
+  const mondayOffset = (date.getDay() + 6) % 7;
+  const monday = addDaysIso(anchorDate, -mondayOffset);
+  return Array.from({ length: 7 }, (_, index) => addDaysIso(monday, index));
+}
+
+function monthDates(anchorDate: string): string[] {
+  const year = Number(anchorDate.slice(0, 4));
+  const monthIndex = Number(anchorDate.slice(5, 7)) - 1;
+  const month = monthsOfYear(year)[monthIndex];
+  if (!month) return [];
+  const firstDate = month.days.find((date): date is string => Boolean(date));
+  const lastDate = [...month.days].reverse().find((date): date is string => Boolean(date));
+  if (!firstDate || !lastDate) return [];
+  const firstMonday = addDaysIso(firstDate, -((new Date(`${firstDate}T00:00:00`).getDay() + 6) % 7));
+  const lastSunday = addDaysIso(lastDate, 6 - ((new Date(`${lastDate}T00:00:00`).getDay() + 6) % 7));
+  const days = Math.round((new Date(`${lastSunday}T00:00:00`).getTime() - new Date(`${firstMonday}T00:00:00`).getTime()) / 86400000) + 1;
+  return Array.from({ length: days }, (_, index) => addDaysIso(firstMonday, index));
+}
+
+function shiftMonth(value: string, amount: number): string {
+  const date = new Date(`${value}T00:00:00`);
+  const day = date.getDate();
+  date.setDate(1);
+  date.setMonth(date.getMonth() + amount);
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  return localIsoDate(date.getFullYear(), date.getMonth(), Math.min(day, lastDay));
+}
+
+function shortWeekday(date: string): string {
+  return new Intl.DateTimeFormat("fr-FR", { weekday: "short" }).format(new Date(`${date}T00:00:00`)).replace(".", "");
+}
+
+function periodLabel(anchorDate: string, view: CalendarView): string {
+  const date = new Date(`${anchorDate}T00:00:00`);
+  if (view === "year") return String(date.getFullYear());
+  if (view === "month") return capitalize(new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(date));
+  const week = weekDates(anchorDate);
+  const first = week[0];
+  const last = week.at(-1);
+  if (!first || !last) return "Semaine";
+  return `${new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(new Date(`${first}T00:00:00`))} – ${new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${last}T00:00:00`))}`;
+}
+
+function filterAssignments(data: SstCalendarData, search: string, selected: string[]): SstInterventionAssignment[] {
+  const normalized = search.trim().toLocaleLowerCase("fr-FR");
+  return data.assignments.filter((assignment) => {
+    if (selected.length > 0 && !selected.includes(assignment.subcontractor_id)) return false;
+    if (!normalized) return true;
+    return [assignmentLabel(data, assignment), subcontractorName(data, assignment.subcontractor_id), ASSIGNMENT_STATUS_LABEL[assignment.status]]
+      .some((value) => value.toLocaleLowerCase("fr-FR").includes(normalized));
+  });
+}
+
+function toggleCalendarFilter(selected: string[], id: string, allIds: string[]): string[] {
+  if (selected.length === 0) return allIds.filter((item) => item !== id);
+  if (selected.includes(id)) {
+    const next = selected.filter((item) => item !== id);
+    return next.length === allIds.length ? [] : next;
+  }
+  const next = [...selected, id];
+  return next.length === allIds.length ? [] : next;
 }
 
 function subcontractorName(data: SstCalendarData | undefined, id: string | null): string {
