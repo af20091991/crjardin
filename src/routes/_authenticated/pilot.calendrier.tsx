@@ -1,1293 +1,421 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  AlertTriangle,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle2,
-  FileWarning,
-  Filter,
-  LayoutGrid,
-  MessageSquare,
-  Plus,
-  Search,
-  Send,
-  Settings2,
-  type LucideIcon,
-} from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { useRole } from "@/hooks/use-role";
 import {
-  ASSIGNMENT_STATUS_LABEL,
-  AVAILABILITY_STATUS_LABEL,
-  REQUEST_STATUS_LABEL,
-  addDaysIso,
-  answerAvailabilityRequestTarget,
-  answerSstAssignment,
-  assignmentDate,
-  assignmentsForDate,
-  createAvailabilityRequest,
-  createSstAssignment,
-  createSstAvailability,
-  deleteSstAssignment,
-  detectSstCalendarConflicts,
-  listSstCalendarData,
-  updateSstAssignmentStatus,
-  updateSstCalendarSettings,
-  updateSstConflictStatus,
-  type SstAssignmentStatus,
-  type SstAvailabilityStatus,
-  type SstCalendarData,
-  type SstInterventionAssignment,
+  declareAvailability,
+  groupByDate,
+  isoDate,
+  listAvailabilities,
+  monthGridDates,
+  monthWindow,
+  removeAvailability,
+  updateAvailabilityComment,
+  type SstAvailabilityWithUser,
 } from "@/lib/calendrier-sst";
 import { cn } from "@/lib/utils";
-
-type CalendarMonth = {
-  key: string;
-  label: string;
-  shortLabel: string;
-  days: Array<string | null>;
-};
-
-type CalendarView = "week" | "month" | "year";
 
 export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
   head: () => ({
     meta: [
-      { title: "Calendrier SST — CR Pro" },
-      {
-        name: "description",
-        content:
-          "Calendrier opérationnel SST : disponibilités, propositions de chantier, confirmations, conflits et comptes-rendus.",
-      },
-      { property: "og:title", content: "Calendrier SST — CR Pro" },
+      { title: "Calendrier SST — De la graine au jardin" },
+      { name: "description", content: "Calendrier partagé des disponibilités des utilisateurs." },
+      { property: "og:title", content: "Calendrier SST" },
       {
         property: "og:description",
-        content:
-          "Coordination des sous-traitants, disponibilités, affectations et actions SST à traiter dans Pilot Pro.",
+        content: "Calendrier partagé des disponibilités des utilisateurs.",
       },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: CalendrierSstPage,
 });
 
-const STATUS_ORDER: SstAssignmentStatus[] = [
-  "proposed",
-  "to_confirm",
-  "confirmed",
-  "in_progress",
-  "done",
-  "report_due",
-  "closed",
-  "verify",
-  "refused",
-  "cancelled",
-];
+const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+const MAX_VISIBLE = 3;
 
-const availabilityStatusClass: Record<SstAvailabilityStatus, string> = {
-  available: "border-primary/30 bg-primary/10 text-primary",
-  unavailable: "border-destructive/30 bg-destructive/10 text-destructive",
-  partial: "border-accent/30 bg-accent/10 text-accent-foreground",
-  to_confirm: "border-muted-foreground/30 bg-muted text-muted-foreground",
-};
+function monthLabel(year: number, month: number) {
+  const label = new Date(year, month, 1).toLocaleDateString("fr-FR", {
+    month: "long",
+    year: "numeric",
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
-const assignmentStatusClass: Record<SstAssignmentStatus, string> = {
-  to_plan: "border-muted-foreground/30 bg-muted text-muted-foreground",
-  proposed: "border-accent/30 bg-accent/10 text-accent-foreground",
-  to_confirm: "border-accent/30 bg-accent/10 text-accent-foreground",
-  confirmed: "border-primary/30 bg-primary/10 text-primary",
-  in_progress: "border-primary/30 bg-primary/10 text-primary",
-  done: "border-primary/30 bg-primary/10 text-primary",
-  report_due: "border-destructive/30 bg-destructive/10 text-destructive",
-  closed: "border-muted-foreground/30 bg-muted text-muted-foreground",
-  cancelled: "border-muted-foreground/30 bg-muted text-muted-foreground",
-  refused: "border-destructive/30 bg-destructive/10 text-destructive",
-  verify: "border-destructive/30 bg-destructive/10 text-destructive",
-};
+function fullDateLabel(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const label = new Date(y!, (m ?? 1) - 1, d ?? 1).toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
 function CalendrierSstPage() {
-  const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { role, isAdmin } = useRole();
-  const today = useMemo(() => localToday(), []);
-  const [anchorDate, setAnchorDate] = useState(today);
-  const [view, setView] = useState<CalendarView>("week");
-  const [search, setSearch] = useState("");
-  const [selectedSubcontractors, setSelectedSubcontractors] = useState<string[]>([]);
-  const [quickDate, setQuickDate] = useState<string | null>(null);
-  const year = Number(anchorDate.slice(0, 4));
-  const yearRange = useMemo(() => ({ start: `${year}-01-01`, end: `${year}-12-31` }), [year]);
-  const months = useMemo(() => monthsOfYear(year), [year]);
+  const { isAdmin } = useRole();
+  const queryClient = useQueryClient();
+  const today = useMemo(() => isoDate(new Date()), []);
+  const [cursor, setCursor] = useState(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() };
+  });
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const query = useQuery({
-    queryKey: ["sst-calendar", yearRange.start, yearRange.end],
-    queryFn: () => listSstCalendarData(yearRange.start, yearRange.end),
+  const window = useMemo(() => {
+    // Charge aussi les débordements de grille (mois précédent/suivant).
+    const grid = monthGridDates(cursor.year, cursor.month);
+    return { start: isoDate(grid[0]!), end: isoDate(grid[grid.length - 1]!) };
+  }, [cursor]);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["sst-availability-calendar", window.start, window.end],
+    queryFn: () => listAvailabilities(window.start, window.end),
   });
 
-  const data = query.data;
-  const linkedSubcontractorIds = useMemo(() => {
-    if (!user) return new Set<string>();
-    return new Set((data?.userLinks ?? []).filter((link) => link.user_id === user.id).map((link) => link.subcontractor_id));
-  }, [data?.userLinks, user]);
+  const entries = data ?? [];
+  const byDate = useMemo(() => groupByDate(entries), [entries]);
+  const grid = useMemo(() => monthGridDates(cursor.year, cursor.month), [cursor]);
+  const monthRange = monthWindow(cursor.year, cursor.month);
 
-  const visibleSubcontractors = useMemo(() => {
-    const all = (data?.subcontractors ?? []).filter((s) => s.active);
-    if (isAdmin) return all;
-    if (role === "prestataire") return all.filter((s) => linkedSubcontractorIds.has(s.id));
-    return [];
-  }, [data?.subcontractors, isAdmin, linkedSubcontractorIds, role]);
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["sst-availability-calendar"] });
 
-  const computedConflicts = useMemo(
-    () =>
-      data
-        ? detectSstCalendarConflicts({
-            assignments: data.assignments,
-            availabilities: data.availabilities,
-            missions: data.missions,
-          })
-        : [],
-    [data],
-  );
+  const declare = useMutation({
+    mutationFn: ({ date, comment }: { date: string; comment: string }) =>
+      declareAvailability(user!.id, date, comment),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Disponibilité enregistrée");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["sst-calendar"] });
+  const updateComment = useMutation({
+    mutationFn: ({ id, comment }: { id: string; comment: string }) =>
+      updateAvailabilityComment(id, comment),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Commentaire mis à jour");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
-  const stats = useMemo(() => (data ? getStats(data, computedConflicts) : null), [data, computedConflicts]);
+  const remove = useMutation({
+    mutationFn: (id: string) => removeAvailability(id),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Disponibilité retirée");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
-  if (role === "observateur") {
-    return (
-      <AppShell title="Calendrier SST">
-        <div className="space-y-4 px-4 py-5 lg:px-6">
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Accès réservé</AlertTitle>
-            <AlertDescription>Le calendrier SST est réservé à l'administration et aux prestataires liés.</AlertDescription>
-          </Alert>
-        </div>
-      </AppShell>
-    );
-  }
+  const goToday = () => {
+    const now = new Date();
+    setCursor({ year: now.getFullYear(), month: now.getMonth() });
+    setSelectedDate(isoDate(now));
+  };
+
+  const shiftMonth = (delta: number) => {
+    const next = new Date(cursor.year, cursor.month + delta, 1);
+    setCursor({ year: next.getFullYear(), month: next.getMonth() });
+  };
+
+  const monthCount = entries.filter(
+    (entry) => entry.date >= monthRange.start && entry.date <= monthRange.end,
+  ).length;
 
   return (
     <AppShell title="Calendrier SST">
-      <div className="w-full space-y-4 px-3 py-3 lg:px-5 lg:py-4">
-        <CalendarToolbar
-          anchorDate={anchorDate}
-          view={view}
-          search={search}
-          isAdmin={isAdmin}
-          onAnchorDateChange={setAnchorDate}
-          onViewChange={setView}
-          onSearchChange={setSearch}
-          onCreate={() => setQuickDate(anchorDate)}
-        />
-
-        {query.isError && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Données indisponibles</AlertTitle>
-            <AlertDescription>{errorMessage(query.error)}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="grid min-h-[620px] overflow-hidden rounded-md border bg-card lg:grid-cols-[230px_minmax(0,1fr)]">
-          <CalendarSidebar
-            anchorDate={anchorDate}
-            subcontractors={visibleSubcontractors}
-            selected={selectedSubcontractors}
-            stats={stats}
-            onAnchorDateChange={setAnchorDate}
-            onSelectedChange={setSelectedSubcontractors}
-          />
-          <CalendarBoard
-            data={data}
-            months={months}
-            anchorDate={anchorDate}
-            view={view}
-            search={search}
-            selectedSubcontractors={selectedSubcontractors}
-            isLoading={query.isLoading}
-            canCreate={isAdmin}
-            onCreate={setQuickDate}
-          />
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="flex items-center gap-2 font-display text-2xl font-semibold text-foreground">
+              <CalendarDays className="h-6 w-6 text-primary" />
+              Calendrier SST
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Calendrier partagé des disponibilités des utilisateurs.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => shiftMonth(-1)}
+              aria-label="Mois précédent"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" onClick={goToday}>
+              Aujourd'hui
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => shiftMonth(1)}
+              aria-label="Mois suivant"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-        <Tabs defaultValue="actions" className="space-y-4">
-          <TabsList className="flex w-full flex-wrap justify-start">
-            <TabsTrigger value="actions">À traiter</TabsTrigger>
-            <TabsTrigger value="disponibilites">Disponibilités</TabsTrigger>
-            <TabsTrigger value="demandes">Demandes</TabsTrigger>
-            <TabsTrigger value="affectations">Affectations</TabsTrigger>
-            <TabsTrigger value="parametres">Paramètres</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="actions" className="space-y-4">
-            <ActionsPanel data={data} conflicts={computedConflicts} onRefresh={refresh} isAdmin={isAdmin} />
-          </TabsContent>
-
-          <TabsContent value="disponibilites" className="space-y-4">
-            <AvailabilityPanel
-              data={data}
-              subcontractors={visibleSubcontractors}
-              isAdmin={isAdmin}
-              onRefresh={refresh}
-            />
-          </TabsContent>
-
-          <TabsContent value="demandes" className="space-y-4">
-            <RequestsPanel data={data} subcontractors={visibleSubcontractors} isAdmin={isAdmin} onRefresh={refresh} />
-          </TabsContent>
-
-          <TabsContent value="affectations" className="space-y-4">
-            <AssignmentsPanel data={data} subcontractors={visibleSubcontractors} isAdmin={isAdmin} onRefresh={refresh} />
-          </TabsContent>
-
-          <TabsContent value="parametres" className="space-y-4">
-            <SettingsPanel data={data} isAdmin={isAdmin} onRefresh={refresh} />
-          </TabsContent>
-        </Tabs>
-
-        <QuickCreateDialog
-          key={quickDate ?? "closed"}
-          open={Boolean(quickDate)}
-          date={quickDate ?? anchorDate}
-          data={data}
-          subcontractors={visibleSubcontractors}
-          onOpenChange={(open) => !open && setQuickDate(null)}
-          onCreated={() => {
-            setQuickDate(null);
-            refresh();
-          }}
-        />
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
+            <CardTitle className="text-base">{monthLabel(cursor.year, cursor.month)}</CardTitle>
+            <Badge variant="secondary">
+              {monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-1 hidden grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground sm:grid">
+              {WEEKDAYS.map((label) => (
+                <div key={label}>{label}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 gap-1 sm:grid-cols-7">
+              {grid.map((date) => {
+                const iso = isoDate(date);
+                const inMonth = date.getMonth() === cursor.month;
+                const dayEntries = byDate.get(iso) ?? [];
+                if (!inMonth && dayEntries.length === 0) {
+                  return <div key={iso} className="hidden sm:block sm:min-h-24" />;
+                }
+                return (
+                  <button
+                    key={iso}
+                    type="button"
+                    onClick={() => setSelectedDate(iso)}
+                    className={cn(
+                      "flex min-h-24 flex-col gap-1 rounded-md border border-border bg-card p-2 text-left transition-colors hover:border-primary/60 hover:bg-accent/10",
+                      !inMonth && "opacity-60",
+                      iso === today && "border-primary ring-1 ring-primary/40",
+                    )}
+                  >
+                    <span className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                      <span className="sm:hidden">{fullDateLabel(iso)}</span>
+                      <span className="hidden sm:inline">{date.getDate()}</span>
+                      {dayEntries.length > 0 ? (
+                        <span className="text-primary">{dayEntries.length}</span>
+                      ) : null}
+                    </span>
+                    <span className="flex flex-col gap-1">
+                      {dayEntries.slice(0, MAX_VISIBLE).map((entry) => (
+                        <span
+                          key={entry.id}
+                          className="rounded bg-primary/10 px-1.5 py-1 text-[11px] leading-tight text-foreground"
+                        >
+                          <span className="block font-medium">{entry.userLabel}</span>
+                          {entry.comment ? (
+                            <span className="block truncate text-muted-foreground">
+                              {entry.comment}
+                            </span>
+                          ) : null}
+                        </span>
+                      ))}
+                      {dayEntries.length > MAX_VISIBLE ? (
+                        <span className="text-[11px] text-muted-foreground">
+                          + {dayEntries.length - MAX_VISIBLE} autres
+                        </span>
+                      ) : null}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {isLoading ? <p className="mt-3 text-sm text-muted-foreground">Chargement…</p> : null}
+          </CardContent>
+        </Card>
       </div>
+
+      <DayDialog
+        date={selectedDate}
+        entries={selectedDate ? (byDate.get(selectedDate) ?? []) : []}
+        currentUserId={user?.id ?? null}
+        isAdmin={isAdmin}
+        onClose={() => setSelectedDate(null)}
+        onDeclare={(comment) => declare.mutate({ date: selectedDate!, comment })}
+        onUpdate={(id, comment) => updateComment.mutate({ id, comment })}
+        onRemove={(id) => remove.mutate(id)}
+        pending={declare.isPending || updateComment.isPending || remove.isPending}
+      />
     </AppShell>
   );
 }
 
-function CalendarToolbar({ anchorDate, view, search, isAdmin, onAnchorDateChange, onViewChange, onSearchChange, onCreate }: { anchorDate: string; view: CalendarView; search: string; isAdmin: boolean; onAnchorDateChange: (date: string) => void; onViewChange: (view: CalendarView) => void; onSearchChange: (value: string) => void; onCreate: () => void }) {
-  const move = (direction: -1 | 1) => {
-    if (view === "week") onAnchorDateChange(addDaysIso(anchorDate, direction * 7));
-    else if (view === "month") onAnchorDateChange(shiftMonth(anchorDate, direction));
-    else onAnchorDateChange(`${Number(anchorDate.slice(0, 4)) + direction}-${anchorDate.slice(5)}`);
-  };
+function DayDialog({
+  date,
+  entries,
+  currentUserId,
+  isAdmin,
+  onClose,
+  onDeclare,
+  onUpdate,
+  onRemove,
+  pending,
+}: {
+  date: string | null;
+  entries: SstAvailabilityWithUser[];
+  currentUserId: string | null;
+  isAdmin: boolean;
+  onClose: () => void;
+  onDeclare: (comment: string) => void;
+  onUpdate: (id: string, comment: string) => void;
+  onRemove: (id: string) => void;
+  pending: boolean;
+}) {
+  const mine = entries.find((entry) => entry.user_id === currentUserId) ?? null;
+  const [comment, setComment] = useState("");
+  const [editing, setEditing] = useState(false);
+
+  // Réinitialise le champ à chaque ouverture d'un jour (clé sur la date).
+  const others = entries.filter((entry) => entry.user_id !== currentUserId);
+
   return (
-    <header className="flex flex-col gap-3 rounded-md border bg-card p-3 xl:flex-row xl:items-center">
-      <div className="flex min-w-0 items-center gap-2">
-        <CalendarDays className="hidden h-6 w-6 text-primary sm:block" />
-        <h1 className="truncate font-serif text-xl font-semibold text-foreground">Planning SST</h1>
-        <Button variant="outline" size="sm" onClick={() => onAnchorDateChange(localToday())}>Aujourd’hui</Button>
-        <div className="flex items-center">
-          <Button variant="ghost" size="icon" title="Période précédente" onClick={() => move(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" title="Période suivante" onClick={() => move(1)}><ChevronRight className="h-4 w-4" /></Button>
-        </div>
-      </div>
-      <p className="min-w-0 flex-1 truncate font-serif text-lg font-semibold text-foreground">{periodLabel(anchorDate, view)}</p>
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-44 flex-1 xl:w-56 xl:flex-none">
-          <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={(event) => onSearchChange(event.target.value)} className="pl-8" placeholder="Client, chantier, SST…" />
-        </div>
-        <div className="flex rounded-md border bg-background p-0.5">
-          {(["week", "month", "year"] as CalendarView[]).map((item) => (
-            <Button key={item} size="sm" variant={view === item ? "secondary" : "ghost"} onClick={() => onViewChange(item)}>
-              {item === "week" ? "Semaine" : item === "month" ? "Mois" : "Année"}
-            </Button>
+    <Dialog open={!!date} onOpenChange={(open) => (!open ? onClose() : null)}>
+      <DialogContent key={date ?? "closed"} className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{date ? fullDateLabel(date) : ""}</DialogTitle>
+          <DialogDescription>Disponibilités déclarées pour cette journée.</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          {entries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucune disponibilité déclarée.</p>
+          ) : null}
+
+          {mine ? (
+            <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
+              <p className="text-sm font-medium text-foreground">{mine.userLabel} (moi)</p>
+              {editing ? (
+                <div className="mt-2 space-y-2">
+                  <Label htmlFor="sst-comment-edit" className="text-xs">
+                    Commentaire (facultatif)
+                  </Label>
+                  <Textarea
+                    id="sst-comment-edit"
+                    rows={2}
+                    defaultValue={mine.comment ?? ""}
+                    onChange={(event) => setComment(event.target.value)}
+                    placeholder="Disponible uniquement le matin…"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => {
+                        onUpdate(mine.id, comment);
+                        setEditing(false);
+                      }}
+                    >
+                      Enregistrer
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+                      Annuler
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {mine.comment ? (
+                    <p className="text-sm text-muted-foreground">{mine.comment}</p>
+                  ) : null}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setComment(mine.comment ?? "");
+                        setEditing(true);
+                      }}
+                    >
+                      Modifier
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={pending}
+                      onClick={() => onRemove(mine.id)}
+                    >
+                      Retirer ma disponibilité
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2 rounded-md border border-border p-3">
+              <Label htmlFor="sst-comment-new" className="text-xs">
+                Commentaire (facultatif)
+              </Label>
+              <Textarea
+                id="sst-comment-new"
+                rows={2}
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+                placeholder="Disponible toute la journée…"
+              />
+              <Button
+                size="sm"
+                disabled={pending || !currentUserId}
+                onClick={() => onDeclare(comment)}
+              >
+                Je suis disponible
+              </Button>
+            </div>
+          )}
+
+          {others.map((entry) => (
+            <div
+              key={entry.id}
+              className="flex items-start justify-between gap-2 rounded-md border border-border p-3"
+            >
+              <div>
+                <p className="text-sm font-medium text-foreground">{entry.userLabel}</p>
+                {entry.comment ? (
+                  <p className="text-sm text-muted-foreground">{entry.comment}</p>
+                ) : null}
+              </div>
+              {isAdmin ? (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Supprimer cette disponibilité"
+                  disabled={pending}
+                  onClick={() => onRemove(entry.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              ) : null}
+            </div>
           ))}
         </div>
-        {isAdmin && <Button onClick={onCreate}><Plus className="h-4 w-4" /> Créer</Button>}
-      </div>
-    </header>
-  );
-}
 
-function CalendarSidebar({ anchorDate, subcontractors, selected, stats, onAnchorDateChange, onSelectedChange }: { anchorDate: string; subcontractors: SstCalendarData["subcontractors"]; selected: string[]; stats: ReturnType<typeof getStats> | null; onAnchorDateChange: (date: string) => void; onSelectedChange: (ids: string[]) => void }) {
-  const month = monthsOfYear(Number(anchorDate.slice(0, 4)))[Number(anchorDate.slice(5, 7)) - 1];
-  return (
-    <aside className="hidden border-r bg-muted/20 p-3 lg:block">
-      <div className="mb-4 flex items-center justify-between">
-        <Button variant="ghost" size="icon" title="Mois précédent" onClick={() => onAnchorDateChange(shiftMonth(anchorDate, -1))}><ChevronLeft className="h-4 w-4" /></Button>
-        <p className="text-sm font-semibold text-foreground">{month?.label}</p>
-        <Button variant="ghost" size="icon" title="Mois suivant" onClick={() => onAnchorDateChange(shiftMonth(anchorDate, 1))}><ChevronRight className="h-4 w-4" /></Button>
-      </div>
-      <div className="grid grid-cols-7 text-center text-[10px] text-muted-foreground">
-        {WEEKDAY_LABELS.map((day) => <span key={day} className="py-1">{day.slice(0, 1)}</span>)}
-        {month?.days.map((date, index) => date ? (
-          <Button key={date} variant="ghost" size="icon" className={cn("h-7 w-7 text-[11px]", date === anchorDate && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground")} onClick={() => onAnchorDateChange(date)}>{Number(date.slice(8, 10))}</Button>
-        ) : <span key={`empty-${index}`} />)}
-      </div>
-      <div className="my-4 border-t" />
-      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground"><Filter className="h-4 w-4" /> Calendriers</div>
-      <div className="space-y-2">
-        {subcontractors.map((subcontractor) => {
-          const checked = selected.length === 0 || selected.includes(subcontractor.id);
-          return (
-            <label key={subcontractor.id} className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
-              <Checkbox checked={checked} onCheckedChange={() => onSelectedChange(toggleCalendarFilter(selected, subcontractor.id, subcontractors.map((item) => item.id)))} />
-              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-              <span className="truncate">{subcontractor.name}</span>
-            </label>
-          );
-        })}
-      </div>
-      <div className="my-4 border-t" />
-      <div className="space-y-2 text-xs text-muted-foreground">
-        <p className="flex justify-between"><span>Disponibles aujourd’hui</span><strong className="text-foreground">{stats?.availableToday ?? 0}</strong></p>
-        <p className="flex justify-between"><span>Réponses attendues</span><strong className="text-foreground">{stats?.pendingAnswers ?? 0}</strong></p>
-        <p className="flex justify-between"><span>Actions urgentes</span><strong className="text-destructive">{stats?.urgentActions ?? 0}</strong></p>
-      </div>
-    </aside>
-  );
-}
-
-function QuickCreateDialog({ open, date, data, subcontractors, onOpenChange, onCreated }: { open: boolean; date: string; data?: SstCalendarData; subcontractors: SstCalendarData["subcontractors"]; onOpenChange: (open: boolean) => void; onCreated: () => void }) {
-  const [source, setSource] = useState<"intervention" | "mission">("intervention");
-  const [sourceId, setSourceId] = useState("");
-  const [subcontractorId, setSubcontractorId] = useState("");
-  const [selectedDate, setSelectedDate] = useState(date);
-  const [requiredPeople, setRequiredPeople] = useState(1);
-  const [status, setStatus] = useState<SstAssignmentStatus>("proposed");
-  const [comment, setComment] = useState("");
-  const [advanced, setAdvanced] = useState(false);
-  const sourceOptions = source === "intervention" ? data?.interventions ?? [] : data?.missions ?? [];
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const assignment = await createSstAssignment({
-        intervention_id: source === "intervention" ? sourceId : null,
-        mission_id: source === "mission" ? sourceId : null,
-        subcontractor_id: subcontractorId,
-        starts_at: `${selectedDate}T12:00:00`,
-        ends_at: null,
-        required_people: requiredPeople,
-        planning_comment: comment.trim() || null,
-      });
-      if (status !== "proposed") await updateSstAssignmentStatus(assignment.id, status);
-    },
-    onSuccess: () => {
-      toast.success("Chantier ajouté au planning");
-      setSourceId("");
-      setComment("");
-      onCreated();
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  });
-  return (
-    <Dialog open={open} onOpenChange={(next) => { if (next) setSelectedDate(date); onOpenChange(next); }}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle className="font-serif text-xl">Planifier un chantier</DialogTitle>
-          <DialogDescription>Les informations indispensables, sans détail horaire.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <Select value={source} onValueChange={(value) => { setSource(value as "intervention" | "mission"); setSourceId(""); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="intervention">Intervention PP</SelectItem><SelectItem value="mission">Mission SST</SelectItem></SelectContent>
-            </Select>
-            <Input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
-          </div>
-          <Select value={sourceId} onValueChange={setSourceId}>
-            <SelectTrigger><SelectValue placeholder="Choisir le chantier" /></SelectTrigger>
-            <SelectContent>{sourceOptions.map((item) => <SelectItem key={item.id} value={item.id}>{source === "intervention" ? interventionOptionLabel(data, item.id) : missionOptionLabel(data, item.id)}</SelectItem>)}</SelectContent>
-          </Select>
-          <Select value={subcontractorId} onValueChange={setSubcontractorId}>
-            <SelectTrigger><SelectValue placeholder="Choisir le SST" /></SelectTrigger>
-            <SelectContent>{subcontractors.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
-          </Select>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Personnes</Label><Input type="number" min={1} value={requiredPeople} onChange={(event) => setRequiredPeople(Number(event.target.value) || 1)} /></div>
-            <div className="space-y-1.5"><Label>Statut</Label><Select value={status} onValueChange={(value) => setStatus(value as SstAssignmentStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUS_ORDER.slice(0, 6).map((item) => <SelectItem key={item} value={item}>{ASSIGNMENT_STATUS_LABEL[item]}</SelectItem>)}</SelectContent></Select></div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={() => setAdvanced((current) => !current)}><LayoutGrid className="h-4 w-4" /> {advanced ? "Masquer le commentaire" : "Ajouter un commentaire"}</Button>
-          {advanced && <Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Consignes utiles au SST" />}
-        </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
-          <Button disabled={!sourceId || !subcontractorId || !selectedDate || mutation.isPending} onClick={() => mutation.mutate()}><Plus className="h-4 w-4" /> Planifier</Button>
+          <Button variant="outline" onClick={onClose}>
+            Fermer
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
-
-function ActionsPanel({
-  data,
-  conflicts,
-  onRefresh,
-  isAdmin,
-}: {
-  data?: SstCalendarData;
-  conflicts: ReturnType<typeof detectSstCalendarConflicts>;
-  onRefresh: () => void;
-  isAdmin: boolean;
-}) {
-  const mutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: "acknowledged" | "resolved" }) => updateSstConflictStatus(id, status),
-    onSuccess: () => {
-      toast.success("Conflit mis à jour");
-      onRefresh();
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  });
-  const storedConflicts = data?.conflicts.filter((conflict) => conflict.status !== "resolved") ?? [];
-  const pendingTargets = data?.requestTargets.filter((target) => target.status === "pending") ?? [];
-  const reportDue = data?.assignments.filter((assignment) => assignment.status === "report_due") ?? [];
-  const nextAssignments = (data?.assignments ?? [])
-    .filter((assignment) => ["proposed", "to_confirm", "confirmed"].includes(assignment.status))
-    .slice(0, 6);
-
-  return (
-    <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Actions à traiter</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {pendingTargets.length === 0 && reportDue.length === 0 && storedConflicts.length === 0 && conflicts.length === 0 ? (
-            <EmptyState label="Aucune action prioritaire sur la période." />
-          ) : (
-            <>
-              {pendingTargets.slice(0, 5).map((target) => (
-                <ActionRow key={target.id} icon={MessageSquare} title="Réponse disponibilité attendue" detail={subcontractorName(data, target.subcontractor_id)} />
-              ))}
-              {reportDue.slice(0, 5).map((assignment) => (
-                <ActionRow key={assignment.id} icon={FileWarning} title="Compte-rendu SST à compléter" detail={assignmentLabel(data, assignment)} />
-              ))}
-              {storedConflicts.slice(0, 4).map((conflict) => (
-                <div key={conflict.id} className="flex items-start justify-between gap-3 rounded-md border p-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">{conflict.message}</p>
-                    <p className="text-xs text-muted-foreground">{conflict.conflict_date ? formatDate(conflict.conflict_date) : "Date non renseignée"}</p>
-                  </div>
-                  {isAdmin && (
-                    <Button size="sm" variant="outline" disabled={mutation.isPending} onClick={() => mutation.mutate({ id: conflict.id, status: "resolved" })}>
-                      Résolu
-                    </Button>
-                  )}
-                </div>
-              ))}
-              {conflicts.slice(0, 4).map((conflict) => (
-                <ActionRow key={conflict.key} icon={AlertTriangle} title={conflict.message} detail={conflict.conflict_date ? formatDate(conflict.conflict_date) : "À vérifier"} />
-              ))}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Prochaines propositions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {nextAssignments.length === 0 ? (
-            <EmptyState label="Aucune proposition enregistrée." />
-          ) : (
-            nextAssignments.map((assignment) => (
-              <div key={assignment.id} className="rounded-md border p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">{assignmentLabel(data, assignment)}</p>
-                    <p className="text-xs text-muted-foreground">{subcontractorName(data, assignment.subcontractor_id)}</p>
-                  </div>
-                  <StatusBadge status={assignment.status} />
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">{assignment.starts_at ? formatDateTime(assignment.starts_at) : "Créneau à préciser"}</p>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function CalendarBoard({
-  data,
-  months,
-  anchorDate,
-  view,
-  search,
-  selectedSubcontractors,
-  isLoading,
-  canCreate,
-  onCreate,
-}: {
-  data?: SstCalendarData;
-  months: CalendarMonth[];
-  anchorDate: string;
-  view: CalendarView;
-  search: string;
-  selectedSubcontractors: string[];
-  isLoading: boolean;
-  canCreate: boolean;
-  onCreate: (date: string) => void;
-}) {
-  if (isLoading) return <EmptyState label="Chargement du calendrier SST…" />;
-  if (!data) return <EmptyState label="Aucune donnée disponible." />;
-
-  const filteredAssignments = filterAssignments(data, search, selectedSubcontractors);
-  const dates = view === "week" ? weekDates(anchorDate) : view === "month" ? monthDates(anchorDate) : [];
-
-  if (view === "year") {
-    return <YearCalendar data={data} months={months} assignments={filteredAssignments} canCreate={canCreate} onCreate={onCreate} />;
-  }
-
-  return (
-    <div className="min-w-0 overflow-x-auto bg-background/40">
-      <div className={cn("grid min-w-[760px]", view === "week" ? "grid-cols-7" : "grid-cols-7")}>
-        {dates.map((date) => (
-          <DayColumn
-            key={date}
-            date={date}
-            data={data}
-            assignments={assignmentsForDate(filteredAssignments, date)}
-            canCreate={canCreate}
-            compact={view === "month"}
-            onCreate={onCreate}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DayColumn({ date, data, assignments, canCreate, compact, onCreate }: { date: string; data: SstCalendarData; assignments: SstInterventionAssignment[]; canCreate: boolean; compact: boolean; onCreate: (date: string) => void }) {
-  const availabilities = data.availabilities.filter((row) => row.availability_date === date && row.status === "available");
-  const isToday = date === localToday();
-  return (
-    <section className={cn("group min-w-0 border-b border-r bg-card last:border-r-0", compact ? "min-h-36" : "min-h-[560px]")}>
-      <div className={cn("sticky top-0 z-10 border-b bg-card px-2 py-3 text-center", isToday && "bg-primary/5")}>
-        <p className="text-[11px] font-medium uppercase text-muted-foreground">{shortWeekday(date)}</p>
-        <Button type="button" variant="ghost" size="icon" className={cn("mx-auto mt-1 h-8 w-8 rounded-full text-sm font-semibold", isToday && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground")} onClick={() => canCreate && onCreate(date)}>
-          {dayNumber(date)}
-        </Button>
-      </div>
-      <div className="space-y-2 p-2">
-        {availabilities.length > 0 && (
-          <div className="flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2 py-1.5 text-[11px] text-primary">
-            <CheckCircle2 className="h-3 w-3" /> {availabilities.length} SST disponible{availabilities.length > 1 ? "s" : ""}
-          </div>
-        )}
-        {assignments.map((assignment) => (
-          <div key={assignment.id} className={cn("rounded-md border-l-4 bg-background p-2.5 shadow-sm", assignmentStatusClass[assignment.status])}>
-            <p className="line-clamp-2 text-xs font-semibold">{assignmentLabel(data, assignment)}</p>
-            <p className="mt-1 truncate text-[11px] opacity-80">{subcontractorName(data, assignment.subcontractor_id)}</p>
-            <p className="mt-2 text-[10px] font-medium uppercase">{ASSIGNMENT_STATUS_LABEL[assignment.status]}</p>
-          </div>
-        ))}
-        {assignments.length === 0 && !compact && <p className="py-6 text-center text-xs text-muted-foreground">Aucun chantier</p>}
-        {canCreate && (
-          <Button variant="ghost" size="sm" className="w-full opacity-70 lg:opacity-0 lg:group-hover:opacity-100" onClick={() => onCreate(date)}>
-            <Plus className="h-3.5 w-3.5" /> Ajouter
-          </Button>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function YearCalendar({ data, months, assignments, canCreate, onCreate }: { data: SstCalendarData; months: CalendarMonth[]; assignments: SstInterventionAssignment[]; canCreate: boolean; onCreate: (date: string) => void }) {
-  return (
-    <div className="max-h-[760px] space-y-5 overflow-y-auto bg-background/40 p-3">
-      {months.map((month) => (
-        <section key={month.key} className="overflow-hidden rounded-md border bg-card">
-          <div className="flex items-center justify-between border-b px-4 py-3">
-            <h2 className="font-serif text-lg font-semibold text-foreground">{month.label}</h2>
-            <span className="text-xs text-muted-foreground">{assignments.filter((item) => assignmentDate(item)?.startsWith(month.key)).length} chantiers</span>
-          </div>
-          <div className="grid grid-cols-7">
-            {WEEKDAY_LABELS.map((label) => <div key={label} className="border-b px-2 py-2 text-center text-[10px] font-medium uppercase text-muted-foreground">{label}</div>)}
-            {month.days.map((date, index) => date ? (
-              <Button key={date} type="button" variant="ghost" onClick={() => canCreate && onCreate(date)} className={cn("h-auto min-h-20 flex-col items-stretch justify-start gap-0 rounded-none border-b border-r p-1.5 text-left hover:bg-muted/60", date === localToday() && "bg-primary/5")}>
-                <span className={cn("text-xs", date === localToday() && "font-semibold text-primary")}>{dayNumber(date)}</span>
-                <span className="min-w-0 flex-1">{assignmentsForDate(assignments, date).slice(0, 2).map((item) => <span key={item.id} className={cn("mt-1 block truncate rounded-sm border px-1 py-0.5 text-[9px]", assignmentStatusClass[item.status])}>{subcontractorName(data, item.subcontractor_id)}</span>)}</span>
-              </Button>
-            ) : <div key={`${month.key}-${index}`} className="min-h-20 border-b border-r bg-muted/20" />)}
-          </div>
-        </section>
-      ))}
-    </div>
-  );
-}
-
-function AvailabilityPanel({
-  data,
-  subcontractors,
-  isAdmin,
-  onRefresh,
-}: {
-  data?: SstCalendarData;
-  subcontractors: SstCalendarData["subcontractors"];
-  isAdmin: boolean;
-  onRefresh: () => void;
-}) {
-  const [subcontractorId, setSubcontractorId] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [status, setStatus] = useState<SstAvailabilityStatus>("available");
-  const [startTime, setStartTime] = useState("08:00");
-  const [endTime, setEndTime] = useState("17:00");
-  const [comment, setComment] = useState("");
-  const mutation = useMutation({
-    mutationFn: () =>
-      createSstAvailability({
-        subcontractor_id: subcontractorId,
-        availability_date: date,
-        status,
-        start_time: status === "partial" ? startTime : null,
-        end_time: status === "partial" ? endTime : null,
-        comment: comment.trim() || null,
-      }),
-    onSuccess: () => {
-      toast.success("Disponibilité enregistrée");
-      setComment("");
-      onRefresh();
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  });
-  const rows = data?.availabilities ?? [];
-  const canCreate = subcontractors.length > 0 && (isAdmin || subcontractors.some((s) => s.id === subcontractorId));
-
-  return (
-    <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Ajouter une disponibilité</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Select value={subcontractorId} onValueChange={setSubcontractorId}>
-            <SelectTrigger><SelectValue placeholder="SST" /></SelectTrigger>
-            <SelectContent>
-              {subcontractors.map((subcontractor) => (
-                <SelectItem key={subcontractor.id} value={subcontractor.id}>{subcontractor.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="sst-availability-date">Date</Label>
-              <Input id="sst-availability-date" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Statut</Label>
-              <Select value={status} onValueChange={(value) => setStatus(value as SstAvailabilityStatus)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(AVAILABILITY_STATUS_LABEL).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Créneau</Label>
-              <div className="flex gap-2">
-                <Input type="time" value={startTime} disabled={status !== "partial"} onChange={(event) => setStartTime(event.target.value)} />
-                <Input type="time" value={endTime} disabled={status !== "partial"} onChange={(event) => setEndTime(event.target.value)} />
-              </div>
-            </div>
-          </div>
-          <Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Commentaire facultatif" />
-          <Button disabled={!subcontractorId || !date || !canCreate || mutation.isPending} onClick={() => mutation.mutate()}>
-            <Plus className="h-4 w-4" /> Enregistrer
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Disponibilités renseignées</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveTable>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>SST</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Créneau</TableHead>
-                  <TableHead>Commentaire</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell>{formatDate(row.availability_date)}</TableCell>
-                    <TableCell>{subcontractorName(data, row.subcontractor_id)}</TableCell>
-                    <TableCell><Badge variant="outline" className={availabilityStatusClass[row.status]}>{AVAILABILITY_STATUS_LABEL[row.status]}</Badge></TableCell>
-                    <TableCell>{row.start_time && row.end_time ? `${row.start_time.slice(0, 5)}–${row.end_time.slice(0, 5)}` : "Journée"}</TableCell>
-                    <TableCell className="max-w-xs truncate">{row.comment ?? "—"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ResponsiveTable>
-          {rows.length === 0 && <EmptyState label="Aucune disponibilité sur la période." />}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function RequestsPanel({
-  data,
-  subcontractors,
-  isAdmin,
-  onRefresh,
-}: {
-  data?: SstCalendarData;
-  subcontractors: SstCalendarData["subcontractors"];
-  isAdmin: boolean;
-  onRefresh: () => void;
-}) {
-  const today = new Date().toISOString().slice(0, 10);
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(addDaysIso(today, 14));
-  const [deadline, setDeadline] = useState(addDaysIso(today, 7));
-  const [interventionType, setInterventionType] = useState("");
-  const [comment, setComment] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
-  const answerMutation = useMutation({
-    mutationFn: (id: string) => answerAvailabilityRequestTarget(id, "Disponibilités transmises depuis le calendrier SST."),
-    onSuccess: () => {
-      toast.success("Réponse enregistrée");
-      onRefresh();
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  });
-  const createMutation = useMutation({
-    mutationFn: () =>
-      createAvailabilityRequest({
-        start_date: startDate,
-        end_date: endDate,
-        response_deadline: deadline || null,
-        intervention_type: interventionType.trim() || null,
-        comment: comment.trim() || null,
-        subcontractor_ids: selected,
-      }),
-    onSuccess: () => {
-      toast.success("Demande envoyée");
-      setSelected([]);
-      setComment("");
-      onRefresh();
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  });
-  const requestById = new Map((data?.requests ?? []).map((request) => [request.id, request]));
-  return (
-    <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
-      {isAdmin && (
-        <Card>
-          <CardHeader><CardTitle>Demander les disponibilités</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <FieldDate label="Début" value={startDate} onChange={setStartDate} />
-              <FieldDate label="Fin" value={endDate} onChange={setEndDate} />
-              <FieldDate label="Réponse avant" value={deadline} onChange={setDeadline} />
-            </div>
-            <Input value={interventionType} onChange={(event) => setInterventionType(event.target.value)} placeholder="Type d'intervention" />
-            <Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Message aux SST" />
-            <div className="grid gap-2 sm:grid-cols-2">
-              {subcontractors.map((subcontractor) => (
-                <label key={subcontractor.id} className="flex items-center gap-2 rounded-md border p-2 text-sm">
-                  <Checkbox checked={selected.includes(subcontractor.id)} onCheckedChange={(checked) => setSelected((current) => checked ? [...current, subcontractor.id] : current.filter((id) => id !== subcontractor.id))} />
-                  {subcontractor.name}
-                </label>
-              ))}
-            </div>
-            <Button disabled={createMutation.isPending || selected.length === 0 || !startDate || !endDate} onClick={() => createMutation.mutate()}>
-              <Send className="h-4 w-4" /> Envoyer
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card className={isAdmin ? undefined : "xl:col-span-2"}>
-        <CardHeader><CardTitle>Demandes et réponses</CardTitle></CardHeader>
-        <CardContent>
-          <ResponsiveTable>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Période</TableHead>
-                  <TableHead>SST</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Échéance</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(data?.requestTargets ?? []).map((target) => {
-                  const request = requestById.get(target.request_id);
-                  return (
-                    <TableRow key={target.id}>
-                      <TableCell>{request ? `${formatDate(request.start_date)} → ${formatDate(request.end_date)}` : "—"}</TableCell>
-                      <TableCell>{subcontractorName(data, target.subcontractor_id)}</TableCell>
-                      <TableCell>{REQUEST_STATUS_LABEL[target.status]}</TableCell>
-                      <TableCell>{request?.response_deadline ? formatDate(request.response_deadline) : "—"}</TableCell>
-                      <TableCell>
-                        {target.status === "pending" ? (
-                          <Button size="sm" variant="outline" disabled={answerMutation.isPending} onClick={() => answerMutation.mutate(target.id)}>
-                            Marquer répondu
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">{target.responded_at ? formatDateTime(target.responded_at) : "Répondu"}</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </ResponsiveTable>
-          {(data?.requestTargets ?? []).length === 0 && <EmptyState label="Aucune demande sur la période." />}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function AssignmentsPanel({
-  data,
-  subcontractors,
-  isAdmin,
-  onRefresh,
-}: {
-  data?: SstCalendarData;
-  subcontractors: SstCalendarData["subcontractors"];
-  isAdmin: boolean;
-  onRefresh: () => void;
-}) {
-  const [source, setSource] = useState<"intervention" | "mission">("intervention");
-  const [sourceId, setSourceId] = useState("");
-  const [subcontractorId, setSubcontractorId] = useState("");
-  const [startsAt, setStartsAt] = useState("");
-  const [endsAt, setEndsAt] = useState("");
-  const [requiredPeople, setRequiredPeople] = useState(1);
-  const [comment, setComment] = useState("");
-  const createMutation = useMutation({
-    mutationFn: () =>
-      createSstAssignment({
-        intervention_id: source === "intervention" ? sourceId : null,
-        mission_id: source === "mission" ? sourceId : null,
-        subcontractor_id: subcontractorId,
-        starts_at: toIsoDateTime(startsAt),
-        ends_at: toIsoDateTime(endsAt),
-        required_people: requiredPeople,
-        planning_comment: comment.trim() || null,
-      }),
-    onSuccess: () => {
-      toast.success("Proposition créée");
-      setSourceId("");
-      setComment("");
-      onRefresh();
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  });
-  const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: SstAssignmentStatus }) => updateSstAssignmentStatus(id, status),
-    onSuccess: () => {
-      toast.success("Affectation mise à jour");
-      onRefresh();
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  });
-  const answerMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: "confirmed" | "refused" | "verify" | "to_confirm" }) => answerSstAssignment(id, status),
-    onSuccess: () => {
-      toast.success("Réponse enregistrée");
-      onRefresh();
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  });
-  const deleteMutation = useMutation({
-    mutationFn: deleteSstAssignment,
-    onSuccess: () => {
-      toast.success("Proposition supprimée");
-      onRefresh();
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  });
-  const sourceOptions = source === "intervention" ? data?.interventions ?? [] : data?.missions ?? [];
-  return (
-    <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      {isAdmin && (
-        <Card>
-          <CardHeader><CardTitle>Proposer un chantier</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Select value={source} onValueChange={(value) => { setSource(value as "intervention" | "mission"); setSourceId(""); }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="intervention">Intervention PP</SelectItem>
-                  <SelectItem value="mission">Mission SST</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sourceId} onValueChange={setSourceId}>
-                <SelectTrigger><SelectValue placeholder="Chantier" /></SelectTrigger>
-                <SelectContent>
-                  {sourceOptions.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>{source === "intervention" ? interventionOptionLabel(data, item.id) : missionOptionLabel(data, item.id)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Select value={subcontractorId} onValueChange={setSubcontractorId}>
-              <SelectTrigger><SelectValue placeholder="SST" /></SelectTrigger>
-              <SelectContent>
-                {subcontractors.map((subcontractor) => (
-                  <SelectItem key={subcontractor.id} value={subcontractor.id}>{subcontractor.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="sst-starts-at">Début</Label>
-                <Input id="sst-starts-at" type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sst-ends-at">Fin</Label>
-                <Input id="sst-ends-at" type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sst-people">Personnes</Label>
-                <Input id="sst-people" type="number" min={1} value={requiredPeople} onChange={(event) => setRequiredPeople(Number(event.target.value) || 1)} />
-              </div>
-            </div>
-            <Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Consignes ou commentaire" />
-            <Button disabled={createMutation.isPending || !sourceId || !subcontractorId} onClick={() => createMutation.mutate()}>
-              <Plus className="h-4 w-4" /> Créer la proposition
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card className={isAdmin ? undefined : "xl:col-span-2"}>
-        <CardHeader><CardTitle>Affectations SST</CardTitle></CardHeader>
-        <CardContent>
-          <ResponsiveTable>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Chantier</TableHead>
-                  <TableHead>SST</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(data?.assignments ?? []).map((assignment) => (
-                  <TableRow key={assignment.id}>
-                    <TableCell>{assignment.starts_at ? formatDateTime(assignment.starts_at) : "À préciser"}</TableCell>
-                    <TableCell>{assignmentLabel(data, assignment)}</TableCell>
-                    <TableCell>{subcontractorName(data, assignment.subcontractor_id)}</TableCell>
-                    <TableCell><StatusBadge status={assignment.status} /></TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-2">
-                        {isAdmin ? (
-                          <>
-                            <Select value={assignment.status} onValueChange={(value) => statusMutation.mutate({ id: assignment.id, status: value as SstAssignmentStatus })}>
-                              <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {STATUS_ORDER.map((status) => (
-                                  <SelectItem key={status} value={status}>{ASSIGNMENT_STATUS_LABEL[status]}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button size="sm" variant="ghost" disabled={deleteMutation.isPending} onClick={() => deleteMutation.mutate(assignment.id)}>Supprimer</Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button size="sm" variant="outline" disabled={answerMutation.isPending} onClick={() => answerMutation.mutate({ id: assignment.id, status: "confirmed" })}>Confirmer</Button>
-                            <Button size="sm" variant="ghost" disabled={answerMutation.isPending} onClick={() => answerMutation.mutate({ id: assignment.id, status: "verify" })}>À vérifier</Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ResponsiveTable>
-          {(data?.assignments ?? []).length === 0 && <EmptyState label="Aucune affectation sur la période." />}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function SettingsPanel({ data, isAdmin, onRefresh }: { data?: SstCalendarData; isAdmin: boolean; onRefresh: () => void }) {
-  const settings = data?.settings;
-  const [horizon, setHorizon] = useState(settings?.availability_horizon_months ?? 3);
-  const [reminder, setReminder] = useState(settings?.reminder_lead_months ?? 1);
-  const [deadline, setDeadline] = useState(settings?.confirmation_deadline_days ?? 3);
-  const [interventionReminder, setInterventionReminder] = useState(settings?.intervention_reminder_days ?? 1);
-  const [notifications, setNotifications] = useState(settings?.notifications_enabled ?? true);
-  const mutation = useMutation({
-    mutationFn: () =>
-      updateSstCalendarSettings({
-        availability_horizon_months: horizon,
-        reminder_lead_months: reminder,
-        confirmation_deadline_days: deadline,
-        intervention_reminder_days: interventionReminder,
-        notifications_enabled: notifications,
-      }),
-    onSuccess: () => {
-      toast.success("Paramètres enregistrés");
-      onRefresh();
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  });
-  return (
-    <Card>
-      <CardHeader><CardTitle>Paramètres du calendrier SST</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        {!isAdmin && <EmptyState label="Paramètres consultables uniquement par l'administration." />}
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <NumberField label="Horizon disponibilités (mois)" value={horizon} disabled={!isAdmin} onChange={setHorizon} />
-          <NumberField label="Relance avant fin horizon (mois)" value={reminder} disabled={!isAdmin} onChange={setReminder} />
-          <NumberField label="Délai confirmation (jours)" value={deadline} disabled={!isAdmin} onChange={setDeadline} />
-          <NumberField label="Rappel intervention (jours)" value={interventionReminder} disabled={!isAdmin} onChange={setInterventionReminder} />
-        </div>
-        <label className="flex items-center justify-between gap-3 rounded-md border p-3">
-          <span>
-            <span className="block text-sm font-medium text-foreground">Notifications SST</span>
-            <span className="block text-xs text-muted-foreground">Prépare les rappels opérationnels du module.</span>
-          </span>
-          <Switch checked={notifications} disabled={!isAdmin} onCheckedChange={setNotifications} />
-        </label>
-        {isAdmin && (
-          <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
-            <Settings2 className="h-4 w-4" /> Enregistrer
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function getStats(data: SstCalendarData, conflicts: ReturnType<typeof detectSstCalendarConflicts>) {
-  const today = new Date().toISOString().slice(0, 10);
-  const availableToday = data.availabilities.filter((row) => row.availability_date === today && row.status === "available").length;
-  const pendingAnswers = data.requestTargets.filter((target) => target.status === "pending").length;
-  const confirmedAssignments = data.assignments.filter((assignment) => assignment.status === "confirmed").length;
-  const reportDue = data.assignments.filter((assignment) => assignment.status === "report_due").length;
-  const openStoredConflicts = data.conflicts.filter((conflict) => conflict.status === "open").length;
-  return {
-    availableToday,
-    pendingAnswers,
-    confirmedAssignments,
-    urgentActions: pendingAnswers + reportDue + openStoredConflicts + conflicts.length,
-  };
-}
-
-function ActionRow({ icon: Icon, title, detail }: { icon: LucideIcon; title: string; detail: string }) {
-  return (
-    <div className="flex items-start gap-3 rounded-md border p-3">
-      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        <p className="truncate text-xs text-muted-foreground">{detail}</p>
-      </div>
-    </div>
-  );
-}
-
-function FieldDate({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input type="date" value={value} onChange={(event) => onChange(event.target.value)} />
-    </div>
-  );
-}
-
-function NumberField({ label, value, disabled, onChange }: { label: string; value: number; disabled: boolean; onChange: (value: number) => void }) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input type="number" min={0} disabled={disabled} value={value} onChange={(event) => onChange(Number(event.target.value) || 0)} />
-    </div>
-  );
-}
-
-function ResponsiveTable({ children }: { children: ReactNode }) {
-  return <div className="overflow-x-auto rounded-md border">{children}</div>;
-}
-
-function EmptyState({ label }: { label: string }) {
-  return <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">{label}</div>;
-}
-
-function StatusBadge({ status }: { status: SstAssignmentStatus }) {
-  return <Badge variant="outline" className={assignmentStatusClass[status]}>{ASSIGNMENT_STATUS_LABEL[status]}</Badge>;
-}
-
-const WEEKDAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-
-function monthsOfYear(year: number): CalendarMonth[] {
-  return Array.from({ length: 12 }, (_, monthIndex) => {
-    const first = new Date(year, monthIndex, 1);
-    const label = new Intl.DateTimeFormat("fr-FR", { month: "long" }).format(first);
-    const shortLabel = new Intl.DateTimeFormat("fr-FR", { month: "short" }).format(first);
-    const offset = (first.getDay() + 6) % 7;
-    const lastDay = new Date(year, monthIndex + 1, 0).getDate();
-    const days: Array<string | null> = Array.from({ length: offset }, () => null);
-    for (let day = 1; day <= lastDay; day += 1) {
-      days.push(localIsoDate(year, monthIndex, day));
-    }
-    while (days.length % 7 !== 0) days.push(null);
-    return {
-      key: `${year}-${String(monthIndex + 1).padStart(2, "0")}`,
-      label: capitalize(label),
-      shortLabel: capitalize(shortLabel.replace(".", "")),
-      days,
-    };
-  });
-}
-
-function localIsoDate(year: number, monthIndex: number, day: number): string {
-  return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-function localToday(): string {
-  const now = new Date();
-  return localIsoDate(now.getFullYear(), now.getMonth(), now.getDate());
-}
-
-function weekDates(anchorDate: string): string[] {
-  const date = new Date(`${anchorDate}T00:00:00`);
-  const mondayOffset = (date.getDay() + 6) % 7;
-  const monday = addDaysIso(anchorDate, -mondayOffset);
-  return Array.from({ length: 7 }, (_, index) => addDaysIso(monday, index));
-}
-
-function monthDates(anchorDate: string): string[] {
-  const year = Number(anchorDate.slice(0, 4));
-  const monthIndex = Number(anchorDate.slice(5, 7)) - 1;
-  const month = monthsOfYear(year)[monthIndex];
-  if (!month) return [];
-  const firstDate = month.days.find((date): date is string => Boolean(date));
-  const lastDate = [...month.days].reverse().find((date): date is string => Boolean(date));
-  if (!firstDate || !lastDate) return [];
-  const firstMonday = addDaysIso(firstDate, -((new Date(`${firstDate}T00:00:00`).getDay() + 6) % 7));
-  const lastSunday = addDaysIso(lastDate, 6 - ((new Date(`${lastDate}T00:00:00`).getDay() + 6) % 7));
-  const days = Math.round((new Date(`${lastSunday}T00:00:00`).getTime() - new Date(`${firstMonday}T00:00:00`).getTime()) / 86400000) + 1;
-  return Array.from({ length: days }, (_, index) => addDaysIso(firstMonday, index));
-}
-
-function shiftMonth(value: string, amount: number): string {
-  const date = new Date(`${value}T00:00:00`);
-  const day = date.getDate();
-  date.setDate(1);
-  date.setMonth(date.getMonth() + amount);
-  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  return localIsoDate(date.getFullYear(), date.getMonth(), Math.min(day, lastDay));
-}
-
-function shortWeekday(date: string): string {
-  return new Intl.DateTimeFormat("fr-FR", { weekday: "short" }).format(new Date(`${date}T00:00:00`)).replace(".", "");
-}
-
-function periodLabel(anchorDate: string, view: CalendarView): string {
-  const date = new Date(`${anchorDate}T00:00:00`);
-  if (view === "year") return String(date.getFullYear());
-  if (view === "month") return capitalize(new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(date));
-  const week = weekDates(anchorDate);
-  const first = week[0];
-  const last = week.at(-1);
-  if (!first || !last) return "Semaine";
-  return `${new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(new Date(`${first}T00:00:00`))} – ${new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${last}T00:00:00`))}`;
-}
-
-function filterAssignments(data: SstCalendarData, search: string, selected: string[]): SstInterventionAssignment[] {
-  const normalized = search.trim().toLocaleLowerCase("fr-FR");
-  return data.assignments.filter((assignment) => {
-    if (selected.length > 0 && !selected.includes(assignment.subcontractor_id)) return false;
-    if (!normalized) return true;
-    return [assignmentLabel(data, assignment), subcontractorName(data, assignment.subcontractor_id), ASSIGNMENT_STATUS_LABEL[assignment.status]]
-      .some((value) => value.toLocaleLowerCase("fr-FR").includes(normalized));
-  });
-}
-
-function toggleCalendarFilter(selected: string[], id: string, allIds: string[]): string[] {
-  if (selected.length === 0) return allIds.filter((item) => item !== id);
-  if (selected.includes(id)) {
-    const next = selected.filter((item) => item !== id);
-    return next.length === allIds.length ? [] : next;
-  }
-  const next = [...selected, id];
-  return next.length === allIds.length ? [] : next;
-}
-
-function subcontractorName(data: SstCalendarData | undefined, id: string | null): string {
-  if (!id) return "SST non renseigné";
-  return data?.subcontractors.find((subcontractor) => subcontractor.id === id)?.name ?? "SST";
-}
-
-function assignmentLabel(data: SstCalendarData | undefined, assignment: SstInterventionAssignment): string {
-  if (assignment.intervention_id) return interventionOptionLabel(data, assignment.intervention_id);
-  if (assignment.mission_id) return missionOptionLabel(data, assignment.mission_id);
-  return "Chantier à préciser";
-}
-
-function interventionOptionLabel(data: SstCalendarData | undefined, id: string): string {
-  const intervention = data?.interventions.find((item) => item.id === id);
-  if (!intervention) return "Intervention";
-  const client = data?.clients.find((item) => item.id === intervention.client_id);
-  return `${formatDate(intervention.intervention_date)} · ${client?.name ?? intervention.title ?? "Client"}`;
-}
-
-function missionOptionLabel(data: SstCalendarData | undefined, id: string): string {
-  const mission = data?.missions.find((item) => item.id === id);
-  if (!mission) return "Mission SST";
-  const client = data?.clients.find((item) => item.id === mission.client_id);
-  return `${formatDate(mission.mission_date)} · ${client?.name ?? mission.service_requested}`;
-}
-
-function dayNumber(date: string): string {
-  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit" }).format(new Date(`${date}T00:00:00`));
-}
-
-function capitalize(value: string): string {
-  return value.charAt(0).toLocaleUpperCase("fr-FR") + value.slice(1);
-}
-
-function formatDate(date: string): string {
-  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${date}T00:00:00`));
-}
-
-function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-}
-
-function toIsoDateTime(value: string): string | null {
-  if (!value) return null;
-  return new Date(value).toISOString();
-}
-
-function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === "object" && error && "message" in error && typeof error.message === "string") return error.message;
-  return "Une erreur est survenue.";
 }
