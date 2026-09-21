@@ -1,11 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, RotateCcw, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -15,11 +13,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { useRole } from "@/hooks/use-role";
 import {
   declareAvailability,
+  getCurrentSstLabel,
   groupByDate,
   isoDate,
   listAvailabilities,
@@ -41,6 +48,8 @@ export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
         property: "og:description",
         content: "Calendrier partagé des disponibilités des utilisateurs.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: CalendrierSstPage,
@@ -48,6 +57,20 @@ export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
 
 const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const MAX_VISIBLE = 3;
+type CalendarStyle = "direct" | "outline" | "soft";
+type CalendarTone = "primary" | "accent";
+type CalendarDensity = "compact" | "comfortable";
+type CalendarPreferences = {
+  style: CalendarStyle;
+  tone: CalendarTone;
+  density: CalendarDensity;
+};
+const DEFAULT_CALENDAR_PREFERENCES: CalendarPreferences = {
+  style: "direct",
+  tone: "primary",
+  density: "comfortable",
+};
+const CALENDAR_STORAGE_KEY = "cr-sst-calendar-appearance";
 
 function monthLabel(year: number, month: number) {
   const label = new Date(year, month, 1).toLocaleDateString("fr-FR", {
@@ -81,8 +104,35 @@ function CalendrierSstPage() {
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [preferences, setPreferences] = useState<CalendarPreferences>(DEFAULT_CALENDAR_PREFERENCES);
 
-  const window = useMemo(() => {
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(CALENDAR_STORAGE_KEY);
+      if (stored) {
+        setPreferences({
+          ...DEFAULT_CALENDAR_PREFERENCES,
+          ...(JSON.parse(stored) as Partial<CalendarPreferences>),
+        });
+      }
+    } catch {
+      // Le rendu par défaut reste disponible si le stockage local est indisponible.
+    }
+  }, []);
+
+  const updatePreferences = (patch: Partial<CalendarPreferences>) => {
+    setPreferences((current) => {
+      const next = { ...current, ...patch };
+      try {
+        window.localStorage.setItem(CALENDAR_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // La personnalisation reste active pour la session courante.
+      }
+      return next;
+    });
+  };
+
+  const dateWindow = useMemo(() => {
     // Charge aussi les débordements de grille (mois précédent/suivant).
     const grid = monthGridDates(cursor.year, cursor.month);
     const first = grid.at(0);
@@ -92,8 +142,8 @@ function CalendrierSstPage() {
   }, [cursor]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["sst-availability-calendar", window.start, window.end],
-    queryFn: () => listAvailabilities(window.start, window.end),
+    queryKey: ["sst-availability-calendar", dateWindow.start, dateWindow.end],
+    queryFn: () => listAvailabilities(dateWindow.start, dateWindow.end),
   });
 
   const entries = useMemo(() => data ?? [], [data]);
@@ -149,11 +199,22 @@ function CalendrierSstPage() {
   ).length;
 
   return (
-    <AppShell title="Calendrier SST">
-      <div className="mx-auto w-full md:w-3/4">
-        <Card className="overflow-hidden shadow-sm">
-          <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/60 pb-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
-            <div className="flex items-center gap-1">
+    <>
+      <section className="w-full overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-3 sm:px-5">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+              Planning SST
+            </p>
+            <h2 className="truncate font-serif text-xl font-semibold sm:text-2xl">
+              {monthLabel(cursor.year, cursor.month)}
+            </h2>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button variant="outline" size="sm" onClick={goToday}>
+              Aujourd'hui
+            </Button>
+            <div className="flex items-center rounded-md border border-border bg-background p-0.5">
               <Button
                 variant="ghost"
                 size="icon"
@@ -171,92 +232,122 @@ function CalendrierSstPage() {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            <div className="min-w-0 text-right sm:text-center">
-              <CardTitle className="truncate font-serif text-xl font-semibold">
-                {monthLabel(cursor.year, cursor.month)}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois
-              </p>
-            </div>
-            <Button variant="outline" size="sm" onClick={goToday} className="justify-self-end">
-              Aujourd'hui
-            </Button>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-4">
-            <div className="mb-2 hidden grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
-              {WEEKDAYS.map((label) => (
-                <div key={label}>{label}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
-              {grid.map((date) => {
-                const iso = isoDate(date);
-                const inMonth = date.getMonth() === cursor.month;
-                const dayEntries = byDate.get(iso) ?? [];
-                const isToday = iso === today;
-                if (!inMonth && dayEntries.length === 0) {
-                  return <div key={iso} className="hidden sm:block sm:min-h-28" />;
-                }
-                return (
-                  <button
-                    key={iso}
-                    type="button"
-                    onClick={() => setSelectedDate(iso)}
-                    className={cn(
-                      "flex min-h-28 flex-col gap-1.5 rounded-xl border border-border/70 bg-card p-2 text-left transition-all hover:-translate-y-px hover:border-primary/50 hover:shadow-sm",
-                      !inMonth && "opacity-50",
-                      isToday && "border-primary/70 bg-primary/5",
-                    )}
-                  >
-                    <span className="flex items-center justify-between">
-                      <span className="sm:hidden text-xs font-semibold text-muted-foreground">
-                        {fullDateLabel(iso)}
-                      </span>
+            <CalendarAppearanceMenu
+              preferences={preferences}
+              onChange={updatePreferences}
+              onReset={() => {
+                window.localStorage.removeItem(CALENDAR_STORAGE_KEY);
+                setPreferences(DEFAULT_CALENDAR_PREFERENCES);
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="border-b border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground sm:px-5">
+          {monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois
+        </div>
+
+        <div className="p-2 sm:p-4">
+          <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase text-muted-foreground sm:mb-2 sm:gap-2 sm:text-xs">
+            {WEEKDAYS.map((label) => (
+              <div key={label}>{label}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+            {grid.map((date) => {
+              const iso = isoDate(date);
+              const inMonth = date.getMonth() === cursor.month;
+              const dayEntries = byDate.get(iso) ?? [];
+              const isToday = iso === today;
+              const toneClass =
+                preferences.tone === "accent"
+                  ? "bg-accent/15 text-accent"
+                  : "bg-primary/15 text-primary";
+              const selectedClass =
+                preferences.tone === "accent"
+                  ? "border-accent bg-accent/5"
+                  : "border-primary bg-primary/5";
+              const styleClass =
+                preferences.style === "soft"
+                  ? "border-transparent bg-muted/45"
+                  : preferences.style === "outline"
+                    ? "border-border bg-background"
+                    : "border-border/70 bg-card";
+              const heightClass =
+                preferences.density === "compact" ? "min-h-16 sm:min-h-24" : "min-h-20 sm:min-h-32";
+              return (
+                <Button
+                  key={iso}
+                  variant="ghost"
+                  onClick={() => setSelectedDate(iso)}
+                  className={cn(
+                    "h-auto min-w-0 flex-col items-stretch justify-start gap-1 overflow-hidden rounded-lg border p-1.5 text-left transition-all hover:border-primary/50 hover:bg-muted/40 sm:p-2",
+                    heightClass,
+                    styleClass,
+                    !inMonth && "bg-muted/20 opacity-35",
+                    isToday && selectedClass,
+                  )}
+                >
+                  <span className="flex items-center justify-between">
+                    <span
+                      className={cn(
+                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                        isToday ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {date.getDate()}
+                    </span>
+                    {dayEntries.length > 0 ? (
                       <span
                         className={cn(
-                          "hidden sm:inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                          isToday
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground",
+                          "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
+                          toneClass,
                         )}
                       >
-                        {date.getDate()}
+                        {dayEntries.length}
                       </span>
-                      {dayEntries.length > 0 ? (
-                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/15 px-1.5 text-[10px] font-semibold text-primary">
-                          {dayEntries.length}
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="flex flex-col gap-1">
-                      {dayEntries.slice(0, MAX_VISIBLE).map((entry) => (
-                        <span
-                          key={entry.id}
-                          className="rounded-md bg-primary/10 px-1.5 py-1 text-[11px] leading-tight text-foreground"
-                        >
-                          <span className="block font-medium">{entry.userLabel}</span>
-                          {entry.comment ? (
-                            <span className="block truncate text-muted-foreground">
-                              {entry.comment}
-                            </span>
-                          ) : null}
-                        </span>
-                      ))}
-                      {dayEntries.length > MAX_VISIBLE ? (
-                        <span className="text-[11px] text-muted-foreground">
-                          + {dayEntries.length - MAX_VISIBLE} autres
-                        </span>
-                      ) : null}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            {isLoading ? <p className="mt-3 text-sm text-muted-foreground">Chargement…</p> : null}
-          </CardContent>
-        </Card>
-      </div>
+                    ) : null}
+                  </span>
+                  <span className="hidden flex-col gap-1 sm:flex">
+                    {dayEntries.slice(0, MAX_VISIBLE).map((entry) => (
+                      <span
+                        key={entry.id}
+                        className={cn(
+                          "rounded-md px-1.5 py-1 text-[11px] leading-tight text-foreground",
+                          toneClass,
+                        )}
+                      >
+                        <span className="block font-medium">{entry.userLabel}</span>
+                        {entry.comment ? (
+                          <span className="block truncate text-muted-foreground">
+                            {entry.comment}
+                          </span>
+                        ) : null}
+                      </span>
+                    ))}
+                    {dayEntries.length > MAX_VISIBLE ? (
+                      <span className="text-[11px] text-muted-foreground">
+                        + {dayEntries.length - MAX_VISIBLE} autres
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="mt-auto flex justify-center sm:hidden">
+                    {dayEntries.length > 0 ? (
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          preferences.tone === "accent" ? "bg-accent" : "bg-primary",
+                        )}
+                      />
+                    ) : null}
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+          {isLoading ? <p className="mt-3 text-sm text-muted-foreground">Chargement…</p> : null}
+        </div>
+      </section>
 
       <DayDialog
         key={selectedDate ?? "closed"}
@@ -273,7 +364,91 @@ function CalendrierSstPage() {
         onRemove={(id) => remove.mutate(id)}
         pending={declare.isPending || updateComment.isPending || remove.isPending}
       />
-    </AppShell>
+    </>
+  );
+}
+
+function CalendarAppearanceMenu({
+  preferences,
+  onChange,
+  onReset,
+}: {
+  preferences: CalendarPreferences;
+  onChange: (patch: Partial<CalendarPreferences>) => void;
+  onReset: () => void;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Personnaliser le calendrier"
+          title="Personnaliser le calendrier"
+        >
+          <Settings2 className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72 space-y-4">
+        <div>
+          <p className="font-semibold">Apparence du calendrier</p>
+          <p className="text-xs text-muted-foreground">Réglages enregistrés sur cet appareil.</p>
+        </div>
+        <div className="space-y-2">
+          <Label>Style</Label>
+          <Select
+            value={preferences.style}
+            onValueChange={(value) => onChange({ style: value as CalendarStyle })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="direct">Direct et compact</SelectItem>
+              <SelectItem value="outline">Contour net</SelectItem>
+              <SelectItem value="soft">Fond doux</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Couleur des disponibilités</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant={preferences.tone === "primary" ? "default" : "outline"}
+              size="sm"
+              onClick={() => onChange({ tone: "primary" })}
+            >
+              {preferences.tone === "primary" ? <Check className="h-3.5 w-3.5" /> : null} Vert
+            </Button>
+            <Button
+              variant={preferences.tone === "accent" ? "default" : "outline"}
+              size="sm"
+              onClick={() => onChange({ tone: "accent" })}
+            >
+              {preferences.tone === "accent" ? <Check className="h-3.5 w-3.5" /> : null} Orange
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label>Hauteur des journées</Label>
+          <Select
+            value={preferences.density}
+            onValueChange={(value) => onChange({ density: value as CalendarDensity })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="compact">Compacte</SelectItem>
+              <SelectItem value="comfortable">Confortable</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button variant="ghost" size="sm" className="w-full" onClick={onReset}>
+          <RotateCcw className="h-4 w-4" /> Réinitialiser
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -300,12 +475,17 @@ function DayDialog({
 }) {
   const mine = entries.find((entry) => entry.user_id === currentUserId) ?? null;
   const [comment, setComment] = useState("");
-  const [editing, setEditing] = useState(false);
+  const [availability, setAvailability] = useState<"available" | "unavailable">("available");
+  const { data: authorLabel } = useQuery({
+    queryKey: ["sst-calendar-author", currentUserId],
+    enabled: !!currentUserId,
+    queryFn: () => getCurrentSstLabel(currentUserId ?? ""),
+  });
 
   useEffect(() => {
-    setComment("");
-    setEditing(false);
-  }, [date]);
+    setComment(mine?.comment ?? "");
+    setAvailability(mine ? "available" : "available");
+  }, [date, mine?.comment, mine]);
 
   // Réinitialise le champ à chaque ouverture d'un jour (clé sur la date).
   const others = entries.filter((entry) => entry.user_id !== currentUserId);
@@ -323,86 +503,69 @@ function DayDialog({
             <p className="text-sm text-muted-foreground">Aucune disponibilité déclarée.</p>
           ) : null}
 
-          {mine ? (
-            <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
-              <p className="text-sm font-medium text-foreground">{mine.userLabel} (moi)</p>
-              {editing ? (
-                <div className="mt-2 space-y-2">
-                  <Label htmlFor="sst-comment-edit" className="text-xs">
-                    Commentaire (facultatif)
-                  </Label>
-                  <Textarea
-                    id="sst-comment-edit"
-                    rows={2}
-                    defaultValue={mine.comment ?? ""}
-                    onChange={(event) => setComment(event.target.value)}
-                    placeholder="Disponible uniquement le matin…"
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      disabled={pending}
-                      onClick={() => {
-                        onUpdate(mine.id, comment);
-                        setEditing(false);
-                      }}
-                    >
-                      Enregistrer
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-                      Annuler
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {mine.comment ? (
-                    <p className="text-sm text-muted-foreground">{mine.comment}</p>
-                  ) : null}
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setComment(mine.comment ?? "");
-                        setEditing(true);
-                      }}
-                    >
-                      Modifier
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={pending}
-                      onClick={() => onRemove(mine.id)}
-                    >
-                      Retirer ma disponibilité
-                    </Button>
-                  </div>
-                </>
-              )}
+          <div className="space-y-4 rounded-lg border border-border bg-muted/25 p-4">
+            <div className="space-y-1.5">
+              <Label>Auteur</Label>
+              <Select value={currentUserId ?? undefined} disabled>
+                <SelectTrigger>
+                  <SelectValue placeholder="Compte connecté">
+                    {authorLabel ?? mine?.userLabel ?? "Utilisateur PP"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={currentUserId ?? "current"}>
+                    {authorLabel ?? mine?.userLabel ?? "Utilisateur PP"}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Publication au nom du SST connecté.</p>
             </div>
-          ) : (
-            <div className="space-y-2 rounded-md border border-border p-3">
-              <Label htmlFor="sst-comment-new" className="text-xs">
-                Commentaire (facultatif)
-              </Label>
+            <div className="space-y-1.5">
+              <Label>Disponibilité</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={availability === "available" ? "default" : "outline"}
+                  onClick={() => setAvailability("available")}
+                >
+                  Disponible
+                </Button>
+                <Button
+                  type="button"
+                  variant={availability === "unavailable" ? "destructive" : "outline"}
+                  onClick={() => setAvailability("unavailable")}
+                >
+                  Indisponible
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sst-comment">Commentaire (facultatif)</Label>
               <Textarea
-                id="sst-comment-new"
+                id="sst-comment"
                 rows={2}
                 value={comment}
                 onChange={(event) => setComment(event.target.value)}
-                placeholder="Disponible toute la journée…"
+                placeholder="Précision utile pour la journée…"
+                disabled={availability === "unavailable"}
               />
-              <Button
-                size="sm"
-                disabled={pending || !currentUserId}
-                onClick={() => onDeclare(comment)}
-              >
-                Je suis disponible
-              </Button>
             </div>
-          )}
+            <Button
+              className="w-full"
+              disabled={pending || !currentUserId}
+              onClick={() => {
+                if (availability === "unavailable") {
+                  if (mine) onRemove(mine.id);
+                  else toast.info("Aucune disponibilité à retirer pour cette journée");
+                  return;
+                }
+                if (mine) onUpdate(mine.id, comment);
+                else onDeclare(comment);
+              }}
+            >
+              Publier
+            </Button>
+          </div>
 
           {others.map((entry) => (
             <div

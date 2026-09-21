@@ -17,6 +17,16 @@ export interface SstAvailabilityWithUser extends SstAvailabilityEntry {
   userLabel: string;
 }
 
+export async function getCurrentSstLabel(userId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("display_name, company_name")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.display_name?.trim() || data?.company_name?.trim() || "Utilisateur PP";
+}
+
 export function isoDate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");

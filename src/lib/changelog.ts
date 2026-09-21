@@ -26,6 +26,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-21",
+    version: "2.3.8",
+    theme: "Général",
+    title: "Calendrier SST plus lisible et personnalisable",
+    details: [
+      "Le calendrier partagé exploite mieux la largeur disponible avec une grille mensuelle directe et compacte.",
+      "Un menu discret permet d'ajuster son style, sa couleur et sa densité, tandis que la saisie quotidienne regroupe auteur, disponibilité et publication.",
+    ],
+  },
+  {
     date: "2026-09-18",
     version: "2.3.7",
     theme: "Général",
