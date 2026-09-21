@@ -15,8 +15,9 @@ describe("calendrier SST — disponibilités partagées", () => {
   it("construit une grille de 42 jours commençant un lundi", () => {
     const grid = monthGridDates(2026, 8);
     expect(grid).toHaveLength(42);
-    expect(grid[0]!.getDay()).toBe(1);
-    expect(isoDate(grid[0]!)).toBe("2026-08-31");
+    const first = grid.at(0);
+    expect(first?.getDay()).toBe(1);
+    expect(first ? isoDate(first) : null).toBe("2026-08-31");
   });
 
   it("regroupe les disponibilités par date et trie par nom", () => {
