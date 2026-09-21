@@ -89,13 +89,13 @@ export async function listEquipment(): Promise<Equipment[]> {
     .select("*")
     .order("name", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as Equipment[];
+  return (data ?? []) as unknown as Equipment[];
 }
 
 export async function getEquipment(id: string): Promise<Equipment> {
   const { data, error } = await db.from("equipment").select("*").eq("id", id).single();
   if (error) throw error;
-  return data as Equipment;
+  return data as unknown as Equipment;
 }
 
 export interface EquipmentInput {
@@ -121,7 +121,7 @@ export async function createEquipment(input: EquipmentInput): Promise<Equipment>
     .select("*")
     .single();
   if (error) throw error;
-  const equipment = data as Equipment;
+  const equipment = data as unknown as Equipment;
   await syncEquipmentMaintenanceSchedules(equipment.id);
   return equipment;
 }
@@ -138,7 +138,7 @@ export async function updateEquipment(
     .single();
   if (error) throw error;
   await syncEquipmentMaintenanceSchedules(id);
-  return data as Equipment;
+  return data as unknown as Equipment;
 }
 
 export async function deleteEquipment(id: string): Promise<void> {
@@ -153,7 +153,7 @@ export async function listMaintenanceFor(equipmentId: string): Promise<Equipment
     .eq("equipment_id", equipmentId)
     .order("maintenance_date", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as EquipmentMaintenance[];
+  return (data ?? []) as unknown as EquipmentMaintenance[];
 }
 
 /** Toutes les échéances d'entretien à venir/en retard, tous équipements confondus (pour la vue d'ensemble). */
@@ -188,7 +188,7 @@ export async function createMaintenance(input: MaintenanceInput): Promise<Equipm
   if (!userId) throw new Error("Utilisateur non authentifié");
   const { data, error } = await db.from("equipment_maintenance").insert({ ...input, user_id: userId }).select("*").single();
   if (error) throw error;
-  return data as EquipmentMaintenance;
+  return data as unknown as EquipmentMaintenance;
 }
 
 export interface EquipmentType {
@@ -223,7 +223,7 @@ export interface MaintenanceSchedule {
 export async function listEquipmentTypes(): Promise<EquipmentType[]> {
   const { data, error } = await db.from("equipment_types").select("*").order("name");
   if (error) throw error;
-  return (data ?? []) as EquipmentType[];
+  return (data ?? []) as unknown as EquipmentType[];
 }
 
 export async function createEquipmentType(name: string): Promise<EquipmentType> {
@@ -231,13 +231,13 @@ export async function createEquipmentType(name: string): Promise<EquipmentType> 
   if (!userData.user) throw new Error("Utilisateur non authentifié");
   const { data, error } = await db.from("equipment_types").insert({ name: name.trim(), user_id: userData.user.id }).select("*").single();
   if (error) throw error;
-  return data as EquipmentType;
+  return data as unknown as EquipmentType;
 }
 
 export async function listMaintenanceTypes(): Promise<MaintenanceType[]> {
   const { data, error } = await db.from("maintenance_types").select("*").order("name");
   if (error) throw error;
-  return (data ?? []) as MaintenanceType[];
+  return (data ?? []) as unknown as MaintenanceType[];
 }
 
 export async function createMaintenanceType(input: {
@@ -253,7 +253,7 @@ export async function createMaintenanceType(input: {
     .select("*")
     .single();
   if (error) throw error;
-  return data as MaintenanceType;
+  return data as unknown as MaintenanceType;
 }
 
 export async function updateMaintenanceType(
@@ -267,7 +267,7 @@ export async function updateMaintenanceType(
     .select("*")
     .single();
   if (error) throw error;
-  return data as MaintenanceType;
+  return data as unknown as MaintenanceType;
 }
 
 export async function deleteMaintenanceType(id: string): Promise<void> {
@@ -350,7 +350,7 @@ export async function listMaintenanceSchedules(equipmentId?: string): Promise<Ma
     ...row,
     maintenance_type_name: row.maintenance_type?.name ?? "Entretien",
     reminder_days: row.maintenance_type?.reminder_days ?? 14,
-  })) as MaintenanceSchedule[];
+  })) as unknown as MaintenanceSchedule[];
 }
 
 export async function completeMaintenanceSchedule(
@@ -366,7 +366,7 @@ export async function completeMaintenanceSchedule(
   });
   if (error) throw error;
 
-  const maintenance = data as EquipmentMaintenance;
+  const maintenance = data as unknown as EquipmentMaintenance;
   if (comment?.trim()) {
     const { data: updated, error: updateError } = await db
       .from("equipment_maintenance")
@@ -375,7 +375,7 @@ export async function completeMaintenanceSchedule(
       .select("*")
       .single();
     if (updateError) throw updateError;
-    return updated as EquipmentMaintenance;
+    return updated as unknown as EquipmentMaintenance;
   }
 
   return maintenance;
