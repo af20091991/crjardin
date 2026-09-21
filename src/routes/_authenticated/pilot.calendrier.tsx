@@ -133,7 +133,7 @@ function CalendrierSstPage() {
     });
   };
 
-  const window = useMemo(() => {
+  const dateWindow = useMemo(() => {
     // Charge aussi les débordements de grille (mois précédent/suivant).
     const grid = monthGridDates(cursor.year, cursor.month);
     const first = grid.at(0);
@@ -143,8 +143,8 @@ function CalendrierSstPage() {
   }, [cursor]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["sst-availability-calendar", window.start, window.end],
-    queryFn: () => listAvailabilities(window.start, window.end),
+    queryKey: ["sst-availability-calendar", dateWindow.start, dateWindow.end],
+    queryFn: () => listAvailabilities(dateWindow.start, dateWindow.end),
   });
 
   const entries = useMemo(() => data ?? [], [data]);
