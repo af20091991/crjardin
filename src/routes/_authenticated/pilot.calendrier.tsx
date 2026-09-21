@@ -1098,12 +1098,27 @@ function shortDay(date: string): string {
   return new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "2-digit", month: "short" }).format(new Date(`${date}T00:00:00`));
 }
 
+function dayNumber(date: string): string {
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit" }).format(new Date(`${date}T00:00:00`));
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toLocaleUpperCase("fr-FR") + value.slice(1);
+}
+
 function formatDate(date: string): string {
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${date}T00:00:00`));
 }
 
 function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+function timeRange(start: string, end: string | null): string {
+  const startLabel = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(start));
+  if (!end) return startLabel;
+  const endLabel = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(end));
+  return `${startLabel}–${endLabel}`;
 }
 
 function latestDateLabel(dayAvailabilities: SstCalendarData["availabilities"], latest: Map<string, string>): string {
