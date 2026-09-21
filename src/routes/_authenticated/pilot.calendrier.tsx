@@ -6,11 +6,13 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Clock,
   CheckCircle2,
   FileWarning,
+  Filter,
+  LayoutGrid,
   MessageSquare,
   Plus,
+  Search,
   Send,
   Settings2,
   type LucideIcon,
@@ -22,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -45,7 +48,6 @@ import {
   createSstAvailability,
   deleteSstAssignment,
   detectSstCalendarConflicts,
-  latestAvailabilityBySubcontractor,
   listSstCalendarData,
   updateSstAssignmentStatus,
   updateSstCalendarSettings,
@@ -63,6 +65,8 @@ type CalendarMonth = {
   shortLabel: string;
   days: Array<string | null>;
 };
+
+type CalendarView = "week" | "month" | "year";
 
 export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
   head: () => ({
@@ -124,7 +128,13 @@ function CalendrierSstPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { role, isAdmin } = useRole();
-  const [year, setYear] = useState(() => new Date().getFullYear());
+  const today = useMemo(() => localToday(), []);
+  const [anchorDate, setAnchorDate] = useState(today);
+  const [view, setView] = useState<CalendarView>("week");
+  const [search, setSearch] = useState("");
+  const [selectedSubcontractors, setSelectedSubcontractors] = useState<string[]>([]);
+  const [quickDate, setQuickDate] = useState<string | null>(null);
+  const year = Number(anchorDate.slice(0, 4));
   const yearRange = useMemo(() => ({ start: `${year}-01-01`, end: `${year}-12-31` }), [year]);
   const months = useMemo(() => monthsOfYear(year), [year]);
 
@@ -178,16 +188,17 @@ function CalendrierSstPage() {
 
   return (
     <AppShell title="Calendrier SST">
-      <div className="w-full space-y-5 px-4 py-5 lg:px-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="font-serif text-2xl font-semibold tracking-normal text-foreground">Calendrier SST</h1>
-            <p className="text-sm text-muted-foreground">
-              Disponibilités, propositions, confirmations, conflits et comptes-rendus SST.
-            </p>
-          </div>
-          <YearPicker year={year} onChange={setYear} />
-        </div>
+      <div className="w-full space-y-4 px-3 py-3 lg:px-5 lg:py-4">
+        <CalendarToolbar
+          anchorDate={anchorDate}
+          view={view}
+          search={search}
+          isAdmin={isAdmin}
+          onAnchorDateChange={setAnchorDate}
+          onViewChange={setView}
+          onSearchChange={setSearch}
+          onCreate={() => setQuickDate(anchorDate)}
+        />
 
         {query.isError && (
           <Alert variant="destructive">
@@ -197,24 +208,39 @@ function CalendrierSstPage() {
           </Alert>
         )}
 
-        <SummaryGrid stats={stats} isLoading={query.isLoading} />
+        <div className="grid min-h-[620px] overflow-hidden rounded-md border bg-card lg:grid-cols-[230px_minmax(0,1fr)]">
+          <CalendarSidebar
+            anchorDate={anchorDate}
+            subcontractors={visibleSubcontractors}
+            selected={selectedSubcontractors}
+            stats={stats}
+            onAnchorDateChange={setAnchorDate}
+            onSelectedChange={setSelectedSubcontractors}
+          />
+          <CalendarBoard
+            data={data}
+            months={months}
+            anchorDate={anchorDate}
+            view={view}
+            search={search}
+            selectedSubcontractors={selectedSubcontractors}
+            isLoading={query.isLoading}
+            canCreate={isAdmin}
+            onCreate={setQuickDate}
+          />
+        </div>
 
-        <Tabs defaultValue="synthese" className="space-y-4">
+        <Tabs defaultValue="actions" className="space-y-4">
           <TabsList className="flex w-full flex-wrap justify-start">
-            <TabsTrigger value="synthese">Synthèse</TabsTrigger>
-            <TabsTrigger value="calendrier">Calendrier</TabsTrigger>
+            <TabsTrigger value="actions">À traiter</TabsTrigger>
             <TabsTrigger value="disponibilites">Disponibilités</TabsTrigger>
             <TabsTrigger value="demandes">Demandes</TabsTrigger>
             <TabsTrigger value="affectations">Affectations</TabsTrigger>
             <TabsTrigger value="parametres">Paramètres</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="synthese" className="space-y-4">
+          <TabsContent value="actions" className="space-y-4">
             <ActionsPanel data={data} conflicts={computedConflicts} onRefresh={refresh} isAdmin={isAdmin} />
-          </TabsContent>
-
-          <TabsContent value="calendrier" className="space-y-4">
-            <CalendarBoard data={data} months={months} year={year} isLoading={query.isLoading} />
           </TabsContent>
 
           <TabsContent value="disponibilites" className="space-y-4">
@@ -238,37 +264,166 @@ function CalendrierSstPage() {
             <SettingsPanel data={data} isAdmin={isAdmin} onRefresh={refresh} />
           </TabsContent>
         </Tabs>
+
+        <QuickCreateDialog
+          key={quickDate ?? "closed"}
+          open={Boolean(quickDate)}
+          date={quickDate ?? anchorDate}
+          data={data}
+          subcontractors={visibleSubcontractors}
+          onOpenChange={(open) => !open && setQuickDate(null)}
+          onCreated={() => {
+            setQuickDate(null);
+            refresh();
+          }}
+        />
       </div>
     </AppShell>
   );
 }
 
-function SummaryGrid({ stats, isLoading }: { stats: ReturnType<typeof getStats> | null; isLoading: boolean }) {
-  const items = [
-    { label: "SST disponibles aujourd'hui", value: stats?.availableToday ?? 0, icon: CheckCircle2 },
-    { label: "Réponses en attente", value: stats?.pendingAnswers ?? 0, icon: MessageSquare },
-    { label: "Propositions confirmées", value: stats?.confirmedAssignments ?? 0, icon: CalendarDays },
-    { label: "Actions urgentes", value: stats?.urgentActions ?? 0, icon: FileWarning },
-  ];
+function CalendarToolbar({ anchorDate, view, search, isAdmin, onAnchorDateChange, onViewChange, onSearchChange, onCreate }: { anchorDate: string; view: CalendarView; search: string; isAdmin: boolean; onAnchorDateChange: (date: string) => void; onViewChange: (view: CalendarView) => void; onSearchChange: (value: string) => void; onCreate: () => void }) {
+  const move = (direction: -1 | 1) => {
+    if (view === "week") onAnchorDateChange(addDaysIso(anchorDate, direction * 7));
+    else if (view === "month") onAnchorDateChange(shiftMonth(anchorDate, direction));
+    else onAnchorDateChange(`${Number(anchorDate.slice(0, 4)) + direction}-${anchorDate.slice(5)}`);
+  };
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {items.map((item) => {
-        const Icon = item.icon;
-        return (
-          <Card key={item.label}>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
-                <Icon className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-foreground">{isLoading ? "…" : item.value}</p>
-                <p className="text-xs text-muted-foreground">{item.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+    <header className="flex flex-col gap-3 rounded-md border bg-card p-3 xl:flex-row xl:items-center">
+      <div className="flex min-w-0 items-center gap-2">
+        <CalendarDays className="hidden h-6 w-6 text-primary sm:block" />
+        <h1 className="truncate font-serif text-xl font-semibold text-foreground">Planning SST</h1>
+        <Button variant="outline" size="sm" onClick={() => onAnchorDateChange(localToday())}>Aujourd’hui</Button>
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon" title="Période précédente" onClick={() => move(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" title="Période suivante" onClick={() => move(1)}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
+      </div>
+      <p className="min-w-0 flex-1 truncate font-serif text-lg font-semibold text-foreground">{periodLabel(anchorDate, view)}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-44 flex-1 xl:w-56 xl:flex-none">
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input value={search} onChange={(event) => onSearchChange(event.target.value)} className="pl-8" placeholder="Client, chantier, SST…" />
+        </div>
+        <div className="flex rounded-md border bg-background p-0.5">
+          {(["week", "month", "year"] as CalendarView[]).map((item) => (
+            <Button key={item} size="sm" variant={view === item ? "secondary" : "ghost"} onClick={() => onViewChange(item)}>
+              {item === "week" ? "Semaine" : item === "month" ? "Mois" : "Année"}
+            </Button>
+          ))}
+        </div>
+        {isAdmin && <Button onClick={onCreate}><Plus className="h-4 w-4" /> Créer</Button>}
+      </div>
+    </header>
+  );
+}
+
+function CalendarSidebar({ anchorDate, subcontractors, selected, stats, onAnchorDateChange, onSelectedChange }: { anchorDate: string; subcontractors: SstCalendarData["subcontractors"]; selected: string[]; stats: ReturnType<typeof getStats> | null; onAnchorDateChange: (date: string) => void; onSelectedChange: (ids: string[]) => void }) {
+  const month = monthsOfYear(Number(anchorDate.slice(0, 4)))[Number(anchorDate.slice(5, 7)) - 1];
+  return (
+    <aside className="hidden border-r bg-muted/20 p-3 lg:block">
+      <div className="mb-4 flex items-center justify-between">
+        <Button variant="ghost" size="icon" title="Mois précédent" onClick={() => onAnchorDateChange(shiftMonth(anchorDate, -1))}><ChevronLeft className="h-4 w-4" /></Button>
+        <p className="text-sm font-semibold text-foreground">{month?.label}</p>
+        <Button variant="ghost" size="icon" title="Mois suivant" onClick={() => onAnchorDateChange(shiftMonth(anchorDate, 1))}><ChevronRight className="h-4 w-4" /></Button>
+      </div>
+      <div className="grid grid-cols-7 text-center text-[10px] text-muted-foreground">
+        {WEEKDAY_LABELS.map((day) => <span key={day} className="py-1">{day.slice(0, 1)}</span>)}
+        {month?.days.map((date, index) => date ? (
+          <Button key={date} variant="ghost" size="icon" className={cn("h-7 w-7 text-[11px]", date === anchorDate && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground")} onClick={() => onAnchorDateChange(date)}>{Number(date.slice(8, 10))}</Button>
+        ) : <span key={`empty-${index}`} />)}
+      </div>
+      <div className="my-4 border-t" />
+      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground"><Filter className="h-4 w-4" /> Calendriers</div>
+      <div className="space-y-2">
+        {subcontractors.map((subcontractor) => {
+          const checked = selected.length === 0 || selected.includes(subcontractor.id);
+          return (
+            <label key={subcontractor.id} className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
+              <Checkbox checked={checked} onCheckedChange={() => onSelectedChange(toggleCalendarFilter(selected, subcontractor.id, subcontractors.map((item) => item.id)))} />
+              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+              <span className="truncate">{subcontractor.name}</span>
+            </label>
+          );
+        })}
+      </div>
+      <div className="my-4 border-t" />
+      <div className="space-y-2 text-xs text-muted-foreground">
+        <p className="flex justify-between"><span>Disponibles aujourd’hui</span><strong className="text-foreground">{stats?.availableToday ?? 0}</strong></p>
+        <p className="flex justify-between"><span>Réponses attendues</span><strong className="text-foreground">{stats?.pendingAnswers ?? 0}</strong></p>
+        <p className="flex justify-between"><span>Actions urgentes</span><strong className="text-destructive">{stats?.urgentActions ?? 0}</strong></p>
+      </div>
+    </aside>
+  );
+}
+
+function QuickCreateDialog({ open, date, data, subcontractors, onOpenChange, onCreated }: { open: boolean; date: string; data?: SstCalendarData; subcontractors: SstCalendarData["subcontractors"]; onOpenChange: (open: boolean) => void; onCreated: () => void }) {
+  const [source, setSource] = useState<"intervention" | "mission">("intervention");
+  const [sourceId, setSourceId] = useState("");
+  const [subcontractorId, setSubcontractorId] = useState("");
+  const [selectedDate, setSelectedDate] = useState(date);
+  const [requiredPeople, setRequiredPeople] = useState(1);
+  const [status, setStatus] = useState<SstAssignmentStatus>("proposed");
+  const [comment, setComment] = useState("");
+  const [advanced, setAdvanced] = useState(false);
+  const sourceOptions = source === "intervention" ? data?.interventions ?? [] : data?.missions ?? [];
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const assignment = await createSstAssignment({
+        intervention_id: source === "intervention" ? sourceId : null,
+        mission_id: source === "mission" ? sourceId : null,
+        subcontractor_id: subcontractorId,
+        starts_at: `${selectedDate}T12:00:00`,
+        ends_at: null,
+        required_people: requiredPeople,
+        planning_comment: comment.trim() || null,
+      });
+      if (status !== "proposed") await updateSstAssignmentStatus(assignment.id, status);
+    },
+    onSuccess: () => {
+      toast.success("Chantier ajouté au planning");
+      setSourceId("");
+      setComment("");
+      onCreated();
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (next) setSelectedDate(date); onOpenChange(next); }}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="font-serif text-xl">Planifier un chantier</DialogTitle>
+          <DialogDescription>Les informations indispensables, sans détail horaire.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Select value={source} onValueChange={(value) => { setSource(value as "intervention" | "mission"); setSourceId(""); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="intervention">Intervention PP</SelectItem><SelectItem value="mission">Mission SST</SelectItem></SelectContent>
+            </Select>
+            <Input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
+          </div>
+          <Select value={sourceId} onValueChange={setSourceId}>
+            <SelectTrigger><SelectValue placeholder="Choisir le chantier" /></SelectTrigger>
+            <SelectContent>{sourceOptions.map((item) => <SelectItem key={item.id} value={item.id}>{source === "intervention" ? interventionOptionLabel(data, item.id) : missionOptionLabel(data, item.id)}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={subcontractorId} onValueChange={setSubcontractorId}>
+            <SelectTrigger><SelectValue placeholder="Choisir le SST" /></SelectTrigger>
+            <SelectContent>{subcontractors.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Personnes</Label><Input type="number" min={1} value={requiredPeople} onChange={(event) => setRequiredPeople(Number(event.target.value) || 1)} /></div>
+            <div className="space-y-1.5"><Label>Statut</Label><Select value={status} onValueChange={(value) => setStatus(value as SstAssignmentStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUS_ORDER.slice(0, 6).map((item) => <SelectItem key={item} value={item}>{ASSIGNMENT_STATUS_LABEL[item]}</SelectItem>)}</SelectContent></Select></div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setAdvanced((current) => !current)}><LayoutGrid className="h-4 w-4" /> {advanced ? "Masquer le commentaire" : "Ajouter un commentaire"}</Button>
+          {advanced && <Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Consignes utiles au SST" />}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
+          <Button disabled={!sourceId || !subcontractorId || !selectedDate || mutation.isPending} onClick={() => mutation.mutate()}><Plus className="h-4 w-4" /> Planifier</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -366,110 +521,108 @@ function ActionsPanel({
 function CalendarBoard({
   data,
   months,
-  year,
+  anchorDate,
+  view,
+  search,
+  selectedSubcontractors,
   isLoading,
+  canCreate,
+  onCreate,
 }: {
   data?: SstCalendarData;
   months: CalendarMonth[];
-  year: number;
+  anchorDate: string;
+  view: CalendarView;
+  search: string;
+  selectedSubcontractors: string[];
   isLoading: boolean;
+  canCreate: boolean;
+  onCreate: (date: string) => void;
 }) {
-  const latest = useMemo(() => latestAvailabilityBySubcontractor(data?.availabilities ?? []), [data?.availabilities]);
-  const today = new Date().toISOString().slice(0, 10);
-  const monthStats = useMemo(() => (data ? statsByMonth(data) : new Map<string, { availabilities: number; assignments: number }>()), [data]);
   if (isLoading) return <EmptyState label="Chargement du calendrier SST…" />;
   if (!data) return <EmptyState label="Aucune donnée disponible." />;
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2 overflow-x-auto rounded-md border bg-card p-2">
-        {months.map((month) => {
-          const stats = monthStats.get(month.key) ?? { availabilities: 0, assignments: 0 };
-          return (
-            <a
-              key={month.key}
-              href={`#sst-month-${month.key}`}
-              className="min-w-28 rounded-md border bg-background px-3 py-2 text-sm transition-colors hover:bg-muted"
-            >
-              <span className="block font-medium text-foreground">{month.shortLabel}</span>
-              <span className="block text-xs text-muted-foreground">{stats.assignments} chantiers</span>
-            </a>
-          );
-        })}
-      </div>
 
-      <div className="max-h-[calc(100vh-16rem)] space-y-5 overflow-y-auto pr-1">
-        {months.map((month) => {
-          const stats = monthStats.get(month.key) ?? { availabilities: 0, assignments: 0 };
-          return (
-            <section key={month.key} id={`sst-month-${month.key}`} className="scroll-mt-24 rounded-md border bg-card">
-              <div className="flex flex-col gap-2 border-b bg-muted/40 px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2 className="font-serif text-xl font-semibold tracking-normal text-foreground">{month.label}</h2>
-                  <p className="text-xs text-muted-foreground">{year} · {stats.availabilities} disponibilités · {stats.assignments} chantiers</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <LegendPill className="border-primary/30 bg-primary/10 text-primary" label="Disponible" />
-                  <LegendPill className="border-accent/30 bg-accent/10 text-accent-foreground" label="Proposé" />
-                  <LegendPill className="border-destructive/30 bg-destructive/10 text-destructive" label="À traiter" />
-                </div>
-              </div>
-              <div className="grid grid-cols-7 border-b bg-background/80 text-center text-[11px] font-medium uppercase text-muted-foreground">
-                {WEEKDAY_LABELS.map((day) => <div key={day} className="px-2 py-2">{day}</div>)}
-              </div>
-              <div className="grid grid-cols-7">
-                {month.days.map((date, index) => {
-                  if (!date) return <div key={`${month.key}-empty-${index}`} className="min-h-24 border-b border-r bg-muted/30 last:border-r-0 sm:min-h-32" />;
-                  const dayAvailabilities = data.availabilities.filter((row) => row.availability_date === date);
-                  const dayAssignments = assignmentsForDate(data.assignments, date);
-                  const hasUrgent = dayAssignments.some((assignment) => ["report_due", "verify", "refused"].includes(assignment.status));
-                  return (
-                    <div
-                      key={date}
-                      className={cn(
-                        "min-h-24 border-b border-r p-1.5 last:border-r-0 sm:min-h-32 sm:p-2",
-                        date === today && "bg-primary/5 ring-1 ring-inset ring-primary/30",
-                      )}
-                    >
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <p className={cn("text-xs font-medium text-foreground", date === today && "text-primary")}>{dayNumber(date)}</p>
-                        {dayAssignments.length > 0 && <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{dayAssignments.length}</Badge>}
-                      </div>
-                      <div className="space-y-1">
-                        {dayAssignments.slice(0, 2).map((assignment) => (
-                          <CalendarEvent
-                            key={assignment.id}
-                            className={assignmentStatusClass[assignment.status]}
-                            title={subcontractorName(data, assignment.subcontractor_id)}
-                            detail={assignment.starts_at ? timeRange(assignment.starts_at, assignment.ends_at) : ASSIGNMENT_STATUS_LABEL[assignment.status]}
-                          />
-                        ))}
-                        {dayAvailabilities.slice(0, 2).map((row) => (
-                          <CalendarEvent
-                            key={row.id}
-                            className={availabilityStatusClass[row.status]}
-                            title={subcontractorName(data, row.subcontractor_id)}
-                            detail={row.start_time && row.end_time ? `${row.start_time.slice(0, 5)}–${row.end_time.slice(0, 5)}` : AVAILABILITY_STATUS_LABEL[row.status]}
-                          />
-                        ))}
-                        {dayAssignments.length + dayAvailabilities.length > 4 && (
-                          <p className="rounded-sm bg-muted px-1.5 py-1 text-[10px] text-muted-foreground">
-                            +{dayAssignments.length + dayAvailabilities.length - 4} autres
-                          </p>
-                        )}
-                      </div>
-                      {(dayAvailabilities.length > 0 || hasUrgent) && (
-                        <p className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <Clock className="h-3 w-3" /> {hasUrgent ? "Action" : latestDateLabel(dayAvailabilities, latest)}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
+  const filteredAssignments = filterAssignments(data, search, selectedSubcontractors);
+  const dates = view === "week" ? weekDates(anchorDate) : view === "month" ? monthDates(anchorDate) : [];
+
+  if (view === "year") {
+    return <YearCalendar data={data} months={months} assignments={filteredAssignments} canCreate={canCreate} onCreate={onCreate} />;
+  }
+
+  return (
+    <div className="min-w-0 overflow-x-auto bg-background/40">
+      <div className={cn("grid min-w-[760px]", view === "week" ? "grid-cols-7" : "grid-cols-7")}>
+        {dates.map((date) => (
+          <DayColumn
+            key={date}
+            date={date}
+            data={data}
+            assignments={assignmentsForDate(filteredAssignments, date)}
+            canCreate={canCreate}
+            compact={view === "month"}
+            onCreate={onCreate}
+          />
+        ))}
       </div>
+    </div>
+  );
+}
+
+function DayColumn({ date, data, assignments, canCreate, compact, onCreate }: { date: string; data: SstCalendarData; assignments: SstInterventionAssignment[]; canCreate: boolean; compact: boolean; onCreate: (date: string) => void }) {
+  const availabilities = data.availabilities.filter((row) => row.availability_date === date && row.status === "available");
+  const isToday = date === localToday();
+  return (
+    <section className={cn("group min-w-0 border-b border-r bg-card last:border-r-0", compact ? "min-h-36" : "min-h-[560px]")}>
+      <div className={cn("sticky top-0 z-10 border-b bg-card px-2 py-3 text-center", isToday && "bg-primary/5")}>
+        <p className="text-[11px] font-medium uppercase text-muted-foreground">{shortWeekday(date)}</p>
+        <Button type="button" variant="ghost" size="icon" className={cn("mx-auto mt-1 h-8 w-8 rounded-full text-sm font-semibold", isToday && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground")} onClick={() => canCreate && onCreate(date)}>
+          {dayNumber(date)}
+        </Button>
+      </div>
+      <div className="space-y-2 p-2">
+        {availabilities.length > 0 && (
+          <div className="flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2 py-1.5 text-[11px] text-primary">
+            <CheckCircle2 className="h-3 w-3" /> {availabilities.length} SST disponible{availabilities.length > 1 ? "s" : ""}
+          </div>
+        )}
+        {assignments.map((assignment) => (
+          <div key={assignment.id} className={cn("rounded-md border-l-4 bg-background p-2.5 shadow-sm", assignmentStatusClass[assignment.status])}>
+            <p className="line-clamp-2 text-xs font-semibold">{assignmentLabel(data, assignment)}</p>
+            <p className="mt-1 truncate text-[11px] opacity-80">{subcontractorName(data, assignment.subcontractor_id)}</p>
+            <p className="mt-2 text-[10px] font-medium uppercase">{ASSIGNMENT_STATUS_LABEL[assignment.status]}</p>
+          </div>
+        ))}
+        {assignments.length === 0 && !compact && <p className="py-6 text-center text-xs text-muted-foreground">Aucun chantier</p>}
+        {canCreate && (
+          <Button variant="ghost" size="sm" className="w-full opacity-70 lg:opacity-0 lg:group-hover:opacity-100" onClick={() => onCreate(date)}>
+            <Plus className="h-3.5 w-3.5" /> Ajouter
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function YearCalendar({ data, months, assignments, canCreate, onCreate }: { data: SstCalendarData; months: CalendarMonth[]; assignments: SstInterventionAssignment[]; canCreate: boolean; onCreate: (date: string) => void }) {
+  return (
+    <div className="max-h-[760px] space-y-5 overflow-y-auto bg-background/40 p-3">
+      {months.map((month) => (
+        <section key={month.key} className="overflow-hidden rounded-md border bg-card">
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <h2 className="font-serif text-lg font-semibold text-foreground">{month.label}</h2>
+            <span className="text-xs text-muted-foreground">{assignments.filter((item) => assignmentDate(item)?.startsWith(month.key)).length} chantiers</span>
+          </div>
+          <div className="grid grid-cols-7">
+            {WEEKDAY_LABELS.map((label) => <div key={label} className="border-b px-2 py-2 text-center text-[10px] font-medium uppercase text-muted-foreground">{label}</div>)}
+            {month.days.map((date, index) => date ? (
+              <Button key={date} type="button" variant="ghost" onClick={() => canCreate && onCreate(date)} className={cn("h-auto min-h-20 flex-col items-stretch justify-start gap-0 rounded-none border-b border-r p-1.5 text-left hover:bg-muted/60", date === localToday() && "bg-primary/5")}>
+                <span className={cn("text-xs", date === localToday() && "font-semibold text-primary")}>{dayNumber(date)}</span>
+                <span className="min-w-0 flex-1">{assignmentsForDate(assignments, date).slice(0, 2).map((item) => <span key={item.id} className={cn("mt-1 block truncate rounded-sm border px-1 py-0.5 text-[9px]", assignmentStatusClass[item.status])}>{subcontractorName(data, item.subcontractor_id)}</span>)}</span>
+              </Button>
+            ) : <div key={`${month.key}-${index}`} className="min-h-20 border-b border-r bg-muted/20" />)}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
@@ -960,42 +1113,6 @@ function ActionRow({ icon: Icon, title, detail }: { icon: LucideIcon; title: str
   );
 }
 
-function YearPicker({ year, onChange }: { year: number; onChange: (year: number) => void }) {
-  return (
-    <div className="flex items-center gap-2 rounded-md border bg-card p-2">
-      <Button type="button" variant="ghost" size="icon" onClick={() => onChange(year - 1)} title="Année précédente">
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
-      <Label htmlFor="sst-calendar-year" className="sr-only">Année</Label>
-      <Input
-        id="sst-calendar-year"
-        type="number"
-        min={2020}
-        max={2099}
-        value={year}
-        onChange={(event) => onChange(Number(event.target.value) || new Date().getFullYear())}
-        className="w-28 text-center font-medium"
-      />
-      <Button type="button" variant="ghost" size="icon" onClick={() => onChange(year + 1)} title="Année suivante">
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-
-function LegendPill({ label, className }: { label: string; className: string }) {
-  return <span className={cn("rounded-full border px-2 py-1 text-[11px]", className)}>{label}</span>;
-}
-
-function CalendarEvent({ title, detail, className }: { title: string; detail: string; className: string }) {
-  return (
-    <div className={cn("rounded-md border px-1.5 py-1 text-[10px] leading-tight sm:text-[11px]", className)}>
-      <p className="truncate font-medium">{title}</p>
-      <p className="truncate opacity-80">{detail}</p>
-    </div>
-  );
-}
-
 function FieldDate({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <div className="space-y-1.5">
@@ -1053,21 +1170,74 @@ function localIsoDate(year: number, monthIndex: number, day: number): string {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-function statsByMonth(data: SstCalendarData): Map<string, { availabilities: number; assignments: number }> {
-  const out = new Map<string, { availabilities: number; assignments: number }>();
-  for (const row of data.availabilities) {
-    const key = row.availability_date.slice(0, 7);
-    const current = out.get(key) ?? { availabilities: 0, assignments: 0 };
-    out.set(key, { ...current, availabilities: current.availabilities + 1 });
+function localToday(): string {
+  const now = new Date();
+  return localIsoDate(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function weekDates(anchorDate: string): string[] {
+  const date = new Date(`${anchorDate}T00:00:00`);
+  const mondayOffset = (date.getDay() + 6) % 7;
+  const monday = addDaysIso(anchorDate, -mondayOffset);
+  return Array.from({ length: 7 }, (_, index) => addDaysIso(monday, index));
+}
+
+function monthDates(anchorDate: string): string[] {
+  const year = Number(anchorDate.slice(0, 4));
+  const monthIndex = Number(anchorDate.slice(5, 7)) - 1;
+  const month = monthsOfYear(year)[monthIndex];
+  if (!month) return [];
+  const firstDate = month.days.find((date): date is string => Boolean(date));
+  const lastDate = [...month.days].reverse().find((date): date is string => Boolean(date));
+  if (!firstDate || !lastDate) return [];
+  const firstMonday = addDaysIso(firstDate, -((new Date(`${firstDate}T00:00:00`).getDay() + 6) % 7));
+  const lastSunday = addDaysIso(lastDate, 6 - ((new Date(`${lastDate}T00:00:00`).getDay() + 6) % 7));
+  const days = Math.round((new Date(`${lastSunday}T00:00:00`).getTime() - new Date(`${firstMonday}T00:00:00`).getTime()) / 86400000) + 1;
+  return Array.from({ length: days }, (_, index) => addDaysIso(firstMonday, index));
+}
+
+function shiftMonth(value: string, amount: number): string {
+  const date = new Date(`${value}T00:00:00`);
+  const day = date.getDate();
+  date.setDate(1);
+  date.setMonth(date.getMonth() + amount);
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  return localIsoDate(date.getFullYear(), date.getMonth(), Math.min(day, lastDay));
+}
+
+function shortWeekday(date: string): string {
+  return new Intl.DateTimeFormat("fr-FR", { weekday: "short" }).format(new Date(`${date}T00:00:00`)).replace(".", "");
+}
+
+function periodLabel(anchorDate: string, view: CalendarView): string {
+  const date = new Date(`${anchorDate}T00:00:00`);
+  if (view === "year") return String(date.getFullYear());
+  if (view === "month") return capitalize(new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(date));
+  const week = weekDates(anchorDate);
+  const first = week[0];
+  const last = week.at(-1);
+  if (!first || !last) return "Semaine";
+  return `${new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(new Date(`${first}T00:00:00`))} – ${new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${last}T00:00:00`))}`;
+}
+
+function filterAssignments(data: SstCalendarData, search: string, selected: string[]): SstInterventionAssignment[] {
+  const normalized = search.trim().toLocaleLowerCase("fr-FR");
+  return data.assignments.filter((assignment) => {
+    if (selected.length > 0 && !selected.includes(assignment.subcontractor_id)) return false;
+    if (!normalized) return true;
+    return [assignmentLabel(data, assignment), subcontractorName(data, assignment.subcontractor_id), ASSIGNMENT_STATUS_LABEL[assignment.status]]
+      .some((value) => value.toLocaleLowerCase("fr-FR").includes(normalized));
+  });
+}
+
+function toggleCalendarFilter(selected: string[], id: string, allIds: string[]): string[] {
+  if (selected.length === 0) return allIds.filter((item) => item !== id);
+  if (selected.includes(id)) {
+    const next = selected.filter((item) => item !== id);
+    return next.length === allIds.length ? [] : next;
   }
-  for (const assignment of data.assignments) {
-    const date = assignmentDate(assignment);
-    if (!date) continue;
-    const key = date.slice(0, 7);
-    const current = out.get(key) ?? { availabilities: 0, assignments: 0 };
-    out.set(key, { ...current, assignments: current.assignments + 1 });
-  }
-  return out;
+  const next = [...selected, id];
+  return next.length === allIds.length ? [] : next;
 }
 
 function subcontractorName(data: SstCalendarData | undefined, id: string | null): string {
@@ -1095,10 +1265,6 @@ function missionOptionLabel(data: SstCalendarData | undefined, id: string): stri
   return `${formatDate(mission.mission_date)} · ${client?.name ?? mission.service_requested}`;
 }
 
-function shortDay(date: string): string {
-  return new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "2-digit", month: "short" }).format(new Date(`${date}T00:00:00`));
-}
-
 function dayNumber(date: string): string {
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit" }).format(new Date(`${date}T00:00:00`));
 }
@@ -1113,21 +1279,6 @@ function formatDate(date: string): string {
 
 function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-}
-
-function timeRange(start: string, end: string | null): string {
-  const startLabel = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(start));
-  if (!end) return startLabel;
-  const endLabel = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(end));
-  return `${startLabel}–${endLabel}`;
-}
-
-function latestDateLabel(dayAvailabilities: SstCalendarData["availabilities"], latest: Map<string, string>): string {
-  if (dayAvailabilities.length === 0) return "hors journée";
-  const values = dayAvailabilities.map((row) => latest.get(row.subcontractor_id)).filter((value): value is string => Boolean(value));
-  if (values.length === 0) return "non renseignée";
-  const latestValue = values.sort().at(-1);
-  return latestValue ? formatDate(latestValue) : "non renseignée";
 }
 
 function toIsoDateTime(value: string): string | null {
