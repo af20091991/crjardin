@@ -406,110 +406,108 @@ function ActionsPanel({
 function CalendarBoard({
   data,
   months,
-  year,
+  anchorDate,
+  view,
+  search,
+  selectedSubcontractors,
   isLoading,
+  canCreate,
+  onCreate,
 }: {
   data?: SstCalendarData;
   months: CalendarMonth[];
-  year: number;
+  anchorDate: string;
+  view: CalendarView;
+  search: string;
+  selectedSubcontractors: string[];
   isLoading: boolean;
+  canCreate: boolean;
+  onCreate: (date: string) => void;
 }) {
-  const latest = useMemo(() => latestAvailabilityBySubcontractor(data?.availabilities ?? []), [data?.availabilities]);
-  const today = new Date().toISOString().slice(0, 10);
-  const monthStats = useMemo(() => (data ? statsByMonth(data) : new Map<string, { availabilities: number; assignments: number }>()), [data]);
   if (isLoading) return <EmptyState label="Chargement du calendrier SST…" />;
   if (!data) return <EmptyState label="Aucune donnée disponible." />;
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2 overflow-x-auto rounded-md border bg-card p-2">
-        {months.map((month) => {
-          const stats = monthStats.get(month.key) ?? { availabilities: 0, assignments: 0 };
-          return (
-            <a
-              key={month.key}
-              href={`#sst-month-${month.key}`}
-              className="min-w-28 rounded-md border bg-background px-3 py-2 text-sm transition-colors hover:bg-muted"
-            >
-              <span className="block font-medium text-foreground">{month.shortLabel}</span>
-              <span className="block text-xs text-muted-foreground">{stats.assignments} chantiers</span>
-            </a>
-          );
-        })}
-      </div>
 
-      <div className="max-h-[calc(100vh-16rem)] space-y-5 overflow-y-auto pr-1">
-        {months.map((month) => {
-          const stats = monthStats.get(month.key) ?? { availabilities: 0, assignments: 0 };
-          return (
-            <section key={month.key} id={`sst-month-${month.key}`} className="scroll-mt-24 rounded-md border bg-card">
-              <div className="flex flex-col gap-2 border-b bg-muted/40 px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2 className="font-serif text-xl font-semibold tracking-normal text-foreground">{month.label}</h2>
-                  <p className="text-xs text-muted-foreground">{year} · {stats.availabilities} disponibilités · {stats.assignments} chantiers</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <LegendPill className="border-primary/30 bg-primary/10 text-primary" label="Disponible" />
-                  <LegendPill className="border-accent/30 bg-accent/10 text-accent-foreground" label="Proposé" />
-                  <LegendPill className="border-destructive/30 bg-destructive/10 text-destructive" label="À traiter" />
-                </div>
-              </div>
-              <div className="grid grid-cols-7 border-b bg-background/80 text-center text-[11px] font-medium uppercase text-muted-foreground">
-                {WEEKDAY_LABELS.map((day) => <div key={day} className="px-2 py-2">{day}</div>)}
-              </div>
-              <div className="grid grid-cols-7">
-                {month.days.map((date, index) => {
-                  if (!date) return <div key={`${month.key}-empty-${index}`} className="min-h-24 border-b border-r bg-muted/30 last:border-r-0 sm:min-h-32" />;
-                  const dayAvailabilities = data.availabilities.filter((row) => row.availability_date === date);
-                  const dayAssignments = assignmentsForDate(data.assignments, date);
-                  const hasUrgent = dayAssignments.some((assignment) => ["report_due", "verify", "refused"].includes(assignment.status));
-                  return (
-                    <div
-                      key={date}
-                      className={cn(
-                        "min-h-24 border-b border-r p-1.5 last:border-r-0 sm:min-h-32 sm:p-2",
-                        date === today && "bg-primary/5 ring-1 ring-inset ring-primary/30",
-                      )}
-                    >
-                      <div className="mb-1.5 flex items-center justify-between gap-1">
-                        <p className={cn("text-xs font-medium text-foreground", date === today && "text-primary")}>{dayNumber(date)}</p>
-                        {dayAssignments.length > 0 && <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{dayAssignments.length}</Badge>}
-                      </div>
-                      <div className="space-y-1">
-                        {dayAssignments.slice(0, 2).map((assignment) => (
-                          <CalendarEvent
-                            key={assignment.id}
-                            className={assignmentStatusClass[assignment.status]}
-                            title={subcontractorName(data, assignment.subcontractor_id)}
-                            detail={assignment.starts_at ? timeRange(assignment.starts_at, assignment.ends_at) : ASSIGNMENT_STATUS_LABEL[assignment.status]}
-                          />
-                        ))}
-                        {dayAvailabilities.slice(0, 2).map((row) => (
-                          <CalendarEvent
-                            key={row.id}
-                            className={availabilityStatusClass[row.status]}
-                            title={subcontractorName(data, row.subcontractor_id)}
-                            detail={row.start_time && row.end_time ? `${row.start_time.slice(0, 5)}–${row.end_time.slice(0, 5)}` : AVAILABILITY_STATUS_LABEL[row.status]}
-                          />
-                        ))}
-                        {dayAssignments.length + dayAvailabilities.length > 4 && (
-                          <p className="rounded-sm bg-muted px-1.5 py-1 text-[10px] text-muted-foreground">
-                            +{dayAssignments.length + dayAvailabilities.length - 4} autres
-                          </p>
-                        )}
-                      </div>
-                      {(dayAvailabilities.length > 0 || hasUrgent) && (
-                        <p className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <Clock className="h-3 w-3" /> {hasUrgent ? "Action" : latestDateLabel(dayAvailabilities, latest)}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
+  const filteredAssignments = filterAssignments(data, search, selectedSubcontractors);
+  const dates = view === "week" ? weekDates(anchorDate) : view === "month" ? monthDates(anchorDate) : [];
+
+  if (view === "year") {
+    return <YearCalendar data={data} months={months} assignments={filteredAssignments} canCreate={canCreate} onCreate={onCreate} />;
+  }
+
+  return (
+    <div className="min-w-0 overflow-x-auto bg-background/40">
+      <div className={cn("grid min-w-[760px]", view === "week" ? "grid-cols-7" : "grid-cols-7")}>
+        {dates.map((date) => (
+          <DayColumn
+            key={date}
+            date={date}
+            data={data}
+            assignments={assignmentsForDate(filteredAssignments, date)}
+            canCreate={canCreate}
+            compact={view === "month"}
+            onCreate={onCreate}
+          />
+        ))}
       </div>
+    </div>
+  );
+}
+
+function DayColumn({ date, data, assignments, canCreate, compact, onCreate }: { date: string; data: SstCalendarData; assignments: SstInterventionAssignment[]; canCreate: boolean; compact: boolean; onCreate: (date: string) => void }) {
+  const availabilities = data.availabilities.filter((row) => row.availability_date === date && row.status === "available");
+  const isToday = date === localToday();
+  return (
+    <section className={cn("group min-w-0 border-b border-r bg-card last:border-r-0", compact ? "min-h-36" : "min-h-[560px]")}>
+      <div className={cn("sticky top-0 z-10 border-b bg-card px-2 py-3 text-center", isToday && "bg-primary/5")}>
+        <p className="text-[11px] font-medium uppercase text-muted-foreground">{shortWeekday(date)}</p>
+        <button type="button" className={cn("mx-auto mt-1 grid h-8 w-8 place-items-center rounded-full text-sm font-semibold", isToday ? "bg-primary text-primary-foreground" : "text-foreground")} onClick={() => canCreate && onCreate(date)}>
+          {dayNumber(date)}
+        </button>
+      </div>
+      <div className="space-y-2 p-2">
+        {availabilities.length > 0 && (
+          <div className="flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2 py-1.5 text-[11px] text-primary">
+            <CheckCircle2 className="h-3 w-3" /> {availabilities.length} SST disponible{availabilities.length > 1 ? "s" : ""}
+          </div>
+        )}
+        {assignments.map((assignment) => (
+          <div key={assignment.id} className={cn("rounded-md border-l-4 bg-background p-2.5 shadow-sm", assignmentStatusClass[assignment.status])}>
+            <p className="line-clamp-2 text-xs font-semibold">{assignmentLabel(data, assignment)}</p>
+            <p className="mt-1 truncate text-[11px] opacity-80">{subcontractorName(data, assignment.subcontractor_id)}</p>
+            <p className="mt-2 text-[10px] font-medium uppercase">{ASSIGNMENT_STATUS_LABEL[assignment.status]}</p>
+          </div>
+        ))}
+        {assignments.length === 0 && !compact && <p className="py-6 text-center text-xs text-muted-foreground">Aucun chantier</p>}
+        {canCreate && (
+          <Button variant="ghost" size="sm" className="w-full opacity-70 lg:opacity-0 lg:group-hover:opacity-100" onClick={() => onCreate(date)}>
+            <Plus className="h-3.5 w-3.5" /> Ajouter
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function YearCalendar({ data, months, assignments, canCreate, onCreate }: { data: SstCalendarData; months: CalendarMonth[]; assignments: SstInterventionAssignment[]; canCreate: boolean; onCreate: (date: string) => void }) {
+  return (
+    <div className="max-h-[760px] space-y-5 overflow-y-auto bg-background/40 p-3">
+      {months.map((month) => (
+        <section key={month.key} className="overflow-hidden rounded-md border bg-card">
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <h2 className="font-serif text-lg font-semibold text-foreground">{month.label}</h2>
+            <span className="text-xs text-muted-foreground">{assignments.filter((item) => assignmentDate(item)?.startsWith(month.key)).length} chantiers</span>
+          </div>
+          <div className="grid grid-cols-7">
+            {WEEKDAY_LABELS.map((label) => <div key={label} className="border-b px-2 py-2 text-center text-[10px] font-medium uppercase text-muted-foreground">{label}</div>)}
+            {month.days.map((date, index) => date ? (
+              <button key={date} type="button" onClick={() => canCreate && onCreate(date)} className={cn("min-h-20 border-b border-r p-1.5 text-left hover:bg-muted/60", date === localToday() && "bg-primary/5")}>
+                <span className={cn("text-xs", date === localToday() && "font-semibold text-primary")}>{dayNumber(date)}</span>
+                {assignmentsForDate(assignments, date).slice(0, 2).map((item) => <span key={item.id} className={cn("mt-1 block truncate rounded-sm border px-1 py-0.5 text-[9px]", assignmentStatusClass[item.status])}>{subcontractorName(data, item.subcontractor_id)}</span>)}
+              </button>
+            ) : <div key={`${month.key}-${index}`} className="min-h-20 border-b border-r bg-muted/20" />)}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
