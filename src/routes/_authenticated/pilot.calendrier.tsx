@@ -4,6 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
   CheckCircle2,
   FileWarning,
   MessageSquare,
@@ -35,6 +38,7 @@ import {
   addDaysIso,
   answerAvailabilityRequestTarget,
   answerSstAssignment,
+  assignmentDate,
   assignmentsForDate,
   createAvailabilityRequest,
   createSstAssignment,
@@ -43,7 +47,6 @@ import {
   detectSstCalendarConflicts,
   latestAvailabilityBySubcontractor,
   listSstCalendarData,
-  monthWindow,
   updateSstAssignmentStatus,
   updateSstCalendarSettings,
   updateSstConflictStatus,
@@ -53,6 +56,13 @@ import {
   type SstInterventionAssignment,
 } from "@/lib/calendrier-sst";
 import { cn } from "@/lib/utils";
+
+type CalendarMonth = {
+  key: string;
+  label: string;
+  shortLabel: string;
+  days: Array<string | null>;
+};
 
 export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
   head: () => ({
@@ -114,11 +124,13 @@ function CalendrierSstPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { role, isAdmin } = useRole();
-  const [month, setMonth] = useState(() => monthWindow());
+  const [year, setYear] = useState(() => new Date().getFullYear());
+  const yearRange = useMemo(() => ({ start: `${year}-01-01`, end: `${year}-12-31` }), [year]);
+  const months = useMemo(() => monthsOfYear(year), [year]);
 
   const query = useQuery({
-    queryKey: ["sst-calendar", month.start, month.end],
-    queryFn: () => listSstCalendarData(month.start, month.end),
+    queryKey: ["sst-calendar", yearRange.start, yearRange.end],
+    queryFn: () => listSstCalendarData(yearRange.start, yearRange.end),
   });
 
   const data = query.data;
@@ -149,7 +161,6 @@ function CalendrierSstPage() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["sst-calendar"] });
 
   const stats = useMemo(() => (data ? getStats(data, computedConflicts) : null), [data, computedConflicts]);
-  const days = useMemo(() => daysBetween(month.start, month.end), [month.start, month.end]);
 
   if (role === "observateur") {
     return (
@@ -175,7 +186,7 @@ function CalendrierSstPage() {
               Disponibilités, propositions, confirmations, conflits et comptes-rendus SST.
             </p>
           </div>
-          <MonthPicker start={month.start} onChange={(next) => setMonth(monthWindow(new Date(`${next}-01T00:00:00`)))} />
+          <YearPicker year={year} onChange={setYear} />
         </div>
 
         {query.isError && (
@@ -203,7 +214,7 @@ function CalendrierSstPage() {
           </TabsContent>
 
           <TabsContent value="calendrier" className="space-y-4">
-            <CalendarBoard data={data} days={days} isLoading={query.isLoading} />
+            <CalendarBoard data={data} months={months} year={year} isLoading={query.isLoading} />
           </TabsContent>
 
           <TabsContent value="disponibilites" className="space-y-4">
@@ -352,41 +363,110 @@ function ActionsPanel({
   );
 }
 
-function CalendarBoard({ data, days, isLoading }: { data?: SstCalendarData; days: string[]; isLoading: boolean }) {
+function CalendarBoard({
+  data,
+  months,
+  year,
+  isLoading,
+}: {
+  data?: SstCalendarData;
+  months: CalendarMonth[];
+  year: number;
+  isLoading: boolean;
+}) {
   const latest = useMemo(() => latestAvailabilityBySubcontractor(data?.availabilities ?? []), [data?.availabilities]);
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStats = useMemo(() => (data ? statsByMonth(data) : new Map<string, { availabilities: number; assignments: number }>()), [data]);
   if (isLoading) return <EmptyState label="Chargement du calendrier SST…" />;
   if (!data) return <EmptyState label="Aucune donnée disponible." />;
   return (
-    <div className="overflow-x-auto rounded-md border bg-card">
-      <div className="grid min-w-[980px] grid-cols-7">
-        {days.map((date) => {
-          const dayAvailabilities = data.availabilities.filter((row) => row.availability_date === date);
-          const dayAssignments = assignmentsForDate(data.assignments, date);
+    <div className="space-y-4">
+      <div className="flex gap-2 overflow-x-auto rounded-md border bg-card p-2">
+        {months.map((month) => {
+          const stats = monthStats.get(month.key) ?? { availabilities: 0, assignments: 0 };
           return (
-            <div key={date} className="min-h-36 border-b border-r p-3 last:border-r-0">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-sm font-medium text-foreground">{shortDay(date)}</p>
-                <Badge variant="outline">{dayAssignments.length}</Badge>
+            <a
+              key={month.key}
+              href={`#sst-month-${month.key}`}
+              className="min-w-28 rounded-md border bg-background px-3 py-2 text-sm transition-colors hover:bg-muted"
+            >
+              <span className="block font-medium text-foreground">{month.shortLabel}</span>
+              <span className="block text-xs text-muted-foreground">{stats.assignments} chantiers</span>
+            </a>
+          );
+        })}
+      </div>
+
+      <div className="max-h-[calc(100vh-16rem)] space-y-5 overflow-y-auto pr-1">
+        {months.map((month) => {
+          const stats = monthStats.get(month.key) ?? { availabilities: 0, assignments: 0 };
+          return (
+            <section key={month.key} id={`sst-month-${month.key}`} className="scroll-mt-24 rounded-md border bg-card">
+              <div className="flex flex-col gap-2 border-b bg-muted/40 px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="font-serif text-xl font-semibold tracking-normal text-foreground">{month.label}</h2>
+                  <p className="text-xs text-muted-foreground">{year} · {stats.availabilities} disponibilités · {stats.assignments} chantiers</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <LegendPill className="border-primary/30 bg-primary/10 text-primary" label="Disponible" />
+                  <LegendPill className="border-accent/30 bg-accent/10 text-accent-foreground" label="Proposé" />
+                  <LegendPill className="border-destructive/30 bg-destructive/10 text-destructive" label="À traiter" />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                {dayAvailabilities.slice(0, 3).map((row) => (
-                  <div key={row.id} className={cn("truncate rounded-md border px-2 py-1 text-xs", availabilityStatusClass[row.status])}>
-                    {subcontractorName(data, row.subcontractor_id)} · {AVAILABILITY_STATUS_LABEL[row.status]}
-                  </div>
-                ))}
-                {dayAssignments.slice(0, 3).map((assignment) => (
-                  <div key={assignment.id} className={cn("truncate rounded-md border px-2 py-1 text-xs", assignmentStatusClass[assignment.status])}>
-                    {subcontractorName(data, assignment.subcontractor_id)} · {ASSIGNMENT_STATUS_LABEL[assignment.status]}
-                  </div>
-                ))}
-                {dayAvailabilities.length === 0 && dayAssignments.length === 0 && (
-                  <p className="text-xs text-muted-foreground">Aucun élément</p>
-                )}
+              <div className="grid grid-cols-7 border-b bg-background/80 text-center text-[11px] font-medium uppercase text-muted-foreground">
+                {WEEKDAY_LABELS.map((day) => <div key={day} className="px-2 py-2">{day}</div>)}
               </div>
-              <p className="mt-3 text-[11px] text-muted-foreground">
-                MAJ dispo : {latest.size > 0 ? latestDateLabel(dayAvailabilities, latest) : "non renseignée"}
-              </p>
-            </div>
+              <div className="grid grid-cols-7">
+                {month.days.map((date, index) => {
+                  if (!date) return <div key={`${month.key}-empty-${index}`} className="min-h-24 border-b border-r bg-muted/30 last:border-r-0 sm:min-h-32" />;
+                  const dayAvailabilities = data.availabilities.filter((row) => row.availability_date === date);
+                  const dayAssignments = assignmentsForDate(data.assignments, date);
+                  const hasUrgent = dayAssignments.some((assignment) => ["report_due", "verify", "refused"].includes(assignment.status));
+                  return (
+                    <div
+                      key={date}
+                      className={cn(
+                        "min-h-24 border-b border-r p-1.5 last:border-r-0 sm:min-h-32 sm:p-2",
+                        date === today && "bg-primary/5 ring-1 ring-inset ring-primary/30",
+                      )}
+                    >
+                      <div className="mb-1.5 flex items-center justify-between gap-1">
+                        <p className={cn("text-xs font-medium text-foreground", date === today && "text-primary")}>{dayNumber(date)}</p>
+                        {dayAssignments.length > 0 && <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{dayAssignments.length}</Badge>}
+                      </div>
+                      <div className="space-y-1">
+                        {dayAssignments.slice(0, 2).map((assignment) => (
+                          <CalendarEvent
+                            key={assignment.id}
+                            className={assignmentStatusClass[assignment.status]}
+                            title={subcontractorName(data, assignment.subcontractor_id)}
+                            detail={assignment.starts_at ? timeRange(assignment.starts_at, assignment.ends_at) : ASSIGNMENT_STATUS_LABEL[assignment.status]}
+                          />
+                        ))}
+                        {dayAvailabilities.slice(0, 2).map((row) => (
+                          <CalendarEvent
+                            key={row.id}
+                            className={availabilityStatusClass[row.status]}
+                            title={subcontractorName(data, row.subcontractor_id)}
+                            detail={row.start_time && row.end_time ? `${row.start_time.slice(0, 5)}–${row.end_time.slice(0, 5)}` : AVAILABILITY_STATUS_LABEL[row.status]}
+                          />
+                        ))}
+                        {dayAssignments.length + dayAvailabilities.length > 4 && (
+                          <p className="rounded-sm bg-muted px-1.5 py-1 text-[10px] text-muted-foreground">
+                            +{dayAssignments.length + dayAvailabilities.length - 4} autres
+                          </p>
+                        )}
+                      </div>
+                      {(dayAvailabilities.length > 0 || hasUrgent) && (
+                        <p className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Clock className="h-3 w-3" /> {hasUrgent ? "Action" : latestDateLabel(dayAvailabilities, latest)}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           );
         })}
       </div>
@@ -880,11 +960,38 @@ function ActionRow({ icon: Icon, title, detail }: { icon: LucideIcon; title: str
   );
 }
 
-function MonthPicker({ start, onChange }: { start: string; onChange: (month: string) => void }) {
+function YearPicker({ year, onChange }: { year: number; onChange: (year: number) => void }) {
   return (
     <div className="flex items-center gap-2 rounded-md border bg-card p-2">
-      <Label htmlFor="sst-calendar-month" className="text-xs text-muted-foreground">Mois</Label>
-      <Input id="sst-calendar-month" type="month" value={start.slice(0, 7)} onChange={(event) => onChange(event.target.value)} className="w-40" />
+      <Button type="button" variant="ghost" size="icon" onClick={() => onChange(year - 1)} title="Année précédente">
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <Label htmlFor="sst-calendar-year" className="sr-only">Année</Label>
+      <Input
+        id="sst-calendar-year"
+        type="number"
+        min={2020}
+        max={2099}
+        value={year}
+        onChange={(event) => onChange(Number(event.target.value) || new Date().getFullYear())}
+        className="w-28 text-center font-medium"
+      />
+      <Button type="button" variant="ghost" size="icon" onClick={() => onChange(year + 1)} title="Année suivante">
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+function LegendPill({ label, className }: { label: string; className: string }) {
+  return <span className={cn("rounded-full border px-2 py-1 text-[11px]", className)}>{label}</span>;
+}
+
+function CalendarEvent({ title, detail, className }: { title: string; detail: string; className: string }) {
+  return (
+    <div className={cn("rounded-md border px-1.5 py-1 text-[10px] leading-tight sm:text-[11px]", className)}>
+      <p className="truncate font-medium">{title}</p>
+      <p className="truncate opacity-80">{detail}</p>
     </div>
   );
 }
@@ -919,13 +1026,46 @@ function StatusBadge({ status }: { status: SstAssignmentStatus }) {
   return <Badge variant="outline" className={assignmentStatusClass[status]}>{ASSIGNMENT_STATUS_LABEL[status]}</Badge>;
 }
 
-function daysBetween(start: string, end: string): string[] {
-  const out: string[] = [];
-  const cursor = new Date(`${start}T00:00:00`);
-  const last = new Date(`${end}T00:00:00`);
-  while (cursor <= last) {
-    out.push(cursor.toISOString().slice(0, 10));
-    cursor.setDate(cursor.getDate() + 1);
+const WEEKDAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+
+function monthsOfYear(year: number): CalendarMonth[] {
+  return Array.from({ length: 12 }, (_, monthIndex) => {
+    const first = new Date(year, monthIndex, 1);
+    const label = new Intl.DateTimeFormat("fr-FR", { month: "long" }).format(first);
+    const shortLabel = new Intl.DateTimeFormat("fr-FR", { month: "short" }).format(first);
+    const offset = (first.getDay() + 6) % 7;
+    const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+    const days: Array<string | null> = Array.from({ length: offset }, () => null);
+    for (let day = 1; day <= lastDay; day += 1) {
+      days.push(localIsoDate(year, monthIndex, day));
+    }
+    while (days.length % 7 !== 0) days.push(null);
+    return {
+      key: `${year}-${String(monthIndex + 1).padStart(2, "0")}`,
+      label: capitalize(label),
+      shortLabel: capitalize(shortLabel.replace(".", "")),
+      days,
+    };
+  });
+}
+
+function localIsoDate(year: number, monthIndex: number, day: number): string {
+  return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function statsByMonth(data: SstCalendarData): Map<string, { availabilities: number; assignments: number }> {
+  const out = new Map<string, { availabilities: number; assignments: number }>();
+  for (const row of data.availabilities) {
+    const key = row.availability_date.slice(0, 7);
+    const current = out.get(key) ?? { availabilities: 0, assignments: 0 };
+    out.set(key, { ...current, availabilities: current.availabilities + 1 });
+  }
+  for (const assignment of data.assignments) {
+    const date = assignmentDate(assignment);
+    if (!date) continue;
+    const key = date.slice(0, 7);
+    const current = out.get(key) ?? { availabilities: 0, assignments: 0 };
+    out.set(key, { ...current, assignments: current.assignments + 1 });
   }
   return out;
 }
@@ -959,12 +1099,27 @@ function shortDay(date: string): string {
   return new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "2-digit", month: "short" }).format(new Date(`${date}T00:00:00`));
 }
 
+function dayNumber(date: string): string {
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit" }).format(new Date(`${date}T00:00:00`));
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toLocaleUpperCase("fr-FR") + value.slice(1);
+}
+
 function formatDate(date: string): string {
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${date}T00:00:00`));
 }
 
 function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+function timeRange(start: string, end: string | null): string {
+  const startLabel = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(start));
+  if (!end) return startLabel;
+  const endLabel = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(end));
+  return `${startLabel}–${endLabel}`;
 }
 
 function latestDateLabel(dayAvailabilities: SstCalendarData["availabilities"], latest: Map<string, string>): string {
