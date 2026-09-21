@@ -77,6 +77,7 @@ import { useEffect, useState } from "react";
 import { useRole } from "@/hooks/use-role";
 import { ClientOpportunitiesWidget } from "@/components/ClientOpportunitiesWidget";
 import { ClientPremiumTab } from "@/components/ClientPremiumTab";
+import { ClientPilotageTabs } from "@/components/pilot/ClientPilotageTabs";
 
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({
   validateSearch: (search: Record<string, unknown>): { edit?: boolean } => ({
@@ -92,6 +93,7 @@ function ClientDetail() {
   const qc = useQueryClient();
   const { canEdit } = useRole();
   const [copied, setCopied] = useState(false);
+  const [group, setGroup] = useState<"gestion" | "pilotage">("gestion");
   const [editOpen, setEditOpen] = useState(false);
   useEffect(() => {
     if (edit && canEdit) setEditOpen(true);
@@ -156,19 +158,6 @@ function ClientDetail() {
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" /> Tous les clients
-        </Link>
-
-        <Link to="/pilot/fiche/$clientId" params={{ clientId }}>
-          <Card className="flex items-center gap-3 border-primary/40 bg-primary/5 p-3 transition-colors hover:bg-primary/10">
-            <Compass className="h-5 w-5 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">Ouvrir la fiche 360°</p>
-              <p className="text-xs text-muted-foreground">
-                Synthèse dirigeant : CA, activité, rentabilité, opportunités.
-              </p>
-            </div>
-            <ArrowRight className="h-4 w-4 shrink-0 text-primary" />
-          </Card>
         </Link>
 
         <Card>
@@ -281,156 +270,181 @@ function ClientDetail() {
 
         <ShareLinkCard token={client.share_token} copied={copied} setCopied={setCopied} />
 
-        <Tabs defaultValue="interventions">
-          <TabsList className="w-full">
-            <TabsTrigger value="interventions" className="flex-1">
-              <Calendar className="mr-1.5 h-4 w-4" />
-              Interventions
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="flex-1">
-              <CalendarDaysIcon />
-              <span>Calendrier</span>
-            </TabsTrigger>
-            <TabsTrigger value="health" className="flex-1">
-              <Leaf className="mr-1.5 h-4 w-4" />
-              Santé
-            </TabsTrigger>
-            <TabsTrigger value="reco" className="flex-1">
-              <Sparkles className="mr-1.5 h-4 w-4" />
-              Préconisations
-            </TabsTrigger>
-            <TabsTrigger value="opps" className="flex-1">
-              <TrendingUp className="mr-1.5 h-4 w-4" />
-              Opportunités
-            </TabsTrigger>
-            <TabsTrigger value="premium" className="flex-1">
-              <Crown className="mr-1.5 h-4 w-4" />
-              Premium
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="interventions">
-            {(interventions?.length ?? 0) === 0 ? (
-              <HistoryPlaceholder
-                label="Aucune intervention pour le moment."
-                icon={ClipboardList}
-                action
-                clientId={clientId}
-              />
-            ) : (
-              <div className="mt-3 space-y-2.5">
-                <Link
-                  to="/interventions/new"
-                  search={{ client: clientId }}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 py-2.5 text-sm font-medium text-primary hover:bg-primary/5"
-                >
-                  <Calendar className="h-4 w-4" /> Nouveau compte-rendu
-                </Link>
-                {interventions!.map((iv) => (
+        <div className="flex gap-2">
+          <Button
+            variant={group === "gestion" ? "default" : "outline"}
+            size="sm"
+            className="flex-1"
+            onClick={() => setGroup("gestion")}
+          >
+            <Leaf className="mr-1.5 h-4 w-4" />
+            Gestion
+          </Button>
+          <Button
+            variant={group === "pilotage" ? "default" : "outline"}
+            size="sm"
+            className="flex-1"
+            onClick={() => setGroup("pilotage")}
+          >
+            <Compass className="mr-1.5 h-4 w-4" />
+            Pilotage 360°
+          </Button>
+        </div>
+
+        {group === "gestion" && (
+          <Tabs defaultValue="interventions">
+            <TabsList className="w-full">
+              <TabsTrigger value="interventions" className="flex-1">
+                <Calendar className="mr-1.5 h-4 w-4" />
+                Interventions
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="flex-1">
+                <CalendarDaysIcon />
+                <span>Calendrier</span>
+              </TabsTrigger>
+              <TabsTrigger value="health" className="flex-1">
+                <Leaf className="mr-1.5 h-4 w-4" />
+                Santé
+              </TabsTrigger>
+              <TabsTrigger value="reco" className="flex-1">
+                <Sparkles className="mr-1.5 h-4 w-4" />
+                Préconisations
+              </TabsTrigger>
+              <TabsTrigger value="opps" className="flex-1">
+                <TrendingUp className="mr-1.5 h-4 w-4" />
+                Opportunités
+              </TabsTrigger>
+              <TabsTrigger value="premium" className="flex-1">
+                <Crown className="mr-1.5 h-4 w-4" />
+                Premium
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="interventions">
+              {(interventions?.length ?? 0) === 0 ? (
+                <HistoryPlaceholder
+                  label="Aucune intervention pour le moment."
+                  icon={ClipboardList}
+                  action
+                  clientId={clientId}
+                />
+              ) : (
+                <div className="mt-3 space-y-2.5">
                   <Link
-                    key={iv.id}
-                    to="/interventions/$interventionId"
-                    params={{ interventionId: iv.id }}
+                    to="/interventions/new"
+                    search={{ client: clientId }}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 py-2.5 text-sm font-medium text-primary hover:bg-primary/5"
                   >
-                    <Card className="flex items-center gap-3 p-3.5 transition-colors hover:border-primary/40">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-                        <ClipboardList className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">
-                          {iv.title ?? iv.intervention_type ?? "Intervention"}
-                        </p>
-                        <p className="flex gap-1 truncate text-xs text-muted-foreground">
-                          {iv.reference && <span className="font-mono">{iv.reference} ·</span>}
-                          {new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                        <Badge variant={iv.status === "terminee" ? "default" : "secondary"}>
-                          {iv.status === "terminee" ? "Terminé" : "Brouillon"}
-                        </Badge>
-                        {iv.sent_to_client_at && (
-                          <Badge variant="outline" className="border-primary/40 text-primary">
-                            Envoyé au client
-                          </Badge>
-                        )}
-                      </div>
-                    </Card>
+                    <Calendar className="h-4 w-4" /> Nouveau compte-rendu
                   </Link>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value="calendar">
-            <ClientCalendarPanel client={client} canEdit={canEdit} />
-          </TabsContent>
-          <TabsContent value="health">
-            {(health?.length ?? 0) === 0 ? (
-              <HistoryPlaceholder label="Aucune évaluation enregistrée." icon={Leaf} />
-            ) : (
-              <div className="mt-3 space-y-2.5">
-                {health!.map((h) => {
-                  const rating =
-                    (h.rating as HealthRating) in HEALTH_RATING_META
-                      ? (h.rating as HealthRating)
-                      : "bon";
-                  return (
-                    <Card key={h.id} className="p-3.5">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`h-2.5 w-2.5 rounded-full ${HEALTH_RATING_META[rating].dot}`}
-                        />
-                        <p className="font-medium">{h.zone}</p>
-                        <Badge className={HEALTH_RATING_META[rating].tone}>
-                          {HEALTH_RATING_META[rating].label}
-                        </Badge>
-                        <span className="ml-auto text-xs text-muted-foreground">
-                          {new Date(h.assessed_on).toLocaleDateString("fr-FR", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </span>
-                      </div>
-                      {h.note && <p className="mt-1.5 text-sm text-muted-foreground">{h.note}</p>}
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value="reco">
-            {(recos?.length ?? 0) === 0 ? (
-              <HistoryPlaceholder label="Aucune préconisation enregistrée." icon={Sparkles} />
-            ) : (
-              <div className="mt-3 space-y-2.5">
-                {recos!.map((r) => (
-                  <RecoCard
-                    key={r.id}
-                    reco={r}
-                    clientId={clientId}
-                    canEdit={canEdit}
-                    onChanged={() => {
-                      qc.invalidateQueries({ queryKey: ["recommendations", clientId] });
-                      qc.invalidateQueries({ queryKey: ["recommendations-all"] });
-                      qc.invalidateQueries({ queryKey: ["recommendations-funnel"] });
-                      qc.invalidateQueries({ queryKey: ["opportunities-value"] });
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value="opps">
-            <ClientOpportunitiesWidget clientId={clientId} />
-          </TabsContent>
-          <TabsContent value="premium">
-            <ClientPremiumTab clientId={clientId} />
-          </TabsContent>
-        </Tabs>
+                  {interventions!.map((iv) => (
+                    <Link
+                      key={iv.id}
+                      to="/interventions/$interventionId"
+                      params={{ interventionId: iv.id }}
+                    >
+                      <Card className="flex items-center gap-3 p-3.5 transition-colors hover:border-primary/40">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                          <ClipboardList className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">
+                            {iv.title ?? iv.intervention_type ?? "Intervention"}
+                          </p>
+                          <p className="flex gap-1 truncate text-xs text-muted-foreground">
+                            {iv.reference && <span className="font-mono">{iv.reference} ·</span>}
+                            {new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                          <Badge variant={iv.status === "terminee" ? "default" : "secondary"}>
+                            {iv.status === "terminee" ? "Terminé" : "Brouillon"}
+                          </Badge>
+                          {iv.sent_to_client_at && (
+                            <Badge variant="outline" className="border-primary/40 text-primary">
+                              Envoyé au client
+                            </Badge>
+                          )}
+                        </div>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="calendar">
+              <ClientCalendarPanel client={client} canEdit={canEdit} />
+            </TabsContent>
+            <TabsContent value="health">
+              {(health?.length ?? 0) === 0 ? (
+                <HistoryPlaceholder label="Aucune évaluation enregistrée." icon={Leaf} />
+              ) : (
+                <div className="mt-3 space-y-2.5">
+                  {health!.map((h) => {
+                    const rating =
+                      (h.rating as HealthRating) in HEALTH_RATING_META
+                        ? (h.rating as HealthRating)
+                        : "bon";
+                    return (
+                      <Card key={h.id} className="p-3.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full ${HEALTH_RATING_META[rating].dot}`}
+                          />
+                          <p className="font-medium">{h.zone}</p>
+                          <Badge className={HEALTH_RATING_META[rating].tone}>
+                            {HEALTH_RATING_META[rating].label}
+                          </Badge>
+                          <span className="ml-auto text-xs text-muted-foreground">
+                            {new Date(h.assessed_on).toLocaleDateString("fr-FR", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+                        {h.note && <p className="mt-1.5 text-sm text-muted-foreground">{h.note}</p>}
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="reco">
+              {(recos?.length ?? 0) === 0 ? (
+                <HistoryPlaceholder label="Aucune préconisation enregistrée." icon={Sparkles} />
+              ) : (
+                <div className="mt-3 space-y-2.5">
+                  {recos!.map((r) => (
+                    <RecoCard
+                      key={r.id}
+                      reco={r}
+                      clientId={clientId}
+                      canEdit={canEdit}
+                      onChanged={() => {
+                        qc.invalidateQueries({ queryKey: ["recommendations", clientId] });
+                        qc.invalidateQueries({ queryKey: ["recommendations-all"] });
+                        qc.invalidateQueries({ queryKey: ["recommendations-funnel"] });
+                        qc.invalidateQueries({ queryKey: ["opportunities-value"] });
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="opps">
+              <ClientOpportunitiesWidget clientId={clientId} />
+            </TabsContent>
+            <TabsContent value="premium">
+              <ClientPremiumTab clientId={clientId} />
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {group === "pilotage" && <ClientPilotageTabs clientId={clientId} />}
       </div>
     </AppShell>
   );
