@@ -39,7 +39,7 @@ describe("fiche client classique — badge d'envoi par intervention", () => {
 });
 
 describe("fiche client Pilot Pro — badge d'envoi déjà géré", () => {
-  const src = readFileSync("src/routes/_authenticated/pilot.fiche.$clientId.tsx", "utf8");
+  const src = readFileSync("src/components/pilot/ClientPilotageTabs.tsx", "utf8");
 
   test("affiche déjà « CR envoyé » pour les interventions envoyées", () => {
     expect(src).toContain('if (iv.sent_to_client_at) return { label: "CR envoyé"');
