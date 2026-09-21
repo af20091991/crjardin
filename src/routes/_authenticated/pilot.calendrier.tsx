@@ -6,7 +6,6 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Clock,
   CheckCircle2,
   FileWarning,
   Filter,
@@ -49,7 +48,6 @@ import {
   createSstAvailability,
   deleteSstAssignment,
   detectSstCalendarConflicts,
-  latestAvailabilityBySubcontractor,
   listSstCalendarData,
   updateSstAssignmentStatus,
   updateSstCalendarSettings,
@@ -605,9 +603,9 @@ function DayColumn({ date, data, assignments, canCreate, compact, onCreate }: { 
     <section className={cn("group min-w-0 border-b border-r bg-card last:border-r-0", compact ? "min-h-36" : "min-h-[560px]")}>
       <div className={cn("sticky top-0 z-10 border-b bg-card px-2 py-3 text-center", isToday && "bg-primary/5")}>
         <p className="text-[11px] font-medium uppercase text-muted-foreground">{shortWeekday(date)}</p>
-        <button type="button" className={cn("mx-auto mt-1 grid h-8 w-8 place-items-center rounded-full text-sm font-semibold", isToday ? "bg-primary text-primary-foreground" : "text-foreground")} onClick={() => canCreate && onCreate(date)}>
+        <Button type="button" variant="ghost" size="icon" className={cn("mx-auto mt-1 h-8 w-8 rounded-full text-sm font-semibold", isToday && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground")} onClick={() => canCreate && onCreate(date)}>
           {dayNumber(date)}
-        </button>
+        </Button>
       </div>
       <div className="space-y-2 p-2">
         {availabilities.length > 0 && (
@@ -645,10 +643,10 @@ function YearCalendar({ data, months, assignments, canCreate, onCreate }: { data
           <div className="grid grid-cols-7">
             {WEEKDAY_LABELS.map((label) => <div key={label} className="border-b px-2 py-2 text-center text-[10px] font-medium uppercase text-muted-foreground">{label}</div>)}
             {month.days.map((date, index) => date ? (
-              <button key={date} type="button" onClick={() => canCreate && onCreate(date)} className={cn("min-h-20 border-b border-r p-1.5 text-left hover:bg-muted/60", date === localToday() && "bg-primary/5")}>
+              <Button key={date} type="button" variant="ghost" onClick={() => canCreate && onCreate(date)} className={cn("h-auto min-h-20 items-start justify-start rounded-none border-b border-r p-1.5 text-left hover:bg-muted/60", date === localToday() && "bg-primary/5")}>
                 <span className={cn("text-xs", date === localToday() && "font-semibold text-primary")}>{dayNumber(date)}</span>
-                {assignmentsForDate(assignments, date).slice(0, 2).map((item) => <span key={item.id} className={cn("mt-1 block truncate rounded-sm border px-1 py-0.5 text-[9px]", assignmentStatusClass[item.status])}>{subcontractorName(data, item.subcontractor_id)}</span>)}
-              </button>
+                <span className="min-w-0 flex-1">{assignmentsForDate(assignments, date).slice(0, 2).map((item) => <span key={item.id} className={cn("mt-1 block truncate rounded-sm border px-1 py-0.5 text-[9px]", assignmentStatusClass[item.status])}>{subcontractorName(data, item.subcontractor_id)}</span>)}</span>
+              </Button>
             ) : <div key={`${month.key}-${index}`} className="min-h-20 border-b border-r bg-muted/20" />)}
           </div>
         </section>
@@ -1139,42 +1137,6 @@ function ActionRow({ icon: Icon, title, detail }: { icon: LucideIcon; title: str
         <p className="text-sm font-medium text-foreground">{title}</p>
         <p className="truncate text-xs text-muted-foreground">{detail}</p>
       </div>
-    </div>
-  );
-}
-
-function YearPicker({ year, onChange }: { year: number; onChange: (year: number) => void }) {
-  return (
-    <div className="flex items-center gap-2 rounded-md border bg-card p-2">
-      <Button type="button" variant="ghost" size="icon" onClick={() => onChange(year - 1)} title="Année précédente">
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
-      <Label htmlFor="sst-calendar-year" className="sr-only">Année</Label>
-      <Input
-        id="sst-calendar-year"
-        type="number"
-        min={2020}
-        max={2099}
-        value={year}
-        onChange={(event) => onChange(Number(event.target.value) || new Date().getFullYear())}
-        className="w-28 text-center font-medium"
-      />
-      <Button type="button" variant="ghost" size="icon" onClick={() => onChange(year + 1)} title="Année suivante">
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-
-function LegendPill({ label, className }: { label: string; className: string }) {
-  return <span className={cn("rounded-full border px-2 py-1 text-[11px]", className)}>{label}</span>;
-}
-
-function CalendarEvent({ title, detail, className }: { title: string; detail: string; className: string }) {
-  return (
-    <div className={cn("rounded-md border px-1.5 py-1 text-[10px] leading-tight sm:text-[11px]", className)}>
-      <p className="truncate font-medium">{title}</p>
-      <p className="truncate opacity-80">{detail}</p>
     </div>
   );
 }
