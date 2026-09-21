@@ -28,7 +28,7 @@ export type SstConflictType =
 export const AVAILABILITY_STATUS_LABEL: Record<SstAvailabilityStatus, string> = {
   available: "Disponible",
   unavailable: "Indisponible",
-  partial: "Partiel",
+  partial: "Créneau limité",
   to_confirm: "À confirmer",
 };
 
