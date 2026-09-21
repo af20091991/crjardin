@@ -266,6 +266,7 @@ function CalendrierSstPage() {
         </Tabs>
 
         <QuickCreateDialog
+          key={quickDate ?? "closed"}
           open={Boolean(quickDate)}
           date={quickDate ?? anchorDate}
           data={data}
@@ -278,35 +279,6 @@ function CalendrierSstPage() {
         />
       </div>
     </AppShell>
-  );
-}
-
-function SummaryGrid({ stats, isLoading }: { stats: ReturnType<typeof getStats> | null; isLoading: boolean }) {
-  const items = [
-    { label: "SST disponibles aujourd'hui", value: stats?.availableToday ?? 0, icon: CheckCircle2 },
-    { label: "Réponses en attente", value: stats?.pendingAnswers ?? 0, icon: MessageSquare },
-    { label: "Propositions confirmées", value: stats?.confirmedAssignments ?? 0, icon: CalendarDays },
-    { label: "Actions urgentes", value: stats?.urgentActions ?? 0, icon: FileWarning },
-  ];
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {items.map((item) => {
-        const Icon = item.icon;
-        return (
-          <Card key={item.label}>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
-                <Icon className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-foreground">{isLoading ? "…" : item.value}</p>
-                <p className="text-xs text-muted-foreground">{item.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
   );
 }
 
@@ -1198,23 +1170,6 @@ function localIsoDate(year: number, monthIndex: number, day: number): string {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-function statsByMonth(data: SstCalendarData): Map<string, { availabilities: number; assignments: number }> {
-  const out = new Map<string, { availabilities: number; assignments: number }>();
-  for (const row of data.availabilities) {
-    const key = row.availability_date.slice(0, 7);
-    const current = out.get(key) ?? { availabilities: 0, assignments: 0 };
-    out.set(key, { ...current, availabilities: current.availabilities + 1 });
-  }
-  for (const assignment of data.assignments) {
-    const date = assignmentDate(assignment);
-    if (!date) continue;
-    const key = date.slice(0, 7);
-    const current = out.get(key) ?? { availabilities: 0, assignments: 0 };
-    out.set(key, { ...current, assignments: current.assignments + 1 });
-  }
-  return out;
-}
-
 function subcontractorName(data: SstCalendarData | undefined, id: string | null): string {
   if (!id) return "SST non renseigné";
   return data?.subcontractors.find((subcontractor) => subcontractor.id === id)?.name ?? "SST";
@@ -1240,10 +1195,6 @@ function missionOptionLabel(data: SstCalendarData | undefined, id: string): stri
   return `${formatDate(mission.mission_date)} · ${client?.name ?? mission.service_requested}`;
 }
 
-function shortDay(date: string): string {
-  return new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "2-digit", month: "short" }).format(new Date(`${date}T00:00:00`));
-}
-
 function dayNumber(date: string): string {
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit" }).format(new Date(`${date}T00:00:00`));
 }
@@ -1258,21 +1209,6 @@ function formatDate(date: string): string {
 
 function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-}
-
-function timeRange(start: string, end: string | null): string {
-  const startLabel = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(start));
-  if (!end) return startLabel;
-  const endLabel = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(end));
-  return `${startLabel}–${endLabel}`;
-}
-
-function latestDateLabel(dayAvailabilities: SstCalendarData["availabilities"], latest: Map<string, string>): string {
-  if (dayAvailabilities.length === 0) return "hors journée";
-  const values = dayAvailabilities.map((row) => latest.get(row.subcontractor_id)).filter((value): value is string => Boolean(value));
-  if (values.length === 0) return "non renseignée";
-  const latestValue = values.sort().at(-1);
-  return latestValue ? formatDate(latestValue) : "non renseignée";
 }
 
 function toIsoDateTime(value: string): string | null {
