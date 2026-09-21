@@ -280,7 +280,9 @@ export async function listMaintenanceUsageCounts(): Promise<Record<string, numbe
     .from("equipment_type_maintenance_types")
     .select("maintenance_type_id");
   if (error) throw error;
-  return (data ?? []).reduce<Record<string, number>>((counts, row) => {
+  const rows = (data ?? []) as Array<{ maintenance_type_id: string | null }>;
+  return rows.reduce((counts: Record<string, number>, row) => {
+    if (!row.maintenance_type_id) return counts;
     counts[row.maintenance_type_id] = (counts[row.maintenance_type_id] ?? 0) + 1;
     return counts;
   }, {});
@@ -292,7 +294,8 @@ export async function listMaintenanceRuleIds(equipmentTypeId: string): Promise<s
     .select("maintenance_type_id")
     .eq("equipment_type_id", equipmentTypeId);
   if (error) throw error;
-  return (data ?? []).map((row) => row.maintenance_type_id);
+  const rows = (data ?? []) as Array<{ maintenance_type_id: string | null }>;
+  return rows.map((row) => row.maintenance_type_id).filter((id): id is string => Boolean(id));
 }
 
 export async function setEquipmentTypeMaintenanceTypes(
