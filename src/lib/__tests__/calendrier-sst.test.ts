@@ -1,109 +1,26 @@
-import { describe, expect, test } from "bun:test";
-import { detectSstCalendarConflicts, type SstAvailability, type SstInterventionAssignment } from "@/lib/calendrier-sst";
-import type { SubcontractorMission } from "@/lib/subcontractors";
+import { describe, expect, it } from "bun:test";
+import { groupByDate, isoDate, monthGridDates, monthWindow, type SstAvailabilityWithUser } from "@/lib/calendrier-sst";
 
-const baseAssignment: SstInterventionAssignment = {
-  id: "assignment-1",
-  intervention_id: "intervention-1",
-  mission_id: null,
-  subcontractor_id: "sst-1",
-  required_people: 1,
-  starts_at: "2026-09-21T08:00:00.000Z",
-  ends_at: "2026-09-21T12:00:00.000Z",
-  status: "confirmed",
-  planning_comment: null,
-  response_comment: null,
-  proposed_at: null,
-  responded_at: null,
-  created_by: "user-1",
-  created_at: "2026-09-20T08:00:00.000Z",
-  updated_at: "2026-09-20T08:00:00.000Z",
-};
-
-const baseAvailability: SstAvailability = {
-  id: "availability-1",
-  subcontractor_id: "sst-1",
-  availability_date: "2026-09-21",
-  start_time: null,
-  end_time: null,
-  status: "unavailable",
-  comment: null,
-  created_by: "user-1",
-  created_at: "2026-09-20T08:00:00.000Z",
-  updated_at: "2026-09-20T08:00:00.000Z",
-};
-
-const baseMission: SubcontractorMission = {
-  id: "mission-1",
-  user_id: "user-1",
-  subcontractor_id: "sst-1",
-  client_id: null,
-  worksite_sheet_id: null,
-  intervention_id: null,
-  service_id: null,
-  mission_date: "2026-09-21",
-  service_requested: "Taille",
-  objective: null,
-  context_notes: null,
-  instructions: null,
-  status: "done",
-  report_notes: null,
-  anomalies: null,
-  recommendations: null,
-  hours_spent: null,
-  internal_rating: null,
-  agreed_price: null,
-  invoiced_amount: null,
-  client_price: null,
-  archived_at: null,
-  payment_method: null,
-  category: null,
-  prestation: null,
-  invoice_ref: null,
-  hours_saved: null,
-  autonomy: null,
-  parallel_worksite: null,
-  import_source: null,
-  created_at: "2026-09-20T08:00:00.000Z",
-  updated_at: "2026-09-20T08:00:00.000Z",
-};
-
-describe("detectSstCalendarConflicts", () => {
-  test("signale une affectation sur une journée indisponible", () => {
-    const conflicts = detectSstCalendarConflicts({
-      assignments: [baseAssignment],
-      availabilities: [baseAvailability],
-      missions: [],
-    });
-
-    expect(conflicts.some((conflict) => conflict.type === "unavailable")).toBe(true);
+describe("calendrier SST — disponibilités partagées", () => {
+  it("calcule la fenêtre du mois", () => {
+    expect(monthWindow(2026, 8)).toEqual({ start: "2026-09-01", end: "2026-09-30" });
   });
 
-  test("signale deux affectations qui se chevauchent pour le même SST", () => {
-    const conflicts = detectSstCalendarConflicts({
-      assignments: [
-        baseAssignment,
-        {
-          ...baseAssignment,
-          id: "assignment-2",
-          starts_at: "2026-09-21T11:00:00.000Z",
-          ends_at: "2026-09-21T15:00:00.000Z",
-        },
-      ],
-      availabilities: [],
-      missions: [],
-    });
-
-    expect(conflicts.some((conflict) => conflict.type === "overlap")).toBe(true);
+  it("construit une grille de 42 jours commençant un lundi", () => {
+    const grid = monthGridDates(2026, 8);
+    expect(grid).toHaveLength(42);
+    expect(grid[0]!.getDay()).toBe(1);
+    expect(isoDate(grid[0]!)).toBe("2026-08-31");
   });
 
-  test("signale une mission terminée sans compte-rendu", () => {
-    const conflicts = detectSstCalendarConflicts({
-      assignments: [],
-      availabilities: [],
-      missions: [baseMission],
-    });
-
-    expect(conflicts.some((conflict) => conflict.type === "missing_report")).toBe(true);
+  it("regroupe les disponibilités par date et trie par nom", () => {
+    const entries = [
+      { id: "1", user_id: "u1", date: "2026-09-02", comment: null, created_at: "", updated_at: "", userLabel: "Zoé" },
+      { id: "2", user_id: "u2", date: "2026-09-02", comment: "Matin", created_at: "", updated_at: "", userLabel: "Alex" },
+      { id: "3", user_id: "u1", date: "2026-09-03", comment: null, created_at: "", updated_at: "", userLabel: "Zoé" },
+    ] satisfies SstAvailabilityWithUser[];
+    const grouped = groupByDate(entries);
+    expect(grouped.get("2026-09-02")?.map((e) => e.userLabel)).toEqual(["Alex", "Zoé"]);
+    expect(grouped.get("2026-09-03")).toHaveLength(1);
   });
 });
