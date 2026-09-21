@@ -97,7 +97,7 @@ function CalendrierSstPage() {
     queryFn: () => listAvailabilities(window.start, window.end),
   });
 
-  const entries = data ?? [];
+  const entries = useMemo(() => data ?? [], [data]);
   const byDate = useMemo(() => groupByDate(entries), [entries]);
   const grid = useMemo(() => monthGridDates(cursor.year, cursor.month), [cursor]);
   const monthRange = monthWindow(cursor.year, cursor.month);
