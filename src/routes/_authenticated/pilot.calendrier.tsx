@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -12,6 +12,7 @@ import {
   Send,
   Settings2,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -867,7 +868,7 @@ function getStats(data: SstCalendarData, conflicts: ReturnType<typeof detectSstC
   };
 }
 
-function ActionRow({ icon: Icon, title, detail }: { icon: typeof AlertTriangle; title: string; detail: string }) {
+function ActionRow({ icon: Icon, title, detail }: { icon: LucideIcon; title: string; detail: string }) {
   return (
     <div className="flex items-start gap-3 rounded-md border p-3">
       <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
@@ -908,7 +909,7 @@ function NumberField({ label, value, disabled, onChange }: { label: string; valu
   );
 }
 
-function ResponsiveTable({ children }: { children: React.ReactNode }) {
+function ResponsiveTable({ children }: { children: ReactNode }) {
   return <div className="overflow-x-auto rounded-md border">{children}</div>;
 }
 
@@ -972,7 +973,8 @@ function latestDateLabel(dayAvailabilities: SstCalendarData["availabilities"], l
   if (dayAvailabilities.length === 0) return "hors journée";
   const values = dayAvailabilities.map((row) => latest.get(row.subcontractor_id)).filter((value): value is string => Boolean(value));
   if (values.length === 0) return "non renseignée";
-  return formatDate(values.sort().at(-1) ?? values[0]);
+  const latestValue = values.sort().at(-1);
+  return latestValue ? formatDate(latestValue) : "non renseignée";
 }
 
 function toIsoDateTime(value: string): string | null {
