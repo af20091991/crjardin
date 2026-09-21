@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronLeft, ChevronRight, RotateCcw, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -200,8 +199,8 @@ function CalendrierSstPage() {
   ).length;
 
   return (
-    <AppShell title="Calendrier SST">
-      <section className="mx-auto w-full max-w-[1500px] overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+    <>
+      <section className="w-full overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-3 sm:px-5">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase text-muted-foreground">
@@ -365,7 +364,7 @@ function CalendrierSstPage() {
         onRemove={(id) => remove.mutate(id)}
         pending={declare.isPending || updateComment.isPending || remove.isPending}
       />
-    </AppShell>
+    </>
   );
 }
 
