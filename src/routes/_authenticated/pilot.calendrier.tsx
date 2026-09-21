@@ -1025,13 +1025,46 @@ function StatusBadge({ status }: { status: SstAssignmentStatus }) {
   return <Badge variant="outline" className={assignmentStatusClass[status]}>{ASSIGNMENT_STATUS_LABEL[status]}</Badge>;
 }
 
-function daysBetween(start: string, end: string): string[] {
-  const out: string[] = [];
-  const cursor = new Date(`${start}T00:00:00`);
-  const last = new Date(`${end}T00:00:00`);
-  while (cursor <= last) {
-    out.push(cursor.toISOString().slice(0, 10));
-    cursor.setDate(cursor.getDate() + 1);
+const WEEKDAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+
+function monthsOfYear(year: number): CalendarMonth[] {
+  return Array.from({ length: 12 }, (_, monthIndex) => {
+    const first = new Date(year, monthIndex, 1);
+    const label = new Intl.DateTimeFormat("fr-FR", { month: "long" }).format(first);
+    const shortLabel = new Intl.DateTimeFormat("fr-FR", { month: "short" }).format(first);
+    const offset = (first.getDay() + 6) % 7;
+    const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+    const days: Array<string | null> = Array.from({ length: offset }, () => null);
+    for (let day = 1; day <= lastDay; day += 1) {
+      days.push(localIsoDate(year, monthIndex, day));
+    }
+    while (days.length % 7 !== 0) days.push(null);
+    return {
+      key: `${year}-${String(monthIndex + 1).padStart(2, "0")}`,
+      label: capitalize(label),
+      shortLabel: capitalize(shortLabel.replace(".", "")),
+      days,
+    };
+  });
+}
+
+function localIsoDate(year: number, monthIndex: number, day: number): string {
+  return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function statsByMonth(data: SstCalendarData): Map<string, { availabilities: number; assignments: number }> {
+  const out = new Map<string, { availabilities: number; assignments: number }>();
+  for (const row of data.availabilities) {
+    const key = row.availability_date.slice(0, 7);
+    const current = out.get(key) ?? { availabilities: 0, assignments: 0 };
+    out.set(key, { ...current, availabilities: current.availabilities + 1 });
+  }
+  for (const assignment of data.assignments) {
+    const date = assignmentDate(assignment);
+    if (!date) continue;
+    const key = date.slice(0, 7);
+    const current = out.get(key) ?? { availabilities: 0, assignments: 0 };
+    out.set(key, { ...current, assignments: current.assignments + 1 });
   }
   return out;
 }
