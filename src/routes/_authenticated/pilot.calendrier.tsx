@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -60,7 +60,10 @@ function monthLabel(year: number, month: number) {
 
 function fullDateLabel(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
-  const label = new Date(y!, (m ?? 1) - 1, d ?? 1).toLocaleDateString("fr-FR", {
+  const year = Number.isFinite(y) ? y : 1970;
+  const month = Number.isFinite(m) ? m : 1;
+  const day = Number.isFinite(d) ? d : 1;
+  const label = new Date(year, month - 1, day).toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -83,7 +86,10 @@ function CalendrierSstPage() {
   const window = useMemo(() => {
     // Charge aussi les débordements de grille (mois précédent/suivant).
     const grid = monthGridDates(cursor.year, cursor.month);
-    return { start: isoDate(grid[0]!), end: isoDate(grid[grid.length - 1]!) };
+    const first = grid.at(0);
+    const last = grid.at(-1);
+    if (!first || !last) return monthWindow(cursor.year, cursor.month);
+    return { start: isoDate(first), end: isoDate(last) };
   }, [cursor]);
 
   const { data, isLoading } = useQuery({
@@ -101,7 +107,7 @@ function CalendrierSstPage() {
 
   const declare = useMutation({
     mutationFn: ({ date, comment }: { date: string; comment: string }) =>
-      declareAvailability(user!.id, date, comment),
+      declareAvailability(date, comment),
     onSuccess: async () => {
       await invalidate();
       toast.success("Disponibilité enregistrée");
@@ -248,12 +254,16 @@ function CalendrierSstPage() {
       </div>
 
       <DayDialog
+        key={selectedDate ?? "closed"}
         date={selectedDate}
         entries={selectedDate ? (byDate.get(selectedDate) ?? []) : []}
         currentUserId={user?.id ?? null}
         isAdmin={isAdmin}
         onClose={() => setSelectedDate(null)}
-        onDeclare={(comment) => declare.mutate({ date: selectedDate!, comment })}
+        onDeclare={(comment) => {
+          if (!selectedDate) return;
+          declare.mutate({ date: selectedDate, comment });
+        }}
         onUpdate={(id, comment) => updateComment.mutate({ id, comment })}
         onRemove={(id) => remove.mutate(id)}
         pending={declare.isPending || updateComment.isPending || remove.isPending}
@@ -287,12 +297,17 @@ function DayDialog({
   const [comment, setComment] = useState("");
   const [editing, setEditing] = useState(false);
 
+  useEffect(() => {
+    setComment("");
+    setEditing(false);
+  }, [date]);
+
   // Réinitialise le champ à chaque ouverture d'un jour (clé sur la date).
   const others = entries.filter((entry) => entry.user_id !== currentUserId);
 
   return (
     <Dialog open={!!date} onOpenChange={(open) => (!open ? onClose() : null)}>
-      <DialogContent key={date ?? "closed"} className="max-w-md">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{date ? fullDateLabel(date) : ""}</DialogTitle>
           <DialogDescription>Disponibilités déclarées pour cette journée.</DialogDescription>

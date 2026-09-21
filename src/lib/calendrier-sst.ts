@@ -17,11 +17,6 @@ export interface SstAvailabilityWithUser extends SstAvailabilityEntry {
   userLabel: string;
 }
 
-// Les tables récentes ne sont pas encore dans les types générés.
-const db = supabase as unknown as {
-  from: (table: string) => any;
-};
-
 export function isoDate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -67,7 +62,7 @@ export async function listAvailabilities(
   start: string,
   end: string,
 ): Promise<SstAvailabilityWithUser[]> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from("sst_availability_calendar")
     .select("*")
     .gte("date", start)
@@ -78,7 +73,7 @@ export async function listAvailabilities(
   const ids = Array.from(new Set(rows.map((row) => row.user_id)));
   const labels = new Map<string, string>();
   if (ids.length > 0) {
-    const { data: profiles, error: profileError } = await db
+    const { data: profiles, error: profileError } = await supabase
       .from("profiles")
       .select("id, display_name, company_name")
       .in("id", ids);
@@ -98,17 +93,17 @@ export async function listAvailabilities(
   }));
 }
 
-export async function declareAvailability(userId: string, date: string, comment: string | null) {
+export async function declareAvailability(date: string, comment: string | null) {
   const value = comment?.trim() ? comment.trim() : null;
-  const { error } = await db
+  const { error } = await supabase
     .from("sst_availability_calendar")
-    .upsert({ user_id: userId, date, comment: value }, { onConflict: "user_id,date" });
+    .upsert({ date, comment: value }, { onConflict: "user_id,date" });
   if (error) throw error;
 }
 
 export async function updateAvailabilityComment(id: string, comment: string | null) {
   const value = comment?.trim() ? comment.trim() : null;
-  const { error } = await db
+  const { error } = await supabase
     .from("sst_availability_calendar")
     .update({ comment: value })
     .eq("id", id);
@@ -116,6 +111,6 @@ export async function updateAvailabilityComment(id: string, comment: string | nu
 }
 
 export async function removeAvailability(id: string) {
-  const { error } = await db.from("sst_availability_calendar").delete().eq("id", id);
+  const { error } = await supabase.from("sst_availability_calendar").delete().eq("id", id);
   if (error) throw error;
 }
