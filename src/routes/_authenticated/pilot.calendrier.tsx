@@ -959,11 +959,38 @@ function ActionRow({ icon: Icon, title, detail }: { icon: LucideIcon; title: str
   );
 }
 
-function MonthPicker({ start, onChange }: { start: string; onChange: (month: string) => void }) {
+function YearPicker({ year, onChange }: { year: number; onChange: (year: number) => void }) {
   return (
     <div className="flex items-center gap-2 rounded-md border bg-card p-2">
-      <Label htmlFor="sst-calendar-month" className="text-xs text-muted-foreground">Mois</Label>
-      <Input id="sst-calendar-month" type="month" value={start.slice(0, 7)} onChange={(event) => onChange(event.target.value)} className="w-40" />
+      <Button type="button" variant="ghost" size="icon" onClick={() => onChange(year - 1)} title="Année précédente">
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <Label htmlFor="sst-calendar-year" className="sr-only">Année</Label>
+      <Input
+        id="sst-calendar-year"
+        type="number"
+        min={2020}
+        max={2099}
+        value={year}
+        onChange={(event) => onChange(Number(event.target.value) || new Date().getFullYear())}
+        className="w-28 text-center font-medium"
+      />
+      <Button type="button" variant="ghost" size="icon" onClick={() => onChange(year + 1)} title="Année suivante">
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+function LegendPill({ label, className }: { label: string; className: string }) {
+  return <span className={cn("rounded-full border px-2 py-1 text-[11px]", className)}>{label}</span>;
+}
+
+function CalendarEvent({ title, detail, className }: { title: string; detail: string; className: string }) {
+  return (
+    <div className={cn("rounded-md border px-1.5 py-1 text-[10px] leading-tight sm:text-[11px]", className)}>
+      <p className="truncate font-medium">{title}</p>
+      <p className="truncate opacity-80">{detail}</p>
     </div>
   );
 }
