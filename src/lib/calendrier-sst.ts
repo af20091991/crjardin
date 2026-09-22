@@ -165,4 +165,3 @@ export async function removeAvailability(id: string) {
   const { error } = await supabase.from("sst_availability_calendar").delete().eq("id", id);
   if (error) throw error;
 }
-

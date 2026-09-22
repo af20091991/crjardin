@@ -297,7 +297,9 @@ function CalendrierSstPage() {
             className={cn(
               "mb-1 grid text-center text-[10px] font-semibold uppercase text-muted-foreground sm:mb-2 sm:text-xs",
               gapClass(preferences.gap),
-              preferences.showWeekNumbers ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]" : "grid-cols-7",
+              preferences.showWeekNumbers
+                ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
+                : "grid-cols-7",
             )}
           >
             {preferences.showWeekNumbers ? <div>Sem.</div> : null}
