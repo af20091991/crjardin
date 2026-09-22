@@ -185,7 +185,7 @@ function AssistantApPage() {
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-1" aria-label="Filtrer les chantiers">
+        <div className="flex flex-wrap items-center gap-1" aria-label="Filtrer les chantiers">
           {FILTERS.map((choice) => (
             <Button
               key={choice.value}
@@ -292,10 +292,10 @@ function WorksiteCard({
   });
 
   return (
-    <Card className={cn("overflow-hidden shadow-none", open && "border-primary/35")}>
+    <Card className={cn("min-w-0 overflow-hidden shadow-none", open && "border-primary/35")}>
       <Button
         variant="ghost"
-        className="h-auto w-full justify-start rounded-none px-4 py-3 text-left hover:bg-muted/40"
+        className="h-auto min-w-0 w-full justify-start overflow-hidden rounded-none px-4 py-3 text-left hover:bg-muted/40"
         onClick={onToggle}
         aria-expanded={open}
       >
@@ -419,7 +419,7 @@ function SupplyRow({ supply, onChanged }: { supply: ApSupply; onChanged: () => v
   const statusView = STATUS_VIEW[supply.status];
 
   return (
-    <div className="rounded-md border bg-background p-2">
+    <div className="min-w-0 overflow-hidden rounded-md border bg-background p-2">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(8rem,1.2fr)_minmax(8rem,1fr)_8rem_8rem_7rem_2rem] lg:items-center">
         <LabeledField label="Fourniture">
           <Input
@@ -525,7 +525,7 @@ function LabeledField({ label, children }: { label: string; children: React.Reac
   return (
     <div className="min-w-0">
       <span className="mb-1 block text-[11px] text-muted-foreground lg:hidden">{label}</span>
-      {children}
+      <div className="min-w-0 [&>*]:w-full">{children}</div>
     </div>
   );
 }
