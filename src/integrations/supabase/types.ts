@@ -47,6 +47,27 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_participants: {
+        Row: {
+          color: string
+          icon: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          icon?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          icon?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ceev_agreement_events: {
         Row: {
           agreement_id: string
@@ -2954,32 +2975,38 @@ export type Database = {
       }
       planning_notes: {
         Row: {
+          assigned_to: string | null
           client_id: string | null
           created_at: string
           created_by: string | null
           details: string | null
           id: string
           scheduled_date: string
+          status: string
           title: string
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           client_id?: string | null
           created_at?: string
           created_by?: string | null
           details?: string | null
           id?: string
           scheduled_date: string
+          status?: string
           title: string
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           client_id?: string | null
           created_at?: string
           created_by?: string | null
           details?: string | null
           id?: string
           scheduled_date?: string
+          status?: string
           title?: string
           updated_at?: string
         }
