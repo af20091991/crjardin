@@ -9,12 +9,27 @@ export interface SstAvailabilityEntry {
   user_id: string;
   date: string;
   comment: string | null;
+  /** Fiche SST facultative attribuée à la journée planifiée. */
+  subcontractor_id: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface SstAvailabilityWithUser extends SstAvailabilityEntry {
   userLabel: string;
+  /** Nom de la fiche SST attribuée, si la fiche est accessible. */
+  sheetLabel: string | null;
+}
+
+/** Numéro de semaine ISO 8601 (présentation seule). */
+export function isoWeekNumber(date: Date): number {
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = (target.getDay() + 6) % 7;
+  target.setDate(target.getDate() - day + 3);
+  const firstThursday = new Date(target.getFullYear(), 0, 4);
+  const firstDay = (firstThursday.getDay() + 6) % 7;
+  firstThursday.setDate(firstThursday.getDate() - firstDay + 3);
+  return 1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * 24 * 3600 * 1000));
 }
 
 export async function getCurrentSstLabel(userId: string): Promise<string> {
