@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Activity,
   Bell,
   ChevronLeft,
   ChevronRight,
@@ -171,15 +172,8 @@ function CalendrierSstPage() {
     queryClient.invalidateQueries({ queryKey: ["sst-availability-calendar"] });
 
   const declare = useMutation({
-    mutationFn: ({
-      date,
-      comment,
-      subcontractorId,
-    }: {
-      date: string;
-      comment: string;
-      subcontractorId: string | null;
-    }) => declareAvailability(date, comment, subcontractorId),
+    mutationFn: ({ date, comment }: { date: string; comment: string }) =>
+      declareAvailability(date, comment),
     onSuccess: async () => {
       await invalidate();
       toast.success("Disponibilité enregistrée");
@@ -188,15 +182,8 @@ function CalendrierSstPage() {
   });
 
   const updateComment = useMutation({
-    mutationFn: ({
-      id,
-      comment,
-      subcontractorId,
-    }: {
-      id: string;
-      comment: string;
-      subcontractorId: string | null;
-    }) => updateAvailabilityComment(id, comment, subcontractorId),
+    mutationFn: ({ id, comment }: { id: string; comment: string }) =>
+      updateAvailabilityComment(id, comment),
     onSuccess: async () => {
       await invalidate();
       toast.success("Commentaire mis à jour");
@@ -233,6 +220,13 @@ function CalendrierSstPage() {
     for (let i = 0; i < grid.length; i += 7) rows.push(grid.slice(i, i + 7));
     return rows;
   }, [grid]);
+  const recentEntries = useMemo(
+    () =>
+      [...entries]
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+        .slice(0, 5),
+    [entries],
+  );
 
   return (
     <>
@@ -288,14 +282,15 @@ function CalendrierSstPage() {
           </div>
         </div>
 
-        <div className="border-b border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground sm:px-5">
-          {monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois
+        <div className="flex items-center justify-between border-b border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground sm:px-4">
+          <span>{monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois</span>
+          <RecentUpdates entries={recentEntries} onSelect={setSelectedDate} />
         </div>
 
-        <div className="p-2 sm:p-4">
+        <div className="p-1.5 sm:p-2">
           <div
             className={cn(
-              "mb-1 grid text-center text-[10px] font-semibold uppercase text-muted-foreground sm:mb-2 sm:text-xs",
+              "mb-1 grid text-center text-[10px] font-semibold uppercase text-muted-foreground sm:text-xs",
               gapClass(preferences.gap),
               preferences.showWeekNumbers
                 ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
@@ -345,7 +340,7 @@ function CalendrierSstPage() {
                           }
                         }}
                         className={cn(
-                          "flex min-w-0 cursor-pointer flex-col items-stretch justify-start gap-1 overflow-hidden border p-1.5 text-left transition-all hover:border-primary/50 hover:bg-muted/40 sm:p-2",
+                          "flex min-w-0 cursor-pointer flex-col items-stretch justify-start gap-0.5 overflow-hidden border p-1 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-1.5",
                           cornerClass(preferences.corner),
                           heightClass(preferences.density),
                           styleClass(preferences.style),
@@ -357,7 +352,7 @@ function CalendrierSstPage() {
                         <span className="flex items-center justify-between">
                           <span
                             className={cn(
-                              "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                              "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold",
                               isToday
                                 ? "bg-primary text-primary-foreground"
                                 : "text-muted-foreground",
@@ -383,7 +378,6 @@ function CalendrierSstPage() {
                               entry={entry}
                               chipClass={tone.chip}
                               showComment={preferences.showComments}
-                              showSheet={preferences.showSheets}
                               open={openComment === entry.id}
                               onOpenChange={(open) => setOpenComment(open ? entry.id : null)}
                               onEdit={() => {
@@ -422,13 +416,11 @@ function CalendrierSstPage() {
         currentUserId={user?.id ?? null}
         isAdmin={isAdmin}
         onClose={() => setSelectedDate(null)}
-        onDeclare={(comment, subcontractorId) => {
+        onDeclare={(comment) => {
           if (!selectedDate) return;
-          declare.mutate({ date: selectedDate, comment, subcontractorId });
+          declare.mutate({ date: selectedDate, comment });
         }}
-        onUpdate={(id, comment, subcontractorId) =>
-          updateComment.mutate({ id, comment, subcontractorId })
-        }
+        onUpdate={(id, comment) => updateComment.mutate({ id, comment })}
         onRemove={(id) => remove.mutate(id)}
         pending={declare.isPending || updateComment.isPending || remove.isPending}
       />
@@ -441,7 +433,6 @@ function CommentChip({
   entry,
   chipClass,
   showComment,
-  showSheet,
   open,
   onOpenChange,
   onEdit,
@@ -449,7 +440,6 @@ function CommentChip({
   entry: SstAvailabilityWithUser;
   chipClass: string;
   showComment: boolean;
-  showSheet: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
@@ -480,9 +470,6 @@ function CommentChip({
           {showComment && entry.comment ? (
             <span className="block truncate opacity-80">{entry.comment}</span>
           ) : null}
-          {showSheet && entry.sheetLabel ? (
-            <span className="block truncate text-[10px] opacity-70">{entry.sheetLabel}</span>
-          ) : null}
         </span>
       </PopoverTrigger>
       <PopoverContent
@@ -494,9 +481,6 @@ function CommentChip({
         <p className="text-sm text-muted-foreground">
           {entry.comment ?? "Aucun commentaire pour cette journée."}
         </p>
-        {entry.sheetLabel ? (
-          <p className="text-xs text-muted-foreground">Fiche SST : {entry.sheetLabel}</p>
-        ) : null}
         <Button size="sm" variant="outline" className="w-full" onClick={onEdit}>
           <Pencil className="h-3.5 w-3.5" /> Modifier
         </Button>
@@ -657,11 +641,6 @@ function CalendarAppearanceMenu({
               onChange={(checked) => onChange({ showComments: checked })}
             />
             <ToggleRow
-              label="Fiche SST dans les cases"
-              checked={preferences.showSheets}
-              onChange={(checked) => onChange({ showSheets: checked })}
-            />
-            <ToggleRow
               label="Compteur par journée"
               checked={preferences.showCounters}
               onChange={(checked) => onChange({ showCounters: checked })}
@@ -726,15 +705,14 @@ function DayDialog({
   currentUserId: string | null;
   isAdmin: boolean;
   onClose: () => void;
-  onDeclare: (comment: string, subcontractorId: string | null) => void;
-  onUpdate: (id: string, comment: string, subcontractorId: string | null) => void;
+  onDeclare: (comment: string) => void;
+  onUpdate: (id: string, comment: string) => void;
   onRemove: (id: string) => void;
   pending: boolean;
 }) {
   const mine = entries.find((entry) => entry.user_id === currentUserId) ?? null;
   const [comment, setComment] = useState("");
   const [editingComment, setEditingComment] = useState(false);
-  const [sheetId, setSheetId] = useState<string>("none");
   const [availability, setAvailability] = useState<"available" | "unavailable">("available");
   const [notify, setNotify] = useState(false);
   const [notifyIds, setNotifyIds] = useState<string[]>([]);
@@ -747,24 +725,21 @@ function DayDialog({
 
   useEffect(() => {
     setComment(mine?.comment ?? "");
-    setSheetId(mine?.subcontractor_id ?? "none");
     setEditingComment(!mine?.comment);
     setAvailability("available");
   }, [date, mine]);
 
   const others = entries.filter((entry) => entry.user_id !== currentUserId);
   const activeSheets = sheets.filter((sheet) => sheet.active);
-  const selectedSheet = activeSheets.find((sheet) => sheet.id === sheetId) ?? null;
 
   const publish = async () => {
-    const subcontractorId = sheetId === "none" ? null : sheetId;
     if (availability === "unavailable") {
       if (mine) onRemove(mine.id);
       else toast.info("Aucune disponibilité à retirer pour cette journée");
     } else if (mine) {
-      onUpdate(mine.id, comment, subcontractorId);
+      onUpdate(mine.id, comment);
     } else {
-      onDeclare(comment, subcontractorId);
+      onDeclare(comment);
     }
 
     if (!notify || notifyIds.length === 0 || !date) return;
@@ -778,7 +753,6 @@ function DayDialog({
         dateLabel: fullDateLabel(date),
         statusLabel: availability === "unavailable" ? "Indisponible" : "Disponible",
         comment: availability === "unavailable" ? null : comment.trim() || null,
-        sheetLabel: selectedSheet?.name ?? null,
       });
       if (result.sent > 0) toast.success(notifySummary(result));
       else toast.warning(notifySummary(result));
@@ -841,28 +815,6 @@ function DayDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Fiche SST (facultatif)</Label>
-              <Select
-                value={sheetId}
-                onValueChange={setSheetId}
-                disabled={availability === "unavailable"}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Aucune fiche" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucune fiche</SelectItem>
-                  {activeSheets.map((sheet) => (
-                    <SelectItem key={sheet.id} value={sheet.id}>
-                      {sheet.name}
-                      {sheet.company ? ` — ${sheet.company}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
               <Label htmlFor="sst-comment">Commentaire (facultatif)</Label>
               {!editingComment && comment ? (
                 <div className="space-y-2 rounded-md border border-border bg-background p-3">
@@ -896,7 +848,7 @@ function DayDialog({
               </div>
               {notify ? (
                 activeSheets.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Aucune fiche SST active.</p>
+                  <p className="text-xs text-muted-foreground">Aucun SST actif.</p>
                 ) : (
                   <div className="max-h-40 space-y-2 overflow-y-auto">
                     {activeSheets.map((sheet) => (
@@ -940,9 +892,6 @@ function DayDialog({
                 <p className="text-sm font-medium text-foreground">{entry.userLabel}</p>
                 {entry.comment ? (
                   <p className="text-sm text-muted-foreground">{entry.comment}</p>
-                ) : null}
-                {entry.sheetLabel ? (
-                  <p className="text-xs text-muted-foreground">Fiche SST : {entry.sheetLabel}</p>
                 ) : null}
               </div>
               {isAdmin ? (

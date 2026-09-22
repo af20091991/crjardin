@@ -7,10 +7,9 @@ interface Props {
   dateLabel?: string;
   statusLabel?: string;
   comment?: string;
-  sheetLabel?: string;
 }
 
-const Email = ({ authorLabel, dateLabel, statusLabel, comment, sheetLabel }: Props) => (
+const Email = ({ authorLabel, dateLabel, statusLabel, comment }: Props) => (
   <Html lang="fr" dir="ltr">
     <Head />
     <Preview>{`Planning SST — ${dateLabel ?? "journée mise à jour"}`}</Preview>
@@ -26,7 +25,6 @@ const Email = ({ authorLabel, dateLabel, statusLabel, comment, sheetLabel }: Pro
           disponibilités pour le <strong>{dateLabel}</strong>.
         </Text>
         <Text style={paragraph}>Statut : {statusLabel ?? "Disponible"}</Text>
-        {sheetLabel ? <Text style={paragraph}>Fiche SST : {sheetLabel}</Text> : null}
         {comment ? <Text style={quote}>{comment}</Text> : null}
       </Container>
     </Body>
@@ -44,7 +42,6 @@ export const template = {
     dateLabel: "Lundi 5 octobre 2026",
     statusLabel: "Disponible",
     comment: "Taille de haies, prévoir la remorque.",
-    sheetLabel: "SST Dupont Paysage",
   },
 } satisfies TemplateEntry;
 

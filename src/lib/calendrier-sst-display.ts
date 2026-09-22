@@ -21,8 +21,6 @@ export type CalendarPreferences = {
   titleFont: CalendarTitleFont;
   /** Commentaires visibles directement dans les cases. */
   showComments: boolean;
-  /** Fiche SST rappelée dans les cases. */
-  showSheets: boolean;
   /** Week-ends légèrement teintés. */
   highlightWeekend: boolean;
   /** Jours hors du mois estompés. */
@@ -43,7 +41,6 @@ export const DEFAULT_CALENDAR_PREFERENCES: CalendarPreferences = {
   gap: "normal",
   titleFont: "serif",
   showComments: true,
-  showSheets: true,
   highlightWeekend: false,
   dimOtherMonths: true,
   showCounters: true,
@@ -107,11 +104,11 @@ export function styleClass(style: CalendarStyle): string {
 export function heightClass(density: CalendarDensity): string {
   switch (density) {
     case "compact":
-      return "min-h-16 sm:min-h-24";
+      return "min-h-14 sm:min-h-20";
     case "spacious":
-      return "min-h-24 sm:min-h-40";
+      return "min-h-20 sm:min-h-28";
     default:
-      return "min-h-20 sm:min-h-32";
+      return "min-h-16 sm:min-h-24";
   }
 }
 

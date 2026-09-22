@@ -15,7 +15,6 @@ export interface SstNotifyPayload {
   dateLabel: string;
   statusLabel: string;
   comment: string | null;
-  sheetLabel: string | null;
 }
 
 export interface SstNotifyResult {
@@ -45,7 +44,6 @@ export async function notifySubcontractors(
             dateLabel: payload.dateLabel,
             statusLabel: payload.statusLabel,
             comment: payload.comment ?? "",
-            sheetLabel: payload.sheetLabel ?? "",
           },
         },
       });

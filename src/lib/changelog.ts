@@ -27,6 +27,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-22",
+    version: "2.3.10",
+    theme: "Général",
+    title: "Calendrier SST compact et nouveautés",
+    details: [
+      "La grille mensuelle gagne en densité pour afficher davantage de disponibilités sans espace perdu.",
+      "Une zone Nouveautés rassemble les disponibilités récemment ajoutées ou modifiées à partir des données réelles.",
+      "Le calendrier revient à son contenu minimal : utilisateur, date et commentaire facultatif.",
+    ],
+  },
+  {
+    date: "2026-09-22",
     version: "2.3.9",
     theme: "Général",
     title: "Calendrier SST : personnalisation avancée, fiche SST et notifications",
