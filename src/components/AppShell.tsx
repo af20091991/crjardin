@@ -34,6 +34,7 @@ import {
   FileBarChart,
   Wrench,
   PackageSearch,
+  Truck,
 } from "lucide-react";
 import {
   Sheet,
@@ -316,6 +317,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           icon: FileText,
           exact: false,
           primary: true,
+        },
+        {
+          to: "/pilot/assistant-ap",
+          label: "Assistant AP",
+          short: "AP",
+          icon: Truck,
+          exact: false,
+          primary: false,
         },
         ...(canEdit
           ? [

@@ -47,6 +47,118 @@ export type Database = {
         }
         Relationships: []
       }
+      ap_reminder_log: {
+        Row: {
+          id: string
+          offset_days: number
+          recipient_email: string
+          sent_at: string
+          worksite_id: string
+        }
+        Insert: {
+          id?: string
+          offset_days: number
+          recipient_email: string
+          sent_at?: string
+          worksite_id: string
+        }
+        Update: {
+          id?: string
+          offset_days?: number
+          recipient_email?: string
+          sent_at?: string
+          worksite_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ap_reminder_log_worksite_id_fkey"
+            columns: ["worksite_id"]
+            isOneToOne: false
+            referencedRelation: "ap_worksites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ap_supplies: {
+        Row: {
+          comment: string | null
+          created_at: string
+          fulfillment_date: string | null
+          id: string
+          item: string
+          mode: string
+          status: string
+          supplier: string
+          updated_at: string
+          worksite_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          fulfillment_date?: string | null
+          id?: string
+          item?: string
+          mode?: string
+          status?: string
+          supplier?: string
+          updated_at?: string
+          worksite_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          fulfillment_date?: string | null
+          id?: string
+          item?: string
+          mode?: string
+          status?: string
+          supplier?: string
+          updated_at?: string
+          worksite_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ap_supplies_worksite_id_fkey"
+            columns: ["worksite_id"]
+            isOneToOne: false
+            referencedRelation: "ap_worksites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ap_worksites: {
+        Row: {
+          client_label: string
+          created_at: string
+          created_by: string | null
+          date_label: string | null
+          id: string
+          notes: string | null
+          scheduled_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_label: string
+          created_at?: string
+          created_by?: string | null
+          date_label?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_label?: string
+          created_at?: string
+          created_by?: string | null
+          date_label?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       calendar_participants: {
         Row: {
           color: string
