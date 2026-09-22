@@ -563,14 +563,19 @@ function stableUserIndex(userId: string, length: number) {
 }
 
 function normalizedUserName(entry: SstAvailabilityWithUser) {
-  return entry.userLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return entry.userLabel
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function identityTone(entry: SstAvailabilityWithUser, isMine: boolean) {
   const name = normalizedUserName(entry);
-  if (isMine || name.includes("anthony")) return "text-primary";
+  // L'identité visuelle dépend de la personne, jamais de qui regarde :
+  // Chloé reste rose et Fanny rouge brique, y compris pour elles-mêmes.
   if (name.includes("chloe")) return "text-[#EC4899]";
   if (name.includes("fanny")) return "text-destructive";
+  if (isMine || name.includes("anthony")) return "text-primary";
   return OTHER_USER_TONES[stableUserIndex(entry.user_id, OTHER_USER_TONES.length)];
 }
 
@@ -579,13 +584,6 @@ function UserIdentityBadge({ entry, isMine }: { entry: SstAvailabilityWithUser; 
   const badgeClass =
     "relative flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full";
 
-  if (isMine || normalizedName.includes("anthony")) {
-    return (
-      <span className={cn(badgeClass, "bg-primary/15")} title="Moi">
-        <img src={logo} alt="" className="h-full w-full object-cover" />
-      </span>
-    );
-  }
   if (normalizedName.includes("chloe")) {
     return (
       <span className={cn(badgeClass, "bg-[#FCE7F3] text-[#EC4899]")} title="Chloé">
@@ -598,6 +596,13 @@ function UserIdentityBadge({ entry, isMine }: { entry: SstAvailabilityWithUser; 
     return (
       <span className={cn(badgeClass, "bg-destructive/15 text-destructive")} title="Fanny">
         <BrickWall className="h-3 w-3" />
+      </span>
+    );
+  }
+  if (isMine || normalizedName.includes("anthony")) {
+    return (
+      <span className={cn(badgeClass, "bg-primary/15")} title="Moi">
+        <img src={logo} alt="" className="h-full w-full object-cover" />
       </span>
     );
   }
@@ -833,7 +838,6 @@ function DayDialog({
     } else {
       onDeclare(comment);
     }
-
   };
 
   return (
@@ -908,11 +912,7 @@ function DayDialog({
               )}
             </div>
 
-            <Button
-              className="w-full"
-              disabled={pending || !currentUserId}
-              onClick={publish}
-            >
+            <Button className="w-full" disabled={pending || !currentUserId} onClick={publish}>
               Publier
             </Button>
           </div>
