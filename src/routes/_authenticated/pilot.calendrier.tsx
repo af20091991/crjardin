@@ -1,9 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronLeft, ChevronRight, RotateCcw, Settings2, Trash2 } from "lucide-react";
+import {
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  RotateCcw,
+  Settings2,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -21,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { useRole } from "@/hooks/use-role";
@@ -29,6 +40,7 @@ import {
   getCurrentSstLabel,
   groupByDate,
   isoDate,
+  isoWeekNumber,
   listAvailabilities,
   monthGridDates,
   monthWindow,
@@ -36,6 +48,24 @@ import {
   updateAvailabilityComment,
   type SstAvailabilityWithUser,
 } from "@/lib/calendrier-sst";
+import {
+  CALENDAR_STORAGE_KEY,
+  DEFAULT_CALENDAR_PREFERENCES,
+  cornerClass,
+  gapClass,
+  heightClass,
+  mergePreferences,
+  styleClass,
+  toneClasses,
+  type CalendarCorner,
+  type CalendarDensity,
+  type CalendarGap,
+  type CalendarPreferences,
+  type CalendarStyle,
+  type CalendarTone,
+} from "@/lib/calendrier-sst-display";
+import { notifySubcontractors, notifySummary } from "@/lib/calendrier-sst-notify";
+import { listSubcontractors, type Subcontractor } from "@/lib/subcontractors";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
@@ -56,21 +86,6 @@ export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
 });
 
 const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-const MAX_VISIBLE = 3;
-type CalendarStyle = "direct" | "outline" | "soft";
-type CalendarTone = "primary" | "accent";
-type CalendarDensity = "compact" | "comfortable";
-type CalendarPreferences = {
-  style: CalendarStyle;
-  tone: CalendarTone;
-  density: CalendarDensity;
-};
-const DEFAULT_CALENDAR_PREFERENCES: CalendarPreferences = {
-  style: "direct",
-  tone: "primary",
-  density: "comfortable",
-};
-const CALENDAR_STORAGE_KEY = "cr-sst-calendar-appearance";
 
 function monthLabel(year: number, month: number) {
   const label = new Date(year, month, 1).toLocaleDateString("fr-FR", {
@@ -104,17 +119,13 @@ function CalendrierSstPage() {
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [openComment, setOpenComment] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<CalendarPreferences>(DEFAULT_CALENDAR_PREFERENCES);
 
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(CALENDAR_STORAGE_KEY);
-      if (stored) {
-        setPreferences({
-          ...DEFAULT_CALENDAR_PREFERENCES,
-          ...(JSON.parse(stored) as Partial<CalendarPreferences>),
-        });
-      }
+      if (stored) setPreferences(mergePreferences(JSON.parse(stored)));
     } catch {
       // Le rendu par défaut reste disponible si le stockage local est indisponible.
     }
@@ -133,7 +144,6 @@ function CalendrierSstPage() {
   };
 
   const dateWindow = useMemo(() => {
-    // Charge aussi les débordements de grille (mois précédent/suivant).
     const grid = monthGridDates(cursor.year, cursor.month);
     const first = grid.at(0);
     const last = grid.at(-1);
@@ -146,17 +156,30 @@ function CalendrierSstPage() {
     queryFn: () => listAvailabilities(dateWindow.start, dateWindow.end),
   });
 
+  const { data: sstSheets } = useQuery({
+    queryKey: ["sst-availability-sheets"],
+    queryFn: listSubcontractors,
+  });
+
   const entries = useMemo(() => data ?? [], [data]);
   const byDate = useMemo(() => groupByDate(entries), [entries]);
   const grid = useMemo(() => monthGridDates(cursor.year, cursor.month), [cursor]);
   const monthRange = monthWindow(cursor.year, cursor.month);
+  const tone = toneClasses(preferences.tone);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["sst-availability-calendar"] });
 
   const declare = useMutation({
-    mutationFn: ({ date, comment }: { date: string; comment: string }) =>
-      declareAvailability(date, comment),
+    mutationFn: ({
+      date,
+      comment,
+      subcontractorId,
+    }: {
+      date: string;
+      comment: string;
+      subcontractorId: string | null;
+    }) => declareAvailability(date, comment, subcontractorId),
     onSuccess: async () => {
       await invalidate();
       toast.success("Disponibilité enregistrée");
@@ -165,8 +188,15 @@ function CalendrierSstPage() {
   });
 
   const updateComment = useMutation({
-    mutationFn: ({ id, comment }: { id: string; comment: string }) =>
-      updateAvailabilityComment(id, comment),
+    mutationFn: ({
+      id,
+      comment,
+      subcontractorId,
+    }: {
+      id: string;
+      comment: string;
+      subcontractorId: string | null;
+    }) => updateAvailabilityComment(id, comment, subcontractorId),
     onSuccess: async () => {
       await invalidate();
       toast.success("Commentaire mis à jour");
@@ -198,6 +228,12 @@ function CalendrierSstPage() {
     (entry) => entry.date >= monthRange.start && entry.date <= monthRange.end,
   ).length;
 
+  const weeks = useMemo(() => {
+    const rows: Date[][] = [];
+    for (let i = 0; i < grid.length; i += 7) rows.push(grid.slice(i, i + 7));
+    return rows;
+  }, [grid]);
+
   return (
     <>
       <section className="w-full overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -206,7 +242,12 @@ function CalendrierSstPage() {
             <p className="text-[11px] font-semibold uppercase text-muted-foreground">
               Planning SST
             </p>
-            <h2 className="truncate font-serif text-xl font-semibold sm:text-2xl">
+            <h2
+              className={cn(
+                "truncate text-xl font-semibold sm:text-2xl",
+                preferences.titleFont === "serif" ? "font-serif" : "font-sans",
+              )}
+            >
               {monthLabel(cursor.year, cursor.month)}
             </h2>
           </div>
@@ -236,7 +277,11 @@ function CalendrierSstPage() {
               preferences={preferences}
               onChange={updatePreferences}
               onReset={() => {
-                window.localStorage.removeItem(CALENDAR_STORAGE_KEY);
+                try {
+                  window.localStorage.removeItem(CALENDAR_STORAGE_KEY);
+                } catch {
+                  // Rien à nettoyer si le stockage local est indisponible.
+                }
                 setPreferences(DEFAULT_CALENDAR_PREFERENCES);
               }}
             />
@@ -248,100 +293,120 @@ function CalendrierSstPage() {
         </div>
 
         <div className="p-2 sm:p-4">
-          <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase text-muted-foreground sm:mb-2 sm:gap-2 sm:text-xs">
+          <div
+            className={cn(
+              "mb-1 grid text-center text-[10px] font-semibold uppercase text-muted-foreground sm:mb-2 sm:text-xs",
+              gapClass(preferences.gap),
+              preferences.showWeekNumbers
+                ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
+                : "grid-cols-7",
+            )}
+          >
+            {preferences.showWeekNumbers ? <div>Sem.</div> : null}
             {WEEKDAYS.map((label) => (
               <div key={label}>{label}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
-            {grid.map((date) => {
-              const iso = isoDate(date);
-              const inMonth = date.getMonth() === cursor.month;
-              const dayEntries = byDate.get(iso) ?? [];
-              const isToday = iso === today;
-              const toneClass =
-                preferences.tone === "accent"
-                  ? "bg-accent/15 text-accent"
-                  : "bg-primary/15 text-primary";
-              const selectedClass =
-                preferences.tone === "accent"
-                  ? "border-accent bg-accent/5"
-                  : "border-primary bg-primary/5";
-              const styleClass =
-                preferences.style === "soft"
-                  ? "border-transparent bg-muted/45"
-                  : preferences.style === "outline"
-                    ? "border-border bg-background"
-                    : "border-border/70 bg-card";
-              const heightClass =
-                preferences.density === "compact" ? "min-h-16 sm:min-h-24" : "min-h-20 sm:min-h-32";
+          <div className={cn("grid", gapClass(preferences.gap))}>
+            {weeks.map((week) => {
+              const weekKey = week[0] ? isoDate(week[0]) : "week";
               return (
-                <Button
-                  key={iso}
-                  variant="ghost"
-                  onClick={() => setSelectedDate(iso)}
+                <div
+                  key={weekKey}
                   className={cn(
-                    "h-auto min-w-0 flex-col items-stretch justify-start gap-1 overflow-hidden rounded-lg border p-1.5 text-left transition-all hover:border-primary/50 hover:bg-muted/40 sm:p-2",
-                    heightClass,
-                    styleClass,
-                    !inMonth && "bg-muted/20 opacity-35",
-                    isToday && selectedClass,
+                    "grid",
+                    gapClass(preferences.gap),
+                    preferences.showWeekNumbers
+                      ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
+                      : "grid-cols-7",
                   )}
                 >
-                  <span className="flex items-center justify-between">
-                    <span
-                      className={cn(
-                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                        isToday ? "bg-primary text-primary-foreground" : "text-muted-foreground",
-                      )}
-                    >
-                      {date.getDate()}
-                    </span>
-                    {dayEntries.length > 0 ? (
-                      <span
+                  {preferences.showWeekNumbers && week[0] ? (
+                    <div className="flex items-center justify-center text-[11px] text-muted-foreground">
+                      {isoWeekNumber(week[0])}
+                    </div>
+                  ) : null}
+                  {week.map((date) => {
+                    const iso = isoDate(date);
+                    const inMonth = date.getMonth() === cursor.month;
+                    const dayEntries = byDate.get(iso) ?? [];
+                    const isToday = iso === today;
+                    const weekend = date.getDay() === 0 || date.getDay() === 6;
+                    return (
+                      <div
+                        key={iso}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedDate(iso)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedDate(iso);
+                          }
+                        }}
                         className={cn(
-                          "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
-                          toneClass,
+                          "flex min-w-0 cursor-pointer flex-col items-stretch justify-start gap-1 overflow-hidden border p-1.5 text-left transition-all hover:border-primary/50 hover:bg-muted/40 sm:p-2",
+                          cornerClass(preferences.corner),
+                          heightClass(preferences.density),
+                          styleClass(preferences.style),
+                          preferences.highlightWeekend && weekend && "bg-muted/50",
+                          !inMonth && preferences.dimOtherMonths && "bg-muted/20 opacity-35",
+                          isToday && tone.selected,
                         )}
                       >
-                        {dayEntries.length}
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className="hidden flex-col gap-1 sm:flex">
-                    {dayEntries.slice(0, MAX_VISIBLE).map((entry) => (
-                      <span
-                        key={entry.id}
-                        className={cn(
-                          "rounded-md px-1.5 py-1 text-[11px] leading-tight text-foreground",
-                          toneClass,
-                        )}
-                      >
-                        <span className="block font-medium">{entry.userLabel}</span>
-                        {entry.comment ? (
-                          <span className="block truncate text-muted-foreground">
-                            {entry.comment}
+                        <span className="flex items-center justify-between">
+                          <span
+                            className={cn(
+                              "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                              isToday
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground",
+                            )}
+                          >
+                            {date.getDate()}
                           </span>
-                        ) : null}
-                      </span>
-                    ))}
-                    {dayEntries.length > MAX_VISIBLE ? (
-                      <span className="text-[11px] text-muted-foreground">
-                        + {dayEntries.length - MAX_VISIBLE} autres
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className="mt-auto flex justify-center sm:hidden">
-                    {dayEntries.length > 0 ? (
-                      <span
-                        className={cn(
-                          "h-1.5 w-1.5 rounded-full",
-                          preferences.tone === "accent" ? "bg-accent" : "bg-primary",
-                        )}
-                      />
-                    ) : null}
-                  </span>
-                </Button>
+                          {preferences.showCounters && dayEntries.length > 0 ? (
+                            <span
+                              className={cn(
+                                "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
+                                tone.badge,
+                              )}
+                            >
+                              {dayEntries.length}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="hidden flex-col gap-1 sm:flex">
+                          {dayEntries.slice(0, preferences.entriesPerDay).map((entry) => (
+                            <CommentChip
+                              key={entry.id}
+                              entry={entry}
+                              chipClass={tone.chip}
+                              showComment={preferences.showComments}
+                              showSheet={preferences.showSheets}
+                              open={openComment === entry.id}
+                              onOpenChange={(open) => setOpenComment(open ? entry.id : null)}
+                              onEdit={() => {
+                                setOpenComment(null);
+                                setSelectedDate(iso);
+                              }}
+                            />
+                          ))}
+                          {dayEntries.length > preferences.entriesPerDay ? (
+                            <span className="text-[11px] text-muted-foreground">
+                              + {dayEntries.length - preferences.entriesPerDay} autres
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="mt-auto flex justify-center sm:hidden">
+                          {dayEntries.length > 0 ? (
+                            <span className={cn("h-1.5 w-1.5 rounded-full", tone.dot)} />
+                          ) : null}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               );
             })}
           </div>
@@ -353,18 +418,90 @@ function CalendrierSstPage() {
         key={selectedDate ?? "closed"}
         date={selectedDate}
         entries={selectedDate ? (byDate.get(selectedDate) ?? []) : []}
+        sheets={sstSheets ?? []}
         currentUserId={user?.id ?? null}
         isAdmin={isAdmin}
         onClose={() => setSelectedDate(null)}
-        onDeclare={(comment) => {
+        onDeclare={(comment, subcontractorId) => {
           if (!selectedDate) return;
-          declare.mutate({ date: selectedDate, comment });
+          declare.mutate({ date: selectedDate, comment, subcontractorId });
         }}
-        onUpdate={(id, comment) => updateComment.mutate({ id, comment })}
+        onUpdate={(id, comment, subcontractorId) =>
+          updateComment.mutate({ id, comment, subcontractorId })
+        }
         onRemove={(id) => remove.mutate(id)}
         pending={declare.isPending || updateComment.isPending || remove.isPending}
       />
     </>
+  );
+}
+
+/** Un clic affiche le commentaire, un second clic ouvre la journée pour le modifier. */
+function CommentChip({
+  entry,
+  chipClass,
+  showComment,
+  showSheet,
+  open,
+  onOpenChange,
+  onEdit,
+}: {
+  entry: SstAvailabilityWithUser;
+  chipClass: string;
+  showComment: boolean;
+  showSheet: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onEdit: () => void;
+}) {
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenChange(!open);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              event.stopPropagation();
+              onOpenChange(!open);
+            }
+          }}
+          className={cn(
+            "block cursor-pointer rounded-md px-1.5 py-1 text-[11px] leading-tight",
+            chipClass,
+          )}
+        >
+          <span className="block font-medium">{entry.userLabel}</span>
+          {showComment && entry.comment ? (
+            <span className="block truncate opacity-80">{entry.comment}</span>
+          ) : null}
+          {showSheet && entry.sheetLabel ? (
+            <span className="block truncate text-[10px] opacity-70">{entry.sheetLabel}</span>
+          ) : null}
+        </span>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-64 space-y-2"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <p className="text-sm font-semibold">{entry.userLabel}</p>
+        <p className="text-sm text-muted-foreground">
+          {entry.comment ?? "Aucun commentaire pour cette journée."}
+        </p>
+        {entry.sheetLabel ? (
+          <p className="text-xs text-muted-foreground">Fiche SST : {entry.sheetLabel}</p>
+        ) : null}
+        <Button size="sm" variant="outline" className="w-full" onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5" /> Modifier
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -389,72 +526,192 @@ function CalendarAppearanceMenu({
           <Settings2 className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 space-y-4">
-        <div>
+      <PopoverContent align="end" className="w-80 p-0">
+        <div className="border-b border-border p-4">
           <p className="font-semibold">Apparence du calendrier</p>
           <p className="text-xs text-muted-foreground">Réglages enregistrés sur cet appareil.</p>
         </div>
-        <div className="space-y-2">
-          <Label>Style</Label>
-          <Select
-            value={preferences.style}
-            onValueChange={(value) => onChange({ style: value as CalendarStyle })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="direct">Direct et compact</SelectItem>
-              <SelectItem value="outline">Contour net</SelectItem>
-              <SelectItem value="soft">Fond doux</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Couleur des disponibilités</Label>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant={preferences.tone === "primary" ? "default" : "outline"}
-              size="sm"
-              onClick={() => onChange({ tone: "primary" })}
-            >
-              {preferences.tone === "primary" ? <Check className="h-3.5 w-3.5" /> : null} Vert
-            </Button>
-            <Button
-              variant={preferences.tone === "accent" ? "default" : "outline"}
-              size="sm"
-              onClick={() => onChange({ tone: "accent" })}
-            >
-              {preferences.tone === "accent" ? <Check className="h-3.5 w-3.5" /> : null} Orange
+        <ScrollArea className="max-h-[60vh]">
+          <div className="space-y-4 p-4">
+            <div className="space-y-2">
+              <Label>Style des journées</Label>
+              <Select
+                value={preferences.style}
+                onValueChange={(value) => onChange({ style: value as CalendarStyle })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="direct">Direct et compact</SelectItem>
+                  <SelectItem value="outline">Contour net</SelectItem>
+                  <SelectItem value="soft">Fond doux</SelectItem>
+                  <SelectItem value="editorial">Éditorial</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Couleur des disponibilités</Label>
+              <Select
+                value={preferences.tone}
+                onValueChange={(value) => onChange({ tone: value as CalendarTone })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="primary">Vert</SelectItem>
+                  <SelectItem value="accent">Orange</SelectItem>
+                  <SelectItem value="secondary">Neutre</SelectItem>
+                  <SelectItem value="destructive">Alerte</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Hauteur des journées</Label>
+              <Select
+                value={preferences.density}
+                onValueChange={(value) => onChange({ density: value as CalendarDensity })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="compact">Compacte</SelectItem>
+                  <SelectItem value="comfortable">Confortable</SelectItem>
+                  <SelectItem value="spacious">Spacieuse</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Coins des cases</Label>
+              <Select
+                value={preferences.corner}
+                onValueChange={(value) => onChange({ corner: value as CalendarCorner })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="square">Droits</SelectItem>
+                  <SelectItem value="rounded">Arrondis</SelectItem>
+                  <SelectItem value="pill">Très arrondis</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Espacement de la grille</Label>
+              <Select
+                value={preferences.gap}
+                onValueChange={(value) => onChange({ gap: value as CalendarGap })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tight">Serré</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="wide">Aéré</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Titre du mois</Label>
+              <Select
+                value={preferences.titleFont}
+                onValueChange={(value) =>
+                  onChange({ titleFont: value === "sans" ? "sans" : "serif" })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="serif">Serif</SelectItem>
+                  <SelectItem value="sans">Sans serif</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Noms affichés par journée</Label>
+              <Select
+                value={String(preferences.entriesPerDay)}
+                onValueChange={(value) =>
+                  onChange({ entriesPerDay: Number(value) as CalendarPreferences["entriesPerDay"] })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="8">8</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <ToggleRow
+              label="Commentaires dans les cases"
+              checked={preferences.showComments}
+              onChange={(checked) => onChange({ showComments: checked })}
+            />
+            <ToggleRow
+              label="Fiche SST dans les cases"
+              checked={preferences.showSheets}
+              onChange={(checked) => onChange({ showSheets: checked })}
+            />
+            <ToggleRow
+              label="Compteur par journée"
+              checked={preferences.showCounters}
+              onChange={(checked) => onChange({ showCounters: checked })}
+            />
+            <ToggleRow
+              label="Week-ends teintés"
+              checked={preferences.highlightWeekend}
+              onChange={(checked) => onChange({ highlightWeekend: checked })}
+            />
+            <ToggleRow
+              label="Estomper les autres mois"
+              checked={preferences.dimOtherMonths}
+              onChange={(checked) => onChange({ dimOtherMonths: checked })}
+            />
+            <ToggleRow
+              label="Numéros de semaine"
+              checked={preferences.showWeekNumbers}
+              onChange={(checked) => onChange({ showWeekNumbers: checked })}
+            />
+            <Button variant="ghost" size="sm" className="w-full" onClick={onReset}>
+              <RotateCcw className="h-4 w-4" /> Réinitialiser
             </Button>
           </div>
-        </div>
-        <div className="space-y-2">
-          <Label>Hauteur des journées</Label>
-          <Select
-            value={preferences.density}
-            onValueChange={(value) => onChange({ density: value as CalendarDensity })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="compact">Compacte</SelectItem>
-              <SelectItem value="comfortable">Confortable</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button variant="ghost" size="sm" className="w-full" onClick={onReset}>
-          <RotateCcw className="h-4 w-4" /> Réinitialiser
-        </Button>
+        </ScrollArea>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function ToggleRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <Label className="text-sm font-normal">{label}</Label>
+      <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
+    </div>
   );
 }
 
 function DayDialog({
   date,
   entries,
+  sheets,
   currentUserId,
   isAdmin,
   onClose,
@@ -465,17 +722,23 @@ function DayDialog({
 }: {
   date: string | null;
   entries: SstAvailabilityWithUser[];
+  sheets: Subcontractor[];
   currentUserId: string | null;
   isAdmin: boolean;
   onClose: () => void;
-  onDeclare: (comment: string) => void;
-  onUpdate: (id: string, comment: string) => void;
+  onDeclare: (comment: string, subcontractorId: string | null) => void;
+  onUpdate: (id: string, comment: string, subcontractorId: string | null) => void;
   onRemove: (id: string) => void;
   pending: boolean;
 }) {
   const mine = entries.find((entry) => entry.user_id === currentUserId) ?? null;
   const [comment, setComment] = useState("");
+  const [editingComment, setEditingComment] = useState(false);
+  const [sheetId, setSheetId] = useState<string>("none");
   const [availability, setAvailability] = useState<"available" | "unavailable">("available");
+  const [notify, setNotify] = useState(false);
+  const [notifyIds, setNotifyIds] = useState<string[]>([]);
+  const [sending, setSending] = useState(false);
   const { data: authorLabel } = useQuery({
     queryKey: ["sst-calendar-author", currentUserId],
     enabled: !!currentUserId,
@@ -484,15 +747,51 @@ function DayDialog({
 
   useEffect(() => {
     setComment(mine?.comment ?? "");
-    setAvailability(mine ? "available" : "available");
-  }, [date, mine?.comment, mine]);
+    setSheetId(mine?.subcontractor_id ?? "none");
+    setEditingComment(!mine?.comment);
+    setAvailability("available");
+  }, [date, mine]);
 
-  // Réinitialise le champ à chaque ouverture d'un jour (clé sur la date).
   const others = entries.filter((entry) => entry.user_id !== currentUserId);
+  const activeSheets = sheets.filter((sheet) => sheet.active);
+  const selectedSheet = activeSheets.find((sheet) => sheet.id === sheetId) ?? null;
+
+  const publish = async () => {
+    const subcontractorId = sheetId === "none" ? null : sheetId;
+    if (availability === "unavailable") {
+      if (mine) onRemove(mine.id);
+      else toast.info("Aucune disponibilité à retirer pour cette journée");
+    } else if (mine) {
+      onUpdate(mine.id, comment, subcontractorId);
+    } else {
+      onDeclare(comment, subcontractorId);
+    }
+
+    if (!notify || notifyIds.length === 0 || !date) return;
+    const targets = activeSheets
+      .filter((sheet) => notifyIds.includes(sheet.id))
+      .map((sheet) => ({ id: sheet.id, name: sheet.name, email: sheet.email }));
+    setSending(true);
+    try {
+      const result = await notifySubcontractors(targets, {
+        authorLabel: authorLabel ?? mine?.userLabel ?? "Utilisateur PP",
+        dateLabel: fullDateLabel(date),
+        statusLabel: availability === "unavailable" ? "Indisponible" : "Disponible",
+        comment: availability === "unavailable" ? null : comment.trim() || null,
+        sheetLabel: selectedSheet?.name ?? null,
+      });
+      if (result.sent > 0) toast.success(notifySummary(result));
+      else toast.warning(notifySummary(result));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Notification impossible");
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <Dialog open={!!date} onOpenChange={(open) => (!open ? onClose() : null)}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{date ? fullDateLabel(date) : ""}</DialogTitle>
           <DialogDescription>Disponibilités déclarées pour cette journée.</DialogDescription>
@@ -520,6 +819,7 @@ function DayDialog({
               </Select>
               <p className="text-xs text-muted-foreground">Publication au nom du SST connecté.</p>
             </div>
+
             <div className="space-y-1.5">
               <Label>Disponibilité</Label>
               <div className="grid grid-cols-2 gap-2">
@@ -539,29 +839,93 @@ function DayDialog({
                 </Button>
               </div>
             </div>
+
+            <div className="space-y-1.5">
+              <Label>Fiche SST (facultatif)</Label>
+              <Select
+                value={sheetId}
+                onValueChange={setSheetId}
+                disabled={availability === "unavailable"}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucune fiche" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucune fiche</SelectItem>
+                  {activeSheets.map((sheet) => (
+                    <SelectItem key={sheet.id} value={sheet.id}>
+                      {sheet.name}
+                      {sheet.company ? ` — ${sheet.company}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="sst-comment">Commentaire (facultatif)</Label>
-              <Textarea
-                id="sst-comment"
-                rows={2}
-                value={comment}
-                onChange={(event) => setComment(event.target.value)}
-                placeholder="Précision utile pour la journée…"
-                disabled={availability === "unavailable"}
-              />
+              {!editingComment && comment ? (
+                <div className="space-y-2 rounded-md border border-border bg-background p-3">
+                  <p className="text-sm text-foreground">{comment}</p>
+                  <Button size="sm" variant="outline" onClick={() => setEditingComment(true)}>
+                    <Pencil className="h-3.5 w-3.5" /> Modifier le commentaire
+                  </Button>
+                </div>
+              ) : (
+                <Textarea
+                  id="sst-comment"
+                  rows={2}
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                  placeholder="Précision utile pour la journée…"
+                  disabled={availability === "unavailable"}
+                />
+              )}
             </div>
+
+            <div className="space-y-2 rounded-md border border-border bg-background p-3">
+              <div className="flex items-center justify-between gap-3">
+                <Label className="flex items-center gap-2 text-sm font-normal">
+                  <Bell className="h-4 w-4" /> Notifier des SST
+                </Label>
+                <Switch
+                  checked={notify}
+                  onCheckedChange={setNotify}
+                  aria-label="Notifier des SST"
+                />
+              </div>
+              {notify ? (
+                activeSheets.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Aucune fiche SST active.</p>
+                ) : (
+                  <div className="max-h-40 space-y-2 overflow-y-auto">
+                    {activeSheets.map((sheet) => (
+                      <label key={sheet.id} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={notifyIds.includes(sheet.id)}
+                          onCheckedChange={(checked) =>
+                            setNotifyIds((current) =>
+                              checked
+                                ? [...current, sheet.id]
+                                : current.filter((id) => id !== sheet.id),
+                            )
+                          }
+                        />
+                        <span className="min-w-0 truncate">
+                          {sheet.name}
+                          {sheet.email ? "" : " (sans e-mail)"}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )
+              ) : null}
+            </div>
+
             <Button
               className="w-full"
-              disabled={pending || !currentUserId}
-              onClick={() => {
-                if (availability === "unavailable") {
-                  if (mine) onRemove(mine.id);
-                  else toast.info("Aucune disponibilité à retirer pour cette journée");
-                  return;
-                }
-                if (mine) onUpdate(mine.id, comment);
-                else onDeclare(comment);
-              }}
+              disabled={pending || sending || !currentUserId}
+              onClick={publish}
             >
               Publier
             </Button>
@@ -572,10 +936,13 @@ function DayDialog({
               key={entry.id}
               className="flex items-start justify-between gap-2 rounded-md border border-border p-3"
             >
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">{entry.userLabel}</p>
                 {entry.comment ? (
                   <p className="text-sm text-muted-foreground">{entry.comment}</p>
+                ) : null}
+                {entry.sheetLabel ? (
+                  <p className="text-xs text-muted-foreground">Fiche SST : {entry.sheetLabel}</p>
                 ) : null}
               </div>
               {isAdmin ? (
