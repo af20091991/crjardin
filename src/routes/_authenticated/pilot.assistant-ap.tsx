@@ -99,7 +99,7 @@ function AssistantApPage() {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["ap-worksites"] });
 
-  const list = worksites ?? [];
+  const list = useMemo(() => worksites ?? [], [worksites]);
   const totals = useMemo(() => {
     let toHandle = 0;
     let toFollowUp = 0;
