@@ -112,25 +112,51 @@ export async function listAvailabilities(
       if (label) labels.set(profile.id, label);
     }
   }
+  const sheetIds = Array.from(
+    new Set(rows.map((row) => row.subcontractor_id).filter((id): id is string => !!id)),
+  );
+  const sheets = new Map<string, string>();
+  if (sheetIds.length > 0) {
+    const { data: sst, error: sstError } = await supabase
+      .from("subcontractors")
+      .select("id, name")
+      .in("id", sheetIds);
+    if (sstError) throw sstError;
+    for (const row of (sst ?? []) as Array<{ id: string; name: string | null }>) {
+      if (row.name?.trim()) sheets.set(row.id, row.name.trim());
+    }
+  }
   return rows.map((row) => ({
     ...row,
     userLabel: labels.get(row.user_id) ?? "Utilisateur PP",
+    sheetLabel: row.subcontractor_id ? (sheets.get(row.subcontractor_id) ?? null) : null,
   }));
 }
 
-export async function declareAvailability(date: string, comment: string | null) {
+export async function declareAvailability(
+  date: string,
+  comment: string | null,
+  subcontractorId: string | null = null,
+) {
   const value = comment?.trim() ? comment.trim() : null;
   const { error } = await supabase
     .from("sst_availability_calendar")
-    .upsert({ date, comment: value }, { onConflict: "user_id,date" });
+    .upsert(
+      { date, comment: value, subcontractor_id: subcontractorId },
+      { onConflict: "user_id,date" },
+    );
   if (error) throw error;
 }
 
-export async function updateAvailabilityComment(id: string, comment: string | null) {
+export async function updateAvailabilityComment(
+  id: string,
+  comment: string | null,
+  subcontractorId: string | null = null,
+) {
   const value = comment?.trim() ? comment.trim() : null;
   const { error } = await supabase
     .from("sst_availability_calendar")
-    .update({ comment: value })
+    .update({ comment: value, subcontractor_id: subcontractorId })
     .eq("id", id);
   if (error) throw error;
 }
@@ -139,3 +165,4 @@ export async function removeAvailability(id: string) {
   const { error } = await supabase.from("sst_availability_calendar").delete().eq("id", id);
   if (error) throw error;
 }
+
