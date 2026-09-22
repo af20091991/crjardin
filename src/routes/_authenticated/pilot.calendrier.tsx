@@ -4,12 +4,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   Bell,
+  BrickWall,
   ChevronLeft,
   ChevronRight,
+  Flower2,
+  Leaf,
+  MountainSnow,
   Pencil,
   RotateCcw,
+  Sparkles,
+  Sprout,
   Settings2,
   Trash2,
+  TreePine,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,6 +43,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { useRole } from "@/hooks/use-role";
+import logo from "@/assets/logo.png";
 import {
   declareAvailability,
   getCurrentSstLabel,
@@ -301,122 +309,114 @@ function CalendrierSstPage() {
           ) : null}
         </div>
 
-        <div className="p-1.5 sm:p-2">
-          <div
-            className={cn(
-              "mb-1 grid text-center text-[10px] font-semibold uppercase text-muted-foreground sm:text-xs",
-              gapClass(preferences.gap),
-              preferences.showWeekNumbers
-                ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
-                : "grid-cols-7",
-            )}
-          >
-            {preferences.showWeekNumbers ? <div>Sem.</div> : null}
-            {WEEKDAYS.map((label) => (
-              <div key={label}>{label}</div>
-            ))}
-          </div>
-          <div className={cn("grid", gapClass(preferences.gap))}>
-            {weeks.map((week) => {
-              const weekKey = week[0] ? isoDate(week[0]) : "week";
-              return (
-                <div
-                  key={weekKey}
-                  className={cn(
-                    "grid",
-                    gapClass(preferences.gap),
-                    preferences.showWeekNumbers
-                      ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
-                      : "grid-cols-7",
-                  )}
-                >
-                  {preferences.showWeekNumbers && week[0] ? (
-                    <div className="flex items-center justify-center text-[11px] text-muted-foreground">
-                      {isoWeekNumber(week[0])}
-                    </div>
-                  ) : null}
-                  {week.map((date) => {
-                    const iso = isoDate(date);
-                    const inMonth = date.getMonth() === cursor.month;
-                    const dayEntries = byDate.get(iso) ?? [];
-                    const isToday = iso === today;
-                    const weekend = date.getDay() === 0 || date.getDay() === 6;
-                    return (
-                      <div
-                        key={iso}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedDate(iso)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            setSelectedDate(iso);
-                          }
-                        }}
-                        className={cn(
-                          "flex min-w-0 cursor-pointer flex-col items-stretch justify-start gap-0.5 overflow-hidden border p-1 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-1.5",
-                          cornerClass(preferences.corner),
-                          heightClass(preferences.density),
-                          styleClass(preferences.style),
-                          preferences.highlightWeekend && weekend && "bg-muted/50",
-                          !inMonth && preferences.dimOtherMonths && "bg-muted/20 opacity-35",
-                          isToday && tone.selected,
-                        )}
-                      >
-                        <span className="flex items-center justify-between">
-                          <span
-                            className={cn(
-                              "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold",
-                              isToday
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground",
-                            )}
-                          >
-                            {date.getDate()}
-                          </span>
-                          {preferences.showCounters && dayEntries.length > 0 ? (
+        <div className="overflow-x-auto p-1.5 sm:p-2">
+          <div className="min-w-[44rem]">
+            <div
+              className={cn(
+                "mb-1 grid text-center text-[10px] font-semibold uppercase text-muted-foreground sm:text-xs",
+                gapClass(preferences.gap),
+                preferences.showWeekNumbers
+                  ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
+                  : "grid-cols-7",
+              )}
+            >
+              {preferences.showWeekNumbers ? <div>Sem.</div> : null}
+              {WEEKDAYS.map((label) => (
+                <div key={label}>{label}</div>
+              ))}
+            </div>
+            <div className={cn("grid", gapClass(preferences.gap))}>
+              {weeks.map((week) => {
+                const weekKey = week[0] ? isoDate(week[0]) : "week";
+                return (
+                  <div
+                    key={weekKey}
+                    className={cn(
+                      "grid",
+                      gapClass(preferences.gap),
+                      preferences.showWeekNumbers
+                        ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
+                        : "grid-cols-7",
+                    )}
+                  >
+                    {preferences.showWeekNumbers && week[0] ? (
+                      <div className="flex items-center justify-center text-[11px] text-muted-foreground">
+                        {isoWeekNumber(week[0])}
+                      </div>
+                    ) : null}
+                    {week.map((date) => {
+                      const iso = isoDate(date);
+                      const inMonth = date.getMonth() === cursor.month;
+                      const dayEntries = byDate.get(iso) ?? [];
+                      const isToday = iso === today;
+                      const weekend = date.getDay() === 0 || date.getDay() === 6;
+                      return (
+                        <div
+                          key={iso}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedDate(iso)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setSelectedDate(iso);
+                            }
+                          }}
+                          className={cn(
+                            "flex min-w-0 cursor-pointer flex-col items-stretch justify-start gap-0.5 overflow-hidden border p-1 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-1.5",
+                            cornerClass(preferences.corner),
+                            heightClass(preferences.density),
+                            styleClass(preferences.style),
+                            preferences.highlightWeekend && weekend && "bg-muted/50",
+                            !inMonth && preferences.dimOtherMonths && "bg-muted/20 opacity-35",
+                            isToday && tone.selected,
+                          )}
+                        >
+                          <span className="flex items-center justify-between">
                             <span
                               className={cn(
-                                "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
-                                tone.badge,
+                                "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold",
+                                isToday
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-muted-foreground",
                               )}
                             >
-                              {dayEntries.length}
+                              {date.getDate()}
                             </span>
-                          ) : null}
-                        </span>
-                        <span className="hidden flex-col gap-1 sm:flex">
-                          {dayEntries.slice(0, preferences.entriesPerDay).map((entry) => (
-                            <CommentChip
-                              key={entry.id}
-                              entry={entry}
-                              chipClass={tone.chip}
-                              showComment={preferences.showComments}
-                              open={openComment === entry.id}
-                              onOpenChange={(open) => setOpenComment(open ? entry.id : null)}
-                              onEdit={() => {
-                                setOpenComment(null);
-                                setSelectedDate(iso);
-                              }}
-                            />
-                          ))}
-                          {dayEntries.length > preferences.entriesPerDay ? (
-                            <span className="text-[11px] text-muted-foreground">
-                              + {dayEntries.length - preferences.entriesPerDay} autres
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="mt-auto flex justify-center sm:hidden">
-                          {dayEntries.length > 0 ? (
-                            <span className={cn("h-1.5 w-1.5 rounded-full", tone.dot)} />
-                          ) : null}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                            {preferences.showCounters && dayEntries.length > 0 ? (
+                              <span
+                                className={cn(
+                                  "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
+                                  tone.badge,
+                                )}
+                              >
+                                {dayEntries.length}
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="flex min-w-0 flex-col gap-0.5">
+                            {dayEntries.map((entry) => (
+                              <CommentChip
+                                key={entry.id}
+                                entry={entry}
+                                isMine={entry.user_id === user?.id}
+                                chipClass={tone.chip}
+                                open={openComment === entry.id}
+                                onOpenChange={(open) => setOpenComment(open ? entry.id : null)}
+                                onEdit={() => {
+                                  setOpenComment(null);
+                                  setSelectedDate(iso);
+                                }}
+                              />
+                            ))}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
           {isLoading ? <p className="mt-3 text-sm text-muted-foreground">Chargement…</p> : null}
         </div>
@@ -496,15 +496,15 @@ function RecentUpdates({
 /** Un clic affiche le commentaire, un second clic ouvre la journée pour le modifier. */
 function CommentChip({
   entry,
+  isMine,
   chipClass,
-  showComment,
   open,
   onOpenChange,
   onEdit,
 }: {
   entry: SstAvailabilityWithUser;
+  isMine: boolean;
   chipClass: string;
-  showComment: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
@@ -527,13 +527,16 @@ function CommentChip({
             }
           }}
           className={cn(
-            "block cursor-pointer rounded-md px-1.5 py-1 text-[11px] leading-tight",
+            "block min-w-0 cursor-pointer rounded-md px-1 py-0.5 text-[10px] leading-tight sm:text-[11px]",
             chipClass,
           )}
         >
-          <span className="block font-medium">{entry.userLabel}</span>
-          {showComment && entry.comment ? (
-            <span className="block truncate opacity-80">{entry.comment}</span>
+          <span className="flex min-w-0 items-center gap-1">
+            <UserIdentityBadge entry={entry} isMine={isMine} />
+            <span className="truncate font-semibold">{entry.userLabel}</span>
+          </span>
+          {entry.comment ? (
+            <span className="block truncate pl-5 opacity-80">{entry.comment}</span>
           ) : null}
         </span>
       </PopoverTrigger>
@@ -551,6 +554,56 @@ function CommentChip({
         </Button>
       </PopoverContent>
     </Popover>
+  );
+}
+
+const OTHER_USER_ICONS = [Leaf, Flower2, Sprout, TreePine] as const;
+const OTHER_USER_TONES = [
+  "bg-secondary text-secondary-foreground",
+  "bg-accent/20 text-accent-foreground",
+  "bg-muted text-muted-foreground",
+  "bg-primary/15 text-primary",
+] as const;
+
+function stableUserIndex(userId: string, length: number) {
+  let value = 0;
+  for (const character of userId) value = (value * 31 + character.charCodeAt(0)) >>> 0;
+  return value % length;
+}
+
+function UserIdentityBadge({ entry, isMine }: { entry: SstAvailabilityWithUser; isMine: boolean }) {
+  const normalizedName = entry.userLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const badgeClass = "flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full";
+
+  if (isMine) {
+    return (
+      <span className={cn(badgeClass, "bg-primary/15")} title="Moi">
+        <img src={logo} alt="" className="h-full w-full object-cover" />
+      </span>
+    );
+  }
+  if (normalizedName.includes("chloe")) {
+    return (
+      <span className={cn(badgeClass, "bg-accent/20 text-accent-foreground")} title="Chloé">
+        <MountainSnow className="h-3 w-3" />
+        <Sparkles className="absolute h-1.5 w-1.5 translate-x-1 -translate-y-1" />
+      </span>
+    );
+  }
+  if (normalizedName.includes("fanny")) {
+    return (
+      <span className={cn(badgeClass, "bg-destructive/15 text-destructive")} title="Fanny">
+        <BrickWall className="h-3 w-3" />
+      </span>
+    );
+  }
+
+  const index = stableUserIndex(entry.user_id, OTHER_USER_ICONS.length);
+  const Icon = OTHER_USER_ICONS[index];
+  return (
+    <span className={cn(badgeClass, OTHER_USER_TONES[index])} title={entry.userLabel}>
+      <Icon className="h-3 w-3" />
+    </span>
   );
 }
 
