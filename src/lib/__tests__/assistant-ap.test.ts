@@ -24,7 +24,9 @@ describe("worksiteGlobalState", () => {
   });
 
   it("passe en « en cours » quand tout est engagé sans être livré", () => {
-    expect(worksiteGlobalState([s("commande_reserve"), s("retrait_livraison_prevu")])).toBe("en_cours");
+    expect(worksiteGlobalState([s("commande_reserve"), s("retrait_livraison_prevu")])).toBe(
+      "en_cours",
+    );
   });
 
   it("passe OK quand tout est OK", () => {

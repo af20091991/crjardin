@@ -193,11 +193,7 @@ function AssistantApPage() {
         </CardContent>
       </Card>
 
-      <WorksitePanel
-        worksite={selected}
-        onClose={() => setOpenId(null)}
-        onChanged={invalidate}
-      />
+      <WorksitePanel worksite={selected} onClose={() => setOpenId(null)} onChanged={invalidate} />
       <NewWorksiteDialog
         open={newWorksiteOpen}
         onOpenChange={setNewWorksiteOpen}
@@ -210,15 +206,7 @@ function AssistantApPage() {
   );
 }
 
-function KpiCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone?: "destructive";
-}) {
+function KpiCard({ label, value, tone }: { label: string; value: number; tone?: "destructive" }) {
   return (
     <Card>
       <CardContent className="p-3">

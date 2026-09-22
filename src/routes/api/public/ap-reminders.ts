@@ -130,7 +130,8 @@ export const Route = createFileRoute("/api/public/ap-reminders")({
           }
 
           for (const w of worksites ?? []) {
-            const supplies = ((w as { ap_supplies?: SupplyRow[] }).ap_supplies ?? []) as SupplyRow[];
+            const supplies = ((w as { ap_supplies?: SupplyRow[] }).ap_supplies ??
+              []) as SupplyRow[];
             const templateData = buildTemplateData(
               {
                 client_label: w.client_label,

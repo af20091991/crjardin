@@ -93,7 +93,8 @@ export function upcomingFulfillments(
     for (const s of w.supplies) {
       if (s.mode === "stock") continue;
       if (!s.fulfillment_date) continue;
-      if (s.fulfillment_date >= today && s.fulfillment_date <= endIso) out.push({ worksite: w, supply: s });
+      if (s.fulfillment_date >= today && s.fulfillment_date <= endIso)
+        out.push({ worksite: w, supply: s });
     }
   }
   return out.sort((a, b) => (a.supply.fulfillment_date! < b.supply.fulfillment_date! ? -1 : 1));
@@ -102,7 +103,8 @@ export function upcomingFulfillments(
 export function sortWorksites(worksites: ApWorksite[]): ApWorksite[] {
   return [...worksites].sort((a, b) => {
     if (a.scheduled_date && b.scheduled_date) {
-      if (a.scheduled_date === b.scheduled_date) return a.client_label.localeCompare(b.client_label);
+      if (a.scheduled_date === b.scheduled_date)
+        return a.client_label.localeCompare(b.client_label);
       return a.scheduled_date < b.scheduled_date ? -1 : 1;
     }
     if (a.scheduled_date) return -1;
@@ -181,7 +183,9 @@ export async function createApSupply(input: {
 
 export async function updateApSupply(
   id: string,
-  patch: Partial<Pick<ApSupply, "supplier" | "item" | "status" | "mode" | "fulfillment_date" | "comment">>,
+  patch: Partial<
+    Pick<ApSupply, "supplier" | "item" | "status" | "mode" | "fulfillment_date" | "comment">
+  >,
 ): Promise<void> {
   const { error } = await supabase.from("ap_supplies").update(patch).eq("id", id);
   if (error) throw error;
