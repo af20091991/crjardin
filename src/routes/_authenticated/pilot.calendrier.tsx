@@ -284,7 +284,9 @@ function CalendrierSstPage() {
         </div>
 
         <div className="flex items-center justify-between border-b border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground sm:px-4">
-          <span>{monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois</span>
+          <span>
+            {monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois
+          </span>
           {isAdmin ? (
             <RecentUpdates
               entries={recentData ?? []}
@@ -473,7 +475,8 @@ function RecentUpdates({
                 <span className="min-w-0">
                   <span className="block text-sm font-medium">{entry.userLabel}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {fullDateLabel(entry.date)} · {entry.updated_at === entry.created_at ? "Ajoutée" : "Modifiée"}
+                    {fullDateLabel(entry.date)} ·{" "}
+                    {entry.updated_at === entry.created_at ? "Ajoutée" : "Modifiée"}
                   </span>
                   {entry.comment ? (
                     <span className="mt-0.5 block truncate text-xs text-muted-foreground">
