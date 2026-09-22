@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
-  Bell,
   BrickWall,
   ChevronLeft,
   ChevronRight,
@@ -20,7 +19,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -74,8 +72,6 @@ import {
   type CalendarStyle,
   type CalendarTone,
 } from "@/lib/calendrier-sst-display";
-import { notifySubcontractors, notifySummary } from "@/lib/calendrier-sst-notify";
-import { listSubcontractors, type Subcontractor } from "@/lib/subcontractors";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
@@ -164,11 +160,6 @@ function CalendrierSstPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["sst-availability-calendar", dateWindow.start, dateWindow.end],
     queryFn: () => listAvailabilities(dateWindow.start, dateWindow.end),
-  });
-
-  const { data: sstSheets } = useQuery({
-    queryKey: ["sst-availability-sheets"],
-    queryFn: listSubcontractors,
   });
 
   const { data: recentData } = useQuery({
@@ -426,7 +417,6 @@ function CalendrierSstPage() {
         key={selectedDate ?? "closed"}
         date={selectedDate}
         entries={selectedDate ? (byDate.get(selectedDate) ?? []) : []}
-        sheets={sstSheets ?? []}
         currentUserId={user?.id ?? null}
         isAdmin={isAdmin}
         onClose={() => setSelectedDate(null)}
@@ -529,14 +519,15 @@ function CommentChip({
           className={cn(
             "block min-w-0 cursor-pointer rounded-md px-1 py-0.5 text-[10px] leading-tight sm:text-[11px]",
             chipClass,
+            identityTone(entry, isMine),
           )}
         >
           <span className="flex min-w-0 items-center gap-1">
             <UserIdentityBadge entry={entry} isMine={isMine} />
-            <span className="truncate font-semibold">{entry.userLabel}</span>
+            <span className="break-words font-semibold">{entry.userLabel}</span>
           </span>
           {entry.comment ? (
-            <span className="block truncate pl-5 opacity-80">{entry.comment}</span>
+            <span className="block break-words pl-5 opacity-80">{entry.comment}</span>
           ) : null}
         </span>
       </PopoverTrigger>
@@ -571,11 +562,24 @@ function stableUserIndex(userId: string, length: number) {
   return value % length;
 }
 
-function UserIdentityBadge({ entry, isMine }: { entry: SstAvailabilityWithUser; isMine: boolean }) {
-  const normalizedName = entry.userLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const badgeClass = "flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full";
+function normalizedUserName(entry: SstAvailabilityWithUser) {
+  return entry.userLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
 
-  if (isMine) {
+function identityTone(entry: SstAvailabilityWithUser, isMine: boolean) {
+  const name = normalizedUserName(entry);
+  if (isMine || name.includes("anthony")) return "text-primary";
+  if (name.includes("chloe")) return "text-accent-foreground";
+  if (name.includes("fanny")) return "text-destructive";
+  return OTHER_USER_TONES[stableUserIndex(entry.user_id, OTHER_USER_TONES.length)];
+}
+
+function UserIdentityBadge({ entry, isMine }: { entry: SstAvailabilityWithUser; isMine: boolean }) {
+  const normalizedName = normalizedUserName(entry);
+  const badgeClass =
+    "relative flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full";
+
+  if (isMine || normalizedName.includes("anthony")) {
     return (
       <span className={cn(badgeClass, "bg-primary/15")} title="Moi">
         <img src={logo} alt="" className="h-full w-full object-cover" />
@@ -734,30 +738,6 @@ function CalendarAppearanceMenu({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Noms affichés par journée</Label>
-              <Select
-                value={String(preferences.entriesPerDay)}
-                onValueChange={(value) =>
-                  onChange({ entriesPerDay: Number(value) as CalendarPreferences["entriesPerDay"] })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2">2</SelectItem>
-                  <SelectItem value="3">3</SelectItem>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="8">8</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <ToggleRow
-              label="Commentaires dans les cases"
-              checked={preferences.showComments}
-              onChange={(checked) => onChange({ showComments: checked })}
-            />
             <ToggleRow
               label="Compteur par journée"
               checked={preferences.showCounters}
@@ -808,7 +788,6 @@ function ToggleRow({
 function DayDialog({
   date,
   entries,
-  sheets,
   currentUserId,
   isAdmin,
   onClose,
@@ -819,7 +798,6 @@ function DayDialog({
 }: {
   date: string | null;
   entries: SstAvailabilityWithUser[];
-  sheets: Subcontractor[];
   currentUserId: string | null;
   isAdmin: boolean;
   onClose: () => void;
@@ -832,9 +810,6 @@ function DayDialog({
   const [comment, setComment] = useState("");
   const [editingComment, setEditingComment] = useState(false);
   const [availability, setAvailability] = useState<"available" | "unavailable">("available");
-  const [notify, setNotify] = useState(false);
-  const [notifyIds, setNotifyIds] = useState<string[]>([]);
-  const [sending, setSending] = useState(false);
   const { data: authorLabel } = useQuery({
     queryKey: ["sst-calendar-author", currentUserId],
     enabled: !!currentUserId,
@@ -848,9 +823,8 @@ function DayDialog({
   }, [date, mine]);
 
   const others = entries.filter((entry) => entry.user_id !== currentUserId);
-  const activeSheets = sheets.filter((sheet) => sheet.active);
 
-  const publish = async () => {
+  const publish = () => {
     if (availability === "unavailable") {
       if (mine) onRemove(mine.id);
       else toast.info("Aucune disponibilité à retirer pour cette journée");
@@ -860,25 +834,6 @@ function DayDialog({
       onDeclare(comment);
     }
 
-    if (!notify || notifyIds.length === 0 || !date) return;
-    const targets = activeSheets
-      .filter((sheet) => notifyIds.includes(sheet.id))
-      .map((sheet) => ({ id: sheet.id, name: sheet.name, email: sheet.email }));
-    setSending(true);
-    try {
-      const result = await notifySubcontractors(targets, {
-        authorLabel: authorLabel ?? mine?.userLabel ?? "Utilisateur PP",
-        dateLabel: fullDateLabel(date),
-        statusLabel: availability === "unavailable" ? "Indisponible" : "Disponible",
-        comment: availability === "unavailable" ? null : comment.trim() || null,
-      });
-      if (result.sent > 0) toast.success(notifySummary(result));
-      else toast.warning(notifySummary(result));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Notification impossible");
-    } finally {
-      setSending(false);
-    }
   };
 
   return (
@@ -953,48 +908,9 @@ function DayDialog({
               )}
             </div>
 
-            <div className="space-y-2 rounded-md border border-border bg-background p-3">
-              <div className="flex items-center justify-between gap-3">
-                <Label className="flex items-center gap-2 text-sm font-normal">
-                  <Bell className="h-4 w-4" /> Notifier des SST
-                </Label>
-                <Switch
-                  checked={notify}
-                  onCheckedChange={setNotify}
-                  aria-label="Notifier des SST"
-                />
-              </div>
-              {notify ? (
-                activeSheets.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Aucun SST actif.</p>
-                ) : (
-                  <div className="max-h-40 space-y-2 overflow-y-auto">
-                    {activeSheets.map((sheet) => (
-                      <label key={sheet.id} className="flex items-center gap-2 text-sm">
-                        <Checkbox
-                          checked={notifyIds.includes(sheet.id)}
-                          onCheckedChange={(checked) =>
-                            setNotifyIds((current) =>
-                              checked
-                                ? [...current, sheet.id]
-                                : current.filter((id) => id !== sheet.id),
-                            )
-                          }
-                        />
-                        <span className="min-w-0 truncate">
-                          {sheet.name}
-                          {sheet.email ? "" : " (sans e-mail)"}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )
-              ) : null}
-            </div>
-
             <Button
               className="w-full"
-              disabled={pending || sending || !currentUserId}
+              disabled={pending || !currentUserId}
               onClick={publish}
             >
               Publier
