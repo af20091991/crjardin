@@ -369,3 +369,137 @@ function PlanningPage() {
     </AppShell>
   );
 }
+
+/** Choix de la couleur et de l'icône du participant (admin : de n'importe qui). */
+function CustomizeParticipantsDialog({
+  isAdmin,
+  participants,
+}: {
+  isAdmin: boolean;
+  participants: CalendarParticipant[];
+}) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [targetId, setTargetId] = useState<string>("");
+  const [color, setColor] = useState(DEFAULT_PARTICIPANT_COLOR);
+  const [icon, setIcon] = useState<ParticipantIconName>("user");
+
+  const editableId = isAdmin && targetId ? targetId : (user?.id ?? "");
+
+  useEffect(() => {
+    if (!open) return;
+    const current = participants.find((p) => p.user_id === editableId);
+    setColor(current?.color ?? DEFAULT_PARTICIPANT_COLOR);
+    setIcon(
+      (current && (current.icon as ParticipantIconName) in PARTICIPANT_ICONS
+        ? (current.icon as ParticipantIconName)
+        : "user"),
+    );
+  }, [open, editableId, participants]);
+
+  const save = useMutation({
+    mutationFn: () => upsertCalendarParticipant({ user_id: editableId, color, icon }),
+    onSuccess: () => {
+      toast.success("Apparence enregistrée");
+      qc.invalidateQueries({ queryKey: ["calendar-participants"] });
+      setOpen(false);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          <Palette className="mr-1.5 h-4 w-4" />
+          Personnaliser
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Personnaliser le calendrier</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          {isAdmin && participants.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Participant</Label>
+              <Select value={targetId || (user?.id ?? "")} onValueChange={setTargetId}>
+                <SelectTrigger><SelectValue placeholder="Moi" /></SelectTrigger>
+                <SelectContent>
+                  {user?.id && !participants.some((p) => p.user_id === user.id) && (
+                    <SelectItem value={user.id}>Moi</SelectItem>
+                  )}
+                  {participants.map((p) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>
+                      {p.user_id === user?.id ? "Moi" : p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="cp-color">Couleur</Label>
+            <Input
+              id="cp-color"
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="h-10 w-20 p-1"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Icône</Label>
+            <div className="flex flex-wrap gap-2">
+              {PARTICIPANT_ICON_NAMES.map((name) => {
+                const Icon = PARTICIPANT_ICONS[name];
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setIcon(name)}
+                    className={cn(
+                      "grid h-9 w-9 place-items-center rounded-md border",
+                      icon === name ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground",
+                    )}
+                    aria-label={name}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {isAdmin && participants.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Participants actuels</Label>
+              <ul className="space-y-1 text-sm">
+                {participants.map((p) => {
+                  const Icon = iconFor(p.icon);
+                  return (
+                    <li key={p.user_id} className="flex items-center gap-2">
+                      <span
+                        className="grid h-5 w-5 place-items-center rounded-full"
+                        style={{ backgroundColor: p.color, color: "#FFFFFF" }}
+                      >
+                        <Icon className="h-3 w-3" />
+                      </span>
+                      <span className="truncate">{p.label}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
+          <Button disabled={!editableId || save.isPending} onClick={() => save.mutate()}>
+            Enregistrer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
