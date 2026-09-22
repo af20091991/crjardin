@@ -27,6 +27,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-22",
+    version: "2.4.0",
+    theme: "Général",
+    title: "Assistant AP — approvisionnements des chantiers",
+    details: [
+      "Nouvelle page Activité > Assistant AP : chantiers d'aménagement classés par date avec état global calculé, éléments à traiter et à relancer.",
+      "Chaque chantier ouvre un panneau listant ses approvisionnements : fournisseur, fourniture, statut, mode retrait/livraison/stock, date et commentaire.",
+      "Le contenu du Planning AP 2026 a été repris tel quel, les informations ambiguës étant marquées « À vérifier ».",
+      "Les rappels e-mail J-10, J-5 et J-3 par chantier sont prêts côté données, sans doublon possible ; leur déclenchement automatique quotidien reste à brancher.",
+    ],
+  },
+  {
+    date: "2026-09-22",
     version: "2.3.10",
     theme: "Général",
     title: "Calendrier SST compact et nouveautés",
