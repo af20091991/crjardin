@@ -62,6 +62,7 @@ import { Route as AuthenticatedPilotCeevRouteImport } from './routes/_authentica
 import { Route as AuthenticatedPilotCalendrierRouteImport } from './routes/_authenticated/pilot.calendrier'
 import { Route as AuthenticatedPilotCaRouteImport } from './routes/_authenticated/pilot.ca'
 import { Route as AuthenticatedPilotBenchmarkRouteImport } from './routes/_authenticated/pilot.benchmark'
+import { Route as AuthenticatedPilotAssistantApRouteImport } from './routes/_authenticated/pilot.assistant-ap'
 import { Route as AuthenticatedParcMaterielEquipmentIdRouteImport } from './routes/_authenticated/parc-materiel.$equipmentId'
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
 import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './routes/_authenticated/interventions.$interventionId'
@@ -366,6 +367,12 @@ const AuthenticatedPilotBenchmarkRoute =
     path: '/benchmark',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedPilotAssistantApRoute =
+  AuthenticatedPilotAssistantApRouteImport.update({
+    id: '/assistant-ap',
+    path: '/assistant-ap',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedParcMaterielEquipmentIdRoute =
   AuthenticatedParcMaterielEquipmentIdRouteImport.update({
     id: '/parc-materiel/$equipmentId',
@@ -468,6 +475,7 @@ export interface FileRoutesByFullPath {
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
   '/parc-materiel/$equipmentId': typeof AuthenticatedParcMaterielEquipmentIdRoute
+  '/pilot/assistant-ap': typeof AuthenticatedPilotAssistantApRoute
   '/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/pilot/calendrier': typeof AuthenticatedPilotCalendrierRoute
@@ -534,6 +542,7 @@ export interface FileRoutesByTo {
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
   '/parc-materiel/$equipmentId': typeof AuthenticatedParcMaterielEquipmentIdRoute
+  '/pilot/assistant-ap': typeof AuthenticatedPilotAssistantApRoute
   '/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/pilot/calendrier': typeof AuthenticatedPilotCalendrierRoute
@@ -602,6 +611,7 @@ export interface FileRoutesById {
   '/_authenticated/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/_authenticated/interventions/new': typeof AuthenticatedInterventionsNewRoute
   '/_authenticated/parc-materiel/$equipmentId': typeof AuthenticatedParcMaterielEquipmentIdRoute
+  '/_authenticated/pilot/assistant-ap': typeof AuthenticatedPilotAssistantApRoute
   '/_authenticated/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/_authenticated/pilot/ca': typeof AuthenticatedPilotCaRoute
   '/_authenticated/pilot/calendrier': typeof AuthenticatedPilotCalendrierRoute
@@ -671,6 +681,7 @@ export interface FileRouteTypes {
     | '/interventions/$interventionId'
     | '/interventions/new'
     | '/parc-materiel/$equipmentId'
+    | '/pilot/assistant-ap'
     | '/pilot/benchmark'
     | '/pilot/ca'
     | '/pilot/calendrier'
@@ -737,6 +748,7 @@ export interface FileRouteTypes {
     | '/interventions/$interventionId'
     | '/interventions/new'
     | '/parc-materiel/$equipmentId'
+    | '/pilot/assistant-ap'
     | '/pilot/benchmark'
     | '/pilot/ca'
     | '/pilot/calendrier'
@@ -804,6 +816,7 @@ export interface FileRouteTypes {
     | '/_authenticated/interventions/$interventionId'
     | '/_authenticated/interventions/new'
     | '/_authenticated/parc-materiel/$equipmentId'
+    | '/_authenticated/pilot/assistant-ap'
     | '/_authenticated/pilot/benchmark'
     | '/_authenticated/pilot/ca'
     | '/_authenticated/pilot/calendrier'
@@ -1234,6 +1247,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotBenchmarkRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/assistant-ap': {
+      id: '/_authenticated/pilot/assistant-ap'
+      path: '/assistant-ap'
+      fullPath: '/pilot/assistant-ap'
+      preLoaderRoute: typeof AuthenticatedPilotAssistantApRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/parc-materiel/$equipmentId': {
       id: '/_authenticated/parc-materiel/$equipmentId'
       path: '/parc-materiel/$equipmentId'
@@ -1346,6 +1366,7 @@ const AuthenticatedPilotClientsRouteWithChildren =
   )
 
 interface AuthenticatedPilotRouteChildren {
+  AuthenticatedPilotAssistantApRoute: typeof AuthenticatedPilotAssistantApRoute
   AuthenticatedPilotBenchmarkRoute: typeof AuthenticatedPilotBenchmarkRoute
   AuthenticatedPilotCaRoute: typeof AuthenticatedPilotCaRoute
   AuthenticatedPilotCalendrierRoute: typeof AuthenticatedPilotCalendrierRoute
@@ -1381,6 +1402,7 @@ interface AuthenticatedPilotRouteChildren {
 }
 
 const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
+  AuthenticatedPilotAssistantApRoute: AuthenticatedPilotAssistantApRoute,
   AuthenticatedPilotBenchmarkRoute: AuthenticatedPilotBenchmarkRoute,
   AuthenticatedPilotCaRoute: AuthenticatedPilotCaRoute,
   AuthenticatedPilotCalendrierRoute: AuthenticatedPilotCalendrierRoute,
