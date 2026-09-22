@@ -563,7 +563,10 @@ function stableUserIndex(userId: string, length: number) {
 }
 
 function normalizedUserName(entry: SstAvailabilityWithUser) {
-  return entry.userLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return entry.userLabel
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function identityTone(entry: SstAvailabilityWithUser, isMine: boolean) {
@@ -603,7 +606,6 @@ function UserIdentityBadge({ entry, isMine }: { entry: SstAvailabilityWithUser; 
       </span>
     );
   }
-
 
   const index = stableUserIndex(entry.user_id, OTHER_USER_ICONS.length);
   const Icon = OTHER_USER_ICONS[index];
@@ -836,7 +838,6 @@ function DayDialog({
     } else {
       onDeclare(comment);
     }
-
   };
 
   return (
@@ -911,11 +912,7 @@ function DayDialog({
               )}
             </div>
 
-            <Button
-              className="w-full"
-              disabled={pending || !currentUserId}
-              onClick={publish}
-            >
+            <Button className="w-full" disabled={pending || !currentUserId} onClick={publish}>
               Publier
             </Button>
           </div>
