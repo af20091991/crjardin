@@ -202,10 +202,11 @@ function PlanningPage() {
         scheduled_date: fmtDate(day ?? new Date()),
         title: title.trim(),
         details: details.trim() || null,
+        status,
       }),
     onSuccess: () => {
       toast.success("Intervention prévue ajoutée");
-      setTitle(""); setDetails(""); setOpen(false);
+      setTitle(""); setDetails(""); setStatus("chantier_bloque"); setOpen(false);
       qc.invalidateQueries({ queryKey: ["planning-notes"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
@@ -236,6 +237,10 @@ function PlanningPage() {
   return (
     <AppShell title="Planning">
       <div className="mx-auto max-w-4xl space-y-5">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-serif text-lg font-semibold">Calendrier partagé</h2>
+          <CustomizeParticipantsDialog isAdmin={isAdmin} participants={participants ?? []} />
+        </div>
         <div className="grid gap-4 md:grid-cols-[auto_1fr]">
           <Card>
             <CardContent className="flex justify-center pt-6">
@@ -248,7 +253,8 @@ function PlanningPage() {
                   has: "bg-primary/15 font-semibold text-primary rounded-md",
                   planned: "ring-1 ring-accent ring-inset rounded-md",
                 }}
-                className="pointer-events-auto"
+                components={{ DayButton: DayCell }}
+                className="pointer-events-auto [--cell-size:2.75rem]"
               />
             </CardContent>
           </Card>
@@ -276,6 +282,16 @@ function PlanningPage() {
                         <div className="space-y-1.5">
                           <Label htmlFor="pn-details">Détails (facultatif)</Label>
                           <Textarea id="pn-details" value={details} onChange={(e) => setDetails(e.target.value)} rows={3} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Statut</Label>
+                          <Select value={status} onValueChange={(v) => setStatus(v as PlanningNoteStatus)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="chantier_bloque">Chantier bloqué</SelectItem>
+                              <SelectItem value="disponible">Disponible</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                       <DialogFooter>
