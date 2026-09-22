@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { listAllInterventions } from "@/lib/interventions";
@@ -7,17 +7,108 @@ import { listClients } from "@/lib/clients";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
-import { ClipboardList, Navigation, MapPin, Plus, Trash2, CalendarClock } from "lucide-react";
+import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
+import type { DayButton } from "react-day-picker";
+import type { ComponentProps } from "react";
+import {
+  ClipboardList,
+  Navigation,
+  MapPin,
+  Plus,
+  Trash2,
+  CalendarClock,
+  Palette,
+  User,
+  Flower,
+  Trees,
+  Wrench,
+  Truck,
+  Sun,
+  Moon,
+  Star,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
-import { listPlanningNotes, createPlanningNote, deletePlanningNote } from "@/lib/planning-notes";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  listPlanningNotes,
+  createPlanningNote,
+  deletePlanningNote,
+  listCalendarParticipants,
+  upsertCalendarParticipant,
+  type CalendarParticipant,
+  type PlanningNote,
+  type PlanningNoteStatus,
+} from "@/lib/planning-notes";
 import { useRole } from "@/hooks/use-role";
+import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+const PARTICIPANT_ICONS = {
+  user: User,
+  flower: Flower,
+  trees: Trees,
+  wrench: Wrench,
+  truck: Truck,
+  sun: Sun,
+  moon: Moon,
+  star: Star,
+} as const;
+
+type ParticipantIconName = keyof typeof PARTICIPANT_ICONS;
+
+const PARTICIPANT_ICON_NAMES = Object.keys(PARTICIPANT_ICONS) as ParticipantIconName[];
+
+const DEFAULT_PARTICIPANT_COLOR = "#94A3B8";
+
+function iconFor(name: string) {
+  return PARTICIPANT_ICONS[(name as ParticipantIconName) in PARTICIPANT_ICONS
+    ? (name as ParticipantIconName)
+    : "user"];
+}
+
+function dateKey(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+/** Pastille d'un participant, lisible directement dans la case du jour. */
+function ParticipantDot({
+  note,
+  participant,
+}: {
+  note: PlanningNote;
+  participant: CalendarParticipant | undefined;
+}) {
+  const color = participant?.color ?? DEFAULT_PARTICIPANT_COLOR;
+  const Icon = iconFor(participant?.icon ?? "user");
+  const available = note.status === "disponible";
+  return (
+    <span
+      title={`${participant?.label ?? "Participant"} — ${note.title}`}
+      className={cn(
+        "flex h-4 w-4 items-center justify-center rounded-full",
+        available && "border border-dashed",
+      )}
+      style={
+        available
+          ? { borderColor: "#16A34A", color }
+          : { backgroundColor: color, color: "#FFFFFF" }
+      }
+    >
+      <Icon className="h-2.5 w-2.5" />
+    </span>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/planning")({
   head: () => ({ meta: [{ title: "Planning — De la graine au jardin" }] }),
