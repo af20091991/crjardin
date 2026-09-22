@@ -4204,7 +4204,6 @@ export type Database = {
           created_at: string
           date: string
           id: string
-          subcontractor_id: string | null
           updated_at: string
           user_id: string
         }
@@ -4213,7 +4212,6 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
-          subcontractor_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -4222,26 +4220,10 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
-          subcontractor_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "sst_availability_calendar_subcontractor_id_fkey"
-            columns: ["subcontractor_id"]
-            isOneToOne: false
-            referencedRelation: "subcontractors"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sst_availability_calendar_subcontractor_id_fkey"
-            columns: ["subcontractor_id"]
-            isOneToOne: false
-            referencedRelation: "v_sst_summary"
-            referencedColumns: ["subcontractor_id"]
-          },
-        ]
+        Relationships: []
       }
       sst_lists: {
         Row: {

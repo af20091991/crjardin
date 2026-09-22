@@ -43,6 +43,7 @@ import {
   isoDate,
   isoWeekNumber,
   listAvailabilities,
+  listRecentAvailabilities,
   monthGridDates,
   monthWindow,
   removeAvailability,
@@ -162,6 +163,11 @@ function CalendrierSstPage() {
     queryFn: listSubcontractors,
   });
 
+  const { data: recentData } = useQuery({
+    queryKey: ["sst-availability-calendar-recent"],
+    queryFn: () => listRecentAvailabilities(5),
+  });
+
   const entries = useMemo(() => data ?? [], [data]);
   const byDate = useMemo(() => groupByDate(entries), [entries]);
   const grid = useMemo(() => monthGridDates(cursor.year, cursor.month), [cursor]);
@@ -169,7 +175,10 @@ function CalendrierSstPage() {
   const tone = toneClasses(preferences.tone);
 
   const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: ["sst-availability-calendar"] });
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["sst-availability-calendar"] }),
+      queryClient.invalidateQueries({ queryKey: ["sst-availability-calendar-recent"] }),
+    ]);
 
   const declare = useMutation({
     mutationFn: ({ date, comment }: { date: string; comment: string }) =>
@@ -220,14 +229,6 @@ function CalendrierSstPage() {
     for (let i = 0; i < grid.length; i += 7) rows.push(grid.slice(i, i + 7));
     return rows;
   }, [grid]);
-  const recentEntries = useMemo(
-    () =>
-      [...entries]
-        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-        .slice(0, 5),
-    [entries],
-  );
-
   return (
     <>
       <section className="w-full overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -283,8 +284,21 @@ function CalendrierSstPage() {
         </div>
 
         <div className="flex items-center justify-between border-b border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground sm:px-4">
-          <span>{monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois</span>
-          <RecentUpdates entries={recentEntries} onSelect={setSelectedDate} />
+          <span>
+            {monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois
+          </span>
+          {isAdmin ? (
+            <RecentUpdates
+              entries={recentData ?? []}
+              onSelect={(date) => {
+                const [year, month] = date.split("-").map(Number);
+                if (Number.isFinite(year) && Number.isFinite(month)) {
+                  setCursor({ year, month: month - 1 });
+                }
+                setSelectedDate(date);
+              }}
+            />
+          ) : null}
         </div>
 
         <div className="p-1.5 sm:p-2">
@@ -425,6 +439,57 @@ function CalendrierSstPage() {
         pending={declare.isPending || updateComment.isPending || remove.isPending}
       />
     </>
+  );
+}
+
+function RecentUpdates({
+  entries,
+  onSelect,
+}: {
+  entries: SstAvailabilityWithUser[];
+  onSelect: (date: string) => void;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2">
+          <Activity className="h-3.5 w-3.5" /> Nouveautés
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0">
+        <div className="border-b border-border px-3 py-2.5">
+          <p className="text-sm font-semibold">Nouveautés</p>
+          <p className="text-xs text-muted-foreground">Dernières disponibilités mises à jour</p>
+        </div>
+        {entries.length === 0 ? (
+          <p className="p-3 text-sm text-muted-foreground">Aucune disponibilité récente.</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {entries.map((entry) => (
+              <Button
+                key={entry.id}
+                variant="ghost"
+                className="h-auto w-full justify-start rounded-none px-3 py-2.5 text-left"
+                onClick={() => onSelect(entry.date)}
+              >
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{entry.userLabel}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {fullDateLabel(entry.date)} ·{" "}
+                    {entry.updated_at === entry.created_at ? "Ajoutée" : "Modifiée"}
+                  </span>
+                  {entry.comment ? (
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                      {entry.comment}
+                    </span>
+                  ) : null}
+                </span>
+              </Button>
+            ))}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 

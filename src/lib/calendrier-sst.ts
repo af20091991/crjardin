@@ -79,18 +79,7 @@ export function groupByDate(
   return map;
 }
 
-export async function listAvailabilities(
-  start: string,
-  end: string,
-): Promise<SstAvailabilityWithUser[]> {
-  const { data, error } = await supabase
-    .from("sst_availability_calendar")
-    .select("*")
-    .gte("date", start)
-    .lte("date", end)
-    .order("date", { ascending: true });
-  if (error) throw error;
-  const rows = (data ?? []) as SstAvailabilityEntry[];
+async function addUserLabels(rows: SstAvailabilityEntry[]): Promise<SstAvailabilityWithUser[]> {
   const ids = Array.from(new Set(rows.map((row) => row.user_id)));
   const labels = new Map<string, string>();
   if (ids.length > 0) {
@@ -112,6 +101,32 @@ export async function listAvailabilities(
     ...row,
     userLabel: labels.get(row.user_id) ?? "Utilisateur PP",
   }));
+}
+
+export async function listAvailabilities(
+  start: string,
+  end: string,
+): Promise<SstAvailabilityWithUser[]> {
+  const { data, error } = await supabase
+    .from("sst_availability_calendar")
+    .select("*")
+    .gte("date", start)
+    .lte("date", end)
+    .order("date", { ascending: true });
+  if (error) throw error;
+  const rows = (data ?? []) as SstAvailabilityEntry[];
+  return addUserLabels(rows);
+}
+
+/** Dernières déclarations réellement ajoutées ou modifiées, toutes dates confondues. */
+export async function listRecentAvailabilities(limit = 5): Promise<SstAvailabilityWithUser[]> {
+  const { data, error } = await supabase
+    .from("sst_availability_calendar")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return addUserLabels((data ?? []) as SstAvailabilityEntry[]);
 }
 
 export async function declareAvailability(date: string, comment: string | null) {

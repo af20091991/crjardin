@@ -37,18 +37,6 @@ export const CHANGELOG: ChangeEntry[] = [
     ],
   },
   {
-    date: "2026-09-22",
-    version: "2.3.9",
-    theme: "Général",
-    title: "Calendrier SST : personnalisation avancée, fiche SST et notifications",
-    details: [
-      "Menu de personnalisation enrichi : style, couleur, hauteur, coins, espacement, titre, nombre de noms affichés, commentaires, fiche SST, compteur, week-ends, autres mois, numéros de semaine.",
-      "Un clic sur un commentaire affiche une infobulle ; un second clic ouvre la journée pour le modifier.",
-      "Champ « Fiche SST » dans le commentaire de la journée pour attribuer une fiche existante.",
-      "Notification par e-mail des SST sélectionnés lors de la publication d'une modification.",
-    ],
-  },
-  {
     date: "2026-09-21",
     version: "2.3.8",
     theme: "Général",
