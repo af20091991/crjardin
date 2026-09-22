@@ -121,16 +121,62 @@ function PlanningPage() {
   const { data: interventions } = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: notes } = useQuery({ queryKey: ["planning-notes"], queryFn: listPlanningNotes });
+  const { data: participants } = useQuery({
+    queryKey: ["calendar-participants"],
+    queryFn: listCalendarParticipants,
+  });
   const [day, setDay] = useState<Date | undefined>(new Date());
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [details, setDetails] = useState("");
+  const [status, setStatus] = useState<PlanningNoteStatus>("chantier_bloque");
 
   const clientById = (id: string) => clients?.find((c) => c.id === id);
   const list = interventions ?? [];
   const dates = list.map((i) => new Date(i.intervention_date));
   const noteList = notes ?? [];
   const noteDates = noteList.map((n) => new Date(n.scheduled_date + "T00:00:00"));
+
+  const participantById = useMemo(
+    () => new Map((participants ?? []).map((p) => [p.user_id, p])),
+    [participants],
+  );
+
+  const notesByDate = useMemo(() => {
+    const map = new Map<string, PlanningNote[]>();
+    for (const n of noteList) {
+      const key = n.scheduled_date.slice(0, 10);
+      map.set(key, [...(map.get(key) ?? []), n]);
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes]);
+
+  const DayCell = (dayProps: ComponentProps<typeof DayButton>) => {
+    const dayNotes = notesByDate.get(dateKey(dayProps.day.date)) ?? [];
+    const visible = dayNotes.slice(0, 4);
+    const rest = dayNotes.length - visible.length;
+    return (
+      <CalendarDayButton
+        {...dayProps}
+        className="aspect-auto h-14 flex-col items-center justify-start gap-1 p-1"
+      >
+        <span className="text-sm leading-none">{dayProps.day.date.getDate()}</span>
+        {dayNotes.length > 0 && (
+          <span className="flex flex-wrap items-center justify-center gap-0.5">
+            {visible.map((n) => (
+              <ParticipantDot
+                key={n.id}
+                note={n}
+                participant={participantById.get(n.assigned_to ?? n.created_by ?? "")}
+              />
+            ))}
+            {rest > 0 && <span className="text-[10px] leading-none">+{rest}</span>}
+          </span>
+        )}
+      </CalendarDayButton>
+    );
+  };
 
   const selected = useMemo(() => {
     if (!day) return [];
