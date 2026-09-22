@@ -34,6 +34,7 @@ import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
+import { Route as ApiPublicApRemindersRouteImport } from './routes/api/public/ap-reminders'
 import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_authenticated/pilot.validation'
 import { Route as AuthenticatedPilotTempsRouteImport } from './routes/_authenticated/pilot.temps'
 import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
@@ -203,6 +204,11 @@ const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
 const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
   id: '/api/public/email-open',
   path: '/api/public/email-open',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicApRemindersRoute = ApiPublicApRemindersRouteImport.update({
+  id: '/api/public/ap-reminders',
+  path: '/api/public/ap-reminders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPilotValidationRoute =
@@ -489,6 +495,7 @@ export interface FileRoutesByFullPath {
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
+  '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
@@ -553,6 +560,7 @@ export interface FileRoutesByTo {
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
+  '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
@@ -621,6 +629,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/_authenticated/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/_authenticated/pilot/validation': typeof AuthenticatedPilotValidationRoute
+  '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
@@ -689,6 +698,7 @@ export interface FileRouteTypes {
     | '/pilot/taux'
     | '/pilot/temps'
     | '/pilot/validation'
+    | '/api/public/ap-reminders'
     | '/api/public/email-open'
     | '/lovable/email/events'
     | '/clients/'
@@ -753,6 +763,7 @@ export interface FileRouteTypes {
     | '/pilot/taux'
     | '/pilot/temps'
     | '/pilot/validation'
+    | '/api/public/ap-reminders'
     | '/api/public/email-open'
     | '/lovable/email/events'
     | '/clients'
@@ -820,6 +831,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/taux'
     | '/_authenticated/pilot/temps'
     | '/_authenticated/pilot/validation'
+    | '/api/public/ap-reminders'
     | '/api/public/email-open'
     | '/lovable/email/events'
     | '/_authenticated/clients/'
@@ -843,6 +855,7 @@ export interface RootRouteChildren {
   PendingRoute: typeof PendingRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   PartageTokenRoute: typeof PartageTokenRoute
+  ApiPublicApRemindersRoute: typeof ApiPublicApRemindersRoute
   ApiPublicEmailOpenRoute: typeof ApiPublicEmailOpenRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -1023,6 +1036,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/email-open'
       fullPath: '/api/public/email-open'
       preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ap-reminders': {
+      id: '/api/public/ap-reminders'
+      path: '/api/public/ap-reminders'
+      fullPath: '/api/public/ap-reminders'
+      preLoaderRoute: typeof ApiPublicApRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/pilot/validation': {
@@ -1462,6 +1482,7 @@ const rootRouteChildren: RootRouteChildren = {
   PendingRoute: PendingRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   PartageTokenRoute: PartageTokenRoute,
+  ApiPublicApRemindersRoute: ApiPublicApRemindersRoute,
   ApiPublicEmailOpenRoute: ApiPublicEmailOpenRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
