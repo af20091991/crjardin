@@ -26,7 +26,7 @@ describe("calendrier SST — préférences d'affichage", () => {
 
   it("n'utilise que des tokens sémantiques pour les couleurs", () => {
     const classes = Object.values(toneClasses("accent")).join(" ");
-    expect(classes).not.toMatch(/#|white|black/);
+    expect(/#|white|black/.test(classes)).toBe(false);
     expect(classes).toContain("accent");
   });
 

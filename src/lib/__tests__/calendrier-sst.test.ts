@@ -29,6 +29,8 @@ describe("calendrier SST — disponibilités partagées", () => {
         comment: null,
         created_at: "",
         updated_at: "",
+        subcontractor_id: null,
+        sheetLabel: null,
         userLabel: "Zoé",
       },
       {
@@ -38,6 +40,8 @@ describe("calendrier SST — disponibilités partagées", () => {
         comment: "Matin",
         created_at: "",
         updated_at: "",
+        subcontractor_id: null,
+        sheetLabel: null,
         userLabel: "Alex",
       },
       {
@@ -47,6 +51,8 @@ describe("calendrier SST — disponibilités partagées", () => {
         comment: null,
         created_at: "",
         updated_at: "",
+        subcontractor_id: null,
+        sheetLabel: null,
         userLabel: "Zoé",
       },
     ] satisfies SstAvailabilityWithUser[];
