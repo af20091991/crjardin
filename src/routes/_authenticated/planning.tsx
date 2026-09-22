@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { listAllInterventions } from "@/lib/interventions";
@@ -7,17 +7,108 @@ import { listClients } from "@/lib/clients";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
-import { ClipboardList, Navigation, MapPin, Plus, Trash2, CalendarClock } from "lucide-react";
+import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
+import type { DayButton } from "react-day-picker";
+import type { ComponentProps } from "react";
+import {
+  ClipboardList,
+  Navigation,
+  MapPin,
+  Plus,
+  Trash2,
+  CalendarClock,
+  Palette,
+  User,
+  Flower,
+  Trees,
+  Wrench,
+  Truck,
+  Sun,
+  Moon,
+  Star,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
-import { listPlanningNotes, createPlanningNote, deletePlanningNote } from "@/lib/planning-notes";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  listPlanningNotes,
+  createPlanningNote,
+  deletePlanningNote,
+  listCalendarParticipants,
+  upsertCalendarParticipant,
+  type CalendarParticipant,
+  type PlanningNote,
+  type PlanningNoteStatus,
+} from "@/lib/planning-notes";
 import { useRole } from "@/hooks/use-role";
+import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+const PARTICIPANT_ICONS = {
+  user: User,
+  flower: Flower,
+  trees: Trees,
+  wrench: Wrench,
+  truck: Truck,
+  sun: Sun,
+  moon: Moon,
+  star: Star,
+} as const;
+
+type ParticipantIconName = keyof typeof PARTICIPANT_ICONS;
+
+const PARTICIPANT_ICON_NAMES = Object.keys(PARTICIPANT_ICONS) as ParticipantIconName[];
+
+const DEFAULT_PARTICIPANT_COLOR = "#94A3B8";
+
+function iconFor(name: string) {
+  return PARTICIPANT_ICONS[(name as ParticipantIconName) in PARTICIPANT_ICONS
+    ? (name as ParticipantIconName)
+    : "user"];
+}
+
+function dateKey(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+/** Pastille d'un participant, lisible directement dans la case du jour. */
+function ParticipantDot({
+  note,
+  participant,
+}: {
+  note: PlanningNote;
+  participant: CalendarParticipant | undefined;
+}) {
+  const color = participant?.color ?? DEFAULT_PARTICIPANT_COLOR;
+  const Icon = iconFor(participant?.icon ?? "user");
+  const available = note.status === "disponible";
+  return (
+    <span
+      title={`${participant?.label ?? "Participant"} — ${note.title}`}
+      className={cn(
+        "flex h-4 w-4 items-center justify-center rounded-full",
+        available && "border border-dashed",
+      )}
+      style={
+        available
+          ? { borderColor: "#16A34A", color }
+          : { backgroundColor: color, color: "#FFFFFF" }
+      }
+    >
+      <Icon className="h-2.5 w-2.5" />
+    </span>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/planning")({
   head: () => ({ meta: [{ title: "Planning — De la graine au jardin" }] }),
@@ -30,16 +121,62 @@ function PlanningPage() {
   const { data: interventions } = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: notes } = useQuery({ queryKey: ["planning-notes"], queryFn: listPlanningNotes });
+  const { data: participants } = useQuery({
+    queryKey: ["calendar-participants"],
+    queryFn: listCalendarParticipants,
+  });
   const [day, setDay] = useState<Date | undefined>(new Date());
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [details, setDetails] = useState("");
+  const [status, setStatus] = useState<PlanningNoteStatus>("chantier_bloque");
 
   const clientById = (id: string) => clients?.find((c) => c.id === id);
   const list = interventions ?? [];
   const dates = list.map((i) => new Date(i.intervention_date));
   const noteList = notes ?? [];
   const noteDates = noteList.map((n) => new Date(n.scheduled_date + "T00:00:00"));
+
+  const participantById = useMemo(
+    () => new Map((participants ?? []).map((p) => [p.user_id, p])),
+    [participants],
+  );
+
+  const notesByDate = useMemo(() => {
+    const map = new Map<string, PlanningNote[]>();
+    for (const n of noteList) {
+      const key = n.scheduled_date.slice(0, 10);
+      map.set(key, [...(map.get(key) ?? []), n]);
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes]);
+
+  const DayCell = (dayProps: ComponentProps<typeof DayButton>) => {
+    const dayNotes = notesByDate.get(dateKey(dayProps.day.date)) ?? [];
+    const visible = dayNotes.slice(0, 4);
+    const rest = dayNotes.length - visible.length;
+    return (
+      <CalendarDayButton
+        {...dayProps}
+        className="aspect-auto h-14 flex-col items-center justify-start gap-1 p-1"
+      >
+        <span className="text-sm leading-none">{dayProps.day.date.getDate()}</span>
+        {dayNotes.length > 0 && (
+          <span className="flex flex-wrap items-center justify-center gap-0.5">
+            {visible.map((n) => (
+              <ParticipantDot
+                key={n.id}
+                note={n}
+                participant={participantById.get(n.assigned_to ?? n.created_by ?? "")}
+              />
+            ))}
+            {rest > 0 && <span className="text-[10px] leading-none">+{rest}</span>}
+          </span>
+        )}
+      </CalendarDayButton>
+    );
+  };
 
   const selected = useMemo(() => {
     if (!day) return [];
@@ -65,10 +202,11 @@ function PlanningPage() {
         scheduled_date: fmtDate(day ?? new Date()),
         title: title.trim(),
         details: details.trim() || null,
+        status,
       }),
     onSuccess: () => {
       toast.success("Intervention prévue ajoutée");
-      setTitle(""); setDetails(""); setOpen(false);
+      setTitle(""); setDetails(""); setStatus("chantier_bloque"); setOpen(false);
       qc.invalidateQueries({ queryKey: ["planning-notes"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
@@ -99,6 +237,10 @@ function PlanningPage() {
   return (
     <AppShell title="Planning">
       <div className="mx-auto max-w-4xl space-y-5">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-serif text-lg font-semibold">Calendrier partagé</h2>
+          <CustomizeParticipantsDialog isAdmin={isAdmin} participants={participants ?? []} />
+        </div>
         <div className="grid gap-4 md:grid-cols-[auto_1fr]">
           <Card>
             <CardContent className="flex justify-center pt-6">
@@ -111,7 +253,8 @@ function PlanningPage() {
                   has: "bg-primary/15 font-semibold text-primary rounded-md",
                   planned: "ring-1 ring-accent ring-inset rounded-md",
                 }}
-                className="pointer-events-auto"
+                components={{ DayButton: DayCell }}
+                className="pointer-events-auto [--cell-size:2.75rem]"
               />
             </CardContent>
           </Card>
@@ -139,6 +282,16 @@ function PlanningPage() {
                         <div className="space-y-1.5">
                           <Label htmlFor="pn-details">Détails (facultatif)</Label>
                           <Textarea id="pn-details" value={details} onChange={(e) => setDetails(e.target.value)} rows={3} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Statut</Label>
+                          <Select value={status} onValueChange={(v) => setStatus(v as PlanningNoteStatus)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="chantier_bloque">Chantier bloqué</SelectItem>
+                              <SelectItem value="disponible">Disponible</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                       <DialogFooter>
@@ -214,5 +367,139 @@ function PlanningPage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+/** Choix de la couleur et de l'icône du participant (admin : de n'importe qui). */
+function CustomizeParticipantsDialog({
+  isAdmin,
+  participants,
+}: {
+  isAdmin: boolean;
+  participants: CalendarParticipant[];
+}) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [targetId, setTargetId] = useState<string>("");
+  const [color, setColor] = useState(DEFAULT_PARTICIPANT_COLOR);
+  const [icon, setIcon] = useState<ParticipantIconName>("user");
+
+  const editableId = isAdmin && targetId ? targetId : (user?.id ?? "");
+
+  useEffect(() => {
+    if (!open) return;
+    const current = participants.find((p) => p.user_id === editableId);
+    setColor(current?.color ?? DEFAULT_PARTICIPANT_COLOR);
+    setIcon(
+      (current && (current.icon as ParticipantIconName) in PARTICIPANT_ICONS
+        ? (current.icon as ParticipantIconName)
+        : "user"),
+    );
+  }, [open, editableId, participants]);
+
+  const save = useMutation({
+    mutationFn: () => upsertCalendarParticipant({ user_id: editableId, color, icon }),
+    onSuccess: () => {
+      toast.success("Apparence enregistrée");
+      qc.invalidateQueries({ queryKey: ["calendar-participants"] });
+      setOpen(false);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          <Palette className="mr-1.5 h-4 w-4" />
+          Personnaliser
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Personnaliser le calendrier</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          {isAdmin && participants.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Participant</Label>
+              <Select value={targetId || (user?.id ?? "")} onValueChange={setTargetId}>
+                <SelectTrigger><SelectValue placeholder="Moi" /></SelectTrigger>
+                <SelectContent>
+                  {user?.id && !participants.some((p) => p.user_id === user.id) && (
+                    <SelectItem value={user.id}>Moi</SelectItem>
+                  )}
+                  {participants.map((p) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>
+                      {p.user_id === user?.id ? "Moi" : p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="cp-color">Couleur</Label>
+            <Input
+              id="cp-color"
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="h-10 w-20 p-1"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Icône</Label>
+            <div className="flex flex-wrap gap-2">
+              {PARTICIPANT_ICON_NAMES.map((name) => {
+                const Icon = PARTICIPANT_ICONS[name];
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setIcon(name)}
+                    className={cn(
+                      "grid h-9 w-9 place-items-center rounded-md border",
+                      icon === name ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground",
+                    )}
+                    aria-label={name}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {isAdmin && participants.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Participants actuels</Label>
+              <ul className="space-y-1 text-sm">
+                {participants.map((p) => {
+                  const Icon = iconFor(p.icon);
+                  return (
+                    <li key={p.user_id} className="flex items-center gap-2">
+                      <span
+                        className="grid h-5 w-5 place-items-center rounded-full"
+                        style={{ backgroundColor: p.color, color: "#FFFFFF" }}
+                      >
+                        <Icon className="h-3 w-3" />
+                      </span>
+                      <span className="truncate">{p.label}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
+          <Button disabled={!editableId || save.isPending} onClick={() => save.mutate()}>
+            Enregistrer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

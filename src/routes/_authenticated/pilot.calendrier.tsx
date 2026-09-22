@@ -569,7 +569,7 @@ function normalizedUserName(entry: SstAvailabilityWithUser) {
 function identityTone(entry: SstAvailabilityWithUser, isMine: boolean) {
   const name = normalizedUserName(entry);
   if (isMine || name.includes("anthony")) return "text-primary";
-  if (name.includes("chloe")) return "text-accent-foreground";
+  if (name.includes("chloe")) return "text-[#EC4899]";
   if (name.includes("fanny")) return "text-destructive";
   return OTHER_USER_TONES[stableUserIndex(entry.user_id, OTHER_USER_TONES.length)];
 }
@@ -588,7 +588,7 @@ function UserIdentityBadge({ entry, isMine }: { entry: SstAvailabilityWithUser; 
   }
   if (normalizedName.includes("chloe")) {
     return (
-      <span className={cn(badgeClass, "bg-accent/20 text-accent-foreground")} title="Chloé">
+      <span className={cn(badgeClass, "bg-[#FCE7F3] text-[#EC4899]")} title="Chloé">
         <MountainSnow className="h-3 w-3" />
         <Sparkles className="absolute h-1.5 w-1.5 translate-x-1 -translate-y-1" />
       </span>
