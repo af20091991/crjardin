@@ -309,112 +309,114 @@ function CalendrierSstPage() {
           ) : null}
         </div>
 
-        <div className="p-1.5 sm:p-2">
-          <div
-            className={cn(
-              "mb-1 grid text-center text-[10px] font-semibold uppercase text-muted-foreground sm:text-xs",
-              gapClass(preferences.gap),
-              preferences.showWeekNumbers
-                ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
-                : "grid-cols-7",
-            )}
-          >
-            {preferences.showWeekNumbers ? <div>Sem.</div> : null}
-            {WEEKDAYS.map((label) => (
-              <div key={label}>{label}</div>
-            ))}
-          </div>
-          <div className={cn("grid", gapClass(preferences.gap))}>
-            {weeks.map((week) => {
-              const weekKey = week[0] ? isoDate(week[0]) : "week";
-              return (
-                <div
-                  key={weekKey}
-                  className={cn(
-                    "grid",
-                    gapClass(preferences.gap),
-                    preferences.showWeekNumbers
-                      ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
-                      : "grid-cols-7",
-                  )}
-                >
-                  {preferences.showWeekNumbers && week[0] ? (
-                    <div className="flex items-center justify-center text-[11px] text-muted-foreground">
-                      {isoWeekNumber(week[0])}
-                    </div>
-                  ) : null}
-                  {week.map((date) => {
-                    const iso = isoDate(date);
-                    const inMonth = date.getMonth() === cursor.month;
-                    const dayEntries = byDate.get(iso) ?? [];
-                    const isToday = iso === today;
-                    const weekend = date.getDay() === 0 || date.getDay() === 6;
-                    return (
-                      <div
-                        key={iso}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedDate(iso)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            setSelectedDate(iso);
-                          }
-                        }}
-                        className={cn(
-                          "flex min-w-0 cursor-pointer flex-col items-stretch justify-start gap-0.5 overflow-hidden border p-1 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-1.5",
-                          cornerClass(preferences.corner),
-                          heightClass(preferences.density),
-                          styleClass(preferences.style),
-                          preferences.highlightWeekend && weekend && "bg-muted/50",
-                          !inMonth && preferences.dimOtherMonths && "bg-muted/20 opacity-35",
-                          isToday && tone.selected,
-                        )}
-                      >
-                        <span className="flex items-center justify-between">
-                          <span
-                            className={cn(
-                              "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold",
-                              isToday
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground",
-                            )}
-                          >
-                            {date.getDate()}
-                          </span>
-                          {preferences.showCounters && dayEntries.length > 0 ? (
+        <div className="overflow-x-auto p-1.5 sm:p-2">
+          <div className="min-w-[44rem]">
+            <div
+              className={cn(
+                "mb-1 grid text-center text-[10px] font-semibold uppercase text-muted-foreground sm:text-xs",
+                gapClass(preferences.gap),
+                preferences.showWeekNumbers
+                  ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
+                  : "grid-cols-7",
+              )}
+            >
+              {preferences.showWeekNumbers ? <div>Sem.</div> : null}
+              {WEEKDAYS.map((label) => (
+                <div key={label}>{label}</div>
+              ))}
+            </div>
+            <div className={cn("grid", gapClass(preferences.gap))}>
+              {weeks.map((week) => {
+                const weekKey = week[0] ? isoDate(week[0]) : "week";
+                return (
+                  <div
+                    key={weekKey}
+                    className={cn(
+                      "grid",
+                      gapClass(preferences.gap),
+                      preferences.showWeekNumbers
+                        ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
+                        : "grid-cols-7",
+                    )}
+                  >
+                    {preferences.showWeekNumbers && week[0] ? (
+                      <div className="flex items-center justify-center text-[11px] text-muted-foreground">
+                        {isoWeekNumber(week[0])}
+                      </div>
+                    ) : null}
+                    {week.map((date) => {
+                      const iso = isoDate(date);
+                      const inMonth = date.getMonth() === cursor.month;
+                      const dayEntries = byDate.get(iso) ?? [];
+                      const isToday = iso === today;
+                      const weekend = date.getDay() === 0 || date.getDay() === 6;
+                      return (
+                        <div
+                          key={iso}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedDate(iso)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setSelectedDate(iso);
+                            }
+                          }}
+                          className={cn(
+                            "flex min-w-0 cursor-pointer flex-col items-stretch justify-start gap-0.5 overflow-hidden border p-1 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-1.5",
+                            cornerClass(preferences.corner),
+                            heightClass(preferences.density),
+                            styleClass(preferences.style),
+                            preferences.highlightWeekend && weekend && "bg-muted/50",
+                            !inMonth && preferences.dimOtherMonths && "bg-muted/20 opacity-35",
+                            isToday && tone.selected,
+                          )}
+                        >
+                          <span className="flex items-center justify-between">
                             <span
                               className={cn(
-                                "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
-                                tone.badge,
+                                "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold",
+                                isToday
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-muted-foreground",
                               )}
                             >
-                              {dayEntries.length}
+                              {date.getDate()}
                             </span>
-                          ) : null}
-                        </span>
-                        <span className="flex min-w-0 flex-col gap-0.5">
-                          {dayEntries.map((entry) => (
-                            <CommentChip
-                              key={entry.id}
-                              entry={entry}
-                              isMine={entry.user_id === user?.id}
-                              chipClass={tone.chip}
-                              open={openComment === entry.id}
-                              onOpenChange={(open) => setOpenComment(open ? entry.id : null)}
-                              onEdit={() => {
-                                setOpenComment(null);
-                                setSelectedDate(iso);
-                              }}
-                            />
-                          ))}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                            {preferences.showCounters && dayEntries.length > 0 ? (
+                              <span
+                                className={cn(
+                                  "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
+                                  tone.badge,
+                                )}
+                              >
+                                {dayEntries.length}
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="flex min-w-0 flex-col gap-0.5">
+                            {dayEntries.map((entry) => (
+                              <CommentChip
+                                key={entry.id}
+                                entry={entry}
+                                isMine={entry.user_id === user?.id}
+                                chipClass={tone.chip}
+                                open={openComment === entry.id}
+                                onOpenChange={(open) => setOpenComment(open ? entry.id : null)}
+                                onEdit={() => {
+                                  setOpenComment(null);
+                                  setSelectedDate(iso);
+                                }}
+                              />
+                            ))}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
           {isLoading ? <p className="mt-3 text-sm text-muted-foreground">Chargement…</p> : null}
         </div>
