@@ -2,8 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bar,
-  BarChart,
+  Area,
+  AreaChart,
   CartesianGrid,
   Legend,
   Line,
@@ -39,7 +39,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listNotifications, type AppNotification } from "@/lib/notifications";
-import { computeKpis, formatEuro, DEFAULT_SETTINGS, type PilotEntry } from "@/lib/pilot";
+import {
+  clientStatsWithHours,
+  computeKpis,
+  formatEuro,
+  DEFAULT_SETTINGS,
+} from "@/lib/pilot";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
 import { useGestionMode } from "@/lib/pilot-gestion-mode";
@@ -56,8 +61,9 @@ import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { listMissions, listSubcontractors } from "@/lib/subcontractors";
 import { sstRows, sstTotals } from "@/lib/sst-analytics";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
-import { monthForecastHt } from "@/lib/pilot-ca-forecast";
-import { rankClientsByBenefit, type ClientBenefit } from "@/lib/pilot-client-benefit";
+import { monthTotals } from "@/lib/pilot-ca";
+import type { ClientStat } from "@/lib/pilot";
+import { entityEligibility, statusOf, useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
 import {
   listAnalyticsProperties,
@@ -119,16 +125,32 @@ const LOCAL_TERMS = [
   "juvignac",
   "pérols",
   "perols",
+  "grabels",
+  "saint-gély-du-fesc",
+  "saint gely du fesc",
+  "vendargues",
+  "mauguio",
+  "baillargues",
+  "prades-le-lez",
+  "prades le lez",
+  "montferrier-sur-lez",
+  "montferrier sur lez",
+  "saint-clément-de-rivière",
+  "saint clement de riviere",
+  "villeneuve-lès-maguelone",
+  "villeneuve les maguelone",
+  "palavas-les-flots",
+  "palavas les flots",
 ];
 
 const DASHBOARD_BLOCKS: DashboardBlockDef[] = [
   { id: "ca", label: "Chiffre d'affaires" },
   { id: "site", label: "Site web" },
   { id: "rentabilite", label: "Temps et rentabilité" },
-  { id: "charges", label: "Charges variables" },
-  { id: "clients", label: "Clients" },
   { id: "cr", label: "Notifications CR" },
   { id: "objectifs-sst", label: "SST" },
+  { id: "charges", label: "Charges variables" },
+  { id: "clients", label: "Clients" },
 ];
 
 function DashboardPage() {
@@ -143,6 +165,7 @@ function DashboardPage() {
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   const layout = useDashboardLayout(DASHBOARD_BLOCKS, "dashboard-home");
   const [showAllCommunes, setShowAllCommunes] = useState(false);
+  const entityStatuses = useEntityStatuses();
 
   const chargeRows = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   const hoursRows = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
@@ -197,10 +220,21 @@ function DashboardPage() {
     [chargeRows.data, year],
   );
   const monthCharges = chargeTotals[month] ?? 0;
-  const monthForecast = monthForecastHt(entries.data ?? [], monthNumber, {
-    period: "exercice_complet",
-  });
-  const monthProfit = monthForecast - monthCharges;
+  const monthResult = monthTotals(
+    (entries.data ?? []).map((entry) => ({
+      ...entry,
+      year: new Date(entry.entry_date).getFullYear(),
+      month: new Date(entry.entry_date).getMonth() + 1,
+      kind: "vente" as const,
+      is_fixed: false,
+      position: 0,
+      note: entry.observation,
+      created_at: entry.created_at,
+      updated_at: entry.updated_at,
+    })),
+    monthNumber,
+    { period },
+  ).benefice;
 
   const monthRevenueEntries = useMemo(
     () => scopedRevenueEntries(realEntries, year, monthNumber),
@@ -265,12 +299,18 @@ function DashboardPage() {
   );
 
   const clientMonthTop = useMemo(
-    () => rankClientsByBenefit(monthRevenueEntries, chargeRows.data ?? [], year, monthNumber),
-    [monthRevenueEntries, chargeRows.data, year, monthNumber],
+    () =>
+      clientStatsWithHours(monthRevenueEntries, year)
+        .filter((client) => !client.unassigned && entityEligibility(statusOf(entityStatuses.data, client.clientId)).ranking)
+        .slice(0, 3),
+    [monthRevenueEntries, year, entityStatuses.data],
   );
   const clientYearTop = useMemo(
-    () => rankClientsByBenefit(yearRevenueEntries, chargeRows.data ?? [], year),
-    [yearRevenueEntries, chargeRows.data, year],
+    () =>
+      clientStatsWithHours(yearRevenueEntries, year)
+        .filter((client) => !client.unassigned && entityEligibility(statusOf(entityStatuses.data, client.clientId)).ranking)
+        .slice(0, 3),
+    [yearRevenueEntries, year, entityStatuses.data],
   );
 
   const crNotifications = useMemo(
@@ -361,13 +401,13 @@ function DashboardPage() {
               help="Charges du mois en cours lues dans le module Charges, sans modifier les règles de calcul."
             />
             <PilotCard
-              label="Bénéfice attendu"
-              value={formatEuro(monthProfit)}
+              label="Résultat des saisies"
+              value={formatEuro(monthResult)}
               icon={Gauge}
-              to="/pilot/finance"
-              tone={monthProfit < 0 ? "warning" : monthProfit > 0 ? "positive" : "default"}
-              sub="Prévisionnel du mois − charges"
-              help="Prévisionnel total HT de toutes les ventes saisies sur le mois, moins les charges du mois."
+              to="/pilot/ca"
+              tone={monthResult < 0 ? "warning" : monthResult > 0 ? "positive" : "default"}
+              sub="Bénéfice réel du mois en cours"
+              help="Valeur reprise du résultat mensuel affiché dans Chiffre d’affaires : CA HT réglé moins charges d’exploitation du mois."
             />
           </div>
         </DashboardBlock>
@@ -427,7 +467,7 @@ function DashboardPage() {
                 ) : localRankings.length === 0 ? (
                   <EmptyState icon={MapPin} title="Aucune requête locale disponible." compact />
                 ) : (
-                  localRankings.slice(0, showAllCommunes ? undefined : 6).map((row) => (
+                  localRankings.slice(0, showAllCommunes ? 16 : 6).map((row) => (
                     <div key={row.commune} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md border border-border/70 px-3 py-2 text-sm">
                       <span className="font-medium">{row.commune}</span>
                       <span className="text-muted-foreground">{formatNumber(row.impressions)} imp.</span>
@@ -444,7 +484,9 @@ function DashboardPage() {
                   className="mt-2 w-full"
                   onClick={() => setShowAllCommunes((shown) => !shown)}
                 >
-                  {showAllCommunes ? "Voir moins" : `Voir plus (${localRankings.length - 6})`}
+                  {showAllCommunes
+                    ? "Voir moins"
+                    : `Voir plus (${Math.min(localRankings.length - 6, 10)})`}
                 </Button>
               )}
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -514,50 +556,6 @@ function DashboardPage() {
           </div>
         </DashboardBlock>
 
-        <DashboardBlock id="charges" layout={layout}>
-          <Card className="p-4">
-            <SectionHeading
-              icon={Wallet}
-              title="Évolution des charges variables"
-              subtitle="Alimentaire, carburant et déchèterie · depuis 2020"
-            />
-            <div className="mt-3 h-52">
-              {chargeRows.isLoading ? (
-                <Skeleton className="h-full w-full" />
-              ) : variableTrend.length === 0 ? (
-                <EmptyState icon={Wallet} title="Aucune charge variable prioritaire enregistrée depuis 2020." compact />
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={variableTrend} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="annee" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatK(Number(v))} />
-                    <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
-                    <Legend />
-                    {PRIORITY_VARIABLE_CATEGORIES.map((category, index) => (
-                      <Bar
-                        key={category}
-                        dataKey={category}
-                        stackId="charges"
-                        name={category}
-                        fill={PP_SERIES[index % PP_SERIES.length] ?? PP_COLORS.primary}
-                        radius={index === PRIORITY_VARIABLE_CATEGORIES.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-                      />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </Card>
-        </DashboardBlock>
-
-        <DashboardBlock id="clients" layout={layout}>
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            <RankingCard title="Top 3 clients — bénéfice réel du mois" rows={clientMonthTop} empty="Aucun bénéfice client mesurable ce mois-ci." />
-            <RankingCard title={`Top 3 clients — bénéfice réel ${year}`} rows={clientYearTop} empty="Aucun bénéfice client mesurable sur l'année." />
-          </div>
-        </DashboardBlock>
-
         <DashboardBlock id="cr" layout={layout}>
           <Card className="p-4">
             <SectionHeading
@@ -589,6 +587,52 @@ function DashboardPage() {
             </div>
             {missions.isError && <DataStateNotice state={resourceState("sst-missions", "Missions SST", missions)} className="mt-3" />}
           </Card>
+        </DashboardBlock>
+
+        <DashboardBlock id="charges" layout={layout}>
+          <Card className="p-4">
+            <SectionHeading
+              icon={Wallet}
+              title="Évolution des charges variables"
+              subtitle="Alimentaire, carburant et déchèterie · depuis 2020"
+            />
+            <div className="mt-3 h-64">
+              {chargeRows.isLoading ? (
+                <Skeleton className="h-full w-full" />
+              ) : variableTrend.length === 0 ? (
+                <EmptyState icon={Wallet} title="Aucune charge variable prioritaire enregistrée depuis 2020." compact />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={variableTrend} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="annee" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatK(Number(v))} />
+                    <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
+                    <Legend />
+                    {PRIORITY_VARIABLE_CATEGORIES.map((category, index) => (
+                      <Area
+                        key={category}
+                        type="monotone"
+                        dataKey={category}
+                        name={category}
+                        stroke={PP_SERIES[index % PP_SERIES.length] ?? PP_COLORS.primary}
+                        strokeWidth={2}
+                        fill={PP_SERIES[index % PP_SERIES.length] ?? PP_COLORS.primary}
+                        fillOpacity={0.08}
+                      />
+                    ))}
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </Card>
+        </DashboardBlock>
+
+        <DashboardBlock id="clients" layout={layout}>
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <RankingCard title="Top 3 clients — Rentabilité clients du mois" rows={clientMonthTop} empty="Aucun client classable ce mois-ci." />
+            <RankingCard title={`Top 3 clients — Rentabilité clients ${year}`} rows={clientYearTop} empty="Aucun client classable sur l'année." />
+          </div>
         </DashboardBlock>
       </PageBlocks>
     </div>
@@ -646,7 +690,7 @@ function RankingCard({
   empty,
 }: {
   title: string;
-  rows: ClientBenefit[];
+  rows: ClientStat[];
   empty: string;
 }) {
   return (
@@ -665,9 +709,11 @@ function RankingCard({
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{row.name}</p>
-                <p className="text-xs text-muted-foreground">CA {formatEuro(row.ca)} · charges liées {formatEuro(row.charges)}</p>
+                <p className="text-xs text-muted-foreground">
+                  CA {formatEuro(row.ca)} · {row.hours > 0 ? `${formatEuro(row.hourlyRate)}/h` : "taux/h non documenté"}
+                </p>
               </div>
-              <Badge variant="outline">{formatEuro(row.benefit)}</Badge>
+              <Badge variant="outline">{row.share.toFixed(0)} % du CA</Badge>
             </div>
           ))
         )}
@@ -897,6 +943,13 @@ function labelCommune(term: string): string {
     "le cres": "Le Crès",
     "le crès": "Le Crès",
     perols: "Pérols",
+    "saint gely du fesc": "Saint-Gély-du-Fesc",
+    "saint-gély-du-fesc": "Saint-Gély-du-Fesc",
+    "prades le lez": "Prades-le-Lez",
+    "montferrier sur lez": "Montferrier-sur-Lez",
+    "saint clement de riviere": "Saint-Clément-de-Rivière",
+    "villeneuve les maguelone": "Villeneuve-lès-Maguelone",
+    "palavas les flots": "Palavas-les-Flots",
   };
   return map[term] ?? term.charAt(0).toUpperCase() + term.slice(1);
 }
