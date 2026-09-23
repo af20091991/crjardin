@@ -26,6 +26,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-23",
+    version: "2.3.8",
+    theme: "Compte-rendus",
+    title: "Fiches SST — plusieurs intervenants, duplication et export PDF complet",
+    details: [
+      "Une fiche peut maintenant associer plusieurs SST et conserver cette sélection lors de l'enregistrement.",
+      "Une fiche existante peut être dupliquée pour préparer rapidement une nouvelle intervention.",
+      "L'export PDF reprend la sélection des SST, les coordonnées de localisation et sécurise l'affichage des contenus longs et des photos.",
+    ],
+  },
+  {
     date: "2026-09-18",
     version: "2.3.7",
     theme: "Général",
