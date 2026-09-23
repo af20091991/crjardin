@@ -1,0 +1,23 @@
+name: Temporary Prettier Probe
+
+on:
+  push:
+    branches:
+      - "fix/fiches-sst-multi-duplicate-pdf"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun ci
+      - name: Format route and print result
+        run: |
+          bunx prettier --write src/routes/_authenticated/fiches.\$ficheId.tsx
+          cat src/routes/_authenticated/fiches.\$ficheId.tsx
