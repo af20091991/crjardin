@@ -230,9 +230,10 @@ export async function duplicateWorksiteSheet(id: string): Promise<WorksiteSheet>
     intervenant: _legacy,
     ...copy
   } = source;
+  const duplicateInput: WorksiteSheetInput = { ...copy, intervenant: null };
   const { data, error } = await supabase
     .from("worksite_sheets")
-    .insert({ ...serializeInput(copy), user_id: auth.user.id } as never)
+    .insert({ ...serializeInput(duplicateInput), user_id: auth.user.id } as never)
     .select()
     .single();
   if (error) throw error;
