@@ -16,6 +16,10 @@ import {
   INTERVENANTS, EQUIPMENT_GROUPS, EPI_OPTIONS, TASK_GROUPS, CHECKLIST_OPTIONS,
   uploadWorksitePhoto, worksitePhotoUrl,
 } from "@/lib/worksite";
+import {
+  parseWorksiteIntervenants,
+  serializeWorksiteIntervenants,
+} from "@/lib/worksite-sst";
 import { placeAutocomplete, geocodeAddress, nearestRecyclingCenter, type PlaceSuggestion } from "@/lib/maps.functions";
 import { GardenPlanMap } from "@/components/GardenPlanMap";
 
@@ -73,6 +77,9 @@ export function WorksiteSheetForm({
   onSubmit: (input: WorksiteSheetInput) => void;
 }) {
   const [form, setForm] = useState<WorksiteSheetInput>(initial);
+  const [intervenants, setIntervenants] = useState<string[]>(() =>
+    parseWorksiteIntervenants(initial.intervenant),
+  );
   const [customTask, setCustomTask] = useState("");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [uploading, setUploading] = useState(false);
@@ -206,7 +213,10 @@ export function WorksiteSheetForm({
 
   function submit() {
     if (!form.client_name.trim()) { toast.error("Le nom du client est requis"); return; }
-    onSubmit(form);
+    onSubmit({
+      ...form,
+      intervenant: serializeWorksiteIntervenants(intervenants),
+    });
   }
 
   return (
@@ -291,11 +301,23 @@ export function WorksiteSheetForm({
               <Label>SST / intervenant(e)s</Label>
               <div className="flex flex-wrap gap-2 pt-1">
                 {INTERVENANTS.map((n) => {
-                  const active = form.intervenants.includes(n);
-                  return <Chip key={n} active={active} onClick={() => set("intervenants", active ? form.intervenants.filter((x) => x !== n) : [...form.intervenants, n])}>{n}</Chip>;
+                  const active = intervenants.includes(n);
+                  return (
+                    <Chip
+                      key={n}
+                      active={active}
+                      onClick={() =>
+                        setIntervenants((current) =>
+                          active ? current.filter((x) => x !== n) : [...current, n],
+                        )
+                      }
+                    >
+                      {n}
+                    </Chip>
+                  );
                 })}
               </div>
-              <p className="text-xs text-muted-foreground">{form.intervenants.length} SST sélectionné(s)</p>
+              <p className="text-xs text-muted-foreground">{intervenants.length} SST sélectionné(s)</p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
