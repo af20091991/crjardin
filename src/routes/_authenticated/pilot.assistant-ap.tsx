@@ -396,7 +396,10 @@ function AssistantApPage() {
                   />
                 )}
             </div>
-            <div className="flex items-center rounded-md border p-0.5" aria-label="Mode d’affichage">
+            <div
+              className="flex items-center rounded-md border p-0.5"
+              aria-label="Mode d’affichage"
+            >
               <Button
                 size="sm"
                 variant={viewMode === "cards" ? "secondary" : "ghost"}
@@ -419,9 +422,19 @@ function AssistantApPage() {
           {quickScope && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>
-                Vue : {quickScope === "today" ? "Aujourd’hui" : quickScope === "week" ? "Cette semaine" : "En retard"}
+                Vue :{" "}
+                {quickScope === "today"
+                  ? "Aujourd’hui"
+                  : quickScope === "week"
+                    ? "Cette semaine"
+                    : "En retard"}
               </span>
-              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setQuickScope(null)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => setQuickScope(null)}
+              >
                 Effacer
               </Button>
             </div>
@@ -524,7 +537,12 @@ function WorksiteCard({
   const ready = worksite.supplies.length - counts.toHandle;
 
   return (
-    <Card className={cn("min-w-0 overflow-hidden shadow-none", open && "border-primary/50 bg-primary/5")}>
+    <Card
+      className={cn(
+        "min-w-0 overflow-hidden shadow-none",
+        open && "border-primary/50 bg-primary/5",
+      )}
+    >
       <Button
         variant="ghost"
         className="h-full min-h-36 w-full min-w-0 items-stretch justify-start overflow-hidden rounded-none p-3 text-left hover:bg-muted/40"
@@ -532,7 +550,9 @@ function WorksiteCard({
         aria-expanded={open}
       >
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="line-clamp-2 text-sm font-medium text-foreground">{worksite.client_label}</span>
+          <span className="line-clamp-2 text-sm font-medium text-foreground">
+            {worksite.client_label}
+          </span>
           <span className="mt-1 text-xs font-normal text-muted-foreground">
             {frDate(worksite.scheduled_date, worksite.date_label)}
           </span>
@@ -569,7 +589,11 @@ function WorksiteTable({
   return (
     <Card className="overflow-hidden shadow-none">
       <div className="hidden grid-cols-[minmax(0,1.5fr)_8rem_11rem_8rem_6rem] gap-3 border-b bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground md:grid">
-        <span>Chantier / client</span><span>Date</span><span>État</span><span>Fournitures</span><span>À relancer</span>
+        <span>Chantier / client</span>
+        <span>Date</span>
+        <span>État</span>
+        <span>Fournitures</span>
+        <span>À relancer</span>
       </div>
       <div className="divide-y">
         {worksites.map((worksite) => {
@@ -580,17 +604,37 @@ function WorksiteTable({
             <Button
               key={worksite.id}
               variant="ghost"
-              className={cn("grid h-auto w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-none px-3 py-2 text-left md:grid-cols-[minmax(0,1.5fr)_8rem_11rem_8rem_6rem] md:gap-3", openId === worksite.id && "bg-primary/5")}
+              className={cn(
+                "grid h-auto w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-none px-3 py-2 text-left md:grid-cols-[minmax(0,1.5fr)_8rem_11rem_8rem_6rem] md:gap-3",
+                openId === worksite.id && "bg-primary/5",
+              )}
               onClick={() => onOpen(openId === worksite.id ? null : worksite.id)}
             >
               <span className="truncate text-sm font-medium">{worksite.client_label}</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground md:hidden" />
-              <span className="text-xs font-normal text-muted-foreground">{frDate(worksite.scheduled_date, worksite.date_label)}</span>
-              <span className={cn("flex items-center gap-1 text-xs font-normal", stateView.tone.replace(/bg-[^ ]+ ?/g, ""))}>
-                <span className={cn("h-1.5 w-1.5 rounded-full", stateView.dot)} />{stateView.label}
+              <span className="text-xs font-normal text-muted-foreground">
+                {frDate(worksite.scheduled_date, worksite.date_label)}
               </span>
-              <span className="text-xs font-normal text-muted-foreground">{ready} / {worksite.supplies.length} prêtes</span>
-              <span className={cn("text-xs font-normal", counts.toFollowUp ? "text-accent-foreground" : "text-muted-foreground")}>{counts.toFollowUp || "—"}</span>
+              <span
+                className={cn(
+                  "flex items-center gap-1 text-xs font-normal",
+                  stateView.tone.replace(/bg-[^ ]+ ?/g, ""),
+                )}
+              >
+                <span className={cn("h-1.5 w-1.5 rounded-full", stateView.dot)} />
+                {stateView.label}
+              </span>
+              <span className="text-xs font-normal text-muted-foreground">
+                {ready} / {worksite.supplies.length} prêtes
+              </span>
+              <span
+                className={cn(
+                  "text-xs font-normal",
+                  counts.toFollowUp ? "text-accent-foreground" : "text-muted-foreground",
+                )}
+              >
+                {counts.toFollowUp || "—"}
+              </span>
             </Button>
           );
         })}
@@ -599,7 +643,13 @@ function WorksiteTable({
   );
 }
 
-function WorksiteDetail({ worksite, suppliers, onClose, onDeleted, onChanged }: {
+function WorksiteDetail({
+  worksite,
+  suppliers,
+  onClose,
+  onDeleted,
+  onChanged,
+}: {
   worksite: ApWorksite;
   suppliers: ApSupplier[];
   onClose: () => void;
@@ -614,9 +664,26 @@ function WorksiteDetail({ worksite, suppliers, onClose, onDeleted, onChanged }: 
   const stateView = STATE_VIEW[state];
   const ready = worksite.supplies.length - counts.toHandle;
   const followups = worksite.supplies.filter((supply) => supply.status === "a_relancer");
-  const actions = worksite.supplies.filter((supply) => supply.status !== "ok" && supply.status !== "a_relancer");
-  const saveNotes = useMutation({ mutationFn: (notes: string) => updateApWorksite(worksite.id, { notes }), onSuccess: () => { toast.success("Notes enregistrées"); onChanged(); }, onError: (mutationError: Error) => toast.error(mutationError.message) });
-  const removeWorksite = useMutation({ mutationFn: () => deleteApWorksite(worksite.id), onSuccess: () => { toast.success("Chantier supprimé"); onDeleted(); onChanged(); }, onError: (mutationError: Error) => toast.error(mutationError.message) });
+  const actions = worksite.supplies.filter(
+    (supply) => supply.status !== "ok" && supply.status !== "a_relancer",
+  );
+  const saveNotes = useMutation({
+    mutationFn: (notes: string) => updateApWorksite(worksite.id, { notes }),
+    onSuccess: () => {
+      toast.success("Notes enregistrées");
+      onChanged();
+    },
+    onError: (mutationError: Error) => toast.error(mutationError.message),
+  });
+  const removeWorksite = useMutation({
+    mutationFn: () => deleteApWorksite(worksite.id),
+    onSuccess: () => {
+      toast.success("Chantier supprimé");
+      onDeleted();
+      onChanged();
+    },
+    onError: (mutationError: Error) => toast.error(mutationError.message),
+  });
 
   return (
     <Card className="overflow-hidden border-primary/35 shadow-none">
@@ -627,32 +694,74 @@ function WorksiteDetail({ worksite, suppliers, onClose, onDeleted, onChanged }: 
             <h2 className="truncate font-display text-xl">{worksite.client_label}</h2>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>{frDate(worksite.scheduled_date, worksite.date_label)}</span>
-              <Badge className={cn("border-0 text-[11px]", stateView.tone)}><span className={cn("mr-1 h-1.5 w-1.5 rounded-full", stateView.dot)} />{stateView.label}</Badge>
-              <span>{ready} / {worksite.supplies.length} fournitures prêtes</span>
+              <Badge className={cn("border-0 text-[11px]", stateView.tone)}>
+                <span className={cn("mr-1 h-1.5 w-1.5 rounded-full", stateView.dot)} />
+                {stateView.label}
+              </Badge>
+              <span>
+                {ready} / {worksite.supplies.length} fournitures prêtes
+              </span>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>Fermer</Button>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Fermer
+          </Button>
         </div>
 
         <section className="space-y-2">
           <h3 className="text-xs font-semibold uppercase text-muted-foreground">À faire</h3>
           {followups.length === 0 && actions.length === 0 ? (
-            <p className="flex items-center gap-2 rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">✓ Aucun élément à traiter</p>
+            <p className="flex items-center gap-2 rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
+              ✓ Aucun élément à traiter
+            </p>
           ) : (
             <div className="grid gap-2 lg:grid-cols-2">
-              {followups.length > 0 && <ActionGroup title="À relancer" supplies={followups} tone="text-accent-foreground" onOpen={setOpenSupplyId} />}
-              {actions.length > 0 && <ActionGroup title="À préparer / en cours" supplies={actions} tone="text-foreground" onOpen={setOpenSupplyId} />}
+              {followups.length > 0 && (
+                <ActionGroup
+                  title="À relancer"
+                  supplies={followups}
+                  tone="text-accent-foreground"
+                  onOpen={setOpenSupplyId}
+                />
+              )}
+              {actions.length > 0 && (
+                <ActionGroup
+                  title="À préparer / en cours"
+                  supplies={actions}
+                  tone="text-foreground"
+                  onOpen={setOpenSupplyId}
+                />
+              )}
             </div>
           )}
         </section>
 
         <section className="space-y-2 border-t pt-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-xs font-semibold uppercase text-muted-foreground">Fournitures ({worksite.supplies.length})</h3>
-            <Button variant="outline" size="sm" onClick={() => setAdding((value) => !value)}><Plus className="mr-1 h-4 w-4" /> Ajouter</Button>
+            <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+              Fournitures ({worksite.supplies.length})
+            </h3>
+            <Button variant="outline" size="sm" onClick={() => setAdding((value) => !value)}>
+              <Plus className="mr-1 h-4 w-4" /> Ajouter
+            </Button>
           </div>
-          {worksite.supplies.length === 0 ? <p className="text-sm text-muted-foreground">Aucun approvisionnement enregistré.</p> : (
-            <div className="space-y-1.5">{worksite.supplies.map((supply) => <SupplyRow key={supply.id} supply={supply} suppliers={suppliers} open={openSupplyId === supply.id} onToggle={() => setOpenSupplyId((current) => current === supply.id ? null : supply.id)} onChanged={onChanged} />)}</div>
+          {worksite.supplies.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun approvisionnement enregistré.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {worksite.supplies.map((supply) => (
+                <SupplyRow
+                  key={supply.id}
+                  supply={supply}
+                  suppliers={suppliers}
+                  open={openSupplyId === supply.id}
+                  onToggle={() =>
+                    setOpenSupplyId((current) => (current === supply.id ? null : supply.id))
+                  }
+                  onChanged={onChanged}
+                />
+              ))}
+            </div>
           )}
 
           {adding ? (
@@ -669,46 +778,90 @@ function WorksiteDetail({ worksite, suppliers, onClose, onDeleted, onChanged }: 
         </section>
 
         <section className="border-t pt-3">
-          <Button variant="ghost" size="sm" className="px-0 text-muted-foreground" onClick={() => setNotesOpen((value) => !value)}>
-            {notesOpen ? <ChevronUp className="mr-1 h-4 w-4" /> : <ChevronDown className="mr-1 h-4 w-4" />} Notes et actions secondaires
+          <Button
+            variant="ghost"
+            size="sm"
+            className="px-0 text-muted-foreground"
+            onClick={() => setNotesOpen((value) => !value)}
+          >
+            {notesOpen ? (
+              <ChevronUp className="mr-1 h-4 w-4" />
+            ) : (
+              <ChevronDown className="mr-1 h-4 w-4" />
+            )}{" "}
+            Notes et actions secondaires
           </Button>
-          {notesOpen && <div className="mt-2 max-w-2xl">
-            <Label htmlFor={`notes-${worksite.id}`} className="text-xs text-muted-foreground">
-              Notes utiles
-            </Label>
-            <Textarea
-              id={`notes-${worksite.id}`}
-              defaultValue={worksite.notes ?? ""}
-              rows={2}
-              className="mt-1 text-sm"
-              disabled={saveNotes.isPending}
-              onBlur={(event) => {
-                if (event.target.value !== (worksite.notes ?? ""))
-                  saveNotes.mutate(event.target.value);
-              }}
-            />
-          </div>}
+          {notesOpen && (
+            <div className="mt-2 max-w-2xl">
+              <Label htmlFor={`notes-${worksite.id}`} className="text-xs text-muted-foreground">
+                Notes utiles
+              </Label>
+              <Textarea
+                id={`notes-${worksite.id}`}
+                defaultValue={worksite.notes ?? ""}
+                rows={2}
+                className="mt-1 text-sm"
+                disabled={saveNotes.isPending}
+                onBlur={(event) => {
+                  if (event.target.value !== (worksite.notes ?? ""))
+                    saveNotes.mutate(event.target.value);
+                }}
+              />
+            </div>
+          )}
 
-          {notesOpen && <div className="mt-3 flex items-center justify-between border-t pt-3">
-            <DeleteConfirmation
-              title={`Supprimer « ${worksite.client_label} » ?`}
-              description="Le chantier et tous ses approvisionnements seront supprimés définitivement."
-              pending={removeWorksite.isPending}
-              onConfirm={() => removeWorksite.mutate()}
-              label="Supprimer le chantier"
-            />
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              Fermer la fiche
-            </Button>
-          </div>}
+          {notesOpen && (
+            <div className="mt-3 flex items-center justify-between border-t pt-3">
+              <DeleteConfirmation
+                title={`Supprimer « ${worksite.client_label} » ?`}
+                description="Le chantier et tous ses approvisionnements seront supprimés définitivement."
+                pending={removeWorksite.isPending}
+                onConfirm={() => removeWorksite.mutate()}
+                label="Supprimer le chantier"
+              />
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                Fermer la fiche
+              </Button>
+            </div>
+          )}
         </section>
       </CardContent>
     </Card>
   );
 }
 
-function ActionGroup({ title, supplies, tone, onOpen }: { title: string; supplies: ApSupply[]; tone: string; onOpen: (id: string) => void }) {
-  return <div className="rounded-md border bg-background p-2"><p className={cn("mb-1 text-xs font-medium", tone)}>{title}</p><div className="space-y-1">{supplies.map((supply) => <Button key={supply.id} variant="ghost" size="sm" className="h-auto w-full justify-between px-1.5 py-1 text-left" onClick={() => onOpen(supply.id)}><span className="truncate text-xs">{supply.item} · {supply.supplier}</span><ChevronRight className="h-3.5 w-3.5 shrink-0" /></Button>)}</div></div>;
+function ActionGroup({
+  title,
+  supplies,
+  tone,
+  onOpen,
+}: {
+  title: string;
+  supplies: ApSupply[];
+  tone: string;
+  onOpen: (id: string) => void;
+}) {
+  return (
+    <div className="rounded-md border bg-background p-2">
+      <p className={cn("mb-1 text-xs font-medium", tone)}>{title}</p>
+      <div className="space-y-1">
+        {supplies.map((supply) => (
+          <Button
+            key={supply.id}
+            variant="ghost"
+            size="sm"
+            className="h-auto w-full justify-between px-1.5 py-1 text-left"
+            onClick={() => onOpen(supply.id)}
+          >
+            <span className="truncate text-xs">
+              {supply.item} · {supply.supplier}
+            </span>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function SupplyRow({
@@ -742,169 +895,316 @@ function SupplyRow({
 
   return (
     <div className="min-w-0 overflow-hidden rounded-md border bg-background">
-      <Button variant="ghost" className="grid h-auto w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-none px-2 py-2 text-left sm:grid-cols-[minmax(7rem,1.2fr)_5rem_minmax(7rem,1fr)_6rem_7rem_6rem_auto] sm:items-center" onClick={onToggle} aria-expanded={open}>
+      <Button
+        variant="ghost"
+        className="grid h-auto w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-none px-2 py-2 text-left sm:grid-cols-[minmax(7rem,1.2fr)_5rem_minmax(7rem,1fr)_6rem_7rem_6rem_auto] sm:items-center"
+        onClick={onToggle}
+        aria-expanded={open}
+      >
         <span className="truncate text-sm font-medium">{supply.item}</span>
-        <span className="text-xs font-normal text-muted-foreground sm:hidden">{statusView.label}</span>
-        <span className="hidden truncate text-xs font-normal text-muted-foreground sm:block">{supply.quantity || "—"}</span>
-        <span className="hidden truncate text-xs font-normal text-muted-foreground sm:block">{supply.supplier}</span>
-        <span className="hidden text-xs font-normal text-muted-foreground sm:block">{AP_MODE_LABELS[supply.mode]}</span>
-        <span className="hidden text-xs font-normal text-muted-foreground sm:block">{frDate(supply.fulfillment_date, "—")}</span>
-        <span className={cn("hidden items-center gap-1 text-xs font-normal sm:flex", statusView.tone)}><span className={cn("h-1.5 w-1.5 rounded-full", statusView.dot)} />{statusView.label}</span>
-        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        <span className="text-xs font-normal text-muted-foreground sm:hidden">
+          {statusView.label}
+        </span>
+        <span className="hidden truncate text-xs font-normal text-muted-foreground sm:block">
+          {supply.quantity || "—"}
+        </span>
+        <span className="hidden truncate text-xs font-normal text-muted-foreground sm:block">
+          {supply.supplier}
+        </span>
+        <span className="hidden text-xs font-normal text-muted-foreground sm:block">
+          {AP_MODE_LABELS[supply.mode]}
+        </span>
+        <span className="hidden text-xs font-normal text-muted-foreground sm:block">
+          {frDate(supply.fulfillment_date, "—")}
+        </span>
+        <span
+          className={cn("hidden items-center gap-1 text-xs font-normal sm:flex", statusView.tone)}
+        >
+          <span className={cn("h-1.5 w-1.5 rounded-full", statusView.dot)} />
+          {statusView.label}
+        </span>
+        {open ? (
+          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        )}
       </Button>
-      {open && <div className="border-t p-2">
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(7rem,1.2fr)_5rem_minmax(7rem,1fr)_7.5rem_8rem_7rem_2rem] lg:items-center">
-        <LabeledField label="Fourniture">
-          <Input
-            aria-label="Fourniture"
-            defaultValue={supply.item}
-            className="h-8 text-sm"
-            disabled={updateSupply.isPending}
-            onBlur={(event) => {
-              if (event.target.value !== supply.item)
-                updateSupply.mutate({ item: event.target.value });
-            }}
-          />
-        </LabeledField>
-        <LabeledField label="Quantité">
-          <Input
-            aria-label="Quantité"
-            defaultValue={supply.quantity ?? ""}
-            className="h-8 text-sm"
-            disabled={updateSupply.isPending}
-            onBlur={(event) => {
-              const value = event.target.value.trim() || null;
-              if (value !== supply.quantity) updateSupply.mutate({ quantity: value });
-            }}
-          />
-        </LabeledField>
-        <LabeledField label="Fournisseur">
-          <>
-            <Input
-              aria-label="Fournisseur"
-              list={listId}
-              defaultValue={supply.supplier}
-              className="h-8 text-sm"
-              disabled={updateSupply.isPending}
-              onBlur={(event) => {
-                const value = event.target.value;
-                if (value === supply.supplier) return;
-                const known = suppliers.find(
-                  (item) =>
-                    item.name.trim().toLocaleLowerCase("fr-FR") ===
-                    value.trim().toLocaleLowerCase("fr-FR"),
-                );
-                updateSupply.mutate({ supplier: value, supplier_id: known?.id ?? null });
-              }}
-            />
-            <datalist id={listId}>
-              {suppliers.map((item) => (
-                <option key={item.id} value={item.name} />
-              ))}
-            </datalist>
-          </>
-        </LabeledField>
-        <LabeledField label="Opération">
-          <Select
-            value={supply.mode}
-            disabled={updateSupply.isPending}
-            onValueChange={(value) => updateSupply.mutate({ mode: value as ApMode })}
-          >
-            <SelectTrigger className="h-8 text-sm" aria-label="Opération">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {AP_MODES.map((mode) => (
-                <SelectItem key={mode} value={mode}>
-                  {AP_MODE_LABELS[mode]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </LabeledField>
-        <LabeledField label="Date">
-          <Input
-            aria-label="Date"
-            type="date"
-            defaultValue={supply.fulfillment_date ?? ""}
-            className="h-8 text-sm"
+      {open && (
+        <div className="border-t p-2">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(7rem,1.2fr)_5rem_minmax(7rem,1fr)_7.5rem_8rem_7rem_2rem] lg:items-center">
+            <LabeledField label="Fourniture">
+              <Input
+                aria-label="Fourniture"
+                defaultValue={supply.item}
+                className="h-8 text-sm"
+                disabled={updateSupply.isPending}
+                onBlur={(event) => {
+                  if (event.target.value !== supply.item)
+                    updateSupply.mutate({ item: event.target.value });
+                }}
+              />
+            </LabeledField>
+            <LabeledField label="Quantité">
+              <Input
+                aria-label="Quantité"
+                defaultValue={supply.quantity ?? ""}
+                className="h-8 text-sm"
+                disabled={updateSupply.isPending}
+                onBlur={(event) => {
+                  const value = event.target.value.trim() || null;
+                  if (value !== supply.quantity) updateSupply.mutate({ quantity: value });
+                }}
+              />
+            </LabeledField>
+            <LabeledField label="Fournisseur">
+              <>
+                <Input
+                  aria-label="Fournisseur"
+                  list={listId}
+                  defaultValue={supply.supplier}
+                  className="h-8 text-sm"
+                  disabled={updateSupply.isPending}
+                  onBlur={(event) => {
+                    const value = event.target.value;
+                    if (value === supply.supplier) return;
+                    const known = suppliers.find(
+                      (item) =>
+                        item.name.trim().toLocaleLowerCase("fr-FR") ===
+                        value.trim().toLocaleLowerCase("fr-FR"),
+                    );
+                    updateSupply.mutate({ supplier: value, supplier_id: known?.id ?? null });
+                  }}
+                />
+                <datalist id={listId}>
+                  {suppliers.map((item) => (
+                    <option key={item.id} value={item.name} />
+                  ))}
+                </datalist>
+              </>
+            </LabeledField>
+            <LabeledField label="Opération">
+              <Select
+                value={supply.mode}
+                disabled={updateSupply.isPending}
+                onValueChange={(value) => updateSupply.mutate({ mode: value as ApMode })}
+              >
+                <SelectTrigger className="h-8 text-sm" aria-label="Opération">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AP_MODES.map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {AP_MODE_LABELS[mode]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </LabeledField>
+            <LabeledField label="Date">
+              <Input
+                aria-label="Date"
+                type="date"
+                defaultValue={supply.fulfillment_date ?? ""}
+                className="h-8 text-sm"
+                disabled={updateSupply.isPending}
+                onBlur={(event) => {
+                  const value = event.target.value || null;
+                  if (value !== supply.fulfillment_date)
+                    updateSupply.mutate({ fulfillment_date: value });
+                }}
+              />
+            </LabeledField>
+            <LabeledField label="État">
+              <Select
+                value={supply.status}
+                disabled={updateSupply.isPending}
+                onValueChange={(value) => updateSupply.mutate({ status: value as ApStatus })}
+              >
+                <SelectTrigger className={cn("h-8 text-sm", statusView.tone)} aria-label="État">
+                  <span className={cn("h-1.5 w-1.5 rounded-full", statusView.dot)} />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AP_STATUSES.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {STATUS_VIEW[status].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </LabeledField>
+            <div className="flex justify-end sm:col-span-2 lg:col-span-1">
+              <DeleteConfirmation
+                title="Supprimer cette fourniture ?"
+                description={`${supply.item} sera supprimée définitivement de ce chantier.`}
+                pending={removeSupply.isPending}
+                onConfirm={() => removeSupply.mutate()}
+                label="Supprimer la fourniture"
+                iconOnly
+              />
+            </div>
+          </div>
+          <Textarea
+            aria-label="Commentaire"
+            placeholder="Commentaire (facultatif)"
+            defaultValue={supply.comment ?? ""}
+            rows={1}
+            className="mt-2 min-h-8 resize-y text-xs"
             disabled={updateSupply.isPending}
             onBlur={(event) => {
               const value = event.target.value || null;
-              if (value !== supply.fulfillment_date)
-                updateSupply.mutate({ fulfillment_date: value });
+              if (value !== supply.comment) updateSupply.mutate({ comment: value });
             }}
           />
-        </LabeledField>
-        <LabeledField label="État">
-          <Select
-            value={supply.status}
-            disabled={updateSupply.isPending}
-            onValueChange={(value) => updateSupply.mutate({ status: value as ApStatus })}
-          >
-            <SelectTrigger className={cn("h-8 text-sm", statusView.tone)} aria-label="État">
-              <span className={cn("h-1.5 w-1.5 rounded-full", statusView.dot)} />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {AP_STATUSES.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {STATUS_VIEW[status].label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </LabeledField>
-        <div className="flex justify-end sm:col-span-2 lg:col-span-1">
-          <DeleteConfirmation
-            title="Supprimer cette fourniture ?"
-            description={`${supply.item} sera supprimée définitivement de ce chantier.`}
-            pending={removeSupply.isPending}
-            onConfirm={() => removeSupply.mutate()}
-            label="Supprimer la fourniture"
-            iconOnly
-          />
         </div>
-      </div>
-      <Textarea
-        aria-label="Commentaire"
-        placeholder="Commentaire (facultatif)"
-        defaultValue={supply.comment ?? ""}
-        rows={1}
-        className="mt-2 min-h-8 resize-y text-xs"
-        disabled={updateSupply.isPending}
-        onBlur={(event) => {
-          const value = event.target.value || null;
-          if (value !== supply.comment) updateSupply.mutate({ comment: value });
-        }}
-      />
-      </div>}
+      )}
     </div>
   );
 }
 
-function QuickAccessBar({ scope, onScopeChange, todayEvents, weekEvents, overdue }: { scope: QuickScope; onScopeChange: (scope: QuickScope) => void; todayEvents: ApEvent[]; weekEvents: ApEvent[]; overdue: { worksite: ApWorksite; supply: ApSupply }[] }) {
+function QuickAccessBar({
+  scope,
+  onScopeChange,
+  todayEvents,
+  weekEvents,
+  overdue,
+}: {
+  scope: QuickScope;
+  onScopeChange: (scope: QuickScope) => void;
+  todayEvents: ApEvent[];
+  weekEvents: ApEvent[];
+  overdue: { worksite: ApWorksite; supply: ApSupply }[];
+}) {
   const todayRelances = todayEvents.filter((event) => event.supply?.status === "a_relancer").length;
-  return <div className="grid gap-2 sm:grid-cols-3">
-    <QuickButton active={scope === "today"} icon={<Clock3 className="h-4 w-4" />} title="Aujourd’hui" detail={`${todayEvents.filter((e) => e.type === "retrait").length} retraits · ${todayEvents.filter((e) => e.type === "livraison").length} livraisons · ${todayRelances} relances · ${todayEvents.filter((e) => e.type === "chantier").length} chantiers`} onClick={() => onScopeChange(scope === "today" ? null : "today")} />
-    <QuickButton active={scope === "week"} icon={<CalendarDays className="h-4 w-4" />} title="Cette semaine" detail={`${weekEvents.length} échéance${weekEvents.length > 1 ? "s" : ""} sur 7 jours`} onClick={() => onScopeChange(scope === "week" ? null : "week")} />
-    <QuickButton active={scope === "overdue"} icon={<CircleAlert className="h-4 w-4" />} title="En retard" detail={`${overdue.length} élément${overdue.length > 1 ? "s" : ""} non terminé${overdue.length > 1 ? "s" : ""}`} onClick={() => onScopeChange(scope === "overdue" ? null : "overdue")} />
-  </div>;
+  return (
+    <div className="grid gap-2 sm:grid-cols-3">
+      <QuickButton
+        active={scope === "today"}
+        icon={<Clock3 className="h-4 w-4" />}
+        title="Aujourd’hui"
+        detail={`${todayEvents.filter((e) => e.type === "retrait").length} retraits · ${todayEvents.filter((e) => e.type === "livraison").length} livraisons · ${todayRelances} relances · ${todayEvents.filter((e) => e.type === "chantier").length} chantiers`}
+        onClick={() => onScopeChange(scope === "today" ? null : "today")}
+      />
+      <QuickButton
+        active={scope === "week"}
+        icon={<CalendarDays className="h-4 w-4" />}
+        title="Cette semaine"
+        detail={`${weekEvents.length} échéance${weekEvents.length > 1 ? "s" : ""} sur 7 jours`}
+        onClick={() => onScopeChange(scope === "week" ? null : "week")}
+      />
+      <QuickButton
+        active={scope === "overdue"}
+        icon={<CircleAlert className="h-4 w-4" />}
+        title="En retard"
+        detail={`${overdue.length} élément${overdue.length > 1 ? "s" : ""} non terminé${overdue.length > 1 ? "s" : ""}`}
+        onClick={() => onScopeChange(scope === "overdue" ? null : "overdue")}
+      />
+    </div>
+  );
 }
 
-function QuickButton({ active, icon, title, detail, onClick }: { active: boolean; icon: React.ReactNode; title: string; detail: string; onClick: () => void }) {
-  return <Button variant={active ? "secondary" : "outline"} className="h-auto min-w-0 justify-start px-3 py-2 text-left" onClick={onClick}><span className="mr-2 shrink-0 text-primary">{icon}</span><span className="min-w-0"><span className="block text-[11px] font-semibold uppercase">{title}</span><span className="block truncate text-xs font-normal text-muted-foreground">{detail}</span></span></Button>;
+function QuickButton({
+  active,
+  icon,
+  title,
+  detail,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  title: string;
+  detail: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      variant={active ? "secondary" : "outline"}
+      className="h-auto min-w-0 justify-start px-3 py-2 text-left"
+      onClick={onClick}
+    >
+      <span className="mr-2 shrink-0 text-primary">{icon}</span>
+      <span className="min-w-0">
+        <span className="block text-[11px] font-semibold uppercase">{title}</span>
+        <span className="block truncate text-xs font-normal text-muted-foreground">{detail}</span>
+      </span>
+    </Button>
+  );
 }
 
-function SearchResults({ groups, onOpenWorksite, onOpenSuppliers }: { groups: { worksites: ApWorksite[]; supplies: { worksite: ApWorksite; supply: ApSupply }[]; suppliers: ApSupplier[] }; onOpenWorksite: (id: string) => void; onOpenSuppliers: () => void }) {
-  return <Card className="absolute left-0 right-0 top-10 z-30 max-h-80 overflow-y-auto p-2 shadow-md">
-    {groups.worksites.length > 0 && <SearchGroup title="Chantiers">{groups.worksites.map((worksite) => <Button key={worksite.id} variant="ghost" size="sm" className="h-auto w-full justify-start px-2 py-1.5" onClick={() => onOpenWorksite(worksite.id)}>{worksite.client_label}</Button>)}</SearchGroup>}
-    {groups.supplies.length > 0 && <SearchGroup title="Fournitures">{groups.supplies.map(({ worksite, supply }) => <Button key={supply.id} variant="ghost" size="sm" className="h-auto w-full justify-start px-2 py-1.5 text-left" onClick={() => onOpenWorksite(worksite.id)}><span className="truncate">{supply.item} · {supply.supplier}</span></Button>)}</SearchGroup>}
-    {groups.suppliers.length > 0 && <SearchGroup title="Fournisseurs">{groups.suppliers.map((supplier) => <Button key={supplier.id} variant="ghost" size="sm" className="h-auto w-full justify-start px-2 py-1.5" onClick={onOpenSuppliers}>{supplier.name}</Button>)}</SearchGroup>}
-  </Card>;
+function SearchResults({
+  groups,
+  onOpenWorksite,
+  onOpenSuppliers,
+}: {
+  groups: {
+    worksites: ApWorksite[];
+    supplies: { worksite: ApWorksite; supply: ApSupply }[];
+    suppliers: ApSupplier[];
+  };
+  onOpenWorksite: (id: string) => void;
+  onOpenSuppliers: () => void;
+}) {
+  return (
+    <Card className="absolute left-0 right-0 top-10 z-30 max-h-80 overflow-y-auto p-2 shadow-md">
+      {groups.worksites.length > 0 && (
+        <SearchGroup title="Chantiers">
+          {groups.worksites.map((worksite) => (
+            <Button
+              key={worksite.id}
+              variant="ghost"
+              size="sm"
+              className="h-auto w-full justify-start px-2 py-1.5"
+              onClick={() => onOpenWorksite(worksite.id)}
+            >
+              {worksite.client_label}
+            </Button>
+          ))}
+        </SearchGroup>
+      )}
+      {groups.supplies.length > 0 && (
+        <SearchGroup title="Fournitures">
+          {groups.supplies.map(({ worksite, supply }) => (
+            <Button
+              key={supply.id}
+              variant="ghost"
+              size="sm"
+              className="h-auto w-full justify-start px-2 py-1.5 text-left"
+              onClick={() => onOpenWorksite(worksite.id)}
+            >
+              <span className="truncate">
+                {supply.item} · {supply.supplier}
+              </span>
+            </Button>
+          ))}
+        </SearchGroup>
+      )}
+      {groups.suppliers.length > 0 && (
+        <SearchGroup title="Fournisseurs">
+          {groups.suppliers.map((supplier) => (
+            <Button
+              key={supplier.id}
+              variant="ghost"
+              size="sm"
+              className="h-auto w-full justify-start px-2 py-1.5"
+              onClick={onOpenSuppliers}
+            >
+              {supplier.name}
+            </Button>
+          ))}
+        </SearchGroup>
+      )}
+    </Card>
+  );
 }
 
-function SearchGroup({ title, children }: { title: string; children: React.ReactNode }) { return <div className="mb-2 last:mb-0"><p className="px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">{title}</p>{children}</div>; }
+function SearchGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-2 last:mb-0">
+      <p className="px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">{title}</p>
+      {children}
+    </div>
+  );
+}
 
 function LabeledField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
