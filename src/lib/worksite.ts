@@ -98,11 +98,15 @@ export type WorksiteSheetInput = Omit<
 >;
 
 function parseIntervenants(value: unknown): string[] {
-  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+  if (Array.isArray(value)) {
+    return value.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+  }
   if (typeof value !== "string" || !value.trim()) return [];
   try {
     const parsed: unknown = JSON.parse(value);
-    if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+    }
   } catch {
     // Ancien format texte simple.
   }
@@ -182,7 +186,11 @@ export async function getWorksiteSheet(id: string): Promise<WorksiteSheet> {
 
 function serializeInput(input: WorksiteSheetInput): Record<string, unknown> {
   const { intervenants, ...rest } = input;
-  const selected = intervenants.length ? intervenants : (input.intervenant ? [input.intervenant] : []);
+  const selected = intervenants.length
+    ? intervenants
+    : input.intervenant
+      ? [input.intervenant]
+      : [];
   return {
     ...rest,
     // Stockage rétrocompatible dans la colonne textuelle existante.
