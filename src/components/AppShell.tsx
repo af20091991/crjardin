@@ -25,6 +25,7 @@ import {
   Target,
   Calculator,
   CalendarRange,
+  CalendarDays,
   Receipt,
   LineChart,
   Clock,
@@ -33,6 +34,7 @@ import {
   FileBarChart,
   Wrench,
   PackageSearch,
+  Truck,
 } from "lucide-react";
 import {
   Sheet,
@@ -105,6 +107,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     pathname.startsWith("/pilot/") ||
     pathname === "/sst" ||
     pathname.startsWith("/sst/");
+  const showPilotPeriod = isPilot && pathname !== "/pilot/calendrier";
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -154,12 +157,20 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Entreprise",
       items: [
         {
-          to: "/pilot",
-          label: "Centre de décision",
-          short: "Accueil",
-          icon: Home,
+          to: "/pilot/dashboard",
+          label: "Dashboard",
+          short: "Dashboard",
+          icon: LayoutDashboard,
           exact: true,
           primary: true,
+        },
+        {
+          to: "/pilot",
+          label: "Centre de décision",
+          short: "Décision",
+          icon: Home,
+          exact: true,
+          primary: false,
         },
         ...(canEdit
           ? [
@@ -315,6 +326,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           exact: false,
           primary: true,
         },
+        {
+          to: "/pilot/assistant-ap",
+          label: "Assistant AP",
+          short: "AP",
+          icon: Truck,
+          exact: false,
+          primary: false,
+        },
         ...(canEdit
           ? [
               {
@@ -327,6 +346,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               },
             ]
           : []),
+        {
+          to: "/pilot/calendrier",
+          label: "Calendrier SST",
+          short: "Calendrier SST",
+          icon: CalendarDays,
+          exact: false,
+          primary: false,
+        },
       ],
     },
     {
@@ -590,8 +617,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </div>
           <div className="flex items-center gap-4">
             <GlobalSearch collapsed />
-            {isPilot && <PilotPeriodSwitcher compact />}
-            {isPilot && <PilotYearSwitcher compact />}
+            {showPilotPeriod && <PilotPeriodSwitcher compact />}
+            {showPilotPeriod && <PilotYearSwitcher compact />}
             <NotificationBell />
             <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
               <LogOut className="h-5 w-5" />
@@ -605,7 +632,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             className="hidden px-6 pt-6 md:flex md:items-start md:justify-between md:gap-4"
           >
             <h1 className="font-serif text-2xl font-semibold">{title}</h1>
-            {isPilot && (
+            {showPilotPeriod && (
               <div className="flex items-center gap-2">
                 <PilotPeriodSwitcher />
                 <PilotYearSwitcher />

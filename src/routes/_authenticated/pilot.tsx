@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/_authenticated/pilot")({
@@ -7,9 +7,12 @@ export const Route = createFileRoute("/_authenticated/pilot")({
 });
 
 function PilotLayout() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const title = pathname === "/pilot/calendrier" ? "Calendrier SST" : "Pilot Pro";
+
   return (
-    <AppShell title="Pilot Pro">
-      <div className="mx-auto max-w-6xl">
+    <AppShell title={title}>
+      <div className={pathname === "/pilot/calendrier" ? "w-full" : "mx-auto max-w-6xl"}>
         <Outlet />
       </div>
     </AppShell>
