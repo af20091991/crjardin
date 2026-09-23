@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
+  apEvents,
+  followUpSupplies,
   sortWorksites,
   upcomingFulfillments,
   worksiteCounts,
@@ -61,6 +63,8 @@ describe("upcomingFulfillments", () => {
         {
           id: "a",
           worksite_id: "w",
+          supplier_id: null,
+          quantity: null,
           supplier: "AEF",
           item: "Vivaces",
           status: "retrait_livraison_prevu",
@@ -71,6 +75,8 @@ describe("upcomingFulfillments", () => {
         {
           id: "b",
           worksite_id: "w",
+          supplier_id: null,
+          quantity: null,
           supplier: "Touchat",
           item: "Orgasyl",
           status: "a_faire",
@@ -81,6 +87,8 @@ describe("upcomingFulfillments", () => {
         {
           id: "c",
           worksite_id: "w",
+          supplier_id: null,
+          quantity: null,
           supplier: "Oyas",
           item: "Chanvre",
           status: "ok",
@@ -103,5 +111,65 @@ describe("sortWorksites", () => {
       worksite({ id: "1", client_label: "A", scheduled_date: "2026-10-08" }),
     ];
     expect(sortWorksites(list).map((w) => w.id)).toEqual(["1", "2", "3"]);
+  });
+});
+
+describe("apEvents / followUpSupplies", () => {
+  const w = {
+    id: "w",
+    client_label: "Chantier",
+    scheduled_date: "2026-10-08",
+    date_label: null,
+    notes: null,
+    supplies: [
+      {
+        id: "a",
+        worksite_id: "w",
+        supplier: "AEF",
+        supplier_id: null,
+        quantity: "10 u",
+        item: "Vivaces",
+        status: "retrait_livraison_prevu" as ApStatus,
+        mode: "livraison" as const,
+        fulfillment_date: "2026-10-05",
+        comment: null,
+      },
+      {
+        id: "b",
+        worksite_id: "w",
+        supplier: "Touchat",
+        supplier_id: null,
+        quantity: null,
+        item: "Orgasyl",
+        status: "a_relancer" as ApStatus,
+        mode: "retrait" as const,
+        fulfillment_date: "2026-10-02",
+        comment: "Sans réponse",
+      },
+      {
+        id: "c",
+        worksite_id: "w",
+        supplier: "Stock",
+        supplier_id: null,
+        quantity: null,
+        item: "Chanvre",
+        status: "ok" as ApStatus,
+        mode: "stock" as const,
+        fulfillment_date: "2026-10-06",
+        comment: null,
+      },
+    ],
+  };
+
+  it("dérive chantier, retrait et livraison, en ignorant le stock", () => {
+    expect(apEvents([w]).map((e) => `${e.type}:${e.date}`)).toEqual([
+      "retrait:2026-10-02",
+      "livraison:2026-10-05",
+      "chantier:2026-10-08",
+    ]);
+  });
+
+  it("ne liste que les fournitures à relancer", () => {
+    expect(followUpSupplies([w]).map((e) => e.supply.id)).toEqual(["b"]);
   });
 });

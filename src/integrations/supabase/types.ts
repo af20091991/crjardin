@@ -79,6 +79,39 @@ export type Database = {
           },
         ]
       }
+      ap_suppliers: {
+        Row: {
+          comment: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ap_supplies: {
         Row: {
           comment: string | null
@@ -87,8 +120,10 @@ export type Database = {
           id: string
           item: string
           mode: string
+          quantity: string | null
           status: string
           supplier: string
+          supplier_id: string | null
           updated_at: string
           worksite_id: string
         }
@@ -99,8 +134,10 @@ export type Database = {
           id?: string
           item?: string
           mode?: string
+          quantity?: string | null
           status?: string
           supplier?: string
+          supplier_id?: string | null
           updated_at?: string
           worksite_id: string
         }
@@ -111,12 +148,21 @@ export type Database = {
           id?: string
           item?: string
           mode?: string
+          quantity?: string | null
           status?: string
           supplier?: string
+          supplier_id?: string | null
           updated_at?: string
           worksite_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ap_supplies_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "ap_suppliers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ap_supplies_worksite_id_fkey"
             columns: ["worksite_id"]
