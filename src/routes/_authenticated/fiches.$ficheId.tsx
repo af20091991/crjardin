@@ -6,11 +6,11 @@ import { WorksiteSheetForm } from "@/components/WorksiteSheetForm";
 import { Button } from "@/components/ui/button";
 import { listClients } from "@/lib/clients";
 import {
-  getWorksiteSheet, updateWorksiteSheet, deleteWorksiteSheet,
+  getWorksiteSheet, updateWorksiteSheet, deleteWorksiteSheet, duplicateWorksiteSheet,
   type WorksiteSheetInput,
 } from "@/lib/worksite";
 import { exportWorksiteSheetPdf } from "@/lib/worksite-pdf";
-import { ArrowLeft, FileDown, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, FileDown, Trash2, Loader2, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
 
@@ -66,6 +66,17 @@ function EditFiche() {
             <ArrowLeft className="h-4 w-4" /> Retour
           </Link>
           <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" disabled={exporting || !sheet} onClick={async () => {
+              if (!sheet) return;
+              try {
+                const copy = await duplicateWorksiteSheet(sheet.id);
+                qc.invalidateQueries({ queryKey: ["worksite-sheets"] });
+                toast.success("Fiche dupliquée");
+                navigate({ to: "/fiches/$ficheId", params: { ficheId: copy.id } });
+              } catch (e) { toast.error(e instanceof Error ? e.message : "Échec de la duplication"); }
+            }}>
+              <Copy className="mr-1.5 h-4 w-4" /> Dupliquer
+            </Button>
             <Button size="sm" variant="outline" disabled={exporting || !sheet} onClick={exportPdf}>
               {exporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileDown className="mr-1.5 h-4 w-4" />} PDF
             </Button>
@@ -90,6 +101,7 @@ function EditFiche() {
               address: sheet.address,
               access_complement: sheet.access_complement,
               intervention_date: sheet.intervention_date,
+              intervenants: sheet.intervenants,
               intervenant: sheet.intervenant,
               client_present: sheet.client_present,
               green_waste: sheet.green_waste,
