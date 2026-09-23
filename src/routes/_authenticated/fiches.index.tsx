@@ -67,7 +67,7 @@ function FichesIndex() {
   const filtered = useMemo(() => {
     const now = new Date();
     let list = [...(sheets ?? [])];
-    if (intervenant !== "all") list = list.filter((s) => s.intervenant === intervenant);
+    if (intervenant !== "all") list = list.filter((s) => s.intervenants.includes(intervenant) || s.intervenant === intervenant);
     if (period !== "all") {
       list = list.filter((s) => {
         if (!s.intervention_date) return period === "undated";
@@ -80,7 +80,7 @@ function FichesIndex() {
     }
     if (q) {
       list = list.filter((s) =>
-        [name(s), s.address, s.intervenant, s.contact_person, ...s.tasks].some((f) =>
+        [name(s), s.address, ...s.intervenants, s.intervenant, s.contact_person, ...s.tasks].some((f) =>
           f?.toLowerCase().includes(q),
         ),
       );
@@ -244,9 +244,13 @@ function FichesIndex() {
                           {s.tasks.length ? ` · ${s.tasks.length} tâche(s)` : ""}
                         </p>
                       </div>
-                      {s.intervenant && (
+                      {s.intervenants.length > 0 ? (
+                        <div className="flex max-w-48 shrink-0 flex-wrap justify-end gap-1">
+                          {s.intervenants.map((name) => <Badge key={name} variant="secondary">{name}</Badge>)}
+                        </div>
+                      ) : s.intervenant ? (
                         <Badge variant="secondary" className="shrink-0">{s.intervenant}</Badge>
-                      )}
+                      ) : null}
                       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                     </Link>
                   ))}
