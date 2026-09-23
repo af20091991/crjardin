@@ -469,6 +469,7 @@ export interface FileRoutesByFullPath {
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/pilot': typeof AuthenticatedPilotRouteWithChildren
+  '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/sst': typeof AuthenticatedSstRoute
@@ -583,6 +584,7 @@ export interface FileRoutesByTo {
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
   '/parc-materiel': typeof AuthenticatedParcMaterielIndexRoute
   '/pilot': typeof AuthenticatedPilotIndexRoute
+  '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
@@ -791,6 +793,7 @@ export interface FileRouteTypes {
     | '/interventions'
     | '/parc-materiel'
     | '/pilot'
+    | '/pilot/dashboard'
     | '/pilot/ceev-contrats/$agreementId'
     | '/pilot/clients/$clientKey'
     | '/pilot/fiche/$clientId'
@@ -860,6 +863,7 @@ export interface FileRouteTypes {
     | '/_authenticated/interventions/'
     | '/_authenticated/parc-materiel/'
     | '/_authenticated/pilot/'
+    | '/_authenticated/pilot/dashboard'
     | '/_authenticated/pilot/ceev-contrats/$agreementId'
     | '/_authenticated/pilot/clients/$clientKey'
     | '/_authenticated/pilot/fiche/$clientId'
@@ -1015,6 +1019,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/pilot/'
       preLoaderRoute: typeof AuthenticatedPilotIndexRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/dashboard': {
+      id: '/_authenticated/pilot/dashboard'
+      path: '/dashboard'
+      fullPath: '/pilot/dashboard'
+      preLoaderRoute: typeof AuthenticatedPilotDashboardRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
     '/_authenticated/parc-materiel/': {
