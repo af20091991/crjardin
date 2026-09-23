@@ -3,7 +3,6 @@ import logo from "@/assets/logo.png";
 import type { WorksiteSheet } from "@/lib/worksite";
 import { worksitePhotoUrl } from "@/lib/worksite";
 import { staticGardenMap } from "@/lib/maps.functions";
-import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
 
 const GREEN: [number, number, number] = [76, 138, 47];
 const DARK: [number, number, number] = [45, 55, 40];
@@ -99,8 +98,7 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   line("Adresse", sheet.address || "—");
   if (sheet.access_complement) line("Complément d'accès", sheet.access_complement);
   line("Date d'intervention", dateStr);
-  const intervenants = parseWorksiteIntervenants(sheet.intervenant);
-  line("SST / intervenant(e)s", intervenants.length ? intervenants.join(", ") : "—");
+  if (sheet.intervenant) line("Intervenant(e)", sheet.intervenant);
   line("Client présent", sheet.client_present == null ? "—" : sheet.client_present ? "Oui" : "Non");
   line("Évacuation déchets verts", sheet.green_waste == null ? "—" : sheet.green_waste ? "Oui" : "Non");
 
@@ -146,10 +144,6 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   }
 
   if (sheet.latitude != null && sheet.longitude != null) {
-    heading("Localisation du chantier");
-    line("Latitude", String(sheet.latitude));
-    line("Longitude", String(sheet.longitude));
-
     heading("Plan jardin (vue aérienne)");
     try {
       const dataUrl = await staticGardenMap({
@@ -189,11 +183,7 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
       try {
         const url = await worksitePhotoUrl(p);
         const img = await loadImage(url);
-        if (col === 0) {
-          ensureSpace(h + 4);
-          // Chaque ligne de photos commence sur une page disponible ; on évite
-          // qu'une image soit dessinée sous le pied de page.
-        }
+        if (col === 0) ensureSpace(h + 4);
         const x = margin + col * (w + gap);
         doc.addImage(img, "JPEG", x, y, w, h, undefined, "FAST");
         col++;
