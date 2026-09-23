@@ -1,0 +1,27 @@
+name: Temporary format fix
+on:
+  push:
+    branches:
+      - adpp/work/fiches-sst-duplication-multi-sst-pdf-20260923
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun ci
+      - run: bunx prettier --write src/components/WorksiteSheetForm.tsx src/lib/worksite-pdf.ts src/lib/worksite.ts 'src/routes/_authenticated/fiches.$ficheId.tsx' src/routes/_authenticated/fiches.new.tsx
+      - run: |
+          if git diff --quiet; then
+            echo "No formatting changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/WorksiteSheetForm.tsx src/lib/worksite-pdf.ts src/lib/worksite.ts 'src/routes/_authenticated/fiches.$ficheId.tsx' src/routes/_authenticated/fiches.new.tsx
+          git commit -m "style: format fiches SST changes"
+          git push
