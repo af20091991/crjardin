@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { listSubcontractors, type Subcontractor } from "@/lib/subcontractors";
 
 /** Listes de référence reprises de l'outil « Fiche chantier » SST. */
 export const INTERVENANTS = ["Chloé", "Fanny", "Angélique", "Lionel"] as const;
@@ -190,6 +191,85 @@ export async function updateWorksiteSheet(id: string, input: WorksiteSheetInput)
 export async function deleteWorksiteSheet(id: string): Promise<void> {
   const { error } = await supabase.from("worksite_sheets").delete().eq("id", id);
   if (error) throw error;
+}
+
+type WorksiteSheetSstRow = {
+  worksite_sheet_id: string;
+  subcontractor_id: string;
+  user_id: string;
+};
+
+const untypedSupabase = supabase as unknown as {
+  from: (table: string) => any;
+};
+
+export async function listWorksiteSheetSubcontractorIds(sheetId: string): Promise<string[]> {
+  const { data, error } = await untypedSupabase
+    .from("worksite_sheet_subcontractors")
+    .select("subcontractor_id")
+    .eq("worksite_sheet_id", sheetId);
+  if (error) throw error;
+  return ((data ?? []) as Array<{ subcontractor_id: string }>).map((row) => row.subcontractor_id);
+}
+
+export async function listWorksiteSheetSubcontractors(sheetId: string): Promise<Subcontractor[]> {
+  const ids = await listWorksiteSheetSubcontractorIds(sheetId);
+  if (!ids.length) return [];
+  const subcontractors = await listSubcontractors();
+  const order = new Map(ids.map((id, index) => [id, index]));
+  return subcontractors
+    .filter((sst) => order.has(sst.id))
+    .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+}
+
+export async function setWorksiteSheetSubcontractors(sheetId: string, subcontractorIds: string[]): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Non authentifié");
+  const sheet = await getWorksiteSheet(sheetId);
+
+  const ids = [...new Set(subcontractorIds.filter(Boolean))];
+  const { error: deleteError } = await untypedSupabase
+    .from("worksite_sheet_subcontractors")
+    .delete()
+    .eq("worksite_sheet_id", sheetId);
+  if (deleteError) throw deleteError;
+
+  if (!ids.length) return;
+
+  const rows: WorksiteSheetSstRow[] = ids.map((subcontractor_id) => ({
+    worksite_sheet_id: sheetId,
+    subcontractor_id,
+    user_id: sheet.user_id,
+  }));
+  const { error: insertError } = await untypedSupabase
+    .from("worksite_sheet_subcontractors")
+    .insert(rows);
+  if (insertError) throw insertError;
+}
+
+export async function duplicateWorksiteSheet(id: string): Promise<WorksiteSheet> {
+  const source = await getWorksiteSheet(id);
+  const subcontractorIds = await listWorksiteSheetSubcontractorIds(id);
+  const {
+    id: _id,
+    user_id: _userId,
+    created_at: _createdAt,
+    updated_at: _updatedAt,
+    ...input
+  } = source;
+
+  const duplicate = await createWorksiteSheet(input);
+  try {
+    await setWorksiteSheetSubcontractors(duplicate.id, subcontractorIds);
+  } catch (error) {
+    try {
+      await deleteWorksiteSheet(duplicate.id);
+    } catch {
+      // Preserve the original error; cleanup is best-effort.
+    }
+    throw error;
+  }
+  return duplicate;
 }
 
 /** Upload d'une photo de chantier de fiche, renvoie le chemin de stockage. */

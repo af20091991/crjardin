@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import logo from "@/assets/logo.png";
 import type { WorksiteSheet } from "@/lib/worksite";
+import type { Subcontractor } from "@/lib/subcontractors";
 import { worksitePhotoUrl } from "@/lib/worksite";
 import { staticGardenMap } from "@/lib/maps.functions";
 
@@ -19,7 +20,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void> {
+export async function exportWorksiteSheetPdf(sheet: WorksiteSheet, assignedSsts: Subcontractor[] = []): Promise<void> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -50,14 +51,17 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   };
 
   const line = (label: string, value: string) => {
-    ensureSpace(6);
+    const labelText = `${label} : `;
     doc.setFont("helvetica", "bold");
-    doc.text(`${label} : `, margin, y);
-    const w = doc.getTextWidth(`${label} : `);
-    doc.setFont("helvetica", "normal");
+    const w = doc.getTextWidth(labelText);
     const lines = doc.splitTextToSize(value || "—", contentW - w);
+    const height = Math.max(lines.length, 1) * 5.4 + 0.6;
+    ensureSpace(height);
+    doc.setFont("helvetica", "bold");
+    doc.text(labelText, margin, y);
+    doc.setFont("helvetica", "normal");
     doc.text(lines, margin + w, y);
-    y += Math.max(lines.length, 1) * 5.4 + 0.6;
+    y += height;
   };
 
   const bullets = (items: string[]) => {
@@ -101,6 +105,13 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   if (sheet.intervenant) line("Intervenant(e)", sheet.intervenant);
   line("Client présent", sheet.client_present == null ? "—" : sheet.client_present ? "Oui" : "Non");
   line("Évacuation déchets verts", sheet.green_waste == null ? "—" : sheet.green_waste ? "Oui" : "Non");
+
+  heading("SST affectés");
+  bullets(
+    assignedSsts.length
+      ? assignedSsts.map((sst) => [sst.name, sst.company].filter(Boolean).join(" — "))
+      : ["Aucun SST affecté à cette fiche"],
+  );
 
   heading("Matériel nécessaire");
   bullets(sheet.equipment);

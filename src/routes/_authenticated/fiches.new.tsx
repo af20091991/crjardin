@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { WorksiteSheetForm } from "@/components/WorksiteSheetForm";
 import { listClients } from "@/lib/clients";
-import { createWorksiteSheet, emptyWorksiteSheet } from "@/lib/worksite";
+import { listSubcontractors } from "@/lib/subcontractors";
+import { createWorksiteSheet, emptyWorksiteSheet, setWorksiteSheetSubcontractors } from "@/lib/worksite";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
@@ -20,9 +21,24 @@ function NewFiche() {
   const { canEdit, isLoading: roleLoading } = useRole();
   useEffect(() => { if (!roleLoading && !canEdit) navigate({ to: "/", replace: true }); }, [canEdit, roleLoading, navigate]);
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const { data: subcontractors } = useQuery({ queryKey: ["subcontractors"], queryFn: listSubcontractors });
 
   const create = useMutation({
-    mutationFn: createWorksiteSheet,
+    mutationFn: async ({ input, sstIds }: { input: Parameters<typeof createWorksiteSheet>[0]; sstIds: string[] }) => {
+      const sheet = await createWorksiteSheet(input);
+      try {
+        await setWorksiteSheetSubcontractors(sheet.id, sstIds);
+      } catch (error) {
+        try {
+          const { deleteWorksiteSheet } = await import("@/lib/worksite");
+          await deleteWorksiteSheet(sheet.id);
+        } catch {
+          // Preserve the original error; cleanup is best-effort.
+        }
+        throw error;
+      }
+      return sheet;
+    },
     onSuccess: (s) => {
       qc.invalidateQueries({ queryKey: ["worksite-sheets"] });
       toast.success("Fiche chantier créée");
@@ -39,10 +55,11 @@ function NewFiche() {
         </Link>
         <WorksiteSheetForm
           clients={clients ?? []}
+          subcontractors={subcontractors ?? []}
           initial={emptyWorksiteSheet()}
           submitting={create.isPending}
           submitLabel="Créer la fiche"
-          onSubmit={(input) => create.mutate(input)}
+          onSubmit={(input, sstIds) => create.mutate({ input, sstIds })}
         />
       </div>
     </AppShell>

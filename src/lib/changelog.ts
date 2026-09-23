@@ -27,6 +27,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-23",
+    version: "2.4.3",
+    theme: "PDF & Partage",
+    title: "Fiches SST — duplication, plusieurs SST et PDF complet",
+    details: [
+      "Une fiche SST peut maintenant être dupliquée sans modifier la fiche source.",
+      "Plusieurs SST existants peuvent être affectés à une même fiche et restent persistants.",
+      "L'export PDF reprend les informations saisies de la fiche, y compris les SST affectés, le matériel, les EPI, la checklist, les notes, le plan, les repères, la déchèterie et les photos.",
+    ],
+  },
+
+  {
+    date: "2026-09-23",
     version: "2.4.2",
     theme: "Général",
     title: "Dashboard — bénéfice et clients fiabilisés",

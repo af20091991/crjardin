@@ -11,6 +11,7 @@ import {
 import { Check, ChevronDown, ChevronUp, Loader2, Plus, X, ImagePlus, ArrowUp, ArrowDown, MapPin, Recycle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import type { Client } from "@/lib/clients";
+import type { Subcontractor } from "@/lib/subcontractors";
 import {
   type WorksiteSheetInput,
   INTERVENANTS, EQUIPMENT_GROUPS, EPI_OPTIONS, TASK_GROUPS, CHECKLIST_OPTIONS,
@@ -61,18 +62,24 @@ function PhotoThumb({ path, onRemove }: { path: string; onRemove: () => void }) 
 
 export function WorksiteSheetForm({
   clients,
+  subcontractors,
   initial,
+  initialSstIds = [],
   submitting,
   submitLabel,
   onSubmit,
 }: {
   clients: Client[];
+  subcontractors: Subcontractor[];
   initial: WorksiteSheetInput;
+  initialSstIds?: string[];
   submitting: boolean;
   submitLabel: string;
-  onSubmit: (input: WorksiteSheetInput) => void;
+  onSubmit: (input: WorksiteSheetInput, sstIds: string[]) => void;
 }) {
   const [form, setForm] = useState<WorksiteSheetInput>(initial);
+  const [sstIds, setSstIds] = useState<string[]>(initialSstIds);
+  const [sstToAdd, setSstToAdd] = useState("");
   const [customTask, setCustomTask] = useState("");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [uploading, setUploading] = useState(false);
@@ -206,7 +213,7 @@ export function WorksiteSheetForm({
 
   function submit() {
     if (!form.client_name.trim()) { toast.error("Le nom du client est requis"); return; }
-    onSubmit(form);
+    onSubmit(form, sstIds);
   }
 
   return (
@@ -303,6 +310,59 @@ export function WorksiteSheetForm({
         </CardContent>
       </Card>
 
+      {/* SST affectés */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-serif">
+            SST affectés <span className="text-sm font-normal text-muted-foreground">({sstIds.length})</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Select value={sstToAdd} onValueChange={(id) => {
+              if (id && !sstIds.includes(id)) setSstIds((current) => [...current, id]);
+              setSstToAdd("");
+            }}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Ajouter un SST…" />
+              </SelectTrigger>
+              <SelectContent>
+                {subcontractors
+                  .filter((sst) => !sstIds.includes(sst.id))
+                  .map((sst) => (
+                    <SelectItem key={sst.id} value={sst.id}>
+                      {sst.name}{sst.company ? ` — ${sst.company}` : ""}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {sstIds.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun SST affecté à cette fiche.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {sstIds.map((id) => {
+                const sst = subcontractors.find((item) => item.id === id);
+                if (!sst) return null;
+                return (
+                  <div key={id} className="flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-sm">
+                    <span className="font-medium">{sst.name}</span>
+                    {sst.company && <span className="text-muted-foreground">· {sst.company}</span>}
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-destructive"
+                      aria-label={"Retirer " + sst.name}
+                      onClick={() => setSstIds((current) => current.filter((sstId) => sstId !== id))}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
       {/* Matériel */}
       <Card>
         <CardHeader><CardTitle className="font-serif">Matériel nécessaire <span className="text-sm font-normal text-muted-foreground">({form.equipment.length})</span></CardTitle></CardHeader>

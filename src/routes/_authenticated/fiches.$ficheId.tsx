@@ -5,12 +5,14 @@ import { AppShell } from "@/components/AppShell";
 import { WorksiteSheetForm } from "@/components/WorksiteSheetForm";
 import { Button } from "@/components/ui/button";
 import { listClients } from "@/lib/clients";
+import { listSubcontractors } from "@/lib/subcontractors";
 import {
   getWorksiteSheet, updateWorksiteSheet, deleteWorksiteSheet,
+  listWorksiteSheetSubcontractorIds, listWorksiteSheetSubcontractors, setWorksiteSheetSubcontractors, duplicateWorksiteSheet,
   type WorksiteSheetInput,
 } from "@/lib/worksite";
 import { exportWorksiteSheetPdf } from "@/lib/worksite-pdf";
-import { ArrowLeft, FileDown, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Copy, FileDown, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
 
@@ -28,13 +30,31 @@ function EditFiche() {
 
   const { data: sheet, isLoading } = useQuery({ queryKey: ["worksite-sheet", ficheId], queryFn: () => getWorksiteSheet(ficheId), enabled: canEdit });
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const { data: subcontractors } = useQuery({ queryKey: ["subcontractors"], queryFn: listSubcontractors });
+  const { data: sstIds } = useQuery({
+    queryKey: ["worksite-sheet-sst", ficheId],
+    queryFn: () => listWorksiteSheetSubcontractorIds(ficheId),
+    enabled: canEdit,
+  });
+  const { data: assignedSsts } = useQuery({
+    queryKey: ["worksite-sheet-ssts", ficheId],
+    queryFn: () => listWorksiteSheetSubcontractors(ficheId),
+    enabled: canEdit,
+  });
   const [exporting, setExporting] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
 
   const save = useMutation({
-    mutationFn: (input: WorksiteSheetInput) => updateWorksiteSheet(ficheId, input),
+    mutationFn: async ({ input, sstIds: nextSstIds }: { input: WorksiteSheetInput; sstIds: string[] }) => {
+      const updated = await updateWorksiteSheet(ficheId, input);
+      await setWorksiteSheetSubcontractors(ficheId, nextSstIds);
+      return updated;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["worksite-sheets"] });
       qc.invalidateQueries({ queryKey: ["worksite-sheet", ficheId] });
+      qc.invalidateQueries({ queryKey: ["worksite-sheet-sst", ficheId] });
+      qc.invalidateQueries({ queryKey: ["worksite-sheet-ssts", ficheId] });
       toast.success("Fiche enregistrée");
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
@@ -53,9 +73,24 @@ function EditFiche() {
   async function exportPdf() {
     if (!sheet) return;
     setExporting(true);
-    try { await exportWorksiteSheetPdf(sheet); }
+    try { await exportWorksiteSheetPdf(sheet, assignedSsts ?? []); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Échec de l'export"); }
     finally { setExporting(false); }
+  }
+
+  async function duplicate() {
+    if (!sheet) return;
+    setDuplicating(true);
+    try {
+      const copy = await duplicateWorksiteSheet(ficheId);
+      qc.invalidateQueries({ queryKey: ["worksite-sheets"] });
+      toast.success("Fiche dupliquée");
+      navigate({ to: "/fiches/$ficheId", params: { ficheId: copy.id } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de la duplication");
+    } finally {
+      setDuplicating(false);
+    }
   }
 
   return (
@@ -66,7 +101,10 @@ function EditFiche() {
             <ArrowLeft className="h-4 w-4" /> Retour
           </Link>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={exporting || !sheet} onClick={exportPdf}>
+            <Button size="sm" variant="outline" disabled={duplicating || !sheet} onClick={duplicate}>
+              {duplicating ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Copy className="mr-1.5 h-4 w-4" />} Dupliquer
+            </Button>
+            <Button size="sm" variant="outline" disabled={exporting || !sheet || assignedSsts === undefined} onClick={exportPdf}>
               {exporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileDown className="mr-1.5 h-4 w-4" />} PDF
             </Button>
             <Button size="sm" variant="ghost" className="text-destructive" disabled={remove.isPending} onClick={() => { if (window.confirm("Supprimer définitivement cette fiche ?")) remove.mutate(); }}>
@@ -75,7 +113,7 @@ function EditFiche() {
           </div>
         </div>
 
-        {isLoading || !sheet ? (
+        {isLoading || !sheet || sstIds === undefined ? (
           <p className="text-sm text-muted-foreground">Chargement…</p>
         ) : (
           <WorksiteSheetForm
@@ -106,7 +144,9 @@ function EditFiche() {
             }}
             submitting={save.isPending}
             submitLabel="Enregistrer les modifications"
-            onSubmit={(input) => save.mutate(input)}
+            subcontractors={subcontractors ?? []}
+            initialSstIds={sstIds ?? []}
+            onSubmit={(input, nextSstIds) => save.mutate({ input, sstIds: nextSstIds })}
           />
         )}
       </div>
