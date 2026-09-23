@@ -108,11 +108,12 @@ function parseIntervenants(value: unknown): string[] {
 }
 
 function serializeInput(input: WorksiteSheetInput): Record<string, unknown> {
-  const intervenants = input.intervenants.length ? input.intervenants : (input.intervenant ? [input.intervenant] : []);
+  const { intervenants, ...rest } = input;
+  const selected = intervenants.length ? intervenants : (input.intervenant ? [input.intervenant] : []);
   return {
-    ...input,
+    ...rest,
     // Stockage rétrocompatible dans la colonne textuelle existante.
-    intervenant: intervenants.length ? JSON.stringify(intervenants) : null,
+    intervenant: selected.length ? JSON.stringify(selected) : null,
   };
 }
 
