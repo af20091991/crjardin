@@ -27,6 +27,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-23",
+    version: "2.4.2",
+    theme: "Général",
+    title: "Dashboard — bénéfice et clients fiabilisés",
+    details: [
+      "Le bénéfice attendu utilise maintenant le prévisionnel total HT du mois moins les charges.",
+      "Les Top clients sont classés par bénéfice réel, en déduisant uniquement les charges explicitement rattachées.",
+      "Le bloc Objectifs a été retiré, les charges variables compactées et le SEO local peut afficher plus de communes.",
+    ],
+  },
+  {
+    date: "2026-09-23",
     version: "2.4.1",
     theme: "Général",
     title: "Assistant AP — calendrier, fournisseurs et relances",

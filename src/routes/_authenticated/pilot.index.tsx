@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Bar,
@@ -18,7 +18,6 @@ import {
   Bell,
   Clock,
   Euro,
-  Flag,
   Gauge,
   Globe2,
   LineChart as LineChartIcon,
@@ -40,7 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listNotifications, type AppNotification } from "@/lib/notifications";
-import { computeKpis, clientStatsWithHours, formatEuro, DEFAULT_SETTINGS, type PilotEntry } from "@/lib/pilot";
+import { computeKpis, formatEuro, DEFAULT_SETTINGS, type PilotEntry } from "@/lib/pilot";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
 import { useGestionMode } from "@/lib/pilot-gestion-mode";
@@ -48,16 +47,17 @@ import { gestionHoursForYear, rateWithGestion } from "@/lib/pilot-gestion-hours"
 import { listHours } from "@/lib/pilot-hours";
 import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
-import { entriesForMode, goalsForMode, hoursLedgerForMode } from "@/lib/pilot-realized";
+import { entriesForMode, hoursLedgerForMode } from "@/lib/pilot-realized";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
 import { countSaleInterventions } from "@/lib/pilot-intervention-count";
 import { monthlyChargeTotals, listChargeRows, analyzeCharges, priorityTrend, PRIORITY_VARIABLE_CATEGORIES } from "@/lib/pilot-charges";
 import { annualSummary } from "@/lib/pilot-annual";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
-import { listGoals, PRIORITY_META } from "@/lib/pilot-goals";
 import { listMissions, listSubcontractors } from "@/lib/subcontractors";
 import { sstRows, sstTotals } from "@/lib/sst-analytics";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
+import { monthForecastHt } from "@/lib/pilot-ca-forecast";
+import { rankClientsByBenefit, type ClientBenefit } from "@/lib/pilot-client-benefit";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
 import {
   listAnalyticsProperties,
@@ -128,7 +128,7 @@ const DASHBOARD_BLOCKS: DashboardBlockDef[] = [
   { id: "charges", label: "Charges variables" },
   { id: "clients", label: "Clients" },
   { id: "cr", label: "Notifications CR" },
-  { id: "objectifs-sst", label: "Objectifs et SST" },
+  { id: "objectifs-sst", label: "SST" },
 ];
 
 function DashboardPage() {
@@ -142,9 +142,9 @@ function DashboardPage() {
   const monthNumber = month + 1;
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
   const layout = useDashboardLayout(DASHBOARD_BLOCKS, "dashboard-home");
+  const [showAllCommunes, setShowAllCommunes] = useState(false);
 
   const chargeRows = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
-  const goals = useQuery({ queryKey: ["pilot-goals"], queryFn: listGoals });
   const hoursRows = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
   const hoursLedger = useQuery({
     queryKey: ["pilot-hours-ledger", year],
@@ -197,7 +197,10 @@ function DashboardPage() {
     [chargeRows.data, year],
   );
   const monthCharges = chargeTotals[month] ?? 0;
-  const monthProfit = kpis.caMonth - monthCharges;
+  const monthForecast = monthForecastHt(entries.data ?? [], monthNumber, {
+    period: "exercice_complet",
+  });
+  const monthProfit = monthForecast - monthCharges;
 
   const monthRevenueEntries = useMemo(
     () => scopedRevenueEntries(realEntries, year, monthNumber),
@@ -262,27 +265,18 @@ function DashboardPage() {
   );
 
   const clientMonthTop = useMemo(
-    () => topProfitableClients(clientStatsWithHours(monthRevenueEntries)),
-    [monthRevenueEntries],
+    () => rankClientsByBenefit(monthRevenueEntries, chargeRows.data ?? [], year, monthNumber),
+    [monthRevenueEntries, chargeRows.data, year, monthNumber],
   );
   const clientYearTop = useMemo(
-    () => topProfitableClients(clientStatsWithHours(yearRevenueEntries, year)),
-    [yearRevenueEntries, year],
+    () => rankClientsByBenefit(yearRevenueEntries, chargeRows.data ?? [], year),
+    [yearRevenueEntries, chargeRows.data, year],
   );
 
   const crNotifications = useMemo(
     () => (notifications.data ?? []).filter(isCrNotification).slice(0, 5),
     [notifications.data],
   );
-  const upcomingGoals = useMemo(
-    () =>
-      goalsForMode(goals.data ?? [], mode)
-        .filter((goal) => goal.status === "en_cours")
-        .sort((a, b) => deadlineTime(a.deadline) - deadlineTime(b.deadline))
-        .slice(0, 5),
-    [goals.data, mode],
-  );
-
   const sst = useMemo(() => {
     const rows = sstRows({
       missions: missions.data ?? [],
@@ -308,7 +302,6 @@ function DashboardPage() {
     charges.isLoading ||
     settings.isLoading ||
     chargeRows.isLoading ||
-    goals.isLoading ||
     hoursLedger.isLoading ||
     clients.isLoading ||
     missions.isLoading ||
@@ -321,7 +314,6 @@ function DashboardPage() {
     states.settings,
     states.clients,
     resourceState("pilot-charge-rows", "Charges détaillées", chargeRows),
-    resourceState("pilot-goals", "Objectifs", goals),
     resourceState("pilot-hours-ledger", "Heures Vente → Temps", hoursLedger),
     resourceState("sst-missions", "Missions SST", missions),
     resourceState("sst-subcontractors", "Sous-traitants", subcontractors),
@@ -374,8 +366,8 @@ function DashboardPage() {
               icon={Gauge}
               to="/pilot/finance"
               tone={monthProfit < 0 ? "warning" : monthProfit > 0 ? "positive" : "default"}
-              sub="CA du mois − charges du mois"
-              help="Lecture de synthèse du mois : CA comptabilisé moins charges enregistrées."
+              sub="Prévisionnel du mois − charges"
+              help="Prévisionnel total HT de toutes les ventes saisies sur le mois, moins les charges du mois."
             />
           </div>
         </DashboardBlock>
@@ -435,7 +427,7 @@ function DashboardPage() {
                 ) : localRankings.length === 0 ? (
                   <EmptyState icon={MapPin} title="Aucune requête locale disponible." compact />
                 ) : (
-                  localRankings.map((row) => (
+                  localRankings.slice(0, showAllCommunes ? undefined : 6).map((row) => (
                     <div key={row.commune} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md border border-border/70 px-3 py-2 text-sm">
                       <span className="font-medium">{row.commune}</span>
                       <span className="text-muted-foreground">{formatNumber(row.impressions)} imp.</span>
@@ -444,6 +436,17 @@ function DashboardPage() {
                   ))
                 )}
               </div>
+              {localRankings.length > 6 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => setShowAllCommunes((shown) => !shown)}
+                >
+                  {showAllCommunes ? "Voir moins" : `Voir plus (${localRankings.length - 6})`}
+                </Button>
+              )}
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <KeywordList title="En hausse" rows={keywordMovements.up} icon={TrendingUp} />
                 <KeywordList title="En baisse" rows={keywordMovements.down} icon={TrendingDown} />
@@ -518,7 +521,7 @@ function DashboardPage() {
               title="Évolution des charges variables"
               subtitle="Alimentaire, carburant et déchèterie · depuis 2020"
             />
-            <div className="mt-4 h-72">
+            <div className="mt-3 h-52">
               {chargeRows.isLoading ? (
                 <Skeleton className="h-full w-full" />
               ) : variableTrend.length === 0 ? (
@@ -550,8 +553,8 @@ function DashboardPage() {
 
         <DashboardBlock id="clients" layout={layout}>
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            <RankingCard title="Top 3 clients rentables du mois" rows={clientMonthTop} empty="Aucun client rentable mesurable ce mois-ci." />
-            <RankingCard title={`Top 3 clients rentables ${year}`} rows={clientYearTop} empty="Aucun client rentable mesurable sur l'année." />
+            <RankingCard title="Top 3 clients — bénéfice réel du mois" rows={clientMonthTop} empty="Aucun bénéfice client mesurable ce mois-ci." />
+            <RankingCard title={`Top 3 clients — bénéfice réel ${year}`} rows={clientYearTop} empty="Aucun bénéfice client mesurable sur l'année." />
           </div>
         </DashboardBlock>
 
@@ -577,38 +580,15 @@ function DashboardPage() {
         </DashboardBlock>
 
         <DashboardBlock id="objectifs-sst" layout={layout}>
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.15fr_0.85fr]">
-            <Card className="p-4">
-              <SectionHeading icon={Flag} title="Objectifs" subtitle="Prochains objectifs à accomplir" />
-              <div className="mt-4 space-y-2">
-                {goals.isLoading ? (
-                  <Skeleton className="h-28 w-full" />
-                ) : upcomingGoals.length === 0 ? (
-                  <EmptyState icon={Flag} title="Aucun objectif en cours." compact />
-                ) : (
-                  upcomingGoals.map((goal) => (
-                    <div key={goal.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/70 px-3 py-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{goal.title}</p>
-                        <p className="text-xs text-muted-foreground">Échéance {goal.deadline ? formatDateShort(goal.deadline) : "non définie"}</p>
-                      </div>
-                      <Badge variant="outline" className={PRIORITY_META[goal.priority].tone}>{PRIORITY_META[goal.priority].label}</Badge>
-                    </div>
-                  ))
-                )}
-              </div>
-            </Card>
-
-            <Card className="p-4">
-              <SectionHeading icon={Users} title="SST" subtitle={`Sous-traitance ${year}`} />
-              <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-                <MiniMetric label="Total SST" value={formatEuro(sst.cost)} />
-                <MiniMetric label="Heures SST" value={formatHours(sst.hours)} />
-                <MiniMetric label="Missions" value={formatNumber(sst.missions)} />
-              </div>
-              {missions.isError && <DataStateNotice state={resourceState("sst-missions", "Missions SST", missions)} className="mt-3" />}
-            </Card>
-          </div>
+          <Card className="p-4">
+            <SectionHeading icon={Users} title="SST" subtitle={`Sous-traitance ${year}`} />
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <MiniMetric label="Total SST" value={formatEuro(sst.cost)} />
+              <MiniMetric label="Heures SST" value={formatHours(sst.hours)} />
+              <MiniMetric label="Missions" value={formatNumber(sst.missions)} />
+            </div>
+            {missions.isError && <DataStateNotice state={resourceState("sst-missions", "Missions SST", missions)} className="mt-3" />}
+          </Card>
         </DashboardBlock>
       </PageBlocks>
     </div>
@@ -666,7 +646,7 @@ function RankingCard({
   empty,
 }: {
   title: string;
-  rows: ReturnType<typeof topProfitableClients>;
+  rows: ClientBenefit[];
   empty: string;
 }) {
   return (
@@ -685,9 +665,9 @@ function RankingCard({
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{row.name}</p>
-                <p className="text-xs text-muted-foreground">{formatEuro(row.ca)} · {formatHours(row.hours)} · {row.count} ligne{row.count > 1 ? "s" : ""}</p>
+                <p className="text-xs text-muted-foreground">CA {formatEuro(row.ca)} · charges liées {formatEuro(row.charges)}</p>
               </div>
-              <Badge variant="outline">{formatEuro(row.hourlyRate)}/h</Badge>
+              <Badge variant="outline">{formatEuro(row.benefit)}</Badge>
             </div>
           ))
         )}
@@ -812,13 +792,6 @@ function scopedRevenueEntries(entries: PilotEntry[], year: number, month?: numbe
   });
 }
 
-function topProfitableClients(rows: ReturnType<typeof clientStatsWithHours>) {
-  return rows
-    .filter((row) => !row.unassigned && row.hourlyRate > 0 && row.ca > 0)
-    .sort((a, b) => b.hourlyRate - a.hourlyRate || b.ca - a.ca)
-    .slice(0, 3);
-}
-
 function buildSearchTotals(rows: SearchRow[]) {
   const clicks = rows.reduce((sum, row) => sum + Number(row.clicks ?? 0), 0);
   const impressions = rows.reduce((sum, row) => sum + Number(row.impressions ?? 0), 0);
@@ -840,8 +813,7 @@ function buildLocalRankings(rows: SearchRow[]) {
     return { commune: labelCommune(term), ...totals };
   })
     .filter((row) => row.impressions > 0)
-    .sort((a, b) => a.position - b.position)
-    .slice(0, 6);
+    .sort((a, b) => a.position - b.position);
 }
 
 function buildKeywordMovements(current: SearchRow[], previous: SearchRow[]) {
@@ -885,12 +857,6 @@ function serviceChartRows(services: ReturnType<typeof analyzeServices>) {
 function isCrNotification(notification: AppNotification): boolean {
   const text = `${notification.type} ${notification.title} ${notification.body ?? ""}`.toLowerCase();
   return ["cr", "compte", "rapport", "annotation", "préconisation", "preconisation", "client", "lu", "question"].some((word) => text.includes(word));
-}
-
-function deadlineTime(value: string | null): number {
-  if (!value) return Number.MAX_SAFE_INTEGER;
-  const time = new Date(value).getTime();
-  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
 }
 
 function dateRange(days: number, endOffsetDays: number) {

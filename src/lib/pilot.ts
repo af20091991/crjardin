@@ -37,6 +37,8 @@ export interface PilotEntry {
   entry_date: string;
   client_id: string | null;
   client_name: string | null;
+  site_id?: string | null;
+  intervention_id?: string | null;
   family: PilotFamily;
   nature: string | null;
   amount_ht: number;
@@ -140,7 +142,8 @@ async function fetchCaRows<T>(columns: string, kind: "vente" | "charge"): Promis
 type CaVenteRow = {
   id: string; user_id: string; year: number; month: number; designation: string | null;
   category: string | null; amount_ht: number | null; hours: number | null;
-  client_id: string | null; sale_status?: string | null; intervention_type?: string | null;
+  client_id: string | null; site_id?: string | null; intervention_id?: string | null;
+  sale_status?: string | null; intervention_type?: string | null;
   created_at: string; updated_at: string;
 };
 
@@ -152,7 +155,7 @@ type CaChargeRow = {
 
 async function bridgeCaEntries(options?: AsOfOptions): Promise<PilotEntry[]> {
   const rows = await fetchCaRows<CaVenteRow>(
-    "id,user_id,year,month,kind,designation,category,amount_ht,hours,client_id,sale_status,intervention_type,created_at,updated_at",
+    "id,user_id,year,month,kind,designation,category,amount_ht,hours,client_id,site_id,intervention_id,sale_status,intervention_type,created_at,updated_at",
     "vente",
   );
   return rows.map((r) => {
@@ -168,6 +171,8 @@ async function bridgeCaEntries(options?: AsOfOptions): Promise<PilotEntry[]> {
       user_id: r.user_id,
       entry_date: rowDateFromYearMonth(r.year, r.month),
       client_id: r.client_id ?? null,
+      site_id: r.site_id ?? null,
+      intervention_id: r.intervention_id ?? null,
       client_name: r.designation,
       family: categoryToFamily(r.category as never),
       nature: r.category,
