@@ -1,3 +1,4 @@
+// Assistant AP — logique métier restaurée avec le module.
 import { supabase } from "@/integrations/supabase/client";
 
 // Assistant AP — pilotage des approvisionnements des chantiers d'aménagement.
