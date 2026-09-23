@@ -6,30 +6,42 @@ import { WorksiteSheetForm } from "@/components/WorksiteSheetForm";
 import { Button } from "@/components/ui/button";
 import { listClients } from "@/lib/clients";
 import {
-  getWorksiteSheet, updateWorksiteSheet, deleteWorksiteSheet,
+  getWorksiteSheet,
+  updateWorksiteSheet,
+  deleteWorksiteSheet,
   type WorksiteSheetInput,
 } from "@/lib/worksite";
-import { exportWorksiteSheetPdf } from "@/lib/worksite-pdf";
-import { ArrowLeft, FileDown, Trash2, Loader2 } from "lucide-react";
+import { duplicateWorksiteSheet } from "@/lib/worksite-sst";
+import { exportCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
+import { ArrowLeft, Copy, FileDown, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
-
 export const Route = createFileRoute("/_authenticated/fiches/$ficheId")({
-  head: () => ({ meta: [{ title: "Fiche SST — De la graine au jardin" }] }),
+  head: () => ({
+    meta: [{ title: "Fiche SST — De la graine au jardin" }],
+  }),
   component: EditFiche,
 });
-
 function EditFiche() {
   const { ficheId } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { canEdit, isLoading: roleLoading } = useRole();
-  useEffect(() => { if (!roleLoading && !canEdit) navigate({ to: "/", replace: true }); }, [canEdit, roleLoading, navigate]);
-
-  const { data: sheet, isLoading } = useQuery({ queryKey: ["worksite-sheet", ficheId], queryFn: () => getWorksiteSheet(ficheId), enabled: canEdit });
-  const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  useEffect(() => {
+    if (!roleLoading && !canEdit) {
+      navigate({ to: "/", replace: true });
+    }
+  }, [canEdit, roleLoading, navigate]);
+  const { data: sheet, isLoading } = useQuery({
+    queryKey: ["worksite-sheet", ficheId],
+    queryFn: () => getWorksiteSheet(ficheId),
+    enabled: canEdit,
+  });
+  const { data: clients } = useQuery({
+    queryKey: ["clients"],
+    queryFn: listClients,
+  });
   const [exporting, setExporting] = useState(false);
-
   const save = useMutation({
     mutationFn: (input: WorksiteSheetInput) => updateWorksiteSheet(ficheId, input),
     onSuccess: () => {
@@ -39,7 +51,6 @@ function EditFiche() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
-
   const remove = useMutation({
     mutationFn: () => deleteWorksiteSheet(ficheId),
     onSuccess: () => {
@@ -49,32 +60,68 @@ function EditFiche() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
-
+  async function duplicate() {
+    if (!sheet) return;
+    try {
+      const copy = await duplicateWorksiteSheet(sheet.id);
+      await qc.invalidateQueries({ queryKey: ["worksite-sheets"] });
+      toast.success("Fiche dupliquée");
+      navigate({
+        to: "/fiches/$ficheId",
+        params: { ficheId: copy.id },
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de la duplication");
+    }
+  }
   async function exportPdf() {
     if (!sheet) return;
     setExporting(true);
-    try { await exportWorksiteSheetPdf(sheet); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Échec de l'export"); }
-    finally { setExporting(false); }
+    try {
+      await exportCompleteWorksiteSheetPdf(sheet);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de l'export");
+    } finally {
+      setExporting(false);
+    }
   }
-
   return (
     <AppShell title="Fiche SST">
       <div className="mx-auto max-w-2xl space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <Link to="/fiches" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/fiches"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> Retour
           </Link>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={exporting || !sheet} onClick={exportPdf}>
-              {exporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileDown className="mr-1.5 h-4 w-4" />} PDF
+            <Button size="sm" variant="outline" disabled={!sheet} onClick={duplicate}>
+              <Copy className="mr-1.5 h-4 w-4" /> Dupliquer
             </Button>
-            <Button size="sm" variant="ghost" className="text-destructive" disabled={remove.isPending} onClick={() => { if (window.confirm("Supprimer définitivement cette fiche ?")) remove.mutate(); }}>
+            <Button size="sm" variant="outline" disabled={exporting || !sheet} onClick={exportPdf}>
+              {exporting ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <FileDown className="mr-1.5 h-4 w-4" />
+              )}{" "}
+              PDF
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-destructive"
+              disabled={remove.isPending}
+              onClick={() => {
+                if (window.confirm("Supprimer définitivement cette fiche ?")) {
+                  remove.mutate();
+                }
+              }}
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
-
         {isLoading || !sheet ? (
           <p className="text-sm text-muted-foreground">Chargement…</p>
         ) : (
