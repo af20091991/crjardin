@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 const apFrom = (table: string) => (supabase.from as any)(table);
 
 // Assistant AP — pilotage des approvisionnements des chantiers d'aménagement.
+// Validation AP : les accès aux tables restaurées restent isolés des types générés courants.
 // Source des données : tables ap_worksites / ap_supplies.
 
 export const AP_STATUSES = [
