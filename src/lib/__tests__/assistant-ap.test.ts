@@ -61,6 +61,8 @@ describe("upcomingFulfillments", () => {
         {
           id: "a",
           worksite_id: "w",
+          supplier_id: null,
+          quantity: null,
           supplier: "AEF",
           item: "Vivaces",
           status: "retrait_livraison_prevu",
@@ -71,6 +73,8 @@ describe("upcomingFulfillments", () => {
         {
           id: "b",
           worksite_id: "w",
+          supplier_id: null,
+          quantity: null,
           supplier: "Touchat",
           item: "Orgasyl",
           status: "a_faire",
@@ -81,6 +85,8 @@ describe("upcomingFulfillments", () => {
         {
           id: "c",
           worksite_id: "w",
+          supplier_id: null,
+          quantity: null,
           supplier: "Oyas",
           item: "Chanvre",
           status: "ok",
