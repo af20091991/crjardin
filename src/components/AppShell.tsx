@@ -157,12 +157,20 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Entreprise",
       items: [
         {
-          to: "/pilot",
+          to: "/pilot/dashboard",
           label: "Dashboard",
           short: "Dashboard",
-          icon: Home,
+          icon: LayoutDashboard,
           exact: true,
           primary: true,
+        },
+        {
+          to: "/pilot",
+          label: "Centre de décision",
+          short: "Décision",
+          icon: Home,
+          exact: true,
+          primary: false,
         },
         ...(canEdit
           ? [
