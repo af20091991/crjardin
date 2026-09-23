@@ -573,7 +573,7 @@ function identityTone(entry: SstAvailabilityWithUser, isMine: boolean) {
   const name = normalizedUserName(entry);
   // L'identité visuelle dépend de la personne, jamais de qui regarde :
   // Chloé reste rose et Fanny rouge brique, y compris pour elles-mêmes.
-  if (name.includes("chloe")) return "text-[#EC4899]";
+  if (name.includes("chloe")) return "text-fuchsia-500";
   if (name.includes("fanny")) return "text-destructive";
   if (isMine || name.includes("anthony")) return "text-primary";
   return OTHER_USER_TONES[stableUserIndex(entry.user_id, OTHER_USER_TONES.length)];
@@ -586,7 +586,7 @@ function UserIdentityBadge({ entry, isMine }: { entry: SstAvailabilityWithUser; 
 
   if (normalizedName.includes("chloe")) {
     return (
-      <span className={cn(badgeClass, "bg-[#FCE7F3] text-[#EC4899]")} title="Chloé">
+      <span className={cn(badgeClass, "bg-fuchsia-50 text-fuchsia-500")} title="Chloé">
         <MountainSnow className="h-3 w-3" />
         <Sparkles className="absolute h-1.5 w-1.5 translate-x-1 -translate-y-1" />
       </span>
