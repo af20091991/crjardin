@@ -17,7 +17,18 @@ jobs:
         with:
           bun-version-file: .bun-version
       - run: bun ci
-      - name: Format route and print result
+      - name: Format changed PP files and print results
         run: |
-          bunx prettier --write src/routes/_authenticated/fiches.\$ficheId.tsx
-          cat src/routes/_authenticated/fiches.\$ficheId.tsx
+          files=(
+            "src/components/WorksiteSheetForm.tsx"
+            "src/lib/changelog.ts"
+            "src/lib/worksite-pdf-complete.ts"
+            "src/lib/worksite-sst.ts"
+            "src/routes/_authenticated/fiches.\$ficheId.tsx"
+            "src/routes/_authenticated/fiches.index.tsx"
+          )
+          bunx prettier --write "${files[@]}"
+          for file in "${files[@]}"; do
+            echo "===== $file ====="
+            cat "$file"
+          done
