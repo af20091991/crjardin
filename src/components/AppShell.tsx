@@ -155,8 +155,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       items: [
         {
           to: "/pilot",
-          label: "Centre de décision",
-          short: "Accueil",
+          label: "Aujourd'hui",
+          short: "Aujourd'hui",
           icon: Home,
           exact: true,
           primary: true,
