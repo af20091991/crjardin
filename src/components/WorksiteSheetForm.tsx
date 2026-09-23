@@ -288,12 +288,14 @@ export function WorksiteSheetForm({
               <Input type="date" value={form.intervention_date ?? ""} onChange={(e) => set("intervention_date", e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Intervenant(e)</Label>
+              <Label>SST / intervenant(e)s</Label>
               <div className="flex flex-wrap gap-2 pt-1">
-                {INTERVENANTS.map((n) => (
-                  <Chip key={n} active={form.intervenant === n} onClick={() => set("intervenant", form.intervenant === n ? null : n)}>{n}</Chip>
-                ))}
+                {INTERVENANTS.map((n) => {
+                  const active = form.intervenants.includes(n);
+                  return <Chip key={n} active={active} onClick={() => set("intervenants", active ? form.intervenants.filter((x) => x !== n) : [...form.intervenants, n])}>{n}</Chip>;
+                })}
               </div>
+              <p className="text-xs text-muted-foreground">{form.intervenants.length} SST sélectionné(s)</p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
