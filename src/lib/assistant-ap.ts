@@ -50,7 +50,6 @@ export interface ApSupplier {
   comment: string | null;
 }
 
-
 export interface ApWorksite {
   id: string;
   client_label: string;

@@ -1024,7 +1024,10 @@ function CalendarTab({
                       )}
                     >
                       <span
-                        className={cn("h-1.5 w-1.5 shrink-0 rounded-full", EVENT_VIEW[event.type].dot)}
+                        className={cn(
+                          "h-1.5 w-1.5 shrink-0 rounded-full",
+                          EVENT_VIEW[event.type].dot,
+                        )}
                       />
                       <span className="truncate">
                         {event.type === "chantier"
@@ -1204,7 +1207,11 @@ function AddSupplierForm({ onDone, onCancel }: { onDone: () => void; onCancel: (
         className="h-8 text-sm"
       />
       <div className="flex gap-2">
-        <Button size="sm" disabled={!name.trim() || create.isPending} onClick={() => create.mutate()}>
+        <Button
+          size="sm"
+          disabled={!name.trim() || create.isPending}
+          onClick={() => create.mutate()}
+        >
           Ajouter
         </Button>
         <Button size="sm" variant="ghost" onClick={onCancel}>
@@ -1258,7 +1265,9 @@ function SupplierCard({
         aria-expanded={open}
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-foreground">{supplier.name}</span>
+          <span className="block truncate text-sm font-medium text-foreground">
+            {supplier.name}
+          </span>
           <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">
             {pending.length === 0
               ? "Rien en attente"
@@ -1288,7 +1297,11 @@ function SupplierCard({
             onOpenWorksite={onOpenWorksite}
           />
           <SupplierSection title="À recevoir" entries={toReceive} onOpenWorksite={onOpenWorksite} />
-          <SupplierSection title="À relancer" entries={toFollowUp} onOpenWorksite={onOpenWorksite} />
+          <SupplierSection
+            title="À relancer"
+            entries={toFollowUp}
+            onOpenWorksite={onOpenWorksite}
+          />
           <SupplierSection title="Historique" entries={history} onOpenWorksite={onOpenWorksite} />
           <div className="flex justify-between border-t pt-3">
             <DeleteConfirmation
@@ -1334,10 +1347,14 @@ function SupplierSection({
                 className="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 rounded border bg-background px-2 py-1 text-left text-xs hover:bg-muted/40"
               >
                 <span className="truncate font-medium">{supply.item}</span>
-                {supply.quantity && <span className="text-muted-foreground">{supply.quantity}</span>}
+                {supply.quantity && (
+                  <span className="text-muted-foreground">{supply.quantity}</span>
+                )}
                 <span className="text-muted-foreground">{worksite.client_label}</span>
                 <span className="text-muted-foreground">{AP_MODE_LABELS[supply.mode]}</span>
-                <span className="text-muted-foreground">{frDate(supply.fulfillment_date, "—")}</span>
+                <span className="text-muted-foreground">
+                  {frDate(supply.fulfillment_date, "—")}
+                </span>
                 <span className={cn("ml-auto", STATUS_VIEW[supply.status].tone)}>
                   {STATUS_VIEW[supply.status].label}
                 </span>
@@ -1394,7 +1411,9 @@ function FollowUpTab({
             <span>{AP_MODE_LABELS[supply.mode]}</span>
             <span>{frDate(supply.fulfillment_date, "date à définir")}</span>
           </span>
-          {supply.comment && <span className="text-xs text-muted-foreground">{supply.comment}</span>}
+          {supply.comment && (
+            <span className="text-xs text-muted-foreground">{supply.comment}</span>
+          )}
         </button>
       ))}
     </div>
