@@ -3,6 +3,7 @@ import logo from "@/assets/logo.png";
 import type { WorksiteSheet } from "@/lib/worksite";
 import { worksitePhotoUrl } from "@/lib/worksite";
 import { staticGardenMap } from "@/lib/maps.functions";
+import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
 
 const GREEN: [number, number, number] = [76, 138, 47];
 const DARK: [number, number, number] = [45, 55, 40];
@@ -98,9 +99,7 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   line("Adresse", sheet.address || "—");
   if (sheet.access_complement) line("Complément d'accès", sheet.access_complement);
   line("Date d'intervention", dateStr);
-  const intervenants = sheet.intervenants?.length
-    ? sheet.intervenants
-    : (sheet.intervenant ? [sheet.intervenant] : []);
+  const intervenants = parseWorksiteIntervenants(sheet.intervenant);
   line("SST / intervenant(e)s", intervenants.length ? intervenants.join(", ") : "—");
   line("Client présent", sheet.client_present == null ? "—" : sheet.client_present ? "Oui" : "Non");
   line("Évacuation déchets verts", sheet.green_waste == null ? "—" : sheet.green_waste ? "Oui" : "Non");
