@@ -28,6 +28,7 @@ import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedPilotIndexRouteImport } from './routes/_authenticated/pilot.index'
+import { Route as AuthenticatedPilotDashboardRouteImport } from './routes/_authenticated/pilot.dashboard'
 import { Route as AuthenticatedParcMaterielIndexRouteImport } from './routes/_authenticated/parc-materiel.index'
 import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
@@ -171,6 +172,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
 const AuthenticatedPilotIndexRoute = AuthenticatedPilotIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
+const AuthenticatedPilotDashboardRoute = AuthenticatedPilotDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
 const AuthenticatedParcMaterielIndexRoute =
@@ -577,6 +583,7 @@ export interface FileRoutesByTo {
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
   '/parc-materiel': typeof AuthenticatedParcMaterielIndexRoute
   '/pilot': typeof AuthenticatedPilotIndexRoute
+  '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
@@ -647,6 +654,7 @@ export interface FileRoutesById {
   '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/_authenticated/parc-materiel/': typeof AuthenticatedParcMaterielIndexRoute
   '/_authenticated/pilot/': typeof AuthenticatedPilotIndexRoute
+  '/_authenticated/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/_authenticated/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/_authenticated/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/_authenticated/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
@@ -1395,6 +1403,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotTempsRoute: typeof AuthenticatedPilotTempsRoute
   AuthenticatedPilotValidationRoute: typeof AuthenticatedPilotValidationRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
+  AuthenticatedPilotDashboardRoute: typeof AuthenticatedPilotDashboardRoute
   AuthenticatedPilotCeevContratsAgreementIdRoute: typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   AuthenticatedPilotFicheClientIdRoute: typeof AuthenticatedPilotFicheClientIdRoute
   AuthenticatedPilotFocusTopicRoute: typeof AuthenticatedPilotFocusTopicRoute
@@ -1431,6 +1440,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotTempsRoute: AuthenticatedPilotTempsRoute,
   AuthenticatedPilotValidationRoute: AuthenticatedPilotValidationRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
+  AuthenticatedPilotDashboardRoute: AuthenticatedPilotDashboardRoute,
   AuthenticatedPilotCeevContratsAgreementIdRoute:
     AuthenticatedPilotCeevContratsAgreementIdRoute,
   AuthenticatedPilotFicheClientIdRoute: AuthenticatedPilotFicheClientIdRoute,
