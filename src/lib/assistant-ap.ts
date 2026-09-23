@@ -1,6 +1,10 @@
 // Assistant AP — logique métier restaurée avec le module.
 import { supabase } from "@/integrations/supabase/client";
 
+// Ces tables AP existent côté Supabase mais ne figurent pas encore dans les types générés de main.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const apFrom = (table: string) => (supabase.from as any)(table);
+
 // Assistant AP — pilotage des approvisionnements des chantiers d'aménagement.
 // Source des données : tables ap_worksites / ap_supplies.
 
@@ -130,7 +134,7 @@ const SELECT =
   "id, client_label, scheduled_date, date_label, notes, ap_supplies(id, worksite_id, supplier, supplier_id, quantity, item, status, mode, fulfillment_date, comment)";
 
 export async function listApWorksites(): Promise<ApWorksite[]> {
-  const { data, error } = await supabase.from("ap_worksites").select(SELECT);
+  const { data, error } = await apFrom("ap_worksites").select(SELECT);
   if (error) throw error;
   const rows = (data ?? []) as unknown as (Omit<ApWorksite, "supplies"> & {
     ap_supplies: ApSupply[];
@@ -156,7 +160,7 @@ export async function createApWorksite(input: {
   notes?: string | null;
 }): Promise<void> {
   const { data: auth } = await supabase.auth.getUser();
-  const { error } = await supabase.from("ap_worksites").insert({
+  const { error } = await apFrom("ap_worksites").insert({
     client_label: input.client_label,
     scheduled_date: input.scheduled_date,
     date_label: input.date_label ?? null,
@@ -170,12 +174,12 @@ export async function updateApWorksite(
   id: string,
   patch: Partial<Pick<ApWorksite, "client_label" | "scheduled_date" | "date_label" | "notes">>,
 ): Promise<void> {
-  const { error } = await supabase.from("ap_worksites").update(patch).eq("id", id);
+  const { error } = await apFrom("ap_worksites").update(patch).eq("id", id);
   if (error) throw error;
 }
 
 export async function deleteApWorksite(id: string): Promise<void> {
-  const { error } = await supabase.from("ap_worksites").delete().eq("id", id);
+  const { error } = await apFrom("ap_worksites").delete().eq("id", id);
   if (error) throw error;
 }
 
@@ -190,7 +194,7 @@ export async function createApSupply(input: {
   fulfillment_date: string | null;
   comment: string | null;
 }): Promise<void> {
-  const { error } = await supabase.from("ap_supplies").insert(input);
+  const { error } = await apFrom("ap_supplies").insert(input);
   if (error) throw error;
 }
 
@@ -210,12 +214,12 @@ export async function updateApSupply(
     >
   >,
 ): Promise<void> {
-  const { error } = await supabase.from("ap_supplies").update(patch).eq("id", id);
+  const { error } = await apFrom("ap_supplies").update(patch).eq("id", id);
   if (error) throw error;
 }
 
 export async function deleteApSupply(id: string): Promise<void> {
-  const { error } = await supabase.from("ap_supplies").delete().eq("id", id);
+  const { error } = await apFrom("ap_supplies").delete().eq("id", id);
   if (error) throw error;
 }
 
@@ -247,12 +251,12 @@ export async function updateApSupplier(
   id: string,
   patch: Partial<Pick<ApSupplier, "name" | "phone" | "email" | "comment">>,
 ): Promise<void> {
-  const { error } = await supabase.from("ap_suppliers").update(patch).eq("id", id);
+  const { error } = await apFrom("ap_suppliers").update(patch).eq("id", id);
   if (error) throw error;
 }
 
 export async function deleteApSupplier(id: string): Promise<void> {
-  const { error } = await supabase.from("ap_suppliers").delete().eq("id", id);
+  const { error } = await apFrom("ap_suppliers").delete().eq("id", id);
   if (error) throw error;
 }
 
