@@ -47,7 +47,7 @@ import { gestionHoursForYear, rateWithGestion } from "@/lib/pilot-gestion-hours"
 import { listHours } from "@/lib/pilot-hours";
 import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
-import { entriesForMode, goalsForMode, hoursLedgerForMode } from "@/lib/pilot-realized";
+import { entriesForMode, hoursLedgerForMode } from "@/lib/pilot-realized";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
 import { countSaleInterventions } from "@/lib/pilot-intervention-count";
 import { monthlyChargeTotals, listChargeRows, analyzeCharges, priorityTrend, PRIORITY_VARIABLE_CATEGORIES } from "@/lib/pilot-charges";
@@ -302,7 +302,6 @@ function DashboardPage() {
     charges.isLoading ||
     settings.isLoading ||
     chargeRows.isLoading ||
-    goals.isLoading ||
     hoursLedger.isLoading ||
     clients.isLoading ||
     missions.isLoading ||
@@ -315,7 +314,6 @@ function DashboardPage() {
     states.settings,
     states.clients,
     resourceState("pilot-charge-rows", "Charges détaillées", chargeRows),
-    resourceState("pilot-goals", "Objectifs", goals),
     resourceState("pilot-hours-ledger", "Heures Vente → Temps", hoursLedger),
     resourceState("sst-missions", "Missions SST", missions),
     resourceState("sst-subcontractors", "Sous-traitants", subcontractors),
@@ -859,12 +857,6 @@ function serviceChartRows(services: ReturnType<typeof analyzeServices>) {
 function isCrNotification(notification: AppNotification): boolean {
   const text = `${notification.type} ${notification.title} ${notification.body ?? ""}`.toLowerCase();
   return ["cr", "compte", "rapport", "annotation", "préconisation", "preconisation", "client", "lu", "question"].some((word) => text.includes(word));
-}
-
-function deadlineTime(value: string | null): number {
-  if (!value) return Number.MAX_SAFE_INTEGER;
-  const time = new Date(value).getTime();
-  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
 }
 
 function dateRange(days: number, endOffsetDays: number) {

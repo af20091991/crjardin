@@ -38,9 +38,9 @@ export interface ChargeRow {
   kind: "charge" | "remuneration";
   /** Qualifiée comme investissement : suivie à part, hors charges mensuelles. */
   is_investment: boolean;
-  client_id: string | null;
-  site_id: string | null;
-  intervention_id: string | null;
+  client_id?: string | null;
+  site_id?: string | null;
+  intervention_id?: string | null;
 }
 
 type RawRow = {
@@ -245,6 +245,9 @@ export async function createInvestment(draft: InvestmentDraft): Promise<ChargeRo
     charge_category: row.charge_category ?? INVESTMENT_CATEGORY,
     kind: "charge",
     is_investment: true,
+    client_id: null,
+    site_id: null,
+    intervention_id: null,
   };
 }
 
