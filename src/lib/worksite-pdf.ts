@@ -50,12 +50,15 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   };
 
   const line = (label: string, value: string) => {
-    ensureSpace(6);
     doc.setFont("helvetica", "bold");
-    doc.text(`${label} : `, margin, y);
-    const w = doc.getTextWidth(`${label} : `);
+    const prefix = label + " : ";
+    const w = doc.getTextWidth(prefix);
     doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(value || "—", contentW - w);
+    const lines = doc.splitTextToSize(value || "—", Math.max(20, contentW - w));
+    ensureSpace(Math.max(lines.length, 1) * 5.4 + 1);
+    doc.setFont("helvetica", "bold");
+    doc.text(prefix, margin, y);
+    doc.setFont("helvetica", "normal");
     doc.text(lines, margin + w, y);
     y += Math.max(lines.length, 1) * 5.4 + 0.6;
   };
@@ -98,7 +101,10 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   line("Adresse", sheet.address || "—");
   if (sheet.access_complement) line("Complément d'accès", sheet.access_complement);
   line("Date d'intervention", dateStr);
-  if (sheet.intervenant) line("Intervenant(e)", sheet.intervenant);
+  const intervenants = sheet.intervenants?.length
+    ? sheet.intervenants
+    : (sheet.intervenant ? [sheet.intervenant] : []);
+  line("SST / intervenant(e)s", intervenants.length ? intervenants.join(", ") : "—");
   line("Client présent", sheet.client_present == null ? "—" : sheet.client_present ? "Oui" : "Non");
   line("Évacuation déchets verts", sheet.green_waste == null ? "—" : sheet.green_waste ? "Oui" : "Non");
 
@@ -144,6 +150,9 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   }
 
   if (sheet.latitude != null && sheet.longitude != null) {
+    heading("Localisation du chantier");
+    line("Latitude", String(sheet.latitude));
+    line("Longitude", String(sheet.longitude));
     heading("Plan jardin (vue aérienne)");
     try {
       const dataUrl = await staticGardenMap({
