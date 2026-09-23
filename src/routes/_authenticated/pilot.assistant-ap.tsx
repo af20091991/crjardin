@@ -154,7 +154,7 @@ const EVENT_VIEW: Record<ApEventType, { label: string; dot: string; chip: string
   livraison: {
     label: "Livraisons",
     dot: "bg-accent",
-    chip: "bg-accent/18 text-accent-foreground",
+    chip: "bg-accent/25 text-foreground",
   },
 };
 
