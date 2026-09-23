@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Legend,
   Line,
@@ -30,7 +32,11 @@ import {
 } from "lucide-react";
 import { usePilotData } from "@/components/pilot/usePilotData";
 import { PilotCard } from "@/components/pilot/PilotCard";
-import { DashboardCustomizer, DashboardBlock, PageBlocks } from "@/components/pilot/DashboardCustomizer";
+import {
+  DashboardCustomizer,
+  DashboardBlock,
+  PageBlocks,
+} from "@/components/pilot/DashboardCustomizer";
 import { DataHealthBar, DataStateNotice } from "@/components/pilot/DataStateNotice";
 import { resourceState } from "@/lib/pilot-data-state";
 import { EmptyState } from "@/components/pilot/EmptyState";
@@ -44,6 +50,7 @@ import {
   computeKpis,
   formatEuro,
   DEFAULT_SETTINGS,
+  type PilotEntry,
 } from "@/lib/pilot";
 import { useDashboardLayout, type DashboardBlockDef } from "@/lib/pilot-dashboard-layout";
 import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
@@ -55,13 +62,19 @@ import { useThresholds } from "@/lib/pilot-thresholds";
 import { entriesForMode, hoursLedgerForMode } from "@/lib/pilot-realized";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
 import { countSaleInterventions } from "@/lib/pilot-intervention-count";
-import { monthlyChargeTotals, listChargeRows, analyzeCharges, priorityTrend, PRIORITY_VARIABLE_CATEGORIES } from "@/lib/pilot-charges";
+import {
+  monthlyChargeTotals,
+  listChargeRows,
+  analyzeCharges,
+  priorityTrend,
+  PRIORITY_VARIABLE_CATEGORIES,
+} from "@/lib/pilot-charges";
 import { annualSummary } from "@/lib/pilot-annual";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { listMissions, listSubcontractors } from "@/lib/subcontractors";
 import { sstRows, sstTotals } from "@/lib/sst-analytics";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
-import { monthTotals } from "@/lib/pilot-ca";
+import { listCaEntries, monthTotals } from "@/lib/pilot-ca";
 import type { ClientStat } from "@/lib/pilot";
 import { entityEligibility, statusOf, useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
@@ -72,13 +85,14 @@ import {
   type SiteWebProvider,
 } from "@/lib/site-web-api";
 
-export const Route = createFileRoute("/_authenticated/pilot/")({
+export const Route = createFileRoute("/_authenticated/pilot/dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard — Pilot Pro" },
       {
         name: "description",
-        content: "Dashboard Pilot Pro : CA, site web, temps, rentabilité, clients, objectifs et SST.",
+        content:
+          "Dashboard Pilot Pro : CA, site web, temps, rentabilité, clients, objectifs et SST.",
       },
       { property: "og:title", content: "Dashboard — Pilot Pro" },
       {
@@ -169,12 +183,19 @@ function DashboardPage() {
 
   const chargeRows = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   const hoursRows = useQuery({ queryKey: ["pilot-hours", year], queryFn: () => listHours(year) });
+  const caEntries = useQuery({
+    queryKey: ["pilot-ca-entries", year],
+    queryFn: () => listCaEntries(year),
+  });
   const hoursLedger = useQuery({
     queryKey: ["pilot-hours-ledger", year],
     queryFn: () => fetchHoursLedger(year),
   });
   const missions = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
-  const subcontractors = useQuery({ queryKey: ["sst-subcontractors"], queryFn: listSubcontractors });
+  const subcontractors = useQuery({
+    queryKey: ["sst-subcontractors"],
+    queryFn: listSubcontractors,
+  });
   const notifications = useQuery({ queryKey: ["notifications"], queryFn: listNotifications });
   const siteWeb = useQuery({
     queryKey: ["site-web-dashboard", year],
@@ -216,25 +237,15 @@ function DashboardPage() {
   );
 
   const chargeTotals = useMemo(
-    () => monthlyChargeTotals(chargeRows.data ?? [], year, { mode: "projection", period: "exercice_complet" }),
+    () =>
+      monthlyChargeTotals(chargeRows.data ?? [], year, {
+        mode: "projection",
+        period: "exercice_complet",
+      }),
     [chargeRows.data, year],
   );
   const monthCharges = chargeTotals[month] ?? 0;
-  const monthResult = monthTotals(
-    (entries.data ?? []).map((entry) => ({
-      ...entry,
-      year: new Date(entry.entry_date).getFullYear(),
-      month: new Date(entry.entry_date).getMonth() + 1,
-      kind: "vente" as const,
-      is_fixed: false,
-      position: 0,
-      note: entry.observation,
-      created_at: entry.created_at,
-      updated_at: entry.updated_at,
-    })),
-    monthNumber,
-    { period },
-  ).benefice;
+  const monthResult = monthTotals(caEntries.data ?? [], monthNumber, { period }).benefice;
 
   const monthRevenueEntries = useMemo(
     () => scopedRevenueEntries(realEntries, year, monthNumber),
@@ -290,7 +301,12 @@ function DashboardPage() {
     [annualRows],
   );
   const chargesAnalysis = useMemo(
-    () => analyzeCharges(chargeRows.data ?? [], salesByYear, [...PRIORITY_VARIABLE_CATEGORIES], { mode, now, period }),
+    () =>
+      analyzeCharges(chargeRows.data ?? [], salesByYear, [...PRIORITY_VARIABLE_CATEGORIES], {
+        mode,
+        now,
+        period,
+      }),
     [chargeRows.data, salesByYear, mode, now, period],
   );
   const variableTrend = useMemo(
@@ -301,14 +317,22 @@ function DashboardPage() {
   const clientMonthTop = useMemo(
     () =>
       clientStatsWithHours(monthRevenueEntries, year)
-        .filter((client) => !client.unassigned && entityEligibility(statusOf(entityStatuses.data, client.clientId)).ranking)
+        .filter(
+          (client) =>
+            !client.unassigned &&
+            entityEligibility(statusOf(entityStatuses.data, client.clientId)).ranking,
+        )
         .slice(0, 3),
     [monthRevenueEntries, year, entityStatuses.data],
   );
   const clientYearTop = useMemo(
     () =>
       clientStatsWithHours(yearRevenueEntries, year)
-        .filter((client) => !client.unassigned && entityEligibility(statusOf(entityStatuses.data, client.clientId)).ranking)
+        .filter(
+          (client) =>
+            !client.unassigned &&
+            entityEligibility(statusOf(entityStatuses.data, client.clientId)).ranking,
+        )
         .slice(0, 3),
     [yearRevenueEntries, year, entityStatuses.data],
   );
@@ -330,7 +354,10 @@ function DashboardPage() {
 
   const site = siteWeb.data;
   const siteTotals = useMemo(() => buildSearchTotals(site?.searchRows ?? []), [site?.searchRows]);
-  const localRankings = useMemo(() => buildLocalRankings(site?.searchRows ?? []), [site?.searchRows]);
+  const localRankings = useMemo(
+    () => buildLocalRankings(site?.searchRows ?? []),
+    [site?.searchRows],
+  );
   const keywordMovements = useMemo(
     () => buildKeywordMovements(site?.searchRows ?? [], site?.previousRows ?? []),
     [site?.searchRows, site?.previousRows],
@@ -343,6 +370,7 @@ function DashboardPage() {
     settings.isLoading ||
     chargeRows.isLoading ||
     hoursLedger.isLoading ||
+    caEntries.isLoading ||
     clients.isLoading ||
     missions.isLoading ||
     subcontractors.isLoading ||
@@ -355,6 +383,7 @@ function DashboardPage() {
     states.clients,
     resourceState("pilot-charge-rows", "Charges détaillées", chargeRows),
     resourceState("pilot-hours-ledger", "Heures Vente → Temps", hoursLedger),
+    resourceState("pilot-ca-entries", "Chiffre d'affaires", caEntries),
     resourceState("sst-missions", "Missions SST", missions),
     resourceState("sst-subcontractors", "Sous-traitants", subcontractors),
     resourceState("notifications", "Notifications", notifications),
@@ -426,28 +455,77 @@ function DashboardPage() {
                 </Button>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-4">
-                <MiniMetric label="Sessions" value={siteWeb.isLoading ? "…" : formatNumber(site?.sessions ?? 0)} />
-                <MiniMetric label="Clics" value={siteWeb.isLoading ? "…" : formatNumber(siteTotals.clicks)} />
-                <MiniMetric label="Impressions" value={siteWeb.isLoading ? "…" : formatNumber(siteTotals.impressions)} />
-                <MiniMetric label="Position" value={siteWeb.isLoading ? "…" : formatDecimal(siteTotals.position)} />
+                <MiniMetric
+                  label="Sessions"
+                  value={siteWeb.isLoading ? "…" : formatNumber(site?.sessions ?? 0)}
+                />
+                <MiniMetric
+                  label="Clics"
+                  value={siteWeb.isLoading ? "…" : formatNumber(siteTotals.clicks)}
+                />
+                <MiniMetric
+                  label="Impressions"
+                  value={siteWeb.isLoading ? "…" : formatNumber(siteTotals.impressions)}
+                />
+                <MiniMetric
+                  label="Position"
+                  value={siteWeb.isLoading ? "…" : formatDecimal(siteTotals.position)}
+                />
               </div>
               <div className="mt-4 h-64">
                 {siteWeb.isLoading ? (
                   <Skeleton className="h-full w-full" />
                 ) : searchTrend.length === 0 ? (
-                  <EmptyState icon={Search} title="Aucune courbe Search Console disponible." compact />
+                  <EmptyState
+                    icon={Search}
+                    title="Aucune courbe Search Console disponible."
+                    compact
+                  />
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={searchTrend} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                    <LineChart
+                      data={searchTrend}
+                      margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={searchTrend.length > 14 ? 2 : 0} />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 11 }}
+                        interval={searchTrend.length > 14 ? 2 : 0}
+                      />
                       <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
                       <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
-                      <Tooltip formatter={(value: number | string) => formatNumber(Number(value))} />
+                      <Tooltip
+                        formatter={(value: number | string) => formatNumber(Number(value))}
+                      />
                       <Legend />
-                      <Line yAxisId="left" type="monotone" dataKey="clics" name="Clics" stroke={PP_COLORS.sales} strokeWidth={2} dot={false} />
-                      <Line yAxisId="left" type="monotone" dataKey="impressions" name="Impressions" stroke={PP_COLORS.primary} strokeWidth={2} dot={false} />
-                      <Line yAxisId="right" type="monotone" dataKey="position" name="Position" stroke={PP_COLORS.warning} strokeWidth={2} dot={false} />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="clics"
+                        name="Clics"
+                        stroke={PP_COLORS.sales}
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="impressions"
+                        name="Impressions"
+                        stroke={PP_COLORS.primary}
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="position"
+                        name="Position"
+                        stroke={PP_COLORS.warning}
+                        strokeWidth={2}
+                        dot={false}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 )}
@@ -468,9 +546,14 @@ function DashboardPage() {
                   <EmptyState icon={MapPin} title="Aucune requête locale disponible." compact />
                 ) : (
                   localRankings.slice(0, showAllCommunes ? 16 : 6).map((row) => (
-                    <div key={row.commune} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md border border-border/70 px-3 py-2 text-sm">
+                    <div
+                      key={row.commune}
+                      className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md border border-border/70 px-3 py-2 text-sm"
+                    >
                       <span className="font-medium">{row.commune}</span>
-                      <span className="text-muted-foreground">{formatNumber(row.impressions)} imp.</span>
+                      <span className="text-muted-foreground">
+                        {formatNumber(row.impressions)} imp.
+                      </span>
                       <Badge variant="outline">pos. {formatDecimal(row.position)}</Badge>
                     </div>
                   ))
@@ -510,16 +593,32 @@ function DashboardPage() {
               />
               <PilotCard
                 label="Marge horaire"
-                value={displayedHourlyRate != null ? `${formatEuro(displayedHourlyRate)}/h` : "Non disponible"}
+                value={
+                  displayedHourlyRate != null
+                    ? `${formatEuro(displayedHourlyRate)}/h`
+                    : "Non disponible"
+                }
                 icon={Gauge}
                 to="/pilot/taux"
-                tone={displayedHourlyRate != null && set.target_hourly_rate > 0 && displayedHourlyRate < set.target_hourly_rate ? "warning" : "default"}
-                sub={set.target_hourly_rate > 0 ? `Cible ${formatEuro(set.target_hourly_rate)}/h` : undefined}
+                tone={
+                  displayedHourlyRate != null &&
+                  set.target_hourly_rate > 0 &&
+                  displayedHourlyRate < set.target_hourly_rate
+                    ? "warning"
+                    : "default"
+                }
+                sub={
+                  set.target_hourly_rate > 0
+                    ? `Cible ${formatEuro(set.target_hourly_rate)}/h`
+                    : undefined
+                }
                 help="Taux horaire calculé par les moteurs Pilot Pro à partir du CA et du Temps Vente → Temps."
               />
               <PilotCard
                 label="Prestations classées"
-                value={formatNumber(services.filter((service) => service.classe !== "non_classe").length)}
+                value={formatNumber(
+                  services.filter((service) => service.classe !== "non_classe").length,
+                )}
                 icon={LineChartIcon}
                 to="/pilot/rentabilite"
                 sub={`${services.length} prestation${services.length > 1 ? "s" : ""} analysée${services.length > 1 ? "s" : ""}`}
@@ -536,18 +635,53 @@ function DashboardPage() {
                 {hoursLedger.isLoading ? (
                   <Skeleton className="h-full w-full" />
                 ) : services.length === 0 ? (
-                  <EmptyState icon={LineChartIcon} title="Données de prestation insuffisantes." compact />
+                  <EmptyState
+                    icon={LineChartIcon}
+                    title="Données de prestation insuffisantes."
+                    compact
+                  />
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={serviceChartRows(services)} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                    <BarChart
+                      data={serviceChartRows(services)}
+                      margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                       <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                      <YAxis yAxisId="left" tick={{ fontSize: 11 }} tickFormatter={(v) => `${Number(v).toFixed(0)} €/h`} />
-                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(v) => formatK(Number(v))} />
-                      <Tooltip formatter={(value: number | string, name) => name === "CA" ? formatEuro(Number(value)) : `${Number(value).toFixed(0)} €/h`} />
+                      <YAxis
+                        yAxisId="left"
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v) => `${Number(v).toFixed(0)} €/h`}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v) => formatK(Number(v))}
+                      />
+                      <Tooltip
+                        formatter={(value: number | string, name) =>
+                          name === "CA"
+                            ? formatEuro(Number(value))
+                            : `${Number(value).toFixed(0)} €/h`
+                        }
+                      />
                       <Legend />
-                      <Bar yAxisId="left" dataKey="taux" name="Taux horaire" fill={PP_COLORS.primary} radius={[4, 4, 0, 0]} />
-                      <Line yAxisId="right" type="monotone" dataKey="CA" name="CA" stroke={PP_COLORS.sales} strokeWidth={2} />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="taux"
+                        name="Taux horaire"
+                        fill={PP_COLORS.primary}
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="CA"
+                        name="CA"
+                        stroke={PP_COLORS.sales}
+                        strokeWidth={2}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -585,7 +719,12 @@ function DashboardPage() {
               <MiniMetric label="Heures SST" value={formatHours(sst.hours)} />
               <MiniMetric label="Missions" value={formatNumber(sst.missions)} />
             </div>
-            {missions.isError && <DataStateNotice state={resourceState("sst-missions", "Missions SST", missions)} className="mt-3" />}
+            {missions.isError && (
+              <DataStateNotice
+                state={resourceState("sst-missions", "Missions SST", missions)}
+                className="mt-3"
+              />
+            )}
           </Card>
         </DashboardBlock>
 
@@ -600,10 +739,17 @@ function DashboardPage() {
               {chargeRows.isLoading ? (
                 <Skeleton className="h-full w-full" />
               ) : variableTrend.length === 0 ? (
-                <EmptyState icon={Wallet} title="Aucune charge variable prioritaire enregistrée depuis 2020." compact />
+                <EmptyState
+                  icon={Wallet}
+                  title="Aucune charge variable prioritaire enregistrée depuis 2020."
+                  compact
+                />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={variableTrend} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                  <AreaChart
+                    data={variableTrend}
+                    margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis dataKey="annee" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatK(Number(v))} />
@@ -630,8 +776,16 @@ function DashboardPage() {
 
         <DashboardBlock id="clients" layout={layout}>
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            <RankingCard title="Top 3 clients — Rentabilité clients du mois" rows={clientMonthTop} empty="Aucun client classable ce mois-ci." />
-            <RankingCard title={`Top 3 clients — Rentabilité clients ${year}`} rows={clientYearTop} empty="Aucun client classable sur l'année." />
+            <RankingCard
+              title="Top 3 clients — Rentabilité clients du mois"
+              rows={clientMonthTop}
+              empty="Aucun client classable ce mois-ci."
+            />
+            <RankingCard
+              title={`Top 3 clients — Rentabilité clients ${year}`}
+              rows={clientYearTop}
+              empty="Aucun client classable sur l'année."
+            />
           </div>
         </DashboardBlock>
       </PageBlocks>
@@ -684,15 +838,7 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RankingCard({
-  title,
-  rows,
-  empty,
-}: {
-  title: string;
-  rows: ClientStat[];
-  empty: string;
-}) {
+function RankingCard({ title, rows, empty }: { title: string; rows: ClientStat[]; empty: string }) {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -703,14 +849,18 @@ function RankingCard({
           <EmptyState icon={Users} title={empty} compact />
         ) : (
           rows.map((row, index) => (
-            <div key={row.key} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-border/70 px-3 py-2">
+            <div
+              key={row.key}
+              className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-border/70 px-3 py-2"
+            >
               <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 font-serif text-sm font-semibold text-primary">
                 {index + 1}
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{row.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  CA {formatEuro(row.ca)} · {row.hours > 0 ? `${formatEuro(row.hourlyRate)}/h` : "taux/h non documenté"}
+                  CA {formatEuro(row.ca)} ·{" "}
+                  {row.hours > 0 ? `${formatEuro(row.hourlyRate)}/h` : "taux/h non documenté"}
                 </p>
               </div>
               <Badge variant="outline">{row.share.toFixed(0)} % du CA</Badge>
@@ -743,7 +893,10 @@ function KeywordList({
           rows.map((row) => (
             <div key={row.keyword} className="flex items-center justify-between gap-2 text-xs">
               <span className="min-w-0 truncate">{row.keyword}</span>
-              <span className="shrink-0 font-medium tabular-nums">{row.delta > 0 ? "+" : ""}{formatNumber(row.delta)}</span>
+              <span className="shrink-0 font-medium tabular-nums">
+                {row.delta > 0 ? "+" : ""}
+                {formatNumber(row.delta)}
+              </span>
             </div>
           ))
         )}
@@ -758,8 +911,12 @@ function NotificationRow({ notification }: { notification: AppNotification }) {
       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{notification.title}</p>
-        {notification.body && <p className="line-clamp-2 text-xs text-muted-foreground">{notification.body}</p>}
-        <p className="mt-1 text-xs text-muted-foreground">{formatDateShort(notification.created_at)}</p>
+        {notification.body && (
+          <p className="line-clamp-2 text-xs text-muted-foreground">{notification.body}</p>
+        )}
+        <p className="mt-1 text-xs text-muted-foreground">
+          {formatDateShort(notification.created_at)}
+        </p>
       </div>
       {!notification.is_read && <Badge>Non lu</Badge>}
     </div>
@@ -784,9 +941,24 @@ async function loadSiteSnapshot(): Promise<SiteSnapshot> {
   const errors: SiteSnapshot["errors"] = {};
 
   const [daily, currentQueries, previousQueries, analytics] = await Promise.all([
-    querySearchConsole({ siteUrl: SITE_URL, startDate: current.start, endDate: current.end, dimensions: ["date"] }),
-    querySearchConsole({ siteUrl: SITE_URL, startDate: current.start, endDate: current.end, dimensions: ["query"] }),
-    querySearchConsole({ siteUrl: SITE_URL, startDate: previous.start, endDate: previous.end, dimensions: ["query"] }),
+    querySearchConsole({
+      siteUrl: SITE_URL,
+      startDate: current.start,
+      endDate: current.end,
+      dimensions: ["date"],
+    }),
+    querySearchConsole({
+      siteUrl: SITE_URL,
+      startDate: current.start,
+      endDate: current.end,
+      dimensions: ["query"],
+    }),
+    querySearchConsole({
+      siteUrl: SITE_URL,
+      startDate: previous.start,
+      endDate: previous.end,
+      dimensions: ["query"],
+    }),
     loadAnalyticsSessions(current.start, current.end),
   ]);
 
@@ -803,7 +975,10 @@ async function loadSiteSnapshot(): Promise<SiteSnapshot> {
   };
 }
 
-async function loadAnalyticsSessions(startDate: string, endDate: string): Promise<{ sessions: number | null; error: string | null }> {
+async function loadAnalyticsSessions(
+  startDate: string,
+  endDate: string,
+): Promise<{ sessions: number | null; error: string | null }> {
   const propertiesResult = await listAnalyticsProperties();
   if (propertiesResult.error) return { sessions: null, error: propertiesResult.error };
   const properties = propertiesResult.data?.properties ?? [];
@@ -811,7 +986,8 @@ async function loadAnalyticsSessions(startDate: string, endDate: string): Promis
     properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
     properties.find((item) => item.name === PREFERRED_GA4_PROPERTY_ID) ??
     properties[0];
-  if (!selected) return { sessions: null, error: "Aucune propriété Google Analytics 4 accessible." };
+  if (!selected)
+    return { sessions: null, error: "Aucune propriété Google Analytics 4 accessible." };
   const reportResult = await runAnalyticsReport({
     propertyId: selected.name.replace(/^properties\//, ""),
     startDate,
@@ -863,7 +1039,9 @@ function buildLocalRankings(rows: SearchRow[]) {
 }
 
 function buildKeywordMovements(current: SearchRow[], previous: SearchRow[]) {
-  const before = new Map(previous.map((row) => [row.keys?.[0] ?? "", Number(row.impressions ?? 0)]));
+  const before = new Map(
+    previous.map((row) => [row.keys?.[0] ?? "", Number(row.impressions ?? 0)]),
+  );
   const movements = current
     .map((row) => {
       const keyword = row.keys?.[0] ?? "";
@@ -875,8 +1053,14 @@ function buildKeywordMovements(current: SearchRow[], previous: SearchRow[]) {
     })
     .filter((row) => row.keyword && row.impressions >= 10 && row.delta !== 0);
   return {
-    up: movements.filter((row) => row.delta > 0).sort((a, b) => b.delta - a.delta).slice(0, 4),
-    down: movements.filter((row) => row.delta < 0).sort((a, b) => a.delta - b.delta).slice(0, 4),
+    up: movements
+      .filter((row) => row.delta > 0)
+      .sort((a, b) => b.delta - a.delta)
+      .slice(0, 4),
+    down: movements
+      .filter((row) => row.delta < 0)
+      .sort((a, b) => a.delta - b.delta)
+      .slice(0, 4),
   };
 }
 
@@ -901,8 +1085,19 @@ function serviceChartRows(services: ReturnType<typeof analyzeServices>) {
 }
 
 function isCrNotification(notification: AppNotification): boolean {
-  const text = `${notification.type} ${notification.title} ${notification.body ?? ""}`.toLowerCase();
-  return ["cr", "compte", "rapport", "annotation", "préconisation", "preconisation", "client", "lu", "question"].some((word) => text.includes(word));
+  const text =
+    `${notification.type} ${notification.title} ${notification.body ?? ""}`.toLowerCase();
+  return [
+    "cr",
+    "compte",
+    "rapport",
+    "annotation",
+    "préconisation",
+    "preconisation",
+    "client",
+    "lu",
+    "question",
+  ].some((word) => text.includes(word));
 }
 
 function dateRange(days: number, endOffsetDays: number) {
@@ -914,7 +1109,12 @@ function dateRange(days: number, endOffsetDays: number) {
 }
 
 function formatDateLong(date: Date): string {
-  return date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  return date.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function formatDateShort(value: string): string {
