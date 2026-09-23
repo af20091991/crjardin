@@ -154,6 +154,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Entreprise",
       items: [
         {
+          to: "/",
+          label: "Dashboard",
+          short: "Dashboard",
+          icon: LayoutDashboard,
+          exact: true,
+          primary: true,
+        },
+        {
           to: "/pilot",
           label: "Centre de décision",
           short: "Accueil",
