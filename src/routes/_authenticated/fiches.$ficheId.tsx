@@ -9,7 +9,7 @@ import {
   getWorksiteSheet, updateWorksiteSheet, deleteWorksiteSheet, duplicateWorksiteSheet,
   type WorksiteSheetInput,
 } from "@/lib/worksite";
-import { exportWorksiteSheetPdf } from "@/lib/worksite-pdf";
+import { exportCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { ArrowLeft, Copy, FileDown, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
@@ -66,7 +66,7 @@ function EditFiche() {
   async function exportPdf() {
     if (!sheet) return;
     setExporting(true);
-    try { await exportWorksiteSheetPdf(sheet); }
+    try { await exportCompleteWorksiteSheetPdf(sheet); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Échec de l'export"); }
     finally { setExporting(false); }
   }
