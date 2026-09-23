@@ -693,7 +693,7 @@ function WorksiteDetail({
             <p className="text-[11px] font-medium uppercase text-muted-foreground">Chantier</p>
             <h2 className="truncate font-display text-xl">{worksite.client_label}</h2>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>{frDate(worksite.scheduled_date, worksite.date_label)}</span>
+              <WorksiteDateField worksite={worksite} onChanged={onChanged} />
               <Badge className={cn("border-0 text-[11px]", stateView.tone)}>
                 <span className={cn("mr-1 h-1.5 w-1.5 rounded-full", stateView.dot)} />
                 {stateView.label}
@@ -827,6 +827,44 @@ function WorksiteDetail({
         </section>
       </CardContent>
     </Card>
+  );
+}
+
+function WorksiteDateField({
+  worksite,
+  onChanged,
+}: {
+  worksite: ApWorksite;
+  onChanged: () => void;
+}) {
+  const updateDate = useMutation({
+    mutationFn: (scheduled_date: string | null) =>
+      updateApWorksite(worksite.id, { scheduled_date }),
+    onSuccess: () => {
+      toast.success("Date du chantier mise à jour");
+      onChanged();
+    },
+    onError: (mutationError: Error) => toast.error(mutationError.message),
+  });
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+      <Input
+        type="date"
+        aria-label="Date du chantier"
+        value={worksite.scheduled_date ?? ""}
+        disabled={updateDate.isPending}
+        className="h-7 w-[9.5rem] px-2 text-xs"
+        onChange={(event) => {
+          const value = event.target.value || null;
+          if (value !== worksite.scheduled_date) updateDate.mutate(value);
+        }}
+      />
+      {!worksite.scheduled_date && (
+        <span className="text-xs text-muted-foreground">Date à définir</span>
+      )}
+    </div>
   );
 }
 
