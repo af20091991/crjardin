@@ -41,6 +41,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  CalendarDays,
   CircleAlert,
   Clock3,
   LayoutGrid,
@@ -215,7 +216,7 @@ function AssistantApPage() {
         .filter(
           (supply) =>
             Boolean(supply.fulfillment_date) &&
-            supply.fulfillment_date! < todayIso &&
+            Boolean(supply.fulfillment_date && supply.fulfillment_date < todayIso) &&
             supply.status !== "ok",
         )
         .map((supply) => ({ worksite, supply })),
@@ -302,6 +303,7 @@ function AssistantApPage() {
       suppliers: matchedSuppliers.slice(0, 5),
     };
   }, [list, search, supplierList]);
+  const openedWorksite = openId ? visible.find((worksite) => worksite.id === openId) : undefined;
 
   const goToWorksite = (id: string) => {
     setFilter("all");
@@ -448,9 +450,9 @@ function AssistantApPage() {
             />
           ) : (
             <>
-              {openId && visible.some((worksite) => worksite.id === openId) && (
+              {openedWorksite && (
                 <WorksiteDetail
-                  worksite={visible.find((worksite) => worksite.id === openId)!}
+                  worksite={openedWorksite}
                   suppliers={supplierList}
                   onClose={() => setOpenId(null)}
                   onDeleted={() => setOpenId(null)}
@@ -695,7 +697,7 @@ function WorksiteDetail({ worksite, suppliers, onClose, onDeleted, onChanged }: 
               onConfirm={() => removeWorksite.mutate()}
               label="Supprimer le chantier"
             />
-            <Button variant="ghost" size="sm" onClick={onToggle}>
+            <Button variant="ghost" size="sm" onClick={onClose}>
               Fermer la fiche
             </Button>
           </div>}
