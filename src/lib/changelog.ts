@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-23",
+    version: "2.3.9",
+    theme: "Général",
+    title: "Restauration du module Dashboard",
+    details: [
+      "Le module Dashboard est de nouveau accessible séparément du Centre de décision.",
+      "Le Centre de décision reste le module Pilot Pro distinct accessible depuis le menu.",
+    ],
+  },
+  {
+    date: "2026-09-23",
     version: "2.3.8",
     theme: "Compte-rendus",
     title: "Fiches SST — plusieurs intervenants, duplication et export PDF complet",
