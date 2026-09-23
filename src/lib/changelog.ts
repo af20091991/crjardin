@@ -5,7 +5,6 @@ export type ChangeTheme =
   | "PDF & Partage"
   | "Jardinier"
   | "Général";
-
 export interface ChangeEntry {
   date: string; // ISO yyyy-mm-dd
   version: string;
@@ -13,7 +12,6 @@ export interface ChangeEntry {
   title: string;
   details: string[];
 }
-
 export const THEME_LABELS: ChangeTheme[] = [
   "Marque",
   "Clients",
@@ -22,7 +20,6 @@ export const THEME_LABELS: ChangeTheme[] = [
   "Jardinier",
   "Général",
 ];
-
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
@@ -46,7 +43,6 @@ export const CHANGELOG: ChangeEntry[] = [
       "Les échéances et rappels sont calculés automatiquement et les entretiens effectués restent archivés avec leur date.",
     ],
   },
-
   {
     date: "2026-09-18",
     version: "2.3.6",
