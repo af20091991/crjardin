@@ -33,12 +33,23 @@ export interface ApSupply {
   id: string;
   worksite_id: string;
   supplier: string;
+  supplier_id: string | null;
+  quantity: string | null;
   item: string;
   status: ApStatus;
   mode: ApMode;
   fulfillment_date: string | null;
   comment: string | null;
 }
+
+export interface ApSupplier {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  comment: string | null;
+}
+
 
 export interface ApWorksite {
   id: string;
