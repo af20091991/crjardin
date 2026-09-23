@@ -26,6 +26,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-23",
+    version: "2.4.1",
+    theme: "Général",
+    title: "Assistant AP — calendrier, fournisseurs et relances",
+    details: [
+      "Assistant AP s'organise maintenant en quatre onglets : Chantiers, Calendrier, Fournisseurs, À relancer.",
+      "Le calendrier mensuel affiche les jours de chantier, les retraits et les livraisons, avec légende et couleurs distinctes ; un clic ouvre le détail puis le chantier concerné.",
+      "Les fournisseurs sont centralisés : fiche avec téléphone, e-mail, commentaire et listes « à récupérer », « à recevoir », « à relancer » et historique.",
+      "Les fournitures acceptent une quantité et se relient au fournisseur enregistré ; filtres Tous / À faire / En cours / Fait / À relancer sur les chantiers.",
+    ],
+  },
+  {
     date: "2026-09-22",
     version: "2.4.0",
     theme: "Général",
