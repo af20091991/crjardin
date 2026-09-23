@@ -13,6 +13,7 @@ import { exportWorksiteSheetPdf } from "@/lib/worksite-pdf";
 import { ArrowLeft, Copy, FileDown, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
+import { duplicateWorksiteSheet } from "@/lib/worksite-sst";
 
 export const Route = createFileRoute("/_authenticated/fiches/$ficheId")({
   head: () => ({ meta: [{ title: "Fiche SST — De la graine au jardin" }] }),
