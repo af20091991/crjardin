@@ -6,21 +6,26 @@
 // Aucun autre indicateur ni règle métier n'est concerné.
 import { keepRealizedYearMonth, type AsOfOptions } from "@/lib/pilot-realized";
 import type { CaEntry } from "@/lib/pilot-ca";
+import type { PilotEntry } from "@/lib/pilot";
 
 export function monthForecastHt(
-  entries: CaEntry[],
+  entries: CaEntry[] | PilotEntry[],
   month: number,
   options?: AsOfOptions,
 ): number {
   return entries
     .filter(
       (e) =>
-        e.kind === "vente" &&
-        Number(e.month) === month &&
+        (!("kind" in e) || e.kind === "vente") &&
+        Number("month" in e ? e.month : new Date(e.entry_date).getMonth() + 1) === month &&
         keepRealizedYearMonth(
-          { year: Number(e.year), month: Number(e.month), entry_date: e.entry_date },
+          {
+            year: Number("year" in e ? e.year : new Date(e.entry_date).getFullYear()),
+            month: Number("month" in e ? e.month : new Date(e.entry_date).getMonth() + 1),
+            entry_date: e.entry_date,
+          },
           options,
         ),
     )
-    .reduce((s, e) => s + (e.amount_ht || 0), 0);
+    .reduce((s, e) => s + (("amount_ht_raw" in e ? e.amount_ht_raw : e.amount_ht) || 0), 0);
 }
