@@ -127,7 +127,7 @@ export function sortWorksites(worksites: ApWorksite[]): ApWorksite[] {
 // ───────────────────────── Accès aux données ─────────────────────────
 
 const SELECT =
-  "id, client_label, scheduled_date, date_label, notes, ap_supplies(id, worksite_id, supplier, item, status, mode, fulfillment_date, comment)";
+  "id, client_label, scheduled_date, date_label, notes, ap_supplies(id, worksite_id, supplier, supplier_id, quantity, item, status, mode, fulfillment_date, comment)";
 
 export async function listApWorksites(): Promise<ApWorksite[]> {
   const { data, error } = await supabase.from("ap_worksites").select(SELECT);
