@@ -22,8 +22,12 @@ export interface TemplateEntry {
  */
 import { template as newReportTemplate } from "./new-report";
 import { template as clientActivityTemplate } from "./client-activity";
+import { template as sstPlanningTemplate } from "./sst-planning";
+import { template as apReminderTemplate } from "./ap-reminder";
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   "new-report": newReportTemplate,
   "client-activity": clientActivityTemplate,
+  "sst-planning": sstPlanningTemplate,
+  "ap-reminder": apReminderTemplate,
 };
