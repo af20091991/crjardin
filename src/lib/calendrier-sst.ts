@@ -1,5 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// La table de disponibilités SST est restaurée par migration mais n’est pas encore dans les types générés de main.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sstFrom = (table: string) => (supabase.from as any)(table);
+
 /**
  * Calendrier SST — calendrier partagé des disponibilités des utilisateurs.
  * Une seule notion : « disponible » un jour donné, avec commentaire facultatif.
@@ -147,6 +151,6 @@ export async function updateAvailabilityComment(id: string, comment: string | nu
 }
 
 export async function removeAvailability(id: string) {
-  const { error } = await supabase.from("sst_availability_calendar").delete().eq("id", id);
+  const { error } = await sstFrom("sst_availability_calendar").delete().eq("id", id);
   if (error) throw error;
 }
