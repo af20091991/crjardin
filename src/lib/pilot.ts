@@ -247,7 +247,10 @@ export async function getSettings(): Promise<PilotSettings> {
   let query = supabase.from("pilot_settings").select("*");
   if (!isObserver) query = query.eq("user_id", user_id);
 
-  const { data, error } = await query.order("user_id", { ascending: true }).limit(1).maybeSingle();
+  const { data, error } = await query
+    .order("user_id", { ascending: true })
+    .limit(1)
+    .maybeSingle();
   if (error) throw error;
   if (!data) return { user_id, ...DEFAULT_SETTINGS };
   return data as unknown as PilotSettings;
