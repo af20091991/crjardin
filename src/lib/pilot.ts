@@ -234,11 +234,20 @@ export async function updateSaleStatus(id: string, status: string): Promise<void
 // ---------- Settings ----------
 export async function getSettings(): Promise<PilotSettings> {
   const user_id = await uid();
-  const { data, error } = await supabase
-    .from("pilot_settings")
-    .select("*")
-    .eq("user_id", user_id)
-    .maybeSingle();
+
+  // Un observateur consulte le Pilot Pro du compte propriétaire : il ne doit
+  // pas retomber sur ses propres réglages vides et afficher les valeurs par défaut.
+  const { data: roleRows, error: roleError } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user_id);
+  if (roleError) throw roleError;
+
+  const isObserver = (roleRows ?? []).some((r) => r.role === "observateur");
+  let query = supabase.from("pilot_settings").select("*");
+  if (!isObserver) query = query.eq("user_id", user_id);
+
+  const { data, error } = await query.order("user_id", { ascending: true }).limit(1).maybeSingle();
   if (error) throw error;
   if (!data) return { user_id, ...DEFAULT_SETTINGS };
   return data as unknown as PilotSettings;
