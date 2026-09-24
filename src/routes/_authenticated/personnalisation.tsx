@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, NAV_GROUP_LABELS } from "@/components/AppShell";
+import { useRole } from "@/hooks/use-role";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -98,6 +99,29 @@ function SectionHeading({ title, description }: { title: string; description: st
 
 function PersonnalisationPage() {
   const { appearance, setAppearance, reset } = useAppearance();
+  const { canEdit, isLoading: roleLoading } = useRole();
+
+  if (!roleLoading && !canEdit) {
+    return (
+      <AppShell title="Personnalisation">
+        <Card className="mx-auto max-w-3xl">
+          <CardHeader>
+            <CardTitle className="font-serif text-base">Apparence commune de Pilot Pro</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Cette apparence est commune à Pilot Pro. Elle est gérée par l'administrateur et
+              s'applique de la même façon à tous les utilisateurs.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Votre compte dispose d'un accès en lecture seule : aucun réglage ne peut être modifié
+              depuis ce compte.
+            </p>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
 
   const themeOptions: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
     { value: "light", label: "Clair", icon: Sun },
@@ -140,7 +164,7 @@ function PersonnalisationPage() {
               <h2 className="font-serif text-lg font-semibold">Apparence de l'application</h2>
               <p className="text-sm text-muted-foreground">
                 Choisissez les couleurs, le thème et l'agencement. Les changements s'appliquent
-                instantanément sur cet appareil.
+                instantanément à tous les utilisateurs de Pilot Pro.
               </p>
             </div>
           </div>
@@ -278,7 +302,7 @@ function PersonnalisationPage() {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Réversible à tout moment et conservé sur cet appareil : seuls les tokens visuels
+              Réversible à tout moment et partagé avec tous les utilisateurs : seuls les tokens visuels
               changent, aucune donnée ni aucun calcul n'est modifié.
             </p>
           </CardContent>
@@ -312,8 +336,8 @@ function PersonnalisationPage() {
               ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              Le changement est immédiat et réversible : aucune donnée, aucun calcul ni aucun statut
-              de fiabilité n'est modifié.
+              Le changement est immédiat et réversible pour tous les utilisateurs : aucune donnée,
+              aucun calcul ni aucun statut de fiabilité n'est modifié.
             </p>
           </CardContent>
         </Card>
@@ -1008,7 +1032,7 @@ function CardReadingSettings() {
 
         <p className="text-xs text-muted-foreground">
           L'importance visuelle d'une carte (Normal · Important · Prioritaire) se règle directement
-          sur la carte, via son menu d'affichage. Le choix est conservé sur cet appareil.
+          sur la carte, via son menu d'affichage. Le choix est partagé avec tous les utilisateurs.
         </p>
       </CardContent>
     </Card>
