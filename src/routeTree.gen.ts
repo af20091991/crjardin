@@ -28,12 +28,14 @@ import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedPilotIndexRouteImport } from './routes/_authenticated/pilot.index'
+import { Route as AuthenticatedPilotDashboardRouteImport } from './routes/_authenticated/pilot.dashboard'
 import { Route as AuthenticatedParcMaterielIndexRouteImport } from './routes/_authenticated/parc-materiel.index'
 import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
+import { Route as ApiPublicApRemindersRouteImport } from './routes/api/public/ap-reminders'
 import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_authenticated/pilot.validation'
 import { Route as AuthenticatedPilotTempsRouteImport } from './routes/_authenticated/pilot.temps'
 import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
@@ -58,15 +60,16 @@ import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authent
 import { Route as AuthenticatedPilotChargesRouteImport } from './routes/_authenticated/pilot.charges'
 import { Route as AuthenticatedPilotCeevLiveRouteImport } from './routes/_authenticated/pilot.ceev-live'
 import { Route as AuthenticatedPilotCeevRouteImport } from './routes/_authenticated/pilot.ceev'
+import { Route as AuthenticatedPilotCalendrierRouteImport } from './routes/_authenticated/pilot.calendrier'
 import { Route as AuthenticatedPilotCaRouteImport } from './routes/_authenticated/pilot.ca'
 import { Route as AuthenticatedPilotBenchmarkRouteImport } from './routes/_authenticated/pilot.benchmark'
+import { Route as AuthenticatedPilotAssistantApRouteImport } from './routes/_authenticated/pilot.assistant-ap'
 import { Route as AuthenticatedParcMaterielEquipmentIdRouteImport } from './routes/_authenticated/parc-materiel.$equipmentId'
 import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
 import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './routes/_authenticated/interventions.$interventionId'
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
 import { Route as AuthenticatedFichesFicheIdRouteImport } from './routes/_authenticated/fiches.$ficheId'
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients.$clientId'
-import { Route as AuthenticatedClientsClientIdPremiumRouteImport } from './routes/_authenticated/clients.$clientId.premium'
 import { Route as AuthenticatedPilotClientsIndexRouteImport } from './routes/_authenticated/pilot.clients.index'
 import { Route as AuthenticatedPilotCeevContratsIndexRouteImport } from './routes/_authenticated/pilot.ceev-contrats.index'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -171,6 +174,11 @@ const AuthenticatedPilotIndexRoute = AuthenticatedPilotIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
+const AuthenticatedPilotDashboardRoute = AuthenticatedPilotDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
 const AuthenticatedParcMaterielIndexRoute =
   AuthenticatedParcMaterielIndexRouteImport.update({
     id: '/parc-materiel/',
@@ -203,6 +211,11 @@ const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
 const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
   id: '/api/public/email-open',
   path: '/api/public/email-open',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicApRemindersRoute = ApiPublicApRemindersRouteImport.update({
+  id: '/api/public/ap-reminders',
+  path: '/api/public/ap-reminders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPilotValidationRoute =
@@ -343,6 +356,12 @@ const AuthenticatedPilotCeevRoute = AuthenticatedPilotCeevRouteImport.update({
   path: '/ceev',
   getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
+const AuthenticatedPilotCalendrierRoute =
+  AuthenticatedPilotCalendrierRouteImport.update({
+    id: '/calendrier',
+    path: '/calendrier',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotCaRoute = AuthenticatedPilotCaRouteImport.update({
   id: '/ca',
   path: '/ca',
@@ -352,6 +371,12 @@ const AuthenticatedPilotBenchmarkRoute =
   AuthenticatedPilotBenchmarkRouteImport.update({
     id: '/benchmark',
     path: '/benchmark',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotAssistantApRoute =
+  AuthenticatedPilotAssistantApRouteImport.update({
+    id: '/assistant-ap',
+    path: '/assistant-ap',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
 const AuthenticatedParcMaterielEquipmentIdRoute =
@@ -387,12 +412,6 @@ const AuthenticatedClientsClientIdRoute =
   AuthenticatedClientsClientIdRouteImport.update({
     id: '/clients/$clientId',
     path: '/clients/$clientId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedClientsClientIdPremiumRoute =
-  AuthenticatedClientsClientIdPremiumRouteImport.update({
-    id: '/clients/$clientId/premium',
-    path: '/clients/$clientId/premium',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPilotClientsIndexRoute =
@@ -450,6 +469,7 @@ export interface FileRoutesByFullPath {
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/pilot': typeof AuthenticatedPilotRouteWithChildren
+  '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/sst': typeof AuthenticatedSstRoute
@@ -457,14 +477,15 @@ export interface FileRoutesByFullPath {
   '/versions': typeof AuthenticatedVersionsRoute
   '/partage/$token': typeof PartageTokenRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
-  '/clients/$clientId/premium': typeof AuthenticatedClientsClientIdPremiumRoute
   '/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
   '/parc-materiel/$equipmentId': typeof AuthenticatedParcMaterielEquipmentIdRoute
+  '/pilot/assistant-ap': typeof AuthenticatedPilotAssistantApRoute
   '/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
+  '/pilot/calendrier': typeof AuthenticatedPilotCalendrierRoute
   '/pilot/ceev': typeof AuthenticatedPilotCeevRoute
   '/pilot/ceev-live': typeof AuthenticatedPilotCeevLiveRoute
   '/pilot/charges': typeof AuthenticatedPilotChargesRoute
@@ -489,6 +510,7 @@ export interface FileRoutesByFullPath {
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
+  '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
@@ -527,8 +549,10 @@ export interface FileRoutesByTo {
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/interventions/new': typeof AuthenticatedInterventionsNewRoute
   '/parc-materiel/$equipmentId': typeof AuthenticatedParcMaterielEquipmentIdRoute
+  '/pilot/assistant-ap': typeof AuthenticatedPilotAssistantApRoute
   '/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/pilot/ca': typeof AuthenticatedPilotCaRoute
+  '/pilot/calendrier': typeof AuthenticatedPilotCalendrierRoute
   '/pilot/ceev': typeof AuthenticatedPilotCeevRoute
   '/pilot/ceev-live': typeof AuthenticatedPilotCeevLiveRoute
   '/pilot/charges': typeof AuthenticatedPilotChargesRoute
@@ -552,6 +576,7 @@ export interface FileRoutesByTo {
   '/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
+  '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
@@ -559,6 +584,8 @@ export interface FileRoutesByTo {
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
   '/parc-materiel': typeof AuthenticatedParcMaterielIndexRoute
   '/pilot': typeof AuthenticatedPilotIndexRoute
+  '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
+  '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
@@ -588,14 +615,15 @@ export interface FileRoutesById {
   '/partage/$token': typeof PartageTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
-  '/_authenticated/clients/$clientId/premium': typeof AuthenticatedClientsClientIdPremiumRoute
   '/_authenticated/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
   '/_authenticated/fiches/new': typeof AuthenticatedFichesNewRoute
   '/_authenticated/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
   '/_authenticated/interventions/new': typeof AuthenticatedInterventionsNewRoute
   '/_authenticated/parc-materiel/$equipmentId': typeof AuthenticatedParcMaterielEquipmentIdRoute
+  '/_authenticated/pilot/assistant-ap': typeof AuthenticatedPilotAssistantApRoute
   '/_authenticated/pilot/benchmark': typeof AuthenticatedPilotBenchmarkRoute
   '/_authenticated/pilot/ca': typeof AuthenticatedPilotCaRoute
+  '/_authenticated/pilot/calendrier': typeof AuthenticatedPilotCalendrierRoute
   '/_authenticated/pilot/ceev': typeof AuthenticatedPilotCeevRoute
   '/_authenticated/pilot/ceev-live': typeof AuthenticatedPilotCeevLiveRoute
   '/_authenticated/pilot/charges': typeof AuthenticatedPilotChargesRoute
@@ -620,6 +648,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/taux': typeof AuthenticatedPilotTauxRoute
   '/_authenticated/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/_authenticated/pilot/validation': typeof AuthenticatedPilotValidationRoute
+  '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
@@ -627,6 +656,7 @@ export interface FileRoutesById {
   '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/_authenticated/parc-materiel/': typeof AuthenticatedParcMaterielIndexRoute
   '/_authenticated/pilot/': typeof AuthenticatedPilotIndexRoute
+  '/_authenticated/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/_authenticated/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/_authenticated/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/_authenticated/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
@@ -656,14 +686,15 @@ export interface FileRouteTypes {
     | '/versions'
     | '/partage/$token'
     | '/clients/$clientId'
-    | '/clients/$clientId/premium'
     | '/fiches/$ficheId'
     | '/fiches/new'
     | '/interventions/$interventionId'
     | '/interventions/new'
     | '/parc-materiel/$equipmentId'
+    | '/pilot/assistant-ap'
     | '/pilot/benchmark'
     | '/pilot/ca'
+    | '/pilot/calendrier'
     | '/pilot/ceev'
     | '/pilot/ceev-live'
     | '/pilot/charges'
@@ -688,6 +719,7 @@ export interface FileRouteTypes {
     | '/pilot/taux'
     | '/pilot/temps'
     | '/pilot/validation'
+    | '/api/public/ap-reminders'
     | '/api/public/email-open'
     | '/lovable/email/events'
     | '/clients/'
@@ -726,8 +758,10 @@ export interface FileRouteTypes {
     | '/interventions/$interventionId'
     | '/interventions/new'
     | '/parc-materiel/$equipmentId'
+    | '/pilot/assistant-ap'
     | '/pilot/benchmark'
     | '/pilot/ca'
+    | '/pilot/calendrier'
     | '/pilot/ceev'
     | '/pilot/ceev-live'
     | '/pilot/charges'
@@ -751,6 +785,7 @@ export interface FileRouteTypes {
     | '/pilot/taux'
     | '/pilot/temps'
     | '/pilot/validation'
+    | '/api/public/ap-reminders'
     | '/api/public/email-open'
     | '/lovable/email/events'
     | '/clients'
@@ -758,6 +793,7 @@ export interface FileRouteTypes {
     | '/interventions'
     | '/parc-materiel'
     | '/pilot'
+    | '/pilot/dashboard'
     | '/pilot/ceev-contrats/$agreementId'
     | '/pilot/clients/$clientKey'
     | '/pilot/fiche/$clientId'
@@ -786,14 +822,15 @@ export interface FileRouteTypes {
     | '/partage/$token'
     | '/_authenticated/'
     | '/_authenticated/clients/$clientId'
-    | '/_authenticated/clients/$clientId/premium'
     | '/_authenticated/fiches/$ficheId'
     | '/_authenticated/fiches/new'
     | '/_authenticated/interventions/$interventionId'
     | '/_authenticated/interventions/new'
     | '/_authenticated/parc-materiel/$equipmentId'
+    | '/_authenticated/pilot/assistant-ap'
     | '/_authenticated/pilot/benchmark'
     | '/_authenticated/pilot/ca'
+    | '/_authenticated/pilot/calendrier'
     | '/_authenticated/pilot/ceev'
     | '/_authenticated/pilot/ceev-live'
     | '/_authenticated/pilot/charges'
@@ -818,6 +855,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/taux'
     | '/_authenticated/pilot/temps'
     | '/_authenticated/pilot/validation'
+    | '/api/public/ap-reminders'
     | '/api/public/email-open'
     | '/lovable/email/events'
     | '/_authenticated/clients/'
@@ -825,6 +863,7 @@ export interface FileRouteTypes {
     | '/_authenticated/interventions/'
     | '/_authenticated/parc-materiel/'
     | '/_authenticated/pilot/'
+    | '/_authenticated/pilot/dashboard'
     | '/_authenticated/pilot/ceev-contrats/$agreementId'
     | '/_authenticated/pilot/clients/$clientKey'
     | '/_authenticated/pilot/fiche/$clientId'
@@ -841,6 +880,7 @@ export interface RootRouteChildren {
   PendingRoute: typeof PendingRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   PartageTokenRoute: typeof PartageTokenRoute
+  ApiPublicApRemindersRoute: typeof ApiPublicApRemindersRoute
   ApiPublicEmailOpenRoute: typeof ApiPublicEmailOpenRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -981,6 +1021,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotIndexRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/dashboard': {
+      id: '/_authenticated/pilot/dashboard'
+      path: '/dashboard'
+      fullPath: '/pilot/dashboard'
+      preLoaderRoute: typeof AuthenticatedPilotDashboardRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/parc-materiel/': {
       id: '/_authenticated/parc-materiel/'
       path: '/parc-materiel'
@@ -1021,6 +1068,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/email-open'
       fullPath: '/api/public/email-open'
       preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ap-reminders': {
+      id: '/api/public/ap-reminders'
+      path: '/api/public/ap-reminders'
+      fullPath: '/api/public/ap-reminders'
+      preLoaderRoute: typeof ApiPublicApRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/pilot/validation': {
@@ -1191,6 +1245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotCeevRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/calendrier': {
+      id: '/_authenticated/pilot/calendrier'
+      path: '/calendrier'
+      fullPath: '/pilot/calendrier'
+      preLoaderRoute: typeof AuthenticatedPilotCalendrierRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/ca': {
       id: '/_authenticated/pilot/ca'
       path: '/ca'
@@ -1203,6 +1264,13 @@ declare module '@tanstack/react-router' {
       path: '/benchmark'
       fullPath: '/pilot/benchmark'
       preLoaderRoute: typeof AuthenticatedPilotBenchmarkRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/assistant-ap': {
+      id: '/_authenticated/pilot/assistant-ap'
+      path: '/assistant-ap'
+      fullPath: '/pilot/assistant-ap'
+      preLoaderRoute: typeof AuthenticatedPilotAssistantApRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
     '/_authenticated/parc-materiel/$equipmentId': {
@@ -1245,13 +1313,6 @@ declare module '@tanstack/react-router' {
       path: '/clients/$clientId'
       fullPath: '/clients/$clientId'
       preLoaderRoute: typeof AuthenticatedClientsClientIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/clients/$clientId/premium': {
-      id: '/_authenticated/clients/$clientId/premium'
-      path: '/clients/$clientId/premium'
-      fullPath: '/clients/$clientId/premium'
-      preLoaderRoute: typeof AuthenticatedClientsClientIdPremiumRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pilot/clients/': {
@@ -1324,8 +1385,10 @@ const AuthenticatedPilotClientsRouteWithChildren =
   )
 
 interface AuthenticatedPilotRouteChildren {
+  AuthenticatedPilotAssistantApRoute: typeof AuthenticatedPilotAssistantApRoute
   AuthenticatedPilotBenchmarkRoute: typeof AuthenticatedPilotBenchmarkRoute
   AuthenticatedPilotCaRoute: typeof AuthenticatedPilotCaRoute
+  AuthenticatedPilotCalendrierRoute: typeof AuthenticatedPilotCalendrierRoute
   AuthenticatedPilotCeevRoute: typeof AuthenticatedPilotCeevRoute
   AuthenticatedPilotCeevLiveRoute: typeof AuthenticatedPilotCeevLiveRoute
   AuthenticatedPilotChargesRoute: typeof AuthenticatedPilotChargesRoute
@@ -1351,6 +1414,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotTempsRoute: typeof AuthenticatedPilotTempsRoute
   AuthenticatedPilotValidationRoute: typeof AuthenticatedPilotValidationRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
+  AuthenticatedPilotDashboardRoute: typeof AuthenticatedPilotDashboardRoute
   AuthenticatedPilotCeevContratsAgreementIdRoute: typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   AuthenticatedPilotFicheClientIdRoute: typeof AuthenticatedPilotFicheClientIdRoute
   AuthenticatedPilotFocusTopicRoute: typeof AuthenticatedPilotFocusTopicRoute
@@ -1358,8 +1422,10 @@ interface AuthenticatedPilotRouteChildren {
 }
 
 const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
+  AuthenticatedPilotAssistantApRoute: AuthenticatedPilotAssistantApRoute,
   AuthenticatedPilotBenchmarkRoute: AuthenticatedPilotBenchmarkRoute,
   AuthenticatedPilotCaRoute: AuthenticatedPilotCaRoute,
+  AuthenticatedPilotCalendrierRoute: AuthenticatedPilotCalendrierRoute,
   AuthenticatedPilotCeevRoute: AuthenticatedPilotCeevRoute,
   AuthenticatedPilotCeevLiveRoute: AuthenticatedPilotCeevLiveRoute,
   AuthenticatedPilotChargesRoute: AuthenticatedPilotChargesRoute,
@@ -1385,6 +1451,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotTempsRoute: AuthenticatedPilotTempsRoute,
   AuthenticatedPilotValidationRoute: AuthenticatedPilotValidationRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
+  AuthenticatedPilotDashboardRoute: AuthenticatedPilotDashboardRoute,
   AuthenticatedPilotCeevContratsAgreementIdRoute:
     AuthenticatedPilotCeevContratsAgreementIdRoute,
   AuthenticatedPilotFicheClientIdRoute: AuthenticatedPilotFicheClientIdRoute,
@@ -1410,7 +1477,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVersionsRoute: typeof AuthenticatedVersionsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedClientsClientIdRoute: typeof AuthenticatedClientsClientIdRoute
-  AuthenticatedClientsClientIdPremiumRoute: typeof AuthenticatedClientsClientIdPremiumRoute
   AuthenticatedFichesFicheIdRoute: typeof AuthenticatedFichesFicheIdRoute
   AuthenticatedFichesNewRoute: typeof AuthenticatedFichesNewRoute
   AuthenticatedInterventionsInterventionIdRoute: typeof AuthenticatedInterventionsInterventionIdRoute
@@ -1436,7 +1502,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVersionsRoute: AuthenticatedVersionsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedClientsClientIdRoute: AuthenticatedClientsClientIdRoute,
-  AuthenticatedClientsClientIdPremiumRoute: AuthenticatedClientsClientIdPremiumRoute,
   AuthenticatedFichesFicheIdRoute: AuthenticatedFichesFicheIdRoute,
   AuthenticatedFichesNewRoute: AuthenticatedFichesNewRoute,
   AuthenticatedInterventionsInterventionIdRoute:
@@ -1460,6 +1525,7 @@ const rootRouteChildren: RootRouteChildren = {
   PendingRoute: PendingRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   PartageTokenRoute: PartageTokenRoute,
+  ApiPublicApRemindersRoute: ApiPublicApRemindersRoute,
   ApiPublicEmailOpenRoute: ApiPublicEmailOpenRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,

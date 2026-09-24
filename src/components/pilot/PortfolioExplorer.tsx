@@ -147,7 +147,7 @@ export function PortfolioExplorer({ entries, year }: { entries: PilotEntry[]; ye
                       <tr key={r.clientId} className="border-t">
                         <td className="px-3 py-2">
                           <Link
-                            to="/pilot/fiche/$clientId"
+                            to="/clients/$clientId"
                             params={{ clientId: r.clientId }}
                             className="font-medium text-foreground hover:underline"
                           >
@@ -212,7 +212,7 @@ export function PortfolioExplorer({ entries, year }: { entries: PilotEntry[]; ye
                   <div key={r.clientId} className="rounded-lg border p-3">
                     <div className="flex items-start justify-between gap-2">
                       <Link
-                        to="/pilot/fiche/$clientId"
+                        to="/clients/$clientId"
                         params={{ clientId: r.clientId }}
                         className="min-w-0 truncate font-medium text-foreground hover:underline"
                       >

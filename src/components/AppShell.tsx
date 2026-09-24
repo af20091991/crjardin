@@ -25,6 +25,7 @@ import {
   Target,
   Calculator,
   CalendarRange,
+  CalendarDays,
   Receipt,
   LineChart,
   Clock,
@@ -33,6 +34,7 @@ import {
   FileBarChart,
   Wrench,
   PackageSearch,
+  Truck,
 } from "lucide-react";
 import {
   Sheet,
@@ -97,36 +99,27 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
-  const { canEdit } = useRole();
+  const { canEdit, canView } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { appearance } = useAppearance();
+  const { appearance, setAppearance } = useAppearance();
   const isPilot =
     pathname === "/pilot" ||
     pathname.startsWith("/pilot/") ||
     pathname === "/sst" ||
     pathname.startsWith("/sst/");
+  const showPilotPeriod = isPilot && pathname !== "/pilot/calendrier";
 
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("cr-sidebar-collapsed") === "1";
-  });
+  const [collapsed, setCollapsed] = useState<boolean>(appearance.sidebarCollapsed);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.localStorage.getItem("cr-sidebar-collapsed") !== null) return;
-    if (appearance.sidebarCollapsedDefault) setCollapsed(true);
-  }, [appearance.sidebarCollapsedDefault]);
+    setCollapsed(appearance.sidebarCollapsed);
+  }, [appearance.sidebarCollapsed]);
 
-  const toggleCollapsed = () =>
-    setCollapsed((c) => {
-      const next = !c;
-      try {
-        window.localStorage.setItem("cr-sidebar-collapsed", next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    setAppearance({ sidebarCollapsed: next });
+  };
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   useEffect(() => {
@@ -154,14 +147,22 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       label: "Entreprise",
       items: [
         {
-          to: "/pilot",
-          label: "Centre de décision",
-          short: "Accueil",
-          icon: Home,
+          to: "/pilot/dashboard",
+          label: "Dashboard",
+          short: "Dashboard",
+          icon: LayoutDashboard,
           exact: true,
           primary: true,
         },
-        ...(canEdit
+        {
+          to: "/pilot",
+          label: "Centre de décision",
+          short: "Décision",
+          icon: Home,
+          exact: true,
+          primary: false,
+        },
+        ...(canView
           ? [
               {
                 to: "/pilot/ca",
@@ -205,7 +206,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     },
     {
       label: "Financier",
-      items: canEdit
+      items: canView
         ? [
             {
               to: "/pilot/direction",
@@ -249,7 +250,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             },
           ]
         : [],
-      emptyLabel: canEdit ? undefined : "Réservé",
+      emptyLabel: undefined,
     },
     {
       label: "Client",
@@ -262,7 +263,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           exact: false,
           primary: true,
         },
-        ...(canEdit
+        ...(canView
           ? [
               {
                 to: "/pilot/rentabilite",
@@ -279,7 +280,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     {
       label: "Activité",
       items: [
-        ...(canEdit
+        ...(canView
           ? [
               {
                 to: "/pilot/sante",
@@ -315,7 +316,15 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           exact: false,
           primary: true,
         },
-        ...(canEdit
+        {
+          to: "/pilot/assistant-ap",
+          label: "Assistant AP",
+          short: "AP",
+          icon: Truck,
+          exact: false,
+          primary: false,
+        },
+        ...(canView
           ? [
               {
                 to: "/sst",
@@ -327,12 +336,20 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               },
             ]
           : []),
+        {
+          to: "/pilot/calendrier",
+          label: "Calendrier SST",
+          short: "Calendrier SST",
+          icon: CalendarDays,
+          exact: false,
+          primary: false,
+        },
       ],
     },
     {
       label: "Configuration",
       items: [
-        ...(canEdit
+        ...(canView
           ? [
               {
                 to: "/pilot/donnees",
@@ -590,8 +607,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </div>
           <div className="flex items-center gap-4">
             <GlobalSearch collapsed />
-            {isPilot && <PilotPeriodSwitcher compact />}
-            {isPilot && <PilotYearSwitcher compact />}
+            {showPilotPeriod && <PilotPeriodSwitcher compact />}
+            {showPilotPeriod && <PilotYearSwitcher compact />}
             <NotificationBell />
             <button onClick={signOut} className="text-muted-foreground" title="Déconnexion">
               <LogOut className="h-5 w-5" />
@@ -605,7 +622,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             className="hidden px-6 pt-6 md:flex md:items-start md:justify-between md:gap-4"
           >
             <h1 className="font-serif text-2xl font-semibold">{title}</h1>
-            {isPilot && (
+            {showPilotPeriod && (
               <div className="flex items-center gap-2">
                 <PilotPeriodSwitcher />
                 <PilotYearSwitcher />

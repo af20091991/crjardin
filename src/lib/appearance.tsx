@@ -8,6 +8,9 @@ import {
   type ReactNode,
 } from "react";
 import { setWeekStartDay } from "@/lib/date-utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+import { useRole } from "@/hooks/use-role";
 
 export type ThemeMode = "light" | "dark" | "auto";
 export type Density = "comfortable" | "compact";
@@ -325,6 +328,8 @@ export type Appearance = {
   valueAlign: ValueAlign;
   // Niveau des libellés
   labelLevel: LabelLevel;
+  /** Etat réel de la barre latérale, partagé avec tous les utilisateurs. */
+  sidebarCollapsed: boolean;
 };
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -369,6 +374,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
   cleanReading: false,
   valueAlign: "auto",
   labelLevel: "full",
+  sidebarCollapsed: false,
 };
 
 export const PRIMARY_PRESETS = ["#4F8E33", "#1F3D2B", "#3E7D44", "#2E8CCC", "#825A41", "#0F766E"];
@@ -510,21 +516,67 @@ const AppearanceContext = createContext<Ctx>({
 });
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const { isAdmin, isLoading: roleLoading } = useRole();
   const [appearance, setState] = useState<Appearance>(DEFAULT_APPEARANCE);
+  const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate from storage after mount to avoid SSR mismatch.
+  // L'apparence est désormais globale. Le premier administrateur qui initialise PP
+  // publie son réglage local existant ; ensuite ce réglage devient la référence commune.
   useEffect(() => {
-    const loaded = load();
-    setState(loaded);
-    applyAppearance(loaded);
-  }, []);
+    let cancelled = false;
+    if (!user || roleLoading) return;
 
-  // Re-apply and persist on change.
+    const hydrate = async () => {
+      const { data, error } = await supabase
+        .from("app_appearance")
+        .select("settings")
+        .eq("id", true)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      let loaded: Appearance;
+      if (
+        !error &&
+        data?.settings &&
+        typeof data.settings === "object" &&
+        !Array.isArray(data.settings)
+      ) {
+        loaded = { ...DEFAULT_APPEARANCE, ...(data.settings as Partial<Appearance>) };
+      } else if (isAdmin) {
+        const local = load();
+        let sidebarCollapsed = local.sidebarCollapsed;
+        try {
+          sidebarCollapsed = window.localStorage.getItem("cr-sidebar-collapsed") === "1";
+        } catch {
+          /* ignore */
+        }
+        loaded = { ...local, sidebarCollapsed };
+        const { error: seedError } = await supabase
+          .from("app_appearance")
+          .upsert({ id: true, settings: loaded, updated_by: user.id }, { onConflict: "id" });
+        if (seedError)
+          console.error("[Appearance] Impossible de publier l'apparence globale.", seedError);
+      } else {
+        loaded = DEFAULT_APPEARANCE;
+      }
+
+      setState(loaded);
+      applyAppearance(loaded);
+      setHydrated(true);
+    };
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isAdmin, roleLoading]);
+
   useEffect(() => {
     applyAppearance(appearance);
   }, [appearance]);
 
-  // React to system theme changes when in "auto".
   useEffect(() => {
     if (appearance.theme !== "auto" || typeof window === "undefined") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -533,27 +585,48 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", handler);
   }, [appearance]);
 
-  const setAppearance = useCallback((patch: Partial<Appearance>) => {
-    setState((prev) => {
-      const next = { ...prev, ...patch };
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }, []);
+  // Seul l'administrateur peut modifier l'apparence globale. Les observateurs
+  // reçoivent la configuration publiée mais ne peuvent pas l'écraser.
+  useEffect(() => {
+    if (!hydrated || !isAdmin || !user) return;
+    const timer = window.setTimeout(() => {
+      void supabase
+        .from("app_appearance")
+        .upsert({ id: true, settings: appearance, updated_by: user.id }, { onConflict: "id" })
+        .then(({ error }) => {
+          if (error) console.error("[Appearance] Enregistrement global impossible.", error);
+        });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [appearance, hydrated, isAdmin, user]);
+
+  const setAppearance = useCallback(
+    (patch: Partial<Appearance>) => {
+      if (!isAdmin) return;
+      setState((prev) => {
+        const next = { ...prev, ...patch };
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
+        return next;
+      });
+    },
+    [isAdmin],
+  );
 
   const reset = useCallback(() => {
+    if (!isAdmin) return;
     try {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.setItem("cr-sidebar-collapsed", "0");
     } catch {
       /* ignore */
     }
     setState(DEFAULT_APPEARANCE);
     applyAppearance(DEFAULT_APPEARANCE);
-  }, []);
+  }, [isAdmin]);
 
   const value = useMemo(
     () => ({ appearance, setAppearance, reset }),

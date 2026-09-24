@@ -43,7 +43,10 @@ export function HoursGapCard({ year }: { year: number }) {
                   <p className="text-sm text-muted-foreground">Aucune heure sur la période.</p>
                 )}
                 {q.data.prestations.map((p) => (
-                  <div key={p.prestation} className="flex items-center justify-between gap-2 rounded-lg border border-border/60 p-2.5 text-sm">
+                  <div
+                    key={p.prestation}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border/60 p-2.5 text-sm"
+                  >
                     <span className="min-w-0 truncate">{p.prestation}</span>
                     <span className="shrink-0 text-right text-xs text-muted-foreground">
                       {formatHours(p.vendues)} vendues ·{" "}
@@ -54,23 +57,29 @@ export function HoursGapCard({ year }: { year: number }) {
               </div>
 
               <div className="space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground">Écarts clients les plus marqués</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Écarts clients les plus marqués
+                </p>
                 {q.data.clients.length === 0 && (
                   <p className="text-sm text-muted-foreground">
-                    Aucun client ne dispose à la fois d'heures vendues et d'heures réelles confirmées.
+                    Aucun client ne dispose à la fois d'heures vendues et d'heures réelles
+                    confirmées.
                   </p>
                 )}
                 {q.data.clients.map((c) => (
                   <Link
                     key={c.clientId}
-                    to="/pilot/fiche/$clientId"
+                    to="/clients/$clientId"
                     params={{ clientId: c.clientId }}
                     className="flex items-center justify-between gap-2 rounded-lg border border-border/60 p-2.5 text-sm hover:bg-muted/50"
                   >
                     <span className="min-w-0 truncate">{c.clientName}</span>
-                    <span className={`shrink-0 text-xs ${c.ecart < 0 ? "text-amber-600" : "text-muted-foreground"}`}>
+                    <span
+                      className={`shrink-0 text-xs ${c.ecart < 0 ? "text-amber-600" : "text-muted-foreground"}`}
+                    >
                       {c.ecart >= 0 ? "+" : ""}
-                      {formatHours(c.ecart)} · {formatHours(c.vendues)} vendues / {formatHours(c.reelles)} réelles
+                      {formatHours(c.ecart)} · {formatHours(c.vendues)} vendues /{" "}
+                      {formatHours(c.reelles)} réelles
                     </span>
                   </Link>
                 ))}

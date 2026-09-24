@@ -87,7 +87,7 @@ export async function loadSearchIndex(): Promise<SearchResult[]> {
       kind: "client",
       label: c.name,
       detail: c.address ?? undefined,
-      to: "/pilot/fiche/$clientId",
+      to: "/clients/$clientId",
       params: { clientId: c.id },
     });
   }

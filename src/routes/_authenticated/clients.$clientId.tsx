@@ -12,11 +12,19 @@ import {
 } from "@/lib/clients";
 import { listInterventionsByClient } from "@/lib/interventions";
 import {
-  listRecommendationsByClient, listHealthByClient,
-  RECO_STATUS_META, type RecommendationStatus,
-  HEALTH_RATING_META, type HealthRating,
-  recommendationPrice, formatEuro, isStalePending, clearRecommendationInterest,
-  markRecommendationAsProposed, acceptRecommendation, refuseRecommendation,
+  listRecommendationsByClient,
+  listHealthByClient,
+  RECO_STATUS_META,
+  type RecommendationStatus,
+  HEALTH_RATING_META,
+  type HealthRating,
+  recommendationPrice,
+  formatEuro,
+  isStalePending,
+  clearRecommendationInterest,
+  markRecommendationAsProposed,
+  acceptRecommendation,
+  refuseRecommendation,
   createInterventionFromRecommendation,
   type Recommendation,
 } from "@/lib/garden";
@@ -27,19 +35,49 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  ArrowLeft, Pencil, Trash2, MapPin, Phone, Mail, FileText, Calendar,
-  Sparkles, ClipboardList, Leaf, AlertTriangle, Share2, Copy, Check, ExternalLink, Compass,
-  ThumbsUp, ThumbsDown, RotateCcw, TrendingUp, Send, ArrowRight, Sprout,
+  ArrowLeft,
+  Pencil,
+  Trash2,
+  MapPin,
+  Phone,
+  Mail,
+  FileText,
+  Calendar,
+  Sparkles,
+  ClipboardList,
+  Leaf,
+  AlertTriangle,
+  Share2,
+  Copy,
+  Check,
+  ExternalLink,
+  Compass,
+  ThumbsUp,
+  ThumbsDown,
+  RotateCcw,
+  TrendingUp,
+  Send,
+  ArrowRight,
+  Sprout,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useRole } from "@/hooks/use-role";
 import { ClientOpportunitiesWidget } from "@/components/ClientOpportunitiesWidget";
-import { getClientPremium, setClientPremiumEnabled } from "@/lib/client-premium";
+import { ClientPremiumTab } from "@/components/ClientPremiumTab";
+import { ClientPilotageTabs } from "@/components/pilot/ClientPilotageTabs";
 
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({
   validateSearch: (search: Record<string, unknown>): { edit?: boolean } => ({
@@ -55,6 +93,7 @@ function ClientDetail() {
   const qc = useQueryClient();
   const { canEdit } = useRole();
   const [copied, setCopied] = useState(false);
+  const [group, setGroup] = useState<"gestion" | "pilotage">("gestion");
   const [editOpen, setEditOpen] = useState(false);
   useEffect(() => {
     if (edit && canEdit) setEditOpen(true);
@@ -72,20 +111,6 @@ function ClientDetail() {
     queryFn: () => listRecommendationsByClient(clientId),
   });
   const hasStale = (recos ?? []).some(isStalePending);
-  const { data: premium } = useQuery({
-    queryKey: ["client-premium", clientId],
-    queryFn: () => getClientPremium(clientId),
-  });
-  const premiumMutation = useMutation({
-    mutationFn: (enabled: boolean) =>
-      setClientPremiumEnabled(clientId, enabled),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
-      qc.invalidateQueries({ queryKey: ["premium-client-ids"] });
-    },
-    onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "Erreur"),
-  });
   const { data: health } = useQuery({
     queryKey: ["health", clientId],
     queryFn: () => listHealthByClient(clientId),
@@ -116,7 +141,10 @@ function ClientDetail() {
     return (
       <AppShell title="Client">
         <div className="mx-auto max-w-3xl text-center text-muted-foreground">
-          Client introuvable. <Link to="/clients" className="text-primary hover:underline">Retour</Link>
+          Client introuvable.{" "}
+          <Link to="/clients" className="text-primary hover:underline">
+            Retour
+          </Link>
         </div>
       </AppShell>
     );
@@ -125,21 +153,11 @@ function ClientDetail() {
   return (
     <AppShell title={client.name}>
       <div className="mx-auto max-w-3xl space-y-4">
-        <Link to="/clients" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/clients"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="h-4 w-4" /> Tous les clients
-        </Link>
-
-        <Link to="/pilot/fiche/$clientId" params={{ clientId }}>
-          <Card className="flex items-center gap-3 border-primary/40 bg-primary/5 p-3 transition-colors hover:bg-primary/10">
-            <Compass className="h-5 w-5 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">Ouvrir la fiche 360°</p>
-              <p className="text-xs text-muted-foreground">
-                Synthèse dirigeant : CA, activité, rentabilité, opportunités.
-              </p>
-            </div>
-            <ArrowRight className="h-4 w-4 shrink-0 text-primary" />
-          </Card>
         </Link>
 
         <Card>
@@ -150,10 +168,14 @@ function ClientDetail() {
                   {client.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  {client.civility && <p className="text-xs font-medium text-muted-foreground">{client.civility}</p>}
+                  {client.civility && (
+                    <p className="text-xs font-medium text-muted-foreground">{client.civility}</p>
+                  )}
                   <h2 className="truncate font-serif text-xl font-semibold">{client.name}</h2>
                   <div className="mt-1 flex flex-wrap gap-1.5">
-                    {client.contract_type && <Badge variant="secondary">{client.contract_type}</Badge>}
+                    {client.contract_type && (
+                      <Badge variant="secondary">{client.contract_type}</Badge>
+                    )}
                     {client.frequency && <Badge variant="outline">{client.frequency}</Badge>}
                     {hasStale && (
                       <Badge className="gap-1 bg-amber-100 text-amber-800">
@@ -161,46 +183,80 @@ function ClientDetail() {
                       </Badge>
                     )}
                     {(interventions ?? []).some((iv) => iv.sent_to_client_at) && (
-                      <Badge variant="outline" className="border-primary/40 text-primary">CR</Badge>
+                      <Badge variant="outline" className="border-primary/40 text-primary">
+                        CR
+                      </Badge>
                     )}
                     <Badge
                       variant="outline"
-                      className={REPORT_POLICY_META[(client.report_policy ?? "a_confirmer") as ReportPolicy].badge}
-                      title={REPORT_POLICY_META[(client.report_policy ?? "a_confirmer") as ReportPolicy].hint}
+                      className={
+                        REPORT_POLICY_META[(client.report_policy ?? "a_confirmer") as ReportPolicy]
+                          .badge
+                      }
+                      title={
+                        REPORT_POLICY_META[(client.report_policy ?? "a_confirmer") as ReportPolicy]
+                          .hint
+                      }
                     >
-                      {REPORT_POLICY_META[(client.report_policy ?? "a_confirmer") as ReportPolicy].short}
+                      {
+                        REPORT_POLICY_META[(client.report_policy ?? "a_confirmer") as ReportPolicy]
+                          .short
+                      }
                     </Badge>
                   </div>
                 </div>
               </div>
               {canEdit && (
-              <div className="flex shrink-0 gap-1.5">
-                <ClientForm client={client} open={editOpen} onOpenChange={setEditOpen} trigger={<Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>} />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Supprimer ce client ?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Cette action est irréversible et supprimera aussi son historique d'interventions.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => del.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
+                <div className="flex shrink-0 gap-1.5">
+                  <ClientForm
+                    client={client}
+                    open={editOpen}
+                    onOpenChange={setEditOpen}
+                    trigger={
+                      <Button variant="outline" size="icon">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer ce client ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Cette action est irréversible et supprimera aussi son historique
+                          d'interventions.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => del.mutate()}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Supprimer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               )}
             </div>
 
             <div className="mt-5 grid gap-2 text-sm sm:grid-cols-2">
               {client.address && <Info icon={MapPin} text={client.address} />}
               {client.phone && <Info icon={Phone} text={client.phone} />}
-              {clientEmails(client).map((e) => <Info key={e} icon={Mail} text={e} />)}
+              {clientEmails(client).map((e) => (
+                <Info key={e} icon={Mail} text={e} />
+              ))}
             </div>
 
             {client.notes && (
@@ -214,146 +270,181 @@ function ClientDetail() {
 
         <ShareLinkCard token={client.share_token} copied={copied} setCopied={setCopied} />
 
-        {canEdit && (
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Client Premium</span>
-                  <Badge variant={premium?.enabled ? "default" : "secondary"}>
-                    {premium?.enabled ? "Actif" : "Inactif"}
-                  </Badge>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Documents, planning annuel et espace client séparés des données métier.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {premium?.enabled && (
+        <div className="flex gap-2">
+          <Button
+            variant={group === "gestion" ? "default" : "outline"}
+            size="sm"
+            className="flex-1"
+            onClick={() => setGroup("gestion")}
+          >
+            <Leaf className="mr-1.5 h-4 w-4" />
+            Gestion
+          </Button>
+          <Button
+            variant={group === "pilotage" ? "default" : "outline"}
+            size="sm"
+            className="flex-1"
+            onClick={() => setGroup("pilotage")}
+          >
+            <Compass className="mr-1.5 h-4 w-4" />
+            Pilotage 360°
+          </Button>
+        </div>
+
+        {group === "gestion" && (
+          <Tabs defaultValue="interventions">
+            <TabsList className="w-full">
+              <TabsTrigger value="interventions" className="flex-1">
+                <Calendar className="mr-1.5 h-4 w-4" />
+                Interventions
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="flex-1">
+                <CalendarDaysIcon />
+                <span>Calendrier</span>
+              </TabsTrigger>
+              <TabsTrigger value="health" className="flex-1">
+                <Leaf className="mr-1.5 h-4 w-4" />
+                Santé
+              </TabsTrigger>
+              <TabsTrigger value="reco" className="flex-1">
+                <Sparkles className="mr-1.5 h-4 w-4" />
+                Préconisations
+              </TabsTrigger>
+              <TabsTrigger value="opps" className="flex-1">
+                <TrendingUp className="mr-1.5 h-4 w-4" />
+                Opportunités
+              </TabsTrigger>
+              <TabsTrigger value="premium" className="flex-1">
+                <Crown className="mr-1.5 h-4 w-4" />
+                Premium
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="interventions">
+              {(interventions?.length ?? 0) === 0 ? (
+                <HistoryPlaceholder
+                  label="Aucune intervention pour le moment."
+                  icon={ClipboardList}
+                  action
+                  clientId={clientId}
+                />
+              ) : (
+                <div className="mt-3 space-y-2.5">
                   <Link
-                    to="/clients/$clientId/premium"
-                    params={{ clientId }}
+                    to="/interventions/new"
+                    search={{ client: clientId }}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 py-2.5 text-sm font-medium text-primary hover:bg-primary/5"
                   >
-                    <Button variant="outline" size="sm">
-                      Ouvrir Premium
-                    </Button>
+                    <Calendar className="h-4 w-4" /> Nouveau compte-rendu
                   </Link>
-                )}
-                <Button
-                  size="sm"
-                  variant={premium?.enabled ? "outline" : "default"}
-                  onClick={() => premiumMutation.mutate(!premium?.enabled)}
-                  disabled={premiumMutation.isPending}
-                >
-                  {premium?.enabled ? "Désactiver" : "Activer Premium"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  {interventions!.map((iv) => (
+                    <Link
+                      key={iv.id}
+                      to="/interventions/$interventionId"
+                      params={{ interventionId: iv.id }}
+                    >
+                      <Card className="flex items-center gap-3 p-3.5 transition-colors hover:border-primary/40">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                          <ClipboardList className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">
+                            {iv.title ?? iv.intervention_type ?? "Intervention"}
+                          </p>
+                          <p className="flex gap-1 truncate text-xs text-muted-foreground">
+                            {iv.reference && <span className="font-mono">{iv.reference} ·</span>}
+                            {new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                          <Badge variant={iv.status === "terminee" ? "default" : "secondary"}>
+                            {iv.status === "terminee" ? "Terminé" : "Brouillon"}
+                          </Badge>
+                          {iv.sent_to_client_at && (
+                            <Badge variant="outline" className="border-primary/40 text-primary">
+                              Envoyé au client
+                            </Badge>
+                          )}
+                        </div>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="calendar">
+              <ClientCalendarPanel client={client} canEdit={canEdit} />
+            </TabsContent>
+            <TabsContent value="health">
+              {(health?.length ?? 0) === 0 ? (
+                <HistoryPlaceholder label="Aucune évaluation enregistrée." icon={Leaf} />
+              ) : (
+                <div className="mt-3 space-y-2.5">
+                  {health!.map((h) => {
+                    const rating =
+                      (h.rating as HealthRating) in HEALTH_RATING_META
+                        ? (h.rating as HealthRating)
+                        : "bon";
+                    return (
+                      <Card key={h.id} className="p-3.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full ${HEALTH_RATING_META[rating].dot}`}
+                          />
+                          <p className="font-medium">{h.zone}</p>
+                          <Badge className={HEALTH_RATING_META[rating].tone}>
+                            {HEALTH_RATING_META[rating].label}
+                          </Badge>
+                          <span className="ml-auto text-xs text-muted-foreground">
+                            {new Date(h.assessed_on).toLocaleDateString("fr-FR", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+                        {h.note && <p className="mt-1.5 text-sm text-muted-foreground">{h.note}</p>}
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="reco">
+              {(recos?.length ?? 0) === 0 ? (
+                <HistoryPlaceholder label="Aucune préconisation enregistrée." icon={Sparkles} />
+              ) : (
+                <div className="mt-3 space-y-2.5">
+                  {recos!.map((r) => (
+                    <RecoCard
+                      key={r.id}
+                      reco={r}
+                      clientId={clientId}
+                      canEdit={canEdit}
+                      onChanged={() => {
+                        qc.invalidateQueries({ queryKey: ["recommendations", clientId] });
+                        qc.invalidateQueries({ queryKey: ["recommendations-all"] });
+                        qc.invalidateQueries({ queryKey: ["recommendations-funnel"] });
+                        qc.invalidateQueries({ queryKey: ["opportunities-value"] });
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="opps">
+              <ClientOpportunitiesWidget clientId={clientId} />
+            </TabsContent>
+            <TabsContent value="premium">
+              <ClientPremiumTab clientId={clientId} />
+            </TabsContent>
+          </Tabs>
         )}
 
-        <Tabs defaultValue="interventions">
-          <TabsList className="w-full">
-            <TabsTrigger value="interventions" className="flex-1"><Calendar className="mr-1.5 h-4 w-4" />Interventions</TabsTrigger>
-            <TabsTrigger value="calendar" className="flex-1"><CalendarDaysIcon /><span>Calendrier</span></TabsTrigger>
-            <TabsTrigger value="health" className="flex-1"><Leaf className="mr-1.5 h-4 w-4" />Santé</TabsTrigger>
-            <TabsTrigger value="reco" className="flex-1"><Sparkles className="mr-1.5 h-4 w-4" />Préconisations</TabsTrigger>
-            <TabsTrigger value="opps" className="flex-1"><TrendingUp className="mr-1.5 h-4 w-4" />Opportunités</TabsTrigger>
-          </TabsList>
-          <TabsContent value="interventions">
-            {(interventions?.length ?? 0) === 0 ? (
-              <HistoryPlaceholder label="Aucune intervention pour le moment." icon={ClipboardList} action clientId={clientId} />
-            ) : (
-              <div className="mt-3 space-y-2.5">
-                <Link
-                  to="/interventions/new"
-                  search={{ client: clientId }}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 py-2.5 text-sm font-medium text-primary hover:bg-primary/5"
-                >
-                  <Calendar className="h-4 w-4" /> Nouveau compte-rendu
-                </Link>
-                {interventions!.map((iv) => (
-                  <Link key={iv.id} to="/interventions/$interventionId" params={{ interventionId: iv.id }}>
-                    <Card className="flex items-center gap-3 p-3.5 transition-colors hover:border-primary/40">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-                        <ClipboardList className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{iv.title ?? iv.intervention_type ?? "Intervention"}</p>
-                        <p className="flex gap-1 truncate text-xs text-muted-foreground">
-                          {iv.reference && <span className="font-mono">{iv.reference} ·</span>}
-                          {new Date(iv.intervention_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                        <Badge variant={iv.status === "terminee" ? "default" : "secondary"}>
-                          {iv.status === "terminee" ? "Terminé" : "Brouillon"}
-                        </Badge>
-                        {iv.sent_to_client_at && (
-                          <Badge variant="outline" className="border-primary/40 text-primary">
-                            Envoyé au client
-                          </Badge>
-                        )}
-                      </div>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value="calendar">
-            <ClientCalendarPanel client={client} canEdit={canEdit} />
-          </TabsContent>
-          <TabsContent value="health">
-            {(health?.length ?? 0) === 0 ? (
-              <HistoryPlaceholder label="Aucune évaluation enregistrée." icon={Leaf} />
-            ) : (
-              <div className="mt-3 space-y-2.5">
-                {health!.map((h) => {
-                  const rating = (h.rating as HealthRating) in HEALTH_RATING_META ? (h.rating as HealthRating) : "bon";
-                  return (
-                    <Card key={h.id} className="p-3.5">
-                      <div className="flex items-center gap-2">
-                        <span className={`h-2.5 w-2.5 rounded-full ${HEALTH_RATING_META[rating].dot}`} />
-                        <p className="font-medium">{h.zone}</p>
-                        <Badge className={HEALTH_RATING_META[rating].tone}>{HEALTH_RATING_META[rating].label}</Badge>
-                        <span className="ml-auto text-xs text-muted-foreground">
-                          {new Date(h.assessed_on).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
-                        </span>
-                      </div>
-                      {h.note && <p className="mt-1.5 text-sm text-muted-foreground">{h.note}</p>}
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value="reco">
-            {(recos?.length ?? 0) === 0 ? (
-              <HistoryPlaceholder label="Aucune préconisation enregistrée." icon={Sparkles} />
-            ) : (
-              <div className="mt-3 space-y-2.5">
-                {recos!.map((r) => (
-                  <RecoCard
-                    key={r.id}
-                    reco={r}
-                    clientId={clientId}
-                    canEdit={canEdit}
-                    onChanged={() => {
-                      qc.invalidateQueries({ queryKey: ["recommendations", clientId] });
-                      qc.invalidateQueries({ queryKey: ["recommendations-all"] });
-                      qc.invalidateQueries({ queryKey: ["recommendations-funnel"] });
-                      qc.invalidateQueries({ queryKey: ["opportunities-value"] });
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value="opps">
-            <ClientOpportunitiesWidget clientId={clientId} />
-          </TabsContent>
-        </Tabs>
+        {group === "pilotage" && <ClientPilotageTabs clientId={clientId} />}
       </div>
     </AppShell>
   );
@@ -372,8 +463,19 @@ function Info({ icon: Icon, text }: { icon: typeof MapPin; text: string }) {
   );
 }
 
-function ShareLinkCard({ token, copied, setCopied }: { token: string; copied: boolean; setCopied: (v: boolean) => void }) {
-  const url = typeof window !== "undefined" ? `${window.location.origin}/partage/${token}` : `/partage/${token}`;
+function ShareLinkCard({
+  token,
+  copied,
+  setCopied,
+}: {
+  token: string;
+  copied: boolean;
+  setCopied: (v: boolean) => void;
+}) {
+  const url =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/partage/${token}`
+      : `/partage/${token}`;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);
@@ -391,15 +493,35 @@ function ShareLinkCard({ token, copied, setCopied }: { token: string; copied: bo
           <Share2 className="h-4 w-4 text-primary" /> Lien de visualisation client
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Partagez ce lien secret avec le client : il pourra consulter sa fiche et ses comptes-rendus terminés, sans compte.
+          Partagez ce lien secret avec le client : il pourra consulter sa fiche et ses
+          comptes-rendus terminés, sans compte.
         </p>
         <div className="mt-3 flex gap-2">
-          <Input readOnly value={url} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
-          <Button type="button" variant="outline" size="icon" onClick={copy} aria-label="Copier le lien">
+          <Input
+            readOnly
+            value={url}
+            className="font-mono text-xs"
+            onFocus={(e) => e.currentTarget.select()}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={copy}
+            aria-label="Copier le lien"
+          >
             {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
           </Button>
-          <Button type="button" variant="outline" size="icon" asChild aria-label="Ouvrir la vue client">
-            <a href={url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            asChild
+            aria-label="Ouvrir la vue client"
+          >
+            <a href={url} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4" />
+            </a>
           </Button>
         </div>
         <Button type="button" variant="secondary" size="sm" className="mt-3 w-full" asChild>
@@ -412,10 +534,19 @@ function ShareLinkCard({ token, copied, setCopied }: { token: string; copied: bo
   );
 }
 
-function RecoInterest({ reco, onCleared }: { reco: { id: string; client_interest: string | null }; onCleared: () => void }) {
+function RecoInterest({
+  reco,
+  onCleared,
+}: {
+  reco: { id: string; client_interest: string | null };
+  onCleared: () => void;
+}) {
   const m = useMutation({
     mutationFn: () => clearRecommendationInterest(reco.id),
-    onSuccess: () => { toast.success("Réaction du client réinitialisée"); onCleared(); },
+    onSuccess: () => {
+      toast.success("Réaction du client réinitialisée");
+      onCleared();
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
   if (!reco.client_interest) return null;
@@ -423,10 +554,20 @@ function RecoInterest({ reco, onCleared }: { reco: { id: string; client_interest
   return (
     <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-muted/50 p-2">
       <span className="flex items-center gap-1.5 text-sm">
-        {interested ? <ThumbsUp className="h-4 w-4 text-primary" /> : <ThumbsDown className="h-4 w-4 text-muted-foreground" />}
+        {interested ? (
+          <ThumbsUp className="h-4 w-4 text-primary" />
+        ) : (
+          <ThumbsDown className="h-4 w-4 text-muted-foreground" />
+        )}
         {interested ? "Client intéressé" : "Client non intéressé"}
       </span>
-      <Button type="button" size="sm" variant="ghost" disabled={m.isPending} onClick={() => m.mutate()}>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        disabled={m.isPending}
+        onClick={() => m.mutate()}
+      >
         <RotateCcw className="mr-1.5 h-4 w-4" /> Réinitialiser
       </Button>
     </div>
@@ -452,25 +593,35 @@ function RecoCard({
   onChanged: () => void;
 }) {
   const navigate = useNavigate();
-  const status = (reco.status as RecommendationStatus) in RECO_STATUS_META
-    ? (reco.status as RecommendationStatus)
-    : "en_attente";
+  const status =
+    (reco.status as RecommendationStatus) in RECO_STATUS_META
+      ? (reco.status as RecommendationStatus)
+      : "en_attente";
   const price = recommendationPrice(reco);
   const sourceLabel = SOURCE_LABELS[reco.source] ?? reco.source;
 
   const propose = useMutation({
     mutationFn: () => markRecommendationAsProposed(reco.id),
-    onSuccess: () => { toast.success("Recommandation proposée"); onChanged(); },
+    onSuccess: () => {
+      toast.success("Recommandation proposée");
+      onChanged();
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
   const accept = useMutation({
     mutationFn: () => acceptRecommendation(reco.id),
-    onSuccess: () => { toast.success("Recommandation acceptée"); onChanged(); },
+    onSuccess: () => {
+      toast.success("Recommandation acceptée");
+      onChanged();
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
   const refuse = useMutation({
     mutationFn: () => refuseRecommendation(reco.id),
-    onSuccess: () => { toast.success("Recommandation refusée"); onChanged(); },
+    onSuccess: () => {
+      toast.success("Recommandation refusée");
+      onChanged();
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
   const createInt = useMutation({
@@ -497,7 +648,11 @@ function RecoCard({
               </Badge>
             )}
             <span className="text-muted-foreground">
-              {new Date(reco.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+              {new Date(reco.created_at).toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
             </span>
           </div>
         </div>
@@ -508,19 +663,31 @@ function RecoCard({
           )}
         </div>
       </div>
-      {reco.description && <p className="mt-1.5 text-sm text-muted-foreground">{reco.description}</p>}
+      {reco.description && (
+        <p className="mt-1.5 text-sm text-muted-foreground">{reco.description}</p>
+      )}
       <RecoInterest reco={reco} onCleared={onChanged} />
 
       {canEdit && (
         <div className="mt-3 flex flex-wrap justify-end gap-2">
           {status === "en_attente" && (
-            <Button size="sm" variant="secondary" disabled={propose.isPending} onClick={() => propose.mutate()}>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={propose.isPending}
+              onClick={() => propose.mutate()}
+            >
               <Send className="mr-1.5 h-3.5 w-3.5" /> Marquer comme proposée
             </Button>
           )}
           {status === "proposee" && (
             <>
-              <Button size="sm" variant="outline" disabled={refuse.isPending} onClick={() => refuse.mutate()}>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={refuse.isPending}
+                onClick={() => refuse.mutate()}
+              >
                 <ThumbsDown className="mr-1.5 h-3.5 w-3.5" /> Refusée
               </Button>
               <Button size="sm" disabled={accept.isPending} onClick={() => accept.mutate()}>
@@ -540,14 +707,28 @@ function RecoCard({
   );
 }
 
-function HistoryPlaceholder({ label, icon: Icon, action, clientId }: { label: string; icon: typeof FileText; action?: boolean; clientId?: string }) {
+function HistoryPlaceholder({
+  label,
+  icon: Icon,
+  action,
+  clientId,
+}: {
+  label: string;
+  icon: typeof FileText;
+  action?: boolean;
+  clientId?: string;
+}) {
   return (
     <Card className="mt-3 border-dashed">
       <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
         <Icon className="h-7 w-7 text-muted-foreground/60" />
         <p className="text-sm text-muted-foreground">{label}</p>
         {action && (
-          <Link to="/interventions/new" search={clientId ? { client: clientId } : undefined} className="mt-1 text-sm font-medium text-primary hover:underline">
+          <Link
+            to="/interventions/new"
+            search={clientId ? { client: clientId } : undefined}
+            className="mt-1 text-sm font-medium text-primary hover:underline"
+          >
             Créer un compte-rendu
           </Link>
         )}

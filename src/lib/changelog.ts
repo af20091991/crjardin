@@ -5,7 +5,6 @@ export type ChangeTheme =
   | "PDF & Partage"
   | "Jardinier"
   | "Général";
-
 export interface ChangeEntry {
   date: string; // ISO yyyy-mm-dd
   version: string;
@@ -13,7 +12,6 @@ export interface ChangeEntry {
   title: string;
   details: string[];
 }
-
 export const THEME_LABELS: ChangeTheme[] = [
   "Marque",
   "Clients",
@@ -22,9 +20,28 @@ export const THEME_LABELS: ChangeTheme[] = [
   "Jardinier",
   "Général",
 ];
-
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
+  {
+    date: "2026-09-24",
+    version: "2.3.9",
+    theme: "PDF & Partage",
+    title: "Fiche SST — carte satellite annotée dans le PDF",
+    details: [
+      "L'export PDF de la fiche SST affiche désormais la vue satellite du chantier avec les repères numérotés et toutes leurs mentions (tâche et note).",
+    ],
+  },
+  {
+    date: "2026-09-23",
+    version: "2.3.8",
+    theme: "Compte-rendus",
+    title: "Fiches SST — plusieurs intervenants, duplication et export PDF complet",
+    details: [
+      "Une fiche peut maintenant associer plusieurs SST et conserver cette sélection lors de l'enregistrement.",
+      "Une fiche existante peut être dupliquée pour préparer rapidement une nouvelle intervention.",
+      "L'export PDF reprend la sélection des SST, les coordonnées de localisation et sécurise l'affichage des contenus longs et des photos.",
+    ],
+  },
   {
     date: "2026-09-18",
     version: "2.3.7",
@@ -35,7 +52,6 @@ export const CHANGELOG: ChangeEntry[] = [
       "Les échéances et rappels sont calculés automatiquement et les entretiens effectués restent archivés avec leur date.",
     ],
   },
-
   {
     date: "2026-09-18",
     version: "2.3.6",

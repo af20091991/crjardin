@@ -6,12 +6,15 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import {
   getSharedClient,
   markSharedRead,
   addClientMessage,
   getSharedMessages,
+  getSharedPremium,
+  createSharedPremiumDocumentUpload,
+  finalizeSharedPremiumDocumentUpload,
   setRecommendationInterest,
   markRecommendationsViewed,
   getSharedInterventionPdfUrl,
@@ -19,7 +22,9 @@ import {
   type ClientMessage,
   type SharedRecommendation,
   type SharedClientData,
+  type SharedPremiumData,
 } from "@/lib/share.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { exportSharedInterventionPdf } from "@/lib/share-pdf";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,12 +65,14 @@ import {
   Type,
   Reply,
   RotateCcw,
+  Crown,
+  Star,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
-import { getSharedPremium, sharedPremiumDocumentUrl } from "@/lib/client-premium";
 
 const sharedQuery = (token: string) =>
   queryOptions({
@@ -172,7 +179,7 @@ function SharePage() {
   const { data: messages } = useQuery(messagesQuery(token));
   const { data: premium } = useQuery({
     queryKey: ["shared-premium", token],
-    queryFn: () => getSharedPremium(token),
+    queryFn: () => getSharedPremium({ data: { token } }),
     staleTime: 60_000,
   });
   const { dark, large, toggleDark, toggleLarge } = useShareTheme();
@@ -208,7 +215,7 @@ function SharePage() {
   return (
     <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
       <header className="border-b bg-background">
-        <div className="mx-auto max-w-3xl px-4 py-6">
+        <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-primary">
@@ -248,188 +255,109 @@ function SharePage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-4 px-4 py-6">
-        {/* Synthèse (client #8) */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="Comptes-rendus" value={String(interventions.length)} />
-          <StatCard
-            label="Dernière visite jardin"
-            value={lastIntervention ? fmtDate(lastIntervention.intervention_date) : "—"}
-          />
-          <StatCard label="Préconisations" value={String(recommendations.length)} />
-          <StatCard label="Non lus" value={String(unread)} highlight={unread > 0} />
-        </div>
-        {lastVisit && (
-          <p className="text-xs text-muted-foreground">
-            Vous avez consulté votre fiche pour la dernière fois le {fmtDate(lastVisit)}.
-          </p>
-        )}
-
-        {unreadRecos > 0 && (
-          <button
-            onClick={openRecos}
-            className="flex w-full items-center gap-3 rounded-lg border border-accent/40 bg-accent/10 p-3 text-left transition-colors hover:bg-accent/20"
-          >
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent/20 text-accent-foreground">
-              <Sparkles className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-accent-foreground">
-                {unreadRecos} préconisation{unreadRecos > 1 ? "s" : ""} en attente
-              </span>
-              <span className="block text-xs text-muted-foreground">
-                Découvrez ce que nous vous conseillons pour votre jardin.
-              </span>
-            </span>
-            <Badge className="shrink-0 bg-accent text-accent-foreground">Voir</Badge>
-          </button>
-        )}
-
-        <Tabs value={tab} onValueChange={(v) => (v === "recos" ? openRecos() : setTab(v))}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="reports">
-              <ClipboardList className="mr-1.5 h-4 w-4" />
-              Comptes-rendus
-            </TabsTrigger>
-            <TabsTrigger value="photos">
-              <Images className="mr-1.5 h-4 w-4" />
-              Photos
-            </TabsTrigger>
-            <TabsTrigger
-              value="recos"
-              className="relative data-[state=inactive]:animate-pulse data-[state=inactive]:bg-accent/15 data-[state=inactive]:text-accent-foreground"
-            >
-              <Sparkles className="mr-1.5 h-4 w-4" />
-              Préconisations
-              {unreadRecos > 0 && (
-                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground shadow">
-                  +{unreadRecos}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="reports" className="space-y-4">
-            <ReportsTab
-              interventions={interventions}
-              token={token}
-              messages={messages ?? []}
-              client={client}
+      <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+        <>
+          {/* Synthèse (client #8) */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard label="Comptes-rendus" value={String(interventions.length)} />
+            <StatCard
+              label="Dernière visite jardin"
+              value={lastIntervention ? fmtDate(lastIntervention.intervention_date) : "—"}
             />
-          </TabsContent>
-          <TabsContent value="photos">
-            <PhotoGallery interventions={interventions} />
-          </TabsContent>
-          <TabsContent value="recos">
-            <RecommendationsTab recommendations={recommendations} token={token} />
-          </TabsContent>
-        </Tabs>
+            <StatCard label="Préconisations" value={String(recommendations.length)} />
+            <StatCard label="Non lus" value={String(unread)} highlight={unread > 0} />
+          </div>
+          {lastVisit && (
+            <p className="text-xs text-muted-foreground">
+              Vous avez consulté votre fiche pour la dernière fois le {fmtDate(lastVisit)}.
+            </p>
+          )}
 
-        {premium?.enabled && <PremiumSharedSection premium={premium} premiumToken={token} />}
+          {unreadRecos > 0 && (
+            <button
+              onClick={openRecos}
+              className="flex w-full items-center gap-3 rounded-lg border border-accent/40 bg-accent/10 p-3 text-left transition-colors hover:bg-accent/20"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent/20 text-accent-foreground">
+                <Sparkles className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-accent-foreground">
+                  {unreadRecos} préconisation{unreadRecos > 1 ? "s" : ""} en attente
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  Découvrez ce que nous vous conseillons pour votre jardin.
+                </span>
+              </span>
+              <Badge className="shrink-0 bg-accent text-accent-foreground">Voir</Badge>
+            </button>
+          )}
 
-        <GeneralMessages
-          token={token}
-          messages={(messages ?? []).filter((m) => !m.intervention_id)}
-        />
+          <Tabs value={tab} onValueChange={(v) => (v === "recos" ? openRecos() : setTab(v))}>
+            <TabsList className={`grid w-full ${premium?.enabled ? "grid-cols-4" : "grid-cols-3"}`}>
+              <TabsTrigger value="reports">
+                <ClipboardList className="mr-1.5 h-4 w-4" />
+                Comptes-rendus
+              </TabsTrigger>
+              <TabsTrigger value="photos">
+                <Images className="mr-1.5 h-4 w-4" />
+                Photos
+              </TabsTrigger>
+              <TabsTrigger
+                value="recos"
+                className="relative data-[state=inactive]:animate-pulse data-[state=inactive]:bg-accent/15 data-[state=inactive]:text-accent-foreground"
+              >
+                <Sparkles className="mr-1.5 h-4 w-4" />
+                Préconisations
+                {unreadRecos > 0 && (
+                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground shadow">
+                    +{unreadRecos}
+                  </span>
+                )}
+              </TabsTrigger>
+              {premium?.enabled && (
+                <TabsTrigger
+                  value="premium"
+                  className="border-primary/20 bg-primary/5 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <Crown className="mr-1.5 h-4 w-4" />
+                  Premium
+                </TabsTrigger>
+              )}
+            </TabsList>
 
-        <ShareInstallGuide />
+            <TabsContent value="reports" className="space-y-4">
+              <ReportsTab
+                interventions={interventions}
+                token={token}
+                messages={messages ?? []}
+                client={client}
+              />
+            </TabsContent>
+            <TabsContent value="photos">
+              <PhotoGallery interventions={interventions} />
+            </TabsContent>
+            <TabsContent value="recos">
+              <RecommendationsTab recommendations={recommendations} token={token} />
+            </TabsContent>
+            {premium?.enabled && (
+              <TabsContent value="premium" className="space-y-4">
+                <PremiumTab premium={premium} token={token} messages={messages ?? []} />
+              </TabsContent>
+            )}
+          </Tabs>
+
+          {!premium?.enabled && (
+            <GeneralMessages
+              token={token}
+              messages={(messages ?? []).filter((m) => !m.intervention_id)}
+            />
+          )}
+
+          <ShareInstallGuide />
+        </>
       </main>
     </div>
-  );
-}
-
-function PremiumSharedSection({
-  premium,
-  premiumToken,
-}: {
-  premium: NonNullable<Awaited<ReturnType<typeof getSharedPremium>>>;
-  premiumToken: string;
-}) {
-  return (
-    <Card className="border-primary/30 bg-primary/5">
-      <CardContent className="space-y-4 pt-6">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-primary">Espace Premium</p>
-          <h2 className="mt-1 font-serif text-xl font-semibold">Votre suivi Premium</h2>
-        </div>
-
-        {premium.commercial_note && (
-          <p className="whitespace-pre-wrap text-sm">{premium.commercial_note}</p>
-        )}
-
-        {premium.google_review_url && (
-          <Button variant="outline" size="sm" asChild>
-            <a href={premium.google_review_url} target="_blank" rel="noopener noreferrer">
-              Donner votre avis Google
-            </a>
-          </Button>
-        )}
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg border bg-background p-3">
-            <p className="mb-2 text-sm font-medium">Documents</p>
-            {premium.documents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucun document disponible.</p>
-            ) : (
-              <div className="space-y-2">
-                {premium.documents.map((document) => (
-                  <div key={document.id} className="flex items-center gap-2 text-sm">
-                    <FileText className="h-4 w-4 shrink-0" />
-                    <span className="min-w-0 flex-1 truncate">{document.title}</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={async () => {
-                        try {
-                          window.open(
-                            await sharedPremiumDocumentUrl(premiumToken, document.id),
-                            "_blank",
-                          );
-                        } catch (error) {
-                          toast.error(
-                            error instanceof Error ? error.message : "Document indisponible",
-                          );
-                        }
-                      }}
-                    >
-                      Télécharger
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-lg border bg-background p-3">
-            <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
-              <CalendarDays className="h-4 w-4" />
-              Planning annuel
-            </p>
-            {premium.planning.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucun élément validé pour le moment.</p>
-            ) : (
-              <div className="space-y-2">
-                {premium.planning.map((item) => (
-                  <div key={item.id} className="rounded-md border p-2 text-sm">
-                    <div className="font-medium">{item.label}</div>
-                    {item.period_label && (
-                      <div className="text-xs text-muted-foreground">{item.period_label}</div>
-                    )}
-                    {item.notes && (
-                      <div className="mt-1 text-xs text-muted-foreground">{item.notes}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="mt-3 text-xs text-muted-foreground">
-              Vous pouvez annoter ce planning via la messagerie ci-dessous ; les données PP restent
-              sous le contrôle de votre jardinier.
-            </p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -889,6 +817,178 @@ function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function PremiumTab({
+  premium,
+  token,
+  messages,
+}: {
+  premium: SharedPremiumData;
+  token: string;
+  messages: ClientMessage[];
+}) {
+  const qc = useQueryClient();
+  return (
+    <div className="space-y-4">
+      {premium.cover_photo_url && (
+        <div className="overflow-hidden rounded-xl border">
+          <img
+            src={premium.cover_photo_url}
+            alt="Votre jardin"
+            className="h-48 w-full object-cover"
+          />
+        </div>
+      )}
+
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="flex items-start gap-3 pt-6">
+          <Crown className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+          <div>
+            <p className="font-serif text-lg font-semibold">Votre espace jardin</p>
+            <p className="text-sm text-muted-foreground">
+              Votre jardin est suivi de près. Retrouvez ici son état, le planning à venir et vos
+              documents.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {premium.garden_state && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="mb-1.5 flex items-center gap-1.5 font-medium">
+              <Leaf className="h-4 w-4 text-primary" /> État de votre jardin
+            </p>
+            <p className="text-sm text-muted-foreground">{premium.garden_state}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {premium.upcoming.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="mb-3 flex items-center gap-1.5 font-medium">
+              <CalendarDays className="h-4 w-4 text-primary" /> Prochaines interventions
+            </p>
+            <div className="space-y-2">
+              {premium.upcoming.map((u) => (
+                <div key={u.id} className="rounded-lg bg-muted/50 p-2.5 text-sm">
+                  <p className="font-medium">{u.title}</p>
+                  <p className="text-xs text-muted-foreground">{fmtDate(u.scheduled_date)}</p>
+                  {u.details && <p className="mt-1 text-muted-foreground">{u.details}</p>}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardContent className="pt-6">
+          <p className="mb-3 flex items-center gap-1.5 font-medium">
+            <FileText className="h-4 w-4 text-primary" /> Documents
+          </p>
+          {premium.documents.length > 0 ? (
+            <div className="mb-3 space-y-2">
+              {premium.documents.map((d) => (
+                <a
+                  key={d.id}
+                  href={d.url ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-2 rounded-lg border p-2.5 text-sm transition-colors hover:border-primary/40"
+                >
+                  <span className="truncate">{d.title}</span>
+                  <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="mb-3 text-sm text-muted-foreground">Aucun document pour le moment.</p>
+          )}
+          <PremiumDocumentUpload
+            token={token}
+            onUploaded={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })}
+          />
+        </CardContent>
+      </Card>
+
+      {premium.commercial_note && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">{premium.commercial_note}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {premium.google_review_url && (
+        <a href={premium.google_review_url} target="_blank" rel="noopener noreferrer">
+          <Card className="transition-colors hover:border-primary/40">
+            <CardContent className="flex items-center gap-2 py-4 text-sm font-medium">
+              <Star className="h-4 w-4 text-primary" /> Laisser un avis Google
+            </CardContent>
+          </Card>
+        </a>
+      )}
+
+      <GeneralMessages token={token} messages={messages.filter((m) => !m.intervention_id)} />
+    </div>
+  );
+}
+
+function PremiumDocumentUpload({ token, onUploaded }: { token: string; onUploaded: () => void }) {
+  const [title, setTitle] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const upload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      const target = await createSharedPremiumDocumentUpload({
+        data: { token, filename: file.name, size: file.size },
+      });
+      const { error: uploadError } = await supabase.storage
+        .from("client-premium")
+        .uploadToSignedUrl(target.path, target.token, file);
+      if (uploadError) throw new Error(`Envoi impossible : ${uploadError.message}`);
+      await finalizeSharedPremiumDocumentUpload({
+        data: {
+          token,
+          path: target.path,
+          filename: file.name,
+          size: file.size,
+          title: title || file.name,
+        },
+      });
+      setTitle("");
+      toast.success("Document envoyé à votre jardinier");
+      onUploaded();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Échec de l'envoi");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex gap-2 border-t pt-3">
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Titre (ex : photo d'un problème)"
+        disabled={busy}
+      />
+      <Button type="button" variant="outline" disabled={busy} asChild>
+        <label className="cursor-pointer">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          <input type="file" className="hidden" onChange={upload} disabled={busy} />
+        </label>
+      </Button>
+    </div>
   );
 }
 

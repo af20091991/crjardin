@@ -8,6 +8,233 @@ export type Database = {
   };
   public: {
     Tables: {
+      ap_reminder_log: {
+        Row: {
+          id: string;
+          offset_days: number;
+          recipient_email: string;
+          sent_at: string;
+          worksite_id: string;
+        };
+        Insert: {
+          id?: string;
+          offset_days: number;
+          recipient_email: string;
+          sent_at?: string;
+          worksite_id: string;
+        };
+        Update: {
+          id?: string;
+          offset_days?: number;
+          recipient_email?: string;
+          sent_at?: string;
+          worksite_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ap_reminder_log_worksite_id_fkey";
+            columns: ["worksite_id"];
+            isOneToOne: false;
+            referencedRelation: "ap_worksites";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ap_suppliers: {
+        Row: {
+          comment: string | null;
+          created_at: string;
+          created_by: string | null;
+          email: string | null;
+          id: string;
+          name: string;
+          phone: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          comment?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          id?: string;
+          name: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          comment?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          id?: string;
+          name?: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      ap_supplies: {
+        Row: {
+          comment: string | null;
+          created_at: string;
+          fulfillment_date: string | null;
+          id: string;
+          item: string;
+          mode: string;
+          quantity: string | null;
+          status: string;
+          supplier: string;
+          supplier_id: string | null;
+          updated_at: string;
+          worksite_id: string;
+        };
+        Insert: {
+          comment?: string | null;
+          created_at?: string;
+          fulfillment_date?: string | null;
+          id?: string;
+          item?: string;
+          mode?: string;
+          quantity?: string | null;
+          status?: string;
+          supplier?: string;
+          supplier_id?: string | null;
+          updated_at?: string;
+          worksite_id: string;
+        };
+        Update: {
+          comment?: string | null;
+          created_at?: string;
+          fulfillment_date?: string | null;
+          id?: string;
+          item?: string;
+          mode?: string;
+          quantity?: string | null;
+          status?: string;
+          supplier?: string;
+          supplier_id?: string | null;
+          updated_at?: string;
+          worksite_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ap_supplies_supplier_id_fkey";
+            columns: ["supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "ap_suppliers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ap_supplies_worksite_id_fkey";
+            columns: ["worksite_id"];
+            isOneToOne: false;
+            referencedRelation: "ap_worksites";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ap_worksites: {
+        Row: {
+          client_label: string;
+          created_at: string;
+          created_by: string | null;
+          date_label: string | null;
+          id: string;
+          notes: string | null;
+          scheduled_date: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          client_label: string;
+          created_at?: string;
+          created_by?: string | null;
+          date_label?: string | null;
+          id?: string;
+          notes?: string | null;
+          scheduled_date?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          client_label?: string;
+          created_at?: string;
+          created_by?: string | null;
+          date_label?: string | null;
+          id?: string;
+          notes?: string | null;
+          scheduled_date?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      calendar_participants: {
+        Row: {
+          color: string;
+          icon: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          color?: string;
+          icon?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          color?: string;
+          icon?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      sst_availability_calendar: {
+        Row: {
+          comment: string | null;
+          created_at: string;
+          date: string;
+          id: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          comment?: string | null;
+          created_at?: string;
+          date: string;
+          id?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Update: {
+          comment?: string | null;
+          created_at?: string;
+          date?: string;
+          id?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      app_appearance: {
+        Row: {
+          id: boolean;
+          settings: Json;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          settings?: Json;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          settings?: Json;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       admin_audit_log: {
         Row: {
           action: string;
@@ -609,6 +836,141 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "v_intervention_pnl";
             referencedColumns: ["intervention_id"];
+          },
+        ];
+      };
+      client_premium: {
+        Row: {
+          activated_at: string | null;
+          client_id: string;
+          commercial_note: string | null;
+          cover_photo_id: string | null;
+          created_at: string;
+          deactivated_at: string | null;
+          enabled: boolean;
+          garden_state: string | null;
+          google_review_url: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          activated_at?: string | null;
+          client_id: string;
+          commercial_note?: string | null;
+          cover_photo_id?: string | null;
+          created_at?: string;
+          deactivated_at?: string | null;
+          enabled?: boolean;
+          garden_state?: string | null;
+          google_review_url?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Update: {
+          activated_at?: string | null;
+          client_id?: string;
+          commercial_note?: string | null;
+          cover_photo_id?: string | null;
+          created_at?: string;
+          deactivated_at?: string | null;
+          enabled?: boolean;
+          garden_state?: string | null;
+          google_review_url?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "client_premium_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: true;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "client_premium_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: true;
+            referencedRelation: "v_ca_orphans_report";
+            referencedColumns: ["best_candidate_id"];
+          },
+          {
+            foreignKeyName: "client_premium_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: true;
+            referencedRelation: "v_client_service_gaps";
+            referencedColumns: ["client_id"];
+          },
+          {
+            foreignKeyName: "client_premium_cover_photo_id_fkey";
+            columns: ["cover_photo_id"];
+            isOneToOne: false;
+            referencedRelation: "intervention_photos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      client_premium_documents: {
+        Row: {
+          client_id: string;
+          created_at: string;
+          filename: string;
+          id: string;
+          size_bytes: number | null;
+          storage_path: string;
+          title: string;
+          updated_at: string;
+          uploaded_by: string;
+          user_id: string;
+          visible_to_client: boolean;
+        };
+        Insert: {
+          client_id: string;
+          created_at?: string;
+          filename: string;
+          id?: string;
+          size_bytes?: number | null;
+          storage_path: string;
+          title: string;
+          updated_at?: string;
+          uploaded_by?: string;
+          user_id?: string;
+          visible_to_client?: boolean;
+        };
+        Update: {
+          client_id?: string;
+          created_at?: string;
+          filename?: string;
+          id?: string;
+          size_bytes?: number | null;
+          storage_path?: string;
+          title?: string;
+          updated_at?: string;
+          uploaded_by?: string;
+          user_id?: string;
+          visible_to_client?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "client_premium_documents_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "client_premium_documents_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "v_ca_orphans_report";
+            referencedColumns: ["best_candidate_id"];
+          },
+          {
+            foreignKeyName: "client_premium_documents_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "v_client_service_gaps";
+            referencedColumns: ["client_id"];
           },
         ];
       };
@@ -2982,32 +3344,38 @@ export type Database = {
       };
       planning_notes: {
         Row: {
+          assigned_to: string | null;
           client_id: string | null;
           created_at: string;
           created_by: string | null;
           details: string | null;
           id: string;
           scheduled_date: string;
+          status: string;
           title: string;
           updated_at: string;
         };
         Insert: {
+          assigned_to?: string | null;
           client_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           details?: string | null;
           id?: string;
           scheduled_date: string;
+          status?: string;
           title: string;
           updated_at?: string;
         };
         Update: {
+          assigned_to?: string | null;
           client_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           details?: string | null;
           id?: string;
           scheduled_date?: string;
+          status?: string;
           title?: string;
           updated_at?: string;
         };
@@ -5183,6 +5551,16 @@ export type Database = {
         };
         Returns: string;
       };
+      add_client_premium_document: {
+        Args: {
+          p_filename: string;
+          p_size_bytes: number;
+          p_storage_path: string;
+          p_title: string;
+          p_token: string;
+        };
+        Returns: string;
+      };
       admin_delete_user: { Args: { p_user_id: string }; Returns: undefined };
       clear_share_access_log: { Args: never; Returns: undefined };
       get_or_create_unsubscribe_token: {
@@ -5191,6 +5569,11 @@ export type Database = {
       };
       get_shared_client: { Args: { p_token: string }; Returns: Json };
       get_shared_messages: { Args: { p_token: string }; Returns: Json };
+      get_shared_premium: { Args: { p_token: string }; Returns: Json };
+      get_shared_premium_document_url: {
+        Args: { p_document_id: string; p_token: string };
+        Returns: string;
+      };
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"];

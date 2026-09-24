@@ -1,427 +1,161 @@
 import { supabase } from "@/integrations/supabase/client";
-import { parsePlanning } from "@/lib/file-parser";
 
-type PremiumRow = {
+const DOCS_BUCKET = "client-premium";
+
+export interface ClientPremium {
   client_id: string;
   enabled: boolean;
-  activated_at: string;
+  activated_at: string | null;
   deactivated_at: string | null;
-  cover_photo_id: string | null;
+  garden_state: string | null;
   google_review_url: string | null;
   commercial_note: string | null;
-};
+  cover_photo_id: string | null;
+}
 
-export type PremiumDocument = {
+export type PremiumDocumentUploader = "gardener" | "client";
+
+export interface PremiumDocument {
   id: string;
   client_id: string;
-  kind: "document" | "planning";
   title: string;
   filename: string;
   storage_path: string;
   size_bytes: number | null;
-  year: number | null;
+  uploaded_by: PremiumDocumentUploader;
   visible_to_client: boolean;
   created_at: string;
-};
+}
 
-type PremiumIntervention = {
-  id: string;
-  title: string | null;
-  intervention_date: string | null;
-};
-
-type PremiumPhoto = {
-  id: string;
-  intervention_id: string;
-  storage_path: string;
-  caption: string | null;
-  created_at: string | null;
-};
-
-export type PremiumPhotoRow = {
+export interface ClientCoverPhotoOption {
   id: string;
   storage_path: string;
-  caption: string | null;
-  created_at: string | null;
-  intervention_date: string | null;
-  intervention_title: string | null;
-  url: string | null;
-};
+}
 
-export type PremiumPlanningItem = {
-  id: string;
-  client_id: string;
-  document_id: string | null;
-  label: string;
-  period_label: string | null;
-  start_date: string | null;
-  end_date: string | null;
-  year: number | null;
-  status: "a_valider" | "valide";
-  source: "pdf" | "manuel";
-  notes: string | null;
-  position: number;
-};
+async function uid(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) throw new Error("Non authentifié");
+  return data.user.id;
+}
 
-const db = supabase as any;
-
-export async function getClientPremium(
-  clientId: string,
-): Promise<PremiumRow | null> {
-  const { data, error } = await db
+export async function getClientPremium(clientId: string): Promise<ClientPremium | null> {
+  const { data, error } = await supabase
     .from("client_premium")
     .select("*")
     .eq("client_id", clientId)
     .maybeSingle();
-
-  if (error) throw new Error(error.message);
-  return data;
+  if (error) throw new Error(`Impossible de charger le statut Premium : ${error.message}`);
+  return data as ClientPremium | null;
 }
 
-export async function listPremiumClientIds(): Promise<string[]> {
-  const { data, error } = await db
-    .from("client_premium")
-    .select("client_id")
-    .eq("enabled", true);
-
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((row: { client_id: string }) => row.client_id);
-}
-
-export async function setClientPremiumEnabled(
-  clientId: string,
-  enabled: boolean,
-): Promise<void> {
-  const existing = await getClientPremium(clientId);
+export async function setClientPremiumEnabled(clientId: string, enabled: boolean): Promise<void> {
+  const user_id = await uid();
   const now = new Date().toISOString();
-
-  if (!existing) {
-    const { error } = await db.from("client_premium").insert({
+  const { error } = await supabase.from("client_premium").upsert(
+    {
       client_id: clientId,
+      user_id,
       enabled,
-      activated_at: now,
+      activated_at: enabled ? now : undefined,
       deactivated_at: enabled ? null : now,
-    });
-
-    if (error) throw new Error(error.message);
-    return;
-  }
-
-  const { error } = await db
-    .from("client_premium")
-    .update(
-      enabled
-        ? { enabled: true, activated_at: now, deactivated_at: null }
-        : { enabled: false, deactivated_at: now },
-    )
-    .eq("client_id", clientId);
-
-  if (error) throw new Error(error.message);
+    },
+    { onConflict: "client_id" },
+  );
+  if (error) throw new Error(`Impossible de mettre à jour le statut Premium : ${error.message}`);
 }
 
 export async function updateClientPremium(
   clientId: string,
   patch: Partial<
-    Pick<PremiumRow, "cover_photo_id" | "google_review_url" | "commercial_note">
+    Pick<ClientPremium, "garden_state" | "google_review_url" | "commercial_note" | "cover_photo_id">
   >,
 ): Promise<void> {
-  const { error } = await db
+  const user_id = await uid();
+  const { error } = await supabase
     .from("client_premium")
-    .update(patch)
-    .eq("client_id", clientId);
-
-  if (error) throw new Error(error.message);
+    .upsert({ client_id: clientId, user_id, ...patch }, { onConflict: "client_id" });
+  if (error) throw new Error(`Impossible d'enregistrer les modifications : ${error.message}`);
 }
 
-export async function listPremiumDocuments(
-  clientId: string,
-): Promise<PremiumDocument[]> {
-  const { data, error } = await db
+export async function listPremiumDocuments(clientId: string): Promise<PremiumDocument[]> {
+  const { data, error } = await supabase
     .from("client_premium_documents")
     .select("*")
     .eq("client_id", clientId)
     .order("created_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return data ?? [];
-}
-
-export async function setPremiumDocumentVisibility(
-  id: string,
-  visible: boolean,
-): Promise<void> {
-  const { error } = await db
-    .from("client_premium_documents")
-    .update({ visible_to_client: visible })
-    .eq("id", id);
-
-  if (error) throw new Error(error.message);
-}
-
-export async function listPremiumPlanning(
-  clientId: string,
-): Promise<PremiumPlanningItem[]> {
-  const { data, error } = await db
-    .from("client_premium_planning_items")
-    .select("*")
-    .eq("client_id", clientId)
-    .order("year", { ascending: true })
-    .order("position", { ascending: true });
-
-  if (error) throw new Error(error.message);
-  return data ?? [];
-}
-
-export async function updatePlanningItem(
-  id: string,
-  patch: Partial<
-    Pick<
-      PremiumPlanningItem,
-      | "label"
-      | "period_label"
-      | "start_date"
-      | "end_date"
-      | "year"
-      | "status"
-      | "notes"
-      | "position"
-    >
-  >,
-): Promise<void> {
-  const { error } = await db
-    .from("client_premium_planning_items")
-    .update(patch)
-    .eq("id", id);
-
-  if (error) throw new Error(error.message);
-}
-
-export async function createManualPlanningItem(
-  clientId: string,
-  item: Pick<
-    PremiumPlanningItem,
-    "label" | "period_label" | "start_date" | "end_date" | "year" | "notes"
-  >,
-): Promise<void> {
-  const { error } = await db.from("client_premium_planning_items").insert({
-    client_id: clientId,
-    ...item,
-    status: "a_valider",
-    source: "manuel",
-    position: 0,
-  });
-
-  if (error) throw new Error(error.message);
-}
-
-export async function deletePlanningItem(id: string): Promise<void> {
-  const { error } = await db
-    .from("client_premium_planning_items")
-    .delete()
-    .eq("id", id);
-
-  if (error) throw new Error(error.message);
-}
-
-export async function createPlanningItems(
-  clientId: string,
-  documentId: string,
-  rows: Awaited<ReturnType<typeof parsePlanning>>,
-): Promise<void> {
-  if (!rows.length) return;
-
-  const items = rows.map((row, index) => ({
-    client_id: clientId,
-    document_id: documentId,
-    label: row.label,
-    period_label: row.monthLabel,
-    start_date: null,
-    end_date: null,
-    year: null,
-    status: "a_valider",
-    source: "pdf",
-    notes: [row.type, ...row.tasks].filter(Boolean).join(" · "),
-    position: index,
-  }));
-
-  const { error } = await db
-    .from("client_premium_planning_items")
-    .insert(items);
-
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(`Impossible de charger les documents : ${error.message}`);
+  return data as PremiumDocument[];
 }
 
 export async function uploadPremiumDocument(
   clientId: string,
   file: File,
-  kind: "document" | "planning",
   title: string,
-  year: number | null,
-): Promise<{ document: PremiumDocument; extractedCount: number }> {
-  if (file.size > 25 * 1024 * 1024) {
-    throw new Error("Le fichier dépasse la taille maximale de 25 Mo.");
-  }
-  if (kind === "planning" && file.type !== "application/pdf") {
-    throw new Error("Le calendrier Premium doit être un fichier PDF.");
-  }
-
-  let extractedRows: Awaited<ReturnType<typeof parsePlanning>> = [];
-  if (kind === "planning") {
-    extractedRows = await parsePlanning(file);
-  }
-
-  const path = `${clientId}/${crypto.randomUUID()}-${file.name.replace(
-    /[^a-zA-Z0-9._-]/g,
-    "_",
-  )}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("client-premium")
-    .upload(path, file, { upsert: false });
-
-  if (uploadError) throw new Error(uploadError.message);
-
-  const { data, error } = await db
+): Promise<PremiumDocument> {
+  const user_id = await uid();
+  const ext = file.name.split(".").pop() || "pdf";
+  const path = `${clientId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (uploadError) throw new Error(`Échec de l'envoi du document : ${uploadError.message}`);
+  const { data, error } = await supabase
     .from("client_premium_documents")
     .insert({
       client_id: clientId,
-      kind,
+      user_id,
       title,
       filename: file.name,
       storage_path: path,
       size_bytes: file.size,
-      year,
+      uploaded_by: "gardener",
     })
-    .select("*")
+    .select()
     .single();
-
-  if (error) throw new Error(error.message);
-
-  const extractedCount = extractedRows.length;
-  if (extractedRows.length > 0) {
-    try {
-      await createPlanningItems(clientId, data.id, extractedRows);
-    } catch (error) {
-      await supabase.storage.from("client-premium").remove([path]);
-      await db.from("client_premium_documents").delete().eq("id", data.id);
-      throw error instanceof Error
-        ? error
-        : new Error("Impossible d’enregistrer le planning extrait.");
-    }
-  }
-
-  return {
-    document: data as PremiumDocument,
-    extractedCount,
-  };
+  if (error) throw new Error(`Impossible d'enregistrer le document : ${error.message}`);
+  return data as PremiumDocument;
 }
 
-export async function signedPremiumDocumentUrl(path: string): Promise<string> {
+export async function updatePremiumDocumentVisibility(id: string, visible: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("client_premium_documents")
+    .update({ visible_to_client: visible })
+    .eq("id", id);
+  if (error) throw new Error(`Impossible de mettre à jour le document : ${error.message}`);
+}
+
+export async function deletePremiumDocument(id: string, storagePath: string): Promise<void> {
+  await supabase.storage.from(DOCS_BUCKET).remove([storagePath]);
+  const { error } = await supabase.from("client_premium_documents").delete().eq("id", id);
+  if (error) throw new Error(`Impossible de supprimer le document : ${error.message}`);
+}
+
+export async function signedPremiumDocumentUrl(storagePath: string): Promise<string> {
   const { data, error } = await supabase.storage
-    .from("client-premium")
-    .createSignedUrl(path, 3600);
-
-  if (error || !data?.signedUrl) {
-    throw new Error(error?.message ?? "Lien indisponible");
-  }
-
+    .from(DOCS_BUCKET)
+    .createSignedUrl(storagePath, 60 * 60);
+  if (error) throw error;
   return data.signedUrl;
 }
 
-export async function sharedPremiumDocumentUrl(
-  token: string,
-  documentId: string,
-): Promise<string> {
-  const { data, error } = await db.rpc(
-    "get_shared_premium_document_url",
-    {
-      p_token: token,
-      p_document_id: documentId,
-    },
-  );
-
-  if (error || !data) {
-    throw new Error(error?.message ?? "Document indisponible");
-  }
-
-  return data as string;
-}
-
-export async function getSharedPremium(token: string) {
-  const { data, error } = await db.rpc("get_shared_premium", {
-    p_token: token,
-  });
-
-  if (error) throw new Error(error.message);
-
-  return data as {
-    client: any;
-    enabled: boolean;
-    google_review_url: string | null;
-    commercial_note: string | null;
-    documents: PremiumDocument[];
-    planning: PremiumPlanningItem[];
-  } | null;
-}
-
-export async function listPremiumPhotos(clientId: string) {
-  const { data: interventions, error: interventionError } = await db
+/** Photos d'interventions du client, candidates pour la couverture de son espace Premium. */
+export async function listClientPhotosForCover(
+  clientId: string,
+): Promise<ClientCoverPhotoOption[]> {
+  const { data: interventions, error: ivError } = await supabase
     .from("interventions")
-    .select("id,title,intervention_date")
+    .select("id")
     .eq("client_id", clientId);
-
-  if (interventionError) throw new Error(interventionError.message);
-
-  const interventionIds = (interventions ?? []).map(
-    (intervention: { id: string }) => intervention.id,
-  );
-
-  if (!interventionIds.length) return [];
-
-  const { data: photos, error: photoError } = await db
+  if (ivError) throw new Error(`Impossible de charger les interventions : ${ivError.message}`);
+  const ids = (interventions ?? []).map((i) => i.id);
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
     .from("intervention_photos")
-    .select("id,intervention_id,storage_path,caption,created_at")
-    .in("intervention_id", interventionIds);
-
-  if (photoError) throw new Error(photoError.message);
-
-  const interventionMap = new Map<string, PremiumIntervention>(
-    (interventions ?? []).map((intervention: PremiumIntervention) => [
-      intervention.id,
-      intervention,
-    ]),
-  );
-
-  const rows = await Promise.all(
-    (photos ?? []).map(async (photo: PremiumPhoto): Promise<PremiumPhotoRow> => {
-      const intervention = interventionMap.get(photo.intervention_id);
-      let url: string | null = null;
-
-      try {
-        url =
-          (
-            await supabase.storage
-              .from("chantier-photos")
-              .createSignedUrl(photo.storage_path, 3600)
-          ).data?.signedUrl ?? null;
-      } catch {
-        // A missing photo URL should not block the Premium workspace.
-      }
-
-      return {
-        id: photo.id,
-        storage_path: photo.storage_path,
-        caption: photo.caption,
-        created_at: photo.created_at,
-        intervention_date:
-          intervention?.intervention_date ?? photo.created_at?.slice(0, 10) ?? null,
-        intervention_title: intervention?.title ?? null,
-        url,
-      };
-    }),
-  );
-
-  return rows.sort((a, b) =>
-    String(b.intervention_date).localeCompare(String(a.intervention_date)),
-  );
+    .select("id, storage_path")
+    .in("intervention_id", ids)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  if (error) throw new Error(`Impossible de charger les photos : ${error.message}`);
+  return data as ClientCoverPhotoOption[];
 }
