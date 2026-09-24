@@ -181,7 +181,7 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
       y += imageH + 6;
     } catch (error) {
       console.error("Export PDF fiche SST : impossible d'ajouter la carte.", error);
-      toast.warning(
+      console.error(
         "La carte Google Maps n'a pas pu être intégrée au PDF. Vérifiez la connexion Google Maps.",
       );
     }
