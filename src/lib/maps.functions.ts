@@ -205,9 +205,14 @@ export const staticGardenMap = createServerFn({ method: "POST" })
 
     validMarkers.forEach((marker, index) => {
       params.append("visible", `${marker.lat},${marker.lng}`);
+      // Google Static Maps accepte un seul caractère comme libellé de repère.
+      const label =
+        index < 9
+          ? String(index + 1)
+          : String.fromCharCode(65 + ((index - 9) % 26));
       params.append(
         "markers",
-        `size:mid|color:0x49ad31|label:${String(index + 1)}|${marker.lat},${marker.lng}`,
+        `size:mid|color:0x49ad31|label:${label}|${marker.lat},${marker.lng}`,
       );
     });
 
