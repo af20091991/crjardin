@@ -29,11 +29,19 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
 
   const dateStr = sheet.intervention_date
     ? new Date(sheet.intervention_date).toLocaleDateString("fr-FR", {
-        weekday: "long", day: "numeric", month: "long", year: "numeric",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
       })
     : "Date non définie";
 
-  const ensureSpace = (h: number) => { if (y + h > pageH - margin - 6) { doc.addPage(); y = margin; } };
+  const ensureSpace = (h: number) => {
+    if (y + h > pageH - margin - 6) {
+      doc.addPage();
+      y = margin;
+    }
+  };
 
   const heading = (title: string) => {
     ensureSpace(14);
@@ -61,7 +69,14 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   };
 
   const bullets = (items: string[]) => {
-    if (!items.length) { ensureSpace(6); doc.setTextColor(...MUTED); doc.text("—", margin, y); doc.setTextColor(...DARK); y += 6; return; }
+    if (!items.length) {
+      ensureSpace(6);
+      doc.setTextColor(...MUTED);
+      doc.text("—", margin, y);
+      doc.setTextColor(...DARK);
+      y += 6;
+      return;
+    }
     for (const it of items) {
       const lines = doc.splitTextToSize(it, contentW - 6);
       ensureSpace(lines.length * 5 + 1);
@@ -77,7 +92,9 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   try {
     const img = await loadImage(logo);
     doc.addImage(img, "PNG", margin, 6, 18, 18);
-  } catch { /* logo optionnel */ }
+  } catch {
+    /* logo optionnel */
+  }
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
@@ -100,7 +117,10 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   line("Date d'intervention", dateStr);
   if (sheet.intervenant) line("Intervenant(e)", sheet.intervenant);
   line("Client présent", sheet.client_present == null ? "—" : sheet.client_present ? "Oui" : "Non");
-  line("Évacuation déchets verts", sheet.green_waste == null ? "—" : sheet.green_waste ? "Oui" : "Non");
+  line(
+    "Évacuation déchets verts",
+    sheet.green_waste == null ? "—" : sheet.green_waste ? "Oui" : "Non",
+  );
 
   heading("Matériel nécessaire");
   bullets(sheet.equipment);
@@ -124,7 +144,11 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   if (sheet.notes?.trim()) {
     heading("Notes complémentaires");
     const lines = doc.splitTextToSize(sheet.notes.trim(), contentW);
-    lines.forEach((l: string) => { ensureSpace(5.4); doc.text(l, margin, y); y += 5.4; });
+    lines.forEach((l: string) => {
+      ensureSpace(5.4);
+      doc.text(l, margin, y);
+      y += 5.4;
+    });
   }
 
   if (sheet.recycling_center) {
@@ -144,31 +168,59 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   }
 
   if (sheet.latitude != null && sheet.longitude != null) {
+    /*
+     * La carte est volontairement isolée sur une page dédiée :
+     * - elle ne peut jamais être coupée entre deux pages ;
+     * - elle occupe au moins une demi-page A4 ;
+     * - les repères restent lisibles ;
+     * - le PDF ne dépend pas d'une carte Google Maps interactive.
+     */
+    doc.addPage();
+    y = margin;
+
     heading("Plan jardin (vue aérienne)");
+
     try {
       const dataUrl = await staticGardenMap({
         data: {
           lat: sheet.latitude,
           lng: sheet.longitude,
-          markers: sheet.garden_markers.map((m) => ({ lat: m.lat, lng: m.lng })),
+          markers: sheet.garden_markers.map((marker) => ({
+            lat: marker.lat,
+            lng: marker.lng,
+          })),
         },
       });
-      if (dataUrl) {
-        const img = await loadImage(dataUrl);
-        const w = contentW;
-        const h = w * 540 / 640;
-        ensureSpace(h + 4);
-        doc.addImage(img, "PNG", margin, y, w, h, undefined, "FAST");
-        y += h + 4;
+
+      if (!dataUrl) {
+        throw new Error("Google Static Maps n'a retourné aucune image.");
       }
-    } catch { /* plan optionnel */ }
+
+      const imageW = contentW;
+      // Ratio 640x540 : environ 150 mm de haut sur une largeur utile A4.
+      const imageH = (imageW * 540) / 640;
+
+      ensureSpace(imageH + 4);
+      doc.addImage(dataUrl, "PNG", margin, y, imageW, imageH, undefined, "FAST");
+      y += imageH + 6;
+    } catch (error) {
+      console.error("Export PDF fiche SST : impossible d'ajouter la carte.", error);
+      console.error(
+        "La carte Google Maps n'a pas pu être intégrée au PDF. Vérifiez la connexion Google Maps.",
+      );
+    }
+
     if (sheet.garden_markers.length) {
-      sheet.garden_markers.forEach((m, i) => {
-        const lines = doc.splitTextToSize(`${i + 1}. ${m.task}${m.note ? ` — ${m.note}` : ""}`, contentW - 4);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+
+      for (const [index, marker] of sheet.garden_markers.entries()) {
+        const label = `${index + 1}. ${marker.task}${marker.note ? ` — ${marker.note}` : ""}`;
+        const lines = doc.splitTextToSize(label, contentW - 4);
         ensureSpace(lines.length * 5 + 1);
         doc.text(lines, margin, y);
         y += lines.length * 5 + 1;
-      });
+      }
     }
   }
 
@@ -187,8 +239,13 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
         const x = margin + col * (w + gap);
         doc.addImage(img, "JPEG", x, y, w, h, undefined, "FAST");
         col++;
-        if (col >= cols) { col = 0; y += h + 4; }
-      } catch { /* skip */ }
+        if (col >= cols) {
+          col = 0;
+          y += h + 4;
+        }
+      } catch {
+        /* skip */
+      }
     }
     if (col !== 0) y += h + 4;
   }
@@ -206,6 +263,9 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   const parts = ["Fiche chantier", sheet.civility?.trim(), sheet.client_name?.trim(), dateSafe]
     .filter(Boolean)
     .join(" ");
-  const fname = parts.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+  const fname = parts
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   doc.save(`${fname || "Fiche chantier"}.pdf`);
 }

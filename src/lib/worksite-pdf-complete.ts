@@ -189,14 +189,18 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
     }
   }
   if (sheet.latitude != null && sheet.longitude != null) {
-    section("Localisation du chantier");
-    line("Latitude", formatCoordinate(sheet.latitude));
-    line("Longitude", formatCoordinate(sheet.longitude));
-    if (y > pageH - margin - 160) {
-      doc.addPage();
-      y = margin;
-    }
+    /*
+     * La carte est volontairement isolée sur une page dédiée :
+     * - elle ne peut jamais être coupée entre deux pages ;
+     * - elle occupe au moins une demi-page A4 ;
+     * - les repères restent lisibles ;
+     * - le PDF ne dépend pas d'une carte Google Maps interactive.
+     */
+    doc.addPage();
+    y = margin;
+
     section("Plan jardin (vue aérienne)");
+
     try {
       const dataUrl = await staticGardenMap({
         data: {
@@ -208,24 +212,29 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
           })),
         },
       });
-      if (dataUrl) {
-        const imageW = contentW;
-        const imageH = (imageW * 540) / 640;
-        ensureSpace(imageH + 4);
-        const imageFormat = dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
-        doc.addImage(dataUrl, imageFormat, margin, y, imageW, imageH, undefined, "FAST");
-        y += imageH + 4;
-      } else {
-        console.error(
-          "Export PDF fiche SST : staticGardenMap a renvoyé null (connecteur Google Maps).",
-        );
-        toast.warning("Carte Google Maps indisponible : le plan n'a pas pu être ajouté au PDF.");
+
+      if (!dataUrl) {
+        throw new Error("Google Static Maps n'a retourné aucune image.");
       }
-    } catch (err) {
-      console.error("Export PDF fiche SST : échec du chargement de la carte Google Maps.", err);
-      toast.warning("Carte Google Maps indisponible : le plan n'a pas pu être ajouté au PDF.");
+
+      const imageW = contentW;
+      // Ratio 640x540 : environ 150 mm de haut sur une largeur utile A4.
+      const imageH = (imageW * 540) / 640;
+
+      ensureSpace(imageH + 4);
+      doc.addImage(dataUrl, "PNG", margin, y, imageW, imageH, undefined, "FAST");
+      y += imageH + 6;
+    } catch (error) {
+      console.error("Export PDF fiche SST : impossible d'ajouter la carte.", error);
+      toast.warning(
+        "La carte Google Maps n'a pas pu être intégrée au PDF. Vérifiez la connexion Google Maps.",
+      );
     }
+
     if (sheet.garden_markers.length) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+
       for (const [index, marker] of sheet.garden_markers.entries()) {
         const label = `${index + 1}. ${marker.task}${marker.note ? ` — ${marker.note}` : ""}`;
         const lines = doc.splitTextToSize(label, contentW - 4);
@@ -235,6 +244,7 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
       }
     }
   }
+
   if (sheet.photos.length) {
     section("Photos du chantier");
     const gap = 4;
