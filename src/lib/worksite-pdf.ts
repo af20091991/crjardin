@@ -144,31 +144,59 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   }
 
   if (sheet.latitude != null && sheet.longitude != null) {
-    heading("Plan jardin (vue aérienne)");
+    /*
+     * La carte est volontairement isolée sur une page dédiée :
+     * - elle ne peut jamais être coupée entre deux pages ;
+     * - elle occupe au moins une demi-page A4 ;
+     * - les repères restent lisibles ;
+     * - le PDF ne dépend pas d'une carte Google Maps interactive.
+     */
+    doc.addPage();
+    y = margin;
+
+    section("Plan jardin (vue aérienne)");
+
     try {
       const dataUrl = await staticGardenMap({
         data: {
           lat: sheet.latitude,
           lng: sheet.longitude,
-          markers: sheet.garden_markers.map((m) => ({ lat: m.lat, lng: m.lng })),
+          markers: sheet.garden_markers.map((marker) => ({
+            lat: marker.lat,
+            lng: marker.lng,
+          })),
         },
       });
-      if (dataUrl) {
-        const img = await loadImage(dataUrl);
-        const w = contentW;
-        const h = w * 540 / 640;
-        ensureSpace(h + 4);
-        doc.addImage(img, "PNG", margin, y, w, h, undefined, "FAST");
-        y += h + 4;
+
+      if (!dataUrl) {
+        throw new Error("Google Static Maps n'a retourné aucune image.");
       }
-    } catch { /* plan optionnel */ }
+
+      const imageW = contentW;
+      // Ratio 640x540 : environ 150 mm de haut sur une largeur utile A4.
+      const imageH = (imageW * 540) / 640;
+
+      ensureSpace(imageH + 4);
+      doc.addImage(dataUrl, "PNG", margin, y, imageW, imageH, undefined, "FAST");
+      y += imageH + 6;
+    } catch (error) {
+      console.error("Export PDF fiche SST : impossible d'ajouter la carte.", error);
+      toast.warning(
+        "La carte Google Maps n'a pas pu être intégrée au PDF. Vérifiez la connexion Google Maps.",
+      );
+    }
+
     if (sheet.garden_markers.length) {
-      sheet.garden_markers.forEach((m, i) => {
-        const lines = doc.splitTextToSize(`${i + 1}. ${m.task}${m.note ? ` — ${m.note}` : ""}`, contentW - 4);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+
+      for (const [index, marker] of sheet.garden_markers.entries()) {
+        const label = `${index + 1}. ${marker.task}${marker.note ? ` — ${marker.note}` : ""}`;
+        const lines = doc.splitTextToSize(label, contentW - 4);
         ensureSpace(lines.length * 5 + 1);
         doc.text(lines, margin, y);
         y += lines.length * 5 + 1;
-      });
+      }
     }
   }
 
