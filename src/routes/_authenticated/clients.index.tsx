@@ -70,7 +70,7 @@ const statusMeta: Record<ClientActivityStatus, { label: string; className: strin
 
 function ClientsPage() {
   const queryClient = useQueryClient();
-  const { canEdit } = useRole();
+  const { canEdit, canView } = useRole();
   const { year } = usePilotYear();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -88,7 +88,7 @@ function ClientsPage() {
   const entriesQuery = useQuery({
     queryKey: ["pilot-entries"],
     queryFn: () => listEntries(),
-    enabled: canEdit,
+    enabled: canView,
   });
   const favorites = useMemo(() => new Set(favoritesQuery.data ?? []), [favoritesQuery.data]);
 
