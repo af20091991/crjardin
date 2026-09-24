@@ -19,106 +19,25 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-async function annotateGardenMap(
-  dataUrl: string,
-  centerLat: number,
-  centerLng: number,
-  markers: WorksiteSheet["garden_markers"],
-  zoom = 19,
-): Promise<string> {
-  if (!markers.length) return dataUrl;
-
-  const image = await loadImage(dataUrl);
-  const canvas = document.createElement("canvas");
-  canvas.width = image.naturalWidth || image.width;
-  canvas.height = image.naturalHeight || image.height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return dataUrl;
-
-  ctx.drawImage(image, 0, 0);
-  const scale = canvas.width / 640;
-  const worldSize = 256 * 2 ** zoom;
-
-  const project = (lat: number, lng: number) => {
-    const sinLat = Math.min(Math.max(Math.sin((lat * Math.PI) / 180), -0.9999), 0.9999);
-    return {
-      x: ((lng + 180) / 360) * worldSize,
-      y: (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * worldSize,
-    };
-  };
-
-  const center = project(centerLat, centerLng);
-  const markerRadius = 18 * scale;
-  const padding = 8 * scale;
-  const fontSize = Math.max(14, Math.round(11 * scale));
-  const lineHeight = fontSize * 1.25;
-
-  ctx.font = `600 ${fontSize}px Arial, sans-serif`;
-  ctx.textBaseline = "top";
-
-  markers.forEach((marker, index) => {
-    const point = project(marker.lat, marker.lng);
-    const x = canvas.width / 2 + (point.x - center.x);
-    const y = canvas.height / 2 + (point.y - center.y);
-
-    const mention = [marker.task, marker.note].filter(Boolean).join(" — ");
-    const maxTextWidth = Math.min(canvas.width * 0.58, 520 * scale);
-    const words = mention.split(/\\s+/);
-    const lines: string[] = [];
-    let current = "";
-    for (const word of words) {
-      const candidate = current ? `${current} ${word}` : word;
-      if (ctx.measureText(candidate).width <= maxTextWidth || !current) {
-        current = candidate;
-      } else {
-        lines.push(current);
-        current = word;
-      }
-    }
-    if (current) lines.push(current);
-
-    const boxW = Math.min(
-      maxTextWidth + padding * 2,
-      Math.max(
-        markerRadius * 2 + padding * 2,
-        Math.max(...lines.map((line) => ctx.measureText(line).width)) + padding * 2,
-      ),
-    );
-    const boxH = lines.length * lineHeight + padding * 2;
-    const boxX = Math.min(
-      Math.max(x + markerRadius + padding, padding),
-      canvas.width - boxW - padding,
-    );
-    const boxY = Math.min(Math.max(y - boxH / 2, padding), canvas.height - boxH - padding);
-
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.strokeStyle = "rgba(79,142,51,0.95)";
-    ctx.lineWidth = Math.max(1, scale);
-    ctx.beginPath();
-    ctx.roundRect(boxX, boxY, boxW, boxH, 8 * scale);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = "#4F8E33";
-    ctx.beginPath();
-    ctx.arc(x, y, markerRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = `700 ${Math.max(13, Math.round(12 * scale))}px Arial, sans-serif`;
-    ctx.fillText(String(index + 1), x, y);
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    ctx.fillStyle = "#2D3728";
-    ctx.font = `600 ${fontSize}px Arial, sans-serif`;
-    lines.forEach((line, lineIndex) => {
-      ctx.fillText(line, boxX + padding, boxY + padding + lineIndex * lineHeight);
-    });
-  });
-
-  return canvas.toDataURL("image/png");
+function normalizeOpeningHours(value: string): string {
+  return value
+    .replace(/[\u00A0\u2007\u202F]/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\s*:\s*/g, " : ")
+    .replace(/\s*[–—-]\s*/g, " – ")
+    .trim();
 }
+
+function formatCoordinate(value: number): string {
+  return value.toFixed(6);
+}
+
+function formatOpeningDay(value: string): string {
+  const normalized = normalizeOpeningHours(value);
+  if (!normalized) return "—";
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
 export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -249,15 +168,34 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
     section("Déchèterie la plus proche");
     line("Nom", sheet.recycling_center.name);
     line("Adresse", sheet.recycling_center.address);
-    line("Distance", `${sheet.recycling_center.distance_km} km`);
+    line("Distance", `${sheet.recycling_center.distance_km.toFixed(1)} km`);
+    line(
+      "Coordonnées",
+      `${formatCoordinate(sheet.recycling_center.lat)}, ${formatCoordinate(sheet.recycling_center.lng)}`,
+    );
     if (sheet.recycling_center.hours.length) {
-      line("Horaires", sheet.recycling_center.hours.join(" · "));
+      ensureSpace(8 + sheet.recycling_center.hours.length * 5);
+      doc.setFont("helvetica", "bold");
+      doc.text("Horaires :", margin, y);
+      y += 5.4;
+      doc.setFont("helvetica", "normal");
+      for (const hour of sheet.recycling_center.hours) {
+        const lines = doc.splitTextToSize(formatOpeningDay(hour), contentW - 6);
+        ensureSpace(lines.length * 5 + 1);
+        doc.text("•", margin, y);
+        doc.text(lines, margin + 5, y);
+        y += lines.length * 5 + 1;
+      }
     }
   }
   if (sheet.latitude != null && sheet.longitude != null) {
     section("Localisation du chantier");
-    line("Latitude", String(sheet.latitude));
-    line("Longitude", String(sheet.longitude));
+    line("Latitude", formatCoordinate(sheet.latitude));
+    line("Longitude", formatCoordinate(sheet.longitude));
+    if (y > pageH - margin - 160) {
+      doc.addPage();
+      y = margin;
+    }
     section("Plan jardin (vue aérienne)");
     try {
       const dataUrl = await staticGardenMap({
@@ -271,15 +209,9 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
         },
       });
       if (dataUrl) {
-        const annotatedDataUrl = await annotateGardenMap(
-          dataUrl,
-          sheet.latitude,
-          sheet.longitude,
-          sheet.garden_markers,
-        );
-        const image = await loadImage(annotatedDataUrl);
+        const image = await loadImage(dataUrl);
         const imageW = contentW;
-        const imageH = imageW * (image.naturalHeight / image.naturalWidth);
+        const imageH = imageW * 540 / 640;
         ensureSpace(imageH + 4);
         doc.addImage(image, "PNG", margin, y, imageW, imageH, undefined, "FAST");
         y += imageH + 4;
