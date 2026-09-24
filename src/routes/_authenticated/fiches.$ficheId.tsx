@@ -16,32 +16,39 @@ import { exportCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { ArrowLeft, Copy, FileDown, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
+
 export const Route = createFileRoute("/_authenticated/fiches/$ficheId")({
   head: () => ({
     meta: [{ title: "Fiche SST — De la graine au jardin" }],
   }),
   component: EditFiche,
 });
+
 function EditFiche() {
   const { ficheId } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { canEdit, isLoading: roleLoading } = useRole();
+  const { canEdit, canView, isLoading: roleLoading } = useRole();
+
   useEffect(() => {
-    if (!roleLoading && !canEdit) {
+    if (!roleLoading && !canView) {
       navigate({ to: "/", replace: true });
     }
-  }, [canEdit, roleLoading, navigate]);
+  }, [canView, roleLoading, navigate]);
+
   const { data: sheet, isLoading } = useQuery({
     queryKey: ["worksite-sheet", ficheId],
     queryFn: () => getWorksiteSheet(ficheId),
-    enabled: canEdit,
+    enabled: canView,
   });
+
   const { data: clients } = useQuery({
     queryKey: ["clients"],
     queryFn: listClients,
   });
+
   const [exporting, setExporting] = useState(false);
+
   const save = useMutation({
     mutationFn: (input: WorksiteSheetInput) => updateWorksiteSheet(ficheId, input),
     onSuccess: () => {
@@ -51,6 +58,7 @@ function EditFiche() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
+
   const remove = useMutation({
     mutationFn: () => deleteWorksiteSheet(ficheId),
     onSuccess: () => {
@@ -60,6 +68,7 @@ function EditFiche() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
+
   async function duplicate() {
     if (!sheet) return;
     try {
@@ -74,6 +83,7 @@ function EditFiche() {
       toast.error(e instanceof Error ? e.message : "Échec de la duplication");
     }
   }
+
   async function exportPdf() {
     if (!sheet) return;
     setExporting(true);
@@ -85,6 +95,7 @@ function EditFiche() {
       setExporting(false);
     }
   }
+
   return (
     <AppShell title="Fiche SST">
       <div className="mx-auto max-w-2xl space-y-4">
@@ -96,9 +107,11 @@ function EditFiche() {
             <ArrowLeft className="h-4 w-4" /> Retour
           </Link>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={!sheet} onClick={duplicate}>
-              <Copy className="mr-1.5 h-4 w-4" /> Dupliquer
-            </Button>
+            {canEdit && (
+              <Button size="sm" variant="outline" disabled={!sheet} onClick={duplicate}>
+                <Copy className="mr-1.5 h-4 w-4" /> Dupliquer
+              </Button>
+            )}
             <Button size="sm" variant="outline" disabled={exporting || !sheet} onClick={exportPdf}>
               {exporting ? (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -107,54 +120,58 @@ function EditFiche() {
               )}{" "}
               PDF
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-destructive"
-              disabled={remove.isPending}
-              onClick={() => {
-                if (window.confirm("Supprimer définitivement cette fiche ?")) {
-                  remove.mutate();
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {canEdit && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive"
+                disabled={remove.isPending}
+                onClick={() => {
+                  if (window.confirm("Supprimer définitivement cette fiche ?")) {
+                    remove.mutate();
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
         {isLoading || !sheet ? (
           <p className="text-sm text-muted-foreground">Chargement…</p>
         ) : (
-          <WorksiteSheetForm
-            clients={clients ?? []}
-            initial={{
-              client_id: sheet.client_id,
-              civility: sheet.civility,
-              client_name: sheet.client_name,
-              client_phone: sheet.client_phone,
-              client_phone_backup: sheet.client_phone_backup,
-              contact_person: sheet.contact_person,
-              address: sheet.address,
-              access_complement: sheet.access_complement,
-              intervention_date: sheet.intervention_date,
-              intervenant: sheet.intervenant,
-              client_present: sheet.client_present,
-              green_waste: sheet.green_waste,
-              equipment: sheet.equipment,
-              epi: sheet.epi,
-              tasks: sheet.tasks,
-              checklist: sheet.checklist,
-              photos: sheet.photos,
-              notes: sheet.notes,
-              latitude: sheet.latitude,
-              longitude: sheet.longitude,
-              garden_markers: sheet.garden_markers,
-              recycling_center: sheet.recycling_center,
-            }}
-            submitting={save.isPending}
-            submitLabel="Enregistrer les modifications"
-            onSubmit={(input) => save.mutate(input)}
-          />
+          <fieldset disabled={!canEdit} className="min-w-0">
+            <WorksiteSheetForm
+              clients={clients ?? []}
+              initial={{
+                client_id: sheet.client_id,
+                civility: sheet.civility,
+                client_name: sheet.client_name,
+                client_phone: sheet.client_phone,
+                client_phone_backup: sheet.client_phone_backup,
+                contact_person: sheet.contact_person,
+                address: sheet.address,
+                access_complement: sheet.access_complement,
+                intervention_date: sheet.intervention_date,
+                intervenant: sheet.intervenant,
+                client_present: sheet.client_present,
+                green_waste: sheet.green_waste,
+                equipment: sheet.equipment,
+                epi: sheet.epi,
+                tasks: sheet.tasks,
+                checklist: sheet.checklist,
+                photos: sheet.photos,
+                notes: sheet.notes,
+                latitude: sheet.latitude,
+                longitude: sheet.longitude,
+                garden_markers: sheet.garden_markers,
+                recycling_center: sheet.recycling_center,
+              }}
+              submitting={save.isPending}
+              submitLabel="Enregistrer les modifications"
+              onSubmit={(input) => save.mutate(input)}
+            />
+          </fieldset>
         )}
       </div>
     </AppShell>

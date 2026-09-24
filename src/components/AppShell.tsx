@@ -99,7 +99,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
-  const { canEdit } = useRole();
+  const { canEdit, canView } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { appearance } = useAppearance();
   const isPilot =
@@ -172,7 +172,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           exact: true,
           primary: false,
         },
-        ...(canEdit
+        ...(canView
           ? [
               {
                 to: "/pilot/ca",
@@ -273,7 +273,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           exact: false,
           primary: true,
         },
-        ...(canEdit
+        ...(canView
           ? [
               {
                 to: "/pilot/rentabilite",
@@ -290,7 +290,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     {
       label: "Activité",
       items: [
-        ...(canEdit
+        ...(canView
           ? [
               {
                 to: "/pilot/sante",
@@ -334,7 +334,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           exact: false,
           primary: false,
         },
-        ...(canEdit
+        ...(canView
           ? [
               {
                 to: "/sst",
@@ -359,7 +359,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     {
       label: "Configuration",
       items: [
-        ...(canEdit
+        ...(canView
           ? [
               {
                 to: "/pilot/donnees",
