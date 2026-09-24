@@ -154,7 +154,7 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
     doc.addPage();
     y = margin;
 
-    section("Plan jardin (vue aérienne)");
+    heading("Plan jardin (vue aérienne)");
 
     try {
       const dataUrl = await staticGardenMap({
