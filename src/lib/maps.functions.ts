@@ -53,11 +53,18 @@ export const geocodeAddress = createServerFn({ method: "POST" })
     );
     if (!res.ok) { console.error("geocode failed", res.status, await res.text()); return null; }
     const json = (await res.json()) as {
-      results?: { geometry?: { location?: { lat: number; lng: number } }; formatted_address?: string }[];
+      results?: {
+        geometry?: { location?: { lat: number; lng: number } };
+        formatted_address?: string;
+      }[];
     };
     const r = json.results?.[0];
     if (!r?.geometry?.location) return null;
-    return { lat: r.geometry.location.lat, lng: r.geometry.location.lng, formatted: r.formatted_address ?? address };
+    return {
+      lat: r.geometry.location.lat,
+      lng: r.geometry.location.lng,
+      formatted: r.formatted_address ?? address,
+    };
   });
 
 export interface RecyclingCenter {
@@ -98,7 +105,12 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
         languageCode: "fr",
         regionCode: "FR",
         maxResultCount: 10,
-        locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: 25000 } },
+        locationBias: {
+          circle: {
+            center: { latitude: lat, longitude: lng },
+            radius: 25000,
+          },
+        },
       }),
     });
     if (!res.ok) { console.error("searchText failed", res.status, await res.text()); return null; }
@@ -138,7 +150,9 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
  * au générateur jsPDF sous forme de data URL.
  */
 export const staticGardenMap = createServerFn({ method: "POST" })
-  .inputValidator((d: { lat: number; lng: number; markers?: { lat: number; lng: number }[] }) => d)
+  .inputValidator(
+    (d: { lat: number; lng: number; markers?: { lat: number; lng: number }[] }) => d,
+  )
   .handler(async ({ data }): Promise<string | null> => {
     const { lat, lng, markers = [] } = data;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
