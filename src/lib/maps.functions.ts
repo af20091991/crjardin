@@ -173,7 +173,11 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       const contentType = response.headers.get("content-type") ?? "";
       if (!contentType.toLowerCase().startsWith("image/")) {
         const body = await response.text();
-        console.error("staticmap returned non-image response", contentType, body.slice(0, 500));
+        console.error(
+          "staticmap returned non-image response",
+          contentType,
+          body.slice(0, 500),
+        );
         return null;
       }
       return response.arrayBuffer();
@@ -205,9 +209,12 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     let bin = "";
     const chunkSize = 0x8000;
     for (let i = 0; i < bytes.length; i += chunkSize) {
-      bin += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+      bin += String.fromCharCode(
+        ...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)),
+      );
     }
-    const b64 = typeof btoa === "function" ? btoa(bin) : Buffer.from(bytes).toString("base64");
+    const b64 =
+      typeof btoa === "function" ? btoa(bin) : Buffer.from(bytes).toString("base64");
     const contentType = "image/png";
     return `data:${contentType};base64,${b64}`;
   });
