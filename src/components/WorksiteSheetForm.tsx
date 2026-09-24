@@ -281,7 +281,16 @@ export function WorksiteSheetForm({
       if (fileRef.current) fileRef.current.value = "";
     }
   }
-  function submit() {
+  function normalizeOpeningHour(value: string): string {
+  return value
+    .replace(/[\u00A0\u2007\u202F]/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\s*:\s*/g, " : ")
+    .replace(/\s*[–—-]\s*/g, " – ")
+    .trim();
+}
+
+function submit() {
     if (!form.client_name.trim()) {
       toast.error("Le nom du client est requis");
       return;
@@ -711,7 +720,10 @@ export function WorksiteSheetForm({
                   <p className="font-semibold">{form.recycling_center.name}</p>
                   <p className="text-muted-foreground">{form.recycling_center.address}</p>
                   <p className="text-xs text-muted-foreground">
-                    À environ {form.recycling_center.distance_km} km du chantier
+                    À environ {form.recycling_center.distance_km.toFixed(1)} km du chantier
+                  </p>
+                  <p className="text-xs tabular-nums text-muted-foreground">
+                    Coordonnées : {form.recycling_center.lat.toFixed(6)}, {form.recycling_center.lng.toFixed(6)}
                   </p>
                 </div>
                 <button
@@ -729,7 +741,7 @@ export function WorksiteSheetForm({
                   </p>
                   <ul className="space-y-0.5 text-xs">
                     {form.recycling_center.hours.map((h, i) => (
-                      <li key={i}>{h}</li>
+                      <li key={i}>{normalizeOpeningHour(h)}</li>
                     ))}
                   </ul>
                 </div>
