@@ -13,7 +13,10 @@ function headers(extra?: Record<string, string>) {
   };
 }
 
-export interface PlaceSuggestion { description: string; placeId: string }
+export interface PlaceSuggestion {
+  description: string;
+  placeId: string;
+}
 
 /** Autocomplétion d'adresse (Places API New). */
 export const placeAutocomplete = createServerFn({ method: "POST" })
@@ -39,7 +42,11 @@ export const placeAutocomplete = createServerFn({ method: "POST" })
       .map((p) => ({ description: p.text?.text ?? "", placeId: p.placeId! }));
   });
 
-export interface GeoResult { lat: number; lng: number; formatted: string }
+export interface GeoResult {
+  lat: number;
+  lng: number;
+  formatted: string;
+}
 
 /** Géocode une adresse (lat/lng). */
 export const geocodeAddress = createServerFn({ method: "POST" })
@@ -51,13 +58,23 @@ export const geocodeAddress = createServerFn({ method: "POST" })
       `${GATEWAY}/maps/api/geocode/json?address=${encodeURIComponent(address)}&language=fr&region=fr`,
       { headers: headers() },
     );
-    if (!res.ok) { console.error("geocode failed", res.status, await res.text()); return null; }
+    if (!res.ok) {
+      console.error("geocode failed", res.status, await res.text());
+      return null;
+    }
     const json = (await res.json()) as {
-      results?: { geometry?: { location?: { lat: number; lng: number } }; formatted_address?: string }[];
+      results?: {
+        geometry?: { location?: { lat: number; lng: number } };
+        formatted_address?: string;
+      }[];
     };
     const r = json.results?.[0];
     if (!r?.geometry?.location) return null;
-    return { lat: r.geometry.location.lat, lng: r.geometry.location.lng, formatted: r.formatted_address ?? address };
+    return {
+      lat: r.geometry.location.lat,
+      lng: r.geometry.location.lng,
+      formatted: r.formatted_address ?? address,
+    };
   });
 
 export interface RecyclingCenter {
@@ -98,10 +115,18 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
         languageCode: "fr",
         regionCode: "FR",
         maxResultCount: 10,
-        locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: 25000 } },
+        locationBias: {
+          circle: {
+            center: { latitude: lat, longitude: lng },
+            radius: 25000,
+          },
+        },
       }),
     });
-    if (!res.ok) { console.error("searchText failed", res.status, await res.text()); return null; }
+    if (!res.ok) {
+      console.error("searchText failed", res.status, await res.text());
+      return null;
+    }
     const json = (await res.json()) as {
       places?: {
         displayName?: { text?: string };
@@ -130,29 +155,81 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
     };
   });
 
-/** Image statique (vue aérienne) du plan jardin avec repères, en data URL pour le PDF. */
+/**
+ * Génère l'image réellement utilisée par l'export PDF.
+ *
+ * Important : le PDF ne peut pas embarquer la carte Google Maps interactive du navigateur.
+ * On demande donc une vraie image Google Maps Static, côté serveur, puis on la transmet
+ * au générateur jsPDF sous forme de data URL.
+ */
 export const staticGardenMap = createServerFn({ method: "POST" })
   .inputValidator((d: { lat: number; lng: number; markers?: { lat: number; lng: number }[] }) => d)
   .handler(async ({ data }): Promise<string | null> => {
     const { lat, lng, markers = [] } = data;
-    if (typeof lat !== "number" || typeof lng !== "number") return null;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
     const params = new URLSearchParams({
       size: "640x540",
       scale: "2",
       maptype: "satellite",
       language: "fr",
+      center: `${lat},${lng}`,
+      zoom: "19",
     });
+
+    // visible + markers force Google à conserver tous les repères dans le cadrage.
     params.append("visible", `${lat},${lng}`);
-    markers.forEach((m, i) => {
-      params.append("visible", `${m.lat},${m.lng}`);
-      params.append("markers", `size:mid|color:0x4F8E33|label:${i + 1}|${m.lat},${m.lng}`);
+    markers.forEach((marker, index) => {
+      if (!Number.isFinite(marker.lat) || !Number.isFinite(marker.lng)) return;
+      params.append("visible", `${marker.lat},${marker.lng}`);
+      params.append(
+        "markers",
+        `size:mid|color:0x4F8E33|label:${index + 1}|${marker.lat},${marker.lng}`,
+      );
     });
-    const res = await fetch(`${GATEWAY}/maps/api/staticmap?${params.toString()}`, { headers: headers() });
-    if (!res.ok) { console.error("staticmap failed", res.status, await res.text()); return null; }
-    const buf = await res.arrayBuffer();
-    const bytes = new Uint8Array(buf);
+
+    const fetchImage = async (url: string, requestHeaders?: HeadersInit) => {
+      const response = await fetch(url, { headers: requestHeaders });
+      if (!response.ok) {
+        const body = await response.text();
+        console.error("staticmap failed", response.status, body.slice(0, 500));
+        return null;
+      }
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.toLowerCase().startsWith("image/")) {
+        const body = await response.text();
+        console.error("staticmap returned non-image response", contentType, body.slice(0, 500));
+        return null;
+      }
+      return response.arrayBuffer();
+    };
+
+    // 1) Utilise le connecteur Google Maps, comme le reste de PP.
+    let buffer = await fetchImage(`${GATEWAY}/maps/api/staticmap?${params.toString()}`, headers());
+
+    // 2) Fallback serveur direct : même clé Google, jamais exposée au navigateur.
+    // Cela évite qu'une réponse du gateway non compatible avec Static Maps rende
+    // silencieusement la carte absente du PDF.
+    if (!buffer) {
+      const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (mapsKey) {
+        const directParams = new URLSearchParams(params);
+        directParams.set("key", mapsKey);
+        buffer = await fetchImage(
+          `https://maps.googleapis.com/maps/api/staticmap?${directParams.toString()}`,
+        );
+      }
+    }
+
+    if (!buffer) return null;
+
+    const bytes = new Uint8Array(buffer);
     let bin = "";
-    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    const b64 = typeof btoa === "function" ? btoa(bin) : Buffer.from(buf).toString("base64");
-    return `data:image/png;base64,${b64}`;
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      bin += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+    }
+    const b64 = typeof btoa === "function" ? btoa(bin) : Buffer.from(bytes).toString("base64");
+    const contentType = "image/png";
+    return `data:${contentType};base64,${b64}`;
   });
