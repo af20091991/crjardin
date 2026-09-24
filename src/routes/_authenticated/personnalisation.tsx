@@ -302,8 +302,8 @@ function PersonnalisationPage() {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Réversible à tout moment et partagé avec tous les utilisateurs : seuls les tokens
-              visuels changent, aucune donnée ni aucun calcul n'est modifié.
+              Réversible à tout moment et conservé sur cet appareil : seuls les tokens visuels
+              changent, aucune donnée ni aucun calcul n'est modifié.
             </p>
           </CardContent>
         </Card>
@@ -336,8 +336,8 @@ function PersonnalisationPage() {
               ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              Le changement est immédiat et réversible pour tous les utilisateurs : aucune donnée,
-              aucun calcul ni aucun statut de fiabilité n'est modifié.
+              Le changement est immédiat et réversible : aucune donnée, aucun calcul ni aucun statut
+              de fiabilité n'est modifié.
             </p>
           </CardContent>
         </Card>
@@ -1032,7 +1032,7 @@ function CardReadingSettings() {
 
         <p className="text-xs text-muted-foreground">
           L'importance visuelle d'une carte (Normal · Important · Prioritaire) se règle directement
-          sur la carte, via son menu d'affichage. Le choix est partagé avec tous les utilisateurs.
+          sur la carte, via son menu d'affichage. Le choix est conservé sur cet appareil.
         </p>
       </CardContent>
     </Card>
