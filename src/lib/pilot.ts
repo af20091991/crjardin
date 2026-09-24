@@ -232,6 +232,7 @@ export async function updateSaleStatus(id: string, status: string): Promise<void
 }
 
 // ---------- Settings ----------
+// prettier-ignore
 export async function getSettings(): Promise<PilotSettings> {
   const user_id = await uid();
 
