@@ -23,5 +23,5 @@ export function useRole() {
   const isAdmin = roles.includes("admin");
   const isPrestataire = roles.includes("prestataire");
   const role: AppRole = isAdmin ? "admin" : isPrestataire ? "prestataire" : "observateur";
-  return { role, isAdmin, canEdit: isAdmin || isPrestataire, isLoading };
+  const canEdit = isAdmin || isPrestataire;\n  // Les observateurs disposent d’un accès de lecture à l’application complète.\n  // Les mutations restent protégées par canEdit et les policies RLS.\n  const canView = true;\n  return { role, isAdmin, canEdit, canView, isLoading };
 }
