@@ -156,7 +156,7 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
       if (dataUrl) {
         const img = await loadImage(dataUrl);
         const w = contentW;
-        const h = w * 0.625;
+        const h = w * 540 / 640;
         ensureSpace(h + 4);
         doc.addImage(img, "PNG", margin, y, w, h, undefined, "FAST");
         y += h + 4;
