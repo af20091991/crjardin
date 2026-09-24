@@ -13,7 +13,10 @@ function headers(extra?: Record<string, string>) {
   };
 }
 
-export interface PlaceSuggestion { description: string; placeId: string }
+export interface PlaceSuggestion {
+  description: string;
+  placeId: string;
+}
 
 /** Autocomplétion d'adresse (Places API New). */
 export const placeAutocomplete = createServerFn({ method: "POST" })
@@ -39,7 +42,11 @@ export const placeAutocomplete = createServerFn({ method: "POST" })
       .map((p) => ({ description: p.text?.text ?? "", placeId: p.placeId! }));
   });
 
-export interface GeoResult { lat: number; lng: number; formatted: string }
+export interface GeoResult {
+  lat: number;
+  lng: number;
+  formatted: string;
+}
 
 /** Géocode une adresse (lat/lng). */
 export const geocodeAddress = createServerFn({ method: "POST" })
@@ -51,7 +58,10 @@ export const geocodeAddress = createServerFn({ method: "POST" })
       `${GATEWAY}/maps/api/geocode/json?address=${encodeURIComponent(address)}&language=fr&region=fr`,
       { headers: headers() },
     );
-    if (!res.ok) { console.error("geocode failed", res.status, await res.text()); return null; }
+    if (!res.ok) {
+      console.error("geocode failed", res.status, await res.text());
+      return null;
+    }
     const json = (await res.json()) as {
       results?: {
         geometry?: { location?: { lat: number; lng: number } };
@@ -113,7 +123,10 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
         },
       }),
     });
-    if (!res.ok) { console.error("searchText failed", res.status, await res.text()); return null; }
+    if (!res.ok) {
+      console.error("searchText failed", res.status, await res.text());
+      return null;
+    }
     const json = (await res.json()) as {
       places?: {
         displayName?: { text?: string };
@@ -150,9 +163,7 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
  * au générateur jsPDF sous forme de data URL.
  */
 export const staticGardenMap = createServerFn({ method: "POST" })
-  .inputValidator(
-    (d: { lat: number; lng: number; markers?: { lat: number; lng: number }[] }) => d,
-  )
+  .inputValidator((d: { lat: number; lng: number; markers?: { lat: number; lng: number }[] }) => d)
   .handler(async ({ data }): Promise<string | null> => {
     const { lat, lng, markers = [] } = data;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
@@ -187,21 +198,14 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       const contentType = response.headers.get("content-type") ?? "";
       if (!contentType.toLowerCase().startsWith("image/")) {
         const body = await response.text();
-        console.error(
-          "staticmap returned non-image response",
-          contentType,
-          body.slice(0, 500),
-        );
+        console.error("staticmap returned non-image response", contentType, body.slice(0, 500));
         return null;
       }
       return response.arrayBuffer();
     };
 
     // 1) Utilise le connecteur Google Maps, comme le reste de PP.
-    let buffer = await fetchImage(
-      `${GATEWAY}/maps/api/staticmap?${params.toString()}`,
-      headers(),
-    );
+    let buffer = await fetchImage(`${GATEWAY}/maps/api/staticmap?${params.toString()}`, headers());
 
     // 2) Fallback serveur direct : même clé Google, jamais exposée au navigateur.
     // Cela évite qu'une réponse du gateway non compatible avec Static Maps rende
@@ -223,12 +227,9 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     let bin = "";
     const chunkSize = 0x8000;
     for (let i = 0; i < bytes.length; i += chunkSize) {
-      bin += String.fromCharCode(
-        ...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)),
-      );
+      bin += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
     }
-    const b64 =
-      typeof btoa === "function" ? btoa(bin) : Buffer.from(bytes).toString("base64");
+    const b64 = typeof btoa === "function" ? btoa(bin) : Buffer.from(bytes).toString("base64");
     const contentType = "image/png";
     return `data:${contentType};base64,${b64}`;
   });
