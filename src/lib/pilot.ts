@@ -234,14 +234,33 @@ export async function updateSaleStatus(id: string, status: string): Promise<void
 // ---------- Settings ----------
 export async function getSettings(): Promise<PilotSettings> {
   const user_id = await uid();
-  const { data, error } = await supabase
-    .from("pilot_settings")
-    .select("*")
-    .eq("user_id", user_id)
-    .maybeSingle();
+
+  // Un observateur doit voir les paramètres du compte propriétaire, pas un
+  // jeu de paramètres vide rattaché à son propre identifiant. Les autres
+  // utilisateurs continuent à lire uniquement leur propre configuration.
+  const { data: roleRows, error: roleError } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user_id);
+  if (roleError) throw roleError;
+
+  const isObserver = (roleRows ?? []).some((row) => row.role === "observateur");
+
+  let query = supabase.from("pilot_settings").select("*");
+  if (isObserver) {
+    query = query.order("updated_at", { ascending: false }).limit(1);
+  } else {
+    query = query.eq("user_id", user_id);
+  }
+
+  const { data, error } = await query.maybeSingle();
   if (error) throw error;
   if (!data) return { user_id, ...DEFAULT_SETTINGS };
-  return data as unknown as PilotSettings;
+
+  return {
+    ...(data as unknown as PilotSettings),
+    user_id,
+  };
 }
 
 export async function saveSettings(input: Omit<PilotSettings, "user_id">): Promise<void> {
