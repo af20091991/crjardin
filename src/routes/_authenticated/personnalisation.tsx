@@ -114,8 +114,8 @@ function PersonnalisationPage() {
               s'applique de la même façon à tous les utilisateurs.
             </p>
             <p className="text-sm text-muted-foreground">
-              Votre compte dispose d'un accès en lecture seule : aucun réglage ne peut être modifié
-              depuis ce compte.
+              Votre compte dispose d'un accès en lecture seule : aucun réglage ne peut être
+              modifié depuis ce compte.
             </p>
           </CardContent>
         </Card>
@@ -302,8 +302,8 @@ function PersonnalisationPage() {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Réversible à tout moment et partagé avec tous les utilisateurs : seuls les tokens visuels
-              changent, aucune donnée ni aucun calcul n'est modifié.
+              Réversible à tout moment et partagé avec tous les utilisateurs : seuls les tokens
+              visuels changent, aucune donnée ni aucun calcul n'est modifié.
             </p>
           </CardContent>
         </Card>
