@@ -29,11 +29,19 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
 
   const dateStr = sheet.intervention_date
     ? new Date(sheet.intervention_date).toLocaleDateString("fr-FR", {
-        weekday: "long", day: "numeric", month: "long", year: "numeric",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
       })
     : "Date non définie";
 
-  const ensureSpace = (h: number) => { if (y + h > pageH - margin - 6) { doc.addPage(); y = margin; } };
+  const ensureSpace = (h: number) => {
+    if (y + h > pageH - margin - 6) {
+      doc.addPage();
+      y = margin;
+    }
+  };
 
   const heading = (title: string) => {
     ensureSpace(14);
@@ -61,7 +69,14 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   };
 
   const bullets = (items: string[]) => {
-    if (!items.length) { ensureSpace(6); doc.setTextColor(...MUTED); doc.text("—", margin, y); doc.setTextColor(...DARK); y += 6; return; }
+    if (!items.length) {
+      ensureSpace(6);
+      doc.setTextColor(...MUTED);
+      doc.text("—", margin, y);
+      doc.setTextColor(...DARK);
+      y += 6;
+      return;
+    }
     for (const it of items) {
       const lines = doc.splitTextToSize(it, contentW - 6);
       ensureSpace(lines.length * 5 + 1);
@@ -77,7 +92,9 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   try {
     const img = await loadImage(logo);
     doc.addImage(img, "PNG", margin, 6, 18, 18);
-  } catch { /* logo optionnel */ }
+  } catch {
+    /* logo optionnel */
+  }
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
@@ -100,7 +117,10 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   line("Date d'intervention", dateStr);
   if (sheet.intervenant) line("Intervenant(e)", sheet.intervenant);
   line("Client présent", sheet.client_present == null ? "—" : sheet.client_present ? "Oui" : "Non");
-  line("Évacuation déchets verts", sheet.green_waste == null ? "—" : sheet.green_waste ? "Oui" : "Non");
+  line(
+    "Évacuation déchets verts",
+    sheet.green_waste == null ? "—" : sheet.green_waste ? "Oui" : "Non",
+  );
 
   heading("Matériel nécessaire");
   bullets(sheet.equipment);
@@ -124,7 +144,11 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   if (sheet.notes?.trim()) {
     heading("Notes complémentaires");
     const lines = doc.splitTextToSize(sheet.notes.trim(), contentW);
-    lines.forEach((l: string) => { ensureSpace(5.4); doc.text(l, margin, y); y += 5.4; });
+    lines.forEach((l: string) => {
+      ensureSpace(5.4);
+      doc.text(l, margin, y);
+      y += 5.4;
+    });
   }
 
   if (sheet.recycling_center) {
@@ -215,8 +239,13 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
         const x = margin + col * (w + gap);
         doc.addImage(img, "JPEG", x, y, w, h, undefined, "FAST");
         col++;
-        if (col >= cols) { col = 0; y += h + 4; }
-      } catch { /* skip */ }
+        if (col >= cols) {
+          col = 0;
+          y += h + 4;
+        }
+      } catch {
+        /* skip */
+      }
     }
     if (col !== 0) y += h + 4;
   }
@@ -234,6 +263,9 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
   const parts = ["Fiche chantier", sheet.civility?.trim(), sheet.client_name?.trim(), dateSafe]
     .filter(Boolean)
     .join(" ");
-  const fname = parts.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+  const fname = parts
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   doc.save(`${fname || "Fiche chantier"}.pdf`);
 }

@@ -109,7 +109,7 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
         "Content-Type": "application/json",
         "X-Goog-FieldMask":
           "places.displayName,places.formattedAddress,places.location," +
-            "places.regularOpeningHours,places.currentOpeningHours",
+          "places.regularOpeningHours,places.currentOpeningHours",
       }),
       body: JSON.stringify({
         textQuery: "déchèterie",
@@ -169,9 +169,7 @@ export interface StaticGardenMapMarker {
 }
 
 export const staticGardenMap = createServerFn({ method: "POST" })
-  .inputValidator(
-    (d: { lat: number; lng: number; markers?: StaticGardenMapMarker[] }) => d,
-  )
+  .inputValidator((d: { lat: number; lng: number; markers?: StaticGardenMapMarker[] }) => d)
   .handler(async ({ data }): Promise<string | null> => {
     const { lat, lng, markers = [] } = data;
 
@@ -207,10 +205,7 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     validMarkers.forEach((marker, index) => {
       params.append("visible", `${marker.lat},${marker.lng}`);
       // Google Static Maps accepte un seul caractère comme libellé de repère.
-      const label =
-        index < 9
-          ? String(index + 1)
-          : String.fromCharCode(65 + ((index - 9) % 26));
+      const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
       params.append(
         "markers",
         `size:mid|color:0x49ad31|label:${label}|${marker.lat},${marker.lng}`,
@@ -262,13 +257,10 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
 
     if (lovableKey && mapsKey) {
-      buffer = await fetchImage(
-        `${GATEWAY}/maps/api/staticmap?${params.toString()}`,
-        {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": mapsKey,
-        },
-      );
+      buffer = await fetchImage(`${GATEWAY}/maps/api/staticmap?${params.toString()}`, {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": mapsKey,
+      });
     }
 
     // Tentative 2 : Google Static Maps directement depuis le serveur.
@@ -297,9 +289,7 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     }
 
     const base64 =
-      typeof btoa === "function"
-        ? btoa(binary)
-        : Buffer.from(bytes).toString("base64");
+      typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
 
     return `data:image/png;base64,${base64}`;
   });
