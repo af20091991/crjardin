@@ -96,9 +96,11 @@ function EditFiche() {
             <ArrowLeft className="h-4 w-4" /> Retour
           </Link>
           <div className="flex items-center gap-2">
-            {canEdit && <Button size="sm" variant="outline" disabled={!sheet} onClick={duplicate}>
-              <Copy className="mr-1.5 h-4 w-4" /> Dupliquer
-            </Button>
+            {canEdit && (
+              <Button size="sm" variant="outline" disabled={!sheet} onClick={duplicate}>
+                <Copy className="mr-1.5 h-4 w-4" /> Dupliquer
+              </Button>
+            )}
             <Button size="sm" variant="outline" disabled={exporting || !sheet} onClick={exportPdf}>
               {exporting ? (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -107,19 +109,21 @@ function EditFiche() {
               )}{" "}
               PDF
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-destructive"
-              disabled={remove.isPending}
-              onClick={() => {
-                if (window.confirm("Supprimer définitivement cette fiche ?")) {
-                  remove.mutate();
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>}
+            {canEdit && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive"
+                disabled={remove.isPending}
+                onClick={() => {
+                  if (window.confirm("Supprimer définitivement cette fiche ?")) {
+                    remove.mutate();
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
         {isLoading || !sheet ? (
