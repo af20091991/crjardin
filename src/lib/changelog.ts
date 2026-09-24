@@ -26,9 +26,10 @@ export const CHANGELOG: ChangeEntry[] = [
     date: "2026-09-24",
     version: "2.3.9",
     theme: "PDF & Partage",
-    title: "Fiche SST — carte satellite annotée dans le PDF",
+    title: "Fiche SST — carte satellite complète dans le PDF",
     details: [
-      "L'export PDF de la fiche SST affiche désormais la vue satellite du chantier avec les repères numérotés et toutes leurs mentions (tâche et note).",
+      "L'export PDF affiche la vue satellite du chantier avec tous les repères numérotés visibles sur la carte, dans un format d'au moins une demi-page A4.",
+      "Les coordonnées et horaires de la déchèterie sont présentés avec un formatage lisible et un espacement normal.",
     ],
   },
   {
