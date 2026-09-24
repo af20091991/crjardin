@@ -537,7 +537,12 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
 
       let loaded: Appearance;
-      if (!error && data?.settings && typeof data.settings === "object" && !Array.isArray(data.settings)) {
+      if (
+        !error &&
+        data?.settings &&
+        typeof data.settings === "object" &&
+        !Array.isArray(data.settings)
+      ) {
         loaded = { ...DEFAULT_APPEARANCE, ...(data.settings as Partial<Appearance>) };
       } else if (isAdmin) {
         const local = load();
@@ -548,11 +553,11 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
           /* ignore */
         }
         loaded = { ...local, sidebarCollapsed };
-        const { error: seedError } = await supabase.from("app_appearance").upsert(
-          { id: true, settings: loaded, updated_by: user.id },
-          { onConflict: "id" },
-        );
-        if (seedError) console.error("[Appearance] Impossible de publier l'apparence globale.", seedError);
+        const { error: seedError } = await supabase
+          .from("app_appearance")
+          .upsert({ id: true, settings: loaded, updated_by: user.id }, { onConflict: "id" });
+        if (seedError)
+          console.error("[Appearance] Impossible de publier l'apparence globale.", seedError);
       } else {
         loaded = DEFAULT_APPEARANCE;
       }
