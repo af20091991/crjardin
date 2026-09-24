@@ -232,7 +232,6 @@ export async function updateSaleStatus(id: string, status: string): Promise<void
 }
 
 // ---------- Settings ----------
-// prettier-ignore
 export async function getSettings(): Promise<PilotSettings> {
   const user_id = await uid();
 
@@ -245,8 +244,9 @@ export async function getSettings(): Promise<PilotSettings> {
   if (roleError) throw roleError;
 
   const isObserver = (roleRows ?? []).some((r) => r.role === "observateur");
-  let query = supabase.from("pilot_settings").select("*");
-  if (!isObserver) query = query.eq("user_id", user_id);
+  const query = isObserver
+    ? supabase.from("pilot_settings").select("*")
+    : supabase.from("pilot_settings").select("*").eq("user_id", user_id);
 
   const { data, error } = await query
     .order("user_id", { ascending: true })
