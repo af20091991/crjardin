@@ -26,16 +26,16 @@ function EditFiche() {
   const { ficheId } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { canEdit, isLoading: roleLoading } = useRole();
+  const { canEdit, canView, isLoading: roleLoading } = useRole();
   useEffect(() => {
     if (!roleLoading && !canEdit) {
       navigate({ to: "/", replace: true });
     }
-  }, [canEdit, roleLoading, navigate]);
+  }, [canView, roleLoading, navigate]);
   const { data: sheet, isLoading } = useQuery({
     queryKey: ["worksite-sheet", ficheId],
     queryFn: () => getWorksiteSheet(ficheId),
-    enabled: canEdit,
+    enabled: canView,
   });
   const { data: clients } = useQuery({
     queryKey: ["clients"],
