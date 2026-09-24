@@ -137,15 +137,15 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     const { lat, lng, markers = [] } = data;
     if (typeof lat !== "number" || typeof lng !== "number") return null;
     const params = new URLSearchParams({
-      center: `${lat},${lng}`,
-      zoom: "19",
-      size: "640x400",
+      size: "640x540",
       scale: "2",
       maptype: "satellite",
       language: "fr",
     });
+    params.append("visible", `${lat},${lng}`);
     markers.forEach((m, i) => {
-      params.append("markers", `color:0x4F8E33|label:${i + 1}|${m.lat},${m.lng}`);
+      params.append("visible", `${m.lat},${m.lng}`);
+      params.append("markers", `size:mid|color:0x4F8E33|label:${i + 1}|${m.lat},${m.lng}`);
     });
     const res = await fetch(`${GATEWAY}/maps/api/staticmap?${params.toString()}`, { headers: headers() });
     if (!res.ok) { console.error("staticmap failed", res.status, await res.text()); return null; }
