@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import type { WorksiteSheet } from "@/lib/worksite";
 import { worksitePhotoUrl } from "@/lib/worksite";
@@ -42,9 +43,7 @@ async function annotateGardenMap(
     const sinLat = Math.min(Math.max(Math.sin((lat * Math.PI) / 180), -0.9999), 0.9999);
     return {
       x: ((lng + 180) / 360) * worldSize,
-      y:
-        (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) *
-        worldSize,
+      y: (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * worldSize,
     };
   };
 
@@ -90,10 +89,7 @@ async function annotateGardenMap(
       Math.max(x + markerRadius + padding, padding),
       canvas.width - boxW - padding,
     );
-    const boxY = Math.min(
-      Math.max(y - boxH / 2, padding),
-      canvas.height - boxH - padding,
-    );
+    const boxY = Math.min(Math.max(y - boxH / 2, padding), canvas.height - boxH - padding);
 
     ctx.fillStyle = "rgba(255,255,255,0.92)";
     ctx.strokeStyle = "rgba(79,142,51,0.95)";
@@ -287,9 +283,15 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
         ensureSpace(imageH + 4);
         doc.addImage(image, "PNG", margin, y, imageW, imageH, undefined, "FAST");
         y += imageH + 4;
+      } else {
+        console.error(
+          "Export PDF fiche SST : staticGardenMap a renvoyé null (connecteur Google Maps).",
+        );
+        toast.warning("Carte Google Maps indisponible : le plan n'a pas pu être ajouté au PDF.");
       }
-    } catch {
-      // Plan optionnel.
+    } catch (err) {
+      console.error("Export PDF fiche SST : échec du chargement de la carte Google Maps.", err);
+      toast.warning("Carte Google Maps indisponible : le plan n'a pas pu être ajouté au PDF.");
     }
     if (sheet.garden_markers.length) {
       for (const [index, marker] of sheet.garden_markers.entries()) {
