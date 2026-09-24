@@ -37,12 +37,12 @@ BEGIN
   ] LOOP
     IF to_regclass('public.' || t) IS NOT NULL THEN
       EXECUTE format(
-        'DROP POLICY IF EXISTS "Observers read all %I" ON public.%I',
-        t, t
+        'DROP POLICY IF EXISTS %I ON public.%I',
+        'Observers read all ' || t, t
       );
       EXECUTE format(
-        'CREATE POLICY "Observers read all %I" ON public.%I FOR SELECT TO authenticated USING (public.has_role(auth.uid(), ''observateur''))',
-        t, t
+        'CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (public.has_role(auth.uid(), ''observateur''))',
+        'Observers read all ' || t, t
       );
     END IF;
   END LOOP;
