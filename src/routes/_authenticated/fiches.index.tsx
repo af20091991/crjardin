@@ -47,14 +47,14 @@ export function FichesIndexRoute() {
 }
 export function FichesIndex() {
   const navigate = useNavigate();
-  const { canEdit, isLoading: roleLoading } = useRole();
+  const { canEdit, canView, isLoading: roleLoading } = useRole();
   useEffect(() => {
-    if (!roleLoading && !canEdit) navigate({ to: "/", replace: true });
-  }, [canEdit, roleLoading, navigate]);
+    if (!roleLoading && !canView) navigate({ to: "/", replace: true });
+  }, [canView, roleLoading, navigate]);
   const { data: sheets, isLoading } = useQuery({
     queryKey: ["worksite-sheets"],
     queryFn: listWorksiteSheets,
-    enabled: canEdit,
+    enabled: canView,
   });
   const [search, setSearch] = useState("");
   const [intervenant, setIntervenant] = useState("all");
