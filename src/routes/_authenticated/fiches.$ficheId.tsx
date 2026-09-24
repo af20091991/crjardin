@@ -28,7 +28,7 @@ function EditFiche() {
   const qc = useQueryClient();
   const { canEdit, canView, isLoading: roleLoading } = useRole();
   useEffect(() => {
-    if (!roleLoading && !canEdit) {
+    if (!roleLoading && !canView) {
       navigate({ to: "/", replace: true });
     }
   }, [canView, roleLoading, navigate]);
@@ -96,7 +96,7 @@ function EditFiche() {
             <ArrowLeft className="h-4 w-4" /> Retour
           </Link>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={!sheet} onClick={duplicate}>
+            {canEdit && <Button size="sm" variant="outline" disabled={!sheet} onClick={duplicate}>
               <Copy className="mr-1.5 h-4 w-4" /> Dupliquer
             </Button>
             <Button size="sm" variant="outline" disabled={exporting || !sheet} onClick={exportPdf}>
@@ -119,12 +119,13 @@ function EditFiche() {
               }}
             >
               <Trash2 className="h-4 w-4" />
-            </Button>
+            </Button>}
           </div>
         </div>
         {isLoading || !sheet ? (
           <p className="text-sm text-muted-foreground">Chargement…</p>
         ) : (
+          <fieldset disabled={!canEdit} className="min-w-0">
           <WorksiteSheetForm
             clients={clients ?? []}
             initial={{
@@ -155,6 +156,7 @@ function EditFiche() {
             submitLabel="Enregistrer les modifications"
             onSubmit={(input) => save.mutate(input)}
           />
+          </fieldset>
         )}
       </div>
     </AppShell>
