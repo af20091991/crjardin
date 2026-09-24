@@ -194,7 +194,7 @@ export const staticGardenMap = createServerFn({ method: "POST" })
      * automatiquement un cadrage contenant tous les repères.
      */
     const params = new URLSearchParams({
-      size: "640x500",
+      size: "640x540",
       scale: "2",
       format: "png",
       maptype: "hybrid",
