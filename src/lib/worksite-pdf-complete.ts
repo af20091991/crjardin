@@ -17,6 +17,112 @@ function loadImage(url: string): Promise<HTMLImageElement> {
     image.src = url;
   });
 }
+
+async function annotateGardenMap(
+  dataUrl: string,
+  centerLat: number,
+  centerLng: number,
+  markers: WorksiteSheet["garden_markers"],
+  zoom = 19,
+): Promise<string> {
+  if (!markers.length) return dataUrl;
+
+  const image = await loadImage(dataUrl);
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth || image.width;
+  canvas.height = image.naturalHeight || image.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+
+  ctx.drawImage(image, 0, 0);
+  const scale = canvas.width / 640;
+  const worldSize = 256 * 2 ** zoom;
+
+  const project = (lat: number, lng: number) => {
+    const sinLat = Math.min(Math.max(Math.sin((lat * Math.PI) / 180), -0.9999), 0.9999);
+    return {
+      x: ((lng + 180) / 360) * worldSize,
+      y:
+        (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) *
+        worldSize,
+    };
+  };
+
+  const center = project(centerLat, centerLng);
+  const markerRadius = 18 * scale;
+  const padding = 8 * scale;
+  const fontSize = Math.max(14, Math.round(11 * scale));
+  const lineHeight = fontSize * 1.25;
+
+  ctx.font = `600 ${fontSize}px Arial, sans-serif`;
+  ctx.textBaseline = "top";
+
+  markers.forEach((marker, index) => {
+    const point = project(marker.lat, marker.lng);
+    const x = canvas.width / 2 + (point.x - center.x);
+    const y = canvas.height / 2 + (point.y - center.y);
+
+    const mention = [marker.task, marker.note].filter(Boolean).join(" — ");
+    const maxTextWidth = Math.min(canvas.width * 0.58, 520 * scale);
+    const words = mention.split(/\\s+/);
+    const lines: string[] = [];
+    let current = "";
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (ctx.measureText(candidate).width <= maxTextWidth || !current) {
+        current = candidate;
+      } else {
+        lines.push(current);
+        current = word;
+      }
+    }
+    if (current) lines.push(current);
+
+    const boxW = Math.min(
+      maxTextWidth + padding * 2,
+      Math.max(
+        markerRadius * 2 + padding * 2,
+        Math.max(...lines.map((line) => ctx.measureText(line).width)) + padding * 2,
+      ),
+    );
+    const boxH = lines.length * lineHeight + padding * 2;
+    const boxX = Math.min(
+      Math.max(x + markerRadius + padding, padding),
+      canvas.width - boxW - padding,
+    );
+    const boxY = Math.min(
+      Math.max(y - boxH / 2, padding),
+      canvas.height - boxH - padding,
+    );
+
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.strokeStyle = "rgba(79,142,51,0.95)";
+    ctx.lineWidth = Math.max(1, scale);
+    ctx.beginPath();
+    ctx.roundRect(boxX, boxY, boxW, boxH, 8 * scale);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#4F8E33";
+    ctx.beginPath();
+    ctx.arc(x, y, markerRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `700 ${Math.max(13, Math.round(12 * scale))}px Arial, sans-serif`;
+    ctx.fillText(String(index + 1), x, y);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#2D3728";
+    ctx.font = `600 ${fontSize}px Arial, sans-serif`;
+    lines.forEach((line, lineIndex) => {
+      ctx.fillText(line, boxX + padding, boxY + padding + lineIndex * lineHeight);
+    });
+  });
+
+  return canvas.toDataURL("image/png");
+}
 export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -169,9 +275,15 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
         },
       });
       if (dataUrl) {
-        const image = await loadImage(dataUrl);
+        const annotatedDataUrl = await annotateGardenMap(
+          dataUrl,
+          sheet.latitude,
+          sheet.longitude,
+          sheet.garden_markers,
+        );
+        const image = await loadImage(annotatedDataUrl);
         const imageW = contentW;
-        const imageH = imageW * 0.625;
+        const imageH = imageW * (image.naturalHeight / image.naturalWidth);
         ensureSpace(imageH + 4);
         doc.addImage(image, "PNG", margin, y, imageW, imageH, undefined, "FAST");
         y += imageH + 4;

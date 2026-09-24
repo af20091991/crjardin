@@ -23,6 +23,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-24",
+    version: "2.3.9",
+    theme: "PDF & Partage",
+    title: "Fiche SST — carte satellite annotée dans le PDF",
+    details: [
+      "L'export PDF de la fiche SST affiche désormais la vue satellite du chantier avec les repères numérotés et toutes leurs mentions (tâche et note).",
+    ],
+  },
+  {
     date: "2026-09-23",
     version: "2.3.8",
     theme: "Compte-rendus",
