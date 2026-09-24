@@ -162,74 +162,138 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
  * On demande donc une vraie image Google Maps Static, côté serveur, puis on la transmet
  * au générateur jsPDF sous forme de data URL.
  */
+export interface StaticGardenMapMarker {
+  lat: number;
+  lng: number;
+}
+
 export const staticGardenMap = createServerFn({ method: "POST" })
-  .inputValidator((d: { lat: number; lng: number; markers?: { lat: number; lng: number }[] }) => d)
+  .inputValidator(
+    (d: { lat: number; lng: number; markers?: StaticGardenMapMarker[] }) => d,
+  )
   .handler(async ({ data }): Promise<string | null> => {
     const { lat, lng, markers = [] } = data;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      console.error("staticGardenMap: coordonnées du chantier invalides");
+      return null;
+    }
+
+    const validMarkers = markers.filter(
+      (marker) => Number.isFinite(marker.lat) && Number.isFinite(marker.lng),
+    );
+
+    /*
+     * Le PDF est généré côté navigateur : une carte Google Maps interactive
+     * ne peut pas être capturée de façon fiable par jsPDF. On fabrique donc
+     * ici une image PNG autonome avec Google Static Maps, puis on l'injecte
+     * dans le PDF sous forme de data URL.
+     *
+     * Point important : on NE fixe pas le zoom. Les coordonnées du chantier
+     * et de tous les repères sont passées à "visible" afin que Google calcule
+     * automatiquement un cadrage contenant tous les repères.
+     */
     const params = new URLSearchParams({
-      size: "640x540",
+      size: "640x500",
       scale: "2",
-      maptype: "satellite",
+      format: "png",
+      maptype: "hybrid",
       language: "fr",
-      center: `${lat},${lng}`,
-      zoom: "19",
     });
 
-    // visible + markers force Google à conserver tous les repères dans le cadrage.
     params.append("visible", `${lat},${lng}`);
-    markers.forEach((marker, index) => {
-      if (!Number.isFinite(marker.lat) || !Number.isFinite(marker.lng)) return;
+
+    validMarkers.forEach((marker, index) => {
       params.append("visible", `${marker.lat},${marker.lng}`);
       params.append(
         "markers",
-        `size:mid|color:0x4F8E33|label:${index + 1}|${marker.lat},${marker.lng}`,
+        `size:mid|color:0x49ad31|label:${String(index + 1)}|${marker.lat},${marker.lng}`,
       );
     });
 
-    const fetchImage = async (url: string, requestHeaders?: HeadersInit) => {
-      const response = await fetch(url, { headers: requestHeaders });
-      if (!response.ok) {
-        const body = await response.text();
-        console.error("staticmap failed", response.status, body.slice(0, 500));
+    // Repère principal du chantier : "C".
+    params.append("markers", `size:mid|color:0x1f6f2a|label:C|${lat},${lng}`);
+
+    const fetchImage = async (
+      url: string,
+      requestHeaders?: HeadersInit,
+    ): Promise<ArrayBuffer | null> => {
+      try {
+        const response = await fetch(url, { headers: requestHeaders });
+
+        if (!response.ok) {
+          const body = await response.text();
+          console.error(
+            "staticGardenMap: requête Google Static Maps échouée",
+            response.status,
+            body.slice(0, 300),
+          );
+          return null;
+        }
+
+        const contentType = response.headers.get("content-type") ?? "";
+        if (!contentType.toLowerCase().startsWith("image/")) {
+          const body = await response.text();
+          console.error(
+            "staticGardenMap: Google n'a pas renvoyé une image",
+            contentType,
+            body.slice(0, 300),
+          );
+          return null;
+        }
+
+        return response.arrayBuffer();
+      } catch (error) {
+        console.error("staticGardenMap: erreur réseau", error);
         return null;
       }
-      const contentType = response.headers.get("content-type") ?? "";
-      if (!contentType.toLowerCase().startsWith("image/")) {
-        const body = await response.text();
-        console.error("staticmap returned non-image response", contentType, body.slice(0, 500));
-        return null;
-      }
-      return response.arrayBuffer();
     };
 
-    // 1) Utilise le connecteur Google Maps, comme le reste de PP.
-    let buffer = await fetchImage(`${GATEWAY}/maps/api/staticmap?${params.toString()}`, headers());
+    let buffer: ArrayBuffer | null = null;
 
-    // 2) Fallback serveur direct : même clé Google, jamais exposée au navigateur.
-    // Cela évite qu'une réponse du gateway non compatible avec Static Maps rende
-    // silencieusement la carte absente du PDF.
-    if (!buffer) {
-      const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
-      if (mapsKey) {
-        const directParams = new URLSearchParams(params);
-        directParams.set("key", mapsKey);
-        buffer = await fetchImage(
-          `https://maps.googleapis.com/maps/api/staticmap?${directParams.toString()}`,
-        );
-      }
+    // Tentative 1 : connecteur Google Maps PP.
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
+
+    if (lovableKey && mapsKey) {
+      buffer = await fetchImage(
+        `${GATEWAY}/maps/api/staticmap?${params.toString()}`,
+        {
+          Authorization: `Bearer ${lovableKey}`,
+          "X-Connection-Api-Key": mapsKey,
+        },
+      );
     }
 
-    if (!buffer) return null;
+    // Tentative 2 : Google Static Maps directement depuis le serveur.
+    // La clé reste strictement côté serveur.
+    if (!buffer && mapsKey) {
+      const directParams = new URLSearchParams(params);
+      directParams.set("key", mapsKey);
+      buffer = await fetchImage(
+        `https://maps.googleapis.com/maps/api/staticmap?${directParams.toString()}`,
+      );
+    }
+
+    if (!buffer) {
+      console.error("staticGardenMap: aucune image de carte n'a pu être obtenue");
+      return null;
+    }
 
     const bytes = new Uint8Array(buffer);
-    let bin = "";
+    let binary = "";
     const chunkSize = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      bin += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      binary += String.fromCharCode(
+        ...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)),
+      );
     }
-    const b64 = typeof btoa === "function" ? btoa(bin) : Buffer.from(bytes).toString("base64");
-    const contentType = "image/png";
-    return `data:${contentType};base64,${b64}`;
+
+    const base64 =
+      typeof btoa === "function"
+        ? btoa(binary)
+        : Buffer.from(bytes).toString("base64");
+
+    return `data:image/png;base64,${base64}`;
   });
