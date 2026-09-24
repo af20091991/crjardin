@@ -216,7 +216,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     },
     {
       label: "Financier",
-      items: canEdit
+      items: canView
         ? [
             {
               to: "/pilot/direction",
@@ -260,7 +260,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             },
           ]
         : [],
-      emptyLabel: canEdit ? undefined : "Réservé",
+      emptyLabel: undefined,
     },
     {
       label: "Client",
