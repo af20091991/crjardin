@@ -5,7 +5,9 @@ const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
 function headers(extra?: Record<string, string>) {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!lovableKey || !mapsKey) throw new Error("Connecteur Google Maps indisponible");
+  if (!lovableKey || !mapsKey) {
+    throw new Error("Connecteur Google Maps indisponible");
+  }
   return {
     Authorization: `Bearer ${lovableKey}`,
     "X-Connection-Api-Key": mapsKey,
@@ -34,12 +36,20 @@ export const placeAutocomplete = createServerFn({ method: "POST" })
       return [];
     }
     const json = (await res.json()) as {
-      suggestions?: { placePrediction?: { placeId?: string; text?: { text?: string } } }[];
+      suggestions?: {
+        placePrediction?: {
+          placeId?: string;
+          text?: { text?: string };
+        };
+      }[];
     };
     return (json.suggestions ?? [])
       .map((s) => s.placePrediction)
       .filter((p): p is NonNullable<typeof p> => !!p?.placeId)
-      .map((p) => ({ description: p.text?.text ?? "", placeId: p.placeId! }));
+      .map((p) => ({
+        description: p.text?.text ?? "",
+        placeId: p.placeId!,
+      }));
   });
 
 export interface GeoResult {
@@ -87,13 +97,20 @@ export interface RecyclingCenter {
   open_now: boolean | null;
 }
 
-function haversine(aLat: number, aLng: number, bLat: number, bLng: number): number {
+function haversine(
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number,
+): number {
   const R = 6371;
   const dLat = ((bLat - aLat) * Math.PI) / 180;
   const dLng = ((bLng - aLng) * Math.PI) / 180;
   const s =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    Math.cos((aLat * Math.PI) / 180) *
+      Math.cos((bLat * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
@@ -108,7 +125,8 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
       headers: headers({
         "Content-Type": "application/json",
         "X-Goog-FieldMask":
-          "places.displayName,places.formattedAddress,places.location,places.regularOpeningHours,places.currentOpeningHours",
+          "places.displayName,places.formattedAddress,places.location," +
+            "places.regularOpeningHours,places.currentOpeningHours",
       }),
       body: JSON.stringify({
         textQuery: "déchèterie",
@@ -217,7 +235,10 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     });
 
     // Repère principal du chantier : "C".
-    params.append("markers", `size:mid|color:0x1f6f2a|label:C|${lat},${lng}`);
+    params.append(
+      "markers",
+      `size:mid|color:0x1f6f2a|label:C|${lat},${lng}`,
+    );
 
     const fetchImage = async (
       url: string,
@@ -281,7 +302,9 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     }
 
     if (!buffer) {
-      console.error("staticGardenMap: aucune image de carte n'a pu être obtenue");
+      console.error(
+        "staticGardenMap: aucune image de carte n'a pu être obtenue",
+      );
       return null;
     }
 
