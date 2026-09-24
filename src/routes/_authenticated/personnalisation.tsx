@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, NAV_GROUP_LABELS } from "@/components/AppShell";
-import { useRole } from "@/hooks/use-role";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -99,30 +98,6 @@ function SectionHeading({ title, description }: { title: string; description: st
 
 function PersonnalisationPage() {
   const { appearance, setAppearance, reset } = useAppearance();
-  const { canEdit, isLoading: roleLoading } = useRole();
-
-  if (!roleLoading && !canEdit) {
-    return (
-      <AppShell title="Personnalisation">
-        <Card className="mx-auto max-w-3xl">
-          <CardHeader>
-            <CardTitle className="font-serif text-base">Apparence commune de Pilot Pro</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Cette apparence est commune à Pilot Pro. Elle est gérée par l'administrateur et
-              s'applique de la même façon à tous les utilisateurs.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Votre compte dispose d'un accès en lecture seule : aucun réglage ne peut être
-              modifié depuis ce compte.
-            </p>
-          </CardContent>
-        </Card>
-      </AppShell>
-    );
-  }
-
   const themeOptions: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
     { value: "light", label: "Clair", icon: Sun },
     { value: "dark", label: "Sombre", icon: Moon },
