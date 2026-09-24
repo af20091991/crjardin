@@ -214,6 +214,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_appearance: {
+        Row: {
+          id: boolean;
+          settings: Json;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          settings?: Json;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          settings?: Json;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       admin_audit_log: {
         Row: {
           action: string;

@@ -101,7 +101,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const { isAdmin } = useIsAdmin();
   const { canEdit, canView } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { appearance } = useAppearance();
+  const { appearance, setAppearance } = useAppearance();
   const isPilot =
     pathname === "/pilot" ||
     pathname.startsWith("/pilot/") ||
@@ -109,27 +109,17 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     pathname.startsWith("/sst/");
   const showPilotPeriod = isPilot && pathname !== "/pilot/calendrier";
 
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("cr-sidebar-collapsed") === "1";
-  });
+  const [collapsed, setCollapsed] = useState<boolean>(appearance.sidebarCollapsed);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.localStorage.getItem("cr-sidebar-collapsed") !== null) return;
-    if (appearance.sidebarCollapsedDefault) setCollapsed(true);
-  }, [appearance.sidebarCollapsedDefault]);
+    setCollapsed(appearance.sidebarCollapsed);
+  }, [appearance.sidebarCollapsed]);
 
-  const toggleCollapsed = () =>
-    setCollapsed((c) => {
-      const next = !c;
-      try {
-        window.localStorage.setItem("cr-sidebar-collapsed", next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    setAppearance({ sidebarCollapsed: next });
+  };
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   useEffect(() => {

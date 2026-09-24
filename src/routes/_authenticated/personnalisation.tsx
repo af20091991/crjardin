@@ -98,7 +98,6 @@ function SectionHeading({ title, description }: { title: string; description: st
 
 function PersonnalisationPage() {
   const { appearance, setAppearance, reset } = useAppearance();
-
   const themeOptions: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
     { value: "light", label: "Clair", icon: Sun },
     { value: "dark", label: "Sombre", icon: Moon },
@@ -140,7 +139,7 @@ function PersonnalisationPage() {
               <h2 className="font-serif text-lg font-semibold">Apparence de l'application</h2>
               <p className="text-sm text-muted-foreground">
                 Choisissez les couleurs, le thème et l'agencement. Les changements s'appliquent
-                instantanément sur cet appareil.
+                instantanément à tous les utilisateurs de Pilot Pro.
               </p>
             </div>
           </div>
