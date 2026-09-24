@@ -213,7 +213,16 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
         const imageH = imageW * 540 / 640;
         ensureSpace(imageH + 4);
         const imageFormat = dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
-        doc.addImage(dataUrl, imageFormat, margin, y, imageW, imageH, undefined, "FAST");
+        doc.addImage(
+          dataUrl,
+          imageFormat,
+          margin,
+          y,
+          imageW,
+          imageH,
+          undefined,
+          "FAST",
+        );
         y += imageH + 4;
       } else {
         console.error(
