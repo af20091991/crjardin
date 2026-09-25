@@ -60,7 +60,6 @@ describe("Google Static Maps — export PDF SST", () => {
       ),
     ).toBe(true);
   });
-  });
 
   test("zoome au maximum compatible avec tous les repères", () => {
     const viewport = calculateStaticGardenMapViewport(43.61, 3.88, [
