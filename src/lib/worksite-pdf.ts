@@ -13,9 +13,7 @@ async function loadImage(url: string): Promise<HTMLImageElement> {
   const response = await fetch(url, { mode: "cors" });
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    throw new Error(
-      `Image Google Maps refusée (${response.status}): ${body.slice(0, 240)}`,
-    );
+    throw new Error(`Image Google Maps refusée (${response.status}): ${body.slice(0, 240)}`);
   }
 
   const contentType = response.headers.get("content-type") ?? "";
