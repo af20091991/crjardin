@@ -255,10 +255,10 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
         const labelY = y + layout.labelY * pxToMmY;
 
         if (Math.hypot(layout.labelX - layout.anchorX, layout.labelY - layout.anchorY) > 1) {
+          // Le point géographique réel reste matérialisé en vert : aucune
+          // pastille blanche ne doit pouvoir être confondue avec un repère.
           doc.line(anchorX, anchorY, labelX, labelY);
-          doc.setFillColor(255, 255, 255);
-          doc.circle(anchorX, anchorY, 1.1, "F");
-          doc.setFillColor(76, 138, 47);
+          doc.circle(anchorX, anchorY, 0.8, "F");
         }
 
         doc.circle(labelX, labelY, 4.1, "F");
