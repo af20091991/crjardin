@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { buildStaticGardenMapParams, SST_PDF_MAP_REFERER } from "@/lib/maps.functions";
+import {
+  buildStaticGardenMapParams,
+  calculateStaticGardenMapViewport,
+  SST_PDF_MAP_REFERER,
+} from "@/lib/maps.functions";
 
 describe("Google Static Maps — export PDF SST", () => {
   test("conserve le contrat de rendu de la carte PDF", () => {
@@ -14,6 +18,8 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(params.get("format")).toBe("png");
     expect(params.get("maptype")).toBe("hybrid");
     expect(params.get("language")).toBe("fr");
+    expect(params.get("center")).toBe("43.611,3.881");
+    expect(params.get("zoom")).toBe("17");
 
     const visible = params.getAll("visible");
     expect(visible).toEqual(["43.61,3.88", "43.611,3.881", "43.612,3.882"]);
@@ -23,6 +29,18 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(markers[0]).toContain("label:1");
     expect(markers[1]).toContain("label:2");
     expect(markers[2]).toContain("43.61,3.88");
+  });
+
+  test("zoome au maximum compatible avec tous les repères", () => {
+    const viewport = calculateStaticGardenMapViewport(43.61, 3.88, [
+      { lat: 43.6105, lng: 3.8805 },
+      { lat: 43.6106, lng: 3.8806 },
+      { lat: 43.6107, lng: 3.8807 },
+    ]);
+
+    expect(viewport.zoom).toBeGreaterThanOrEqual(18);
+    expect(viewport.centerLat).toBeCloseTo(43.61035, 5);
+    expect(viewport.centerLng).toBeCloseTo(3.88035, 5);
   });
 
   test("conserve les garde-fous indispensables au PDF", () => {
