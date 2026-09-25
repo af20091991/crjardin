@@ -38,6 +38,7 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(markers.slice(0, 2).every((marker) => marker.includes("color:0x3fa73c"))).toBe(true);
     expect(markers[2]).toContain("color:0x1f6f2a");
     expect(markers[2]).toContain("43.61,3.88");
+    expect(markers.filter((marker) => marker.includes("color:0x3fa73c"))).toHaveLength(2);
 
     const manyMarkers = buildStaticGardenMapParams(
       43.61,
