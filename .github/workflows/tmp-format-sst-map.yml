@@ -1,0 +1,30 @@
+name: Temporary format SST map
+on:
+  push:
+    branches:
+      - fix/sst-pdf-google-static-direct-20260925
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun ci
+      - run: bunx prettier --write src/lib/maps.functions.ts
+      - name: Commit formatting
+        run: |
+          if git diff --quiet -- src/lib/maps.functions.ts; then
+            echo "No formatting changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/maps.functions.ts
+          git commit -m "style(sst-pdf): format maps helper"
+          git push
