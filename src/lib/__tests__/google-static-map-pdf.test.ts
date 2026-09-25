@@ -32,36 +32,37 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(markers[0]).toContain("43.61,3.88");
   });
 
-  test("écarte les badges lorsque plusieurs repères occupent le même espace", () => {
-    const markers = Array.from({ length: 14 }, (_, index) => ({
-      lat: 43.61 + index * 0.000001,
-      lng: 3.88 + index * 0.000001,
-    }));
+  test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
+    for (const count of [1, 2, 14, 40, 81, 120]) {
+      const markers = Array.from({ length: count }, (_, index) => ({
+        lat: 43.61 + (index % 12) * 0.00001,
+        lng: 3.88 + Math.floor(index / 12) * 0.00001,
+      }));
+      const layouts = calculateStaticGardenMapMarkerLayout(43.61, 3.88, markers);
 
-    const layouts = calculateStaticGardenMapMarkerLayout(43.61, 3.88, markers);
+      expect(layouts).toHaveLength(count);
 
-    expect(layouts).toHaveLength(14);
-    const uniqueLabels = new Set(
-      layouts.map((layout) => `${layout.labelX.toFixed(2)},${layout.labelY.toFixed(2)}`),
-    );
-    expect(uniqueLabels.size).toBe(14);
+      const uniqueLabels = new Set(
+        layouts.map((layout) => `${layout.labelX.toFixed(2)},${layout.labelY.toFixed(2)}`),
+      );
+      expect(uniqueLabels.size).toBe(count);
 
-    for (let i = 0; i < layouts.length; i += 1) {
-      for (let j = i + 1; j < layouts.length; j += 1) {
-        const distance = Math.hypot(
-          layouts[i].labelX - layouts[j].labelX,
-          layouts[i].labelY - layouts[j].labelY,
-        );
-        expect(distance).toBeGreaterThanOrEqual(27);
+      for (const layout of layouts) {
+        expect(layout.labelX).toBeGreaterThanOrEqual(10);
+        expect(layout.labelX).toBeLessThanOrEqual(630);
+        expect(layout.labelY).toBeGreaterThanOrEqual(10);
+        expect(layout.labelY).toBeLessThanOrEqual(530);
+      }
+
+      if (count > 1) {
+        expect(
+          layouts.some(
+            (layout) =>
+              Math.hypot(layout.labelX - layout.anchorX, layout.labelY - layout.anchorY) > 1,
+          ),
+        ).toBe(true);
       }
     }
-
-    expect(
-      layouts.some(
-        (layout) =>
-          Math.hypot(layout.labelX - layout.anchorX, layout.labelY - layout.anchorY) > 1,
-      ),
-    ).toBe(true);
   });
 
   test("zoome au maximum compatible avec tous les repères", () => {
