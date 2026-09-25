@@ -193,8 +193,7 @@ function buildStaticGardenMapParams(
 
   markers.forEach((marker, index) => {
     params.append("visible", `${marker.lat},${marker.lng}`);
-    const label =
-      index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
+    const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
     params.append(
       "markers",
       `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`,
@@ -215,9 +214,8 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       return null;
     }
 
-    const mapsBrowserKey = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as
-      | string
-      | undefined;
+    const mapsBrowserKey =
+      import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
 
     if (!mapsBrowserKey) {
       console.error("staticGardenMap: clé Google Maps navigateur indisponible");
