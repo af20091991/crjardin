@@ -265,61 +265,76 @@ export function calculateStaticGardenMapMarkerLayout(
   });
 
   const anchors = markers.map(project);
-  const minDistance = 28;
-  const layouts: StaticGardenMapMarkerLayout[] = anchors.map((point, index) => ({
+  if (!anchors.length) return [];
+
+  // The density is arbitrary: there may be 2, 14, 40 or many more markers.
+  // Adapt the minimum separation to the number of badges rather than tuning
+  // the layout for one particular worksite.
+  const minDistance =
+    anchors.length <= 20 ? 28 : anchors.length <= 40 ? 24 : anchors.length <= 80 ? 20 : 18;
+  const edgePadding = Math.max(10, minDistance / 2);
+  const positions = anchors.map((point) => ({ x: point.x, y: point.y }));
+
+  // Deterministic force layout:
+  // - anchors remain fixed at their real geographic positions;
+  // - badges repel each other;
+  // - each badge is attracted back toward its own anchor;
+  // - all badges remain inside the map image.
+  // This works for any marker count without relying on a special cluster size.
+  for (let iteration = 0; iteration < 160; iteration += 1) {
+    let moved = false;
+    const strength = 1 - iteration / 190;
+
+    for (let i = 0; i < positions.length; i += 1) {
+      let dx = (anchors[i].x - positions[i].x) * 0.035;
+      let dy = (anchors[i].y - positions[i].y) * 0.035;
+
+      for (let j = 0; j < positions.length; j += 1) {
+        if (i === j) continue;
+        const deltaX = positions[i].x - positions[j].x;
+        const deltaY = positions[i].y - positions[j].y;
+        const distance = Math.hypot(deltaX, deltaY);
+
+        if (distance < minDistance) {
+          if (distance < 0.001) {
+            const angle = ((i * 37 + j * 17) % 360) * (Math.PI / 180);
+            dx += Math.cos(angle) * (minDistance * 0.18);
+            dy += Math.sin(angle) * (minDistance * 0.18);
+          } else {
+            const push = ((minDistance - distance) / distance) * 0.55;
+            dx += deltaX * push;
+            dy += deltaY * push;
+          }
+        }
+      }
+
+      const nextX = Math.max(
+        edgePadding,
+        Math.min(width - edgePadding, positions[i].x + dx * strength),
+      );
+      const nextY = Math.max(
+        edgePadding,
+        Math.min(height - edgePadding, positions[i].y + dy * strength),
+      );
+
+      if (Math.abs(nextX - positions[i].x) > 0.01 || Math.abs(nextY - positions[i].y) > 0.01) {
+        moved = true;
+      }
+      positions[i] = { x: nextX, y: nextY };
+    }
+
+    if (!moved) break;
+  }
+
+  return positions.map((point, index) => ({
     index,
-    anchorX: point.x,
-    anchorY: point.y,
+    anchorX: anchors[index].x,
+    anchorY: anchors[index].y,
     labelX: point.x,
     labelY: point.y,
   }));
-
-  const visited = new Set<number>();
-  for (let start = 0; start < anchors.length; start += 1) {
-    if (visited.has(start)) continue;
-
-    const cluster = [start];
-    visited.add(start);
-    for (let cursor = 0; cursor < cluster.length; cursor += 1) {
-      const current = cluster[cursor];
-      for (let candidate = 0; candidate < anchors.length; candidate += 1) {
-        if (visited.has(candidate)) continue;
-        const dx = anchors[current].x - anchors[candidate].x;
-        const dy = anchors[current].y - anchors[candidate].y;
-        if (Math.hypot(dx, dy) < minDistance) {
-          visited.add(candidate);
-          cluster.push(candidate);
-        }
-      }
-    }
-
-    if (cluster.length === 1) continue;
-
-    const center = cluster.reduce(
-      (sum, index) => ({
-        x: sum.x + anchors[index].x / cluster.length,
-        y: sum.y + anchors[index].y / cluster.length,
-      }),
-      { x: 0, y: 0 },
-    );
-
-    const requiredRadius = Math.max(
-      32,
-      minDistance / (2 * Math.sin(Math.PI / cluster.length)),
-    );
-    const maxRadiusX = Math.min(center.x - 16, width - 16 - center.x);
-    const maxRadiusY = Math.min(center.y - 16, height - 16 - center.y);
-    const radius = Math.min(requiredRadius, maxRadiusX, maxRadiusY);
-
-    cluster.forEach((index, position) => {
-      const angle = -Math.PI / 2 + (position * 2 * Math.PI) / cluster.length;
-      layouts[index].labelX = center.x + Math.cos(angle) * radius;
-      layouts[index].labelY = center.y + Math.sin(angle) * radius;
-    });
-  }
-
-  return layouts;
 }
+
 
 export function buildStaticGardenMapParams(
   lat: number,
