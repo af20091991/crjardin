@@ -190,6 +190,14 @@ export interface StaticGardenMapViewport {
   zoom: number;
 }
 
+export interface StaticGardenMapMarkerLayout {
+  index: number;
+  anchorX: number;
+  anchorY: number;
+  labelX: number;
+  labelY: number;
+}
+
 function webMercatorY(lat: number): number {
   const clampedLat = Math.max(-WEB_MERCATOR_LAT_LIMIT, Math.min(WEB_MERCATOR_LAT_LIMIT, lat));
   const radians = (clampedLat * Math.PI) / 180;
@@ -231,6 +239,88 @@ export function calculateStaticGardenMapViewport(
   return { centerLat, centerLng, zoom };
 }
 
+/**
+ * Projette les repères dans le même espace pixel logique que l'API Static Maps
+ * et écarte automatiquement les repères qui se chevaucheraient.
+ *
+ * Les points géographiques restent inchangés : seuls les badges numérotés sont
+ * déplacés dans un petit anneau autour d'un groupe dense, avec un trait de
+ * rappel dessiné ensuite dans le PDF.
+ */
+export function calculateStaticGardenMapMarkerLayout(
+  lat: number,
+  lng: number,
+  markers: StaticGardenMapMarker[],
+): StaticGardenMapMarkerLayout[] {
+  const viewport = calculateStaticGardenMapViewport(lat, lng, markers);
+  const worldPixels = 256 * 2 ** viewport.zoom;
+  const width = STATIC_MAP_WIDTH;
+  const height = STATIC_MAP_HEIGHT;
+  const centerX = ((viewport.centerLng + 180) / 360) * worldPixels;
+  const centerY = webMercatorY(viewport.centerLat) * worldPixels;
+
+  const project = (marker: StaticGardenMapMarker) => ({
+    x: width / 2 + (((marker.lng + 180) / 360) * worldPixels - centerX),
+    y: height / 2 + (webMercatorY(marker.lat) * worldPixels - centerY),
+  });
+
+  const anchors = markers.map(project);
+  const minDistance = 28;
+  const layouts: StaticGardenMapMarkerLayout[] = anchors.map((point, index) => ({
+    index,
+    anchorX: point.x,
+    anchorY: point.y,
+    labelX: point.x,
+    labelY: point.y,
+  }));
+
+  const visited = new Set<number>();
+  for (let start = 0; start < anchors.length; start += 1) {
+    if (visited.has(start)) continue;
+
+    const cluster = [start];
+    visited.add(start);
+    for (let cursor = 0; cursor < cluster.length; cursor += 1) {
+      const current = cluster[cursor];
+      for (let candidate = 0; candidate < anchors.length; candidate += 1) {
+        if (visited.has(candidate)) continue;
+        const dx = anchors[current].x - anchors[candidate].x;
+        const dy = anchors[current].y - anchors[candidate].y;
+        if (Math.hypot(dx, dy) < minDistance) {
+          visited.add(candidate);
+          cluster.push(candidate);
+        }
+      }
+    }
+
+    if (cluster.length === 1) continue;
+
+    const center = cluster.reduce(
+      (sum, index) => ({
+        x: sum.x + anchors[index].x / cluster.length,
+        y: sum.y + anchors[index].y / cluster.length,
+      }),
+      { x: 0, y: 0 },
+    );
+
+    const requiredRadius = Math.max(
+      32,
+      minDistance / (2 * Math.sin(Math.PI / cluster.length)),
+    );
+    const maxRadiusX = Math.min(center.x - 16, width - 16 - center.x);
+    const maxRadiusY = Math.min(center.y - 16, height - 16 - center.y);
+    const radius = Math.min(requiredRadius, maxRadiusX, maxRadiusY);
+
+    cluster.forEach((index, position) => {
+      const angle = -Math.PI / 2 + (position * 2 * Math.PI) / cluster.length;
+      layouts[index].labelX = center.x + Math.cos(angle) * radius;
+      layouts[index].labelY = center.y + Math.sin(angle) * radius;
+    });
+  }
+
+  return layouts;
+}
+
 export function buildStaticGardenMapParams(
   lat: number,
   lng: number,
@@ -252,11 +342,9 @@ export function buildStaticGardenMapParams(
     params.append("visible", `${marker.lat},${marker.lng}`);
   });
 
-  markers.forEach((marker, index) => {
-    const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
-    params.append("markers", `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`);
-  });
-
+  // Les repères de chantier sont composités dans le PDF afin de pouvoir
+  // écarter les badges lorsque plusieurs coordonnées sont très proches.
+  // Le point chantier reste natif dans Google Maps.
   params.append("markers", `size:mid|color:0x1f6f2a|${lat},${lng}`);
   return params;
 }
