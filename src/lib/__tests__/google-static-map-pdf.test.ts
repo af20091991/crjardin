@@ -30,7 +30,6 @@ describe("Google Static Maps — export PDF SST", () => {
     // Aucun marqueur Google natif : le PDF dessine une seule série de badges
     // verts numérotés correspondant exactement aux tâches de la fiche SST.
     expect(params.getAll("markers")).toEqual([]);
-
   });
 
   test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
