@@ -185,12 +185,8 @@ function buildStaticGardenMapParams(
 
   markers.forEach((marker, index) => {
     params.append("visible", `${marker.lat},${marker.lng}`);
-    const label =
-      index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
-    params.append(
-      "markers",
-      `size:mid|color:0x49ad31|label:${label}|${marker.lat},${marker.lng}`,
-    );
+    const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
+    params.append("markers", `size:mid|color:0x49ad31|label:${label}|${marker.lat},${marker.lng}`);
   });
 
   params.append("markers", `size:mid|color:0x1f6f2a|label:C|${lat},${lng}`);
@@ -210,10 +206,9 @@ export function staticGardenMapBrowserUrl(
   if (typeof window === "undefined") return null;
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
-  const key = import.meta.env
-    .VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
-  const channel = import.meta.env
-    .VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID as string | undefined;
+  const key = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
+  const channel = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID as
+    string | undefined;
 
   if (!key) return null;
 

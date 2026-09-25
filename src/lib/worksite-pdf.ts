@@ -2,10 +2,7 @@ import { jsPDF } from "jspdf";
 import logo from "@/assets/logo.png";
 import type { WorksiteSheet } from "@/lib/worksite";
 import { worksitePhotoUrl } from "@/lib/worksite";
-import {
-  staticGardenMap,
-  staticGardenMapBrowserUrl,
-} from "@/lib/maps.functions";
+import { staticGardenMap, staticGardenMapBrowserUrl } from "@/lib/maps.functions";
 
 const GREEN: [number, number, number] = [76, 138, 47];
 const DARK: [number, number, number] = [45, 55, 40];
@@ -223,10 +220,7 @@ export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void
       y += imageH + 6;
     } catch (error) {
       console.error("Export PDF fiche SST : impossible d'ajouter la carte.", error);
-      console.error(
-        "La carte Google Maps n'a pas pu être intégrée au PDF.",
-        error,
-      );
+      console.error("La carte Google Maps n'a pas pu être intégrée au PDF.", error);
     }
 
     if (sheet.garden_markers.length) {
