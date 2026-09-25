@@ -77,7 +77,6 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(viewport.centerLng).toBeCloseTo(3.88035, 5);
   });
 
-
   test("conserve les garde-fous indispensables au PDF", () => {
     const source = readFileSync(new URL("../maps.functions.ts", import.meta.url), "utf8");
 
