@@ -1,0 +1,29 @@
+name: Temporary SST formatter
+
+on:
+  push:
+    branches:
+      - fix/sst-pdf-static-map-browser-20260925
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+      - run: bunx prettier --write src/lib/maps.functions.ts src/lib/worksite-pdf.ts
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/maps.functions.ts src/lib/worksite-pdf.ts
+          if git diff --cached --quiet; then
+            echo "Already formatted"
+          else
+            git commit -m "style: format SST Google Maps fallback"
+            git push
+          fi
