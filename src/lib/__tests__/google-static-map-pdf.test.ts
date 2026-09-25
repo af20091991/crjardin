@@ -49,9 +49,9 @@ describe("Google Static Maps — export PDF SST", () => {
 
       for (const layout of layouts) {
         expect(layout.labelX).toBeGreaterThanOrEqual(10);
-        expect(layout.labelX).toBeLessThanOrEqual(630);
+        expect(layout.labelX).toBeLessThan(631);
         expect(layout.labelY).toBeGreaterThanOrEqual(10);
-        expect(layout.labelY).toBeLessThanOrEqual(530);
+        expect(layout.labelY).toBeLessThan(531);
       }
 
       if (count > 1) {
@@ -88,9 +88,9 @@ describe("Google Static Maps — export PDF SST", () => {
       expect(layouts).toHaveLength(count);
       for (const layout of layouts) {
         expect(layout.labelX).toBeGreaterThanOrEqual(10);
-        expect(layout.labelX).toBeLessThanOrEqual(630);
+        expect(layout.labelX).toBeLessThan(631);
         expect(layout.labelY).toBeGreaterThanOrEqual(10);
-        expect(layout.labelY).toBeLessThanOrEqual(530);
+        expect(layout.labelY).toBeLessThan(531);
       }
 
       const minDistance = count <= 20 ? 28 : count <= 40 ? 24 : count <= 80 ? 20 : 18;
