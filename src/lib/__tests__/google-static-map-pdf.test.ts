@@ -95,7 +95,7 @@ describe("Google Static Maps — export PDF SST", () => {
     );
 
     expect(source).not.toContain(
-      'doc.setFillColor(255, 255, 255, 255);\n          doc.circle(anchorX',
+      'doc.setFillColor(255, 255, 255);\n          doc.circle(anchorX',
     );
     expect(source).toContain("doc.circle(anchorX, anchorY, 0.8, \"F\");");
     expect(source).toContain("doc.circle(labelX, labelY, 4.1, \"F\");");
