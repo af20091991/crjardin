@@ -1,320 +1,290 @@
-import { createServerFn } from "@tanstack/react-start";
+import { jsPDF } from "jspdf";
+import logo from "@/assets/logo.png";
+import type { WorksiteSheet } from "@/lib/worksite";
+import { worksitePhotoUrl } from "@/lib/worksite";
+import {
+  staticGardenMap,
+  staticGardenMapBrowserUrl,
+} from "@/lib/maps.functions";
 
-const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
+const GREEN: [number, number, number] = [76, 138, 47];
+const DARK: [number, number, number] = [45, 55, 40];
+const MUTED: [number, number, number] = [120, 120, 110];
+const LIGHT: [number, number, number] = [240, 244, 236];
 
-function headers(extra?: Record<string, string>) {
-  const lovableKey = process.env.LOVABLE_API_KEY;
-  const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!lovableKey || !mapsKey) throw new Error("Connecteur Google Maps indisponible");
-  return {
-    Authorization: `Bearer ${lovableKey}`,
-    "X-Connection-Api-Key": mapsKey,
-    ...extra,
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void> {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 16;
+  const contentW = pageW - margin * 2;
+  let y = margin;
+
+  const dateStr = sheet.intervention_date
+    ? new Date(sheet.intervention_date).toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "Date non définie";
+
+  const ensureSpace = (h: number) => {
+    if (y + h > pageH - margin - 6) {
+      doc.addPage();
+      y = margin;
+    }
   };
-}
 
-export interface PlaceSuggestion {
-  description: string;
-  placeId: string;
-}
+  const heading = (title: string) => {
+    ensureSpace(14);
+    doc.setFillColor(...LIGHT);
+    doc.roundedRect(margin, y - 1, contentW, 9, 1.5, 1.5, "F");
+    doc.setTextColor(...GREEN);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text(title, margin + 3, y + 5.5);
+    y += 13;
+    doc.setTextColor(...DARK);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10.5);
+  };
 
-/** Autocomplétion d'adresse (Places API New). */
-export const placeAutocomplete = createServerFn({ method: "POST" })
-  .inputValidator((d: { input: string }) => d)
-  .handler(async ({ data }): Promise<PlaceSuggestion[]> => {
-    const input = (data.input ?? "").trim();
-    if (input.length < 3) return [];
-    const res = await fetch(`${GATEWAY}/places/v1/places:autocomplete`, {
-      method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ input, languageCode: "fr", regionCode: "FR" }),
+  const line = (label: string, value: string) => {
+    ensureSpace(6);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${label} : `, margin, y);
+    const w = doc.getTextWidth(`${label} : `);
+    doc.setFont("helvetica", "normal");
+    const lines = doc.splitTextToSize(value || "—", contentW - w);
+    doc.text(lines, margin + w, y);
+    y += Math.max(lines.length, 1) * 5.4 + 0.6;
+  };
+
+  const bullets = (items: string[]) => {
+    if (!items.length) {
+      ensureSpace(6);
+      doc.setTextColor(...MUTED);
+      doc.text("—", margin, y);
+      doc.setTextColor(...DARK);
+      y += 6;
+      return;
+    }
+    for (const it of items) {
+      const lines = doc.splitTextToSize(it, contentW - 6);
+      ensureSpace(lines.length * 5 + 1);
+      doc.text("•", margin, y);
+      doc.text(lines, margin + 5, y);
+      y += lines.length * 5 + 1;
+    }
+  };
+
+  // Header
+  doc.setFillColor(...GREEN);
+  doc.rect(0, 0, pageW, 32, "F");
+  try {
+    const img = await loadImage(logo);
+    doc.addImage(img, "PNG", margin, 6, 18, 18);
+  } catch {
+    /* logo optionnel */
+  }
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Fiche chantier", margin + 22, 15);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Préparation d'intervention", margin + 22, 23);
+  y = 42;
+  doc.setTextColor(...DARK);
+
+  // Client
+  heading("Informations client");
+  const clientName = [sheet.civility?.trim(), sheet.client_name?.trim()].filter(Boolean).join(" ");
+  line("Client", clientName);
+  line("Téléphone", sheet.client_phone || "—");
+  if (sheet.client_phone_backup) line("Tél. en cas d'absence", sheet.client_phone_backup);
+  if (sheet.contact_person) line("Personne à contacter", sheet.contact_person);
+  line("Adresse", sheet.address || "—");
+  if (sheet.access_complement) line("Complément d'accès", sheet.access_complement);
+  line("Date d'intervention", dateStr);
+  if (sheet.intervenant) line("Intervenant(e)", sheet.intervenant);
+  line("Client présent", sheet.client_present == null ? "—" : sheet.client_present ? "Oui" : "Non");
+  line(
+    "Évacuation déchets verts",
+    sheet.green_waste == null ? "—" : sheet.green_waste ? "Oui" : "Non",
+  );
+
+  heading("Matériel nécessaire");
+  bullets(sheet.equipment);
+
+  heading("EPI");
+  bullets(sheet.epi);
+
+  heading("Travaux à réaliser (ordre d'exécution)");
+  if (sheet.tasks.length) {
+    sheet.tasks.forEach((t, i) => {
+      const lines = doc.splitTextToSize(`${i + 1}. ${t}`, contentW - 4);
+      ensureSpace(lines.length * 5 + 1);
+      doc.text(lines, margin, y);
+      y += lines.length * 5 + 1;
     });
-    if (!res.ok) {
-      console.error("autocomplete failed", res.status, await res.text());
-      return [];
-    }
-    const json = (await res.json()) as {
-      suggestions?: { placePrediction?: { placeId?: string; text?: { text?: string } } }[];
-    };
-    return (json.suggestions ?? [])
-      .map((s) => s.placePrediction)
-      .filter((p): p is NonNullable<typeof p> => !!p?.placeId)
-      .map((p) => ({ description: p.text?.text ?? "", placeId: p.placeId! }));
-  });
+  } else bullets([]);
 
-export interface GeoResult {
-  lat: number;
-  lng: number;
-  formatted: string;
-}
+  heading("Checklist avant départ");
+  bullets(sheet.checklist);
 
-/** Géocode une adresse (lat/lng). */
-export const geocodeAddress = createServerFn({ method: "POST" })
-  .inputValidator((d: { address: string }) => d)
-  .handler(async ({ data }): Promise<GeoResult | null> => {
-    const address = (data.address ?? "").trim();
-    if (!address) return null;
-    const res = await fetch(
-      `${GATEWAY}/maps/api/geocode/json?address=${encodeURIComponent(address)}&language=fr&region=fr`,
-      { headers: headers() },
-    );
-    if (!res.ok) {
-      console.error("geocode failed", res.status, await res.text());
-      return null;
-    }
-    const json = (await res.json()) as {
-      results?: {
-        geometry?: { location?: { lat: number; lng: number } };
-        formatted_address?: string;
-      }[];
-    };
-    const r = json.results?.[0];
-    if (!r?.geometry?.location) return null;
-    return {
-      lat: r.geometry.location.lat,
-      lng: r.geometry.location.lng,
-      formatted: r.formatted_address ?? address,
-    };
-  });
-
-export interface RecyclingCenter {
-  name: string;
-  address: string;
-  lat: number;
-  lng: number;
-  distance_km: number;
-  hours: string[];
-  open_now: boolean | null;
-}
-
-function haversine(aLat: number, aLng: number, bLat: number, bLng: number): number {
-  const R = 6371;
-  const dLat = ((bLat - aLat) * Math.PI) / 180;
-  const dLng = ((bLng - aLng) * Math.PI) / 180;
-  const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
-}
-
-/** Déchèterie la plus proche d'un point, avec horaires en français. */
-export const nearestRecyclingCenter = createServerFn({ method: "POST" })
-  .inputValidator((d: { lat: number; lng: number }) => d)
-  .handler(async ({ data }): Promise<RecyclingCenter | null> => {
-    const { lat, lng } = data;
-    if (typeof lat !== "number" || typeof lng !== "number") return null;
-    const res = await fetch(`${GATEWAY}/places/v1/places:searchText`, {
-      method: "POST",
-      headers: headers({
-        "Content-Type": "application/json",
-        "X-Goog-FieldMask":
-          "places.displayName,places.formattedAddress,places.location," +
-          "places.regularOpeningHours,places.currentOpeningHours",
-      }),
-      body: JSON.stringify({
-        textQuery: "déchèterie",
-        languageCode: "fr",
-        regionCode: "FR",
-        maxResultCount: 10,
-        locationBias: {
-          circle: {
-            center: { latitude: lat, longitude: lng },
-            radius: 25000,
-          },
-        },
-      }),
+  if (sheet.notes?.trim()) {
+    heading("Notes complémentaires");
+    const lines = doc.splitTextToSize(sheet.notes.trim(), contentW);
+    lines.forEach((l: string) => {
+      ensureSpace(5.4);
+      doc.text(l, margin, y);
+      y += 5.4;
     });
-    if (!res.ok) {
-      console.error("searchText failed", res.status, await res.text());
-      return null;
+  }
+
+  if (sheet.recycling_center) {
+    const rc = sheet.recycling_center;
+    heading("Déchèterie la plus proche");
+    line("Nom", rc.name);
+    line("Adresse", rc.address);
+    line("Distance", `${rc.distance_km} km`);
+    if (rc.hours.length) {
+      ensureSpace(6);
+      doc.setFont("helvetica", "bold");
+      doc.text("Horaires :", margin, y);
+      y += 5.4;
+      doc.setFont("helvetica", "normal");
+      bullets(rc.hours);
     }
-    const json = (await res.json()) as {
-      places?: {
-        displayName?: { text?: string };
-        formattedAddress?: string;
-        location?: { latitude: number; longitude: number };
-        regularOpeningHours?: { weekdayDescriptions?: string[] };
-        currentOpeningHours?: { openNow?: boolean };
-      }[];
-    };
-    const places = (json.places ?? []).filter((p) => p.location);
-    if (!places.length) return null;
-    const withDist = places.map((p) => ({
-      p,
-      d: haversine(lat, lng, p.location!.latitude, p.location!.longitude),
-    }));
-    withDist.sort((a, b) => a.d - b.d);
-    const { p, d } = withDist[0];
-    return {
-      name: p.displayName?.text ?? "Déchèterie",
-      address: p.formattedAddress ?? "",
-      lat: p.location!.latitude,
-      lng: p.location!.longitude,
-      distance_km: Math.round(d * 10) / 10,
-      hours: p.regularOpeningHours?.weekdayDescriptions ?? [],
-      open_now: p.currentOpeningHours?.openNow ?? null,
-    };
-  });
+  }
 
-/**
- * Génère l'image réellement utilisée par l'export PDF.
- *
- * Important : le PDF ne peut pas embarquer la carte Google Maps interactive du navigateur.
- * On demande donc une vraie image Google Maps Static, côté serveur, puis on la transmet
- * au générateur jsPDF sous forme de data URL.
- */
-export interface StaticGardenMapMarker {
-  lat: number;
-  lng: number;
-}
-
-function buildStaticGardenMapParams(
-  lat: number,
-  lng: number,
-  markers: StaticGardenMapMarker[],
-): URLSearchParams {
-  const params = new URLSearchParams({
-    size: "640x540",
-    scale: "2",
-    format: "png",
-    maptype: "hybrid",
-    language: "fr",
-  });
-
-  params.append("visible", `${lat},${lng}`);
-
-  markers.forEach((marker, index) => {
-    params.append("visible", `${marker.lat},${marker.lng}`);
-    const label =
-      index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
-    params.append(
-      "markers",
-      `size:mid|color:0x49ad31|label:${label}|${marker.lat},${marker.lng}`,
-    );
-  });
-
-  params.append("markers", `size:mid|color:0x1f6f2a|label:C|${lat},${lng}`);
-  return params;
-}
-
-/**
- * URL Google Static Maps utilisable côté navigateur avec la clé publique
- * du connecteur Lovable. La clé est volontairement restreinte au domaine
- * de l'application par le connecteur.
- */
-export function staticGardenMapBrowserUrl(
-  lat: number,
-  lng: number,
-  markers: StaticGardenMapMarker[] = [],
-): string | null {
-  if (typeof window === "undefined") return null;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-
-  const key = import.meta.env
-    .VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
-  const channel = import.meta.env
-    .VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID as string | undefined;
-
-  if (!key) return null;
-
-  const params = buildStaticGardenMapParams(lat, lng, markers);
-  params.set("key", key);
-  if (channel) params.set("channel", channel);
-
-  return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
-}
-
-export const staticGardenMap = createServerFn({ method: "POST" })
-  .inputValidator((d: { lat: number; lng: number; markers?: StaticGardenMapMarker[] }) => d)
-  .handler(async ({ data }): Promise<string | null> => {
-    const { lat, lng, markers = [] } = data;
-
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      console.error("staticGardenMap: coordonnées du chantier invalides");
-      return null;
-    }
-
-    const validMarkers = markers.filter(
-      (marker) => Number.isFinite(marker.lat) && Number.isFinite(marker.lng),
-    );
-
+  if (sheet.latitude != null && sheet.longitude != null) {
     /*
-     * Le PDF est généré côté navigateur : une carte Google Maps interactive
-     * ne peut pas être capturée de façon fiable par jsPDF. On fabrique donc
-     * ici une image PNG autonome avec Google Static Maps, puis on l'injecte
-     * dans le PDF sous forme de data URL.
-     *
-     * Point important : on NE fixe pas le zoom. Les coordonnées du chantier
-     * et de tous les repères sont passées à "visible" afin que Google calcule
-     * automatiquement un cadrage contenant tous les repères.
+     * La carte est volontairement isolée sur une page dédiée :
+     * - elle ne peut jamais être coupée entre deux pages ;
+     * - elle occupe au moins une demi-page A4 ;
+     * - les repères restent lisibles ;
+     * - le PDF ne dépend pas d'une carte Google Maps interactive.
      */
-    const params = buildStaticGardenMapParams(lat, lng, validMarkers);
+    doc.addPage();
+    y = margin;
 
-    const fetchImage = async (
-      url: string,
-      requestHeaders?: HeadersInit,
-    ): Promise<ArrayBuffer | null> => {
-      try {
-        const response = await fetch(url, { headers: requestHeaders });
+    heading("Plan jardin (vue aérienne)");
 
-        if (!response.ok) {
-          const body = await response.text();
-          console.error(
-            "staticGardenMap: requête Google Static Maps échouée",
-            response.status,
-            body.slice(0, 300),
-          );
-          return null;
-        }
-
-        const contentType = response.headers.get("content-type") ?? "";
-        if (!contentType.toLowerCase().startsWith("image/")) {
-          const body = await response.text();
-          console.error(
-            "staticGardenMap: Google n'a pas renvoyé une image",
-            contentType,
-            body.slice(0, 300),
-          );
-          return null;
-        }
-
-        return response.arrayBuffer();
-      } catch (error) {
-        console.error("staticGardenMap: erreur réseau", error);
-        return null;
-      }
-    };
-
-    let buffer: ArrayBuffer | null = null;
-
-    // Tentative 1 : connecteur Google Maps PP.
-    const lovableKey = process.env.LOVABLE_API_KEY;
-    const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
-
-    if (lovableKey && mapsKey) {
-      buffer = await fetchImage(`${GATEWAY}/maps/api/staticmap?${params.toString()}`, {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": mapsKey,
+    try {
+      const dataUrl = await staticGardenMap({
+        data: {
+          lat: sheet.latitude,
+          lng: sheet.longitude,
+          markers: sheet.garden_markers.map((marker) => ({
+            lat: marker.lat,
+            lng: marker.lng,
+          })),
+        },
       });
-    }
 
-    if (!buffer) {
-      console.error("staticGardenMap: aucune image de carte n'a pu être obtenue");
-      return null;
-    }
+      let image: HTMLImageElement;
 
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    const chunkSize = 0x8000;
+      if (dataUrl) {
+        image = await loadImage(dataUrl);
+      } else {
+        const browserUrl = staticGardenMapBrowserUrl(
+          sheet.latitude,
+          sheet.longitude,
+          (sheet.garden_markers ?? []).map((marker) => ({
+            lat: marker.lat,
+            lng: marker.lng,
+          })),
+        );
+        if (!browserUrl) {
+          throw new Error("Clé navigateur Google Static Maps indisponible.");
+        }
+        image = await loadImage(browserUrl);
+      }
 
-    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-      binary += String.fromCharCode(
-        ...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)),
+      const imageW = contentW;
+      // Ratio 640x540 : environ 150 mm de haut sur une largeur utile A4.
+      const imageH = (imageW * 540) / 640;
+
+      ensureSpace(imageH + 4);
+      doc.addImage(image, "PNG", margin, y, imageW, imageH, undefined, "FAST");
+      y += imageH + 6;
+    } catch (error) {
+      console.error("Export PDF fiche SST : impossible d'ajouter la carte.", error);
+      console.error(
+        "La carte Google Maps n'a pas pu être intégrée au PDF.",
+        error,
       );
     }
 
-    const base64 =
-      typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
+    if (sheet.garden_markers.length) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
 
-    return `data:image/png;base64,${base64}`;
-  });
+      for (const [index, marker] of sheet.garden_markers.entries()) {
+        const label = `${index + 1}. ${marker.task}${marker.note ? ` — ${marker.note}` : ""}`;
+        const lines = doc.splitTextToSize(label, contentW - 4);
+        ensureSpace(lines.length * 5 + 1);
+        doc.text(lines, margin, y);
+        y += lines.length * 5 + 1;
+      }
+    }
+  }
+
+  if (sheet.photos.length) {
+    heading("Photos du chantier");
+    const cols = 2;
+    const gap = 4;
+    const w = (contentW - gap) / cols;
+    const h = w * 0.7;
+    let col = 0;
+    for (const p of sheet.photos) {
+      try {
+        const url = await worksitePhotoUrl(p);
+        const img = await loadImage(url);
+        if (col === 0) ensureSpace(h + 4);
+        const x = margin + col * (w + gap);
+        doc.addImage(img, "JPEG", x, y, w, h, undefined, "FAST");
+        col++;
+        if (col >= cols) {
+          col = 0;
+          y += h + 4;
+        }
+      } catch {
+        /* skip */
+      }
+    }
+    if (col !== 0) y += h + 4;
+  }
+
+  const pages = doc.getNumberOfPages();
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p);
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text("De la graine au jardin — Fiche chantier", margin, pageH - 8);
+    doc.text(`${p} / ${pages}`, pageW - margin, pageH - 8, { align: "right" });
+  }
+
+  const dateSafe = (sheet.intervention_date ?? "").slice(0, 10);
+  const parts = ["Fiche chantier", sheet.civility?.trim(), sheet.client_name?.trim(), dateSafe]
+    .filter(Boolean)
+    .join(" ");
+  const fname = parts
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  doc.save(`${fname || "Fiche chantier"}.pdf`);
+}
