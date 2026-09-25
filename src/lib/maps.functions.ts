@@ -178,23 +178,76 @@ export interface StaticGardenMapMarker {
 
 export const SST_PDF_MAP_REFERER = "https://crjardin.lovable.app/";
 
+const STATIC_MAP_WIDTH = 640;
+const STATIC_MAP_HEIGHT = 540;
+const STATIC_MAP_MAX_ZOOM = 21;
+const STATIC_MAP_PADDING = 1.16;
+const WEB_MERCATOR_LAT_LIMIT = 85.05112878;
+
+export interface StaticGardenMapViewport {
+  centerLat: number;
+  centerLng: number;
+  zoom: number;
+}
+
+function webMercatorY(lat: number): number {
+  const clampedLat = Math.max(-WEB_MERCATOR_LAT_LIMIT, Math.min(WEB_MERCATOR_LAT_LIMIT, lat));
+  const radians = (clampedLat * Math.PI) / 180;
+  return (1 - Math.asinh(Math.tan(radians)) / Math.PI) / 2;
+}
+
+/**
+ * Calcule le niveau de zoom maximal permettant de contenir tous les repères
+ * dans l'image, avec une petite marge. Le positionnement implicite de Google
+ * utilise des marges généreuses qui peuvent trop dézoomer les chantiers denses.
+ */
+export function calculateStaticGardenMapViewport(
+  lat: number,
+  lng: number,
+  markers: StaticGardenMapMarker[],
+): StaticGardenMapViewport {
+  const points = [{ lat, lng }, ...markers];
+  const minLat = Math.min(...points.map((point) => point.lat));
+  const maxLat = Math.max(...points.map((point) => point.lat));
+  const minLng = Math.min(...points.map((point) => point.lng));
+  const maxLng = Math.max(...points.map((point) => point.lng));
+
+  const centerLat = (minLat + maxLat) / 2;
+  const centerLng = (minLng + maxLng) / 2;
+  const xSpan = Math.max((maxLng - minLng) / 360, Number.EPSILON);
+  const ySpan = Math.max(webMercatorY(minLat) - webMercatorY(maxLat), Number.EPSILON);
+
+  let zoom = 0;
+  for (let candidate = STATIC_MAP_MAX_ZOOM; candidate >= 0; candidate -= 1) {
+    const worldPixels = 256 * 2 ** candidate;
+    const fitsWidth = xSpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_WIDTH;
+    const fitsHeight = ySpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_HEIGHT;
+    if (fitsWidth && fitsHeight) {
+      zoom = candidate;
+      break;
+    }
+  }
+
+  return { centerLat, centerLng, zoom };
+}
+
 export function buildStaticGardenMapParams(
   lat: number,
   lng: number,
   markers: StaticGardenMapMarker[],
 ): URLSearchParams {
+  const viewport = calculateStaticGardenMapViewport(lat, lng, markers);
   const params = new URLSearchParams({
-    size: "640x540",
+    size: `${STATIC_MAP_WIDTH}x${STATIC_MAP_HEIGHT}`,
     scale: "2",
     format: "png",
     maptype: "hybrid",
     language: "fr",
+    center: `${viewport.centerLat},${viewport.centerLng}`,
+    zoom: String(viewport.zoom),
   });
 
-  params.append("visible", `${lat},${lng}`);
-
   markers.forEach((marker, index) => {
-    params.append("visible", `${marker.lat},${marker.lng}`);
     const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
     params.append("markers", `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`);
   });
