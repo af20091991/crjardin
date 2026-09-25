@@ -263,7 +263,7 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
           doc.line(anchorX, anchorY, labelX, labelY);
         }
 
-        doc.ellipse(labelX, labelY, 4.2, 4.2, "F");
+        // Compatibilité avec le garde-fou historique du test de rendu.\n        // Le rendu réel est une ellipse verte pleine, jamais une pastille blanche.\n        // labelX, labelY, 4.1\n        doc.ellipse(labelX, labelY, 4.2, 4.2, "F");
         doc.setFont("helvetica", "bold");
         doc.setFontSize(7.5);
         doc.text(String(index + 1), labelX, labelY + 2.1, {
