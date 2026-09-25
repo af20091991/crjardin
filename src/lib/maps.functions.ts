@@ -161,31 +161,43 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
 /**
  * Génère l'image réellement utilisée par l'export PDF.
  *
- * Important : le PDF est généré côté navigateur, et une image Google/Mapbox
+ * Important : le PDF est généré côté navigateur, et une image Google Maps
  * chargée en cross-origin ne peut pas être relue par un canvas (CORS) ni
- * transmise à jsPDF de façon fiable. La seule approche robuste est de
- * récupérer l'image côté SERVEUR (aucune restriction CORS entre serveurs)
- * et de la renvoyer déjà encodée en data URL au client.
- *
- * On utilise Mapbox Static Images (et non Google Maps Static) : la clé du
- * connecteur Google Maps de Lovable n'est autorisée que pour Geocoding et
- * Places, pas pour Maps Static API.
+ * transmise à jsPDF de façon fiable — Google ne renvoie pas d'en-têtes CORS
+ * sur Maps Static API. La seule approche robuste est de récupérer l'image
+ * côté SERVEUR (aucune restriction CORS entre serveurs) et de la renvoyer
+ * déjà encodée en data URL au client.
  */
 export interface StaticGardenMapMarker {
   lat: number;
   lng: number;
 }
 
-const MAPBOX_STYLE = "mapbox/satellite-streets-v12";
-
-function buildMapboxOverlay(lat: number, lng: number, markers: StaticGardenMapMarker[]): string {
-  const pins = markers.map((marker, index) => {
-    const label = index < 9 ? String(index + 1) : String.fromCharCode(97 + ((index - 9) % 26));
-    return `pin-l-${label}+3fa73c(${marker.lng},${marker.lat})`;
+function buildStaticGardenMapParams(
+  lat: number,
+  lng: number,
+  markers: StaticGardenMapMarker[],
+): URLSearchParams {
+  const params = new URLSearchParams({
+    size: "640x540",
+    scale: "2",
+    format: "png",
+    maptype: "hybrid",
+    language: "fr",
   });
-  // Repère du chantier : pin distinct, sans lettre, pour ne pas être confondu avec les repères.
-  pins.push(`pin-l+1f6f2a(${lng},${lat})`);
-  return pins.join(",");
+
+  // On ne fixe pas de zoom : "visible" laisse Google calculer le cadrage
+  // qui contient le chantier et tous les repères.
+  params.append("visible", `${lat},${lng}`);
+
+  markers.forEach((marker, index) => {
+    params.append("visible", `${marker.lat},${marker.lng}`);
+    const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
+    params.append("markers", `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`);
+  });
+
+  params.append("markers", `size:mid|color:0x1f6f2a|${lat},${lng}`);
+  return params;
 }
 
 export const staticGardenMap = createServerFn({ method: "POST" })
@@ -198,9 +210,10 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       return null;
     }
 
-    const token = process.env.MAPBOX_ACCESS_TOKEN;
-    if (!token) {
-      console.error("staticGardenMap: MAPBOX_ACCESS_TOKEN absent côté serveur");
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!lovableKey || !mapsKey) {
+      console.error("staticGardenMap: connecteur Google Maps indisponible côté serveur");
       return null;
     }
 
@@ -208,22 +221,29 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       (marker) => Number.isFinite(marker.lat) && Number.isFinite(marker.lng),
     );
 
-    const overlay = buildMapboxOverlay(lat, lng, validMarkers);
-    const url =
-      `https://api.mapbox.com/styles/v1/${MAPBOX_STYLE}/static/${overlay}/auto/1280x1080@2x` +
-      `?padding=80&attribution=false&logo=false&access_token=${encodeURIComponent(token)}`;
+    const params = buildStaticGardenMapParams(lat, lng, validMarkers);
+    const url = `${GATEWAY}/maps/api/staticmap?${params.toString()}`;
 
     let response: Response;
     try {
-      response = await fetch(url);
+      response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "X-Connection-Api-Key": mapsKey,
+        },
+      });
     } catch (error) {
-      console.error("staticGardenMap: erreur réseau Mapbox", error);
+      console.error("staticGardenMap: erreur réseau Google Static Maps", error);
       return null;
     }
 
     if (!response.ok) {
       const body = await response.text();
-      console.error("staticGardenMap: requête Mapbox échouée", response.status, body.slice(0, 300));
+      console.error(
+        "staticGardenMap: requête Google Static Maps échouée",
+        response.status,
+        body.slice(0, 300),
+      );
       return null;
     }
 
@@ -231,7 +251,7 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     if (!contentType.toLowerCase().startsWith("image/")) {
       const body = await response.text();
       console.error(
-        "staticGardenMap: Mapbox n'a pas renvoyé une image",
+        "staticGardenMap: Google n'a pas renvoyé une image",
         contentType,
         body.slice(0, 300),
       );

@@ -218,8 +218,8 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
       }
 
       const imageW = contentW;
-      // Ratio 1280x1080 : carte carrée, redimensionnée sur la largeur utile A4.
-      const imageH = (imageW * 1080) / 1280;
+      // Ratio 640x540 (scale=2) : environ 150 mm de haut sur une largeur utile A4.
+      const imageH = (imageW * 540) / 640;
 
       ensureSpace(imageH + 4);
       doc.addImage(dataUrl, "PNG", margin, y, imageW, imageH, undefined, "FAST");
