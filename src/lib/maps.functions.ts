@@ -247,6 +247,11 @@ export function buildStaticGardenMapParams(
     zoom: String(viewport.zoom),
   });
 
+  params.append("visible", `${lat},${lng}`);
+  markers.forEach((marker) => {
+    params.append("visible", `${marker.lat},${marker.lng}`);
+  });
+
   markers.forEach((marker, index) => {
     const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
     params.append("markers", `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`);
