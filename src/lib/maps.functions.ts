@@ -357,9 +357,19 @@ export function buildStaticGardenMapParams(
     params.append("visible", `${marker.lat},${marker.lng}`);
   });
 
-  // Les repères de chantier sont composités dans le PDF afin de pouvoir
-  // écarter les badges lorsque plusieurs coordonnées sont très proches.
-  // Le point chantier reste natif dans Google Maps.
+  // Les repères jardin sont rendus nativement par Google en vert.
+  // Le PDF superpose ensuite ses badges numérotés pour gérer les
+  // chevauchements. Le rendu natif garantit qu'aucun repère ne peut
+  // apparaître comme une pastille blanche lorsque le badge est déplacé.
+  markers.forEach((marker, index) => {
+    const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
+    params.append(
+      "markers",
+      `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`,
+    );
+  });
+
+  // Le chantier lui-même reste distinct en vert foncé.
   params.append("markers", `size:mid|color:0x1f6f2a|${lat},${lng}`);
   return params;
 }
