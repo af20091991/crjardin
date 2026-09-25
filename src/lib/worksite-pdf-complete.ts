@@ -206,7 +206,8 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
 
     try {
       const validMarkers = sheet.garden_markers.filter(
-        (marker) => Number.isFinite(marker.lat) && Number.isFinite(marker.lng),
+        (marker) =>
+          Number.isFinite(marker.lat) && Number.isFinite(marker.lng),
       );
 
       const dataUrl = await staticGardenMap({
