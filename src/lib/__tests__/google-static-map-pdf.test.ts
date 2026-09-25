@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
   buildStaticGardenMapParams,
+  calculateStaticGardenMapMarkerLayout,
   calculateStaticGardenMapViewport,
   SST_PDF_MAP_REFERER,
 } from "@/lib/maps.functions";
@@ -27,10 +28,41 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(visible).toEqual(["43.61,3.88", "43.611,3.881", "43.612,3.882"]);
 
     const markers = params.getAll("markers");
-    expect(markers).toHaveLength(3);
-    expect(markers[0]).toContain("label:1");
-    expect(markers[1]).toContain("label:2");
-    expect(markers[2]).toContain("43.61,3.88");
+    expect(markers).toHaveLength(1);
+    expect(markers[0]).toContain("43.61,3.88");
+  });
+
+  test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
+    for (const count of [1, 2, 14, 40, 81, 120]) {
+      const markers = Array.from({ length: count }, (_, index) => ({
+        lat: 43.61 + (index % 12) * 0.00001,
+        lng: 3.88 + Math.floor(index / 12) * 0.00001,
+      }));
+      const layouts = calculateStaticGardenMapMarkerLayout(43.61, 3.88, markers);
+
+      expect(layouts).toHaveLength(count);
+
+      const uniqueLabels = new Set(
+        layouts.map((layout) => `${layout.labelX.toFixed(2)},${layout.labelY.toFixed(2)}`),
+      );
+      expect(uniqueLabels.size).toBe(count);
+
+      for (const layout of layouts) {
+        expect(layout.labelX).toBeGreaterThanOrEqual(10);
+        expect(layout.labelX).toBeLessThan(631);
+        expect(layout.labelY).toBeGreaterThanOrEqual(10);
+        expect(layout.labelY).toBeLessThan(531);
+      }
+
+      if (count > 1) {
+        expect(
+          layouts.some(
+            (layout) =>
+              Math.hypot(layout.labelX - layout.anchorX, layout.labelY - layout.anchorY) > 1,
+          ),
+        ).toBe(true);
+      }
+    }
   });
 
   test("zoome au maximum compatible avec tous les repères", () => {
