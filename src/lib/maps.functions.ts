@@ -375,6 +375,7 @@ export function buildStaticGardenMapParams(
     format: "png",
     maptype: "hybrid",
     language: "fr",
+    region: "FR",
     center: `${viewport.centerLat},${viewport.centerLng}`,
     zoom: String(viewport.zoom),
   });
