@@ -37,6 +37,16 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(markers[1]).toContain("43.612,3.882");
     expect(markers[2]).toContain("color:0x1f6f2a");
     expect(markers[2]).toContain("43.61,3.88");
+
+    const manyMarkers = buildStaticGardenMapParams(
+      43.61,
+      3.88,
+      Array.from({ length: 10 }, (_, index) => ({
+        lat: 43.61 + index * 0.00001,
+        lng: 3.88 + index * 0.00001,
+      })),
+    ).getAll("markers");
+    expect(manyMarkers[9]).toContain("label:A");
   });
 
   test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
