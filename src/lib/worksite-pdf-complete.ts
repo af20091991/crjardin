@@ -214,12 +214,12 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
       });
 
       if (!dataUrl) {
-        throw new Error("Google Static Maps n'a retourné aucune image.");
+        throw new Error("Aucune image de carte n'a pu être générée côté serveur.");
       }
 
       const imageW = contentW;
-      // Ratio 640x540 : environ 150 mm de haut sur une largeur utile A4.
-      const imageH = (imageW * 540) / 640;
+      // Ratio 1280x1080 : carte carrée, redimensionnée sur la largeur utile A4.
+      const imageH = (imageW * 1080) / 1280;
 
       ensureSpace(imageH + 4);
       doc.addImage(dataUrl, "PNG", margin, y, imageW, imageH, undefined, "FAST");
@@ -227,7 +227,7 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
     } catch (error) {
       console.error("Export PDF fiche SST : impossible d'ajouter la carte.", error);
       toast.warning(
-        "La carte Google Maps n'a pas pu être intégrée au PDF. Vérifiez la connexion Google Maps.",
+        "La carte n'a pas pu être intégrée au PDF. Le reste de la fiche est généré normalement.",
       );
     }
 
