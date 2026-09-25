@@ -236,10 +236,7 @@ export function calculateStaticGardenMapViewport(
 
   const centerLat = (minLat + maxLat) / 2;
   const centerLng = (minLng + maxLng) / 2;
-  const xSpan = Math.max(
-    (maxLng - minLng) / 360,
-    Number.EPSILON,
-  );
+  const xSpan = Math.max((maxLng - minLng) / 360, Number.EPSILON);
   const ySpan = Math.max(
     webMercatorY(minLat) - webMercatorY(maxLat),
     Number.EPSILON,
