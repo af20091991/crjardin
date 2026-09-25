@@ -27,29 +27,9 @@ describe("Google Static Maps — export PDF SST", () => {
     const visible = params.getAll("visible");
     expect(visible).toEqual(["43.61,3.88", "43.611,3.881", "43.612,3.882"]);
 
-    const markers = params.getAll("markers");
-    expect(markers).toHaveLength(3);
-    expect(markers[0]).toContain("color:0x3fa73c");
-    expect(markers[0]).toContain("label:1");
-    expect(markers[0]).toContain("43.611,3.881");
-    expect(markers[1]).toContain("color:0x3fa73c");
-    expect(markers[1]).toContain("label:2");
-    expect(markers[1]).toContain("43.612,3.882");
-    expect(markers.slice(0, 2).every((marker) => marker.includes("color:0x3fa73c"))).toBe(true);
-    expect(markers[2]).toContain("color:0x1f6f2a");
-    expect(markers[2]).toContain("43.61,3.88");
-    expect(markers.filter((marker) => marker.includes("color:0x3fa73c"))).toHaveLength(2);
-
-    const manyMarkers = buildStaticGardenMapParams(
-      43.61,
-      3.88,
-      Array.from({ length: 10 }, (_, index) => ({
-        lat: 43.61 + index * 0.00001,
-        lng: 3.88 + index * 0.00001,
-      })),
-    ).getAll("markers");
-    expect(manyMarkers[9]).toContain("label:A");
-    expect(manyMarkers[0]).toContain("size:mid|color:0x3fa73c|label:1");
+    // Les repères sont volontairement absents des paramètres Google :
+    // ils sont rendus une seule fois, numérotés, par le calque PDF.
+    expect(params.getAll("markers")).toEqual([]);
   });
 
   test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
