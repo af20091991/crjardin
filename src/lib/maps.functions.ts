@@ -161,12 +161,15 @@ export const nearestRecyclingCenter = createServerFn({ method: "POST" })
 /**
  * Génère l'image réellement utilisée par l'export PDF.
  *
- * Important : le PDF est généré côté navigateur, et une image Google Maps
- * chargée en cross-origin ne peut pas être relue par un canvas (CORS) ni
- * transmise à jsPDF de façon fiable — Google ne renvoie pas d'en-têtes CORS
- * sur Maps Static API. La seule approche robuste est de récupérer l'image
- * côté SERVEUR (aucune restriction CORS entre serveurs) et de la renvoyer
- * déjà encodée en data URL au client.
+ * Le connecteur Lovable Google Maps ne fournit pas une clé Google Static Maps
+ * serveur utilisable : sa clé serveur est une clé de connexion au gateway et
+ * renvoie 403 pour Maps Static. Pour le PDF, on utilise donc la clé navigateur
+ * Google Static Maps déjà fournie par le connecteur, mais l'appel est effectué
+ * depuis le runtime de l'application avec le Referer de production autorisé.
+ *
+ * Google Static Maps renvoie directement une image PNG/JPEG ; nous la
+ * convertissons ici en data URL afin que jsPDF puisse l'intégrer sans
+ * dépendre du chargement d'une image cross-origin dans un canvas navigateur.
  */
 export interface StaticGardenMapMarker {
   lat: number;
@@ -186,14 +189,16 @@ function buildStaticGardenMapParams(
     language: "fr",
   });
 
-  // On ne fixe pas de zoom : "visible" laisse Google calculer le cadrage
-  // qui contient le chantier et tous les repères.
   params.append("visible", `${lat},${lng}`);
 
   markers.forEach((marker, index) => {
     params.append("visible", `${marker.lat},${marker.lng}`);
-    const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
-    params.append("markers", `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`);
+    const label =
+      index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
+    params.append(
+      "markers",
+      `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`,
+    );
   });
 
   params.append("markers", `size:mid|color:0x1f6f2a|${lat},${lng}`);
@@ -210,10 +215,12 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       return null;
     }
 
-    const lovableKey = process.env.LOVABLE_API_KEY;
-    const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (!lovableKey || !mapsKey) {
-      console.error("staticGardenMap: connecteur Google Maps indisponible côté serveur");
+    const mapsBrowserKey = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as
+      | string
+      | undefined;
+
+    if (!mapsBrowserKey) {
+      console.error("staticGardenMap: clé Google Maps navigateur indisponible");
       return null;
     }
 
@@ -222,14 +229,17 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     );
 
     const params = buildStaticGardenMapParams(lat, lng, validMarkers);
-    const url = `${GATEWAY}/maps/api/staticmap?${params.toString()}`;
+    params.set("key", mapsBrowserKey);
+
+    const url = `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
 
     let response: Response;
     try {
       response = await fetch(url, {
         headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": mapsKey,
+          // La clé du connecteur est une clé Web/HTTP-referrer. Le PDF est
+          // produit pour l'application publiée sur ce domaine.
+          Referer: "https://crjardin.lovable.app/",
         },
       });
     } catch (error) {
@@ -242,7 +252,7 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       console.error(
         "staticGardenMap: requête Google Static Maps échouée",
         response.status,
-        body.slice(0, 300),
+        body.slice(0, 500),
       );
       return null;
     }
@@ -253,7 +263,7 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       console.error(
         "staticGardenMap: Google n'a pas renvoyé une image",
         contentType,
-        body.slice(0, 300),
+        body.slice(0, 500),
       );
       return null;
     }
@@ -272,5 +282,5 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     const base64 =
       typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
 
-    return `data:image/png;base64,${base64}`;
+    return `data:${contentType.split(";")[0]};base64,${base64}`;
   });
