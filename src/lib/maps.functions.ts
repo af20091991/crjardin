@@ -375,13 +375,10 @@ export function buildStaticGardenMapParams(
     format: "png",
     maptype: "hybrid",
     language: "fr",
+    region: "FR",
     center: `${viewport.centerLat},${viewport.centerLng}`,
     zoom: String(viewport.zoom),
   });
-
-  // Supprime les icônes de POI Google susceptibles d'être confondues
-  // avec les repères SST. Les repères SST restent dessinés par le PDF.
-  params.append("style", "feature:poi|element:labels.icon|visibility:off");
 
   params.append("visible", `${lat},${lng}`);
   markers.forEach((marker) => {
