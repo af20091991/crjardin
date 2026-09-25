@@ -258,7 +258,6 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
           // Le point géographique réel reste matérialisé en vert : aucune
           // pastille blanche ne doit pouvoir être confondue avec un repère.
           doc.line(anchorX, anchorY, labelX, labelY);
-          doc.circle(anchorX, anchorY, 0.8, "F");
         }
 
         doc.circle(labelX, labelY, 4.1, "F");
