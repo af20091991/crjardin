@@ -47,6 +47,7 @@ describe("Google Static Maps — export PDF SST", () => {
       })),
     ).getAll("markers");
     expect(manyMarkers[9]).toContain("label:A");
+    expect(manyMarkers[0]).toContain("size:mid|color:0x3fa73c|label:1");
   });
 
   test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
