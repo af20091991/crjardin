@@ -384,23 +384,9 @@ export function buildStaticGardenMapParams(
     params.append("visible", `${marker.lat},${marker.lng}`);
   });
 
-  // Les repères jardin sont rendus nativement par Google en vert.
-  // Le PDF superpose ensuite ses badges numérotés pour gérer les
-  // chevauchements. Le rendu natif garantit qu'aucun repère ne peut
-  // apparaître comme une pastille blanche lorsque le badge est déplacé.
-  markers.forEach((marker, index) => {
-    const label =
-      index < 9
-        ? String(index + 1)
-        : String.fromCharCode(65 + ((index - 9) % 26));
-    params.append(
-      "markers",
-      `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`,
-    );
-  });
-
-  // Le chantier lui-même reste distinct en vert foncé.
-  params.append("markers", `size:mid|color:0x1f6f2a|${lat},${lng}`);
+  // Aucun marqueur natif Google : les repères SST sont dessinés
+  // exclusivement par le PDF, ce qui garantit un badge vert numéroté
+  // pour chaque repère et supprime les doublons/pastilles blanches.
   return params;
 }
 
