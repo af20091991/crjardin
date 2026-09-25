@@ -30,7 +30,7 @@ describe("Google Static Maps — export PDF SST", () => {
     // Les repères sont volontairement absents des paramètres Google :
     // ils sont rendus une seule fois, numérotés, par le calque PDF.
     expect(params.getAll("markers")).toEqual([]);
-
+  });
 
   test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
     for (const count of [1, 2, 14, 40, 81, 120]) {
