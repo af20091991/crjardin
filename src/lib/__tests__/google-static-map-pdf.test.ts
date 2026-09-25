@@ -85,6 +85,18 @@ describe("Google Static Maps — export PDF SST", () => {
   test("conserve les garde-fous indispensables au PDF", () => {
     const source = readFileSync(new URL("../maps.functions.ts", import.meta.url), "utf8");
 
+    expect(source).toContain("https://maps.googleapis.com/maps/api/staticmap?");
+    expect(source).toContain("VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY");
+    expect(source).toContain("Referer: SST_PDF_MAP_REFERER");
+    expect(source).toContain("response.arrayBuffer()");
+    expect(source).toContain('data:${contentType.split(";")[0]};base64,${base64}');
+    expect(SST_PDF_MAP_REFERER).toBe("https://crjardin.lovable.app/");
+  });
+
+  test("ne dessine jamais une pastille blanche pour les repères déplacés", () => {
+    const source = readFileSync(new URL("../worksite-pdf-complete.ts", import.meta.url), "utf8");
+
+    expect(source).not.toContain("doc.setFillColor(255, 255, 255)");
     expect(source).toContain("doc.roundedRect");
   });
 });
