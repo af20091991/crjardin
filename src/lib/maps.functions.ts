@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
+// Google Static Maps: serveur + fallback navigateur pour l'export PDF SST.
+
 const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
 
 function headers(extra?: Record<string, string>) {
