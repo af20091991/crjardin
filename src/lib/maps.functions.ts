@@ -168,6 +168,62 @@ export interface StaticGardenMapMarker {
   lng: number;
 }
 
+function buildStaticGardenMapParams(
+  lat: number,
+  lng: number,
+  markers: StaticGardenMapMarker[],
+): URLSearchParams {
+  const params = new URLSearchParams({
+    size: "640x540",
+    scale: "2",
+    format: "png",
+    maptype: "hybrid",
+    language: "fr",
+  });
+
+  params.append("visible", `${lat},${lng}`);
+
+  markers.forEach((marker, index) => {
+    params.append("visible", `${marker.lat},${marker.lng}`);
+    const label =
+      index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
+    params.append(
+      "markers",
+      `size:mid|color:0x49ad31|label:${label}|${marker.lat},${marker.lng}`,
+    );
+  });
+
+  params.append("markers", `size:mid|color:0x1f6f2a|label:C|${lat},${lng}`);
+  return params;
+}
+
+/**
+ * URL Google Static Maps utilisable côté navigateur avec la clé publique
+ * du connecteur Lovable. La clé est volontairement restreinte au domaine
+ * de l'application par le connecteur.
+ */
+export function staticGardenMapBrowserUrl(
+  lat: number,
+  lng: number,
+  markers: StaticGardenMapMarker[] = [],
+): string | null {
+  if (typeof window === "undefined") return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+  const key = import.meta.env
+    .VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
+  const channel = import.meta.env
+    .VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID as string | undefined;
+
+  if (!key) return null;
+
+  const params = buildStaticGardenMapParams(lat, lng, markers);
+  params.set("key", key);
+  if (channel) params.set("channel", channel);
+
+  return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
+}
+
 export const staticGardenMap = createServerFn({ method: "POST" })
   .inputValidator((d: { lat: number; lng: number; markers?: StaticGardenMapMarker[] }) => d)
   .handler(async ({ data }): Promise<string | null> => {
@@ -192,28 +248,7 @@ export const staticGardenMap = createServerFn({ method: "POST" })
      * et de tous les repères sont passées à "visible" afin que Google calcule
      * automatiquement un cadrage contenant tous les repères.
      */
-    const params = new URLSearchParams({
-      size: "640x540",
-      scale: "2",
-      format: "png",
-      maptype: "hybrid",
-      language: "fr",
-    });
-
-    params.append("visible", `${lat},${lng}`);
-
-    validMarkers.forEach((marker, index) => {
-      params.append("visible", `${marker.lat},${marker.lng}`);
-      // Google Static Maps accepte un seul caractère comme libellé de repère.
-      const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
-      params.append(
-        "markers",
-        `size:mid|color:0x49ad31|label:${label}|${marker.lat},${marker.lng}`,
-      );
-    });
-
-    // Repère principal du chantier : "C".
-    params.append("markers", `size:mid|color:0x1f6f2a|label:C|${lat},${lng}`);
+    const params = buildStaticGardenMapParams(lat, lng, validMarkers);
 
     const fetchImage = async (
       url: string,
@@ -261,16 +296,6 @@ export const staticGardenMap = createServerFn({ method: "POST" })
         Authorization: `Bearer ${lovableKey}`,
         "X-Connection-Api-Key": mapsKey,
       });
-    }
-
-    // Tentative 2 : Google Static Maps directement depuis le serveur.
-    // La clé reste strictement côté serveur.
-    if (!buffer && mapsKey) {
-      const directParams = new URLSearchParams(params);
-      directParams.set("key", mapsKey);
-      buffer = await fetchImage(
-        `https://maps.googleapis.com/maps/api/staticmap?${directParams.toString()}`,
-      );
     }
 
     if (!buffer) {
