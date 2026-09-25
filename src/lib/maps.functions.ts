@@ -214,8 +214,7 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       return null;
     }
 
-    const mapsBrowserKey =
-      import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
+    const mapsBrowserKey = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
 
     if (!mapsBrowserKey) {
       console.error("staticGardenMap: clé Google Maps navigateur indisponible");
