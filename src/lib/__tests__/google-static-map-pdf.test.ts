@@ -7,6 +7,8 @@ import {
   SST_PDF_MAP_REFERER,
 } from "@/lib/maps.functions";
 
+const GREEN_MARKER_ICON = "icon:https://maps.google.com/mapfiles/ms/icons/green-dot.png";
+
 describe("Google Static Maps — export PDF SST", () => {
   test("conserve le contrat de rendu de la carte PDF", () => {
     const params = buildStaticGardenMapParams(43.61, 3.88, [
@@ -29,20 +31,14 @@ describe("Google Static Maps — export PDF SST", () => {
 
     const markers = params.getAll("markers");
     expect(markers).toHaveLength(3);
-    expect(markers[0]).toContain(
-      "icon:https://maps.google.com/mapfiles/ms/icons/green-dot.png",
-    );
+    expect(markers[0]).toContain(GREEN_MARKER_ICON);
     expect(markers[0]).toContain("43.611,3.881");
-    expect(markers[1]).toContain(
-      "icon:https://maps.google.com/mapfiles/ms/icons/green-dot.png",
-    );
+    expect(markers[1]).toContain(GREEN_MARKER_ICON);
     expect(markers[1]).toContain("43.612,3.882");
     expect(
       markers.slice(0, 2).every((marker) => marker.includes("green-dot.png")),
     ).toBe(true);
-    expect(markers[2]).toContain(
-      "icon:https://maps.google.com/mapfiles/ms/icons/green-dot.png",
-    );
+    expect(markers[2]).toContain(GREEN_MARKER_ICON);
     expect(markers[2]).toContain("43.61,3.88");
 
     const manyMarkers = buildStaticGardenMapParams(
@@ -54,9 +50,7 @@ describe("Google Static Maps — export PDF SST", () => {
       })),
     ).getAll("markers");
     expect(manyMarkers[9]).toContain("green-dot.png");
-    expect(manyMarkers[0]).toContain(
-      "icon:https://maps.google.com/mapfiles/ms/icons/green-dot.png",
-    );
+    expect(manyMarkers[0]).toContain(GREEN_MARKER_ICON);
   });
 
   test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
