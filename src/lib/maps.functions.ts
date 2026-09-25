@@ -178,27 +178,188 @@ export interface StaticGardenMapMarker {
 
 export const SST_PDF_MAP_REFERER = "https://crjardin.lovable.app/";
 
+const STATIC_MAP_WIDTH = 640;
+const STATIC_MAP_HEIGHT = 540;
+const STATIC_MAP_MAX_ZOOM = 21;
+const STATIC_MAP_PADDING = 1.16;
+const WEB_MERCATOR_LAT_LIMIT = 85.05112878;
+
+export interface StaticGardenMapViewport {
+  centerLat: number;
+  centerLng: number;
+  zoom: number;
+}
+
+export interface StaticGardenMapMarkerLayout {
+  index: number;
+  anchorX: number;
+  anchorY: number;
+  labelX: number;
+  labelY: number;
+}
+
+function webMercatorY(lat: number): number {
+  const clampedLat = Math.max(-WEB_MERCATOR_LAT_LIMIT, Math.min(WEB_MERCATOR_LAT_LIMIT, lat));
+  const radians = (clampedLat * Math.PI) / 180;
+  return (1 - Math.asinh(Math.tan(radians)) / Math.PI) / 2;
+}
+
+/**
+ * Calcule le niveau de zoom maximal permettant de contenir tous les repères
+ * dans l'image, avec une petite marge. Le positionnement implicite de Google
+ * utilise des marges généreuses qui peuvent trop dézoomer les chantiers denses.
+ */
+export function calculateStaticGardenMapViewport(
+  lat: number,
+  lng: number,
+  markers: StaticGardenMapMarker[],
+): StaticGardenMapViewport {
+  const points = [{ lat, lng }, ...markers];
+  const minLat = Math.min(...points.map((point) => point.lat));
+  const maxLat = Math.max(...points.map((point) => point.lat));
+  const minLng = Math.min(...points.map((point) => point.lng));
+  const maxLng = Math.max(...points.map((point) => point.lng));
+
+  const centerLat = (minLat + maxLat) / 2;
+  const centerLng = (minLng + maxLng) / 2;
+  const xSpan = Math.max((maxLng - minLng) / 360, Number.EPSILON);
+  const ySpan = Math.max(webMercatorY(minLat) - webMercatorY(maxLat), Number.EPSILON);
+
+  let zoom = 0;
+  for (let candidate = STATIC_MAP_MAX_ZOOM; candidate >= 0; candidate -= 1) {
+    const worldPixels = 256 * 2 ** candidate;
+    const fitsWidth = xSpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_WIDTH;
+    const fitsHeight = ySpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_HEIGHT;
+    if (fitsWidth && fitsHeight) {
+      zoom = candidate;
+      break;
+    }
+  }
+
+  return { centerLat, centerLng, zoom };
+}
+
+/**
+ * Projette les repères dans le même espace pixel logique que l'API Static Maps
+ * et écarte automatiquement les repères qui se chevaucheraient.
+ *
+ * Les points géographiques restent inchangés : seuls les badges numérotés sont
+ * déplacés dans un petit anneau autour d'un groupe dense, avec un trait de
+ * rappel dessiné ensuite dans le PDF.
+ */
+export function calculateStaticGardenMapMarkerLayout(
+  lat: number,
+  lng: number,
+  markers: StaticGardenMapMarker[],
+): StaticGardenMapMarkerLayout[] {
+  const viewport = calculateStaticGardenMapViewport(lat, lng, markers);
+  const worldPixels = 256 * 2 ** viewport.zoom;
+  const width = STATIC_MAP_WIDTH;
+  const height = STATIC_MAP_HEIGHT;
+  const centerX = ((viewport.centerLng + 180) / 360) * worldPixels;
+  const centerY = webMercatorY(viewport.centerLat) * worldPixels;
+
+  const project = (marker: StaticGardenMapMarker) => ({
+    x: width / 2 + (((marker.lng + 180) / 360) * worldPixels - centerX),
+    y: height / 2 + (webMercatorY(marker.lat) * worldPixels - centerY),
+  });
+
+  const anchors = markers.map(project);
+  if (!anchors.length) return [];
+
+  // The density is arbitrary: there may be 2, 14, 40 or many more markers.
+  // Adapt the minimum separation to the number of badges rather than tuning
+  // the layout for one particular worksite.
+  const minDistance =
+    anchors.length <= 20 ? 28 : anchors.length <= 40 ? 24 : anchors.length <= 80 ? 20 : 18;
+  const edgePadding = Math.max(10, minDistance / 2);
+  const positions = anchors.map((point) => ({ x: point.x, y: point.y }));
+
+  // Deterministic force layout:
+  // - anchors remain fixed at their real geographic positions;
+  // - badges repel each other;
+  // - each badge is attracted back toward its own anchor;
+  // - all badges remain inside the map image.
+  // This works for any marker count without relying on a special cluster size.
+  for (let iteration = 0; iteration < 160; iteration += 1) {
+    let moved = false;
+    const strength = 1 - iteration / 190;
+
+    for (let i = 0; i < positions.length; i += 1) {
+      let dx = (anchors[i].x - positions[i].x) * 0.035;
+      let dy = (anchors[i].y - positions[i].y) * 0.035;
+
+      for (let j = 0; j < positions.length; j += 1) {
+        if (i === j) continue;
+        const deltaX = positions[i].x - positions[j].x;
+        const deltaY = positions[i].y - positions[j].y;
+        const distance = Math.hypot(deltaX, deltaY);
+
+        if (distance < minDistance) {
+          if (distance < 0.001) {
+            const angle = ((i * 37 + j * 17) % 360) * (Math.PI / 180);
+            dx += Math.cos(angle) * (minDistance * 0.18);
+            dy += Math.sin(angle) * (minDistance * 0.18);
+          } else {
+            const push = ((minDistance - distance) / distance) * 0.55;
+            dx += deltaX * push;
+            dy += deltaY * push;
+          }
+        }
+      }
+
+      const nextX = Math.max(
+        edgePadding,
+        Math.min(width - edgePadding, positions[i].x + dx * strength),
+      );
+      const nextY = Math.max(
+        edgePadding,
+        Math.min(height - edgePadding, positions[i].y + dy * strength),
+      );
+
+      if (Math.abs(nextX - positions[i].x) > 0.01 || Math.abs(nextY - positions[i].y) > 0.01) {
+        moved = true;
+      }
+      positions[i] = { x: nextX, y: nextY };
+    }
+
+    if (!moved) break;
+  }
+
+  return positions.map((point, index) => ({
+    index,
+    anchorX: anchors[index].x,
+    anchorY: anchors[index].y,
+    labelX: point.x,
+    labelY: point.y,
+  }));
+}
+
+
 export function buildStaticGardenMapParams(
   lat: number,
   lng: number,
   markers: StaticGardenMapMarker[],
 ): URLSearchParams {
+  const viewport = calculateStaticGardenMapViewport(lat, lng, markers);
   const params = new URLSearchParams({
-    size: "640x540",
+    size: `${STATIC_MAP_WIDTH}x${STATIC_MAP_HEIGHT}`,
     scale: "2",
     format: "png",
     maptype: "hybrid",
     language: "fr",
+    center: `${viewport.centerLat},${viewport.centerLng}`,
+    zoom: String(viewport.zoom),
   });
 
   params.append("visible", `${lat},${lng}`);
-
-  markers.forEach((marker, index) => {
+  markers.forEach((marker) => {
     params.append("visible", `${marker.lat},${marker.lng}`);
-    const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
-    params.append("markers", `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`);
   });
 
+  // Les repères de chantier sont composités dans le PDF afin de pouvoir
+  // écarter les badges lorsque plusieurs coordonnées sont très proches.
+  // Le point chantier reste natif dans Google Maps.
   params.append("markers", `size:mid|color:0x1f6f2a|${lat},${lng}`);
   return params;
 }
