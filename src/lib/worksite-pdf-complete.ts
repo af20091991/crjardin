@@ -227,13 +227,16 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
       ensureSpace(imageH + 4);
       doc.addImage(dataUrl, "PNG", margin, y, imageW, imageH, undefined, "FAST");
 
-      // Les coordonnées restent exactes, mais les badges sont décalés autour
-      // des groupes denses afin que chaque repère soit lisible. Un trait fin
-      // relie chaque badge à son emplacement géographique réel.
+      // Les repères SST sont dessinés comme des formes PDF élémentaires,
+      // indépendamment des marqueurs Google. Cela évite toute dépendance au
+      // rendu des cercles et garantit un badge visible pour chaque repère.
+      const validMarkers = sheet.garden_markers.filter(
+        (marker) => Number.isFinite(marker.lat) && Number.isFinite(marker.lng),
+      );
       const markerLayouts = calculateStaticGardenMapMarkerLayout(
         sheet.latitude,
         sheet.longitude,
-        sheet.garden_markers.map((marker) => ({
+        validMarkers.map((marker) => ({
           lat: marker.lat,
           lng: marker.lng,
         })),
@@ -241,28 +244,30 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
       const pxToMmX = imageW / 640;
       const pxToMmY = imageH / 540;
 
-      doc.setLineWidth(0.35);
-      doc.setDrawColor(76, 138, 47);
-      doc.setFillColor(76, 138, 47);
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.5);
-
       markerLayouts.forEach((layout, index) => {
         const anchorX = margin + layout.anchorX * pxToMmX;
         const anchorY = y + layout.anchorY * pxToMmY;
         const labelX = margin + layout.labelX * pxToMmX;
         const labelY = y + layout.labelY * pxToMmY;
+        const label = String(index + 1);
+        const badgeW = Math.max(8, 4.8 + label.length * 2.7);
+        const badgeH = 8;
+        const badgeX = labelX - badgeW / 2;
+        const badgeY = labelY - badgeH / 2;
 
-        if (Math.hypot(layout.labelX - layout.anchorX, layout.labelY - layout.anchorY) > 1) {
-          // Le point géographique réel reste matérialisé en vert : aucune
-          // pastille blanche ne doit pouvoir être confondue avec un repère.
+        doc.setLineWidth(0.45);
+        doc.setDrawColor(255, 255, 255);
+        doc.setFillColor(32, 112, 68);
+
+        if (Math.hypot(labelX - anchorX, labelY - anchorY) > 1) {
           doc.line(anchorX, anchorY, labelX, labelY);
         }
 
-        doc.circle(labelX, labelY, 4.1, "F");
+        doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 1.8, 1.8, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7.5);
         doc.setTextColor(255, 255, 255);
-        doc.text(String(index + 1), labelX, labelY + 2.1, { align: "center" });
+        doc.text(label, labelX, labelY + 2.5, { align: "center" });
       });
 
       y += imageH + 6;
