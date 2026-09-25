@@ -1254,6 +1254,54 @@ export type Database = {
           },
         ];
       };
+      brevo_email_log: {
+        Row: {
+          click_count: number;
+          created_at: string;
+          delivered_at: string | null;
+          error_message: string | null;
+          first_clicked_at: string | null;
+          first_opened_at: string | null;
+          last_event_at: string;
+          message_id: string;
+          open_count: number;
+          recipient_email: string;
+          sent_at: string | null;
+          status: string;
+          subject: string | null;
+        };
+        Insert: {
+          click_count?: number;
+          created_at?: string;
+          delivered_at?: string | null;
+          error_message?: string | null;
+          first_clicked_at?: string | null;
+          first_opened_at?: string | null;
+          last_event_at?: string;
+          message_id: string;
+          open_count?: number;
+          recipient_email: string;
+          sent_at?: string | null;
+          status?: string;
+          subject?: string | null;
+        };
+        Update: {
+          click_count?: number;
+          created_at?: string;
+          delivered_at?: string | null;
+          error_message?: string | null;
+          first_clicked_at?: string | null;
+          first_opened_at?: string | null;
+          last_event_at?: string;
+          message_id?: string;
+          open_count?: number;
+          recipient_email?: string;
+          sent_at?: string | null;
+          status?: string;
+          subject?: string | null;
+        };
+        Relationships: [];
+      };
       email_opens: {
         Row: {
           created_at: string;

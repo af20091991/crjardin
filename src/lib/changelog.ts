@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-25",
+    version: "2.3.10",
+    theme: "Général",
+    title: "Suivi des emails Brevo (contact@delagraineaujardin.com)",
+    details: [
+      "Un nouvel onglet « contact@delagraineaujardin.com » sur la page Gestion et suivi des emails clients affiche l'historique des emails envoyés via Brevo depuis cette adresse : statut, ouverture, clics et erreurs.",
+      "Un webhook reçoit les événements Brevo (envoi, livraison, ouverture, clic, rejet) en temps réel.",
+    ],
+  },
+  {
     date: "2026-09-24",
     version: "2.3.9",
     theme: "PDF & Partage",
