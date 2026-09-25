@@ -74,6 +74,35 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(viewport.centerLng).toBeCloseTo(3.88035, 5);
   });
 
+  test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
+    for (const count of [1, 2, 14, 40, 81, 120]) {
+      const markers = Array.from({ length: count }, (_, index) => ({
+        lat: 43.61 + (index % 12) * 0.00001,
+        lng: 3.88 + Math.floor(index / 12) * 0.00001,
+      }));
+      const layouts = calculateStaticGardenMapMarkerLayout(43.61, 3.88, markers);
+
+      expect(layouts).toHaveLength(count);
+      for (const layout of layouts) {
+        expect(layout.labelX).toBeGreaterThanOrEqual(10);
+        expect(layout.labelX).toBeLessThanOrEqual(630);
+        expect(layout.labelY).toBeGreaterThanOrEqual(10);
+        expect(layout.labelY).toBeLessThanOrEqual(530);
+      }
+
+      const minDistance = count <= 20 ? 28 : count <= 40 ? 24 : count <= 80 ? 20 : 18;
+      for (let i = 0; i < layouts.length; i += 1) {
+        for (let j = i + 1; j < layouts.length; j += 1) {
+          const distance = Math.hypot(
+            layouts[i].labelX - layouts[j].labelX,
+            layouts[i].labelY - layouts[j].labelY,
+          );
+          expect(distance).toBeGreaterThanOrEqual(minDistance - 0.25);
+        }
+      }
+    }
+  });
+
   test("conserve les garde-fous indispensables au PDF", () => {
     const source = readFileSync(new URL("../maps.functions.ts", import.meta.url), "utf8");
 
