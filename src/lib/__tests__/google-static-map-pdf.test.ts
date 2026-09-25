@@ -28,8 +28,12 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(visible).toEqual(["43.61,3.88", "43.611,3.881", "43.612,3.882"]);
 
     const markers = params.getAll("markers");
-    expect(markers).toHaveLength(1);
-    expect(markers[0]).toContain("43.61,3.88");
+    expect(markers).toHaveLength(3);
+    expect(markers[0]).toContain("43.611,3.881");
+    expect(markers[1]).toContain("43.612,3.882");
+    expect(markers[2]).toContain("43.61,3.88");
+    expect(markers[0]).toContain("color:0x3fa73c");
+    expect(markers[1]).toContain("color:0x3fa73c");
   });
 
   test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
