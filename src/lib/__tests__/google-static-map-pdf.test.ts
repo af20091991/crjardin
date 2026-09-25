@@ -47,7 +47,9 @@ describe("Google Static Maps — export PDF SST", () => {
     );
     expect(source).toContain("Referer: SST_PDF_MAP_REFERER");
     expect(source).toContain("response.arrayBuffer()");
-    expect(source).toContain('data:${contentType.split(";")[0]};base64,${base64}');
+    expect(source).toContain(
+      'data:${contentType.split(";")[0]};base64,${base64}',
+    );
     expect(SST_PDF_MAP_REFERER).toBe("https://crjardin.lovable.app/");
   });
 });
