@@ -7,8 +7,6 @@ import {
   SST_PDF_MAP_REFERER,
 } from "@/lib/maps.functions";
 
-const GREEN_MARKER_ICON = "icon:https://maps.google.com/mapfiles/ms/icons/green-dot.png";
-
 describe("Google Static Maps — export PDF SST", () => {
   test("conserve le contrat de rendu de la carte PDF", () => {
     const params = buildStaticGardenMapParams(43.61, 3.88, [
@@ -29,26 +27,9 @@ describe("Google Static Maps — export PDF SST", () => {
     const visible = params.getAll("visible");
     expect(visible).toEqual(["43.61,3.88", "43.611,3.881", "43.612,3.882"]);
 
-    const markers = params.getAll("markers");
-    expect(markers).toHaveLength(3);
-    expect(markers[0]).toContain(GREEN_MARKER_ICON);
-    expect(markers[0]).toContain("43.611,3.881");
-    expect(markers[1]).toContain(GREEN_MARKER_ICON);
-    expect(markers[1]).toContain("43.612,3.882");
-    expect(markers.slice(0, 2).every((marker) => marker.includes("green-dot.png"))).toBe(true);
-    expect(markers[2]).toContain(GREEN_MARKER_ICON);
-    expect(markers[2]).toContain("43.61,3.88");
-
-    const manyMarkers = buildStaticGardenMapParams(
-      43.61,
-      3.88,
-      Array.from({ length: 10 }, (_, index) => ({
-        lat: 43.61 + index * 0.00001,
-        lng: 3.88 + index * 0.00001,
-      })),
-    ).getAll("markers");
-    expect(manyMarkers[9]).toContain("green-dot.png");
-    expect(manyMarkers[0]).toContain(GREEN_MARKER_ICON);
+    // Aucun marqueur Google natif : le PDF dessine une seule série de badges
+    // verts numérotés correspondant exactement aux tâches de la fiche SST.
+    expect(params.getAll("markers")).toEqual([]);
   });
 
   test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
@@ -116,8 +97,7 @@ describe("Google Static Maps — export PDF SST", () => {
     const source = readFileSync(new URL("../worksite-pdf-complete.ts", import.meta.url), "utf8");
 
     expect(source).not.toContain("doc.setFillColor(255, 255, 255)");
-    expect(source).not.toContain("anchorX, anchorY, 1.1");
-    expect(source).toContain("anchorX, anchorY, 0.8");
+    expect(source).not.toContain("anchorX, anchorY, 0.8");
     expect(source).toContain("labelX, labelY, 4.1");
   });
 });

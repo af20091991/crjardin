@@ -374,22 +374,10 @@ export function buildStaticGardenMapParams(
     params.append("visible", `${marker.lat},${marker.lng}`);
   });
 
-  // Utilise les icônes vertes officielles de Google plutôt que le paramètre
-  // color: celui-ci peut être rendu différemment selon le type de clé Static
-  // Maps utilisé par le connecteur. L'icône green-dot est un asset Google
-  // stable et garantit un vrai repère vert dans l'image rasterisée.
-  // La numérotation lisible est ajoutée ensuite par le PDF.
-  const gardenMarkerIcon = "https://maps.google.com/mapfiles/ms/icons/green-dot.png";
-  markers.forEach((marker) => {
-    params.append(
-      "markers",
-      `icon:${gardenMarkerIcon}|${marker.lat},${marker.lng}`,
-    );
-  });
-
-  // Le chantier utilise lui aussi un repère vert afin que toute la carte
-  // conserve la même convention visuelle.
-  params.append("markers", `icon:${gardenMarkerIcon}|${lat},${lng}`);
+  // Aucun marqueur Google natif n'est demandé ici. Les variantes d'icônes
+  // Static Maps peuvent produire des doublons ou des couleurs non maîtrisées.
+  // Les seuls repères SST visibles dans le PDF sont donc les badges verts
+  // numérotés dessinés après l'insertion de l'image de fond.
   return params;
 }
 
