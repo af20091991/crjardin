@@ -97,6 +97,8 @@ describe("Google Static Maps — export PDF SST", () => {
     const source = readFileSync(new URL("../worksite-pdf-complete.ts", import.meta.url), "utf8");
 
     expect(source).not.toContain("doc.setFillColor(255, 255, 255)");
-    expect(source).toContain("doc.ellipse(labelX, labelY, 4.2, 4.2, \"F\")");
+    expect(source).toContain(
+      'doc.ellipse(labelX, labelY, 4.2, 4.2, "F")',
+    );
   });
 });
