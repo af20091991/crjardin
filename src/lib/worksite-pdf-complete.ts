@@ -245,31 +245,28 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
       const pxToMmX = imageW / 640;
       const pxToMmY = imageH / 540;
 
-      // Un seul calque de repères : chaque entrée valide de garden_markers
-      // produit exactement un badge vert numéroté. Aucun marqueur Google
-      // n'est utilisé et aucune couleur blanche n'est utilisée pour le fond.
+      doc.setLineWidth(0.35);
+      doc.setDrawColor(76, 138, 47);
+      doc.setFillColor(76, 138, 47);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+
       markerLayouts.forEach((layout, index) => {
         const anchorX = margin + layout.anchorX * pxToMmX;
         const anchorY = y + layout.anchorY * pxToMmY;
         const labelX = margin + layout.labelX * pxToMmX;
         const labelY = y + layout.labelY * pxToMmY;
 
-        doc.setLineWidth(0.35);
-        doc.setDrawColor(...GREEN);
-        doc.setFillColor(...GREEN);
-        doc.setTextColor(255, 255, 255);
-
         if (Math.hypot(layout.labelX - layout.anchorX, layout.labelY - layout.anchorY) > 1) {
+          // Le point géographique réel reste matérialisé en vert : aucune
+          // pastille blanche ne doit pouvoir être confondue avec un repère.
           doc.line(anchorX, anchorY, labelX, labelY);
         }
 
         doc.ellipse(labelX, labelY, 4.1, 4.1, "F");
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(7.5);
-        doc.text(String(index + 1), labelX, labelY + 2.1, {
-          align: "center",
-          baseline: "alphabetic",
-        });
+        doc.setTextColor(255, 255, 255);
+        doc.text(String(index + 1), labelX, labelY + 2.1, { align: "center" });
       });
 
       y += imageH + 6;
