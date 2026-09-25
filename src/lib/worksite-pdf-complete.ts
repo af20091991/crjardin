@@ -205,16 +205,11 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
     section("Plan jardin (vue aérienne)");
 
     try {
-      const validMarkers = sheet.garden_markers.filter(
-        (marker) =>
-          Number.isFinite(marker.lat) && Number.isFinite(marker.lng),
-      );
-
       const dataUrl = await staticGardenMap({
         data: {
           lat: sheet.latitude,
           lng: sheet.longitude,
-          markers: validMarkers.map((marker) => ({
+          markers: sheet.garden_markers.map((marker) => ({
             lat: marker.lat,
             lng: marker.lng,
           })),
@@ -238,7 +233,7 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
       const markerLayouts = calculateStaticGardenMapMarkerLayout(
         sheet.latitude,
         sheet.longitude,
-        validMarkers.map((marker) => ({
+        sheet.garden_markers.map((marker) => ({
           lat: marker.lat,
           lng: marker.lng,
         })),
