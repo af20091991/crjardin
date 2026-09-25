@@ -87,4 +87,15 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(source).toContain('data:${contentType.split(";")[0]};base64,${base64}');
     expect(SST_PDF_MAP_REFERER).toBe("https://crjardin.lovable.app/");
   });
+
+  test("ne dessine jamais une pastille blanche pour les repères déplacés", () => {
+    const source = readFileSync(
+      new URL("../worksite-pdf-complete.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).not.toContain('doc.setFillColor(255, 255, 255);\n          doc.circle(anchorX');
+    expect(source).toContain("doc.circle(anchorX, anchorY, 0.8, \"F\");");
+    expect(source).toContain("doc.circle(labelX, labelY, 4.1, \"F\");");
+  });
 });
