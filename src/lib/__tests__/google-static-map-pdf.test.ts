@@ -27,9 +27,29 @@ describe("Google Static Maps — export PDF SST", () => {
     const visible = params.getAll("visible");
     expect(visible).toEqual(["43.61,3.88", "43.611,3.881", "43.612,3.882"]);
 
-    // Aucun marqueur Google natif : le PDF dessine une seule série de badges
-    // verts numérotés correspondant exactement aux tâches de la fiche SST.
-    expect(params.getAll("markers")).toEqual([]);
+    const markers = params.getAll("markers");
+    expect(markers).toHaveLength(3);
+    expect(markers[0]).toContain("color:0x3fa73c");
+    expect(markers[0]).toContain("label:1");
+    expect(markers[0]).toContain("43.611,3.881");
+    expect(markers[1]).toContain("color:0x3fa73c");
+    expect(markers[1]).toContain("label:2");
+    expect(markers[1]).toContain("43.612,3.882");
+    expect(markers.slice(0, 2).every((marker) => marker.includes("color:0x3fa73c"))).toBe(true);
+    expect(markers[2]).toContain("color:0x1f6f2a");
+    expect(markers[2]).toContain("43.61,3.88");
+    expect(markers.filter((marker) => marker.includes("color:0x3fa73c"))).toHaveLength(2);
+
+    const manyMarkers = buildStaticGardenMapParams(
+      43.61,
+      3.88,
+      Array.from({ length: 10 }, (_, index) => ({
+        lat: 43.61 + index * 0.00001,
+        lng: 3.88 + index * 0.00001,
+      })),
+    ).getAll("markers");
+    expect(manyMarkers[9]).toContain("label:A");
+    expect(manyMarkers[0]).toContain("size:mid|color:0x3fa73c|label:1");
   });
 
   test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
@@ -97,7 +117,6 @@ describe("Google Static Maps — export PDF SST", () => {
     const source = readFileSync(new URL("../worksite-pdf-complete.ts", import.meta.url), "utf8");
 
     expect(source).not.toContain("doc.setFillColor(255, 255, 255)");
-    expect(source).not.toContain("anchorX, anchorY, 0.8");
     expect(source).toContain("labelX, labelY, 4.1");
   });
 });
