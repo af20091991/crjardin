@@ -260,7 +260,7 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
           doc.line(anchorX, anchorY, labelX, labelY);
         }
 
-        doc.ellipse(labelX, labelY, 4.1, 4.1, "F");
+        doc.circle(labelX, labelY, 4.1, "F");
         doc.setTextColor(255, 255, 255);
         doc.text(String(index + 1), labelX, labelY + 2.1, { align: "center" });
       });
