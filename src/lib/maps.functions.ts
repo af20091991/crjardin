@@ -199,10 +199,7 @@ export interface StaticGardenMapMarkerLayout {
 }
 
 function webMercatorY(lat: number): number {
-  const clampedLat = Math.max(
-    -WEB_MERCATOR_LAT_LIMIT,
-    Math.min(WEB_MERCATOR_LAT_LIMIT, lat),
-  );
+  const clampedLat = Math.max(-WEB_MERCATOR_LAT_LIMIT, Math.min(WEB_MERCATOR_LAT_LIMIT, lat));
   const radians = (clampedLat * Math.PI) / 180;
   return (1 - Math.asinh(Math.tan(radians)) / Math.PI) / 2;
 }
@@ -225,14 +222,8 @@ export function calculateStaticGardenMapViewport(
 
   const centerLat = (minLat + maxLat) / 2;
   const centerLng = (minLng + maxLng) / 2;
-  const xSpan = Math.max(
-    (maxLng - minLng) / 360,
-    Number.EPSILON,
-  );
-  const ySpan = Math.max(
-    webMercatorY(minLat) - webMercatorY(maxLat),
-    Number.EPSILON,
-  );
+  const xSpan = Math.max((maxLng - minLng) / 360, Number.EPSILON);
+  const ySpan = Math.max(webMercatorY(minLat) - webMercatorY(maxLat), Number.EPSILON);
 
   let zoom = 0;
   for (let candidate = STATIC_MAP_MAX_ZOOM; candidate >= 0; candidate -= 1) {
@@ -332,10 +323,7 @@ export function calculateStaticGardenMapMarkerLayout(
         Math.min(height - edgePadding, positions[i].y + dy * strength),
       );
 
-      if (
-        Math.abs(nextX - positions[i].x) > 0.01 ||
-        Math.abs(nextY - positions[i].y) > 0.01
-      ) {
+      if (Math.abs(nextX - positions[i].x) > 0.01 || Math.abs(nextY - positions[i].y) > 0.01) {
         moved = true;
       }
       positions[i] = { x: nextX, y: nextY };
@@ -380,13 +368,8 @@ export function buildStaticGardenMapParams(
   // apparaître comme une pastille blanche lorsque le badge est déplacé.
   markers.forEach((marker, index) => {
     const label =
-      index < 9
-        ? String(index + 1)
-        : String.fromCharCode(65 + ((index - 9) % 26));
-    params.append(
-      "markers",
-      `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`,
-    );
+      index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
+    params.append("markers", `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`);
   });
 
   // Le chantier lui-même reste distinct en vert foncé.
