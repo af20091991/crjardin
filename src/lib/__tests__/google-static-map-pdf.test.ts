@@ -17,7 +17,7 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(params.get("size")).toBe("640x540");
     expect(params.get("scale")).toBe("2");
     expect(params.get("format")).toBe("png");
-    expect(params.get("maptype")).toBe("hybrid");
+    expect(params.get("maptype")).toBe("satellite");
     expect(params.get("language")).toBe("fr");
     const center = params.get("center")?.split(",").map(Number);
     expect(center?.[0]).toBeCloseTo(43.611, 6);

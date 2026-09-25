@@ -373,7 +373,7 @@ export function buildStaticGardenMapParams(
     size: `${STATIC_MAP_WIDTH}x${STATIC_MAP_HEIGHT}`,
     scale: "2",
     format: "png",
-    maptype: "hybrid",
+    maptype: "satellite",
     language: "fr",
     center: `${viewport.centerLat},${viewport.centerLng}`,
     zoom: String(viewport.zoom),
