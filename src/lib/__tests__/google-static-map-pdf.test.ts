@@ -35,9 +35,7 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(markers[0]).toContain("43.611,3.881");
     expect(markers[1]).toContain(GREEN_MARKER_ICON);
     expect(markers[1]).toContain("43.612,3.882");
-    expect(
-      markers.slice(0, 2).every((marker) => marker.includes("green-dot.png")),
-    ).toBe(true);
+    expect(markers.slice(0, 2).every((marker) => marker.includes("green-dot.png"))).toBe(true);
     expect(markers[2]).toContain(GREEN_MARKER_ICON);
     expect(markers[2]).toContain("43.61,3.88");
 
