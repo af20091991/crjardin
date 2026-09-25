@@ -9,14 +9,34 @@ const DARK: [number, number, number] = [45, 55, 40];
 const MUTED: [number, number, number] = [120, 120, 110];
 const LIGHT: [number, number, number] = [240, 244, 236];
 
-function loadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = url;
-  });
+async function loadImage(url: string): Promise<HTMLImageElement> {
+  const response = await fetch(url, { mode: "cors" });
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Image Google Maps refusée (${response.status}): ${body.slice(0, 240)}`);
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().startsWith("image/")) {
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      `Google Maps n'a pas renvoyé une image (${contentType}): ${body.slice(0, 240)}`,
+    );
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+
+  try {
+    return await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Impossible de charger l'image Google Maps."));
+      img.src = objectUrl;
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 export async function exportWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void> {
