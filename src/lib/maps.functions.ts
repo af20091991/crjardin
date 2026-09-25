@@ -176,7 +176,9 @@ export interface StaticGardenMapMarker {
   lng: number;
 }
 
-function buildStaticGardenMapParams(
+export const SST_PDF_MAP_REFERER = "https://crjardin.lovable.app/";
+
+export function buildStaticGardenMapParams(
   lat: number,
   lng: number,
   markers: StaticGardenMapMarker[],
@@ -233,7 +235,7 @@ export const staticGardenMap = createServerFn({ method: "POST" })
         headers: {
           // La clé du connecteur est une clé Web/HTTP-referrer. Le PDF est
           // produit pour l'application publiée sur ce domaine.
-          Referer: "https://crjardin.lovable.app/",
+          Referer: SST_PDF_MAP_REFERER,
         },
       });
     } catch (error) {
