@@ -256,6 +256,7 @@ export function calculateStaticGardenMapViewport(
  * déplacés dans un petit anneau autour d'un groupe dense, avec un trait de
  * rappel dessiné ensuite dans le PDF.
  */
+// prettier-ignore
 export function calculateStaticGardenMapMarkerLayout(
   lat: number,
   lng: number,
