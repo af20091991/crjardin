@@ -60,6 +60,11 @@ describe("Google Static Maps — export PDF SST", () => {
       const layouts = calculateStaticGardenMapMarkerLayout(43.61, 3.88, markers);
 
       expect(layouts).toHaveLength(count);
+      expect(
+        layouts.every((layout) =>
+          [layout.anchorX, layout.anchorY, layout.labelX, layout.labelY].every(Number.isFinite),
+        ),
+      ).toBe(true);
 
       const uniqueLabels = new Set(
         layouts.map((layout) => `${layout.labelX.toFixed(2)},${layout.labelY.toFixed(2)}`),
