@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type { Database } from "@/integrations/supabase/types";
+
+type BrevoLogPatch = Database["public"]["Tables"]["brevo_email_log"]["Update"];
 
 /**
  * Webhook public Brevo : reçoit un événement par appel (request, delivered,
@@ -72,7 +75,7 @@ export const Route = createFileRoute("/api/public/brevo-webhook")({
             .eq("message_id", messageId)
             .maybeSingle();
 
-          const patch: Record<string, unknown> = { last_event_at: now };
+          const patch: BrevoLogPatch = { last_event_at: now };
 
           switch (payload.event) {
             case "request":
