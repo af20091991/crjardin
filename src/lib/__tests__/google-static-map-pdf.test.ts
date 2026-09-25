@@ -35,6 +35,7 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(markers[1]).toContain("color:0x3fa73c");
     expect(markers[1]).toContain("label:2");
     expect(markers[1]).toContain("43.612,3.882");
+    expect(markers.slice(0, 2).every((marker) => marker.includes("color:0x3fa73c"))).toBe(true);
     expect(markers[2]).toContain("color:0x1f6f2a");
     expect(markers[2]).toContain("43.61,3.88");
 
@@ -47,6 +48,7 @@ describe("Google Static Maps — export PDF SST", () => {
       })),
     ).getAll("markers");
     expect(manyMarkers[9]).toContain("label:A");
+    expect(manyMarkers[0]).toContain("size:mid|color:0x3fa73c|label:1");
   });
 
   test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
@@ -58,6 +60,11 @@ describe("Google Static Maps — export PDF SST", () => {
       const layouts = calculateStaticGardenMapMarkerLayout(43.61, 3.88, markers);
 
       expect(layouts).toHaveLength(count);
+      expect(
+        layouts.every((layout) =>
+          [layout.anchorX, layout.anchorY, layout.labelX, layout.labelY].every(Number.isFinite),
+        ),
+      ).toBe(true);
 
       const uniqueLabels = new Set(
         layouts.map((layout) => `${layout.labelX.toFixed(2)},${layout.labelY.toFixed(2)}`),
