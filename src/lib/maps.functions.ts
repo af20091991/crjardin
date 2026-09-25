@@ -362,7 +362,8 @@ export function buildStaticGardenMapParams(
   // chevauchements. Le rendu natif garantit qu'aucun repère ne peut
   // apparaître comme une pastille blanche lorsque le badge est déplacé.
   markers.forEach((marker, index) => {
-    const label = index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
+    const label =
+      index < 9 ? String(index + 1) : String.fromCharCode(65 + ((index - 9) % 26));
     params.append(
       "markers",
       `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`,
