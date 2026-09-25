@@ -335,7 +335,6 @@ export function calculateStaticGardenMapMarkerLayout(
   }));
 }
 
-
 export function buildStaticGardenMapParams(
   lat: number,
   lng: number,
