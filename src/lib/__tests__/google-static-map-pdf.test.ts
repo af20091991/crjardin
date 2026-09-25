@@ -43,7 +43,7 @@ describe("Google Static Maps — export PDF SST", () => {
       expect(layouts).toHaveLength(count);
       expect(
         layouts.every((layout) =>
-          [layout.anchorX, layout.anchorY, layout.labelX, layout.labelY].every(Number.isFinite),
+          [\n            layout.anchorX,\n            layout.anchorY,\n            layout.labelX,\n            layout.labelY,\n          ].every(Number.isFinite),
         ),
       ).toBe(true);
 
@@ -94,7 +94,7 @@ describe("Google Static Maps — export PDF SST", () => {
   });
 
   test("ne dessine jamais une pastille blanche pour les repères déplacés", () => {
-    const source = readFileSync(new URL("../worksite-pdf-complete.ts", import.meta.url), "utf8");
+    const source = readFileSync(\n      new URL("../worksite-pdf-complete.ts", import.meta.url),\n      "utf8",\n    );
 
     expect(source).not.toContain("doc.setFillColor(255, 255, 255)");
     expect(source).toContain("doc.ellipse(labelX, labelY, 4.2, 4.2, \"F\")");
