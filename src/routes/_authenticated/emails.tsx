@@ -313,18 +313,18 @@ function BrevoContactEmails() {
 
   const filteredRows = useMemo(() => {
     const recipient = recipientFilter.trim().toLowerCase();
-    return [...rows]
-      .sort((a, b) => {
-        const dateA = a.sent_at ? new Date(a.sent_at).getTime() : 0;
-        const dateB = b.sent_at ? new Date(b.sent_at).getTime() : 0;
-        return dateB - dateA;
-      })
-      .filter((row) => {
-        const senderMatches = senderFilter === "all" || row.sender_email === senderFilter;
-        const recipientMatches =
-          !recipient || row.recipient_email.toLowerCase().includes(recipient);
-        return senderMatches && recipientMatches;
-      });
+    const filtered = rows.filter((row) => {
+      const senderMatches = senderFilter === "all" || row.sender_email === senderFilter;
+      const recipientMatches =
+        !recipient || row.recipient_email.toLowerCase().includes(recipient);
+      return senderMatches && recipientMatches;
+    });
+
+    return [...filtered].sort((a, b) => {
+      const dateA = a.sent_at ? new Date(a.sent_at).getTime() : 0;
+      const dateB = b.sent_at ? new Date(b.sent_at).getTime() : 0;
+      return dateB - dateA;
+    });
   }, [rows, senderFilter, recipientFilter]);
 
   const hasFilters = senderFilter !== "all" || recipientFilter.trim() !== "";
