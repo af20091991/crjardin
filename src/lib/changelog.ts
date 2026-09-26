@@ -24,6 +24,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-26",
+    version: "2.3.13",
+    theme: "Compte-rendus",
+    title: "Calendrier SST — planning plus lisible par chantier et par SST",
+    details: [
+      "Les fiches SST peuvent maintenant préciser le nombre de personnes nécessaires, le temps estimé et l'état du planning (à confirmer ou validé).",
+      "Le calendrier affiche directement les chantiers programmés avec les SST concernés, le nombre de personnes, le temps estimé et le statut de validation.",
+      "Une vue « Planning par SST » regroupe les prochains chantiers de chaque intervenant pour distinguer rapidement ce qui est programmé et ce qui reste à confirmer.",
+    ],
+  },
+
+  {
+    date: "2026-09-26",
     version: "2.3.12",
     theme: "Compte-rendus",
     title: "Envoi direct des fiches méthode SST par email",
