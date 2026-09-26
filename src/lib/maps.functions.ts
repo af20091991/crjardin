@@ -379,6 +379,7 @@ export function buildStaticGardenMapParams(
     zoom: String(viewport.zoom),
   });
 
+  // prettier-ignore
   params.append("style", "feature:poi|visibility:off");
 
   params.append("visible", `${lat},${lng}`);
