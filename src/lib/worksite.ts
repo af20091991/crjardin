@@ -55,6 +55,9 @@ export interface WorksiteSheet {
   access_complement: string | null;
   intervention_date: string | null;
   intervenant: string | null;
+  estimated_hours: number | null;
+  required_people: number;
+  planning_status: "draft" | "validated";
   client_present: boolean | null;
   green_waste: boolean | null;
   equipment: string[];
@@ -121,6 +124,9 @@ export function emptyWorksiteSheet(): WorksiteSheetInput {
     access_complement: "",
     intervention_date: new Date().toISOString().slice(0, 10),
     intervenant: null,
+    estimated_hours: null,
+    required_people: 1,
+    planning_status: "draft",
     client_present: null,
     green_waste: null,
     equipment: [],
@@ -185,6 +191,14 @@ export async function updateWorksiteSheet(id: string, input: WorksiteSheetInput)
     .single();
   if (error) throw error;
   return normalize(data as Record<string, unknown>);
+}
+
+export async function updateWorksitePlanning(
+  id: string,
+  patch: Partial<Pick<WorksiteSheet, "estimated_hours" | "required_people" | "planning_status">>,
+): Promise<void> {
+  const { error } = await supabase.from("worksite_sheets").update(patch as never).eq("id", id);
+  if (error) throw error;
 }
 
 export async function deleteWorksiteSheet(id: string): Promise<void> {
