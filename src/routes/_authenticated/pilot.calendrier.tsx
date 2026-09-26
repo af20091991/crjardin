@@ -111,6 +111,15 @@ function monthLabel(year: number, month: number) {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+function shortDateLabel(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
 function fullDateLabel(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   const year = Number.isFinite(y) ? y : 1970;
@@ -624,17 +633,19 @@ function SstPlanningByPerson({
             {upcoming.slice(0, 20).map((sheet) => {
               const people = parseWorksiteIntervenants(sheet.intervenant);
               const dateLabel = sheet.intervention_date
-                ? new Date(`${sheet.intervention_date}T12:00:00`).toLocaleDateString("fr-FR", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                  })
+                ? shortDateLabel(sheet.intervention_date)
                 : "Date à définir";
-              const peopleLabel = `${people.length ? people.join(" + ") : "SST à définir"} · ${sheet.required_people} personne${sheet.required_people > 1 ? "s" : ""}`;
+              const peopleName = people.length ? people.join(" + ") : "SST à définir";
+              const peopleCount = `${sheet.required_people} personne${sheet.required_people > 1 ? "s" : ""}`;
+              const peopleLabel = `${peopleName} · ${peopleCount}`;
               const hoursLabel =
                 sheet.estimated_hours != null
                   ? ` · ${Number(sheet.estimated_hours).toLocaleString("fr-FR")} h estimées`
                   : " · durée non renseignée";
+              const remainingText =
+                remaining > 1
+                  ? `${remaining} autres chantiers programmés.`
+                  : `${remaining} autre chantier programmé.`;
               return (
                 <div
                   key={sheet.id}
@@ -681,8 +692,7 @@ function SstPlanningByPerson({
             })}
             {remaining > 0 ? (
               <p className="pt-1 text-xs text-muted-foreground">
-                {remaining} autre{remaining > 1 ? "s" : ""} chantier{remaining > 1 ? "s" : ""} programmé
-                {remaining > 1 ? "s" : ""}.
+                {remainingText}
               </p>
             ) : null}
           </div>
