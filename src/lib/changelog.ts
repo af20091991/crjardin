@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-26",
+    version: "2.3.12",
+    theme: "Compte-rendus",
+    title: "Envoi direct des fiches méthode SST par email",
+    details: [
+      "Depuis une Fiche SST, un aperçu complet du mail est présenté avant tout envoi.",
+      "La fiche méthode PDF est générée depuis la dernière version enregistrée et transmise via un lien sécurisé valable 7 jours.",
+      "L'envoi est adressé automatiquement aux SST sélectionnés sur la mission lorsque leur adresse email est renseignée, et chaque envoi est conservé dans le suivi des emails PP.",
+    ],
+  },
+  {
+    date: "2026-09-26",
     version: "2.3.11",
     theme: "Général",
     title: "Suivi des emails PP recentré",
