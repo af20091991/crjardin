@@ -320,11 +320,11 @@ function BrevoContactEmails() {
         return dateB - dateA;
       })
       .filter((row) => {
-      const senderMatches = senderFilter === "all" || row.sender_email === senderFilter;
-      const recipientMatches =
-        !recipient || row.recipient_email.toLowerCase().includes(recipient);
-      return senderMatches && recipientMatches;
-    });
+        const senderMatches = senderFilter === "all" || row.sender_email === senderFilter;
+        const recipientMatches =
+          !recipient || row.recipient_email.toLowerCase().includes(recipient);
+        return senderMatches && recipientMatches;
+      });
   }, [rows, senderFilter, recipientFilter]);
 
   const hasFilters = senderFilter !== "all" || recipientFilter.trim() !== "";
