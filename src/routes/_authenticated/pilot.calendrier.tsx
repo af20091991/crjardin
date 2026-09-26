@@ -166,8 +166,23 @@ function CalendrierSstPage() {
     queryKey: ["sst-availability-calendar-recent"],
     queryFn: () => listRecentAvailabilities(5),
   });
+  const { data: worksiteSheets = [], isLoading: isLoadingWorksites } = useQuery({
+    queryKey: ["sst-calendar-worksite-sheets"],
+    queryFn: listWorksiteSheets,
+  });
+  const [selectedSstPlanning, setSelectedSstPlanning] = useState("all");
 
   const entries = useMemo(() => data ?? [], [data]);
+  const planningSheets = useMemo(
+    () =>
+      worksiteSheets.filter(
+        (sheet) =>
+          sheet.intervention_date &&
+          sheet.intervention_date >= dateWindow.start &&
+          sheet.intervention_date <= dateWindow.end,
+      ),
+    [worksiteSheets, dateWindow],
+  );
   const byDate = useMemo(() => groupByDate(entries), [entries]);
   const grid = useMemo(() => monthGridDates(cursor.year, cursor.month), [cursor]);
   const monthRange = monthWindow(cursor.year, cursor.month);
@@ -208,6 +223,15 @@ function CalendrierSstPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const validatePlanning = useMutation({
+    mutationFn: (id: string) => updateWorksitePlanning(id, { planning_status: "validated" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["sst-calendar-worksite-sheets"] });
+      toast.success("Chantier validé dans le planning SST");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const goToday = () => {
     const now = new Date();
     setCursor({ year: now.getFullYear(), month: now.getMonth() });
@@ -222,6 +246,7 @@ function CalendrierSstPage() {
   const monthCount = entries.filter(
     (entry) => entry.date >= monthRange.start && entry.date <= monthRange.end,
   ).length;
+  const monthPlanningCount = planningSheets.length;
 
   const weeks = useMemo(() => {
     const rows: Date[][] = [];
