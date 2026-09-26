@@ -16,6 +16,7 @@ import { exportCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { ArrowLeft, Copy, FileDown, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
+import { SstWorksiteEmailDialog } from "@/components/SstWorksiteEmailDialog";
 
 export const Route = createFileRoute("/_authenticated/fiches/$ficheId")({
   head: () => ({
@@ -112,6 +113,7 @@ function EditFiche() {
                 <Copy className="mr-1.5 h-4 w-4" /> Dupliquer
               </Button>
             )}
+            {sheet && <SstWorksiteEmailDialog sheet={sheet} />}
             <Button size="sm" variant="outline" disabled={exporting || !sheet} onClick={exportPdf}>
               {exporting ? (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
