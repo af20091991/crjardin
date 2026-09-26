@@ -379,7 +379,6 @@ export function buildStaticGardenMapParams(
     zoom: String(viewport.zoom),
   });
 
-  // Hide Google POI bubbles so the SST PDF contains only its own numbered markers.
   params.append("style", "feature:poi|visibility:off");
 
   params.append("visible", `${lat},${lng}`);
