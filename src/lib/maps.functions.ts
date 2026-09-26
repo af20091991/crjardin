@@ -377,10 +377,8 @@ export function buildStaticGardenMapParams(
     language: "fr",
     center: `${viewport.centerLat},${viewport.centerLng}`,
     zoom: String(viewport.zoom),
+    style: "feature:poi|visibility:off",
   });
-
-  // prettier-ignore
-  params.append("style", "feature:poi|visibility:off");
 
   params.append("visible", `${lat},${lng}`);
   markers.forEach((marker) => {
