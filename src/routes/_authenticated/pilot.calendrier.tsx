@@ -345,10 +345,13 @@ function CalendrierSstPage() {
 
         <div className="flex items-center justify-between border-b border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground sm:px-4">
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span>{monthCount} disponibilité{monthCount > 1 ? "s" : ""}</span>
+            <span>
+              {monthCount} disponibilité{monthCount > 1 ? "s" : ""}
+            </span>
             <span className="inline-flex items-center gap-1">
               <ClipboardCheck className="h-3.5 w-3.5 text-primary" />
-              {monthPlanningCount} chantier{monthPlanningCount > 1 ? "s" : ""} programmé{monthPlanningCount > 1 ? "s" : ""}
+              {monthPlanningCount} chantier{monthPlanningCount > 1 ? "s" : ""} programmé
+              {monthPlanningCount > 1 ? "s" : ""}
             </span>
           </span>
           {isAdmin ? (
@@ -487,7 +490,7 @@ function CalendrierSstPage() {
         onSelectSst={setSelectedSstPlanning}
         isAdmin={isAdmin}
         onValidate={(id) => validatePlanning.mutate(id)}
-        validatingId={validatePlanning.isPending ? validatePlanning.variables ?? null : null}
+        validatingId={validatePlanning.isPending ? (validatePlanning.variables ?? null) : null}
         loading={isLoadingWorksites}
       />
 
@@ -692,9 +695,7 @@ function SstPlanningByPerson({
               );
             })}
             {remaining > 0 ? (
-              <p className="pt-1 text-xs text-muted-foreground">
-                {remainingText}
-              </p>
+              <p className="pt-1 text-xs text-muted-foreground">{remainingText}</p>
             ) : null}
           </div>
         )}
