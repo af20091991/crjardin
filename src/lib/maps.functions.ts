@@ -379,6 +379,11 @@ export function buildStaticGardenMapParams(
     zoom: String(viewport.zoom),
   });
 
+  // Satellite imagery can expose Google POI bubbles as white circles. They are
+  // not SST markers and must be hidden so the PDF contains only our numbered
+  // green badges.
+  params.append("style", "feature:poi|visibility:off");
+
   params.append("visible", `${lat},${lng}`);
   markers.forEach((marker) => {
     params.append("visible", `${marker.lat},${marker.lng}`);
