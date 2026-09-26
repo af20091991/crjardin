@@ -34,7 +34,7 @@ export const listBrevoEmailLog = createServerFn({ method: "GET" })
       .select(
         "message_id, sender_email, recipient_email, subject, sent_at, delivered_at, first_opened_at, open_count, first_clicked_at, click_count, error_message, last_event_at",
       )
-      .order("last_event_at", { ascending: false })
+      .order("sent_at", { ascending: false, nullsFirst: false })
       .limit(500);
     if (error) throw error;
 
