@@ -173,12 +173,54 @@ export async function getWorksiteSheet(id: string): Promise<WorksiteSheet> {
 export async function createWorksiteSheet(input: WorksiteSheetInput): Promise<WorksiteSheet> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error("Non authentifié");
+
+  // La création doit rester tolérante : les champs de planning sont facultatifs
+  // lors de la saisie minimale d'une nouvelle fiche et leurs valeurs par défaut
+  // sont gérées par PostgreSQL.
+  const payload = {
+    client_id: input.client_id || null,
+    civility: input.civility?.trim() || null,
+    client_name: input.client_name.trim(),
+    client_phone: input.client_phone?.trim() || null,
+    client_phone_backup: input.client_phone_backup?.trim() || null,
+    contact_person: input.contact_person?.trim() || null,
+    address: input.address?.trim() || null,
+    access_complement: input.access_complement?.trim() || null,
+    intervention_date: input.intervention_date || null,
+    intervenant: input.intervenant || null,
+    estimated_hours:
+      input.estimated_hours == null || Number.isNaN(Number(input.estimated_hours))
+        ? null
+        : Number(input.estimated_hours),
+    required_people: Math.max(1, Number(input.required_people) || 1),
+    planning_status: input.planning_status === "validated" ? "validated" : "draft",
+    client_present: input.client_present ?? null,
+    green_waste: input.green_waste ?? null,
+    equipment: input.equipment ?? [],
+    epi: input.epi ?? [],
+    tasks: input.tasks ?? [],
+    checklist: input.checklist ?? [],
+    photos: input.photos ?? [],
+    notes: input.notes?.trim() || null,
+    latitude: input.latitude ?? null,
+    longitude: input.longitude ?? null,
+    garden_markers: input.garden_markers ?? [],
+    recycling_center: input.recycling_center ?? null,
+    user_id: auth.user.id,
+  };
+
   const { data, error } = await supabase
     .from("worksite_sheets")
-    .insert({ ...input, user_id: auth.user.id } as never)
+    .insert(payload as never)
     .select()
     .single();
-  if (error) throw error;
+
+  if (error) {
+    throw new Error(`Impossible de créer la fiche SST : ${error.message}`);
+  }
+  if (!data) {
+    throw new Error("Impossible de créer la fiche SST : aucune fiche retournée.");
+  }
   return normalize(data as Record<string, unknown>);
 }
 
