@@ -206,6 +206,21 @@ export async function uploadWorksitePhoto(file: File): Promise<string> {
   return path;
 }
 
+export async function uploadWorksiteMethodPdf(ficheId: string, blob: Blob): Promise<string> {
+  const path = `sst-mail/${ficheId}/fiche-methode-${Date.now()}.pdf`;
+  const { error } = await supabase.storage.from("chantier-photos").upload(path, blob, {
+    cacheControl: "604800",
+    upsert: false,
+    contentType: "application/pdf",
+  });
+  if (error) throw error;
+  const { data, error: signedError } = await supabase.storage
+    .from("chantier-photos")
+    .createSignedUrl(path, 60 * 60 * 24 * 7);
+  if (signedError) throw signedError;
+  return data.signedUrl;
+}
+
 export async function worksitePhotoUrl(storagePath: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from("chantier-photos")
