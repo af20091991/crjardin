@@ -559,6 +559,7 @@ function SstPlanningByPerson({
     })
     .sort((a, b) => (a.intervention_date ?? "").localeCompare(b.intervention_date ?? ""));
 
+  const remaining = Math.max(0, upcoming.length - 20);
   const counts = new Map<string, number>();
   for (const name of INTERVENANTS) {
     counts.set(
@@ -622,28 +623,31 @@ function SstPlanningByPerson({
           <div className="grid gap-2">
             {upcoming.slice(0, 20).map((sheet) => {
               const people = parseWorksiteIntervenants(sheet.intervenant);
+              const dateLabel = sheet.intervention_date
+                ? new Date(`${sheet.intervention_date}T12:00:00`).toLocaleDateString("fr-FR", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  })
+                : "Date à définir";
+              const peopleLabel = `${people.length ? people.join(" + ") : "SST à définir"} · ${sheet.required_people} personne${sheet.required_people > 1 ? "s" : ""}`;
+              const hoursLabel =
+                sheet.estimated_hours != null
+                  ? ` · ${Number(sheet.estimated_hours).toLocaleString("fr-FR")} h estimées`
+                  : " · durée non renseignée";
               return (
                 <div
                   key={sheet.id}
                   className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5"
                 >
                   <div className="w-24 shrink-0 text-xs tabular-nums text-muted-foreground">
-                    {sheet.intervention_date
-                      ? new Date(`${sheet.intervention_date}T12:00:00`).toLocaleDateString("fr-FR", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                        })
-                      : "Date à définir"}
+                    {dateLabel}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{sheet.client_name}</p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {people.length ? people.join(" + ") : "SST à définir"} · {sheet.required_people} personne
-                      {sheet.required_people > 1 ? "s" : ""}
-                      {sheet.estimated_hours != null
-                        ? ` · ${Number(sheet.estimated_hours).toLocaleString("fr-FR")} h estimées`
-                        : " · durée non renseignée"}
+                      {peopleLabel}
+                      {hoursLabel}
                     </p>
                   </div>
                   <span
@@ -675,11 +679,10 @@ function SstPlanningByPerson({
                 </div>
               );
             })}
-            {upcoming.length > 20 ? (
+            {remaining > 0 ? (
               <p className="pt-1 text-xs text-muted-foreground">
-                {upcoming.length - 20} autre{upcoming.length - 20 > 1 ? "s" : ""} chantier
-                {upcoming.length - 20 > 1 ? "s" : ""} programmé
-                {upcoming.length - 20 > 1 ? "s" : ""}.
+                {remaining} autre{remaining > 1 ? "s" : ""} chantier{remaining > 1 ? "s" : ""} programmé
+                {remaining > 1 ? "s" : ""}.
               </p>
             ) : null}
           </div>
