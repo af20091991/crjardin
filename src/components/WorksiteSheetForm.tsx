@@ -451,6 +451,53 @@ function submit() {
               </p>
             </div>
           </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label>Nombre de personnes nécessaires</Label>
+              <Input
+                type="number"
+                min={1}
+                step="1"
+                value={form.required_people ?? 1}
+                onChange={(e) =>
+                  set("required_people", Math.max(1, Number(e.target.value) || 1))
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Temps estimé (heures)</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.25"
+                value={form.estimated_hours ?? ""}
+                onChange={(e) =>
+                  set(
+                    "estimated_hours",
+                    e.target.value.trim() === "" ? null : Math.max(0, Number(e.target.value) || 0),
+                  )
+                }
+                placeholder="Ex. 4,5"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>État du planning</Label>
+              <Select
+                value={form.planning_status ?? "draft"}
+                onValueChange={(v) => set("planning_status", v as "draft" | "validated")}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">À confirmer</SelectItem>
+                  <SelectItem value="validated">Planning validé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Ces informations servent au planning SST : elles permettent de savoir qui intervient,
+            combien de personnes sont nécessaires et combien de temps le chantier est estimé.
+          </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Toggle
               label="Client présent"
