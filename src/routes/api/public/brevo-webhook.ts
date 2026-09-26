@@ -88,6 +88,10 @@ export const Route = createFileRoute("/api/public/brevo-webhook")({
               patch.delivered_at = eventDate;
               break;
             case "opened":
+            case "unique_opened":
+              // Brevo envoie "unique_opened" pour la toute première ouverture d'un
+              // message, et "opened" pour celle-ci et les suivantes : les deux
+              // comptent comme une ouverture.
               patch.status = existing?.status === "clicked" ? "clicked" : "opened";
               patch.open_count = (existing?.open_count ?? 0) + 1;
               if (!existing?.first_opened_at) patch.first_opened_at = eventDate;
