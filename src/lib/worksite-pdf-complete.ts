@@ -55,7 +55,12 @@ async function composeGardenMapWithMarkers(
     context.lineTo(left + badgeW - radius, top);
     context.quadraticCurveTo(left + badgeW, top, left + badgeW, top + radius);
     context.lineTo(left + badgeW, top + badgeH - radius);
-    context.quadraticCurveTo(left + badgeW, top + badgeH, left + badgeW - radius, top + badgeH);
+    context.quadraticCurveTo(
+      left + badgeW,
+      top + badgeH,
+      left + badgeW - radius,
+      top + badgeH,
+    );
     context.lineTo(left + radius, top + badgeH);
     context.quadraticCurveTo(left, top + badgeH, left, top + badgeH - radius);
     context.lineTo(left, top + radius);
@@ -297,7 +302,10 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
       ensureSpace(imageH + 4);
       // Les repères sont composés dans la même image raster que la carte.
       // Ils ne dépendent donc plus du moteur de rendu vectoriel de jsPDF.
-      const composedMap = await composeGardenMapWithMarkers(dataUrl, markerLayouts);
+      const composedMap = await composeGardenMapWithMarkers(
+        dataUrl,
+        markerLayouts,
+      );
       doc.addImage(composedMap, "PNG", margin, y, imageW, imageH, undefined, "FAST");
 
       y += imageH + 6;
