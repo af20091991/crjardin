@@ -293,7 +293,7 @@ function brevoStatusVariant(status: string): "default" | "secondary" | "destruct
 
 function BrevoContactEmails() {
   const fetchLog = useServerFn(listBrevoEmailLog);
-  const [senderFilter, setSenderFilter] = useState("all");
+  const [senderFilter, setSenderFilter] = useState("contact@delagraineaujardin.com");
   const [recipientFilter, setRecipientFilter] = useState("");
 
   const { data, isPending, isFetching, refetch, error } = useQuery({
@@ -313,7 +313,7 @@ function BrevoContactEmails() {
 
   const filteredRows = useMemo(() => {
     const recipient = recipientFilter.trim().toLowerCase();
-    return rows.filter((row) => {
+    return [...rows].sort((a, b) => {\n      const dateA = a.sent_at ? new Date(a.sent_at).getTime() : 0;\n      const dateB = b.sent_at ? new Date(b.sent_at).getTime() : 0;\n      return dateB - dateA;\n    }).filter((row) => {
       const senderMatches = senderFilter === "all" || row.sender_email === senderFilter;
       const recipientMatches =
         !recipient || row.recipient_email.toLowerCase().includes(recipient);
@@ -332,7 +332,7 @@ function BrevoContactEmails() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          Suivi des emails envoyés via Brevo, avec filtrage par expéditeur et destinataire.
+          Suivi des emails envoyés via Brevo, du plus récent au plus ancien.
         </p>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
           <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Actualiser
