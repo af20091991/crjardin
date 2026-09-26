@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
+  CheckCircle2,
+  ClipboardCheck,
+  Clock3,
   BrickWall,
   ChevronLeft,
   ChevronRight,
@@ -72,6 +75,13 @@ import {
   type CalendarStyle,
   type CalendarTone,
 } from "@/lib/calendrier-sst-display";
+import {
+  INTERVENANTS,
+  listWorksiteSheets,
+  updateWorksitePlanning,
+  type WorksiteSheet,
+} from "@/lib/worksite";
+import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
