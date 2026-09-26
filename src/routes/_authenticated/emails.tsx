@@ -5,9 +5,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { listEmailLog } from "@/lib/email-log.functions";
+import { listBrevoEmailLog, type BrevoEmailLogEntry } from "@/lib/brevo-email-log.functions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -20,6 +22,7 @@ import {
   Loader2,
   Mail,
   MailOpen,
+  MousePointerClick,
   CheckCircle2,
   Clock,
   AlertTriangle,
@@ -32,6 +35,56 @@ export const Route = createFileRoute("/_authenticated/emails")({
   }),
   component: EmailsPage,
 });
+
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function EmailsPage() {
+  const { isAdmin, isLoading } = useIsAdmin();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && !isAdmin) navigate({ to: "/", replace: true });
+  }, [isAdmin, isLoading, navigate]);
+
+  if (isLoading || !isAdmin) {
+    return (
+      <AppShell title="Gestion et suivi des emails clients">
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  return (
+    <AppShell title="Gestion et suivi des emails clients">
+      <Tabs defaultValue="pp" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="pp">Comptes rendus (PP)</TabsTrigger>
+          <TabsTrigger value="brevo">contact@delagraineaujardin.com</TabsTrigger>
+        </TabsList>
+        <TabsContent value="pp">
+          <PpReportEmails />
+        </TabsContent>
+        <TabsContent value="brevo">
+          <BrevoContactEmails />
+        </TabsContent>
+      </Tabs>
+    </AppShell>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Comptes rendus chantiers envoyés depuis PP (service email natif Lovable) */
+/* ---------------------------------------------------------------------- */
 
 type FilterKey = "all" | "sent" | "pending" | "failed";
 
@@ -65,29 +118,12 @@ function statusVariant(bucket: FilterKey): "default" | "secondary" | "destructiv
   return "destructive";
 }
 
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function EmailsPage() {
-  const { isAdmin, isLoading } = useIsAdmin();
-  const navigate = useNavigate();
+function PpReportEmails() {
   const fetchLog = useServerFn(listEmailLog);
   const [filter, setFilter] = useState<FilterKey>("all");
 
-  useEffect(() => {
-    if (!isLoading && !isAdmin) navigate({ to: "/", replace: true });
-  }, [isAdmin, isLoading, navigate]);
-
   const { data, isPending, isFetching, refetch, error } = useQuery({
     queryKey: ["email-log"],
-    enabled: isAdmin,
     queryFn: () => fetchLog(),
   });
 
@@ -103,16 +139,6 @@ function EmailsPage() {
     () => (filter === "all" ? rows : rows.filter((r) => bucketOf(r.status) === filter)),
     [rows, filter],
   );
-
-  if (isLoading || !isAdmin) {
-    return (
-      <AppShell title="Gestion et suivi des emails clients">
-        <div className="flex items-center justify-center py-20 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
-      </AppShell>
-    );
-  }
 
   const cards = [
     {
@@ -146,97 +172,222 @@ function EmailsPage() {
   ];
 
   return (
-    <AppShell title="Gestion et suivi des emails clients">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm text-muted-foreground">
-            Suivi des notifications de comptes rendus envoyées aux clients.
-          </p>
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Actualiser
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {cards.map((c) => (
-            <button key={c.key} onClick={() => setFilter(c.key)} className="text-left">
-              <Card className={filter === c.key ? "border-primary ring-1 ring-primary" : ""}>
-                <CardContent className="flex items-center gap-3 p-4">
-                  <c.icon className={`h-6 w-6 ${c.color}`} />
-                  <div>
-                    <p className="font-serif text-2xl font-semibold leading-none tabular-nums">
-                      {c.value}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{c.label}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </button>
-          ))}
-        </div>
-
-        {error && (
-          <p className="text-sm text-destructive">Impossible de charger le suivi des e-mails.</p>
-        )}
-
-        <Card>
-          <CardContent className="p-0">
-            {isPending ? (
-              <div className="flex items-center justify-center py-16 text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : filtered.length === 0 ? (
-              <p className="py-16 text-center text-sm text-muted-foreground">
-                Aucun e-mail {filter !== "all" ? `« ${statusLabel(filter)} »` : ""} pour le moment.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Destinataire</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Ouvert</TableHead>
-                      <TableHead>Erreur</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((r) => {
-                      const bucket = bucketOf(r.status);
-                      return (
-                        <TableRow key={r.id}>
-                          <TableCell className="font-medium">{r.recipient_email}</TableCell>
-                          <TableCell>
-                            <Badge variant={statusVariant(bucket)}>{statusLabel(r.status)}</Badge>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-muted-foreground">
-                            {fmtDate(r.created_at)}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-xs">
-                            {r.opened_at ? (
-                              <span className="inline-flex items-center gap-1 text-primary">
-                                <MailOpen className="h-3.5 w-3.5" />
-                                {fmtDate(r.opened_at)}
-                                {r.open_count && r.open_count > 1 ? ` (${r.open_count}×)` : ""}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">Non ouvert</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="max-w-xs text-xs text-destructive">
-                            {r.error_message ?? "—"}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          Suivi des notifications de comptes rendus envoyées aux clients.
+        </p>
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Actualiser
+        </Button>
       </div>
-    </AppShell>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {cards.map((c) => (
+          <button key={c.key} onClick={() => setFilter(c.key)} className="text-left">
+            <Card className={filter === c.key ? "border-primary ring-1 ring-primary" : ""}>
+              <CardContent className="flex items-center gap-3 p-4">
+                <c.icon className={`h-6 w-6 ${c.color}`} />
+                <div>
+                  <p className="font-serif text-2xl font-semibold leading-none tabular-nums">
+                    {c.value}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{c.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <p className="text-sm text-destructive">Impossible de charger le suivi des e-mails.</p>
+      )}
+
+      <Card>
+        <CardContent className="p-0">
+          {isPending ? (
+            <div className="flex items-center justify-center py-16 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="py-16 text-center text-sm text-muted-foreground">
+              Aucun e-mail {filter !== "all" ? `« ${statusLabel(filter)} »` : ""} pour le moment.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Destinataire</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Ouvert</TableHead>
+                    <TableHead>Erreur</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((r) => {
+                    const bucket = bucketOf(r.status);
+                    return (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.recipient_email}</TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariant(bucket)}>{statusLabel(r.status)}</Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                          {fmtDate(r.created_at)}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {r.opened_at ? (
+                            <span className="inline-flex items-center gap-1 text-primary">
+                              <MailOpen className="h-3.5 w-3.5" />
+                              {fmtDate(r.opened_at)}
+                              {r.open_count && r.open_count > 1 ? ` (${r.open_count}×)` : ""}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">Non ouvert</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-xs text-xs text-destructive">
+                          {r.error_message ?? "—"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Emails envoyés depuis contact@delagraineaujardin.com, via Brevo         */
+/* ---------------------------------------------------------------------- */
+
+function brevoStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    sent: "Envoyé",
+    delivered: "Délivré",
+    opened: "Ouvert",
+    clicked: "Cliqué",
+    bounced: "Rejeté",
+    spam: "Marqué spam",
+    unsubscribed: "Désinscrit",
+    error: "Erreur",
+  };
+  return map[status] ?? status;
+}
+
+function brevoStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+  if (status === "opened" || status === "clicked") return "default";
+  if (status === "sent" || status === "delivered") return "secondary";
+  return "destructive";
+}
+
+function BrevoContactEmails() {
+  const fetchLog = useServerFn(listBrevoEmailLog);
+
+  const { data, isPending, isFetching, refetch, error } = useQuery({
+    queryKey: ["brevo-email-log"],
+    queryFn: () => fetchLog(),
+  });
+
+  const rows: BrevoEmailLogEntry[] = useMemo(() => data ?? [], [data]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          Suivi de tous les emails envoyés depuis contact@delagraineaujardin.com via Brevo.
+        </p>
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Actualiser
+        </Button>
+      </div>
+
+      {error && (
+        <p className="text-sm text-destructive">
+          Impossible de charger le suivi des e-mails Brevo.
+        </p>
+      )}
+
+      <Card>
+        <CardContent className="p-0">
+          {isPending ? (
+            <div className="flex items-center justify-center py-16 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : rows.length === 0 ? (
+            <p className="py-16 text-center text-sm text-muted-foreground">
+              Aucun e-mail Brevo pour le moment.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Destinataire</TableHead>
+                    <TableHead>Sujet</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Envoyé le</TableHead>
+                    <TableHead>Ouvert</TableHead>
+                    <TableHead>Cliqué</TableHead>
+                    <TableHead>Erreur</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((r) => (
+                    <TableRow key={r.message_id}>
+                      <TableCell className="font-medium">{r.recipient_email}</TableCell>
+                      <TableCell className="max-w-xs truncate text-xs">
+                        {r.subject ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={brevoStatusVariant(r.status)}>
+                          {brevoStatusLabel(r.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        {r.sent_at ? fmtDate(r.sent_at) : "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {r.first_opened_at ? (
+                          <span className="inline-flex items-center gap-1 text-primary">
+                            <MailOpen className="h-3.5 w-3.5" />
+                            {fmtDate(r.first_opened_at)}
+                            {r.open_count > 1 ? ` (${r.open_count}×)` : ""}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Non ouvert</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {r.first_clicked_at ? (
+                          <span className="inline-flex items-center gap-1 text-primary">
+                            <MousePointerClick className="h-3.5 w-3.5" />
+                            {fmtDate(r.first_clicked_at)}
+                            {r.click_count > 1 ? ` (${r.click_count}×)` : ""}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-xs text-xs text-destructive">
+                        {r.error_message ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
