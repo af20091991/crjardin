@@ -582,6 +582,11 @@ function SstPlanningByPerson({
     );
   }
 
+  const remainingText =
+    remaining > 1
+      ? `${remaining} autres chantiers programmés.`
+      : `${remaining} autre chantier programmé.`;
+
   return (
     <section className="w-full rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -642,10 +647,6 @@ function SstPlanningByPerson({
                 sheet.estimated_hours != null
                   ? ` · ${Number(sheet.estimated_hours).toLocaleString("fr-FR")} h estimées`
                   : " · durée non renseignée";
-              const remainingText =
-                remaining > 1
-                  ? `${remaining} autres chantiers programmés.`
-                  : `${remaining} autre chantier programmé.`;
               return (
                 <div
                   key={sheet.id}
