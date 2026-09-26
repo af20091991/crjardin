@@ -439,7 +439,8 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       );
     }
 
-    const base64 = typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
+    const base64 =
+      typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
 
     return `data:${contentType.split(";")[0]};base64,${base64}`;
   });
