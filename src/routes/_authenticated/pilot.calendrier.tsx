@@ -297,7 +297,9 @@ function CalendrierSstPage() {
         onSelectSst={setSelectedSstPlanning}
         isAdmin={isAdmin}
         onValidate={(id) => validatePlanning.mutate(id)}
-        validatingId={\n          validatePlanning.isPending ? (validatePlanning.variables ?? null) : null\n        }
+        validatingId={
+          validatePlanning.isPending ? (validatePlanning.variables ?? null) : null
+        }
         loading={isLoadingWorksites}
       />
 
