@@ -1,1 +1,0 @@
-ALTER TABLE public.pilot_hours ADD COLUMN IF NOT EXISTS temps_gestion numeric;
