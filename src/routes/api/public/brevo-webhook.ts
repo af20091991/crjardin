@@ -137,7 +137,7 @@ export const Route = createFileRoute("/api/public/brevo-webhook")({
           if (existing) {
             const { error } = await supabaseAdmin
               .from("brevo_email_log")
-              .update(patch)
+              .update(patch as never)
               .eq("message_id", messageId);
             if (error) throw error;
           } else {
@@ -146,7 +146,7 @@ export const Route = createFileRoute("/api/public/brevo-webhook")({
               recipient_email: email,
               sender_email: senderEmail ?? null,
               ...patch,
-            });
+            } as never);
             if (error) throw error;
           }
         } catch (err) {
