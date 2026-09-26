@@ -505,7 +505,9 @@ function WorksitePlanningChip({ sheet }: { sheet: WorksiteSheet }) {
   const people = parseWorksiteIntervenants(sheet.intervenant);
   const names = people.length ? people.join(", ") : "SST à définir";
   const hours =
-    sheet.estimated_hours != null ? `${Number(sheet.estimated_hours).toLocaleString("fr-FR")} h` : null;
+    sheet.estimated_hours != null
+      ? `${Number(sheet.estimated_hours).toLocaleString("fr-FR")} h`
+      : null;
   return (
     <span
       title={`${sheet.client_name} · ${names}${hours ? ` · ${hours}` : ""}`}
@@ -605,7 +607,9 @@ function SstPlanningByPerson({
 
       <div className="mt-4">
         {loading ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Chargement des chantiers…</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Chargement des chantiers…
+          </p>
         ) : upcoming.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6 text-center">
             <ClipboardCheck className="mx-auto h-5 w-5 text-muted-foreground" />
@@ -635,7 +639,8 @@ function SstPlanningByPerson({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{sheet.client_name}</p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {people.length ? people.join(" + ") : "SST à définir"} · {sheet.required_people} personne{sheet.required_people > 1 ? "s" : ""}
+                      {people.length ? people.join(" + ") : "SST à définir"} · {sheet.required_people} personne
+                      {sheet.required_people > 1 ? "s" : ""}
                       {sheet.estimated_hours != null
                         ? ` · ${Number(sheet.estimated_hours).toLocaleString("fr-FR")} h estimées`
                         : " · durée non renseignée"}
@@ -672,7 +677,9 @@ function SstPlanningByPerson({
             })}
             {upcoming.length > 20 ? (
               <p className="pt-1 text-xs text-muted-foreground">
-                {upcoming.length - 20} autre{upcoming.length - 20 > 1 ? "s" : ""} chantier{upcoming.length - 20 > 1 ? "s" : ""} programmé{upcoming.length - 20 > 1 ? "s" : ""}.
+                {upcoming.length - 20} autre{upcoming.length - 20 > 1 ? "s" : ""} chantier
+                {upcoming.length - 20 > 1 ? "s" : ""} programmé
+                {upcoming.length - 20 > 1 ? "s" : ""}.
               </p>
             ) : null}
           </div>
