@@ -1,7 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import type { Database } from "@/integrations/supabase/types";
-
-type BrevoLogPatch = Database["public"]["Tables"]["brevo_email_log"]["Update"] & {
+type BrevoLogPatch = {
+  last_event_at?: string;
+  status?: string;
+  sent_at?: string;
+  subject?: string | null;
+  delivered_at?: string;
+  open_count?: number;
+  first_opened_at?: string;
+  click_count?: number;
+  first_clicked_at?: string;
+  error_message?: string;
   sender_email?: string | null;
 };
 
