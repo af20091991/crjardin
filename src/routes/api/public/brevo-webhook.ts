@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { Database } from "@/integrations/supabase/types";
 
-type BrevoLogPatch = Database["public"]["Tables"]["brevo_email_log"]["Update"];
+type BrevoLogPatch = Database["public"]["Tables"]["brevo_email_log"]["Update"] & {
+  sender_email?: string | null;
+};
 
 /**
  * Webhook public Brevo : reçoit un événement par appel (request, delivered,
