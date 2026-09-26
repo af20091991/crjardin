@@ -9,7 +9,7 @@ type BrevoLogPatch = Database["public"]["Tables"]["brevo_email_log"]["Update"] &
  * Webhook public Brevo : reçoit un événement par appel (request, delivered,
  * opened, click, hard_bounce, soft_bounce, blocked, spam, invalid_email,
  * deferred, unsubscribed, error) pour les emails envoyés depuis
- * contact@delagraineaujardin.com, et met à jour public.brevo_email_log.
+ * et met à jour public.brevo_email_log.
  *
  * Sécurité : le token partagé BREVO_WEBHOOK_SECRET doit être ajouté en
  * paramètre de requête (?token=...) dans l'URL du webhook configurée côté
