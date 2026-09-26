@@ -1,1 +1,0 @@
-REVOKE EXECUTE ON FUNCTION public.next_intervention_reference() FROM PUBLIC, anon;

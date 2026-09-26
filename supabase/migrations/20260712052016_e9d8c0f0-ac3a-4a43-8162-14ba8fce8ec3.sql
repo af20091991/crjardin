@@ -1,1 +1,0 @@
-ALTER TABLE public.pilot_ca_entries ADD COLUMN IF NOT EXISTS category text;
