@@ -548,7 +548,7 @@ function SstPlanningByPerson({
     .sort((a, b) => (a.intervention_date ?? "").localeCompare(b.intervention_date ?? ""));
 
   const counts = new Map<string, number>();
-  for (const name of ["Chloé", "Fanny", "Angélique", "Lionel"]) {
+  for (const name of INTERVENANTS) {
     counts.set(
       name,
       sheets.filter(
@@ -579,7 +579,7 @@ function SstPlanningByPerson({
           >
             Tous
           </Button>
-          {["Chloé", "Fanny", "Angélique", "Lionel"].map((name) => (
+          {INTERVENANTS.map((name) => (
             <Button
               key={name}
               size="sm"
