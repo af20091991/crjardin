@@ -93,20 +93,13 @@ export interface RecyclingCenter {
   open_now: boolean | null;
 }
 
-function haversine(
-  aLat: number,
-  aLng: number,
-  bLat: number,
-  bLng: number,
-): number {
+function haversine(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const R = 6371;
   const dLat = ((bLat - aLat) * Math.PI) / 180;
   const dLng = ((bLng - aLng) * Math.PI) / 180;
   const s =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((aLat * Math.PI) / 180) *
-    Math.cos((bLat * Math.PI) / 180) *
-    Math.sin(dLng / 2) ** 2;
+    Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
@@ -210,10 +203,7 @@ export interface StaticGardenMapMarkerLayout {
 }
 
 function webMercatorY(lat: number): number {
-  const clampedLat = Math.max(
-    -WEB_MERCATOR_LAT_LIMIT,
-    Math.min(WEB_MERCATOR_LAT_LIMIT, lat),
-  );
+  const clampedLat = Math.max(-WEB_MERCATOR_LAT_LIMIT, Math.min(WEB_MERCATOR_LAT_LIMIT, lat));
   const radians = (clampedLat * Math.PI) / 180;
   return (1 - Math.asinh(Math.tan(radians)) / Math.PI) / 2;
 }
@@ -237,18 +227,13 @@ export function calculateStaticGardenMapViewport(
   const centerLat = (minLat + maxLat) / 2;
   const centerLng = (minLng + maxLng) / 2;
   const xSpan = Math.max((maxLng - minLng) / 360, Number.EPSILON);
-  const ySpan = Math.max(
-    webMercatorY(minLat) - webMercatorY(maxLat),
-    Number.EPSILON,
-  );
+  const ySpan = Math.max(webMercatorY(minLat) - webMercatorY(maxLat), Number.EPSILON);
 
   let zoom = 0;
   for (let candidate = STATIC_MAP_MAX_ZOOM; candidate >= 0; candidate -= 1) {
     const worldPixels = 256 * 2 ** candidate;
-    const fitsWidth =
-      xSpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_WIDTH;
-    const fitsHeight =
-      ySpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_HEIGHT;
+    const fitsWidth = xSpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_WIDTH;
+    const fitsHeight = ySpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_HEIGHT;
     if (fitsWidth && fitsHeight) {
       zoom = candidate;
       break;
@@ -290,13 +275,7 @@ export function calculateStaticGardenMapMarkerLayout(
   // Adapt the minimum separation to the number of badges rather than tuning
   // the layout for one particular worksite.
   const minDistance =
-    anchors.length <= 20
-      ? 28
-      : anchors.length <= 40
-        ? 24
-        : anchors.length <= 80
-          ? 20
-          : 18;
+    anchors.length <= 20 ? 28 : anchors.length <= 40 ? 24 : anchors.length <= 80 ? 20 : 18;
   const edgePadding = Math.max(10, minDistance / 2);
   const positions = anchors.map((point) => ({ x: point.x, y: point.y }));
 
@@ -342,10 +321,7 @@ export function calculateStaticGardenMapMarkerLayout(
         Math.min(height - edgePadding, positions[i].y + dy * strength),
       );
 
-      if (
-        Math.abs(nextX - positions[i].x) > 0.01 ||
-        Math.abs(nextY - positions[i].y) > 0.01
-      ) {
+      if (Math.abs(nextX - positions[i].x) > 0.01 || Math.abs(nextY - positions[i].y) > 0.01) {
         moved = true;
       }
       positions[i] = { x: nextX, y: nextY };
@@ -377,6 +353,7 @@ export function buildStaticGardenMapParams(
     language: "fr",
     center: `${viewport.centerLat},${viewport.centerLng}`,
     zoom: String(viewport.zoom),
+    style: "feature:poi|visibility:off",
   });
 
   params.append("visible", `${lat},${lng}`);
@@ -391,9 +368,7 @@ export function buildStaticGardenMapParams(
 }
 
 export const staticGardenMap = createServerFn({ method: "POST" })
-  .inputValidator(
-    (d: { lat: number; lng: number; markers?: StaticGardenMapMarker[] }) => d,
-  )
+  .inputValidator((d: { lat: number; lng: number; markers?: StaticGardenMapMarker[] }) => d)
   .handler(async ({ data }): Promise<string | null> => {
     const { lat, lng, markers = [] } = data;
 
@@ -402,8 +377,7 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       return null;
     }
 
-    const mapsBrowserKey =
-      import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
+    const mapsBrowserKey = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
 
     if (!mapsBrowserKey) {
       console.error("staticGardenMap: clé Google Maps navigateur indisponible");
@@ -466,9 +440,7 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     }
 
     const base64 =
-      typeof btoa === "function"
-        ? btoa(binary)
-        : Buffer.from(bytes).toString("base64");
+      typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
 
     return `data:${contentType.split(";")[0]};base64,${base64}`;
   });
