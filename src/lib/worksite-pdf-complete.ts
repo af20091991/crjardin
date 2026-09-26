@@ -38,7 +38,7 @@ function formatOpeningDay(value: string): string {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
-export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void> {
+export async function createCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Promise<Blob> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -342,5 +342,21 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
     .replace(/[\\/:*?"<>|]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  doc.save(`${filename || "Fiche chantier"}.pdf`);
+  return doc.output("blob");
+}
+
+export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Promise<void> {
+  const blob = await createCompleteWorksiteSheetPdf(sheet);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  const dateSafe = (sheet.intervention_date ?? "").slice(0, 10);
+  const parts = ["Fiche chantier", sheet.civility?.trim(), sheet.client_name?.trim(), dateSafe]
+    .filter(Boolean)
+    .join(" ");
+  link.download = parts.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim() || "Fiche chantier";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
