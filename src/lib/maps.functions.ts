@@ -379,6 +379,7 @@ export function buildStaticGardenMapParams(
     zoom: String(viewport.zoom),
   });
 
+  // SST PDF contract: satellite imagery must not expose Google POI bubbles as white circles.
   // Satellite imagery can expose Google POI bubbles as white circles. They are
   // not SST markers and must be hidden so the PDF contains only our numbered
   // green badges.
