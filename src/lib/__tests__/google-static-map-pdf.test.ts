@@ -97,6 +97,7 @@ describe("Google Static Maps — export PDF SST", () => {
     const source = readFileSync(new URL("../worksite-pdf-complete.ts", import.meta.url), "utf8");
 
     expect(source).not.toContain("doc.setFillColor(255, 255, 255)");
-    expect(source).toContain("doc.roundedRect");
+    expect(source).toContain("composeGardenMapWithMarkers");
+    expect(source).toContain('context.fillStyle = "#207044"');
   });
 });
