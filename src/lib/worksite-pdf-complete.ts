@@ -302,10 +302,7 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
       ensureSpace(imageH + 4);
       // Les repères sont composés dans la même image raster que la carte.
       // Ils ne dépendent donc plus du moteur de rendu vectoriel de jsPDF.
-      const composedMap = await composeGardenMapWithMarkers(
-        dataUrl,
-        markerLayouts,
-      );
+      const composedMap = await composeGardenMapWithMarkers(dataUrl, markerLayouts);
       doc.addImage(composedMap, "PNG", margin, y, imageW, imageH, undefined, "FAST");
 
       y += imageH + 6;
