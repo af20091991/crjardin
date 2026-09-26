@@ -24,6 +24,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-26",
+    version: "2.3.15",
+    theme: "Général",
+    title: "Calendrier SST — ordre du planning et création de fiche fiabilisée",
+    details: [
+      "Le planning par SST est désormais présenté au-dessus du calendrier pour donner la vue de synthèse avant le détail mensuel.",
+      "La création d'une fiche SST accepte les informations minimales avec normalisation des champs facultatifs et des valeurs de planning.",
+      "Les erreurs de création retournent désormais un message explicite au lieu du simple libellé « Erreur ».",
+    ],
+  },
+
+  {
+    date: "2026-09-26",
     version: "2.3.14",
     theme: "Général",
     title: "Calendrier SST — fiches de planning par sous-traitant",
