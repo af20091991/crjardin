@@ -12,6 +12,80 @@ const GREEN: [number, number, number] = [76, 138, 47];
 const DARK: [number, number, number] = [45, 55, 40];
 const MUTED: [number, number, number] = [120, 120, 110];
 const LIGHT: [number, number, number] = [240, 244, 236];
+async function composeGardenMapWithMarkers(
+  dataUrl: string,
+  markerLayouts: ReturnType<typeof calculateStaticGardenMapMarkerLayout>,
+): Promise<string> {
+  const image = await loadImage(dataUrl);
+  const canvas = document.createElement("canvas");
+  canvas.width = 1280;
+  canvas.height = 1080;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Canvas 2D indisponible pour la carte SST.");
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const scale = 2;
+  context.lineWidth = 3;
+  context.strokeStyle = "#ffffff";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.font = "700 15px Arial, sans-serif";
+
+  markerLayouts.forEach((layout, index) => {
+    const anchorX = layout.anchorX * scale;
+    const anchorY = layout.anchorY * scale;
+    const labelX = layout.labelX * scale;
+    const labelY = layout.labelY * scale;
+    const label = String(index + 1);
+    const badgeW = Math.max(16, (4.8 + label.length * 2.7) * scale);
+    const badgeH = 16;
+
+    if (Math.hypot(labelX - anchorX, labelY - anchorY) > 2) {
+      context.beginPath();
+      context.moveTo(anchorX, anchorY);
+      context.lineTo(labelX, labelY);
+      context.stroke();
+    }
+
+    const radius = 4;
+    const left = labelX - badgeW / 2;
+    const top = labelY - badgeH / 2;
+    context.beginPath();
+    context.moveTo(left + radius, top);
+    context.lineTo(left + badgeW - radius, top);
+    context.quadraticCurveTo(
+      left + badgeW,
+      top,
+      left + badgeW,
+      top + radius,
+    );
+    context.lineTo(left + badgeW, top + badgeH - radius);
+    context.quadraticCurveTo(
+      left + badgeW,
+      top + badgeH,
+      left + badgeW - radius,
+      top + badgeH,
+    );
+    context.lineTo(left + radius, top + badgeH);
+    context.quadraticCurveTo(
+      left,
+      top + badgeH,
+      left,
+      top + badgeH - radius,
+    );
+    context.lineTo(left, top + radius);
+    context.quadraticCurveTo(left, top, left + radius, top);
+    context.closePath();
+    context.fillStyle = "#207044";
+    context.fill();
+    context.stroke();
+    context.fillStyle = "#ffffff";
+    context.fillText(label, labelX, labelY + 0.5);
+  });
+
+  return canvas.toDataURL("image/png");
+}
+
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -205,11 +279,22 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
     section("Plan jardin (vue aérienne)");
 
     try {
+      const validMarkers = sheet.garden_markers.filter(
+        (marker) => Number.isFinite(marker.lat) && Number.isFinite(marker.lng),
+      );
+      const markerLayouts = calculateStaticGardenMapMarkerLayout(
+        sheet.latitude,
+        sheet.longitude,
+        validMarkers.map((marker) => ({
+          lat: marker.lat,
+          lng: marker.lng,
+        })),
+      );
       const dataUrl = await staticGardenMap({
         data: {
           lat: sheet.latitude,
           lng: sheet.longitude,
-          markers: sheet.garden_markers.map((marker) => ({
+          markers: validMarkers.map((marker) => ({
             lat: marker.lat,
             lng: marker.lng,
           })),
@@ -225,45 +310,22 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
       const imageH = (imageW * 540) / 640;
 
       ensureSpace(imageH + 4);
-      doc.addImage(dataUrl, "PNG", margin, y, imageW, imageH, undefined, "FAST");
-
-      // Les coordonnées restent exactes, mais les badges sont décalés autour
-      // des groupes denses afin que chaque repère soit lisible. Un trait fin
-      // relie chaque badge à son emplacement géographique réel.
-      const markerLayouts = calculateStaticGardenMapMarkerLayout(
-        sheet.latitude,
-        sheet.longitude,
-        sheet.garden_markers.map((marker) => ({
-          lat: marker.lat,
-          lng: marker.lng,
-        })),
-      );
-      const pxToMmX = imageW / 640;
-      const pxToMmY = imageH / 540;
-
-      doc.setLineWidth(0.35);
-      doc.setDrawColor(76, 138, 47);
-      doc.setFillColor(76, 138, 47);
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.5);
-
-      markerLayouts.forEach((layout, index) => {
-        const anchorX = margin + layout.anchorX * pxToMmX;
-        const anchorY = y + layout.anchorY * pxToMmY;
-        const labelX = margin + layout.labelX * pxToMmX;
-        const labelY = y + layout.labelY * pxToMmY;
-
-        if (Math.hypot(layout.labelX - layout.anchorX, layout.labelY - layout.anchorY) > 1) {
-          // Le point géographique réel reste matérialisé en vert : aucune
-          // pastille blanche ne doit pouvoir être confondue avec un repère.
-          doc.line(anchorX, anchorY, labelX, labelY);
-        }
-
-        doc.circle(labelX, labelY, 4.1, "F");
-        doc.setTextColor(255, 255, 255);
-        doc.text(String(index + 1), labelX, labelY + 2.1, { align: "center" });
-      });
+      // Les repères sont composés dans la même image raster que la carte.
+      // Ils ne dépendent donc plus du moteur de rendu vectoriel de jsPDF.
+      const composedMap = await composeGardenMapWithMarkers(
+      dataUrl,
+      markerLayouts,
+    );
+      doc.addImage(
+      composedMap,
+      "PNG",
+      margin,
+      y,
+      imageW,
+      imageH,
+      undefined,
+      "FAST",
+    );
 
       y += imageH + 6;
     } catch (error) {
