@@ -187,6 +187,23 @@ function CalendrierSstPage() {
   const grid = useMemo(() => monthGridDates(cursor.year, cursor.month), [cursor]);
   const monthRange = monthWindow(cursor.year, cursor.month);
   const tone = toneClasses(preferences.tone);
+  const byPlanningDate = useMemo(() => {
+    const map = new Map<string, WorksiteSheet[]>();
+    for (const sheet of planningSheets) {
+      if (!sheet.intervention_date) continue;
+      const list = map.get(sheet.intervention_date) ?? [];
+      list.push(sheet);
+      map.set(sheet.intervention_date, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => {
+        const aStatus = a.planning_status === "validated" ? 0 : 1;
+        const bStatus = b.planning_status === "validated" ? 0 : 1;
+        return aStatus - bStatus || (a.client_name ?? "").localeCompare(b.client_name ?? "", "fr");
+      });
+    }
+    return map;
+  }, [planningSheets]);
 
   const invalidate = () =>
     Promise.all([
@@ -308,8 +325,12 @@ function CalendrierSstPage() {
         </div>
 
         <div className="flex items-center justify-between border-b border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground sm:px-4">
-          <span>
-            {monthCount} disponibilité{monthCount > 1 ? "s" : ""} ce mois
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{monthCount} disponibilité{monthCount > 1 ? "s" : ""}</span>
+            <span className="inline-flex items-center gap-1">
+              <ClipboardCheck className="h-3.5 w-3.5 text-primary" />
+              {monthPlanningCount} chantier{monthPlanningCount > 1 ? "s" : ""} programmé{monthPlanningCount > 1 ? "s" : ""}
+            </span>
           </span>
           {isAdmin ? (
             <RecentUpdates
@@ -424,6 +445,9 @@ function CalendrierSstPage() {
                                   setSelectedDate(iso);
                                 }}
                               />
+                            ))}
+                            {(byPlanningDate.get(iso) ?? []).map((sheet) => (
+                              <WorksitePlanningChip key={sheet.id} sheet={sheet} />
                             ))}
                           </span>
                         </div>
