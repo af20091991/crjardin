@@ -17,7 +17,7 @@ export interface BrevoEmailLogEntry {
   last_event_at: string;
 }
 
-/** Admin-only: historique des emails envoyés via Brevo depuis contact@delagraineaujardin.com. */
+/** Admin-only : historique des emails envoyés via Brevo. */
 export const listBrevoEmailLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -38,5 +38,5 @@ export const listBrevoEmailLog = createServerFn({ method: "GET" })
       .limit(500);
     if (error) throw error;
 
-    return (data ?? []) as BrevoEmailLogEntry[];
+    return (data ?? []) as unknown as BrevoEmailLogEntry[];
   });
