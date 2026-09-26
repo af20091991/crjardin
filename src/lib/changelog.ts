@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-26",
+    version: "2.3.11",
+    theme: "Général",
+    title: "Suivi des emails PP recentré",
+    details: [
+      "Suppression de l'onglet de suivi des emails envoyés via Brevo : ce suivi n'est plus utilisé.",
+      "Le suivi des comptes-rendus et des emails envoyés directement depuis Pilot Pro est conservé.",
+    ],
+  },
+  {
     date: "2026-09-25",
     version: "2.3.10",
     theme: "Général",
