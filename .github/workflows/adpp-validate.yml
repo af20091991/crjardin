@@ -52,6 +52,11 @@ jobs:
       - name: Install dependencies from locked Bun graph
         run: bun ci
 
+      - name: Probe Prettier output for SST map
+        run: |
+          bunx prettier --write src/lib/maps.functions.ts
+          git diff -- src/lib/maps.functions.ts
+
       - name: Check protected files
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
