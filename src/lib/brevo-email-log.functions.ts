@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export interface BrevoEmailLogEntry {
   message_id: string;
+  sender_email: string | null;
   recipient_email: string;
   subject: string | null;
   status: string;
@@ -16,7 +17,7 @@ export interface BrevoEmailLogEntry {
   last_event_at: string;
 }
 
-/** Admin-only: historique des emails envoyés via Brevo depuis contact@delagraineaujardin.com. */
+/** Admin-only : historique des emails envoyés via Brevo. */
 export const listBrevoEmailLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -28,14 +29,44 @@ export const listBrevoEmailLog = createServerFn({ method: "GET" })
     if (!isAdmin) throw new Response("Forbidden", { status: 403 });
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
+    const fullQuery = () =>
+      supabaseAdmin
+        .from("brevo_email_log")
+        .select(
+          "message_id, sender_email, recipient_email, subject, status, sent_at, delivered_at, first_opened_at, open_count, first_clicked_at, click_count, error_message, last_event_at",
+        )
+        .order("sent_at", { ascending: false })
+        .limit(500);
+
+    const { data, error } = await fullQuery();
+
+    if (!error) {
+      return (data ?? []) as unknown as BrevoEmailLogEntry[];
+    }
+
+    // Compatibility fallback for an older production schema where the
+    // status column is not yet visible to PostgREST. The previous query
+    // shape is known to work and status can be reconstructed from events.
+    const { data: legacyData, error: legacyError } = await supabaseAdmin
       .from("brevo_email_log")
       .select(
-        "message_id, recipient_email, subject, status, sent_at, delivered_at, first_opened_at, open_count, first_clicked_at, click_count, error_message, last_event_at",
+        "message_id, sender_email, recipient_email, subject, sent_at, delivered_at, first_opened_at, open_count, first_clicked_at, click_count, error_message, last_event_at",
       )
-      .order("last_event_at", { ascending: false })
+      .order("sent_at", { ascending: false })
       .limit(500);
-    if (error) throw error;
 
-    return (data ?? []) as BrevoEmailLogEntry[];
+    if (legacyError) throw error;
+
+    return (legacyData ?? []).map((row) => ({
+      ...row,
+      status: row.error_message
+        ? "error"
+        : row.first_clicked_at
+          ? "clicked"
+          : row.first_opened_at
+            ? "opened"
+            : row.delivered_at
+              ? "delivered"
+              : "sent",
+    })) as unknown as BrevoEmailLogEntry[];
   });
