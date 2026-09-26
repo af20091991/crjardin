@@ -193,7 +193,7 @@ export async function createWorksiteSheet(input: WorksiteSheetInput): Promise<Wo
         ? null
         : Number(input.estimated_hours),
     required_people: Math.max(1, Number(input.required_people) || 1),
-    planning_status:\n      input.planning_status === "validated" ? "validated" : "draft",
+    planning_status: input.planning_status === "validated" ? "validated" : "draft",
     client_present: input.client_present ?? null,
     green_waste: input.green_waste ?? null,
     equipment: input.equipment ?? [],
