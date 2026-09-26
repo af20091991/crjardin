@@ -297,11 +297,10 @@ function CalendrierSstPage() {
         onSelectSst={setSelectedSstPlanning}
         isAdmin={isAdmin}
         onValidate={(id) => validatePlanning.mutate(id)}
-        validatingId={
-          validatePlanning.isPending ? (validatePlanning.variables ?? null) : null
-        }
+        validatingId={validatePlanning.isPending ? (validatePlanning.variables ?? null) : null}
         loading={isLoadingWorksites}
       />
+
 
       <section className="w-full overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-3 sm:px-5">
