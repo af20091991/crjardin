@@ -100,4 +100,29 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(source).not.toContain("doc.setFillColor(255, 255, 255)");
     expect(source).toContain("labelX, labelY, 4.1");
   });
+
+  test("réaffirme le vert avant CHAQUE badge (pas seulement avant la boucle)", () => {
+    // Régression : en PDF, setFillColor() et setTextColor() partagent le même
+    // état de couleur de remplissage. Si le vert n'est réaffirmé qu'une seule
+    // fois avant la boucle, le blanc du chiffre du badge N "fuit" sur le
+    // disque du badge N+1 (qui se peint alors en blanc, chiffre invisible),
+    // et l'effet se propage à tous les badges suivants. Un seul appel
+    // `setFillColor(76, 138, 47)` situé AVANT `markerLayouts.forEach` ne
+    // suffit donc pas : il en faut un second, à l'intérieur de la boucle,
+    // juste avant `doc.circle(...)`.
+    const source = readFileSync(new URL("../worksite-pdf-complete.ts", import.meta.url), "utf8");
+
+    const forEachIndex = source.indexOf("markerLayouts.forEach");
+    expect(forEachIndex).toBeGreaterThan(-1);
+    const loopBody = source.slice(forEachIndex);
+
+    const circleIndex = loopBody.indexOf("doc.circle(labelX, labelY, 4.1");
+    expect(circleIndex).toBeGreaterThan(-1);
+
+    // Le vert doit être réaffirmé À L'INTÉRIEUR du corps de la boucle,
+    // juste avant l'appel à doc.circle — pas seulement une fois avant
+    // markerLayouts.forEach(...).
+    const beforeCircle = loopBody.slice(0, circleIndex);
+    expect(beforeCircle).toContain("doc.setFillColor(76, 138, 47)");
+  });
 });

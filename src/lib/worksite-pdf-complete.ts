@@ -3,10 +3,7 @@ import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 import type { WorksiteSheet } from "@/lib/worksite";
 import { worksitePhotoUrl } from "@/lib/worksite";
-import {
-  calculateStaticGardenMapMarkerLayout,
-  staticGardenMap,
-} from "@/lib/maps.functions";
+import { calculateStaticGardenMapMarkerLayout, staticGardenMap } from "@/lib/maps.functions";
 import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
 const GREEN: [number, number, number] = [76, 138, 47];
 const DARK: [number, number, number] = [45, 55, 40];
@@ -260,6 +257,19 @@ export async function exportCompleteWorksiteSheetPdf(sheet: WorksiteSheet): Prom
           doc.line(anchorX, anchorY, labelX, labelY);
         }
 
+        // BUG CRITIQUE (repères blancs sans numéro à partir du 2e badge) :
+        // en PDF, setFillColor() et setTextColor() pilotent le même état de
+        // couleur de remplissage ("non-stroking color"). setFillColor()
+        // écrit son opérateur immédiatement dans le flux, mais setTextColor()
+        // n'écrit le sien qu'au moment de doc.text(), et cet opérateur reste
+        // actif pour tous les dessins suivants (BT/ET ne réinitialise rien).
+        // Résultat : le blanc du chiffre du badge précédent "fuit" sur le
+        // disque vert du badge suivant, qui se peint alors en blanc — puis
+        // son propre chiffre, blanc sur blanc, devient invisible. L'effet
+        // se propage en cascade à tous les badges après le premier.
+        // Il faut donc réaffirmer le vert AVANT CHAQUE cercle, pas une seule
+        // fois avant la boucle.
+        doc.setFillColor(76, 138, 47);
         doc.circle(labelX, labelY, 4.1, "F");
         doc.setTextColor(255, 255, 255);
         doc.text(String(index + 1), labelX, labelY + 2.1, { align: "center" });
