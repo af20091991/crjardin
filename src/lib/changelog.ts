@@ -24,6 +24,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-26",
+    version: "2.3.14",
+    theme: "Général",
+    title: "Calendrier SST — fiches de planning par sous-traitant",
+    details: [
+      "Chaque SST dispose d'une vue dédiée de ses chantiers à venir, avec les personnes nécessaires, le temps estimé, l'adresse et le statut du planning.",
+      "Des indicateurs distinguent immédiatement les chantiers validés de ceux qui restent à confirmer, avec un filtre dédié.",
+      "La vue « Tous » conserve une vision globale et permet de passer rapidement d'une fiche SST à l'autre sans alourdir le calendrier mensuel.",
+    ],
+  },
+
+  {
+    date: "2026-09-26",
     version: "2.3.13",
     theme: "Compte-rendus",
     title: "Calendrier SST — planning plus lisible par chantier et par SST",
