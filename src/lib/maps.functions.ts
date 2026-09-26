@@ -7,7 +7,9 @@ const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
 function headers(extra?: Record<string, string>) {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!lovableKey || !mapsKey) throw new Error("Connecteur Google Maps indisponible");
+  if (!lovableKey || !mapsKey) {
+    throw new Error("Connecteur Google Maps indisponible");
+  }
   return {
     Authorization: `Bearer ${lovableKey}`,
     "X-Connection-Api-Key": mapsKey,
@@ -36,7 +38,9 @@ export const placeAutocomplete = createServerFn({ method: "POST" })
       return [];
     }
     const json = (await res.json()) as {
-      suggestions?: { placePrediction?: { placeId?: string; text?: { text?: string } } }[];
+      suggestions?: {
+        placePrediction?: { placeId?: string; text?: { text?: string } };
+      }[];
     };
     return (json.suggestions ?? [])
       .map((s) => s.placePrediction)
@@ -89,13 +93,20 @@ export interface RecyclingCenter {
   open_now: boolean | null;
 }
 
-function haversine(aLat: number, aLng: number, bLat: number, bLng: number): number {
+function haversine(
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number,
+): number {
   const R = 6371;
   const dLat = ((bLat - aLat) * Math.PI) / 180;
   const dLng = ((bLng - aLng) * Math.PI) / 180;
   const s =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    Math.cos((aLat * Math.PI) / 180) *
+    Math.cos((bLat * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
 }
 
@@ -225,10 +236,7 @@ export function calculateStaticGardenMapViewport(
 
   const centerLat = (minLat + maxLat) / 2;
   const centerLng = (minLng + maxLng) / 2;
-  const xSpan = Math.max(
-    (maxLng - minLng) / 360,
-    Number.EPSILON,
-  );
+  const xSpan = Math.max((maxLng - minLng) / 360, Number.EPSILON);
   const ySpan = Math.max(
     webMercatorY(minLat) - webMercatorY(maxLat),
     Number.EPSILON,
@@ -237,8 +245,10 @@ export function calculateStaticGardenMapViewport(
   let zoom = 0;
   for (let candidate = STATIC_MAP_MAX_ZOOM; candidate >= 0; candidate -= 1) {
     const worldPixels = 256 * 2 ** candidate;
-    const fitsWidth = xSpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_WIDTH;
-    const fitsHeight = ySpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_HEIGHT;
+    const fitsWidth =
+      xSpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_WIDTH;
+    const fitsHeight =
+      ySpan * worldPixels * STATIC_MAP_PADDING <= STATIC_MAP_HEIGHT;
     if (fitsWidth && fitsHeight) {
       zoom = candidate;
       break;
@@ -363,7 +373,7 @@ export function buildStaticGardenMapParams(
     size: `${STATIC_MAP_WIDTH}x${STATIC_MAP_HEIGHT}`,
     scale: "2",
     format: "png",
-    maptype: "hybrid",
+    maptype: "satellite",
     language: "fr",
     center: `${viewport.centerLat},${viewport.centerLng}`,
     zoom: String(viewport.zoom),
@@ -374,28 +384,16 @@ export function buildStaticGardenMapParams(
     params.append("visible", `${marker.lat},${marker.lng}`);
   });
 
-  // Les repères jardin sont rendus nativement par Google en vert.
-  // Le PDF superpose ensuite ses badges numérotés pour gérer les
-  // chevauchements. Le rendu natif garantit qu'aucun repère ne peut
-  // apparaître comme une pastille blanche lorsque le badge est déplacé.
-  markers.forEach((marker, index) => {
-    const label =
-      index < 9
-        ? String(index + 1)
-        : String.fromCharCode(65 + ((index - 9) % 26));
-    params.append(
-      "markers",
-      `size:mid|color:0x3fa73c|label:${label}|${marker.lat},${marker.lng}`,
-    );
-  });
-
-  // Le chantier lui-même reste distinct en vert foncé.
-  params.append("markers", `size:mid|color:0x1f6f2a|${lat},${lng}`);
+  // Aucun marqueur natif Google : les repères SST sont dessinés
+  // exclusivement par le PDF, ce qui garantit un badge vert numéroté
+  // pour chaque repère et supprime les doublons/pastilles blanches.
   return params;
 }
 
 export const staticGardenMap = createServerFn({ method: "POST" })
-  .inputValidator((d: { lat: number; lng: number; markers?: StaticGardenMapMarker[] }) => d)
+  .inputValidator(
+    (d: { lat: number; lng: number; markers?: StaticGardenMapMarker[] }) => d,
+  )
   .handler(async ({ data }): Promise<string | null> => {
     const { lat, lng, markers = [] } = data;
 
@@ -404,7 +402,8 @@ export const staticGardenMap = createServerFn({ method: "POST" })
       return null;
     }
 
-    const mapsBrowserKey = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
+    const mapsBrowserKey =
+      import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
 
     if (!mapsBrowserKey) {
       console.error("staticGardenMap: clé Google Maps navigateur indisponible");
@@ -467,7 +466,9 @@ export const staticGardenMap = createServerFn({ method: "POST" })
     }
 
     const base64 =
-      typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
+      typeof btoa === "function"
+        ? btoa(binary)
+        : Buffer.from(bytes).toString("base64");
 
     return `data:${contentType.split(";")[0]};base64,${base64}`;
   });

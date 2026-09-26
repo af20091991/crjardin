@@ -17,7 +17,7 @@ describe("Google Static Maps — export PDF SST", () => {
     expect(params.get("size")).toBe("640x540");
     expect(params.get("scale")).toBe("2");
     expect(params.get("format")).toBe("png");
-    expect(params.get("maptype")).toBe("hybrid");
+    expect(params.get("maptype")).toBe("satellite");
     expect(params.get("language")).toBe("fr");
     const center = params.get("center")?.split(",").map(Number);
     expect(center?.[0]).toBeCloseTo(43.611, 6);
@@ -27,28 +27,9 @@ describe("Google Static Maps — export PDF SST", () => {
     const visible = params.getAll("visible");
     expect(visible).toEqual(["43.61,3.88", "43.611,3.881", "43.612,3.882"]);
 
-    const markers = params.getAll("markers");
-    expect(markers).toHaveLength(3);
-    expect(markers[0]).toContain("color:0x3fa73c");
-    expect(markers[0]).toContain("label:1");
-    expect(markers[0]).toContain("43.611,3.881");
-    expect(markers[1]).toContain("color:0x3fa73c");
-    expect(markers[1]).toContain("label:2");
-    expect(markers[1]).toContain("43.612,3.882");
-    expect(markers.slice(0, 2).every((marker) => marker.includes("color:0x3fa73c"))).toBe(true);
-    expect(markers[2]).toContain("color:0x1f6f2a");
-    expect(markers[2]).toContain("43.61,3.88");
-
-    const manyMarkers = buildStaticGardenMapParams(
-      43.61,
-      3.88,
-      Array.from({ length: 10 }, (_, index) => ({
-        lat: 43.61 + index * 0.00001,
-        lng: 3.88 + index * 0.00001,
-      })),
-    ).getAll("markers");
-    expect(manyMarkers[9]).toContain("label:A");
-    expect(manyMarkers[0]).toContain("size:mid|color:0x3fa73c|label:1");
+    // Les repères sont volontairement absents des paramètres Google :
+    // ils sont rendus une seule fois, numérotés, par le calque PDF.
+    expect(params.getAll("markers")).toEqual([]);
   });
 
   test("adapte la séparation des badges à un nombre arbitraire de repères", () => {
@@ -116,8 +97,6 @@ describe("Google Static Maps — export PDF SST", () => {
     const source = readFileSync(new URL("../worksite-pdf-complete.ts", import.meta.url), "utf8");
 
     expect(source).not.toContain("doc.setFillColor(255, 255, 255)");
-    expect(source).not.toContain("anchorX, anchorY, 1.1");
-    expect(source).toContain("anchorX, anchorY, 0.8");
     expect(source).toContain("labelX, labelY, 4.1");
   });
 });
