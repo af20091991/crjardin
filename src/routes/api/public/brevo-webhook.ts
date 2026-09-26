@@ -17,6 +17,7 @@ type BrevoLogPatch = Database["public"]["Tables"]["brevo_email_log"]["Update"];
 interface BrevoEvent {
   event: string;
   email?: string;
+  sender_email?: string;
   ["message-id"]?: string;
   subject?: string;
   date?: string;
@@ -58,6 +59,7 @@ export const Route = createFileRoute("/api/public/brevo-webhook")({
 
         const messageId = payload["message-id"];
         const email = payload.email?.toLowerCase();
+        const senderEmail = payload.sender_email?.toLowerCase();
         if (!messageId || !email) {
           // Rien à rattacher (ex: événement de test Brevo sans message-id) — on acquitte quand même.
           return ok();
@@ -76,6 +78,7 @@ export const Route = createFileRoute("/api/public/brevo-webhook")({
             .maybeSingle();
 
           const patch: BrevoLogPatch = { last_event_at: now };
+          if (senderEmail) patch.sender_email = senderEmail;
 
           switch (payload.event) {
             case "request":
@@ -131,6 +134,7 @@ export const Route = createFileRoute("/api/public/brevo-webhook")({
             const { error } = await supabaseAdmin.from("brevo_email_log").insert({
               message_id: messageId,
               recipient_email: email,
+              sender_email: senderEmail ?? null,
               ...patch,
             });
             if (error) throw error;
