@@ -355,7 +355,7 @@ export async function completeMaintenanceSchedule(
   const { data, error } = await supabase.rpc("complete_equipment_maintenance", {
     p_schedule_id: scheduleId,
     p_maintenance_date: maintenanceDate,
-    p_cost: cost ?? null,
+    p_cost: cost ?? undefined,
   });
   if (error) throw error;
 
