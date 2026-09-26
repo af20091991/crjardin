@@ -1266,6 +1266,8 @@ export type Database = {
           message_id: string;
           open_count: number;
           recipient_email: string;
+          sender_email?: string | null;
+          sender_email: string | null;
           sent_at: string | null;
           status: string;
           subject: string | null;
@@ -1296,6 +1298,7 @@ export type Database = {
           message_id?: string;
           open_count?: number;
           recipient_email?: string;
+          sender_email?: string | null;
           sent_at?: string | null;
           status?: string;
           subject?: string | null;
