@@ -563,45 +563,83 @@ function SstPlanningByPerson({
   loading: boolean;
 }) {
   const today = isoDate(new Date());
-  const upcoming = sheets
-    .filter((sheet) => {
-      if (!sheet.intervention_date || sheet.intervention_date < today) return false;
-      if (selectedSst === "all") return true;
-      return parseWorksiteIntervenants(sheet.intervenant).includes(selectedSst);
-    })
-    .sort((a, b) => (a.intervention_date ?? "").localeCompare(b.intervention_date ?? ""));
+  const [statusFilter, setStatusFilter] = useState<"all" | "validated" | "draft">("all");
 
-  const remaining = Math.max(0, upcoming.length - 20);
-  const counts = new Map<string, number>();
-  for (const name of INTERVENANTS) {
-    counts.set(
-      name,
+  const upcoming = useMemo(
+    () =>
+      sheets
+        .filter((sheet) => {
+          if (!sheet.intervention_date || sheet.intervention_date < today) return false;
+          if (
+            selectedSst !== "all" &&
+            !parseWorksiteIntervenants(sheet.intervenant).includes(selectedSst)
+          ) {
+            return false;
+          }
+          if (statusFilter !== "all" && sheet.planning_status !== statusFilter) return false;
+          return true;
+        })
+        .sort((a, b) => {
+          const dateCompare = (a.intervention_date ?? "").localeCompare(b.intervention_date ?? "");
+          if (dateCompare !== 0) return dateCompare;
+          return (a.client_name ?? "").localeCompare(b.client_name ?? "", "fr");
+        }),
+    [sheets, selectedSst, statusFilter, today],
+  );
+
+  const allUpcoming = useMemo(
+    () =>
       sheets.filter(
         (sheet) =>
           sheet.intervention_date &&
           sheet.intervention_date >= today &&
-          parseWorksiteIntervenants(sheet.intervenant).includes(name),
-      ).length,
-    );
-  }
+          (selectedSst === "all" ||
+            parseWorksiteIntervenants(sheet.intervenant).includes(selectedSst)),
+      ),
+    [sheets, selectedSst, today],
+  );
 
-  const remainingText =
-    remaining > 1
-      ? `${remaining} autres chantiers programmés.`
-      : `${remaining} autre chantier programmé.`;
+  const counts = useMemo(() => {
+    const map = new Map<string, { total: number; validated: number; draft: number; hours: number }>();
+    for (const name of INTERVENANTS) {
+      const assigned = sheets.filter(
+        (sheet) =>
+          sheet.intervention_date &&
+          sheet.intervention_date >= today &&
+          parseWorksiteIntervenants(sheet.intervenant).includes(name),
+      );
+      map.set(name, {
+        total: assigned.length,
+        validated: assigned.filter((sheet) => sheet.planning_status === "validated").length,
+        draft: assigned.filter((sheet) => sheet.planning_status !== "validated").length,
+        hours: assigned.reduce((sum, sheet) => sum + (Number(sheet.estimated_hours) || 0), 0),
+      });
+    }
+    return map;
+  }, [sheets, today]);
+
+  const selectedLabel = selectedSst === "all" ? "Tous les SST" : selectedSst;
+  const totalHours = allUpcoming.reduce(
+    (sum, sheet) => sum + (Number(sheet.estimated_hours) || 0),
+    0,
+  );
+  const validatedCount = allUpcoming.filter((sheet) => sheet.planning_status === "validated").length;
+  const draftCount = allUpcoming.length - validatedCount;
 
   return (
     <section className="w-full rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase text-muted-foreground">Organisation</p>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+            Organisation
+          </p>
           <h3 className="font-serif text-xl font-semibold">Planning par SST</h3>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Une vue simple pour savoir immédiatement quels chantiers sont prévus pour chaque SST,
-            combien de personnes sont nécessaires, le temps estimé et si le planning est validé.
+            Une fiche de planning par sous-traitant pour voir immédiatement les chantiers à venir,
+            le nombre de personnes, le temps estimé et ce qui est déjà validé.
           </p>
         </div>
-        <div className="flex items-center gap-1.5 rounded-md border bg-muted/20 p-1">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-md border bg-muted/20 p-1">
           <Button
             size="sm"
             variant={selectedSst === "all" ? "default" : "ghost"}
@@ -609,21 +647,63 @@ function SstPlanningByPerson({
           >
             Tous
           </Button>
-          {INTERVENANTS.map((name) => (
+          {INTERVENANTS.map((name) => {
+            const count = counts.get(name);
+            return (
+              <Button
+                key={name}
+                size="sm"
+                variant={selectedSst === name ? "default" : "ghost"}
+                onClick={() => onSelectSst(name)}
+                title={`${count?.validated ?? 0} validé(s), ${count?.draft ?? 0} à confirmer`}
+              >
+                {name}
+                <span className="ml-1 text-[10px] opacity-70">{count?.total ?? 0}</span>
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-4">
+        <PlanningSummary label="Chantiers à venir" value={String(allUpcoming.length)} />
+        <PlanningSummary label="Planning validé" value={String(validatedCount)} tone="success" />
+        <PlanningSummary label="À confirmer" value={String(draftCount)} tone="warning" />
+        <PlanningSummary
+          label="Temps estimé"
+          value={totalHours ? `${totalHours.toLocaleString("fr-FR")} h` : "—"}
+        />
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
+        <div>
+          <p className="text-sm font-semibold">{selectedLabel}</p>
+          <p className="text-xs text-muted-foreground">
+            Cliquez sur un SST pour ouvrir sa fiche de planning.
+          </p>
+        </div>
+        <div className="flex items-center gap-1 rounded-md border bg-background p-1">
+          {(
+            [
+              ["all", "Tous"],
+              ["validated", "Validés"],
+              ["draft", "À confirmer"],
+            ] as const
+          ).map(([value, label]) => (
             <Button
-              key={name}
+              key={value}
               size="sm"
-              variant={selectedSst === name ? "default" : "ghost"}
-              onClick={() => onSelectSst(name)}
+              variant={statusFilter === value ? "secondary" : "ghost"}
+              className="h-7 px-2.5 text-xs"
+              onClick={() => setStatusFilter(value)}
             >
-              {name}
-              <span className="ml-1 text-[10px] opacity-70">{counts.get(name) ?? 0}</span>
+              {label}
             </Button>
           ))}
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-3">
         {loading ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             Chargement des chantiers…
@@ -631,76 +711,102 @@ function SstPlanningByPerson({
         ) : upcoming.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6 text-center">
             <ClipboardCheck className="mx-auto h-5 w-5 text-muted-foreground" />
-            <p className="mt-2 text-sm font-medium">Aucun chantier programmé</p>
+            <p className="mt-2 text-sm font-medium">Aucun chantier correspondant</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Les fiches SST datées à venir apparaîtront ici.
+              Aucun chantier à venir ne correspond à cette sélection.
             </p>
           </div>
         ) : (
-          <div className="grid gap-2">
-            {upcoming.slice(0, 20).map((sheet) => {
+          <div className="space-y-2">
+            {upcoming.map((sheet) => {
               const people = parseWorksiteIntervenants(sheet.intervenant);
               const dateLabel = sheet.intervention_date
                 ? shortDateLabel(sheet.intervention_date)
                 : "Date à définir";
               const peopleName = people.length ? people.join(" + ") : "SST à définir";
-              const peopleCount = `${sheet.required_people} personne${sheet.required_people > 1 ? "s" : ""}`;
-              const peopleLabel = `${peopleName} · ${peopleCount}`;
+              const peopleLabel = `${peopleName} · ${sheet.required_people} personne${sheet.required_people > 1 ? "s" : ""}`;
               const hoursLabel =
                 sheet.estimated_hours != null
-                  ? ` · ${Number(sheet.estimated_hours).toLocaleString("fr-FR")} h estimées`
-                  : " · durée non renseignée";
+                  ? `${Number(sheet.estimated_hours).toLocaleString("fr-FR")} h estimées`
+                  : "Durée non renseignée";
+
               return (
                 <div
                   key={sheet.id}
-                  className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5"
+                  className="rounded-lg border border-border bg-background px-3 py-2.5"
                 >
-                  <div className="w-24 shrink-0 text-xs tabular-nums text-muted-foreground">
-                    {dateLabel}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{sheet.client_name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {peopleLabel}
-                      {hoursLabel}
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium",
-                      sheet.planning_status === "validated"
-                        ? "bg-primary/10 text-primary"
-                        : "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200",
-                    )}
-                  >
-                    {sheet.planning_status === "validated" ? (
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                    ) : (
-                      <Clock3 className="h-3.5 w-3.5" />
-                    )}
-                    {sheet.planning_status === "validated" ? "Validé" : "À confirmer"}
-                  </span>
-                  {isAdmin && sheet.planning_status !== "validated" ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={validatingId === sheet.id}
-                      onClick={() => onValidate(sheet.id)}
+                  <div className="flex flex-wrap items-start gap-3">
+                    <div className="w-24 shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {dateLabel}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{sheet.client_name}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {peopleLabel} · {hoursLabel}
+                      </p>
+                      {sheet.address ? (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {sheet.address}
+                        </p>
+                      ) : null}
+                    </div>
+                    <span
+                      className={cn(
+                        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium",
+                        sheet.planning_status === "validated"
+                          ? "bg-primary/10 text-primary"
+                          : "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200",
+                      )}
                     >
-                      <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                      Valider
-                    </Button>
-                  ) : null}
+                      {sheet.planning_status === "validated" ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      ) : (
+                        <Clock3 className="h-3.5 w-3.5" />
+                      )}
+                      {sheet.planning_status === "validated" ? "Validé" : "À confirmer"}
+                    </span>
+                    {isAdmin && sheet.planning_status !== "validated" ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={validatingId === sheet.id}
+                        onClick={() => onValidate(sheet.id)}
+                      >
+                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                        Valider
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               );
             })}
-            {remaining > 0 ? (
-              <p className="pt-1 text-xs text-muted-foreground">{remainingText}</p>
-            ) : null}
           </div>
         )}
       </div>
     </section>
+  );
+}
+
+function PlanningSummary({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  tone?: "neutral" | "success" | "warning";
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border px-3 py-2.5",
+        tone === "success" && "border-primary/25 bg-primary/5",
+        tone === "warning" && "border-amber-300/50 bg-amber-50/60 dark:border-amber-700/50 dark:bg-amber-950/20",
+      )}
+    >
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-base font-semibold tabular-nums">{value}</p>
+    </div>
   );
 }
 
