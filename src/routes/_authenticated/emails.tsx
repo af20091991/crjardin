@@ -27,6 +27,8 @@ import {
   Clock,
   AlertTriangle,
   RefreshCw,
+  Search,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/emails")({
@@ -291,6 +293,8 @@ function brevoStatusVariant(status: string): "default" | "secondary" | "destruct
 
 function BrevoContactEmails() {
   const fetchLog = useServerFn(listBrevoEmailLog);
+  const [senderFilter, setSenderFilter] = useState("all");
+  const [recipientFilter, setRecipientFilter] = useState("");
 
   const { data, isPending, isFetching, refetch, error } = useQuery({
     queryKey: ["brevo-email-log"],
@@ -299,16 +303,87 @@ function BrevoContactEmails() {
 
   const rows: BrevoEmailLogEntry[] = useMemo(() => data ?? [], [data]);
 
+  const senders = useMemo(
+    () =>
+      Array.from(
+        new Set(rows.map((row) => row.sender_email).filter((value): value is string => Boolean(value))),
+      ).sort((a, b) => a.localeCompare(b)),
+    [rows],
+  );
+
+  const filteredRows = useMemo(() => {
+    const recipient = recipientFilter.trim().toLowerCase();
+    return rows.filter((row) => {
+      const senderMatches = senderFilter === "all" || row.sender_email === senderFilter;
+      const recipientMatches =
+        !recipient || row.recipient_email.toLowerCase().includes(recipient);
+      return senderMatches && recipientMatches;
+    });
+  }, [rows, senderFilter, recipientFilter]);
+
+  const hasFilters = senderFilter !== "all" || recipientFilter.trim() !== "";
+
+  const clearFilters = () => {
+    setSenderFilter("all");
+    setRecipientFilter("");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          Suivi de tous les emails envoyés depuis contact@delagraineaujardin.com via Brevo.
+          Suivi des emails envoyés via Brevo, avec filtrage par expéditeur et destinataire.
         </p>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
           <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Actualiser
         </Button>
       </div>
+
+      <Card>
+        <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-end">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <label htmlFor="brevo-sender-filter" className="text-xs font-medium">
+              Expéditeur
+            </label>
+            <select
+              id="brevo-sender-filter"
+              value={senderFilter}
+              onChange={(event) => setSenderFilter(event.target.value)}
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="all">Tous les expéditeurs</option>
+              {senders.map((sender) => (
+                <option key={sender} value={sender}>
+                  {sender}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <label htmlFor="brevo-recipient-filter" className="text-xs font-medium">
+              Destinataire
+            </label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                id="brevo-recipient-filter"
+                type="search"
+                value={recipientFilter}
+                onChange={(event) => setRecipientFilter(event.target.value)}
+                placeholder="Rechercher une adresse…"
+                className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm"
+              />
+            </div>
+          </div>
+
+          {hasFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="mr-2 h-4 w-4" /> Réinitialiser
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {error && (
         <p className="text-sm text-destructive">
@@ -326,11 +401,16 @@ function BrevoContactEmails() {
             <p className="py-16 text-center text-sm text-muted-foreground">
               Aucun e-mail Brevo pour le moment.
             </p>
+          ) : filteredRows.length === 0 ? (
+            <p className="py-16 text-center text-sm text-muted-foreground">
+              Aucun e-mail ne correspond aux filtres sélectionnés.
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Expéditeur</TableHead>
                     <TableHead>Destinataire</TableHead>
                     <TableHead>Sujet</TableHead>
                     <TableHead>Statut</TableHead>
@@ -341,9 +421,10 @@ function BrevoContactEmails() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((r) => (
+                  {filteredRows.map((r) => (
                     <TableRow key={r.message_id}>
-                      <TableCell className="font-medium">{r.recipient_email}</TableCell>
+                      <TableCell className="font-medium">{r.sender_email ?? "—"}</TableCell>
+                      <TableCell>{r.recipient_email}</TableCell>
                       <TableCell className="max-w-xs truncate text-xs">
                         {r.subject ?? "—"}
                       </TableCell>

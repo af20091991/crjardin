@@ -1,13 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
-import type { Database } from "@/integrations/supabase/types";
-
-type BrevoLogPatch = Database["public"]["Tables"]["brevo_email_log"]["Update"];
+type BrevoLogPatch = {
+  last_event_at?: string;
+  status?: string;
+  sent_at?: string;
+  subject?: string | null;
+  delivered_at?: string;
+  open_count?: number;
+  first_opened_at?: string;
+  click_count?: number;
+  first_clicked_at?: string;
+  error_message?: string;
+  sender_email?: string | null;
+};
 
 /**
  * Webhook public Brevo : reçoit un événement par appel (request, delivered,
  * opened, click, hard_bounce, soft_bounce, blocked, spam, invalid_email,
  * deferred, unsubscribed, error) pour les emails envoyés depuis
- * contact@delagraineaujardin.com, et met à jour public.brevo_email_log.
+ * et met à jour public.brevo_email_log.
  *
  * Sécurité : le token partagé BREVO_WEBHOOK_SECRET doit être ajouté en
  * paramètre de requête (?token=...) dans l'URL du webhook configurée côté
@@ -17,6 +27,7 @@ type BrevoLogPatch = Database["public"]["Tables"]["brevo_email_log"]["Update"];
 interface BrevoEvent {
   event: string;
   email?: string;
+  sender_email?: string;
   ["message-id"]?: string;
   subject?: string;
   date?: string;
@@ -58,6 +69,7 @@ export const Route = createFileRoute("/api/public/brevo-webhook")({
 
         const messageId = payload["message-id"];
         const email = payload.email?.toLowerCase();
+        const senderEmail = payload.sender_email?.toLowerCase();
         if (!messageId || !email) {
           // Rien à rattacher (ex: événement de test Brevo sans message-id) — on acquitte quand même.
           return ok();
@@ -76,6 +88,7 @@ export const Route = createFileRoute("/api/public/brevo-webhook")({
             .maybeSingle();
 
           const patch: BrevoLogPatch = { last_event_at: now };
+          if (senderEmail) patch.sender_email = senderEmail;
 
           switch (payload.event) {
             case "request":
@@ -124,15 +137,16 @@ export const Route = createFileRoute("/api/public/brevo-webhook")({
           if (existing) {
             const { error } = await supabaseAdmin
               .from("brevo_email_log")
-              .update(patch)
+              .update(patch as never)
               .eq("message_id", messageId);
             if (error) throw error;
           } else {
             const { error } = await supabaseAdmin.from("brevo_email_log").insert({
               message_id: messageId,
               recipient_email: email,
+              sender_email: senderEmail ?? null,
               ...patch,
-            });
+            } as never);
             if (error) throw error;
           }
         } catch (err) {

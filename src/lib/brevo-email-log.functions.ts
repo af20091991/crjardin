@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export interface BrevoEmailLogEntry {
   message_id: string;
+  sender_email: string | null;
   recipient_email: string;
   subject: string | null;
   status: string;
@@ -16,7 +17,7 @@ export interface BrevoEmailLogEntry {
   last_event_at: string;
 }
 
-/** Admin-only: historique des emails envoyés via Brevo depuis contact@delagraineaujardin.com. */
+/** Admin-only : historique des emails envoyés via Brevo. */
 export const listBrevoEmailLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -31,11 +32,11 @@ export const listBrevoEmailLog = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("brevo_email_log")
       .select(
-        "message_id, recipient_email, subject, status, sent_at, delivered_at, first_opened_at, open_count, first_clicked_at, click_count, error_message, last_event_at",
+        "message_id, sender_email, recipient_email, subject, sent_at, delivered_at, first_opened_at, open_count, first_clicked_at, click_count, error_message, last_event_at",
       )
       .order("last_event_at", { ascending: false })
       .limit(500);
     if (error) throw error;
 
-    return (data ?? []) as BrevoEmailLogEntry[];
+    return (data ?? []) as unknown as BrevoEmailLogEntry[];
   });
