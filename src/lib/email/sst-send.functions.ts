@@ -43,7 +43,7 @@ export const resolveSstRecipientEmails = createServerFn({ method: "POST" })
 
     const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers({
       page: 1,
-      perPage: 200,
+      perPage: 1000,
     });
 
     if (usersError) throw usersError;
