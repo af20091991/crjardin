@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-27",
+    version: "2.3.18",
+    theme: "Général",
+    title: "Site web — veille concurrentielle (remplace Semrush)",
+    details: [
+      "L'intégration Semrush est retirée (add-on payant indisponible) et remplacée par un suivi de concurrents choisis manuellement.",
+      "Pour chaque concurrent ajouté (nom + domaine), une analyse à la demande mesure performance, SEO, accessibilité et bonnes pratiques (Google PageSpeed Insights, gratuit), la validité du certificat SSL et le temps de réponse.",
+    ],
+  },
+
+  {
+    date: "2026-09-27",
     version: "2.3.17",
     theme: "Général",
     title: "Site web — fiabilise la détection des connexions Google expirées",
