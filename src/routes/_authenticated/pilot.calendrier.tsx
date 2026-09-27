@@ -772,9 +772,7 @@ function SstPlanningByPerson({
                     {sheet.required_people > 1 ? "s" : ""} · {hoursLabel}
                   </p>
                   {sheet.address ? (
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {sheet.address}
-                    </p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{sheet.address}</p>
                   ) : null}
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <Button
