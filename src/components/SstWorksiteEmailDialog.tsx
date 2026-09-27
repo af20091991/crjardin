@@ -11,7 +11,10 @@ import type { WorksiteSheet } from "@/lib/worksite";
 import { uploadWorksiteMethodPdf } from "@/lib/worksite";
 import { createCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
-import {\n  resolveSstRecipientEmails,\n  sendSstWorksiteSheetEmail,\n} from "@/lib/email/sst-send.functions";
+import {
+  resolveSstRecipientEmails,
+  sendSstWorksiteSheetEmail,
+} from "@/lib/email/sst-send.functions";
 
 function dateLabel(value: string | null): string {
   if (!value) return "Date non définie";
