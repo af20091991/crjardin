@@ -301,7 +301,6 @@ function CalendrierSstPage() {
         loading={isLoadingWorksites}
       />
 
-
       <section className="w-full overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-3 sm:px-5">
           <div className="min-w-0">
@@ -583,10 +582,7 @@ function SstPlanningByPerson({
       total: assigned.length,
       validated: assigned.filter((sheet) => sheet.planning_status === "validated").length,
       draft: assigned.filter((sheet) => sheet.planning_status !== "validated").length,
-      hours: assigned.reduce(
-        (sum, sheet) => sum + (Number(sheet.estimated_hours) || 0),
-        0,
-      ),
+      hours: assigned.reduce((sum, sheet) => sum + (Number(sheet.estimated_hours) || 0), 0),
     });
   }
 
@@ -594,10 +590,7 @@ function SstPlanningByPerson({
     total: allUpcoming.length,
     validated: allUpcoming.filter((sheet) => sheet.planning_status === "validated").length,
     draft: allUpcoming.filter((sheet) => sheet.planning_status !== "validated").length,
-    hours: allUpcoming.reduce(
-      (sum, sheet) => sum + (Number(sheet.estimated_hours) || 0),
-      0,
-    ),
+    hours: allUpcoming.reduce((sum, sheet) => sum + (Number(sheet.estimated_hours) || 0), 0),
   };
 
   const upcoming = allUpcoming.filter((sheet) => {
@@ -661,9 +654,7 @@ function SstPlanningByPerson({
         })}
       </div>
 
-      <div
-        className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2"
-      >
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
         <div>
           <p className="text-sm font-semibold">{selectedLabel}</p>
           <p className="text-[11px] text-muted-foreground">
@@ -718,10 +709,7 @@ function SstPlanningByPerson({
                   : "Durée non renseignée";
 
               return (
-                <div
-                  key={sheet.id}
-                  className="rounded-lg border border-border bg-background p-3"
-                >
+                <div key={sheet.id} className="rounded-lg border border-border bg-background p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">{dateLabel}</p>
