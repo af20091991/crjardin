@@ -566,35 +566,29 @@ function SstPlanningByPerson({
   const today = isoDate(new Date());
   const [statusFilter, setStatusFilter] = useState<"all" | "validated" | "draft">("all");
 
-  const allUpcoming = useMemo(
-    () =>
-      sheets.filter((sheet) => sheet.intervention_date && sheet.intervention_date >= today),
-    [sheets, today],
-  );
+  const allUpcoming = sheets
+    .filter((sheet) => sheet.intervention_date && sheet.intervention_date >= today)
+    .sort((a, b) => (a.intervention_date ?? "").localeCompare(b.intervention_date ?? ""));
 
-  const counts = useMemo(() => {
-    const map = new Map<
-      string,
-      { total: number; validated: number; draft: number; hours: number }
-    >();
+  const counts = new Map<
+    string,
+    { total: number; validated: number; draft: number; hours: number }
+  >();
 
-    for (const name of INTERVENANTS) {
-      const assigned = allUpcoming.filter((sheet) =>
-        parseWorksiteIntervenants(sheet.intervenant).includes(name),
-      );
-      map.set(name, {
-        total: assigned.length,
-        validated: assigned.filter((sheet) => sheet.planning_status === "validated").length,
-        draft: assigned.filter((sheet) => sheet.planning_status !== "validated").length,
-        hours: assigned.reduce(
-          (sum, sheet) => sum + (Number(sheet.estimated_hours) || 0),
-          0,
-        ),
-      });
-    }
-
-    return map;
-  }, [allUpcoming]);
+  for (const name of INTERVENANTS) {
+    const assigned = allUpcoming.filter((sheet) =>
+      parseWorksiteIntervenants(sheet.intervenant).includes(name),
+    );
+    counts.set(name, {
+      total: assigned.length,
+      validated: assigned.filter((sheet) => sheet.planning_status === "validated").length,
+      draft: assigned.filter((sheet) => sheet.planning_status !== "validated").length,
+      hours: assigned.reduce(
+        (sum, sheet) => sum + (Number(sheet.estimated_hours) || 0),
+        0,
+      ),
+    });
+  }
 
   const allStats = {
     total: allUpcoming.length,
@@ -606,31 +600,16 @@ function SstPlanningByPerson({
     ),
   };
 
-  const upcoming = useMemo(
-    () =>
-      allUpcoming
-        .filter((sheet) => {
-          if (
-            selectedSst !== "all" &&
-            !parseWorksiteIntervenants(sheet.intervenant).includes(selectedSst)
-          ) {
-            return false;
-          }
-          if (statusFilter !== "all" && sheet.planning_status !== statusFilter) {
-            return false;
-          }
-          return true;
-        })
-        .sort((a, b) => {
-          const dateCompare = (a.intervention_date ?? "").localeCompare(
-            b.intervention_date ?? "",
-          );
-          return dateCompare !== 0
-            ? dateCompare
-            : (a.client_name ?? "").localeCompare(b.client_name ?? "", "fr");
-        }),
-    [allUpcoming, selectedSst, statusFilter],
-  );
+  const upcoming = allUpcoming.filter((sheet) => {
+    if (
+      selectedSst !== "all" &&
+      !parseWorksiteIntervenants(sheet.intervenant).includes(selectedSst)
+    ) {
+      return false;
+    }
+    if (statusFilter !== "all" && sheet.planning_status !== statusFilter) return false;
+    return true;
+  });
 
   const selectedLabel = selectedSst === "all" ? "Tous les SST" : selectedSst;
 
@@ -638,9 +617,7 @@ function SstPlanningByPerson({
     <section className="w-full rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase text-muted-foreground">
-            Organisation
-          </p>
+          <p className="text-[11px] font-semibold uppercase text-muted-foreground">Organisation</p>
           <h3 className="font-serif text-xl font-semibold">Planning par SST</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Sélectionnez un SST pour afficher ses chantiers à venir.
@@ -746,9 +723,7 @@ function SstPlanningByPerson({
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">{dateLabel}</p>
-                      <p className="mt-0.5 truncate text-sm font-semibold">
-                        {sheet.client_name}
-                      </p>
+                      <p className="mt-0.5 truncate text-sm font-semibold">{sheet.client_name}</p>
                     </div>
                     <span
                       className={cn(
@@ -771,9 +746,7 @@ function SstPlanningByPerson({
                     {sheet.required_people > 1 ? "s" : ""} · {hoursLabel}
                   </p>
                   {sheet.address ? (
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {sheet.address}
-                    </p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{sheet.address}</p>
                   ) : null}
                   {isAdmin && sheet.planning_status !== "validated" ? (
                     <Button
