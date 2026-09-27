@@ -66,7 +66,7 @@ export const resolveSstRecipientEmails = createServerFn({ method: "POST" })
 
       return {
         name,
-        email: profile ? emailById.get(profile.id) ?? null : null,
+        email: profile ? (emailById.get(profile.id) ?? null) : null,
       };
     });
   });
