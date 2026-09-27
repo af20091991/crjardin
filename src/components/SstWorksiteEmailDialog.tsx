@@ -121,7 +121,9 @@ export function SstWorksiteEmailDialog({ sheet }: { sheet: WorksiteSheet }) {
                       variant={recipient.email ? "secondary" : "destructive"}
                     >
                       {recipient.name}
-                      {recipient.email ? ` · ${recipient.email}` : " · compte prestataire introuvable"}
+                      {recipient.email
+                        ? ` · ${recipient.email}`
+                        : " · compte prestataire introuvable"}
                     </Badge>
                   ))}
               </div>
