@@ -696,9 +696,7 @@ function SstPlanningByPerson({
             </p>
           </div>
         ) : (
-          <div
-            className="grid grid-cols-3 gap-1.5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
-          >
+          <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {upcoming.map((sheet) => {
               const people = parseWorksiteIntervenants(sheet.intervenant);
               const dateLabel = sheet.intervention_date
