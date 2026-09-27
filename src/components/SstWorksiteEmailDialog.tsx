@@ -2,7 +2,13 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2, FileText, Loader2, Mail } from "lucide-react";
@@ -57,17 +63,7 @@ export function SstWorksiteEmailDialog({ sheet }: { sheet: WorksiteSheet }) {
     try {
       const pdfBlob = await createCompleteWorksiteSheetPdf(sheet);
       const pdfUrl = await uploadWorksiteMethodPdf(sheet.id, pdfBlob);
-      const commonData = {
-        clientName: [sheet.civility?.trim(), sheet.client_name?.trim()].filter(Boolean).join(" "),
-        interventionDate: dateLabel(sheet.intervention_date),
-        address: sheet.address?.trim() || "Adresse non renseignée",
-        intervenants: intervenants.join(", "),
-        tasks: sheet.tasks,
-        equipment: sheet.equipment,
-        epi: sheet.epi,
-        notes: sheet.notes?.trim() || "",
-        pdfUrl,
-      };
+      const commonData = {\n        clientName: [sheet.civility?.trim(), sheet.client_name?.trim()]\n          .filter(Boolean)\n          .join(" "),\n        interventionDate: dateLabel(sheet.intervention_date),\n        address: sheet.address?.trim() || "Adresse non renseignée",\n        intervenants: intervenants.join(", "),\n        tasks: sheet.tasks,\n        equipment: sheet.equipment,\n        epi: sheet.epi,\n        notes: sheet.notes?.trim() || "",\n        pdfUrl,\n      };
 
       let sent = 0;
       const failures: string[] = [];
