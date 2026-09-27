@@ -27,14 +27,3 @@ execFileSync("bunx", ["prettier", "--check", ...supported], {
   encoding: "utf8",
   stdio: "inherit",
 });
-// TEMP_FORMAT_DIAGNOSTIC
-execFileSync("bunx", ["prettier", "--write", "src/routes/_authenticated/pilot.calendrier.tsx"], {
-  encoding: "utf8",
-  stdio: "inherit",
-});
-console.log("=== FORMATTED_CALENDAR_START ===");
-execFileSync("cat", ["src/routes/_authenticated/pilot.calendrier.tsx"], {
-  encoding: "utf8",
-  stdio: "inherit",
-});
-console.log("=== FORMATTED_CALENDAR_END ===");
