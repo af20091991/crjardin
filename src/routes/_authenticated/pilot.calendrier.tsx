@@ -567,7 +567,8 @@ function SstPlanningByPerson({
   const [statusFilter, setStatusFilter] = useState<"all" | "validated" | "draft">("all");
 
   const allUpcoming = useMemo(
-    () => sheets.filter((sheet) => sheet.intervention_date && sheet.intervention_date >= today),
+    () =>
+      sheets.filter((sheet) => sheet.intervention_date && sheet.intervention_date >= today),
     [sheets, today],
   );
 
@@ -615,7 +616,7 @@ function SstPlanningByPerson({
           ) {
             return false;
           }
-          if (statusFilter !== "all" && sheet.planning_status !== statusFilter) return false;
+          if (statusFilter !== "all" && sheet.planning_status !== statusFilter) {\n            return false;\n          }
           return true;
         })
         .sort((a, b) => {
