@@ -646,7 +646,7 @@ function SstPlanningByPerson({
             {allStats.hours ? allStats.hours.toLocaleString("fr-FR") + " h" : "—"}
           </div>
         </div>
-  
+
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           <SstPlanningCard
             name="Tous les SST"
@@ -678,7 +678,7 @@ function SstPlanningByPerson({
             );
           })}
         </div>
-  
+
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
           <div>
             <p className="text-sm font-semibold">{selectedLabel}</p>
@@ -706,7 +706,7 @@ function SstPlanningByPerson({
             ))}
           </div>
         </div>
-  
+
         <div className="mt-2">
           {loading ? (
             <p className="py-4 text-center text-sm text-muted-foreground">
@@ -732,7 +732,7 @@ function SstPlanningByPerson({
                   sheet.estimated_hours != null
                     ? Number(sheet.estimated_hours).toLocaleString("fr-FR") + " h"
                     : "Durée non renseignée";
-  
+
                 return (
                   <div
                     key={sheet.id}
