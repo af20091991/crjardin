@@ -134,6 +134,15 @@ export async function listRecentAvailabilities(limit = 5): Promise<SstAvailabili
 }
 
 export async function declareAvailability(date: string, comment: string | null) {
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
+  if (!auth.user) throw new Error("Compte non authentifié.");
+  if (!auth.user.email?.trim()) {
+    throw new Error(
+      "Votre compte SST ne dispose pas d'adresse e-mail. Faites renseigner l'adresse e-mail du compte avant d'ajouter une disponibilité au calendrier SST.",
+    );
+  }
+
   const value = comment?.trim() ? comment.trim() : null;
   const { error } = await supabase
     .from("sst_availability_calendar")

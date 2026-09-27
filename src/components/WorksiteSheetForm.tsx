@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,7 @@ import {
   worksitePhotoUrl,
 } from "@/lib/worksite";
 import { parseWorksiteIntervenants, serializeWorksiteIntervenants } from "@/lib/worksite-sst";
+import { resolveSstRecipientEmails } from "@/lib/email/sst-send.functions";
 import {
   placeAutocomplete,
   geocodeAddress,
@@ -149,10 +151,15 @@ export function WorksiteSheetForm({
   const autocompleteFn = useServerFn(placeAutocomplete);
   const geocodeFn = useServerFn(geocodeAddress);
   const recyclingFn = useServerFn(nearestRecyclingCenter);
+  const resolveSstEmails = useServerFn(resolveSstRecipientEmails);
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [showSug, setShowSug] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [recyLoading, setRecyLoading] = useState(false);
+  const { data: sstDirectory = [], isLoading: sstDirectoryLoading } = useQuery({
+    queryKey: ["sst-email-directory", INTERVENANTS],
+    queryFn: () => resolveSstEmails({ data: { names: [...INTERVENANTS] } }),
+  });
   const sugTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const set = <K extends keyof WorksiteSheetInput>(k: K, v: WorksiteSheetInput[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -295,6 +302,19 @@ function submit() {
       toast.error("Le nom du client est requis");
       return;
     }
+    if (sstDirectoryLoading) {
+      toast.error("Vérification des adresses e-mail SST en cours…");
+      return;
+    }
+    const missingEmail = intervenants.filter(
+      (name) => !sstDirectory.find((entry) => entry.name === name)?.email,
+    );
+    if (missingEmail.length > 0) {
+      toast.error(
+        `Impossible d'enregistrer la fiche : adresse e-mail manquante pour ${missingEmail.join(", ")}.`,
+      );
+      return;
+    }
     onSubmit({
       ...form,
       intervenant: serializeWorksiteIntervenants(intervenants),
@@ -431,6 +451,7 @@ function submit() {
               <div className="flex flex-wrap gap-2 pt-1">
                 {INTERVENANTS.map((n) => {
                   const active = intervenants.includes(n);
+                  const email = sstDirectory.find((entry) => entry.name === n)?.email ?? null;
                   return (
                     <Chip
                       key={n}
@@ -441,13 +462,23 @@ function submit() {
                         )
                       }
                     >
-                      {n}
+                      <span className="flex flex-col items-start leading-tight">
+                        <span>{n}</span>
+                        <span
+                          className={`text-[10px] ${email ? "text-emerald-700" : "text-amber-700"}`}
+                        >
+                          {sstDirectoryLoading ? "Vérification…" : email ? email : "e-mail manquant"}
+                        </span>
+                      </span>
                     </Chip>
                   );
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
                 {intervenants.length} SST sélectionné(s)
+                {!sstDirectoryLoading &&
+                  sstDirectory.some((entry) => !entry.email) &&
+                  " · certains SST n'ont pas d'adresse e-mail de compte"}
               </p>
             </div>
           </div>
