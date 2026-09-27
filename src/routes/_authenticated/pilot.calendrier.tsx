@@ -634,9 +634,7 @@ function SstPlanningByPerson({
     <section className="w-full rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase text-muted-foreground">
-            Organisation
-          </p>
+          <p className="text-[11px] font-semibold uppercase text-muted-foreground">Organisation</p>
           <h3 className="font-serif text-xl font-semibold">Planning par SST</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Sélectionnez un SST pour afficher ses chantiers à venir.
