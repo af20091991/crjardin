@@ -27,3 +27,11 @@ execFileSync("bunx", ["prettier", "--check", ...supported], {
   encoding: "utf8",
   stdio: "inherit",
 });
+// TEMP_FORMAT_DIAGNOSTIC
+execFileSync("bunx", ["prettier", "--write", "src/routes/_authenticated/pilot.calendrier.tsx"], {
+  encoding: "utf8",
+  stdio: "inherit",
+});
+console.log("=== FORMATTED_CALENDAR_START ===");
+console.log(require("node:fs").readFileSync("src/routes/_authenticated/pilot.calendrier.tsx", "utf8"));
+console.log("=== FORMATTED_CALENDAR_END ===");
