@@ -709,7 +709,10 @@ function SstPlanningByPerson({
                   : "Durée non renseignée";
 
               return (
-                <div key={sheet.id} className="min-w-0 rounded-lg border border-border bg-background p-2.5">
+                <div
+                  key={sheet.id}
+                  className="min-w-0 rounded-lg border border-border bg-background p-2.5"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">{dateLabel}</p>
