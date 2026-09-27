@@ -661,7 +661,9 @@ function SstPlanningByPerson({
         })}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
+      <div
+        className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2"
+      >
         <div>
           <p className="text-sm font-semibold">{selectedLabel}</p>
           <p className="text-[11px] text-muted-foreground">
