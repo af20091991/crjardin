@@ -238,7 +238,7 @@ function yesterday() {
 function formatShortDate(value: string) {
   const parsed = new Date(`${value}T12:00:00`);
   if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit" }).format(parsed);
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(parsed);
 }
 
 function formatDateLabel(value: string) {
