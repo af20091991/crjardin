@@ -812,6 +812,7 @@ function SstPlanningCard({
     </button>
   );
 }
+
 function RecentUpdates({
   entries,
   onSelect,
