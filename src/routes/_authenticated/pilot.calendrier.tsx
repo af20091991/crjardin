@@ -718,7 +718,7 @@ function SstPlanningByPerson({
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {upcoming.map((sheet) => {
               const people = parseWorksiteIntervenants(sheet.intervenant);
               const dateLabel = sheet.intervention_date
@@ -732,53 +732,53 @@ function SstPlanningByPerson({
                   : "Durée non renseignée";
 
               return (
-                <div
+                <article
                   key={sheet.id}
-                  className="rounded-lg border border-border bg-background px-3 py-2.5"
+                  className="flex min-h-[7.25rem] flex-col rounded-lg border border-border bg-background p-3"
                 >
-                  <div className="flex flex-wrap items-start gap-3">
-                    <div className="w-24 shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {dateLabel}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{sheet.client_name}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {peopleLabel} · {hoursLabel}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                        {dateLabel}
                       </p>
-                      {sheet.address ? (
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {sheet.address}
-                        </p>
-                      ) : null}
+                      <p className="mt-0.5 truncate text-sm font-semibold">{sheet.client_name}</p>
                     </div>
                     <span
                       className={cn(
-                        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium",
+                        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium",
                         sheet.planning_status === "validated"
                           ? "bg-primary/10 text-primary"
                           : "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200",
                       )}
                     >
                       {sheet.planning_status === "validated" ? (
-                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <CheckCircle2 className="h-3 w-3" />
                       ) : (
-                        <Clock3 className="h-3.5 w-3.5" />
+                        <Clock3 className="h-3 w-3" />
                       )}
                       {sheet.planning_status === "validated" ? "Validé" : "À confirmer"}
                     </span>
-                    {isAdmin && sheet.planning_status !== "validated" ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={validatingId === sheet.id}
-                        onClick={() => onValidate(sheet.id)}
-                      >
-                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                        Valider
-                      </Button>
-                    ) : null}
                   </div>
-                </div>
+
+                  <div className="mt-2 min-w-0 space-y-0.5 text-xs text-muted-foreground">
+                    <p className="truncate">{peopleLabel}</p>
+                    <p className="truncate">{hoursLabel}</p>
+                    {sheet.address ? <p className="truncate">{sheet.address}</p> : null}
+                  </div>
+
+                  {isAdmin && sheet.planning_status !== "validated" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-auto w-full"
+                      disabled={validatingId === sheet.id}
+                      onClick={() => onValidate(sheet.id)}
+                    >
+                      <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                      Valider
+                    </Button>
+                  ) : null}
+                </article>
               );
             })}
           </div>
