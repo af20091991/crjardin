@@ -83,6 +83,26 @@ const userIdFromRequest = async (req: Request) => {
   }
 };
 
+/**
+ * Le rafraîchissement du token partagé peut échouer silencieusement (refresh_token
+ * révoqué côté Google, app OAuth repassée en mode test, etc.). Sans ce marquage,
+ * `site_web_connections.status` restait bloqué sur "connected" indéfiniment et la
+ * carte Sources Google affichait "vérifiée" alors que tous les appels échouaient.
+ */
+const markConnectionsStatus = async (
+  userId: string,
+  status: "connected" | "error",
+  lastError: string | null,
+) => {
+  for (const p of PROVIDERS) {
+    await supabaseAdmin
+      .from("site_web_connections")
+      .update({ status, last_error: lastError, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("provider", p);
+  }
+};
+
 const tokenFor = async (userId: string, provider: Provider) => {
   const { data, error } = await supabaseAdmin.rpc("get_site_web_google_tokens", {
     p_user_id: userId,
@@ -91,7 +111,10 @@ const tokenFor = async (userId: string, provider: Provider) => {
   if (error || !data?.access_token) return null;
   const expiresAt = data.expires_at ? new Date(data.expires_at).getTime() : 0;
   if (expiresAt > Date.now() + 90_000) return data.access_token;
-  if (!data.refresh_token) return null;
+  if (!data.refresh_token) {
+    await markConnectionsStatus(userId, "error", "missing_refresh_token");
+    return null;
+  }
   const google = config();
   if (!google) return null;
   const refreshed = await fetch(GOOGLE_TOKEN, {
@@ -104,9 +127,17 @@ const tokenFor = async (userId: string, provider: Provider) => {
       grant_type: "refresh_token",
     }),
   });
-  if (!refreshed.ok) return null;
+  if (!refreshed.ok) {
+    const body = await safeJson(refreshed);
+    const reason = typeof body?.error === "string" ? body.error : `http_${refreshed.status}`;
+    await markConnectionsStatus(userId, "error", `token_refresh_failed:${reason}`);
+    return null;
+  }
   const tokens = await safeJson(refreshed);
-  if (!tokens?.access_token) return null;
+  if (!tokens?.access_token) {
+    await markConnectionsStatus(userId, "error", "token_refresh_empty_response");
+    return null;
+  }
   const expires = new Date(Date.now() + Number(tokens.expires_in ?? 3600) * 1000).toISOString();
   for (const p of PROVIDERS) {
     await supabaseAdmin.rpc("store_site_web_google_tokens", {

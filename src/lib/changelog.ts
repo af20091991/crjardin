@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-27",
+    version: "2.3.17",
+    theme: "Général",
+    title: "Site web — fiabilise la détection des connexions Google expirées",
+    details: [
+      "Quand le rafraîchissement du token Google échoue (accès révoqué, etc.), la carte « Sources Google » passe désormais réellement en « Connexion en erreur » au lieu de rester bloquée sur « vérifiée ».",
+      "La raison de l'échec est conservée sur chaque connexion pour faciliter le diagnostic.",
+    ],
+  },
+
+  {
+    date: "2026-09-27",
     version: "2.3.16",
     theme: "Général",
     title: "Site web — concurrents organiques via Semrush",
