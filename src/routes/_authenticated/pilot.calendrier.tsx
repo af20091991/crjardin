@@ -3,14 +3,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
-  BrickWall,
   CheckCircle2,
   ClipboardCheck,
   Clock3,
+  BrickWall,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   FileDown,
+  Flower2,
+  Leaf,
   Loader2,
-  ChevronLeft,
   ChevronRight,
   Flower2,
   Leaf,
@@ -635,7 +638,9 @@ function SstPlanningByPerson({
       <section className="w-full rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase text-muted-foreground">Organisation</p>
+            <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+              Organisation
+            </p>
             <h3 className="font-serif text-xl font-semibold">Planning par SST</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Sélectionnez un SST pour afficher ses chantiers à venir.
@@ -773,7 +778,9 @@ function SstPlanningByPerson({
                       {sheet.required_people > 1 ? "s" : ""} · {hoursLabel}
                     </p>
                     {sheet.address ? (
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{sheet.address}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {sheet.address}
+                      </p>
                     ) : null}
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       <Button
