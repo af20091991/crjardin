@@ -631,8 +631,7 @@ function SstPlanningByPerson({
   const selectedLabel = selectedSst === "all" ? "Tous les SST" : selectedSst;
 
   return (
-
-      <section className="w-full rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
+    <section className="w-full rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase text-muted-foreground">
@@ -826,13 +825,11 @@ function SstPlanningByPerson({
                     ) : null}
                   </div>
                 </div>
-            );
+              );
             })}
           </div>
         )}
       </div>
-    </section>
-    
       <Dialog
         open={selectedSheet !== null}
         onOpenChange={(open) => {
