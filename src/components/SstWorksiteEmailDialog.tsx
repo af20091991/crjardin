@@ -11,7 +11,10 @@ import type { WorksiteSheet } from "@/lib/worksite";
 import { uploadWorksiteMethodPdf } from "@/lib/worksite";
 import { createCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
-import { resolveSstRecipientEmails, sendSstWorksiteSheetEmail } from "@/lib/email/sst-send.functions";
+import {
+  resolveSstRecipientEmails,
+  sendSstWorksiteSheetEmail,
+} from "@/lib/email/sst-send.functions";
 
 function dateLabel(value: string | null): string {
   if (!value) return "Date non définie";
@@ -28,7 +31,10 @@ export function SstWorksiteEmailDialog({ sheet }: { sheet: WorksiteSheet }) {
   const [sending, setSending] = useState(false);
   const sendEmail = useServerFn(sendSstWorksiteSheetEmail);
   const resolveRecipientEmails = useServerFn(resolveSstRecipientEmails);
-  const intervenants = useMemo(() => parseWorksiteIntervenants(sheet.intervenant), [sheet.intervenant]);
+  const intervenants = useMemo(
+    () => parseWorksiteIntervenants(sheet.intervenant),
+    [sheet.intervenant],
+  );
   const { data: recipients = [], isLoading: recipientsLoading } = useQuery({
     queryKey: ["sst-email-recipients", intervenants],
     queryFn: () => resolveRecipientEmails({ data: { names: intervenants } }),
