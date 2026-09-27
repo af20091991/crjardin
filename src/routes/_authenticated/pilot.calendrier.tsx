@@ -9,8 +9,11 @@ import {
   BrickWall,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  FileDown,
   Flower2,
   Leaf,
+  Loader2,
   MountainSnow,
   Pencil,
   RotateCcw,
@@ -44,6 +47,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { useRole } from "@/hooks/use-role";
+import { WorksiteSheetForm } from "@/components/WorksiteSheetForm";
 import logo from "@/assets/logo.png";
 import {
   declareAvailability,
@@ -81,6 +85,8 @@ import {
   updateWorksitePlanning,
   type WorksiteSheet,
 } from "@/lib/worksite";
+import { listClients } from "@/lib/clients";
+import { exportCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
 import { cn } from "@/lib/utils";
 
@@ -564,6 +570,24 @@ function SstPlanningByPerson({
 }) {
   const today = isoDate(new Date());
   const [statusFilter, setStatusFilter] = useState<"all" | "validated" | "draft">("all");
+  const [selectedSheet, setSelectedSheet] = useState<WorksiteSheet | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: listClients,
+    enabled: selectedSheet !== null,
+  });
+
+  const downloadSheet = async (sheet: WorksiteSheet) => {
+    setDownloadingId(sheet.id);
+    try {
+      await exportCompleteWorksiteSheetPdf(sheet);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Échec du téléchargement de la fiche");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const allUpcoming = sheets
     .filter((sheet) => sheet.intervention_date && sheet.intervention_date >= today)
@@ -711,7 +735,16 @@ function SstPlanningByPerson({
               return (
                 <div
                   key={sheet.id}
-                  className="min-w-0 rounded-lg border border-border bg-background p-2.5"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedSheet(sheet)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedSheet(sheet);
+                    }
+                  }}
+                  className="min-w-0 cursor-pointer rounded-lg border border-border bg-background p-2.5 transition-colors hover:border-primary/50 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -741,24 +774,107 @@ function SstPlanningByPerson({
                   {sheet.address ? (
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">{sheet.address}</p>
                   ) : null}
-                  {isAdmin && sheet.planning_status !== "validated" ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     <Button
                       size="sm"
                       variant="outline"
-                      className="mt-2 h-7 text-xs"
-                      disabled={validatingId === sheet.id}
-                      onClick={() => onValidate(sheet.id)}
+                      className="h-7 px-2 text-[11px]"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedSheet(sheet);
+                      }}
                     >
-                      <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                      Valider
+                      <Eye className="mr-1 h-3.5 w-3.5" />
+                      Consulter
                     </Button>
-                  ) : null}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[11px]"
+                      disabled={downloadingId === sheet.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void downloadSheet(sheet);
+                      }}
+                    >
+                      {downloadingId === sheet.id ? (
+                        <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <FileDown className="mr-1 h-3.5 w-3.5" />
+                      )}
+                      Télécharger
+                    </Button>
+                    {isAdmin && sheet.planning_status !== "validated" ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-[11px]"
+                        disabled={validatingId === sheet.id}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onValidate(sheet.id);
+                        }}
+                      >
+                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                        Valider
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
       </div>
+      <Dialog
+        open={selectedSheet !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedSheet(null);
+        }}
+      >
+        <DialogContent className="flex max-h-[92vh] max-w-5xl flex-col overflow-hidden p-0">
+          <DialogHeader className="shrink-0 border-b border-border px-5 py-4">
+            <DialogTitle className="font-serif text-xl">
+              Fiche SST — {selectedSheet?.client_name ?? "Chantier"}
+            </DialogTitle>
+            <DialogDescription>
+              Consultation de la fiche chantier. Utilisez « Télécharger » pour générer le PDF.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="min-h-0 flex-1 px-5">
+            {selectedSheet ? (
+              <fieldset disabled className="min-w-0 pb-5">
+                <WorksiteSheetForm
+                  clients={clients}
+                  initial={selectedSheet}
+                  submitting={false}
+                  submitLabel="Enregistrer"
+                  onSubmit={() => undefined}
+                  readOnly
+                />
+              </fieldset>
+            ) : null}
+          </ScrollArea>
+          <DialogFooter className="shrink-0 border-t border-border px-5 py-3">
+            <Button variant="outline" onClick={() => setSelectedSheet(null)}>
+              Fermer
+            </Button>
+            {selectedSheet ? (
+              <Button
+                disabled={downloadingId === selectedSheet.id}
+                onClick={() => void downloadSheet(selectedSheet)}
+              >
+                {downloadingId === selectedSheet.id ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="mr-2 h-4 w-4" />
+                )}
+                Télécharger la fiche SST
+              </Button>
+            ) : null}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

@@ -133,12 +133,14 @@ export function WorksiteSheetForm({
   submitting,
   submitLabel,
   onSubmit,
+  readOnly = false,
 }: {
   clients: Client[];
   initial: WorksiteSheetInput;
   submitting: boolean;
   submitLabel: string;
   onSubmit: (input: WorksiteSheetInput) => void;
+  readOnly?: boolean;
 }) {
   const [form, setForm] = useState<WorksiteSheetInput>(initial);
   const [intervenants, setIntervenants] = useState<string[]>(() =>
@@ -862,10 +864,12 @@ function submit() {
           />
         </CardContent>
       </Card>
-      <Button className="w-full" disabled={submitting} onClick={submit}>
-        {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {submitLabel}
-      </Button>
+      {!readOnly ? (
+        <Button className="w-full" disabled={submitting} onClick={submit}>
+          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {submitLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }
