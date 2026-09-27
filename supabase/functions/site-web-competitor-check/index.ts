@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
       if (error) return json({ error: "list_failed", message: error.message }, 500);
 
       const ids = (competitors ?? []).map((c) => c.id);
-      let latestByCompetitor: Record<string, unknown> = {};
+      const latestByCompetitor: Record<string, unknown> = {};
       if (ids.length > 0) {
         const { data: checks } = await supabaseAdmin
           .from("site_web_competitor_checks")
