@@ -1326,3 +1326,5 @@ function DayDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
