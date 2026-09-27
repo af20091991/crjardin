@@ -3,13 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
+  BrickWall,
   CheckCircle2,
   ClipboardCheck,
   Clock3,
   Eye,
   FileDown,
   Loader2,
-  BrickWall,
   ChevronLeft,
   ChevronRight,
   Flower2,
@@ -631,7 +631,8 @@ function SstPlanningByPerson({
   const selectedLabel = selectedSst === "all" ? "Tous les SST" : selectedSst;
 
   return (
-    <section className="w-full rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
+    <>
+      <section className="w-full rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase text-muted-foreground">Organisation</p>
@@ -829,7 +830,6 @@ function SstPlanningByPerson({
         )}
       </div>
     </section>
-  );
 
       <Dialog
         open={selectedSheet !== null}
