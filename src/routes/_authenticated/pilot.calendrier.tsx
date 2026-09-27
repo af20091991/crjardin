@@ -616,7 +616,9 @@ function SstPlanningByPerson({
           ) {
             return false;
           }
-          if (statusFilter !== "all" && sheet.planning_status !== statusFilter) {\n            return false;\n          }
+          if (statusFilter !== "all" && sheet.planning_status !== statusFilter) {
+            return false;
+          }
           return true;
         })
         .sort((a, b) => {
