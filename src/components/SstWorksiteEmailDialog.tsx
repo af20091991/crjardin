@@ -11,10 +11,7 @@ import type { WorksiteSheet } from "@/lib/worksite";
 import { uploadWorksiteMethodPdf } from "@/lib/worksite";
 import { createCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
-import {
-  resolveSstRecipientEmails,
-  sendSstWorksiteSheetEmail,
-} from "@/lib/email/sst-send.functions";
+import { resolveSstRecipientEmails, sendSstWorksiteSheetEmail } from "@/lib/email/sst-send.functions";
 
 function dateLabel(value: string | null): string {
   if (!value) return "Date non définie";
@@ -43,7 +40,9 @@ export function SstWorksiteEmailDialog({ sheet }: { sheet: WorksiteSheet }) {
 
   async function handleSend() {
     if (!validRecipients.length) {
-      toast.error("Aucune adresse email de compte prestataire valide n'est disponible pour les SST sélectionnés.");
+      toast.error(
+        "Aucune adresse email de compte prestataire valide n'est disponible pour les SST sélectionnés.",
+      );
       return;
     }
     setSending(true);
@@ -106,11 +105,19 @@ export function SstWorksiteEmailDialog({ sheet }: { sheet: WorksiteSheet }) {
             <div className="rounded-lg border bg-muted/20 p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Destinataires</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {recipientsLoading && <Badge variant="secondary">Recherche des comptes prestataires…</Badge>}
+                {recipientsLoading && (
+                  <Badge variant="secondary">Recherche des comptes prestataires…</Badge>
+                )}
                 {!recipientsLoading &&
                   recipients.map((recipient) => (
-                    <Badge key={recipient.name} variant={recipient.email ? "secondary" : "destructive"}>
-                      {recipient.name}{recipient.email ? ` · ${recipient.email}` : " · compte prestataire introuvable"}
+                    <Badge
+                      key={recipient.name}
+                      variant={recipient.email ? "secondary" : "destructive"}
+                    >
+                      {recipient.name}
+                      {recipient.email
+                        ? ` · ${recipient.email}`
+                        : " · compte prestataire introuvable"}
                     </Badge>
                   ))}
               </div>
@@ -125,8 +132,8 @@ export function SstWorksiteEmailDialog({ sheet }: { sheet: WorksiteSheet }) {
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  L'adresse utilisée pour l'envoi est celle du compte PP du prestataire sélectionné. Aucun email
-                  du référentiel SST n'est utilisé.
+                  L'adresse utilisée pour l'envoi est celle du compte PP du prestataire sélectionné.
+                  Aucun email du référentiel SST n'est utilisé.
                 </AlertDescription>
               </Alert>
             ) : null}
@@ -184,7 +191,10 @@ export function SstWorksiteEmailDialog({ sheet }: { sheet: WorksiteSheet }) {
 
           <DialogFooter>
             <Button variant="outline" disabled={sending} onClick={() => setOpen(false)}>Annuler</Button>
-            <Button disabled={sending || recipientsLoading || !validRecipients.length} onClick={handleSend}>
+            <Button
+              disabled={sending || recipientsLoading || !validRecipients.length}
+              onClick={handleSend}
+            >
               {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
               {sending ? "Envoi en cours…" : `Confirmer et envoyer (${validRecipients.length})`}
             </Button>
