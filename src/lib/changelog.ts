@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-27",
+    version: "2.3.16",
+    theme: "Général",
+    title: "Site web — concurrents organiques via Semrush",
+    details: [
+      "La carte « Concurrence » du Diagnostic SEO affiche désormais les concurrents organiques réels (Semrush) au lieu d'un message d'indisponibilité.",
+      "Nouveau nombre de mots-clés organiques et de trafic estimé par domaine, avec mise en cache d'un jour pour limiter la consommation d'unités API.",
+    ],
+  },
+
+  {
     date: "2026-09-26",
     version: "2.3.15",
     theme: "Général",
