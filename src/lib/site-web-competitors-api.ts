@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const functionName = "semrush-api";
+const functionName = "site-web-competitor-check";
 const activeSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const REQUEST_TIMEOUT_MS = 12000;
+const REQUEST_TIMEOUT_MS = 20000; // PageSpeed peut prendre plusieurs secondes.
 
 async function fetchWithTimeout(
   input: RequestInfo | URL,
@@ -19,7 +19,7 @@ async function fetchWithTimeout(
 
 async function invoke<T>(
   action: string,
-  body: Record<string, unknown>,
+  body: Record<string, unknown> = {},
 ): Promise<{ data: T | null; error: string | null }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
@@ -37,7 +37,8 @@ async function invoke<T>(
     if (!response.ok || payload?.error) {
       return {
         data: null,
-        error: payload?.message ?? payload?.error ?? `Service Semrush : HTTP ${response.status}.`,
+        error:
+          payload?.message ?? payload?.error ?? `Service indisponible : HTTP ${response.status}.`,
       };
     }
     return { data: payload as T, error: null };
@@ -46,27 +47,37 @@ async function invoke<T>(
       data: null,
       error:
         error instanceof DOMException && error.name === "AbortError"
-          ? "Le service Semrush ne répond pas après 12 secondes."
-          : "Impossible de joindre le service Semrush.",
+          ? "L'analyse ne répond pas après 20 secondes."
+          : "Impossible de joindre le service de veille concurrentielle.",
     };
   }
 }
 
-export interface SemrushOverview {
-  organicKeywords: number;
-  organicTraffic: number;
-  organicCost: number;
+export interface CompetitorCheck {
+  performance_score: number | null;
+  seo_score: number | null;
+  accessibility_score: number | null;
+  best_practices_score: number | null;
+  ssl_ok: boolean;
+  response_time_ms: number | null;
+  error: string | null;
+  checked_at: string;
 }
 
-export interface SemrushCompetitor {
+export interface Competitor {
+  id: string;
+  name: string;
   domain: string;
-  commonKeywords: number;
-  organicKeywords: number;
-  organicTraffic: number;
+  created_at: string;
+  lastCheck: CompetitorCheck | null;
 }
 
-export const getSemrushOverview = (domain: string, database = "fr") =>
-  invoke<SemrushOverview>("overview", { domain, database });
+export const listCompetitors = () => invoke<{ competitors: Competitor[] }>("list");
 
-export const getSemrushCompetitors = (domain: string, database = "fr") =>
-  invoke<{ competitors: SemrushCompetitor[] }>("competitors", { domain, database });
+export const addCompetitor = (name: string, domain: string) =>
+  invoke<{ competitor: Competitor }>("add", { name, domain });
+
+export const removeCompetitor = (id: string) => invoke<{ removed: boolean }>("remove", { id });
+
+export const checkCompetitor = (id: string) =>
+  invoke<{ lastCheck: CompetitorCheck }>("check", { id });

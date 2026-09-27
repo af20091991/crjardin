@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/pilot/EmptyState";
-import { SiteWebSemrushCompetition } from "@/components/pilot/SiteWebSemrushCompetition";
+import { SiteWebCompetitorWatch } from "@/components/pilot/SiteWebCompetitorWatch";
 import {
   listAnalyticsProperties,
   querySearchConsole,
@@ -200,7 +200,7 @@ export function SiteWebSeoDiagnostic() {
           )}
         </SwotCard>
         <SwotCard icon={Users} title="Concurrence" tone="neutral">
-          <SiteWebSemrushCompetition />
+          <SiteWebCompetitorWatch />
         </SwotCard>
       </div>
 

@@ -1,5 +1,5 @@
 project_id = "mgkeqwwzhcodntkakqaz"
 [functions.site-web-api]
 verify_jwt = false
-[functions.semrush-api]
+[functions.site-web-competitor-check]
 verify_jwt = false
