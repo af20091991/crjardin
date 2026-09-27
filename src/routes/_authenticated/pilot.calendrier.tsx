@@ -696,7 +696,7 @@ function SstPlanningByPerson({
             </p>
           </div>
         ) : (
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {upcoming.map((sheet) => {
               const people = parseWorksiteIntervenants(sheet.intervenant);
               const dateLabel = sheet.intervention_date
@@ -709,7 +709,10 @@ function SstPlanningByPerson({
                   : "Durée non renseignée";
 
               return (
-                <div key={sheet.id} className="rounded-lg border border-border bg-background p-3">
+                <div
+                  key={sheet.id}
+                  className="min-w-0 rounded-lg border border-border bg-background p-2.5"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">{dateLabel}</p>
