@@ -9,7 +9,6 @@ const inputSchema = z.object({
 
 const recipientLookupSchema = z.object({ names: z.array(z.string().min(1)).max(20) });
 
-
 function normalizeName(value: string): string {
   return value
     .normalize("NFD")
