@@ -382,7 +382,6 @@ function SharePage() {
 
 function premiumClientTitle(client: SharedClientData["client"]) {
   const civility = client.civility?.trim().toLowerCase();
-
   if (
     civility === "madame et monsieur" ||
     civility === "monsieur et madame" ||
@@ -391,15 +390,12 @@ function premiumClientTitle(client: SharedClientData["client"]) {
   ) {
     return `Madame et Monsieur ${client.name}`;
   }
-
   if (civility === "madame" || civility === "mme" || civility === "mrs") {
     return `Madame ${client.name}`;
   }
-
   if (civility === "monsieur" || civility === "m." || civility === "mr") {
     return `Monsieur ${client.name}`;
   }
-
   return client.name;
 }
 
