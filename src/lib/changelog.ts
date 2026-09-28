@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-28",
+    version: "2.3.23",
+    theme: "PDF & Partage",
+    title: "Espace client Premium — nouvel accueil centré sur le jardin",
+    details: [
+      "L'accueil Premium devient un véritable espace de suivi du jardin : dernières nouvelles, prochaine intervention, observations, évolution en photos et accès simplifié aux contenus.",
+      "Navigation mobile-first et bouton central « Besoin de quelque chose ? » pour faciliter la relation avec le jardinier.",
+    ],
+  },
+
+  {
+    date: "2026-09-28",
     version: "2.3.22",
     theme: "Général",
     title: "Site web — veille concurrentielle détaillée",
