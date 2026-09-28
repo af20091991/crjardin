@@ -431,7 +431,35 @@ function PremiumExperience({
             {section === "reports" && <section><h1 className="mb-5 font-serif text-3xl font-semibold">Interventions</h1><ReportsTab interventions={interventions} token={token} messages={messages} client={client} /></section>}
             {section === "photos" && <section><h1 className="mb-5 font-serif text-3xl font-semibold">Photos</h1><PhotoGallery interventions={interventions} /></section>}
             {section === "recos" && <section><h1 className="mb-5 font-serif text-3xl font-semibold">Conseils</h1><RecommendationsTab recommendations={recommendations} token={token} /></section>}
-            {section === "premium" && <section><h1 className="mb-5 font-serif text-3xl font-semibold">Mon jardin</h1><PremiumTab premium={premium} token={token} messages={messages} /></section>}\n            {section === "documents" && (\n              <section>\n                <h1 className="mb-5 font-serif text-3xl font-semibold">Documents</h1>\n                {premium.documents.length === 0 ? (\n                  <Card className="border-dashed"><CardContent className="py-12 text-center text-muted-foreground">Aucun document disponible pour le moment.</CardContent></Card>\n                ) : (\n                  <div className="grid gap-3 sm:grid-cols-2">\n                    {premium.documents.map((document) => (\n                      <Card key={document.id}>\n                        <CardContent className="flex items-center justify-between gap-4 p-5">\n                          <div className="min-w-0">\n                            <p className="font-medium">{document.title}</p>\n                            <p className="mt-1 truncate text-sm text-muted-foreground">{document.filename}</p>\n                          </div>\n                          {document.url && (\n                            <Button asChild variant="outline" size="sm">\n                              <a href={document.url} target="_blank" rel="noreferrer">\n                                <Download className="mr-1.5 h-4 w-4" /> Ouvrir\n                              </a>\n                            </Button>\n                          )}\n                        </CardContent>\n                      </Card>\n                    ))}\n                  </div>\n                )}\n              </section>\n            )}
+            {section === "premium" && <section><h1 className="mb-5 font-serif text-3xl font-semibold">Mon jardin</h1><PremiumTab premium={premium} token={token} messages={messages} /></section>}
+            {section === "documents" && (
+              <section>
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Documents</h1>
+                {premium.documents.length === 0 ? (
+                  <Card className="border-dashed"><CardContent className="py-12 text-center text-muted-foreground">Aucun document disponible pour le moment.</CardContent></Card>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {premium.documents.map((document) => (
+                      <Card key={document.id}>
+                        <CardContent className="flex items-center justify-between gap-4 p-5">
+                          <div className="min-w-0">
+                            <p className="font-medium">{document.title}</p>
+                            <p className="mt-1 truncate text-sm text-muted-foreground">{document.filename}</p>
+                          </div>
+                          {document.url && (
+                            <Button asChild variant="outline" size="sm">
+                              <a href={document.url} target="_blank" rel="noreferrer">
+                                <Download className="mr-1.5 h-4 w-4" /> Ouvrir
+                              </a>
+                            </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
           </div>
         )}
       </main>
