@@ -460,13 +460,6 @@ function PremiumExperience({
                   </CardContent>
                 </Card>
               </section>
-            )}                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </section>
-            )}
           </div>
         )}
       </main>
