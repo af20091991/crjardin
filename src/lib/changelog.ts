@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-28",
+    version: "2.3.20",
+    theme: "Général",
+    title: "Site web — veille concurrentielle plus fiable",
+    details: [
+      "L'ajout et l'analyse des concurrents passent désormais par le serveur de l'application : plus de service externe à déployer.",
+      "Les domaines saisis sont validés (nom de domaine public uniquement).",
+    ],
+  },
+
+  {
+    date: "2026-09-28",
     version: "2.3.19",
     theme: "Général",
     title: "Site web — nouvel onglet WordPress",
