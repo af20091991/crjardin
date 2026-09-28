@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { CompetitorDetails } from "@/lib/site-web-competitor-types";
 
 export interface CompetitorCheck {
   performance_score: number | null;
@@ -10,6 +11,7 @@ export interface CompetitorCheck {
   ssl_ok: boolean;
   response_time_ms: number | null;
   error: string | null;
+  details: CompetitorDetails | null;
   checked_at: string;
 }
 
@@ -19,10 +21,13 @@ export interface Competitor {
   domain: string;
   created_at: string;
   lastCheck: CompetitorCheck | null;
+  previousCheck: CompetitorCheck | null;
 }
 
+type CheckRow = CompetitorCheck & { competitor_id: string };
+
 const CHECK_COLUMNS =
-  "competitor_id, performance_score, seo_score, accessibility_score, best_practices_score, ssl_ok, response_time_ms, error, checked_at";
+  "competitor_id, performance_score, seo_score, accessibility_score, best_practices_score, ssl_ok, response_time_ms, error, details, checked_at";
 
 const AddInput = z.object({
   name: z.string().trim().min(1).max(120),
@@ -51,11 +56,17 @@ export const listCompetitors = createServerFn({ method: "POST" })
         rows.map((row) => row.id),
       )
       .order("checked_at", { ascending: false });
-    const latest = new Map<string, CompetitorCheck>();
-    for (const check of checks ?? []) {
-      if (!latest.has(check.competitor_id)) latest.set(check.competitor_id, check);
+    const history = new Map<string, CompetitorCheck[]>();
+    for (const check of (checks ?? []) as CheckRow[]) {
+      const list = history.get(check.competitor_id) ?? [];
+      if (list.length < 2) list.push(check);
+      history.set(check.competitor_id, list);
     }
-    return rows.map((row) => ({ ...row, lastCheck: latest.get(row.id) ?? null }));
+    return rows.map((row) => ({
+      ...row,
+      lastCheck: history.get(row.id)?.[0] ?? null,
+      previousCheck: history.get(row.id)?.[1] ?? null,
+    }));
   });
 
 export const addCompetitor = createServerFn({ method: "POST" })
