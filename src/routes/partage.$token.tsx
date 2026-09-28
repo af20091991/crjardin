@@ -379,6 +379,17 @@ function SharePage() {
   );
 }
 
+function premiumClientTitle(client: SharedClientData["client"]) {
+  const civility = client.civility?.trim().toLowerCase();
+  if (civility === "madame" || civility === "mme" || civility === "mrs") {
+    return `Madame ${client.name}`;
+  }
+  if (civility === "monsieur" || civility === "m." || civility === "mr") {
+    return `Monsieur ${client.name}`;
+  }
+  return client.name;
+}
+
 function PremiumExperience({
   client,
   interventions,
@@ -405,40 +416,63 @@ function PremiumExperience({
   const [section, setSection] = useState<
     "home" | "reports" | "photos" | "recos" | "premium" | "documents"
   >("home");
+  const clientTitle = premiumClientTitle(client);
 
   return (
     <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
-      <header className="border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
-          <button
-            onClick={() => setSection("home")}
-            className="text-left"
-            aria-label="Retour à l'accueil"
-          >
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">
-              De la graine au jardin
-            </p>
-            <p className="font-serif text-lg font-semibold">{client.name}</p>
-          </button>
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label={dark ? "Mode clair" : "Mode sombre"}
-              onClick={toggleDark}
-            >
-              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Agrandir le texte"
-              onClick={toggleLarge}
-              className={large ? "bg-primary/10 text-primary" : ""}
-            >
-              <Type className="h-4 w-4" />
-            </Button>
+      <header className="border-b bg-background">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="relative overflow-hidden rounded-b-[1.5rem] border-x border-b bg-background">
+            {premium.cover_photo_url ? (
+              <img
+                src={premium.cover_photo_url}
+                alt={`Le jardin de ${clientTitle}`}
+                className="h-[220px] w-full object-cover sm:h-[300px]"
+              />
+            ) : (
+              <div className="h-[180px] bg-muted sm:h-[240px]" />
+            )}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/80 to-transparent p-5 pt-20 sm:p-7 sm:pt-24">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                De la graine au jardin
+              </p>
+              <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">
+                Le jardin de {clientTitle}
+              </h1>
+              {client.address && (
+                <p className="mt-1 text-sm text-muted-foreground">{client.address}</p>
+              )}
+            </div>
+            <div className="absolute right-4 top-4 flex items-center gap-1.5 sm:right-6 sm:top-6">
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label={dark ? "Mode clair" : "Mode sombre"}
+                onClick={toggleDark}
+                className="bg-background/90 backdrop-blur"
+              >
+                {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Agrandir le texte"
+                onClick={toggleLarge}
+                className={`bg-background/90 backdrop-blur ${large ? "bg-primary/10 text-primary" : ""}`}
+              >
+                <Type className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
+
+          <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b py-4 text-sm" aria-label="Navigation Premium">
+            <button onClick={() => setSection("home")} className={section === "home" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Accueil</button>
+            <button onClick={() => setSection("premium")} className={section === "premium" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Mon jardin</button>
+            <button onClick={() => setSection("reports")} className={section === "reports" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Interventions</button>
+            <button onClick={() => setSection("photos")} className={section === "photos" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Photos</button>
+            <button onClick={() => setSection("recos")} className={section === "recos" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Conseils</button>
+            <button onClick={() => setSection("documents")} className={section === "documents" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Documents</button>
+          </nav>
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -454,12 +488,6 @@ function PremiumExperience({
           />
         ) : (
           <div className="space-y-5">
-            <button
-              onClick={() => setSection("home")}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              ← Retour à l'accueil
-            </button>
             {section === "reports" && (
               <section>
                 <h1 className="mb-5 font-serif text-3xl font-semibold">Interventions</h1>
