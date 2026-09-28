@@ -448,9 +448,7 @@ function PremiumExperience({
                         <CardContent className="flex items-center justify-between gap-4 p-5">
                           <div className="min-w-0">
                             <p className="font-medium">{document.title}</p>
-                            <p className="mt-1 truncate text-sm text-muted-foreground">
-                              {document.filename}
-                            </p>
+                            <p className="mt-1 truncate text-sm text-muted-foreground">{document.filename}</p>
                           </div>
                           {document.url && (
                             <Button asChild variant="outline" size="sm">
