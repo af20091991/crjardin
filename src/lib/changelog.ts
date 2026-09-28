@@ -25,7 +25,7 @@ export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-28",
     version: "2.3.23",
-    theme: "Premium",
+    theme: "PDF & Partage",
     title: "Enrichissement de l'accueil client Premium",
     details: [
       "Ajout de repères synthétiques sur le jardin : adresse, type de suivi et rythme d'entretien.",
