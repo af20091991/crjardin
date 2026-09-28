@@ -100,6 +100,7 @@ export function SstProfitabilityTab() {
   const [showArchived, setShowArchived] = useState(false);
   const [marginTarget, setMarginTarget] = useState(25);
   const [editing, setEditing] = useState<SubcontractorMission | null>(null);
+  const [visibleMissionRows, setVisibleMissionRows] = useState(5);
 
   const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
   const pnlQ = useQuery({ queryKey: ["sst-pnl"], queryFn: listMissionPnl });
@@ -593,6 +594,17 @@ export function SstProfitabilityTab() {
                   sub={formatEuro(chargeTotals.duplicatesAmount)}
                   help="Charges neutralisées car déjà suivies via une mission SST (protection anti double comptage)."
                 />
+                {rows.length > visibleMissionRows && (
+                  <div className="flex justify-center pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setVisibleMissionRows((count) => count + 5)}
+                    >
+                      Voir plus
+                    </Button>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -633,7 +645,7 @@ export function SstProfitabilityTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rows.map((r) => (
+                    {rows.slice(0, visibleMissionRows).map((r) => (
                       <TableRow
                         key={r.mission.id}
                         className={r.mission.archived_at ? "opacity-50" : undefined}
@@ -717,6 +729,20 @@ export function SstProfitabilityTab() {
                         </TableCell>
                       </TableRow>
                     ))}
+                    {rows.length > visibleMissionRows && (
+                      <TableRow>
+                        <TableCell colSpan={14} className="border-t-0 text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setVisibleMissionRows((count) => count + 5)}
+                          >
+                            Voir plus
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )}
+
                     <TableRow className="border-t-2 font-semibold">
                       <TableCell colSpan={5}>Total</TableCell>
                       <TableCell className="text-right">{totals.hours.toFixed(1)}</TableCell>
@@ -734,7 +760,7 @@ export function SstProfitabilityTab() {
               {/* Version mobile : une carte par mission plutôt qu'un tableau à
                   faire défiler horizontalement. */}
               <div className="space-y-3 md:hidden">
-                {rows.map((r) => (
+                {rows.slice(0, visibleMissionRows).map((r) => (
                   <div
                     key={r.mission.id}
                     className={`rounded-lg border p-4 ${r.mission.archived_at ? "opacity-50" : ""}`}
