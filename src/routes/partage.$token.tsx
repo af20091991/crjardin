@@ -485,6 +485,7 @@ function PremiumExperience({
             messages={messages}
             token={token}
             onNavigate={setSection}
+            showHeader={false}
           />
         ) : (
           <div className="space-y-5">
