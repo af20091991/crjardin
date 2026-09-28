@@ -53,6 +53,7 @@ export function PremiumHome({
   messages,
   token,
   onNavigate,
+  showHeader = true,
 }: {
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
@@ -61,6 +62,7 @@ export function PremiumHome({
   messages: ClientMessage[];
   token: string;
   onNavigate: (section: PremiumSection) => void;
+  showHeader?: boolean;
 }) {
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestType, setRequestType] = useState<(typeof REQUESTS)[number] | null>(null);
@@ -141,6 +143,79 @@ export function PremiumHome({
   return (
     <>
       <div className="space-y-10">
+        {showHeader && (
+          <>
+            <section className="relative overflow-hidden rounded-[1.5rem] border bg-background">
+                      {premium.cover_photo_url ? (
+                        <img
+                          src={premium.cover_photo_url}
+                          alt={`Le jardin de ${client.name}`}
+                          className="h-[280px] w-full object-cover sm:h-[380px]"
+                        />
+                      ) : (
+                        <div className="h-[220px] bg-muted sm:h-[300px]" />
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/80 to-transparent p-6 pt-24 sm:p-8 sm:pt-28">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                          De la graine au jardin
+                        </p>
+                        <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
+                          Le jardin de {client.name}
+                        </h1>
+                        {client.address && (
+                          <p className="mt-1 text-sm text-muted-foreground">{client.address}</p>
+                        )}
+                      </div>
+                    </section>
+            
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b pb-4 text-sm">
+                      <button
+                        className="font-medium text-primary"
+                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                      >
+                        Accueil
+                      </button>
+                      <button
+                        onClick={() => onNavigate("premium")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        Mon jardin
+                      </button>
+                      <button
+                        onClick={() => onNavigate("reports")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        Interventions
+                      </button>
+                      <button
+                        onClick={() => onNavigate("photos")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        Photos
+                      </button>
+                      <button
+                        onClick={() => onNavigate("recos")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        Conseils
+                      </button>
+                      <button onClick={() => onNavigate("documents")} className="text-muted-foreground hover:text-foreground">
+                        Documents
+                      </button>
+                      <Button
+                        size="sm"
+                        className="ml-auto rounded-full"
+                        onClick={() => {
+                          setRequestType(null);
+                          setRequestOpen(true);
+                        }}
+                      >
+                        Besoin de quelque chose ?
+                      </Button>
+                    </div>
+          </>
+        )}
+
         <section>
           <SectionHeading
             eyebrow="Le suivi de votre jardin"
@@ -359,7 +434,7 @@ export function PremiumHome({
             )}
             {premium.documents.length > 0 && (
               <button
-                onClick={() => onNavigate("documents")}
+                onClick={() => onNavigate("premium")}
                 className="rounded-2xl border bg-background p-6 text-left transition-colors hover:border-primary/40"
               >
                 <div className="flex items-center gap-3">
