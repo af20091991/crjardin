@@ -1122,7 +1122,7 @@ function GardenTab({
                 {premium.garden_state}
               </p>
             ) : (
-              <EmptyState text="L'état actuel du jardin n'a pas encore été renseigné." />
+              <p className="text-sm text-muted-foreground">L’état actuel du jardin n’est pas encore renseigné.</p>
             )}
           </CardContent>
         </Card>
