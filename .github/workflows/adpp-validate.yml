@@ -66,8 +66,8 @@ jobs:
 
       - name: Temporary Prettier diagnostic
         run: |
-          bunx prettier src/routes/partage.$token.tsx > /tmp/partage.formatted.tsx
-          diff -u src/routes/partage.$token.tsx /tmp/partage.formatted.tsx || true
+          bunx prettier src/routes/partage.\$token.tsx > /tmp/partage.formatted.tsx
+          diff -u src/routes/partage.\$token.tsx /tmp/partage.formatted.tsx || true
 
       - name: Format check changed files
         env:
