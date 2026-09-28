@@ -1104,7 +1104,9 @@ function GardenTab({
         <CardContent className="space-y-2 pt-5">
           <div className="flex items-center gap-2">
             <Leaf className="h-5 w-5 text-primary" />
-            <h2 className="font-serif text-xl font-semibold">Le jardin de {premiumClientTitle(client)}</h2>
+            <h2 className="font-serif text-xl font-semibold">
+              Le jardin de {premiumClientTitle(client)}
+            </h2>
           </div>
           {client.address && <p className="text-sm text-muted-foreground">{client.address}</p>}
         </CardContent>
@@ -1122,7 +1124,9 @@ function GardenTab({
                 {premium.garden_state}
               </p>
             ) : (
-              <p className="text-sm text-muted-foreground">L’état actuel du jardin n’est pas encore renseigné.</p>
+              <p className="text-sm text-muted-foreground">
+                L’état actuel du jardin n’est pas encore renseigné.
+              </p>
             )}
           </CardContent>
         </Card>
@@ -1174,7 +1178,9 @@ function GardenTab({
             ) : latest.summary ? (
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">{latest.summary}</p>
             ) : (
-              <p className="text-sm text-muted-foreground">Aucune observation détaillée enregistrée.</p>
+              <p className="text-sm text-muted-foreground">
+                Aucune observation détaillée enregistrée.
+              </p>
             )}
           </CardContent>
         </Card>
