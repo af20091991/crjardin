@@ -206,11 +206,7 @@ function PremiumClientsPage() {
                       </Link>
                     </Button>
                     <Button size="sm" className="flex-1" asChild>
-                      <Link
-                        to="/partage/$token"
-                        params={{ token: client.share_token }}
-                        search={{}}
-                      >
+                      <Link to="/partage/$token" params={{ token: client.share_token }} search={{}}>
                         Ouvrir Premium
                       </Link>
                     </Button>
