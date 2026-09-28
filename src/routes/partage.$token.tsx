@@ -1241,7 +1241,9 @@ function GardenTab({
                       {fmtDate(item.scheduled_date)}
                     </p>
                     {item.details && (
-                      <p className="mt-1 text-muted-foreground">{item.details}</p>
+                      <p className="mt-1 text-muted-foreground">
+                        {item.details}
+                      </p>
                     )}
                   </div>
                 ))}
@@ -1259,7 +1261,8 @@ function GardenTab({
         <CardContent className="space-y-2 pt-6">
           <p className="font-medium">Objectifs et particularités du jardin</p>
           <p className="text-sm text-muted-foreground">
-            Cette partie sera enrichie lorsque ces informations seront renseignées dans Pilot Pro.
+            Cette partie sera enrichie lorsque ces informations seront renseignées dans Pilot
+            Pro.
             Aucune information n'est inventée dans l'espace client.
           </p>
         </CardContent>
