@@ -435,29 +435,32 @@ function PremiumExperience({
             {section === "documents" && (
               <section>
                 <h1 className="mb-5 font-serif text-3xl font-semibold">Documents</h1>
-                {premium.documents.length === 0 ? (
-                  <Card className="border-dashed">
-                    <CardContent className="py-12 text-center text-muted-foreground">
-                      Aucun document disponible pour le moment.
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {premium.documents.map((document) => (
-                      <Card key={document.id}>
-                        <CardContent className="flex items-center justify-between gap-4 p-5">
-                          <div className="min-w-0">
-                            <p className="font-medium">{document.title}</p>
-                            <p className="mt-1 truncate text-sm text-muted-foreground">{document.filename}</p>
-                          </div>
-                          {document.url && (
-                            <Button asChild variant="outline" size="sm">
-                              <a href={document.url} target="_blank" rel="noreferrer">
-                                <Download className="mr-1.5 h-4 w-4" /> Ouvrir
-                              </a>
-                            </Button>
-                          )}
-                        </CardContent>
+                <Card>
+                  <CardContent className="pt-6">
+                    {premium.documents.length > 0 ? (
+                      <div className="space-y-2">
+                        {premium.documents.map((document) => (
+                          <a
+                            key={document.id}
+                            href={document.url ?? "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between gap-2 rounded-lg border p-3 text-sm transition-colors hover:border-primary/40"
+                          >
+                            <span className="truncate">{document.title}</span>
+                            <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Aucun document pour le moment.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </section>
+            )}                        </CardContent>
                       </Card>
                     ))}
                   </div>
