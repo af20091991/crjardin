@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type EquipmentCategory = "vehicule" | "engin" | "batterie" | "smartphone" | "autre";
-export type EquipmentStatus = "en_service" | "en_panne" | "en_reparation" | "hors_service";
+export type EquipmentStatus = "en_service" | "en_panne" | "en_reparation" | "hors_service" | "vendu";
 
 export const EQUIPMENT_CATEGORY_LABELS: Record<EquipmentCategory, string> = {
   vehicule: "Véhicule",
@@ -16,6 +16,7 @@ export const EQUIPMENT_STATUS_LABELS: Record<EquipmentStatus, string> = {
   en_panne: "En panne",
   en_reparation: "En réparation",
   hors_service: "Hors service",
+  vendu: "Vendu",
 };
 
 export interface Equipment {
