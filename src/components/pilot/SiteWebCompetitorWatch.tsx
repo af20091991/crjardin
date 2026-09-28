@@ -129,9 +129,10 @@ export function SiteWebCompetitorWatch() {
               </div>
 
               {c.lastCheck ? (
-                c.lastCheck.error ? (
-                  <p className="mt-2 text-xs text-destructive">{c.lastCheck.error}</p>
-                ) : (
+                <>
+                  {c.lastCheck.error && (
+                    <p className="mt-2 text-xs text-amber-600">{c.lastCheck.error}</p>
+                  )}
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                     <ScoreBadge label="Perf" value={c.lastCheck.performance_score} />
                     <ScoreBadge label="SEO" value={c.lastCheck.seo_score} />
@@ -151,7 +152,7 @@ export function SiteWebCompetitorWatch() {
                       </Badge>
                     )}
                   </div>
-                )
+                </>
               ) : (
                 <p className="mt-2 text-xs text-muted-foreground">Pas encore analysé.</p>
               )}

@@ -26,6 +26,16 @@ export const CHANGELOG: ChangeEntry[] = [
     date: "2026-09-28",
     version: "2.3.21",
     theme: "Général",
+    title: "Site web — veille concurrentielle : erreurs PageSpeed plus claires",
+    details: [
+      "Quand le quota PageSpeed est dépassé, un message explicite s'affiche et le certificat SSL et le temps de réponse restent visibles.",
+    ],
+  },
+
+  {
+    date: "2026-09-28",
+    version: "2.3.21",
+    theme: "Général",
     title: "Corrections Parc matériel, Comptes rendus et SST",
     details: [
       "Parc matériel : ajout du statut « Vendu » comme état disponible à la création et à la modification.",
@@ -34,7 +44,6 @@ export const CHANGELOG: ChangeEntry[] = [
       "Planning SST : « Consulter » recharge et affiche la fiche SST complète.",
     ],
   },
-
 
   {
     date: "2026-09-28",

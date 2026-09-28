@@ -62,7 +62,15 @@ async function runPageSpeed(domain: string) {
     lighthouseResult?: { categories?: Record<string, { score?: number | null }> };
   } | null;
   if (!response.ok) {
-    return { error: body?.error?.message ?? `PageSpeed indisponible (HTTP ${response.status}).` };
+    const message = body?.error?.message ?? "";
+    if (response.status === 429 || /quota/i.test(message)) {
+      return {
+        error: apiKey
+          ? "Quota PageSpeed dépassé pour aujourd'hui : réessaie demain."
+          : "Quota PageSpeed partagé dépassé : ajoute une clé PAGESPEED_API_KEY pour analyser les scores.",
+      };
+    }
+    return { error: message || `PageSpeed indisponible (HTTP ${response.status}).` };
   }
   const categories = body?.lighthouseResult?.categories ?? {};
   const score = (key: string) =>
