@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-28",
+    version: "2.3.19",
+    theme: "Général",
+    title: "Site web — nouvel onglet WordPress",
+    details: [
+      "Nouvel onglet « WordPress » : disponibilité de l'API du site, temps de réponse, nombre d'articles et de pages, derniers contenus modifiés.",
+      "Lecture seule des données publiques : les mises à jour de plugins et la santé WordPress nécessiteront un mot de passe d'application.",
+    ],
+  },
+
+  {
     date: "2026-09-27",
     version: "2.3.18",
     theme: "Général",
