@@ -195,7 +195,7 @@ export function PremiumHome({
           >
             Conseils
           </button>
-          <button onClick={() => onNavigate("premium")} className="text-muted-foreground hover:text-foreground">
+          <button onClick={() => onNavigate("documents")} className="text-muted-foreground hover:text-foreground">
             Documents
           </button>
           <Button
@@ -312,6 +312,38 @@ export function PremiumHome({
                 </div>
               </div>
             )}
+          </section>
+        )}
+
+        {(client.address || client.contract_type || client.frequency) && (
+          <section>
+            <SectionHeading eyebrow="Repères" title="Votre jardin, en quelques mots" />
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {client.address && (
+                <div className="rounded-2xl border bg-background p-5">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Adresse du jardin
+                  </p>
+                  <p className="mt-2 text-sm leading-6">{client.address}</p>
+                </div>
+              )}
+              {client.contract_type && (
+                <div className="rounded-2xl border bg-background p-5">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Suivi
+                  </p>
+                  <p className="mt-2 font-medium">{client.contract_type}</p>
+                </div>
+              )}
+              {client.frequency && (
+                <div className="rounded-2xl border bg-background p-5">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Rythme d'entretien
+                  </p>
+                  <p className="mt-2 font-medium">{client.frequency}</p>
+                </div>
+              )}
+            </div>
           </section>
         )}
 
