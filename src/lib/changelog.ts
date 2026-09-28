@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-28",
+    version: "2.3.22",
+    theme: "Général",
+    title: "Site web — veille concurrentielle détaillée",
+    details: [
+      "Chaque concurrent dispose d'un détail explicite : vitesse (métriques expliquées avec objectifs), expérience réelle des visiteurs, référencement de la page d'accueil, technique (https, robots.txt, sitemap) et activité éditoriale WordPress.",
+      "Points faibles détectés chez le concurrent, évolution des scores depuis la précédente analyse et date de la dernière analyse.",
+    ],
+  },
+
+  {
+    date: "2026-09-28",
     version: "2.3.21",
     theme: "Général",
     title: "Site web — veille concurrentielle : erreurs PageSpeed plus claires",

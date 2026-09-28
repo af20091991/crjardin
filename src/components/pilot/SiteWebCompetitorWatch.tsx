@@ -1,8 +1,18 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, RefreshCw, ShieldCheck, ShieldX, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+  ShieldX,
+  Trash2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SiteWebCompetitorDetails } from "@/components/pilot/SiteWebCompetitorDetails";
 import {
   addCompetitor,
   checkCompetitor,
@@ -19,6 +29,7 @@ export function SiteWebCompetitorWatch() {
   const [domain, setDomain] = useState("");
   const [adding, setAdding] = useState(false);
   const [checkingId, setCheckingId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const messageOf = (err: unknown, fallback: string) =>
     err instanceof Error && err.message ? err.message : fallback;
@@ -65,7 +76,12 @@ export function SiteWebCompetitorWatch() {
     setCheckingId(id);
     try {
       const lastCheck = await checkCompetitor({ data: { id } });
-      setCompetitors((prev) => prev.map((c) => (c.id === id ? { ...c, lastCheck } : c)));
+      setCompetitors((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, previousCheck: c.lastCheck ?? c.previousCheck, lastCheck } : c,
+        ),
+      );
+      setOpenId(id);
       setError(null);
     } catch (err) {
       setError(messageOf(err, "Analyse impossible pour le moment."));
@@ -134,27 +150,64 @@ export function SiteWebCompetitorWatch() {
                     <p className="mt-2 text-xs text-amber-600">{c.lastCheck.error}</p>
                   )}
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                    <ScoreBadge label="Perf" value={c.lastCheck.performance_score} />
-                    <ScoreBadge label="SEO" value={c.lastCheck.seo_score} />
-                    <ScoreBadge label="Access." value={c.lastCheck.accessibility_score} />
-                    <ScoreBadge label="Bonnes pratiques" value={c.lastCheck.best_practices_score} />
+                    <ScoreBadge
+                      label="Performance"
+                      value={c.lastCheck.performance_score}
+                      previous={c.previousCheck?.performance_score ?? null}
+                    />
+                    <ScoreBadge
+                      label="SEO"
+                      value={c.lastCheck.seo_score}
+                      previous={c.previousCheck?.seo_score ?? null}
+                    />
+                    <ScoreBadge
+                      label="Accessibilité"
+                      value={c.lastCheck.accessibility_score}
+                      previous={c.previousCheck?.accessibility_score ?? null}
+                    />
+                    <ScoreBadge
+                      label="Bonnes pratiques"
+                      value={c.lastCheck.best_practices_score}
+                      previous={c.previousCheck?.best_practices_score ?? null}
+                    />
                     <Badge variant="outline" className="font-normal">
                       {c.lastCheck.ssl_ok ? (
                         <ShieldCheck className="mr-1 h-3 w-3 text-emerald-600" />
                       ) : (
                         <ShieldX className="mr-1 h-3 w-3 text-destructive" />
                       )}
-                      SSL
+                      {c.lastCheck.ssl_ok ? "SSL valide" : "SSL invalide ou injoignable"}
                     </Badge>
                     {c.lastCheck.response_time_ms != null && (
                       <Badge variant="outline" className="font-normal">
-                        {c.lastCheck.response_time_ms} ms
+                        Réponse {c.lastCheck.response_time_ms} ms
                       </Badge>
                     )}
                   </div>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      Analysé le {new Date(c.lastCheck.checked_at).toLocaleString("fr-FR")}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setOpenId(openId === c.id ? null : c.id)}
+                    >
+                      {openId === c.id ? "Masquer le détail" : "Voir le détail"}
+                      {openId === c.id ? (
+                        <ChevronUp className="ml-1 h-3 w-3" />
+                      ) : (
+                        <ChevronDown className="ml-1 h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                  {openId === c.id && <SiteWebCompetitorDetails check={c.lastCheck} />}
                 </>
               ) : (
-                <p className="mt-2 text-xs text-muted-foreground">Pas encore analysé.</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Pas encore analysé : clique sur l'icône d'actualisation.
+                </p>
               )}
             </div>
           ))}
@@ -164,13 +217,30 @@ export function SiteWebCompetitorWatch() {
   );
 }
 
-function ScoreBadge({ label, value }: { label: string; value: number | null }) {
+function ScoreBadge({
+  label,
+  value,
+  previous,
+}: {
+  label: string;
+  value: number | null;
+  previous: number | null;
+}) {
   if (value == null) return null;
   const tone =
     value >= 90 ? "text-emerald-600" : value >= 50 ? "text-amber-600" : "text-destructive";
+  const delta = previous == null ? 0 : value - previous;
   return (
     <Badge variant="outline" className="font-normal">
       {label} <span className={`ml-1 font-semibold ${tone}`}>{value}</span>
+      {delta !== 0 && (
+        <span
+          className={`ml-1 ${delta > 0 ? "text-emerald-600" : "text-destructive"}`}
+          title="Évolution depuis l'analyse précédente"
+        >
+          {delta > 0 ? `▲${delta}` : `▼${Math.abs(delta)}`}
+        </span>
+      )}
     </Badge>
   );
 }
