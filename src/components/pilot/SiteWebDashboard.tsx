@@ -9,6 +9,7 @@ import { SiteWebOpportunities } from "@/components/pilot/SiteWebOpportunities";
 import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
 import { SiteWebTodaySummary } from "@/components/pilot/SiteWebTodaySummary";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
+import { SiteWebWordPress } from "@/components/pilot/SiteWebWordPress";
 
 type ModuleView =
   | "diagnostic"
@@ -17,7 +18,8 @@ type ModuleView =
   | "local"
   | "content"
   | "opportunities"
-  | "actions";
+  | "actions"
+  | "wordpress";
 
 const moduleViews: Array<{ id: ModuleView; label: string }> = [
   { id: "diagnostic", label: "Diagnostic SEO" },
@@ -27,6 +29,7 @@ const moduleViews: Array<{ id: ModuleView; label: string }> = [
   { id: "content", label: "Contenus" },
   { id: "opportunities", label: "Opportunités" },
   { id: "actions", label: "Actions" },
+  { id: "wordpress", label: "WordPress" },
 ];
 
 export function SiteWebDashboard() {
@@ -69,6 +72,8 @@ export function SiteWebDashboard() {
       </nav>
 
       {activeView === "diagnostic" && <SiteWebSeoDiagnostic />}
+
+      {activeView === "wordpress" && <SiteWebWordPress />}
 
       {activeView === "today" && (
         <SiteWebTodaySummary onOpenOpportunities={() => setActiveView("opportunities")} />
