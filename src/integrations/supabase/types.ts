@@ -849,6 +849,8 @@ export type Database = {
           deactivated_at: string | null;
           enabled: boolean;
           garden_state: string | null;
+          garden_objectives: string | null;
+          garden_specificities: string | null;
           google_review_url: string | null;
           updated_at: string;
           user_id: string;
@@ -862,6 +864,8 @@ export type Database = {
           deactivated_at?: string | null;
           enabled?: boolean;
           garden_state?: string | null;
+          garden_objectives?: string | null;
+          garden_specificities?: string | null;
           google_review_url?: string | null;
           updated_at?: string;
           user_id?: string;
@@ -875,6 +879,8 @@ export type Database = {
           deactivated_at?: string | null;
           enabled?: boolean;
           garden_state?: string | null;
+          garden_objectives?: string | null;
+          garden_specificities?: string | null;
           google_review_url?: string | null;
           updated_at?: string;
           user_id?: string;
