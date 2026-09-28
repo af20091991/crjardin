@@ -35,7 +35,6 @@ export const CHANGELOG: ChangeEntry[] = [
     ],
   },
 
-
   {
     date: "2026-09-28",
     version: "2.3.20",
