@@ -48,9 +48,9 @@ export const CHANGELOG: ChangeEntry[] = [
     date: "2026-09-27",
     version: "2.3.18",
     theme: "Général",
-    title: "Site web — veille concurrentielle (remplace Semrush)",
+    title: "Site web — veille concurrentielle",
     details: [
-      "L'intégration Semrush est retirée (add-on payant indisponible) et remplacée par un suivi de concurrents choisis manuellement.",
+      "Nouveau suivi de concurrents choisis manuellement dans la carte « Concurrence » du Diagnostic SEO.",
       "Pour chaque concurrent ajouté (nom + domaine), une analyse à la demande mesure performance, SEO, accessibilité et bonnes pratiques (Google PageSpeed Insights, gratuit), la validité du certificat SSL et le temps de réponse.",
     ],
   },
@@ -63,17 +63,6 @@ export const CHANGELOG: ChangeEntry[] = [
     details: [
       "Quand le rafraîchissement du token Google échoue (accès révoqué, etc.), la carte « Sources Google » passe désormais réellement en « Connexion en erreur » au lieu de rester bloquée sur « vérifiée ».",
       "La raison de l'échec est conservée sur chaque connexion pour faciliter le diagnostic.",
-    ],
-  },
-
-  {
-    date: "2026-09-27",
-    version: "2.3.16",
-    theme: "Général",
-    title: "Site web — concurrents organiques via Semrush",
-    details: [
-      "La carte « Concurrence » du Diagnostic SEO affiche désormais les concurrents organiques réels (Semrush) au lieu d'un message d'indisponibilité.",
-      "Nouveau nombre de mots-clés organiques et de trafic estimé par domaine, avec mise en cache d'un jour pour limiter la consommation d'unités API.",
     ],
   },
 

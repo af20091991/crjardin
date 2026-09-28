@@ -1,9 +1,6 @@
--- Site web module : abandon de l'intégration Semrush (add-on payant indisponible),
--- remplacée par une veille concurrentielle basée sur des mesures techniques
+-- Site web module : veille concurrentielle basée sur des mesures techniques
 -- gratuites (Google PageSpeed Insights + vérification SSL + temps de réponse)
 -- sur des concurrents choisis manuellement.
-
-DROP TABLE IF EXISTS public.site_web_semrush_cache;
 
 CREATE TABLE IF NOT EXISTS public.site_web_competitors (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
