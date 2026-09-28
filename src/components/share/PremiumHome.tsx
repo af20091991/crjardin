@@ -402,7 +402,9 @@ export function PremiumHome({
                 rows={5}
               />
               <div className="flex items-center justify-between gap-3">
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+                <label
+                  className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"
+                >
                   <Paperclip className="h-4 w-4" />
                   <span>{attachment ? attachment.name : "Joindre une photo"}</span>
                   <input
