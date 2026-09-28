@@ -197,11 +197,6 @@ function CalendrierSstPage() {
     queryFn: listWorksiteSheets,
   });
   const [selectedSstPlanning, setSelectedSstPlanning] = useState("all");
-  const selectedSheetDetailsQuery = useQuery({
-    queryKey: ["sst-calendar-worksite-sheet", selectedSheet?.id],
-    queryFn: () => getWorksiteSheet(selectedSheet!.id),
-    enabled: !!selectedSheet?.id,
-  });
 
   const entries = useMemo(() => data ?? [], [data]);
   const planningSheets = useMemo(
@@ -577,6 +572,11 @@ function SstPlanningByPerson({
   const today = isoDate(new Date());
   const [statusFilter, setStatusFilter] = useState<"all" | "validated" | "draft">("all");
   const [selectedSheet, setSelectedSheet] = useState<WorksiteSheet | null>(null);
+  const selectedSheetDetailsQuery = useQuery({
+    queryKey: ["sst-calendar-worksite-sheet", selectedSheet?.id],
+    queryFn: () => getWorksiteSheet(selectedSheet!.id),
+    enabled: !!selectedSheet?.id,
+  });
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
