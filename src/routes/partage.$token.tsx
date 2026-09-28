@@ -436,7 +436,11 @@ function PremiumExperience({
               <section>
                 <h1 className="mb-5 font-serif text-3xl font-semibold">Documents</h1>
                 {premium.documents.length === 0 ? (
-                  <Card className="border-dashed"><CardContent className="py-12 text-center text-muted-foreground">Aucun document disponible pour le moment.</CardContent></Card>
+                  <Card className="border-dashed">
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                      Aucun document disponible pour le moment.
+                    </CardContent>
+                  </Card>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2">
                     {premium.documents.map((document) => (
@@ -444,7 +448,9 @@ function PremiumExperience({
                         <CardContent className="flex items-center justify-between gap-4 p-5">
                           <div className="min-w-0">
                             <p className="font-medium">{document.title}</p>
-                            <p className="mt-1 truncate text-sm text-muted-foreground">{document.filename}</p>
+                            <p className="mt-1 truncate text-sm text-muted-foreground">
+                              {document.filename}
+                            </p>
                           </div>
                           {document.url && (
                             <Button asChild variant="outline" size="sm">
@@ -454,6 +460,12 @@ function PremiumExperience({
                             </Button>
                           )}
                         </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}                        </CardContent>
                       </Card>
                     ))}
                   </div>
