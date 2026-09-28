@@ -1097,7 +1097,9 @@ function GardenTab({
             className="h-56 w-full object-cover sm:h-72"
           />
         ) : (
-          <div className="grid h-48 place-items-center bg-muted text-sm text-muted-foreground sm:h-56">
+          <div
+            className="grid h-48 place-items-center bg-muted text-sm text-muted-foreground sm:h-56"
+          >
             Aucune photo de couverture
           </div>
         )}
