@@ -46,6 +46,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   en_panne: "destructive",
   en_reparation: "secondary",
   hors_service: "outline",
+  vendu: "outline",
 };
 
 const URGENCY_BADGE: Record<string, { label: string; className: string } | null> = {
