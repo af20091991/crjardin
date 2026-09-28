@@ -33,8 +33,14 @@ type PremiumSection = "reports" | "photos" | "recos" | "premium" | "documents";
 const REQUESTS = [
   { label: "Demander une intervention", text: "Je souhaite demander une intervention." },
   { label: "Poser une question", text: "J'ai une question concernant mon jardin." },
-  { label: "Signaler un problème", text: "Je souhaite signaler un problème concernant mon jardin." },
-  { label: "Modifier une intervention", text: "Je souhaite demander une modification d'une intervention." },
+  {
+    label: "Signaler un problème",
+    text: "Je souhaite signaler un problème concernant mon jardin.",
+  },
+  {
+    label: "Modifier une intervention",
+    text: "Je souhaite demander une modification d'une intervention.",
+  },
   { label: "Demander une proposition", text: "Je souhaite demander une proposition." },
   { label: "Demander un document", text: "Je souhaite demander un document." },
 ] as const;
@@ -65,7 +71,11 @@ export function PremiumHome({
   const latest = interventions[0];
   const previous = interventions.slice(1, 4);
   const photos = interventions
-    .flatMap((iv) => iv.photos.filter((photo) => photo.url).map((photo) => ({ ...photo, date: iv.intervention_date })))
+    .flatMap((iv) =>
+      iv.photos
+        .filter((photo) => photo.url)
+        .map((photo) => ({ ...photo, date: iv.intervention_date })),
+    )
     .slice(0, 6);
   const activeMessages = messages;
   const firstUpcoming = premium.upcoming[0];
@@ -148,24 +158,41 @@ export function PremiumHome({
             <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
               Le jardin de {client.name}
             </h1>
-            {client.address && <p className="mt-1 text-sm text-muted-foreground">{client.address}</p>}
+            {client.address && (
+              <p className="mt-1 text-sm text-muted-foreground">{client.address}</p>
+            )}
           </div>
         </section>
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b pb-4 text-sm">
-          <button className="font-medium text-primary" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          <button
+            className="font-medium text-primary"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          >
             Accueil
           </button>
-          <button onClick={() => onNavigate("premium")} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={() => onNavigate("premium")}
+            className="text-muted-foreground hover:text-foreground"
+          >
             Mon jardin
           </button>
-          <button onClick={() => onNavigate("reports")} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={() => onNavigate("reports")}
+            className="text-muted-foreground hover:text-foreground"
+          >
             Interventions
           </button>
-          <button onClick={() => onNavigate("photos")} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={() => onNavigate("photos")}
+            className="text-muted-foreground hover:text-foreground"
+          >
             Photos
           </button>
-          <button onClick={() => onNavigate("recos")} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={() => onNavigate("recos")}
+            className="text-muted-foreground hover:text-foreground"
+          >
             Conseils
           </button>
           <button onClick={() => onNavigate("premium")} className="text-muted-foreground hover:text-foreground">
@@ -184,7 +211,10 @@ export function PremiumHome({
         </div>
 
         <section>
-          <SectionHeading eyebrow="Le suivi de votre jardin" title="Les dernières nouvelles de votre jardin" />
+          <SectionHeading
+            eyebrow="Le suivi de votre jardin"
+            title="Les dernières nouvelles de votre jardin"
+          />
           {latest ? (
             <article className="overflow-hidden rounded-2xl border bg-background">
               {latest.photos[0]?.url && (
@@ -202,17 +232,27 @@ export function PremiumHome({
               )}
               <div className="space-y-4 p-6 sm:p-8">
                 <div>
-                  <p className="text-sm text-muted-foreground">{fmtDate(latest.intervention_date)}</p>
-                  <h2 className="mt-1 font-serif text-2xl font-semibold">{latest.title ?? latest.intervention_type ?? "Intervention"}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {fmtDate(latest.intervention_date)}
+                  </p>
+                  <h2 className="mt-1 font-serif text-2xl font-semibold">
+                    {latest.title ?? latest.intervention_type ?? "Intervention"}
+                  </h2>
                 </div>
-                {latest.summary && <p className="max-w-3xl text-[15px] leading-7 text-muted-foreground">{latest.summary}</p>}
+                {latest.summary && (
+                  <p className="max-w-3xl text-[15px] leading-7 text-muted-foreground">
+                    {latest.summary}
+                  </p>
+                )}
                 <Button variant="outline" onClick={() => onNavigate("reports")}>
                   Voir le détail <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </div>
             </article>
           ) : (
-            <EmptyState text="Le suivi de votre jardin commencera ici dès la première intervention." />
+            <EmptyState
+              text="Le suivi de votre jardin commencera ici dès la première intervention."
+            />
           )}
 
           {previous.length > 0 && (
@@ -224,7 +264,9 @@ export function PremiumHome({
                   className="rounded-xl border bg-background p-4 text-left transition-colors hover:border-primary/40"
                 >
                   <p className="text-xs text-muted-foreground">{fmtDate(iv.intervention_date)}</p>
-                  <p className="mt-1 font-medium">{iv.title ?? iv.intervention_type ?? "Intervention"}</p>
+                  <p className="mt-1 font-medium">
+                    {iv.title ?? iv.intervention_type ?? "Intervention"}
+                  </p>
                   <span className="mt-3 inline-flex items-center text-xs text-primary">
                     Voir l'intervention <ChevronRight className="ml-1 h-3.5 w-3.5" />
                   </span>
@@ -258,9 +300,13 @@ export function PremiumHome({
                   </span>
                   <div>
                     <p className="font-medium">{firstUpcoming.title}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{fmtDate(firstUpcoming.scheduled_date)}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {fmtDate(firstUpcoming.scheduled_date)}
+                    </p>
                     {firstUpcoming.details && (
-                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{firstUpcoming.details}</p>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        {firstUpcoming.details}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -272,7 +318,10 @@ export function PremiumHome({
         {recommendations.length > 0 && (
           <section>
             <div className="flex items-end justify-between gap-4">
-              <SectionHeading eyebrow="Le regard du paysagiste" title="Quelques observations pour votre jardin" />
+              <SectionHeading
+                eyebrow="Le regard du paysagiste"
+                title="Quelques observations pour votre jardin"
+              />
               <Button variant="ghost" size="sm" onClick={() => onNavigate("recos")}>
                 Voir tout
               </Button>
@@ -287,7 +336,9 @@ export function PremiumHome({
                     <div>
                       <h3 className="font-medium">{recommendation.title}</h3>
                       {recommendation.description && (
-                        <p className="mt-2 text-sm leading-6 text-muted-foreground">{recommendation.description}</p>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                          {recommendation.description}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -307,7 +358,12 @@ export function PremiumHome({
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3">
               {photos.slice(0, 3).map((photo) => (
-                <ImageLightbox key={photo.id} src={photo.url!} alt={photo.caption ?? "Photo du jardin"} caption={photo.caption}>
+                <ImageLightbox
+                  key={photo.id}
+                  src={photo.url!}
+                  alt={photo.caption ?? "Photo du jardin"}
+                  caption={photo.caption}
+                >
                   <img
                     src={photo.url!}
                     alt={photo.caption ?? "Photo du jardin"}
@@ -348,7 +404,8 @@ export function PremiumHome({
                   <div>
                     <p className="font-medium">Documents</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {premium.documents.length} document{premium.documents.length > 1 ? "s" : ""} disponible{premium.documents.length > 1 ? "s" : ""}
+                      {premium.documents.length} document{premium.documents.length > 1 ? "s" : ""}{" "}
+                      disponible{premium.documents.length > 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>
@@ -392,7 +449,9 @@ export function PremiumHome({
           ) : (
             <div className="space-y-4 pt-2">
               <div className="rounded-xl bg-muted/40 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Votre demande</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Votre demande
+                </p>
                 <p className="mt-1 font-medium">{requestType.label}</p>
               </div>
               <Textarea
@@ -402,9 +461,7 @@ export function PremiumHome({
                 rows={5}
               />
               <div className="flex items-center justify-between gap-3">
-                <label
-                  className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"
-                >
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
                   <Paperclip className="h-4 w-4" />
                   <span>{attachment ? attachment.name : "Joindre une photo"}</span>
                   <input
@@ -444,7 +501,9 @@ function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) 
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <div className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">{text}</div>;
+  return (
+    <div className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">{text}</div>
+  );
 }
 
 function fmtDate(value: string) {
