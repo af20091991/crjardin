@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-28",
+    version: "2.3.24",
+    theme: "Clients",
+    title: "Comptes Premium — accès centralisé aux espaces clients",
+    details: [
+      "Une page dédiée « Comptes Premium » dans la rubrique Clients liste uniquement les clients dont l'accès Premium est actif.",
+      "Le nom du client ouvre directement son interface Premium ; la fiche client reste accessible séparément.",
+    ],
+  },
+  {
+    date: "2026-09-28",
     version: "2.3.23",
     theme: "PDF & Partage",
     title: "Espace Premium — fiche « Mon jardin » enrichie",

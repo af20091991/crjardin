@@ -46,11 +46,15 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
   });
 
   const [gardenState, setGardenState] = useState("");
+  const [gardenObjectives, setGardenObjectives] = useState("");
+  const [gardenSpecificities, setGardenSpecificities] = useState("");
   const [googleReviewUrl, setGoogleReviewUrl] = useState("");
   const [commercialNote, setCommercialNote] = useState("");
   const [initialized, setInitialized] = useState(false);
   if (premium && !initialized) {
     setGardenState(premium.garden_state ?? "");
+    setGardenObjectives(premium.garden_objectives ?? "");
+    setGardenSpecificities(premium.garden_specificities ?? "");
     setGoogleReviewUrl(premium.google_review_url ?? "");
     setCommercialNote(premium.commercial_note ?? "");
     setInitialized(true);
@@ -71,6 +75,8 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
     mutationFn: () =>
       updateClientPremium(clientId, {
         garden_state: gardenState || null,
+        garden_objectives: gardenObjectives || null,
+        garden_specificities: gardenSpecificities || null,
         google_review_url: googleReviewUrl || null,
         commercial_note: commercialNote || null,
       }),
@@ -121,6 +127,28 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
               value={gardenState}
               onChange={(e) => setGardenState(e.target.value)}
               placeholder="Ex : jardin en bon état général, taille des rosiers prévue en mars…"
+              rows={3}
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <Label htmlFor="garden-objectives">Objectifs du jardin</Label>
+            <Textarea
+              id="garden-objectives"
+              value={gardenObjectives}
+              onChange={(e) => setGardenObjectives(e.target.value)}
+              placeholder="Ex : préserver les plantes existantes, réduire l’arrosage, garder une floraison étalée…"
+              rows={3}
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <Label htmlFor="garden-specificities">Particularités du jardin</Label>
+            <Textarea
+              id="garden-specificities"
+              value={gardenSpecificities}
+              onChange={(e) => setGardenSpecificities(e.target.value)}
+              placeholder="Ex : sol très calcaire, zone ventée, présence d’un chien, contraintes d’accès…"
               rows={3}
               className="mt-1.5"
             />

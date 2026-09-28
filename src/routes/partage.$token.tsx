@@ -66,6 +66,7 @@ import {
   Reply,
   RotateCcw,
   Crown,
+  Sprout,
   Star,
   Upload,
 } from "lucide-react";
@@ -381,6 +382,14 @@ function SharePage() {
 
 function premiumClientTitle(client: SharedClientData["client"]) {
   const civility = client.civility?.trim().toLowerCase();
+  if (
+    civility === "madame et monsieur" ||
+    civility === "monsieur et madame" ||
+    civility === "mme et m." ||
+    civility === "m. et mme"
+  ) {
+    return `Madame et Monsieur ${client.name}`;
+  }
   if (civility === "madame" || civility === "mme" || civility === "mrs") {
     return `Madame ${client.name}`;
   }
@@ -574,7 +583,12 @@ function PremiumExperience({
             {section === "premium" && (
               <section>
                 <h1 className="mb-5 font-serif text-3xl font-semibold">Mon jardin</h1>
-                <GardenTab client={client} interventions={interventions} recommendations={recommendations} premium={premium} />
+                <GardenTab
+                  client={client}
+                  interventions={interventions}
+                  recommendations={recommendations}
+                  premium={premium}
+                />
               </section>
             )}
             {section === "documents" && (
@@ -1097,9 +1111,7 @@ function GardenTab({
             className="h-56 w-full object-cover sm:h-72"
           />
         ) : (
-          <div
-            className="grid h-48 place-items-center bg-muted text-sm text-muted-foreground sm:h-56"
-          >
+          <div className="grid h-48 place-items-center bg-muted text-sm text-muted-foreground sm:h-56">
             Aucune photo de couverture
           </div>
         )}
@@ -1153,9 +1165,7 @@ function GardenTab({
                 </div>
               )}
               {!client.contract_type && !client.frequency && (
-                <p className="text-sm text-muted-foreground">
-                  Aucun repère de suivi renseigné.
-                </p>
+                <p className="text-sm text-muted-foreground">Aucun repère de suivi renseigné.</p>
               )}
             </div>
           </CardContent>
@@ -1170,9 +1180,7 @@ function GardenTab({
                 <CalendarDays className="h-4 w-4 text-primary" />
                 Dernier passage
               </p>
-              <Badge variant="outline">
-                {fmtDate(latest.intervention_date)}
-              </Badge>
+              <Badge variant="outline">{fmtDate(latest.intervention_date)}</Badge>
             </div>
             <p className="text-sm font-medium">
               {latest.title ?? latest.intervention_type ?? "Intervention"}
@@ -1182,9 +1190,7 @@ function GardenTab({
                 {latest.garden_state}
               </p>
             ) : latest.summary ? (
-              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                {latest.summary}
-              </p>
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">{latest.summary}</p>
             ) : (
               <p className="text-sm text-muted-foreground">
                 Aucune observation détaillée enregistrée.
@@ -1204,10 +1210,7 @@ function GardenTab({
             {activeRecommendations.length > 0 ? (
               <ul className="space-y-2 text-sm">
                 {activeRecommendations.slice(0, 5).map((recommendation) => (
-                  <li
-                    key={recommendation.id}
-                    className="rounded-lg bg-muted/50 p-2.5"
-                  >
+                  <li key={recommendation.id} className="rounded-lg bg-muted/50 p-2.5">
                     <p className="font-medium">{recommendation.title}</p>
                     {recommendation.description && (
                       <p className="mt-1 text-xs text-muted-foreground">
@@ -1234,19 +1237,10 @@ function GardenTab({
             {premium.upcoming.length > 0 ? (
               <div className="space-y-2">
                 {premium.upcoming.slice(0, 5).map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-lg bg-muted/50 p-2.5 text-sm"
-                  >
+                  <div key={item.id} className="rounded-lg bg-muted/50 p-2.5 text-sm">
                     <p className="font-medium">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {fmtDate(item.scheduled_date)}
-                    </p>
-                    {item.details && (
-                      <p className="mt-1 text-muted-foreground">
-                        {item.details}
-                      </p>
-                    )}
+                    <p className="text-xs text-muted-foreground">{fmtDate(item.scheduled_date)}</p>
+                    {item.details && <p className="mt-1 text-muted-foreground">{item.details}</p>}
                   </div>
                 ))}
               </div>
@@ -1259,16 +1253,36 @@ function GardenTab({
         </Card>
       </div>
 
-      <Card className="border-dashed">
-        <CardContent className="space-y-2 pt-6">
-          <p className="font-medium">Objectifs et particularités du jardin</p>
-          <p className="text-sm text-muted-foreground">
-            Cette partie sera enrichie lorsque ces informations seront renseignées dans Pilot
-            Pro.
-            Aucune information n'est inventée dans l'espace client.
-          </p>
-        </CardContent>
-      </Card>
+      {(premium.garden_objectives || premium.garden_specificities) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {premium.garden_objectives && (
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <p className="flex items-center gap-2 font-medium">
+                  <Sprout className="h-4 w-4 text-primary" />
+                  Objectifs du jardin
+                </p>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  {premium.garden_objectives}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          {premium.garden_specificities && (
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <p className="flex items-center gap-2 font-medium">
+                  <Leaf className="h-4 w-4 text-primary" />
+                  Particularités du jardin
+                </p>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  {premium.garden_specificities}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }
