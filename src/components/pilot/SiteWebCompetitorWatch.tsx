@@ -9,7 +9,7 @@ import {
   listCompetitors,
   removeCompetitor,
   type Competitor,
-} from "@/lib/site-web-competitors-api";
+} from "@/lib/site-web-competitors.functions";
 
 export function SiteWebCompetitorWatch() {
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
@@ -20,13 +20,16 @@ export function SiteWebCompetitorWatch() {
   const [adding, setAdding] = useState(false);
   const [checkingId, setCheckingId] = useState<string | null>(null);
 
+  const messageOf = (err: unknown, fallback: string) =>
+    err instanceof Error && err.message ? err.message : fallback;
+
   const load = async () => {
     setLoading(true);
-    const result = await listCompetitors();
-    if (result.error) setError(result.error);
-    else {
+    try {
+      setCompetitors(await listCompetitors());
       setError(null);
-      setCompetitors(result.data?.competitors ?? []);
+    } catch (err) {
+      setError(messageOf(err, "Impossible de charger les concurrents."));
     }
     setLoading(false);
   };
@@ -38,35 +41,36 @@ export function SiteWebCompetitorWatch() {
   const handleAdd = async () => {
     if (!name.trim() || !domain.trim()) return;
     setAdding(true);
-    const result = await addCompetitor(name, domain);
-    setAdding(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      await addCompetitor({ data: { name, domain } });
+      setName("");
+      setDomain("");
+      await load();
+    } catch (err) {
+      setError(messageOf(err, "Ajout impossible pour le moment."));
     }
-    setName("");
-    setDomain("");
-    await load();
+    setAdding(false);
   };
 
   const handleRemove = async (id: string) => {
-    await removeCompetitor(id);
-    await load();
+    try {
+      await removeCompetitor({ data: { id } });
+      await load();
+    } catch (err) {
+      setError(messageOf(err, "Suppression impossible pour le moment."));
+    }
   };
 
   const handleCheck = async (id: string) => {
     setCheckingId(id);
-    const result = await checkCompetitor(id);
-    setCheckingId(null);
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      const lastCheck = await checkCompetitor({ data: { id } });
+      setCompetitors((prev) => prev.map((c) => (c.id === id ? { ...c, lastCheck } : c)));
+      setError(null);
+    } catch (err) {
+      setError(messageOf(err, "Analyse impossible pour le moment."));
     }
-    setCompetitors((prev) =>
-      prev.map((c) =>
-        c.id === id ? { ...c, lastCheck: result.data?.lastCheck ?? c.lastCheck } : c,
-      ),
-    );
+    setCheckingId(null);
   };
 
   return (

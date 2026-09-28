@@ -1,5 +1,3 @@
 project_id = "mgkeqwwzhcodntkakqaz"
 [functions.site-web-api]
 verify_jwt = false
-[functions.site-web-competitor-check]
-verify_jwt = false
