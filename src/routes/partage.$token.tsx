@@ -458,20 +458,79 @@ function PremiumExperience({
                 size="icon"
                 aria-label="Agrandir le texte"
                 onClick={toggleLarge}
-                className={`bg-background/90 backdrop-blur ${large ? "bg-primary/10 text-primary" : ""}`}
+                className={`bg-background/90 backdrop-blur ${
+                  large ? "bg-primary/10 text-primary" : ""
+                }`}
               >
                 <Type className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
-          <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b py-4 text-sm" aria-label="Navigation Premium">
-            <button onClick={() => setSection("home")} className={section === "home" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Accueil</button>
-            <button onClick={() => setSection("premium")} className={section === "premium" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Mon jardin</button>
-            <button onClick={() => setSection("reports")} className={section === "reports" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Interventions</button>
-            <button onClick={() => setSection("photos")} className={section === "photos" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Photos</button>
-            <button onClick={() => setSection("recos")} className={section === "recos" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Conseils</button>
-            <button onClick={() => setSection("documents")} className={section === "documents" ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground"}>Documents</button>
+          <nav
+            className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b py-4 text-sm"
+            aria-label="Navigation Premium"
+          >
+            <button
+              onClick={() => setSection("home")}
+              className={
+                section === "home"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Accueil
+            </button>
+            <button
+              onClick={() => setSection("premium")}
+              className={
+                section === "premium"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Mon jardin
+            </button>
+            <button
+              onClick={() => setSection("reports")}
+              className={
+                section === "reports"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Interventions
+            </button>
+            <button
+              onClick={() => setSection("photos")}
+              className={
+                section === "photos"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Photos
+            </button>
+            <button
+              onClick={() => setSection("recos")}
+              className={
+                section === "recos"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Conseils
+            </button>
+            <button
+              onClick={() => setSection("documents")}
+              className={
+                section === "documents"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Documents
+            </button>
           </nav>
         </div>
       </header>
