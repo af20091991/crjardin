@@ -10,11 +10,8 @@ import {
   TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
   DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, SELECTABLE_REPORT_SECTIONS, normalizeReportSections, type ReportSections,
   listServiceCatalog,
-  completeInterventionWithHoursAutofill, confirmHoursSpent, estimateHoursSpent,
+  completeInterventionWithHoursAutofill,
 } from "@/lib/interventions";
-import { getSettings } from "@/lib/pilot";
-import { supabase } from "@/integrations/supabase/client";
-import { saleRateScope } from "@/lib/pilot-sale-time";
 import {
   listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
   listRecommendationsByClient, addRecommendation, updateRecommendation, deleteRecommendation,
@@ -68,7 +65,7 @@ import {
 import {
   ArrowLeft, Plus, Trash2, Loader2, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
   FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download, ArrowUp, ArrowDown, Settings2,
-  Clock, AlertTriangle, Gauge,
+  Clock, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -122,27 +119,7 @@ function InterventionDetail() {
     queryKey: ["service-catalog"],
     queryFn: listServiceCatalog,
   });
-  const plannedHoursQ = useQuery({
-    queryKey: ["planned-hours", interventionId],
-    queryFn: () => estimateHoursSpent(interventionId),
-  });
-  const pilotSettingsQ = useQuery({
-    queryKey: ["pilot-settings-target"],
-    queryFn: getSettings,
-  });
-  // Taux horaire moyen du client (mêmes lignes de vente que le périmètre unique).
-  const clientRateQ = useQuery({
-    queryKey: ["client-hourly-rate", iv?.client_id],
-    enabled: !!iv?.client_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pilot_ca_entries")
-        .select("amount_ht,hours,intervention_type")
-        .eq("client_id", iv!.client_id);
-      if (error) throw new Error(error.message);
-      return saleRateScope((data ?? []) as { amount_ht: number | null; hours: number | null; intervention_type: string | null }[]).rate;
-    },
-  });
+
 
 
   const invTasks = () => qc.invalidateQueries({ queryKey: ["tasks", interventionId] });
@@ -151,13 +128,6 @@ function InterventionDetail() {
 
   const [newTask, setNewTask] = useState("");
   const [newTaskService, setNewTaskService] = useState<string>("");
-  const [hoursInput, setHoursInput] = useState<string>("");
-
-  useEffect(() => {
-    if (iv?.hours_spent != null) setHoursInput(String(iv.hours_spent));
-    else setHoursInput("");
-  }, [iv?.id, iv?.hours_spent]);
-
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const changeClient = useMutation({
@@ -278,19 +248,12 @@ function InterventionDetail() {
       invIv();
       qc.invalidateQueries({ queryKey: ["interventions"] });
       if (iv?.status !== "terminee") {
-        toast.success("Intervention clôturée. Vérifiez les heures passées.");
+        toast.success("Intervention clôturée.");
       }
     },
   });
 
-  const saveHours = useMutation({
-    mutationFn: async (hours: number) => {
-      if (!iv) return;
-      await confirmHoursSpent(iv, hours);
-    },
-    onSuccess: () => { invIv(); toast.success("Heures enregistrées"); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
-  });
+
 
   const exportPdf = useMutation({
     mutationFn: async () => {
@@ -615,22 +578,6 @@ function InterventionDetail() {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
-            <HoursSpentBlock
-              iv={iv}
-              done={done}
-              hoursInput={hoursInput}
-              setHoursInput={setHoursInput}
-              onSave={(h) => saveHours.mutate(h)}
-              saving={saveHours.isPending}
-            />
-            <RentabilityEstimateBlock
-              plannedHours={plannedHoursQ.data ?? null}
-              actualHours={iv.hours_spent ?? null}
-              done={done}
-              targetHourlyRate={pilotSettingsQ.data?.target_hourly_rate ?? 0}
-              clientHourlyRate={clientRateQ.data ?? null}
-              estimated={((iv.ai_metadata ?? {}) as Record<string, unknown>).hours_spent_estimated === true}
-            />
           </CardContent>
         </Card>
 
@@ -1279,209 +1226,6 @@ function ReportPhotosPicker({
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-function HoursSpentBlock({
-  iv,
-  done,
-  hoursInput,
-  setHoursInput,
-  onSave,
-  saving,
-}: {
-  iv: Intervention;
-  done: boolean;
-  hoursInput: string;
-  setHoursInput: (v: string) => void;
-  onSave: (hours: number) => void;
-  saving: boolean;
-}) {
-  return _renderHoursSpentBlock({ iv, done, hoursInput, setHoursInput, onSave, saving });
-}
-
-function RentabilityEstimateBlock({
-  plannedHours,
-  actualHours,
-  done,
-  targetHourlyRate,
-  clientHourlyRate,
-  estimated,
-}: {
-  plannedHours: number | null;
-  actualHours: number | null;
-  done: boolean;
-  targetHourlyRate: number;
-  clientHourlyRate: number | null;
-  estimated: boolean;
-}) {
-  if (!plannedHours && !actualHours) return null;
-  const hasBoth = plannedHours != null && actualHours != null && actualHours > 0;
-  const valueProduced = hasBoth && targetHourlyRate > 0 ? (plannedHours as number) * targetHourlyRate : null;
-  const realCost = hasBoth && targetHourlyRate > 0 ? (actualHours as number) * targetHourlyRate : null;
-  const marginDelta = valueProduced !== null && realCost !== null ? valueProduced - realCost : null;
-  // Taux horaire réalisé sur cette intervention (valeur produite ÷ temps réel).
-  const ivRate = valueProduced !== null && actualHours ? valueProduced / actualHours : null;
-  const rateGapPct =
-    ivRate !== null && clientHourlyRate != null && clientHourlyRate > 0
-      ? ((ivRate - clientHourlyRate) / clientHourlyRate) * 100
-      : null;
-
-
-  const confidence: "HIGH" | "MEDIUM" | "LOW" = !hasBoth ? "LOW" : estimated ? "MEDIUM" : "HIGH";
-  const confLabel = { HIGH: "Fiable", MEDIUM: "Estimé", LOW: "Incomplet" }[confidence];
-  const confColor = { HIGH: "var(--primary)", MEDIUM: "var(--pp-mid)", LOW: "var(--pp-neutral)" }[confidence];
-
-  return (
-    <div className="mt-3 rounded-lg border bg-muted/20 p-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-sm font-medium">
-          <Gauge className="h-4 w-4 text-primary" />
-          Rentabilité estimée
-          {!done && <span className="ml-1 text-xs font-normal text-muted-foreground">(après clôture)</span>}
-        </div>
-        <Badge variant="outline" className="gap-1 font-normal" style={{ borderColor: confColor, color: confColor }}>
-          {confLabel}
-        </Badge>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded border bg-background/60 p-2">
-          <div className="text-[11px] text-muted-foreground">Temps réel</div>
-          <div className="text-base font-semibold tabular-nums">
-            {actualHours != null && actualHours > 0 ? `${actualHours.toFixed(2)} h` : "—"}
-          </div>
-          <div className="text-[10px] text-muted-foreground">
-            {actualHours != null && actualHours > 0 ? (estimated ? "estimé auto" : "confirmé") : "à renseigner"}
-          </div>
-        </div>
-        <div className="rounded border bg-background/60 p-2">
-          <div className="text-[11px] text-muted-foreground">Rentabilité</div>
-          {targetHourlyRate > 0 && hasBoth ? (
-            <>
-              <div className="text-base font-semibold tabular-nums" style={{ color: (marginDelta ?? 0) >= 0 ? "var(--primary)" : "var(--pp-charges)" }}>
-                {(marginDelta ?? 0) >= 0 ? "+" : ""}
-                {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(marginDelta ?? 0)}
-              </div>
-              <div className="text-[10px] text-muted-foreground">
-                base {new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(targetHourlyRate)}/h
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-base font-semibold text-muted-foreground">—</div>
-              <div className="text-[10px] text-muted-foreground">
-                {targetHourlyRate > 0 ? "données incomplètes" : "définir la cible taux horaire"}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-      {ivRate !== null && (
-        <div className="mt-2 rounded border bg-background/60 p-2">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <span className="text-[11px] text-muted-foreground">Taux horaire de cette intervention</span>
-            <span className="text-sm font-semibold tabular-nums">
-              {ivRate.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/h
-            </span>
-          </div>
-          {clientHourlyRate != null && clientHourlyRate > 0 ? (
-            <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2">
-              <span className="text-[11px] text-muted-foreground">
-                Moyenne du client : {clientHourlyRate.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/h
-              </span>
-              <span
-                className="text-xs font-semibold tabular-nums"
-                style={{ color: (rateGapPct ?? 0) >= 0 ? "var(--primary)" : "var(--pp-charges)" }}
-              >
-                {(rateGapPct ?? 0) >= 0 ? "Au-dessus" : "En dessous"} de{" "}
-                {Math.abs(rateGapPct ?? 0).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %
-              </span>
-            </div>
-          ) : (
-            <p className="mt-1 text-[10px] text-muted-foreground">
-              Moyenne du client indisponible — aucune vente avec temps documenté.
-            </p>
-          )}
-        </div>
-      )}
-      {confidence !== "HIGH" && (
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          {confidence === "LOW"
-            ? "Rentabilité non calculable — renseigner les tâches et le temps passé."
-            : "Estimation automatique — confirmer le temps réel pour fiabiliser la rentabilité."}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function _renderHoursSpentBlock({
-  iv,
-  done,
-  hoursInput,
-  setHoursInput,
-  onSave,
-  saving,
-}: {
-  iv: Intervention;
-  done: boolean;
-  hoursInput: string;
-  setHoursInput: (v: string) => void;
-  onSave: (hours: number) => void;
-  saving: boolean;
-}) {
-  const meta = (iv.ai_metadata ?? {}) as Record<string, unknown>;
-  const isEstimated = meta.hours_spent_estimated === true;
-  // 0 h est une valeur valide (chantier entièrement sous-traité).
-  const missing = done && iv.hours_spent == null;
-  const current = iv.hours_spent ?? null;
-  const parsed = Number.parseFloat(hoursInput.replace(",", "."));
-  const dirty = Number.isFinite(parsed) && parsed >= 0 && parsed !== current;
-
-  return (
-    <div className="mt-4 rounded-lg border bg-muted/30 p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Clock className="h-4 w-4 text-muted-foreground" />
-        <Label htmlFor="hours-spent" className="text-sm font-medium">Heures passées</Label>
-        <div className="flex items-center gap-2">
-          <Input
-            id="hours-spent"
-            type="number"
-            step="0.25"
-            min="0"
-            inputMode="decimal"
-            value={hoursInput}
-            onChange={(e) => setHoursInput(e.target.value)}
-            className="h-8 w-24"
-            placeholder="0.00"
-          />
-          <span className="text-xs text-muted-foreground">h</span>
-          {current === 0 && (
-            <span className="text-xs text-muted-foreground">Chantier sans heures internes (sous-traité)</span>
-          )}
-          <Button
-            size="sm"
-            variant={dirty || isEstimated ? "default" : "outline"}
-            disabled={!dirty || saving}
-            onClick={() => onSave(parsed)}
-          >
-            {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
-            {isEstimated ? "Confirmer" : "Enregistrer"}
-          </Button>
-        </div>
-        {isEstimated && current != null && (
-          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
-            Estimé automatiquement — à confirmer
-          </Badge>
-        )}
-      </div>
-      {missing && (
-        <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>Cette intervention est terminée mais aucune heure passée n'est renseignée. Saisissez 0 h si le chantier a été entièrement sous-traité.</span>
-        </div>
-      )}
     </div>
   );
 }
