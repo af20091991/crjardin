@@ -138,7 +138,7 @@ function PremiumClientsPage() {
                       <Link
                         to="/partage/$token"
                         params={{ token: client.share_token }}
-                        search={{}}
+                        search={{ intervention: undefined }}
                         className="block truncate text-sm font-medium hover:text-primary"
                       >
                         {displayClientName(client)}
@@ -162,7 +162,7 @@ function PremiumClientsPage() {
                         <Link
                           to="/partage/$token"
                           params={{ token: client.share_token }}
-                          search={{}}
+                          search={{ intervention: undefined }}
                         >
                           <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                           Ouvrir
@@ -182,7 +182,7 @@ function PremiumClientsPage() {
                       <Link
                         to="/partage/$token"
                         params={{ token: client.share_token }}
-                        search={{}}
+                        search={{ intervention: undefined }}
                         className="block truncate text-base font-medium hover:text-primary"
                       >
                         {displayClientName(client)}
@@ -206,7 +206,7 @@ function PremiumClientsPage() {
                       </Link>
                     </Button>
                     <Button size="sm" className="flex-1" asChild>
-                      <Link to="/partage/$token" params={{ token: client.share_token }} search={{}}>
+                      <Link to="/partage/$token" params={{ token: client.share_token }} search={{ intervention: undefined }}>
                         Ouvrir Premium
                       </Link>
                     </Button>
