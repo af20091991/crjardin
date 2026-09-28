@@ -1151,7 +1151,9 @@ function GardenTab({
                 </div>
               )}
               {!client.contract_type && !client.frequency && (
-                <p className="text-sm text-muted-foreground">Aucun repère de suivi renseigné.</p>
+                <p className="text-sm text-muted-foreground">
+                  Aucun repère de suivi renseigné.
+                </p>
               )}
             </div>
           </CardContent>
@@ -1166,7 +1168,9 @@ function GardenTab({
                 <CalendarDays className="h-4 w-4 text-primary" />
                 Dernier passage
               </p>
-              <Badge variant="outline">{fmtDate(latest.intervention_date)}</Badge>
+              <Badge variant="outline">
+                {fmtDate(latest.intervention_date)}
+              </Badge>
             </div>
             <p className="text-sm font-medium">
               {latest.title ?? latest.intervention_type ?? "Intervention"}
@@ -1176,7 +1180,9 @@ function GardenTab({
                 {latest.garden_state}
               </p>
             ) : latest.summary ? (
-              <p className="whitespace-pre-wrap text-sm text-muted-foreground">{latest.summary}</p>
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {latest.summary}
+              </p>
             ) : (
               <p className="text-sm text-muted-foreground">
                 Aucune observation détaillée enregistrée.
@@ -1196,7 +1202,10 @@ function GardenTab({
             {activeRecommendations.length > 0 ? (
               <ul className="space-y-2 text-sm">
                 {activeRecommendations.slice(0, 5).map((recommendation) => (
-                  <li key={recommendation.id} className="rounded-lg bg-muted/50 p-2.5">
+                  <li
+                    key={recommendation.id}
+                    className="rounded-lg bg-muted/50 p-2.5"
+                  >
                     <p className="font-medium">{recommendation.title}</p>
                     {recommendation.description && (
                       <p className="mt-1 text-xs text-muted-foreground">
@@ -1223,9 +1232,14 @@ function GardenTab({
             {premium.upcoming.length > 0 ? (
               <div className="space-y-2">
                 {premium.upcoming.slice(0, 5).map((item) => (
-                  <div key={item.id} className="rounded-lg bg-muted/50 p-2.5 text-sm">
+                  <div
+                    key={item.id}
+                    className="rounded-lg bg-muted/50 p-2.5 text-sm"
+                  >
                     <p className="font-medium">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{fmtDate(item.scheduled_date)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {fmtDate(item.scheduled_date)}
+                    </p>
                     {item.details && (
                       <p className="mt-1 text-muted-foreground">{item.details}</p>
                     )}
