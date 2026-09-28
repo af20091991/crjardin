@@ -28,7 +28,7 @@ execFileSync("bunx", ["prettier", "--write", "src/routes/partage.$token.tsx"], {
   stdio: "inherit",
 });
 
-execFileSync("git", ["diff", "--", ...supported], {
+execFileSync("git", ["diff", "--", "src/routes/partage.$token.tsx"], {
   encoding: "utf8",
   stdio: "inherit",
 });
