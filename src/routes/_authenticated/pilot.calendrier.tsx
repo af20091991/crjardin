@@ -832,7 +832,7 @@ function SstPlanningByPerson({
                       className="h-7 px-2 text-[11px]"
                       onClick={(event) => {
                         event.stopPropagation();
-                        onNavigateToPlanning(sheet);
+                        setSelectedSheet(sheet);
                       }}
                     >
                       <Eye className="mr-1 h-3.5 w-3.5" />
