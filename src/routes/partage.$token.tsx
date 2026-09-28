@@ -460,6 +460,7 @@ function PremiumExperience({
                   </CardContent>
                 </Card>
               </section>
+            )}
           </div>
         )}
       </main>
