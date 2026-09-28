@@ -89,7 +89,9 @@ export function PremiumHome({
         const { error: uploadError } = await supabase.storage
           .from("client-premium")
           .uploadToSignedUrl(target.path, target.token, attachment);
-        if (uploadError) throw new Error(`Envoi de la photo impossible : ${uploadError.message}`);
+        if (uploadError) {
+          throw new Error(`Envoi de la photo impossible : ${uploadError.message}`);
+        }
 
         attachmentLabel = attachment.name;
         await finalizeSharedPremiumDocumentUpload({
@@ -108,7 +110,9 @@ export function PremiumHome({
           token,
           interventionId: null,
           kind: "question",
-          content: `Demande : ${requestType.label}\n\n${message.trim()}${attachmentLabel ? `\n\nPhoto jointe : ${attachmentLabel}` : ""}`,
+          content: `Demande : ${requestType.label}\n\n${message.trim()}${
+            attachmentLabel ? `\n\nPhoto jointe : ${attachmentLabel}` : ""
+          }`,
           authorName: client.name,
         },
       });
