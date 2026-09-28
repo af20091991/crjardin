@@ -45,6 +45,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   en_panne: "destructive",
   en_reparation: "secondary",
   hors_service: "outline",
+  vendu: "outline",
 };
 
 function ParcMaterielPage() {

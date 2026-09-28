@@ -81,6 +81,7 @@ import {
 } from "@/lib/calendrier-sst-display";
 import {
   INTERVENANTS,
+  getWorksiteSheet,
   listWorksiteSheets,
   updateWorksitePlanning,
   type WorksiteSheet,
@@ -571,6 +572,11 @@ function SstPlanningByPerson({
   const today = isoDate(new Date());
   const [statusFilter, setStatusFilter] = useState<"all" | "validated" | "draft">("all");
   const [selectedSheet, setSelectedSheet] = useState<WorksiteSheet | null>(null);
+  const selectedSheetDetailsQuery = useQuery({
+    queryKey: ["sst-calendar-worksite-sheet", selectedSheet?.id],
+    queryFn: () => getWorksiteSheet(selectedSheet!.id),
+    enabled: !!selectedSheet?.id,
+  });
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -843,16 +849,26 @@ function SstPlanningByPerson({
           </DialogHeader>
           <ScrollArea className="min-h-0 flex-1 px-5">
             {selectedSheet ? (
-              <fieldset disabled className="min-w-0 pb-5">
-                <WorksiteSheetForm
-                  clients={clients}
-                  initial={selectedSheet}
-                  submitting={false}
-                  submitLabel="Enregistrer"
-                  onSubmit={() => undefined}
-                  readOnly
-                />
-              </fieldset>
+              selectedSheetDetailsQuery.isLoading ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Chargement de la fiche SST complète…
+                </div>
+              ) : selectedSheetDetailsQuery.data ? (
+                <fieldset disabled className="min-w-0 pb-5">
+                  <WorksiteSheetForm
+                    clients={clients}
+                    initial={selectedSheetDetailsQuery.data}
+                    submitting={false}
+                    submitLabel="Enregistrer"
+                    onSubmit={() => undefined}
+                    readOnly
+                  />
+                </fieldset>
+              ) : (
+                <p className="py-10 text-center text-sm text-destructive">
+                  Impossible de charger la fiche SST complète.
+                </p>
+              )
             ) : null}
           </ScrollArea>
           <DialogFooter className="shrink-0 border-t border-border px-5 py-3">
