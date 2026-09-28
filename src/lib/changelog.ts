@@ -24,6 +24,20 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-28",
+    version: "2.3.21",
+    theme: "Général",
+    title: "Corrections Parc matériel, Comptes rendus et SST",
+    details: [
+      "Parc matériel : ajout du statut « Vendu » comme état disponible à la création et à la modification.",
+      "Compte rendu : suppression des blocs « Heures passées » et « Rentabilité estimée », ainsi que des champs « Points positifs observés » et « Évolution du jardin » de la synthèse.",
+      "SST : Journal SST placé en tête de la page avant le module SST.",
+      "Planning SST : « Consulter » recharge et affiche la fiche SST complète.",
+    ],
+  },
+
+
+  {
+    date: "2026-09-28",
     version: "2.3.20",
     theme: "Général",
     title: "Site web — veille concurrentielle plus fiable",
