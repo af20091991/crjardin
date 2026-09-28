@@ -5,11 +5,17 @@ import {
   FileText,
   Leaf,
   MessageSquare,
+  Paperclip,
   Send,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { addClientMessage } from "@/lib/share.functions";
+import {
+  addClientMessage,
+  createSharedPremiumDocumentUpload,
+  finalizeSharedPremiumDocumentUpload,
+} from "@/lib/share.functions";
+import { supabase } from "@/integrations/supabase/client";
 import type {
   ClientMessage,
   SharedClientData,
@@ -54,6 +60,7 @@ export function PremiumHome({
   const [requestType, setRequestType] = useState<(typeof REQUESTS)[number] | null>(null);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [attachment, setAttachment] = useState<File | null>(null);
 
   const latest = interventions[0];
   const previous = interventions.slice(1, 4);
@@ -67,17 +74,47 @@ export function PremiumHome({
     if (!requestType || !message.trim()) return;
     setSending(true);
     try {
+      let attachmentLabel = "";
+      if (attachment) {
+        if (!attachment.type.startsWith("image/")) {
+          throw new Error("La pièce jointe doit être une image.");
+        }
+        if (attachment.size > 10 * 1024 * 1024) {
+          throw new Error("La photo ne doit pas dépasser 10 Mo.");
+        }
+
+        const target = await createSharedPremiumDocumentUpload({
+          data: { token, filename: attachment.name, size: attachment.size },
+        });
+        const { error: uploadError } = await supabase.storage
+          .from("client-premium")
+          .uploadToSignedUrl(target.path, target.token, attachment);
+        if (uploadError) throw new Error(`Envoi de la photo impossible : ${uploadError.message}`);
+
+        attachmentLabel = attachment.name;
+        await finalizeSharedPremiumDocumentUpload({
+          data: {
+            token,
+            path: target.path,
+            filename: attachment.name,
+            size: attachment.size,
+            title: `Photo jointe — ${requestType.label}`,
+          },
+        });
+      }
+
       await addClientMessage({
         data: {
           token,
           interventionId: null,
           kind: "question",
-          content: `Demande : ${requestType.label}\n\n${message.trim()}`,
+          content: `Demande : ${requestType.label}\n\n${message.trim()}${attachmentLabel ? `\n\nPhoto jointe : ${attachmentLabel}` : ""}`,
           authorName: client.name,
         },
       });
       toast.success("Votre demande a bien été envoyée.");
       setMessage("");
+      setAttachment(null);
       setRequestType(null);
       setRequestOpen(false);
     } catch (error) {
@@ -360,6 +397,20 @@ export function PremiumHome({
                 placeholder="Écrivez votre message…"
                 rows={5}
               />
+              <div className="flex items-center justify-between gap-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+                  <Paperclip className="h-4 w-4" />
+                  <span>{attachment ? attachment.name : "Joindre une photo"}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => setAttachment(event.target.files?.[0] ?? null)}
+                    disabled={sending}
+                  />
+                </label>
+                <span className="text-xs text-muted-foreground">10 Mo maximum</span>
+              </div>
               <div className="flex justify-between gap-2">
                 <Button variant="ghost" onClick={() => setRequestType(null)}>
                   Retour
