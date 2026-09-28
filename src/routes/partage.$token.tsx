@@ -453,9 +453,7 @@ function PremiumExperience({
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Aucun document pour le moment.
-                      </p>
+                      <p className="text-sm text-muted-foreground">Aucun document pour le moment.</p>
                     )}
                   </CardContent>
                 </Card>
