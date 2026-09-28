@@ -382,6 +382,14 @@ function SharePage() {
 
 function premiumClientTitle(client: SharedClientData["client"]) {
   const civility = client.civility?.trim().toLowerCase();
+  if (
+    civility === "madame et monsieur" ||
+    civility === "monsieur et madame" ||
+    civility === "mme et m." ||
+    civility === "m. et mme"
+  ) {
+    return `Madame et Monsieur ${client.name}`;
+  }
   if (civility === "madame" || civility === "mme" || civility === "mrs") {
     return `Madame ${client.name}`;
   }
