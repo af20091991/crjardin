@@ -836,7 +836,7 @@ function SstPlanningByPerson({
                       }}
                     >
                       <Eye className="mr-1 h-3.5 w-3.5" />
-                      Consulter
+                      Extrait
                     </Button>
                     <Button
                       size="sm"
