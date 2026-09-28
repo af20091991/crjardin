@@ -13,8 +13,7 @@
     "format:check": "prettier --check .",
     "test": "bun test src/lib/__tests__",
     "validate": "bun run format:check && bun run typecheck && bun run lint && bun test && bun run build",
-    "format": "prettier --write .",
-    "postinstall": "prettier --write src/components/share/PremiumHome.tsx && git diff -- src/components/share/PremiumHome.tsx"
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.50",
