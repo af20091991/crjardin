@@ -3,7 +3,6 @@ import {
   CalendarDays,
   ChevronRight,
   FileText,
-  Images,
   Leaf,
   MessageSquare,
   Send,
@@ -61,7 +60,7 @@ export function PremiumHome({
   const photos = interventions
     .flatMap((iv) => iv.photos.filter((photo) => photo.url).map((photo) => ({ ...photo, date: iv.intervention_date })))
     .slice(0, 6);
-  const activeMessages = messages.filter((m) => !m.resolved);
+  const activeMessages = messages;
   const firstUpcoming = premium.upcoming[0];
 
   async function sendRequest() {
