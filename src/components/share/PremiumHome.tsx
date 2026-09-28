@@ -434,7 +434,7 @@ export function PremiumHome({
             )}
             {premium.documents.length > 0 && (
               <button
-                onClick={() => onNavigate("premium")}
+                onClick={() => onNavigate("documents")}
                 className="rounded-2xl border bg-background p-6 text-left transition-colors hover:border-primary/40"
               >
                 <div className="flex items-center gap-3">
@@ -452,7 +452,7 @@ export function PremiumHome({
           </section>
         )}
 
-        <div className="flex justify-center pt-2">
+        <div className="flex flex-col items-center gap-2 pt-2">
           <Button
             variant="outline"
             className="rounded-full px-6"
@@ -463,6 +463,9 @@ export function PremiumHome({
           >
             Besoin de quelque chose ?
           </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            Les demandes envoyées depuis cet espace sont traitées en priorité.
+          </p>
         </div>
       </div>
 
