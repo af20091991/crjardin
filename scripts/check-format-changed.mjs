@@ -23,7 +23,13 @@ if (supported.length === 0) {
   process.exit(0);
 }
 
-execFileSync("bunx", ["prettier", "--check", ...supported], {
+execFileSync("bunx", ["prettier", "--write", ...supported], {
   encoding: "utf8",
   stdio: "inherit",
 });
+
+execFileSync("git", ["diff", "--", ...supported], {
+  encoding: "utf8",
+  stdio: "inherit",
+});
+process.exit(1);
