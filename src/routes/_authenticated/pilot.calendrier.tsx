@@ -152,6 +152,7 @@ function CalendrierSstPage() {
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [openComment, setOpenComment] = useState<string | null>(null);
+  const [highlightedPlanningId, setHighlightedPlanningId] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<CalendarPreferences>(DEFAULT_CALENDAR_PREFERENCES);
 
   useEffect(() => {
@@ -213,6 +214,23 @@ function CalendrierSstPage() {
   const grid = useMemo(() => monthGridDates(cursor.year, cursor.month), [cursor]);
   const monthRange = monthWindow(cursor.year, cursor.month);
   const tone = toneClasses(preferences.tone);
+
+  useEffect(() => {
+    if (!highlightedPlanningId) return;
+    const sheet = worksiteSheets.find((item) => item.id === highlightedPlanningId);
+    if (!sheet?.intervention_date) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`sst-calendar-day-${sheet.intervention_date}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const timeout = window.setTimeout(() => setHighlightedPlanningId(null), 3500);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+    };
+  }, [highlightedPlanningId, worksiteSheets]);
   const byPlanningDate = useMemo(() => {
     const map = new Map<string, WorksiteSheet[]>();
     for (const sheet of planningSheets) {
@@ -302,6 +320,13 @@ function CalendrierSstPage() {
         sheets={worksiteSheets}
         selectedSst={selectedSstPlanning}
         onSelectSst={setSelectedSstPlanning}
+        onNavigateToPlanning={(sheet) => {
+          if (!sheet.intervention_date) return;
+          const [year, month] = sheet.intervention_date.split("-").map(Number);
+          if (!Number.isFinite(year) || !Number.isFinite(month)) return;
+          setCursor({ year, month: month - 1 });
+          setHighlightedPlanningId(sheet.id);
+        }}
         isAdmin={isAdmin}
         onValidate={(id) => validatePlanning.mutate(id)}
         validatingId={validatePlanning.isPending ? (validatePlanning.variables ?? null) : null}
@@ -429,6 +454,7 @@ function CalendrierSstPage() {
                       return (
                         <div
                           key={iso}
+                          id={`sst-calendar-day-${iso}`}
                           role="button"
                           tabIndex={0}
                           onClick={() => setSelectedDate(iso)}
@@ -446,6 +472,11 @@ function CalendrierSstPage() {
                             preferences.highlightWeekend && weekend && "bg-muted/50",
                             !inMonth && preferences.dimOtherMonths && "bg-muted/20 opacity-35",
                             isToday && tone.selected,
+                            highlightedPlanningId &&
+                              (byPlanningDate.get(iso) ?? []).some(
+                                (sheet) => sheet.id === highlightedPlanningId,
+                              ) &&
+                              "border-primary bg-primary/10 ring-2 ring-primary/70 shadow-md",
                           )}
                         >
                           <span className="flex items-center justify-between">
@@ -486,7 +517,11 @@ function CalendrierSstPage() {
                               />
                             ))}
                             {(byPlanningDate.get(iso) ?? []).map((sheet) => (
-                              <WorksitePlanningChip key={sheet.id} sheet={sheet} />
+                              <WorksitePlanningChip
+                                key={sheet.id}
+                                sheet={sheet}
+                                highlighted={sheet.id === highlightedPlanningId}
+                              />
                             ))}
                           </span>
                         </div>
@@ -520,7 +555,13 @@ function CalendrierSstPage() {
   );
 }
 
-function WorksitePlanningChip({ sheet }: { sheet: WorksiteSheet }) {
+function WorksitePlanningChip({
+  sheet,
+  highlighted = false,
+}: {
+  sheet: WorksiteSheet;
+  highlighted?: boolean;
+}) {
   const people = parseWorksiteIntervenants(sheet.intervenant);
   const names = people.length ? people.join(", ") : "SST à définir";
   const hours =
@@ -532,9 +573,11 @@ function WorksitePlanningChip({ sheet }: { sheet: WorksiteSheet }) {
       title={`${sheet.client_name} · ${names}${hours ? ` · ${hours}` : ""}`}
       className={cn(
         "block min-w-0 rounded-md border px-1 py-0.5 text-[10px] leading-tight",
-        sheet.planning_status === "validated"
-          ? "border-primary/35 bg-primary/10 text-primary"
-          : "border-amber-300/60 bg-amber-50 text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-200",
+        highlighted
+          ? "border-primary bg-primary/20 text-primary ring-2 ring-primary/60"
+          : sheet.planning_status === "validated"
+            ? "border-primary/35 bg-primary/10 text-primary"
+            : "border-amber-300/60 bg-amber-50 text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-200",
       )}
     >
       <span className="flex min-w-0 items-center gap-1">
@@ -556,6 +599,7 @@ function SstPlanningByPerson({
   sheets,
   selectedSst,
   onSelectSst,
+  onNavigateToPlanning,
   isAdmin,
   onValidate,
   validatingId,
@@ -564,6 +608,7 @@ function SstPlanningByPerson({
   sheets: WorksiteSheet[];
   selectedSst: string;
   onSelectSst: (value: string) => void;
+  onNavigateToPlanning: (sheet: WorksiteSheet) => void;
   isAdmin: boolean;
   onValidate: (id: string) => void;
   validatingId: string | null;
@@ -743,7 +788,7 @@ function SstPlanningByPerson({
                   key={sheet.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => setSelectedSheet(sheet)}
+                  onClick={() => onNavigateToPlanning(sheet)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
