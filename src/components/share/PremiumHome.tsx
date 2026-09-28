@@ -246,6 +246,38 @@ export function PremiumHome({
           </section>
         )}
 
+        {(client.address || client.contract_type || client.frequency) && (
+          <section>
+            <SectionHeading eyebrow="Repères" title="Votre jardin, en quelques mots" />
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {client.address && (
+                <div className="rounded-2xl border bg-background p-5">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Adresse du jardin
+                  </p>
+                  <p className="mt-2 text-sm leading-6">{client.address}</p>
+                </div>
+              )}
+              {client.contract_type && (
+                <div className="rounded-2xl border bg-background p-5">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Suivi
+                  </p>
+                  <p className="mt-2 font-medium">{client.contract_type}</p>
+                </div>
+              )}
+              {client.frequency && (
+                <div className="rounded-2xl border bg-background p-5">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Rythme d'entretien
+                  </p>
+                  <p className="mt-2 font-medium">{client.frequency}</p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         {recommendations.length > 0 && (
           <section>
             <div className="flex items-end justify-between gap-4">
@@ -327,7 +359,7 @@ export function PremiumHome({
             )}
             {premium.documents.length > 0 && (
               <button
-                onClick={() => onNavigate("premium")}
+                onClick={() => onNavigate("documents")}
                 className="rounded-2xl border bg-background p-6 text-left transition-colors hover:border-primary/40"
               >
                 <div className="flex items-center gap-3">
