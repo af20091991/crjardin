@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { ImageLightbox } from "@/components/ImageLightbox";
 
-type PremiumSection = "reports" | "photos" | "recos" | "premium";
+type PremiumSection = "reports" | "photos" | "recos" | "premium" | "documents";
 
 const REQUESTS = [
   { label: "Demander une intervention", text: "Je souhaite demander une intervention." },
