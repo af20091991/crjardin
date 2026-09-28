@@ -66,6 +66,7 @@ import {
   Reply,
   RotateCcw,
   Crown,
+  Sprout,
   Star,
   Upload,
 } from "lucide-react";
