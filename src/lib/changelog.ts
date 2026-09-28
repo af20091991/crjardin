@@ -26,6 +26,16 @@ export const CHANGELOG: ChangeEntry[] = [
     date: "2026-09-28",
     version: "2.3.23",
     theme: "PDF & Partage",
+    title: "Espace Premium — fiche « Mon jardin » enrichie",
+    details: [
+      "La fiche « Mon jardin » rassemble désormais l'état actuel du jardin, les repères du suivi, le dernier passage, les points de suivi et les prochaines étapes.",
+      "Les informations absentes restent explicitement signalées : aucune caractéristique ou objectif n'est inventé.",
+    ],
+  },
+  {
+    date: "2026-09-28",
+    version: "2.3.23",
+    theme: "PDF & Partage",
     title: "Enrichissement de l'accueil client Premium",
     details: [
       "Ajout de repères synthétiques sur le jardin : adresse, type de suivi et rythme d'entretien.",
