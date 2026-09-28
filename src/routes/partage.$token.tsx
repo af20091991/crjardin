@@ -1259,16 +1259,36 @@ function GardenTab({
         </Card>
       </div>
 
-      <Card className="border-dashed">
-        <CardContent className="space-y-2 pt-6">
-          <p className="font-medium">Objectifs et particularités du jardin</p>
-          <p className="text-sm text-muted-foreground">
-            Cette partie sera enrichie lorsque ces informations seront renseignées dans Pilot
-            Pro.
-            Aucune information n'est inventée dans l'espace client.
-          </p>
-        </CardContent>
-      </Card>
+      {(premium.garden_objectives || premium.garden_specificities) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {premium.garden_objectives && (
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <p className="flex items-center gap-2 font-medium">
+                  <Sprout className="h-4 w-4 text-primary" />
+                  Objectifs du jardin
+                </p>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  {premium.garden_objectives}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          {premium.garden_specificities && (
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <p className="flex items-center gap-2 font-medium">
+                  <Leaf className="h-4 w-4 text-primary" />
+                  Particularités du jardin
+                </p>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  {premium.garden_specificities}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }
