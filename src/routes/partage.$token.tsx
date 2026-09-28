@@ -574,7 +574,7 @@ function PremiumExperience({
             {section === "premium" && (
               <section>
                 <h1 className="mb-5 font-serif text-3xl font-semibold">Mon jardin</h1>
-                <PremiumTab premium={premium} token={token} messages={messages} />
+                <GardenTab client={client} interventions={interventions} recommendations={recommendations} premium={premium} />
               </section>
             )}
             {section === "documents" && (
@@ -1068,6 +1068,183 @@ function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function GardenTab({
+  client,
+  interventions,
+  recommendations,
+  premium,
+}: {
+  client: SharedClientData["client"];
+  interventions: SharedIntervention[];
+  recommendations: SharedRecommendation[];
+  premium: SharedPremiumData;
+}) {
+  const latest = interventions[0] ?? null;
+  const activeRecommendations = recommendations.filter(
+    (recommendation) => recommendation.status !== "termine",
+  );
+
+  return (
+    <div className="space-y-5">
+      <Card className="overflow-hidden">
+        {premium.cover_photo_url ? (
+          <img
+            src={premium.cover_photo_url}
+            alt="Votre jardin"
+            className="h-56 w-full object-cover sm:h-72"
+          />
+        ) : (
+          <div className="grid h-48 place-items-center bg-muted text-sm text-muted-foreground sm:h-56">
+            Aucune photo de couverture
+          </div>
+        )}
+        <CardContent className="space-y-2 pt-5">
+          <div className="flex items-center gap-2">
+            <Leaf className="h-5 w-5 text-primary" />
+            <h2 className="font-serif text-xl font-semibold">Le jardin de {premiumClientTitle(client)}</h2>
+          </div>
+          {client.address && <p className="text-sm text-muted-foreground">{client.address}</p>}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <p className="flex items-center gap-2 font-medium">
+              <Leaf className="h-4 w-4 text-primary" />
+              État actuel
+            </p>
+            {premium.garden_state ? (
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {premium.garden_state}
+              </p>
+            ) : (
+              <EmptyState text="L'état actuel du jardin n'a pas encore été renseigné." />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <p className="flex items-center gap-2 font-medium">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              Repères du suivi
+            </p>
+            <div className="space-y-2 text-sm">
+              {client.contract_type && (
+                <div className="flex justify-between gap-4 border-b pb-2">
+                  <span className="text-muted-foreground">Type de suivi</span>
+                  <span className="text-right">{client.contract_type}</span>
+                </div>
+              )}
+              {client.frequency && (
+                <div className="flex justify-between gap-4 border-b pb-2">
+                  <span className="text-muted-foreground">Rythme</span>
+                  <span className="text-right">{client.frequency}</span>
+                </div>
+              )}
+              {!client.contract_type && !client.frequency && (
+                <p className="text-sm text-muted-foreground">Aucun repère de suivi renseigné.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {latest && (
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <div className="flex items-start justify-between gap-3">
+              <p className="flex items-center gap-2 font-medium">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                Dernier passage
+              </p>
+              <Badge variant="outline">{fmtDate(latest.intervention_date)}</Badge>
+            </div>
+            <p className="text-sm font-medium">
+              {latest.title ?? latest.intervention_type ?? "Intervention"}
+            </p>
+            {latest.garden_state ? (
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {latest.garden_state}
+              </p>
+            ) : latest.summary ? (
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">{latest.summary}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucune observation détaillée enregistrée.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <p className="flex items-center gap-2 font-medium">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Points de suivi
+            </p>
+            {activeRecommendations.length > 0 ? (
+              <ul className="space-y-2 text-sm">
+                {activeRecommendations.slice(0, 5).map((recommendation) => (
+                  <li key={recommendation.id} className="rounded-lg bg-muted/50 p-2.5">
+                    <p className="font-medium">{recommendation.title}</p>
+                    {recommendation.description && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {recommendation.description}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Aucun point de suivi particulier n'est enregistré actuellement.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <p className="flex items-center gap-2 font-medium">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              Prochaines étapes
+            </p>
+            {premium.upcoming.length > 0 ? (
+              <div className="space-y-2">
+                {premium.upcoming.slice(0, 5).map((item) => (
+                  <div key={item.id} className="rounded-lg bg-muted/50 p-2.5 text-sm">
+                    <p className="font-medium">{item.title}</p>
+                    <p className="text-xs text-muted-foreground">{fmtDate(item.scheduled_date)}</p>
+                    {item.details && (
+                      <p className="mt-1 text-muted-foreground">{item.details}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Aucune prochaine étape n'est actuellement programmée.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-dashed">
+        <CardContent className="space-y-2 pt-6">
+          <p className="font-medium">Objectifs et particularités du jardin</p>
+          <p className="text-sm text-muted-foreground">
+            Cette partie sera enrichie lorsque ces informations seront renseignées dans Pilot Pro.
+            Aucune information n'est inventée dans l'espace client.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
