@@ -73,6 +73,7 @@ import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
+import { PremiumHome } from "@/components/share/PremiumHome";
 
 const sharedQuery = (token: string) =>
   queryOptions({
@@ -211,6 +212,23 @@ function SharePage() {
     .at(-1) as string | undefined;
   const lastIntervention = interventions[0];
   const unread = interventions.filter((i) => !i.client_read_at).length;
+
+  if (premium?.enabled) {
+    return (
+      <PremiumExperience
+        client={client}
+        interventions={interventions}
+        recommendations={recommendations}
+        premium={premium}
+        messages={messages ?? []}
+        token={token}
+        large={large}
+        dark={dark}
+        toggleDark={toggleDark}
+        toggleLarge={toggleLarge}
+      />
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
@@ -356,6 +374,66 @@ function SharePage() {
 
           <ShareInstallGuide />
         </>
+      </main>
+    </div>
+  );
+}
+
+function PremiumExperience({
+  client,
+  interventions,
+  recommendations,
+  premium,
+  messages,
+  token,
+  large,
+  dark,
+  toggleDark,
+  toggleLarge,
+}: {
+  client: SharedClientData["client"];
+  interventions: SharedIntervention[];
+  recommendations: SharedRecommendation[];
+  premium: SharedPremiumData;
+  messages: ClientMessage[];
+  token: string;
+  large: boolean;
+  dark: boolean;
+  toggleDark: () => void;
+  toggleLarge: () => void;
+}) {
+  const [section, setSection] = useState<"home" | "reports" | "photos" | "recos" | "premium">("home");
+
+  return (
+    <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
+      <header className="border-b bg-background/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
+          <button onClick={() => setSection("home")} className="text-left" aria-label="Retour à l'accueil">
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">De la graine au jardin</p>
+            <p className="font-serif text-lg font-semibold">{client.name}</p>
+          </button>
+          <div className="flex items-center gap-1.5">
+            <Button variant="outline" size="icon" aria-label={dark ? "Mode clair" : "Mode sombre"} onClick={toggleDark}>
+              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button variant="outline" size="icon" aria-label="Agrandir le texte" onClick={toggleLarge} className={large ? "bg-primary/10 text-primary" : ""}>
+              <Type className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        {section === "home" ? (
+          <PremiumHome client={client} interventions={interventions} recommendations={recommendations} premium={premium} messages={messages} token={token} onNavigate={setSection} />
+        ) : (
+          <div className="space-y-5">
+            <button onClick={() => setSection("home")} className="text-sm text-muted-foreground hover:text-foreground">← Retour à l'accueil</button>
+            {section === "reports" && <section><h1 className="mb-5 font-serif text-3xl font-semibold">Interventions</h1><ReportsTab interventions={interventions} token={token} messages={messages} client={client} /></section>}
+            {section === "photos" && <section><h1 className="mb-5 font-serif text-3xl font-semibold">Photos</h1><PhotoGallery interventions={interventions} /></section>}
+            {section === "recos" && <section><h1 className="mb-5 font-serif text-3xl font-semibold">Conseils</h1><RecommendationsTab recommendations={recommendations} token={token} /></section>}
+            {section === "premium" && <section><h1 className="mb-5 font-serif text-3xl font-semibold">Mon jardin</h1><PremiumTab premium={premium} token={token} messages={messages} /></section>}
+          </div>
+        )}
       </main>
     </div>
   );
