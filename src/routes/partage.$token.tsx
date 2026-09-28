@@ -1281,9 +1281,7 @@ function GardenTab({
                   <Sprout className="h-4 w-4 text-primary" />
                   Objectifs du jardin
                 </p>
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {premium.garden_objectives}
-                </p>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{premium.garden_objectives}</p>
               </CardContent>
             </Card>
           )}
@@ -1294,9 +1292,7 @@ function GardenTab({
                   <Leaf className="h-4 w-4 text-primary" />
                   Particularités du jardin
                 </p>
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {premium.garden_specificities}
-                </p>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{premium.garden_specificities}</p>
               </CardContent>
             </Card>
           )}
