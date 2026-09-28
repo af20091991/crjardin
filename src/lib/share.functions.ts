@@ -82,6 +82,8 @@ export interface SharedPremiumUpcoming {
 export interface SharedPremiumData {
   enabled: boolean;
   garden_state: string | null;
+  garden_objectives: string | null;
+  garden_specificities: string | null;
   google_review_url: string | null;
   commercial_note: string | null;
   cover_photo_url: string | null;
@@ -302,6 +304,8 @@ export const getSharedPremium = createServerFn({ method: "GET" })
     const raw = payload as unknown as {
       enabled: boolean;
       garden_state: string | null;
+      garden_objectives: string | null;
+      garden_specificities: string | null;
       google_review_url: string | null;
       commercial_note: string | null;
       cover_photo_id: string | null;
@@ -348,6 +352,8 @@ export const getSharedPremium = createServerFn({ method: "GET" })
     return {
       enabled: raw.enabled,
       garden_state: raw.garden_state,
+      garden_objectives: raw.garden_objectives,
+      garden_specificities: raw.garden_specificities,
       google_review_url: raw.google_review_url,
       commercial_note: raw.commercial_note,
       cover_photo_url: coverPhotoUrl,
