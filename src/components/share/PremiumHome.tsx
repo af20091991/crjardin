@@ -195,7 +195,10 @@ export function PremiumHome({
           >
             Conseils
           </button>
-          <button onClick={() => onNavigate("premium")} className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={() => onNavigate("premium")}
+            className="text-muted-foreground hover:text-foreground"
+          >
             Documents
           </button>
           <Button
