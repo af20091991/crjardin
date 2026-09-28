@@ -23,7 +23,7 @@ if (supported.length === 0) {
   process.exit(0);
 }
 
-execFileSync("bunx", ["prettier", "--write", ...supported], {
+execFileSync("bunx", ["prettier", "--write", "src/routes/partage.$token.tsx"], {
   encoding: "utf8",
   stdio: "inherit",
 });
