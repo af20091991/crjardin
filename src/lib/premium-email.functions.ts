@@ -107,6 +107,9 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
     } as never);
     if (logError) throw logError;
 
+    const apiKey = process.env["LOVABLE_API_KEY"];
+    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
     try {
       await sendLovableEmail(
         {
@@ -120,7 +123,7 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
           label: TEMPLATE_NAME,
           idempotency_key: messageId,
         },
-        { apiKey: process.env["LOVABLE_API_KEY"], sendUrl: process.env["LOVABLE_SEND_URL"] },
+        { apiKey, sendUrl: process.env["LOVABLE_SEND_URL"] },
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
