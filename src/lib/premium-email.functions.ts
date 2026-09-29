@@ -34,10 +34,6 @@ function assertAdmin(isAdmin: boolean | null | undefined) {
   if (!isAdmin) throw new Response("Forbidden", { status: 403 });
 }
 
-function recipientLabel(civility: string | null, firstName: string | null, lastName: string | null) {
-  return [civility, firstName, lastName].filter((value) => value?.trim()).join(" ");
-}
-
 async function getAdminClient(context: { userId: string }) {
   const { data: isAdmin, error } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
