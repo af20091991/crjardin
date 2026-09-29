@@ -24,12 +24,33 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-29",
-    version: "2.3.27",
+    version: "2.3.29",
     theme: "Général",
     title: "Site web — WordPress simplifié (sans identifiants)",
     details: [
       "Retrait de la partie nécessitant un mot de passe d'application WordPress (santé du site, extensions), trop dépendante de la configuration de chaque hébergeur.",
       "La version de WordPress et la disponibilité d'une mise à jour s'affichent désormais sans aucune authentification.",
+    ],
+  },
+  {
+    date: "2026-09-29",
+    version: "2.3.28",
+    theme: "Clients",
+    title: "Comptes Premium — contrôle d’éligibilité renforcé",
+    details: [
+      "L’espace Premium public et les dépôts de documents vérifient désormais aussi que le client est en « Entretien annuel ».",
+      "La liste des comptes Premium n’affiche que les clients actuellement éligibles.",
+    ],
+  },
+
+  {
+    date: "2026-09-29",
+    version: "2.3.27",
+    theme: "Clients",
+    title: "Comptes Premium — activation réservée aux clients en entretien",
+    details: [
+      "L’activation d’un espace Premium est désormais réservée aux clients dont le contrat est « Entretien annuel ».",
+      "Le contrôle est effectué dans Pilot Pro avant l’activation et également au niveau de la base de données.",
     ],
   },
 

@@ -58,10 +58,12 @@ function PremiumClientsPage() {
 
     return (premiumQuery.data ?? [])
       .map((premium) => ({
+
         premium,
         client: clientsById.get(premium.client_id),
       }))
       .filter((row): row is { premium: PremiumStatus; client: Client } => Boolean(row.client))
+      .filter(({ client }) => client.contract_type === "Entretien annuel")
       .filter(({ client }) => {
         if (!query) return true;
         return [client.name, client.civility, client.address, client.email]
@@ -87,7 +89,7 @@ function PremiumClientsPage() {
           </div>
           <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
             <Crown className="h-3.5 w-3.5 text-primary" />
-            {premiumQuery.data?.length ?? 0} actif{(premiumQuery.data?.length ?? 0) > 1 ? "s" : ""}
+            {rows.length} actif{rows.length > 1 ? "s" : ""}
           </Badge>
         </header>
 
