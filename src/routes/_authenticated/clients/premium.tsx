@@ -109,6 +109,7 @@ function fmtDateTime(value: string | null) {
   });
 }
 
+// prettier-ignore
 function PremiumClientsPage() {
   const { isAdmin, isLoading: adminLoading } = useIsAdmin();
   const [search, setSearch] = useState("");
