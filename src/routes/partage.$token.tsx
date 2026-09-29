@@ -560,7 +560,9 @@ function PremiumExperience({
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-[1152px] px-4 py-7 sm:px-6 sm:py-10 lg:px-10">
+      <main
+        className="mx-auto w-full max-w-[1152px] px-4 py-7 sm:px-6 sm:py-10 lg:px-10"
+      >
         {section === "home" ? (
           <PremiumHome
             client={client}
