@@ -38,13 +38,13 @@ function premiumClientTitle(client: SharedClientData["client"]) {
     civility === "mme et m." ||
     civility === "m. et mme"
   ) {
-    return `Madame et Monsieur ${clientTitle}`;
+    return `Madame et Monsieur ${client.name}`;
   }
   if (civility === "madame" || civility === "mme" || civility === "mrs") {
-    return `Madame ${clientTitle}`;
+    return `Madame ${client.name}`;
   }
   if (civility === "monsieur" || civility === "m." || civility === "mr") {
-    return `Monsieur ${clientTitle}`;
+    return `Monsieur ${client.name}`;
   }
   return client.name;
 }
