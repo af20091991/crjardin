@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import {
   queryOptions,
   useSuspenseQuery,
@@ -75,6 +75,7 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
 import { PremiumHome } from "@/components/share/PremiumHome";
+import { useIsAdmin } from "@/hooks/use-admin";
 
 const sharedQuery = (token: string) =>
   queryOptions({
@@ -432,6 +433,7 @@ function PremiumExperience({
     "home" | "reports" | "photos" | "recos" | "premium" | "documents"
   >("home");
   const clientTitle = premiumClientTitle(client);
+  const { isAdmin } = useIsAdmin();
 
   return (
     <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
@@ -486,6 +488,14 @@ function PremiumExperience({
             className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b py-4 text-sm"
             aria-label="Navigation Premium"
           >
+            {isAdmin && (
+              <Link
+                to="/clients/premium"
+                className="mr-1 inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 font-medium text-primary transition-colors hover:bg-primary/10"
+              >
+                ← Retour à Pilot Pro
+              </Link>
+            )}
             <button
               onClick={() => setSection("home")}
               className={
