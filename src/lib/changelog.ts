@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-29",
+    version: "2.3.28",
+    theme: "Clients",
+    title: "Comptes Premium — contrôle d’éligibilité renforcé",
+    details: [
+      "L’espace Premium public et les dépôts de documents vérifient désormais aussi que le client est en « Entretien annuel ».",
+      "La liste des comptes Premium n’affiche que les clients actuellement éligibles.",
+    ],
+  },
+
+  {
+    date: "2026-09-29",
     version: "2.3.27",
     theme: "Clients",
     title: "Comptes Premium — activation réservée aux clients en entretien",
