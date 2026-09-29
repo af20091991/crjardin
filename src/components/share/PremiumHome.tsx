@@ -24,7 +24,12 @@ import type {
   SharedRecommendation,
 } from "@/lib/share.functions";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageLightbox } from "@/components/ImageLightbox";
 
@@ -54,6 +59,7 @@ const REQUESTS = [
   { label: "Demander un document", text: "Je souhaite demander un document." },
 ] as const;
 
+// prettier-ignore
 export function PremiumHome({
   client,
   interventions,
@@ -548,6 +554,7 @@ export function PremiumHome({
   );
 }
 
+// prettier-ignore
 function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div>
@@ -557,12 +564,14 @@ function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) 
   );
 }
 
+// prettier-ignore
 function EmptyState({ text }: { text: string }) {
   return (
     <div className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">{text}</div>
   );
 }
 
+// prettier-ignore
 function fmtDate(value: string) {
   return new Date(value).toLocaleDateString("fr-FR", {
     day: "numeric",
