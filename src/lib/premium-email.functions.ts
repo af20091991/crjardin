@@ -123,6 +123,14 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
     } as never);
     if (logError) throw logError;
 
+    const { data: unsubscribeToken, error: unsubscribeError } = await supabaseAdmin.rpc(
+      "get_or_create_unsubscribe_token",
+      { p_email: recipient },
+    );
+    if (unsubscribeError || !unsubscribeToken) {
+      throw unsubscribeError ?? new Error("Impossible de préparer le désabonnement de cette adresse.");
+    }
+
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -138,6 +146,7 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
           purpose: "transactional",
           label: TEMPLATE_NAME,
           idempotency_key: messageId,
+          unsubscribe_token: unsubscribeToken,
         },
         { apiKey, sendUrl: process.env["LOVABLE_SEND_URL"] },
       );
