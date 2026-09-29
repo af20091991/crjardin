@@ -439,7 +439,7 @@ function PremiumExperience({
   return (
     <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
       <header className="border-b bg-background">
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-10">
+        <div className="mx-auto w-full max-w-[1152px] px-4 sm:px-6 lg:px-10">
           <div className="relative overflow-hidden rounded-b-[1.5rem] border-x border-b bg-background">
             {premium.cover_photo_url ? (
               <img
@@ -560,7 +560,7 @@ function PremiumExperience({
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
+      <main className="mx-auto w-full max-w-[1152px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
         {section === "home" ? (
           <PremiumHome
             client={client}
