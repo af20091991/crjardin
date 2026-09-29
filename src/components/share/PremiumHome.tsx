@@ -146,24 +146,24 @@ export function PremiumHome({
   return (
     <>
       {/* prettier-ignore */}
-      <div className="space-y-10">
+      <div className="space-y-14">
         {showHeader && (
           <>
-            <section className="relative overflow-hidden rounded-[1.5rem] border bg-background">
+            <section className="relative overflow-hidden rounded-[1.75rem] border bg-background shadow-sm">
                       {premium.cover_photo_url ? (
                         <img
                           src={premium.cover_photo_url}
                           alt={`Le jardin de ${clientTitle}`}
-                          className="h-[280px] w-full object-cover sm:h-[380px]"
+                          className="h-[300px] w-full object-cover sm:h-[430px]"
                         />
                       ) : (
                         <div className="h-[220px] bg-muted sm:h-[300px]" />
                       )}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/80 to-transparent p-6 pt-24 sm:p-8 sm:pt-28">
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/85 to-transparent p-6 pt-32 sm:p-10 sm:pt-40">
                         <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
                           De la graine au jardin
                         </p>
-                        <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
+                        <h1 className="mt-2 max-w-3xl font-serif text-3xl font-medium tracking-tight sm:text-5xl">
                           Le jardin de {clientTitle}
                         </h1>
                         {client.address && (
@@ -172,16 +172,16 @@ export function PremiumHome({
                       </div>
                     </section>
             
-                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b pb-4 text-sm">
+                    <div className="sticky top-0 z-20 -mx-2 flex flex-wrap items-center gap-1 rounded-full border bg-background/95 p-1.5 shadow-sm backdrop-blur sm:mx-0 sm:gap-1.5">
                       <button
-                        className="font-medium text-primary"
+                        className="rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
                         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                       >
                         Accueil
                       </button>
                       <button
                         onClick={() => onNavigate("premium")}
-                        className="text-muted-foreground hover:text-foreground"
+                        className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       >
                         Mon jardin
                       </button>
@@ -208,7 +208,7 @@ export function PremiumHome({
                       </button>
                       <Button
                         size="sm"
-                        className="ml-auto rounded-full"
+                        className="ml-auto rounded-full px-4 shadow-sm"
                         onClick={() => {
                           setRequestType(null);
                           setRequestOpen(true);
@@ -220,13 +220,18 @@ export function PremiumHome({
           </>
         )}
 
-        <section>
-          <SectionHeading
-            eyebrow="Le suivi de votre jardin"
-            title="Les dernières nouvelles de votre jardin"
-          />
+        <section className="relative">
+          <div className="mb-7 max-w-2xl">
+            <SectionHeading
+              eyebrow="Le carnet du jardin"
+              title="Les dernières nouvelles de votre jardin"
+            />
+            <p className="mt-3 text-[15px] leading-7 text-muted-foreground">
+              Un fil de suivi simple pour retrouver les moments importants, les observations et les prochaines étapes.
+            </p>
+          </div>
           {latest ? (
-            <article className="overflow-hidden rounded-2xl border bg-background">
+            <article className="overflow-hidden rounded-[1.5rem] border bg-background shadow-sm">
               {latest.photos[0]?.url && (
                 <ImageLightbox
                   src={latest.photos[0].url}
@@ -240,7 +245,7 @@ export function PremiumHome({
                   />
                 </ImageLightbox>
               )}
-              <div className="space-y-4 p-6 sm:p-8">
+              <div className="space-y-5 p-6 sm:p-9">
                 <div>
                   <p className="text-sm text-muted-foreground">
                     {fmtDate(latest.intervention_date)}
@@ -266,12 +271,12 @@ export function PremiumHome({
           )}
 
           {previous.length > 0 && (
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="mt-6 grid gap-3 border-l border-primary/20 pl-4 sm:grid-cols-3 sm:border-l-0 sm:pl-0">
               {previous.map((iv) => (
                 <button
                   key={iv.id}
                   onClick={() => onNavigate("reports")}
-                  className="rounded-xl border bg-background p-4 text-left transition-colors hover:border-primary/40"
+                  className="rounded-2xl border bg-muted/20 p-5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background hover:shadow-sm"
                 >
                   <p className="text-xs text-muted-foreground">{fmtDate(iv.intervention_date)}</p>
                   <p className="mt-1 font-medium">
@@ -287,9 +292,9 @@ export function PremiumHome({
         </section>
 
         {(premium.garden_state || firstUpcoming) && (
-          <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <section className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
             {premium.garden_state && (
-              <div className="rounded-2xl bg-muted/40 p-6 sm:p-7">
+              <div className="rounded-[1.5rem] border bg-muted/30 p-6 sm:p-8">
                 <SectionHeading eyebrow="Aujourd'hui" title="Votre jardin" />
                 <div className="mt-5 flex gap-4">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-background text-primary">
@@ -302,7 +307,7 @@ export function PremiumHome({
               </div>
             )}
             {firstUpcoming && (
-              <div className="rounded-2xl border bg-background p-6 sm:p-7">
+              <div className="rounded-[1.5rem] border bg-background p-6 shadow-sm sm:p-8">
                 <SectionHeading eyebrow="À venir" title="Prochaine intervention" />
                 <div className="mt-5 flex gap-4">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
@@ -326,11 +331,11 @@ export function PremiumHome({
         )}
 
         {(client.address || client.contract_type || client.frequency) && (
-          <section>
-            <SectionHeading eyebrow="Repères" title="Votre jardin, en quelques mots" />
+          <section className="border-t pt-10">
+            <SectionHeading eyebrow="Les repères du jardin" title="Votre jardin, en quelques mots" />
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {client.address && (
-                <div className="rounded-2xl border bg-background p-5">
+                <div className="rounded-2xl border bg-background p-5 shadow-sm">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Adresse du jardin
                   </p>
@@ -358,7 +363,7 @@ export function PremiumHome({
         )}
 
         {recommendations.length > 0 && (
-          <section>
+          <section className="border-t pt-10">
             <div className="flex items-end justify-between gap-4">
               <SectionHeading
                 eyebrow="Le regard du paysagiste"
@@ -370,7 +375,7 @@ export function PremiumHome({
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               {recommendations.slice(0, 2).map((recommendation) => (
-                <article key={recommendation.id} className="rounded-2xl border bg-background p-6">
+                <article key={recommendation.id} className="rounded-[1.25rem] border bg-background p-6 shadow-sm">
                   <div className="flex items-start gap-3">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
                       <Sparkles className="h-4 w-4" />
@@ -391,7 +396,7 @@ export function PremiumHome({
         )}
 
         {photos.length > 0 && (
-          <section>
+          <section className="border-t pt-10">
             <div className="flex items-end justify-between gap-4">
               <SectionHeading eyebrow="Mémoire du jardin" title="L'évolution de votre jardin" />
               <Button variant="ghost" size="sm" onClick={() => onNavigate("photos")}>
@@ -410,7 +415,7 @@ export function PremiumHome({
                     src={photo.url!}
                     alt={photo.caption ?? "Photo du jardin"}
                     loading="lazy"
-                    className="h-44 w-full rounded-xl object-cover sm:h-56"
+                    className="h-48 w-full rounded-2xl object-cover shadow-sm transition-transform duration-300 hover:scale-[1.015] sm:h-60"
                   />
                 </ImageLightbox>
               ))}
@@ -419,11 +424,11 @@ export function PremiumHome({
         )}
 
         {(activeMessages.length > 0 || premium.documents.length > 0) && (
-          <section className="grid gap-4 md:grid-cols-2">
+          <section className="grid gap-5 border-t pt-10 md:grid-cols-2">
             {activeMessages.length > 0 && (
               <button
                 onClick={() => setRequestOpen(true)}
-                className="rounded-2xl border bg-background p-6 text-left transition-colors hover:border-primary/40"
+                className="rounded-[1.25rem] border bg-background p-6 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40"
               >
                 <div className="flex items-center gap-3">
                   <MessageSquare className="h-5 w-5 text-primary" />
@@ -456,10 +461,10 @@ export function PremiumHome({
           </section>
         )}
 
-        <div className="flex flex-col items-center gap-2 pt-2">
+        <div className="flex flex-col items-center gap-2 border-t pt-10">
           <Button
             variant="outline"
-            className="rounded-full px-6"
+            className="rounded-full px-7 shadow-sm"
             onClick={() => {
               setRequestType(null);
               setRequestOpen(true);
