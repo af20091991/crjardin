@@ -393,6 +393,7 @@ const premiumNavActiveClass = "rounded-full bg-primary/10 px-3 py-1.5 font-mediu
 const premiumNavInactiveClass =
   "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
 
+// prettier-ignore
 function PremiumPageIntro({
   eyebrow,
   title,
@@ -582,6 +583,7 @@ function PremiumExperience({
           <div className="space-y-5">
             {section === "reports" && (
               <section>
+                {/* prettier-ignore */}
                 <PremiumPageIntro
                   eyebrow="Le carnet du jardin"
                   title="Interventions"
@@ -597,6 +599,7 @@ function PremiumExperience({
             )}
             {section === "photos" && (
               <section>
+                {/* prettier-ignore */}
                 <PremiumPageIntro
                   eyebrow="Mémoire du jardin"
                   title="Photos"
@@ -607,6 +610,7 @@ function PremiumExperience({
             )}
             {section === "recos" && (
               <section>
+                {/* prettier-ignore */}
                 <PremiumPageIntro
                   eyebrow="Le regard du paysagiste"
                   title="Conseils"
@@ -617,6 +621,7 @@ function PremiumExperience({
             )}
             {section === "premium" && (
               <section>
+                {/* prettier-ignore */}
                 <PremiumPageIntro
                   eyebrow="Votre jardin"
                   title="Mon jardin"
@@ -632,6 +637,7 @@ function PremiumExperience({
             )}
             {section === "documents" && (
               <section>
+                {/* prettier-ignore */}
                 <PremiumPageIntro
                   eyebrow="Votre dossier"
                   title="Documents"
