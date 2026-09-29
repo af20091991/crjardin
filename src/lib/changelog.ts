@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-29",
+    version: "2.3.26",
+    theme: "Général",
+    title: "Site web — WordPress : requêtes espacées, message clair en cas de blocage",
+    details: [
+      "Les lectures du site WordPress sont désormais envoyées les unes après les autres au lieu de toutes en même temps, pour éviter de déclencher les limites anti-bot de l'hébergeur.",
+      "Un blocage temporaire (HTTP 429) affiche un message explicite au lieu d'une erreur brute.",
+    ],
+  },
+
+  {
     date: "2026-09-28",
     version: "2.3.25",
     theme: "Général",
