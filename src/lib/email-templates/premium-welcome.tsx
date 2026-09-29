@@ -19,6 +19,7 @@ interface Props {
   premiumUrl?: string;
 }
 
+// prettier-ignore
 const Email = ({ civility, firstName, lastName, premiumUrl }: Props) => {
   const recipient =
     [civility, firstName, lastName].filter((value) => value?.trim()).join(" ") ||
