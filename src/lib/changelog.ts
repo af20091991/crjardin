@@ -24,6 +24,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-29",
+    version: "2.3.31",
+    theme: "Clients",
+    title: "Comptes Premium — identité client uniformisée",
+    details: [
+      "Tous les affichages et emails Premium appliquent désormais une règle unique : civilité → prénom → nom.",
+      "Les comptes Premium existants dont le nom historique est stocké « Nom Prénom » sont automatiquement présentés dans le nouvel ordre, sans modifier les données métier du client.",
+      "La règle est centralisée et testée afin de s'appliquer également aux futurs comptes Premium.",
+    ],
+  },
+
+  {
+    date: "2026-09-29",
     version: "2.3.30",
     theme: "Clients",
     title: "Comptes Premium — mailing personnalisé et suivi",

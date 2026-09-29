@@ -10,6 +10,7 @@ import { sendLovableEmail, EmailAPIError } from "@lovable.dev/email-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 // prettier-ignore
 import { template as premiumWelcomeTemplate } from "@/lib/email-templates/premium-welcome";
+import { resolvePremiumClientIdentity } from "@/lib/premium-client-name";
 
 // prettier-ignore
 const FROM = "De la graine au jardin <noreply@delagraineaujardin.com>";
@@ -104,20 +105,17 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
       throw unsubscribeError ?? new Error("Impossible de préparer le désabonnement de cette adresse.");
     }
 
-    const clientNameParts = client.name.trim().split(/\s+/).filter(Boolean);
-    const fallbackFirstName =
-      clientNameParts.length === 2 && clientNameParts[0].toLowerCase() !== "de"
-        ? clientNameParts[1]
-        : undefined;
-    const fallbackLastName =
-      clientNameParts.length === 2 && clientNameParts[0].toLowerCase() !== "de"
-        ? clientNameParts[0]
-        : client.name;
+    const identity = resolvePremiumClientIdentity({
+      name: client.name,
+      civility: contact?.civility ?? client.civility,
+      firstName: contact?.first_name,
+      lastName: contact?.last_name,
+    });
 
     const templateData = {
-      civility: contact?.civility ?? client.civility ?? undefined,
-      firstName: contact?.first_name ?? fallbackFirstName,
-      lastName: contact?.last_name ?? fallbackLastName,
+      civility: identity.title || undefined,
+      firstName: identity.firstName || undefined,
+      lastName: identity.lastName || undefined,
       premiumUrl,
       unsubscribeUrl: `https://api.lovable.dev/v1/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
     };
@@ -132,8 +130,8 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
       client_id: client.id,
       recipient_email: recipient,
       civility: contact?.civility ?? client.civility,
-      first_name: contact?.first_name,
-      last_name: contact?.last_name ?? (client.name.split(/\s+/).length === 2 ? client.name.split(/\s+/)[0] : client.name),
+      first_name: identity.firstName || null,
+      last_name: identity.lastName || null,
       subject,
       premium_url: premiumUrl,
       html_body: html,

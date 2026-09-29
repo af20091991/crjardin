@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { formatPremiumClientName } from "@/lib/premium-client-name";
 
 export interface SharedTask {
   id: string;
@@ -47,34 +48,7 @@ export interface SharedRecommendation {
   client_viewed_at: string | null;
 }
 
-export function premiumClientTitle(client: SharedClientData["client"]) {
-  const civility = client.civility?.trim().toLowerCase();
-  let title = client.civility?.trim() || "";
-  if (
-    civility === "madame et monsieur" ||
-    civility === "monsieur et madame" ||
-    civility === "mme et m." ||
-    civility === "m. et mme"
-  ) {
-    title = "Madame et Monsieur";
-  } else if (civility === "madame" || civility === "mme" || civility === "mrs") {
-    title = "Madame";
-  } else if (civility === "monsieur" || civility === "m." || civility === "mr") {
-    title = "Monsieur";
-  }
-
-  const firstName = client.first_name?.trim() || "";
-  const lastName = client.last_name?.trim() || "";
-  if (firstName || lastName) {
-    return [title, firstName, lastName].filter(Boolean).join(" ");
-  }
-
-  const nameParts = client.name.trim().split(/\s+/).filter(Boolean);
-  if (nameParts.length === 2 && nameParts[0].toLowerCase() !== "de") {
-    return [title, nameParts[1], nameParts[0]].filter(Boolean).join(" ");
-  }
-  return [title, client.name.trim()].filter(Boolean).join(" ");
-}
+export { formatPremiumClientName as premiumClientTitle };
 
 export interface SharedClientData {
   client: {
