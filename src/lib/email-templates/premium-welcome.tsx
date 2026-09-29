@@ -30,11 +30,8 @@ const Email = ({ civility, firstName, lastName, premiumUrl }: Props) => {
       <Body style={main}>
         <Container style={container}>
           <Text style={brand}>De la graine au jardin</Text>
-          <Text style={tagline}>Paysagiste conseil à Montpellier et ses alentours</Text>
           <Text style={paragraph}>Bonjour {recipient},</Text>
-          <Heading as="h1" style={title}>
-            Votre jardin a désormais sa toute nouvelle interface en ligne : le Compte Premium.
-          </Heading>
+          <Text style={paragraph}><strong>Votre jardin a désormais sa toute nouvelle interface en ligne : le Compte Premium.</strong></Text>
           <Text style={paragraph}>
             Réservé exclusivement aux clients ayant souscrit un <strong>devis d’entretien annuel de leur jardin</strong>,
             cet espace fait partie des services associés à votre contrat avec De la graine au jardin.
@@ -65,7 +62,7 @@ const Email = ({ civility, firstName, lastName, premiumUrl }: Props) => {
             <Button href={premiumUrl} style={button}>Accéder à mon Compte Premium</Button>
           </Section>
           <Text style={paragraph}>
-            Votre lien d’accès personnel est également disponible directement via ce bouton.
+            Votre lien d’accès personnel vous est communiqué ci-dessous.
           </Text>
           <Text style={paragraph}>
             Bienvenue dans votre <strong>Compte Premium</strong>, votre nouvel espace dédié au suivi de votre jardin.
