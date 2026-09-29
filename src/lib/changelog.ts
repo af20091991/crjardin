@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-28",
+    version: "2.3.23",
+    theme: "Général",
+    title: "Site web — WordPress : santé, extensions et mises à jour",
+    details: [
+      "Une fois un mot de passe d'application WordPress configuré, l'onglet WordPress affiche aussi : version du cœur et mise à jour disponible, diagnostic de santé du site, liste des extensions avec leurs mises à jour disponibles, thème actif.",
+      "Lecture seule : aucune mise à jour n'est effectuée depuis PP.",
+    ],
+  },
+
+  {
+    date: "2026-09-28",
     version: "2.3.22",
     theme: "Général",
     title: "Site web — veille concurrentielle détaillée",
