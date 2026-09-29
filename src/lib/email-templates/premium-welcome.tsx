@@ -1,6 +1,6 @@
-// prettier-ignore-start
-
+// prettier-ignore
 import React from "react";
+// prettier-ignore
 import {
   Body,
   Button,
@@ -12,8 +12,10 @@ import {
   Section,
   Text,
 } from "@react-email/components";
+// prettier-ignore
 import type { TemplateEntry } from "./registry";
 
+// prettier-ignore
 interface Props {
   civility?: string;
   firstName?: string;
@@ -93,6 +95,7 @@ const Email = ({ civility, firstName, lastName, premiumUrl }: Props) => {
   );
 };
 
+// prettier-ignore
 export const template = {
   component: Email,
   subject: () => "Votre Compte Premium est prêt — De la graine au jardin",
@@ -105,10 +108,14 @@ export const template = {
   },
 } satisfies TemplateEntry;
 
+// prettier-ignore
 const garamond =
   "Garamond, 'EB Garamond', 'Cormorant Garamond', Georgia, 'Times New Roman', serif";
+// prettier-ignore
 const main = { backgroundColor: "#ffffff", fontFamily: garamond };
+// prettier-ignore
 const container = { padding: "28px 24px", maxWidth: "640px", margin: "0 auto" };
+// prettier-ignore
 const brand = {
   fontSize: "24px",
   fontWeight: 700,
@@ -116,6 +123,7 @@ const brand = {
   margin: "0",
   fontFamily: garamond,
 };
+// prettier-ignore
 const subtitle = {
   fontSize: "19px",
   lineHeight: "1.35",
@@ -123,6 +131,7 @@ const subtitle = {
   fontFamily: garamond,
   margin: "24px 0 12px",
 };
+// prettier-ignore
 const paragraph = {
   fontSize: "16px",
   lineHeight: "1.6",
@@ -130,6 +139,8 @@ const paragraph = {
   margin: "0 0 14px",
   fontFamily: garamond,
 };
+// prettier-ignore
+// prettier-ignore
 const buttonSection = { textAlign: "center" as const, margin: "26px 0" };
 const button = {
   backgroundColor: "#4F8E33",
@@ -141,6 +152,7 @@ const button = {
   padding: "12px 22px",
   textDecoration: "none",
 };
+// prettier-ignore
 const signature = {
   fontSize: "16px",
   lineHeight: "1.55",
@@ -148,5 +160,3 @@ const signature = {
   fontFamily: garamond,
   marginTop: "18px",
 };
-
-// prettier-ignore-end
