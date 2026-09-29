@@ -259,7 +259,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           label: "Fiches client",
           short: "Clients",
           icon: Users,
-          exact: false,
+          exact: true,
           primary: true,
         },
         ...(isAdmin
