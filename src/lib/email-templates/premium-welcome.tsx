@@ -81,8 +81,7 @@ const Email = ({ civility, firstName, lastName, premiumUrl }: Props) => {
 
 export const template = {
   component: Email,
-  subject: (data: Record<string, any>) =>
-    "Votre Compte Premium est prêt — De la graine au jardin",
+  subject: () => "Votre Compte Premium est prêt — De la graine au jardin",
   displayName: "Mise à disposition du Compte Premium",
   previewData: {
     civility: "Madame",
