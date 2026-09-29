@@ -389,7 +389,6 @@ function SharePage() {
 }
 
 
-// prettier-ignore
 function PremiumExperience({
   client,
   interventions,
@@ -485,7 +484,7 @@ function PremiumExperience({
               className={
                 section === "home"
                   ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  : "rounded-full px-3 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               }
             >
               Accueil
@@ -495,7 +494,7 @@ function PremiumExperience({
               className={
                 section === "premium"
                   ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  : "rounded-full px-3 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               }
             >
               Mon jardin
@@ -505,7 +504,7 @@ function PremiumExperience({
               className={
                 section === "reports"
                   ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  : "rounded-full px-3 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               }
             >
               Interventions
@@ -515,7 +514,7 @@ function PremiumExperience({
               className={
                 section === "photos"
                   ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  : "rounded-full px-3 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               }
             >
               Photos
@@ -525,7 +524,7 @@ function PremiumExperience({
               className={
                 section === "recos"
                   ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  : "rounded-full px-3 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               }
             >
               Conseils
@@ -535,7 +534,7 @@ function PremiumExperience({
               className={
                 section === "documents"
                   ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  : "rounded-full px-3 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               }
             >
               Documents
@@ -543,7 +542,7 @@ function PremiumExperience({
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-[1152px] px-4 py-7 sm:px-6 sm:py-10 lg:px-10">
+      <main className="mx-auto w-full max-w-[1152px] px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
         {section === "home" ? (
           <PremiumHome
             client={client}
@@ -559,17 +558,7 @@ function PremiumExperience({
           <div className="space-y-8">
             {section === "reports" && (
               <section>
-                <div className="border-b pb-6">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
-                    Le carnet du jardin
-                  </p>
-                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-                    Interventions
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-                    Retrouvez les visites, les travaux réalisés et les observations qui accompagnent votre jardin au fil des saisons.
-                  </p>
-                </div>
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Interventions</h1>
                 <ReportsTab
                   interventions={interventions}
                   token={token}
@@ -580,49 +569,19 @@ function PremiumExperience({
             )}
             {section === "photos" && (
               <section>
-                <div className="border-b pb-6">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
-                    Mémoire du jardin
-                  </p>
-                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-                    Photos
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-                    Les images qui permettent de suivre l’évolution de votre jardin au fil du temps.
-                  </p>
-                </div>
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Photos</h1>
                 <PhotoGallery interventions={interventions} />
               </section>
             )}
             {section === "recos" && (
               <section>
-                <div className="border-b pb-6">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
-                    Le regard du paysagiste
-                  </p>
-                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-                    Conseils
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-                    Mes observations et recommandations pour accompagner votre jardin dans la durée.
-                  </p>
-                </div>
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Conseils</h1>
                 <RecommendationsTab recommendations={recommendations} token={token} />
               </section>
             )}
             {section === "premium" && (
               <section>
-                <div className="border-b pb-6">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
-                    Votre jardin
-                  </p>
-                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-                    Mon jardin
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-                    Les repères et informations utiles pour garder une vision claire de votre jardin.
-                  </p>
-                </div>
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Mon jardin</h1>
                 <GardenTab
                   client={client}
                   interventions={interventions}
@@ -633,17 +592,7 @@ function PremiumExperience({
             )}
             {section === "documents" && (
               <section>
-                <div className="border-b pb-6">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
-                    Votre dossier
-                  </p>
-                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-                    Documents
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-                    Retrouvez ici les documents mis à votre disposition dans le cadre du suivi de votre jardin.
-                  </p>
-                </div>
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Documents</h1>
                 <Card>
                   <CardContent className="pt-6">
                     {premium.documents.length > 0 ? (
