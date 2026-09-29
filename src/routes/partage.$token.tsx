@@ -23,6 +23,7 @@ import {
   type SharedRecommendation,
   type SharedClientData,
   type SharedPremiumData,
+  premiumClientTitle,
 } from "@/lib/share.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { exportSharedInterventionPdf } from "@/lib/share-pdf";
@@ -387,25 +388,6 @@ function SharePage() {
   );
 }
 
-function premiumClientTitle(client: SharedClientData["client"]) {
-  const civility = client.civility?.trim().toLowerCase();
-  let title = client.civility?.trim() || "";
-  if (
-    civility === "madame et monsieur" ||
-    civility === "monsieur et madame" ||
-    civility === "mme et m." ||
-    civility === "m. et mme"
-  ) {
-    title = "Madame et Monsieur";
-  } else if (civility === "madame" || civility === "mme" || civility === "mrs") {
-    title = "Madame";
-  } else if (civility === "monsieur" || civility === "m." || civility === "mr") {
-    title = "Monsieur";
-  }
-  const firstName = client.first_name?.trim() || "";
-  const lastName = client.last_name?.trim() || client.name;
-  return [title, firstName, lastName].filter(Boolean).join(" ");
-}
 
 function PremiumExperience({
   client,

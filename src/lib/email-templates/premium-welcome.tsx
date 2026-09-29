@@ -84,6 +84,14 @@ const Email = ({ civility, firstName, lastName, premiumUrl, unsubscribeUrl }: Pr
             Bienvenue dans votre <strong>Compte Premium</strong>, votre nouvel espace dédié au suivi de votre jardin.
           </Text>
           <Text style={paragraph}>À très bientôt,</Text>
+
+          <Text style={signature}>
+            Anthony Fournier
+            <br />
+            <strong>De la graine au jardin</strong>
+            <br />
+            Paysagiste conseil à Montpellier et ses alentours
+          </Text>
           <Text style={unsubscribe}>
             Vous recevez cet e-mail dans le cadre du suivi de votre jardin avec De la graine au jardin.
             Si vous ne souhaitez plus recevoir ce type de message,{" "}
@@ -95,13 +103,6 @@ const Email = ({ civility, firstName, lastName, premiumUrl, unsubscribeUrl }: Pr
               " vous pouvez vous désabonner via le lien prévu à cet effet en bas de cet e-mail."
             )}
             .
-          </Text>
-          <Text style={signature}>
-            Anthony Fournier
-            <br />
-            <strong>De la graine au jardin</strong>
-            <br />
-            Paysagiste conseil à Montpellier et ses alentours
           </Text>
         </Container>
       </Body>
