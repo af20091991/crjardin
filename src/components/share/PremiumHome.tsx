@@ -24,26 +24,15 @@ import type {
   SharedRecommendation,
 } from "@/lib/share.functions";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageLightbox } from "@/components/ImageLightbox";
 
 type PremiumSection = "reports" | "photos" | "recos" | "premium" | "documents";
 
 const REQUESTS = [
-  {
-    label: "Demander une intervention",
-    text: "Je souhaite demander une intervention.",
-  },
-  {
-    label: "Poser une question",
-    text: "J'ai une question concernant mon jardin.",
-  },
+  { label: "Demander une intervention", text: "Je souhaite demander une intervention." },
+  { label: "Poser une question", text: "J'ai une question concernant mon jardin." },
   {
     label: "Signaler un problème",
     text: "Je souhaite signaler un problème concernant mon jardin.",
@@ -52,14 +41,10 @@ const REQUESTS = [
     label: "Modifier une intervention",
     text: "Je souhaite demander une modification d'une intervention.",
   },
-  {
-    label: "Demander une proposition",
-    text: "Je souhaite demander une proposition.",
-  },
+  { label: "Demander une proposition", text: "Je souhaite demander une proposition." },
   { label: "Demander un document", text: "Je souhaite demander un document." },
 ] as const;
 
-// prettier-ignore
 export function PremiumHome({
   client,
   interventions,
@@ -80,9 +65,7 @@ export function PremiumHome({
   showHeader?: boolean;
 }) {
   const [requestOpen, setRequestOpen] = useState(false);
-  const [requestType, setRequestType] = useState<
-    (typeof REQUESTS)[number] | null
-  >(null);
+  const [requestType, setRequestType] = useState<(typeof REQUESTS)[number] | null>(null);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [attachment, setAttachment] = useState<File | null>(null);
@@ -119,9 +102,7 @@ export function PremiumHome({
           .from("client-premium")
           .uploadToSignedUrl(target.path, target.token, attachment);
         if (uploadError) {
-          throw new Error(
-            `Envoi de la photo impossible : ${uploadError.message}`,
-          );
+          throw new Error(`Envoi de la photo impossible : ${uploadError.message}`);
         }
 
         attachmentLabel = attachment.name;
@@ -153,11 +134,7 @@ export function PremiumHome({
       setRequestType(null);
       setRequestOpen(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Impossible d'envoyer la demande.",
-      );
+      toast.error(error instanceof Error ? error.message : "Impossible d'envoyer la demande.");
     } finally {
       setSending(false);
     }
@@ -169,76 +146,73 @@ export function PremiumHome({
         {showHeader && (
           <>
             <section className="relative overflow-hidden rounded-[1.5rem] border bg-background">
-              {premium.cover_photo_url ? (
-                <img
-                  src={premium.cover_photo_url}
-                  alt={`Le jardin de ${client.name}`}
-                  className="h-[280px] w-full object-cover sm:h-[380px]"
-                />
-              ) : (
-                <div className="h-[220px] bg-muted sm:h-[300px]" />
-              )}
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/80 to-transparent p-6 pt-24 sm:p-8 sm:pt-28">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
-                  De la graine au jardin
-                </p>
-                <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Le jardin de {client.name}
-                </h1>
-                {client.address && (
-                  <p className="mt-1 text-sm text-muted-foreground">{client.address}</p>
-                )}
-              </div>
-            </section>
-
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b pb-4 text-sm">
-              <button
-                className="font-medium text-primary"
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              >
-                Accueil
-              </button>
-              <button
-                onClick={() => onNavigate("premium")}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Mon jardin
-              </button>
-              <button
-                onClick={() => onNavigate("reports")}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Interventions
-              </button>
-              <button
-                onClick={() => onNavigate("photos")}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Photos
-              </button>
-              <button
-                onClick={() => onNavigate("recos")}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Conseils
-              </button>
-              <button
-                onClick={() => onNavigate("documents")}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Documents
-              </button>
-              <Button
-                size="sm"
-                className="ml-auto rounded-full"
-                onClick={() => {
-                  setRequestType(null);
-                  setRequestOpen(true);
-                }}
-              >
-                Besoin de quelque chose ?
-              </Button>
-            </div>
+                      {premium.cover_photo_url ? (
+                        <img
+                          src={premium.cover_photo_url}
+                          alt={`Le jardin de ${client.name}`}
+                          className="h-[280px] w-full object-cover sm:h-[380px]"
+                        />
+                      ) : (
+                        <div className="h-[220px] bg-muted sm:h-[300px]" />
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/80 to-transparent p-6 pt-24 sm:p-8 sm:pt-28">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                          De la graine au jardin
+                        </p>
+                        <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
+                          Le jardin de {client.name}
+                        </h1>
+                        {client.address && (
+                          <p className="mt-1 text-sm text-muted-foreground">{client.address}</p>
+                        )}
+                      </div>
+                    </section>
+            
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b pb-4 text-sm">
+                      <button
+                        className="font-medium text-primary"
+                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                      >
+                        Accueil
+                      </button>
+                      <button
+                        onClick={() => onNavigate("premium")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        Mon jardin
+                      </button>
+                      <button
+                        onClick={() => onNavigate("reports")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        Interventions
+                      </button>
+                      <button
+                        onClick={() => onNavigate("photos")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        Photos
+                      </button>
+                      <button
+                        onClick={() => onNavigate("recos")}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        Conseils
+                      </button>
+                      <button onClick={() => onNavigate("documents")} className="text-muted-foreground hover:text-foreground">
+                        Documents
+                      </button>
+                      <Button
+                        size="sm"
+                        className="ml-auto rounded-full"
+                        onClick={() => {
+                          setRequestType(null);
+                          setRequestOpen(true);
+                        }}
+                      >
+                        Besoin de quelque chose ?
+                      </Button>
+                    </div>
           </>
         )}
 
@@ -460,7 +434,7 @@ export function PremiumHome({
             )}
             {premium.documents.length > 0 && (
               <button
-                onClick={() => onNavigate("documents")}
+                onClick={() => onNavigate("premium")}
                 className="rounded-2xl border bg-background p-6 text-left transition-colors hover:border-primary/40"
               >
                 <div className="flex items-center gap-3">
@@ -558,13 +532,7 @@ export function PremiumHome({
   );
 }
 
-function SectionHeading({
-  eyebrow,
-  title,
-}: {
-  eyebrow: string;
-  title: string;
-}) {
+function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">{eyebrow}</p>
@@ -579,7 +547,6 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
-// prettier-ignore
 function fmtDate(value: string) {
   return new Date(value).toLocaleDateString("fr-FR", {
     day: "numeric",
