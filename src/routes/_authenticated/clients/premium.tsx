@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -566,7 +566,7 @@ function AdminListCard({
   title: string;
   icon: typeof MessageSquare;
   empty: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <Card className="overflow-hidden">
