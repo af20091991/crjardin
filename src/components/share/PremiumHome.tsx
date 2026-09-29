@@ -30,6 +30,25 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 
 type PremiumSection = "reports" | "photos" | "recos" | "premium" | "documents";
 
+function premiumClientTitle(client: SharedClientData["client"]) {
+  const civility = client.civility?.trim().toLowerCase();
+  if (
+    civility === "madame et monsieur" ||
+    civility === "monsieur et madame" ||
+    civility === "mme et m." ||
+    civility === "m. et mme"
+  ) {
+    return `Madame et Monsieur ${client.name}`;
+  }
+  if (civility === "madame" || civility === "mme" || civility === "mrs") {
+    return `Madame ${client.name}`;
+  }
+  if (civility === "monsieur" || civility === "m." || civility === "mr") {
+    return `Monsieur ${client.name}`;
+  }
+  return client.name;
+}
+
 const REQUESTS = [
   { label: "Demander une intervention", text: "Je souhaite demander une intervention." },
   { label: "Poser une question", text: "J'ai une question concernant mon jardin." },
@@ -64,6 +83,7 @@ export function PremiumHome({
   onNavigate: (section: PremiumSection) => void;
   showHeader?: boolean;
 }) {
+  const clientTitle = premiumClientTitle(client);
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestType, setRequestType] = useState<(typeof REQUESTS)[number] | null>(null);
   const [message, setMessage] = useState("");
@@ -150,7 +170,7 @@ export function PremiumHome({
                       {premium.cover_photo_url ? (
                         <img
                           src={premium.cover_photo_url}
-                          alt={`Le jardin de ${client.name}`}
+                          alt={`Le jardin de ${clientTitle}`}
                           className="h-[280px] w-full object-cover sm:h-[380px]"
                         />
                       ) : (
@@ -161,7 +181,7 @@ export function PremiumHome({
                           De la graine au jardin
                         </p>
                         <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
-                          Le jardin de {client.name}
+                          Le jardin de {clientTitle}
                         </h1>
                         {client.address && (
                           <p className="mt-1 text-sm text-muted-foreground">{client.address}</p>

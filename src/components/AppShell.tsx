@@ -264,14 +264,18 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           exact: false,
           primary: true,
         },
-        {
-          to: "/clients/premium",
-          label: "Comptes Premium",
-          short: "Premium",
-          icon: Crown,
-          exact: true,
-          primary: false,
-        },
+        ...(isAdmin
+          ? [
+              {
+                to: "/clients/premium",
+                label: "Comptes Premium",
+                short: "Premium",
+                icon: Crown,
+                exact: true,
+                primary: false,
+              },
+            ]
+          : []),
         ...(canView
           ? [
               {

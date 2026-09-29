@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import {
   queryOptions,
   useSuspenseQuery,
@@ -75,6 +75,7 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
 import { PremiumHome } from "@/components/share/PremiumHome";
+import { useIsAdmin } from "@/hooks/use-admin";
 
 const sharedQuery = (token: string) =>
   queryOptions({
@@ -90,6 +91,13 @@ const messagesQuery = (token: string) =>
     staleTime: 10_000,
   });
 
+const premiumQuery = (token: string) =>
+  queryOptions({
+    queryKey: ["shared-premium", token],
+    queryFn: () => getSharedPremium({ data: { token } }),
+    staleTime: 60_000,
+  });
+
 export const Route = createFileRoute("/partage/$token")({
   // `?intervention=` cible un compte-rendu précis. Il n'ouvre AUCUN accès :
   // le périmètre reste celui du token (token → client → ses interventions).
@@ -97,7 +105,10 @@ export const Route = createFileRoute("/partage/$token")({
     intervention: typeof search.intervention === "string" ? search.intervention : undefined,
   }),
   loader: async ({ context, params }) => {
-    const data = await context.queryClient.ensureQueryData(sharedQuery(params.token));
+    const [data] = await Promise.all([
+      context.queryClient.ensureQueryData(sharedQuery(params.token)),
+      context.queryClient.ensureQueryData(premiumQuery(params.token)),
+    ]);
     if (!data) throw notFound();
     return null;
   },
@@ -179,11 +190,7 @@ function SharePage() {
   const { token } = Route.useParams();
   const { data } = useSuspenseQuery(sharedQuery(token));
   const { data: messages } = useQuery(messagesQuery(token));
-  const { data: premium } = useQuery({
-    queryKey: ["shared-premium", token],
-    queryFn: () => getSharedPremium({ data: { token } }),
-    staleTime: 60_000,
-  });
+  const { data: premium } = useSuspenseQuery(premiumQuery(token));
   const { dark, large, toggleDark, toggleLarge } = useShareTheme();
   const qc = useQueryClient();
   const [tab, setTab] = useState("reports");
@@ -426,11 +433,12 @@ function PremiumExperience({
     "home" | "reports" | "photos" | "recos" | "premium" | "documents"
   >("home");
   const clientTitle = premiumClientTitle(client);
+  const { isAdmin } = useIsAdmin();
 
   return (
     <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
       <header className="border-b bg-background">
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-[1728px] px-4 sm:px-6 lg:px-10">
           <div className="relative overflow-hidden rounded-b-[1.5rem] border-x border-b bg-background">
             {premium.cover_photo_url ? (
               <img
@@ -480,6 +488,14 @@ function PremiumExperience({
             className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b py-4 text-sm"
             aria-label="Navigation Premium"
           >
+            {isAdmin && (
+              <Link
+                to="/clients/premium"
+                className="mr-1 inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 font-medium text-primary transition-colors hover:bg-primary/10"
+              >
+                ← Retour à Pilot Pro
+              </Link>
+            )}
             <button
               onClick={() => setSection("home")}
               className={
@@ -543,7 +559,7 @@ function PremiumExperience({
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <main className="mx-auto w-full max-w-[1728px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
         {section === "home" ? (
           <PremiumHome
             client={client}
