@@ -119,7 +119,9 @@ export function PremiumHome({
           .from("client-premium")
           .uploadToSignedUrl(target.path, target.token, attachment);
         if (uploadError) {
-          throw new Error(\n            `Envoi de la photo impossible : ${uploadError.message}`,\n          );
+          throw new Error(
+            `Envoi de la photo impossible : ${uploadError.message}`,
+          );
         }
 
         attachmentLabel = attachment.name;
@@ -152,7 +154,9 @@ export function PremiumHome({
       setRequestOpen(false);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Impossible d'envoyer la demande.",
+        error instanceof Error
+          ? error.message
+          : "Impossible d'envoyer la demande.",
       );
     } finally {
       setSending(false);
@@ -554,8 +558,13 @@ export function PremiumHome({
   );
 }
 
-// prettier-ignore
-function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
+function SectionHeading({
+  eyebrow,
+  title,
+}: {
+  eyebrow: string;
+  title: string;
+}) {
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">{eyebrow}</p>
@@ -564,7 +573,6 @@ function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) 
   );
 }
 
-// prettier-ignore
 function EmptyState({ text }: { text: string }) {
   return (
     <div className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">{text}</div>
