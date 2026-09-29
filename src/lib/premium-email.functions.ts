@@ -101,6 +101,7 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
       firstName: contact?.first_name ?? undefined,
       lastName: contact?.last_name ?? client.name,
       premiumUrl,
+      unsubscribeUrl: `https://api.lovable.dev/v1/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
     };
     const element = React.createElement(premiumWelcomeTemplate.component, templateData);
     let html = await render(element);
@@ -146,7 +147,6 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
           purpose: "transactional",
           label: TEMPLATE_NAME,
           idempotency_key: messageId,
-          unsubscribe_token: unsubscribeToken,
         },
         { apiKey, sendUrl: process.env["LOVABLE_SEND_URL"] },
       );
