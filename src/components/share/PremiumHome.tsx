@@ -27,27 +27,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { premiumClientTitle } from "@/lib/share.functions";
 
 type PremiumSection = "reports" | "photos" | "recos" | "premium" | "documents";
 
-function premiumClientTitle(client: SharedClientData["client"]) {
-  const civility = client.civility?.trim().toLowerCase();
-  if (
-    civility === "madame et monsieur" ||
-    civility === "monsieur et madame" ||
-    civility === "mme et m." ||
-    civility === "m. et mme"
-  ) {
-    return `Madame et Monsieur ${client.name}`;
-  }
-  if (civility === "madame" || civility === "mme" || civility === "mrs") {
-    return `Madame ${client.name}`;
-  }
-  if (civility === "monsieur" || civility === "m." || civility === "mr") {
-    return `Monsieur ${client.name}`;
-  }
-  return client.name;
-}
 
 const REQUESTS = [
   { label: "Demander une intervention", text: "Je souhaite demander une intervention." },
