@@ -266,6 +266,16 @@ export const getSharedClient = createServerFn({ method: "GET" })
 
     const result = payload as unknown as SharedClientData;
 
+    // The public RPC historically did not expose civility. Read it from the
+    // authoritative client record so Premium can always display the title
+    // configured in the PP client sheet.
+    const { data: clientMeta } = await supabaseAdmin
+      .from("clients")
+      .select("civility")
+      .eq("id", result.client.id)
+      .maybeSingle();
+    result.client.civility = clientMeta?.civility ?? null;
+
     // Sign photo URLs with the admin client (private bucket).
     const paths = result.interventions.flatMap((iv) => iv.photos.map((p) => p.storage_path));
     if (paths.length > 0) {
