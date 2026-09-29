@@ -52,6 +52,8 @@ export interface SharedClientData {
     id: string;
     name: string;
     civility?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
     address: string | null;
     phone: string | null;
     email: string | null;
@@ -272,10 +274,31 @@ export const getSharedClient = createServerFn({ method: "GET" })
     // configured in the PP client sheet.
     const { data: clientMeta } = await supabaseAdmin
       .from("clients")
-      .select("civility")
+      .select("civility, default_contact_id")
       .eq("id", result.client.id)
       .maybeSingle();
     result.client.civility = clientMeta?.civility ?? null;
+
+    if (clientMeta?.default_contact_id) {
+      const { data: contact } = await supabaseAdmin
+        .from("contacts")
+        .select("first_name, last_name")
+        .eq("id", clientMeta.default_contact_id)
+        .maybeSingle();
+      result.client.first_name = contact?.first_name ?? null;
+      result.client.last_name = contact?.last_name ?? null;
+    } else {
+      const { data: contact } = await supabaseAdmin
+        .from("contacts")
+        .select("first_name, last_name")
+        .eq("client_id", result.client.id)
+        .order("is_report_recipient", { ascending: false })
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      result.client.first_name = contact?.first_name ?? null;
+      result.client.last_name = contact?.last_name ?? null;
+    }
 
     // Sign photo URLs with the admin client (private bucket).
     const paths = result.interventions.flatMap((iv) => iv.photos.map((p) => p.storage_path));
