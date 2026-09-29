@@ -389,21 +389,22 @@ function SharePage() {
 
 function premiumClientTitle(client: SharedClientData["client"]) {
   const civility = client.civility?.trim().toLowerCase();
+  let title = client.civility?.trim() || "";
   if (
     civility === "madame et monsieur" ||
     civility === "monsieur et madame" ||
     civility === "mme et m." ||
     civility === "m. et mme"
   ) {
-    return `Madame et Monsieur ${client.name}`;
+    title = "Madame et Monsieur";
+  } else if (civility === "madame" || civility === "mme" || civility === "mrs") {
+    title = "Madame";
+  } else if (civility === "monsieur" || civility === "m." || civility === "mr") {
+    title = "Monsieur";
   }
-  if (civility === "madame" || civility === "mme" || civility === "mrs") {
-    return `Madame ${client.name}`;
-  }
-  if (civility === "monsieur" || civility === "m." || civility === "mr") {
-    return `Monsieur ${client.name}`;
-  }
-  return client.name;
+  const firstName = client.first_name?.trim() || "";
+  const lastName = client.last_name?.trim() || client.name;
+  return [title, firstName, lastName].filter(Boolean).join(" ");
 }
 
 function PremiumExperience({
@@ -438,7 +439,7 @@ function PremiumExperience({
   return (
     <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
       <header className="border-b bg-background">
-        <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-10">
+        <div className="mx-auto w-full max-w-[1152px] px-4 sm:px-6 lg:px-10">
           <div className="relative overflow-hidden rounded-b-[1.5rem] border-x border-b bg-background">
             {premium.cover_photo_url ? (
               <img
@@ -559,7 +560,7 @@ function PremiumExperience({
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
+      <main className="mx-auto w-full max-w-[1152px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
         {section === "home" ? (
           <PremiumHome
             client={client}

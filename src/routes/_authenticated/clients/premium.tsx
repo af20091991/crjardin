@@ -350,7 +350,7 @@ function PremiumClientsPage() {
 
   return (
     <AppShell title="Comptes Premium">
-      <div className="mx-auto w-full max-w-[1728px] space-y-6">
+      <div className="mx-auto w-full max-w-[1152px] space-y-6">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Administration Premium</p>

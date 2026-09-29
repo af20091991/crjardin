@@ -96,11 +96,20 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
     const premiumUrl = `${TRACKING_ORIGIN}/partage/${client.share_token}`;
     const subject = "Votre Compte Premium est prêt — De la graine au jardin";
     const messageId = crypto.randomUUID();
+    const { data: unsubscribeToken, error: unsubscribeError } = await supabaseAdmin.rpc(
+      "get_or_create_unsubscribe_token",
+      { p_email: recipient },
+    );
+    if (unsubscribeError || !unsubscribeToken) {
+      throw unsubscribeError ?? new Error("Impossible de préparer le désabonnement de cette adresse.");
+    }
+
     const templateData = {
       civility: contact?.civility ?? client.civility ?? undefined,
       firstName: contact?.first_name ?? undefined,
       lastName: contact?.last_name ?? client.name,
       premiumUrl,
+      unsubscribeUrl: `https://api.lovable.dev/v1/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
     };
     const element = React.createElement(premiumWelcomeTemplate.component, templateData);
     let html = await render(element);
