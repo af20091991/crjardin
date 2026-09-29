@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   CheckCircle2,
+  ChevronDown,
   Crown,
   ExternalLink,
   FileText,
@@ -110,6 +111,7 @@ function fmtDateTime(value: string | null) {
 }
 
 // prettier-ignore
+// Regroupement des consultations Premium par client.
 function PremiumClientsPage() {
   const { isAdmin, isLoading: adminLoading } = useIsAdmin();
   const [search, setSearch] = useState("");
@@ -568,19 +570,46 @@ function PremiumClientsPage() {
                 icon={Activity}
                 empty="Aucune consultation enregistrée."
               >
-                {recentAccess.slice(0, 12).map((access, index) => {
-                  const client = clientsById.get(access.client_id);
+                {Array.from(
+                  recentAccess.reduce((groups, access) => {
+                    const entries = groups.get(access.client_id) ?? [];
+                    entries.push(access);
+                    groups.set(access.client_id, entries);
+                    return groups;
+                  }, new Map<string, PremiumAccess[]>()),
+                ).map(([clientId, accesses]) => {
+                  const client = clientsById.get(clientId);
                   if (!client) return null;
+                  const sortedAccesses = [...accesses].sort((a, b) =>
+                    b.accessed_at.localeCompare(a.accessed_at),
+                  );
                   return (
-                    <div
-                      key={`${access.client_id}-${access.accessed_at}-${index}`}
-                      className="flex items-center justify-between gap-3 rounded-xl border p-4"
-                    >
-                      <p className="truncate font-medium">{displayClientName(client)}</p>
-                      <p className="shrink-0 text-xs text-muted-foreground">
-                        {fmtDateTime(access.accessed_at)}
-                      </p>
-                    </div>
+                    <details key={clientId} className="group rounded-xl border bg-background">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 [&::-webkit-details-marker]:hidden">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{displayClientName(client)}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {sortedAccesses.length} consultation{sortedAccesses.length > 1 ? "s" : ""} · dernière le {fmtDateTime(sortedAccesses[0]?.accessed_at ?? null)}
+                          </p>
+                        </div>
+                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                      </summary>
+                      <div className="border-t px-4 py-3">
+                        <div className="space-y-2">
+                          {sortedAccesses.map((access, index) => (
+                            <div
+                              key={`${access.client_id}-${access.accessed_at}-${index}`}
+                              className="flex items-center justify-between gap-3 rounded-lg bg-muted/20 px-3 py-2.5 text-sm"
+                            >
+                              <span>Consultation de l’interface Premium</span>
+                              <span className="shrink-0 text-xs text-muted-foreground">
+                                {fmtDateTime(access.accessed_at)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </details>
                   );
                 })}
               </AdminListCard>
