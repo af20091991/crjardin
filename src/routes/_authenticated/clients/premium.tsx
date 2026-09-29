@@ -339,8 +339,7 @@ function PremiumClientsPage() {
             <p className="text-sm text-muted-foreground">Administration Premium</p>
             <h1 className="text-2xl font-medium tracking-tight">Comptes Premium</h1>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Suivez les comptes actifs, les demandes reçues, les documents déposés par les clients
-              et les dernières consultations.
+              Suivez les comptes, demandes, documents et consultations Premium.
             </p>
           </div>
           <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
@@ -355,9 +354,7 @@ function PremiumClientsPage() {
           </div>
         ) : error ? (
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive">
-            {error instanceof Error
-              ? error.message
-              : "Impossible de charger l'administration Premium."}
+            {error instanceof Error ? error.message : "Erreur de chargement de Premium."}
           </div>
         ) : (
           <>
