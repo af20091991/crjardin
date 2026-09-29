@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { signedPremiumDocumentUrl } from "@/lib/client-premium";
 import { sendPremiumWelcomeEmail } from "@/lib/premium-email.functions";
+import { formatPremiumClientName } from "@/lib/premium-client-name";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/clients/premium")({
@@ -74,23 +75,19 @@ type PremiumRecommendation = {
   client_interest_at: string | null;
 };
 
-function displayClientName(client: Client) {
-  const civility = client.civility?.trim().toLowerCase();
-  if (
-    civility === "madame et monsieur" ||
-    civility === "monsieur et madame" ||
-    civility === "mme et m." ||
-    civility === "m. et mme"
-  ) {
-    return `Madame et Monsieur ${client.name}`;
-  }
-  if (civility === "madame" || civility === "mme" || civility === "mrs") {
-    return `Madame ${client.name}`;
-  }
-  if (civility === "monsieur" || civility === "m." || civility === "mr") {
-    return `Monsieur ${client.name}`;
-  }
-  return client.name;
+type PremiumContact = {
+  client_id: string;
+  first_name: string | null;
+  last_name: string | null;
+};
+
+function displayClientName(client: Client, contact?: PremiumContact) {
+  return formatPremiumClientName({
+    name: client.name,
+    civility: client.civility,
+    firstName: contact?.first_name,
+    lastName: contact?.last_name,
+  });
 }
 
 function fmtDate(value: string | null) {
@@ -150,6 +147,33 @@ function PremiumClientsPage() {
       return (data ?? []) as PremiumStatus[];
     },
   });
+
+  const premiumContactsQuery = useQuery({
+    queryKey: ["premium-client-contacts", premiumQuery.data?.map((row) => row.client_id)],
+    enabled: isAdmin && (premiumQuery.data?.length ?? 0) > 0,
+    queryFn: async (): Promise<PremiumContact[]> => {
+      const clientIds = (premiumQuery.data ?? []).map((row) => row.client_id);
+      if (!clientIds.length) return [];
+      const { data, error } = await supabase
+        .from("contacts")
+        .select("client_id, first_name, last_name, is_report_recipient, updated_at")
+        .in("client_id", clientIds)
+        .order("is_report_recipient", { ascending: false })
+        .order("updated_at", { ascending: false });
+      if (error) throw new Error(`Impossible de charger les identités Premium : ${error.message}`);
+      const seen = new Set<string>();
+      return ((data ?? []) as PremiumContact[]).filter((contact) => {
+        if (seen.has(contact.client_id)) return false;
+        seen.add(contact.client_id);
+        return true;
+      });
+    },
+  });
+
+  const contactsByClient = useMemo(
+    () => new Map((premiumContactsQuery.data ?? []).map((contact) => [contact.client_id, contact])),
+    [premiumContactsQuery.data],
+  );
 
   const messagesQuery = useQuery({
     queryKey: ["premium-admin-messages"],
@@ -315,7 +339,8 @@ function PremiumClientsPage() {
     messagesQuery.isLoading ||
     documentsQuery.isLoading ||
     accessQuery.isLoading ||
-    recommendationsQuery.isLoading;
+    recommendationsQuery.isLoading ||
+    premiumContactsQuery.isLoading;
 
   const error =
     clientsQuery.error ??
@@ -323,7 +348,8 @@ function PremiumClientsPage() {
     messagesQuery.error ??
     documentsQuery.error ??
     accessQuery.error ??
-    recommendationsQuery.error;
+    recommendationsQuery.error ??
+    premiumContactsQuery.error;
 
   async function openDocument(document: PremiumDocumentRow) {
     try {
@@ -434,7 +460,7 @@ function PremiumClientsPage() {
                           search={{ intervention: undefined }}
                           className="block truncate text-sm font-medium hover:text-primary"
                         >
-                          {displayClientName(client)}
+                          {displayClientName(client, contactsByClient.get(client.id))}
                         </Link>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
                           {client.address ?? client.email ?? "Aucune information complémentaire"}
@@ -471,7 +497,7 @@ function PremiumClientsPage() {
                             }
                             if (
                               window.confirm(
-                                `Envoyer le mail de mise à disposition du Compte Premium à ${displayClientName(client)} (${recipient}) ?`,
+                                `Envoyer le mail de mise à disposition du Compte Premium à ${displayClientName(client, contactsByClient.get(client.id))} (${recipient}) ?`,
                               )
                             ) {
                               premiumEmailMutation.mutate(client.id);
@@ -515,7 +541,7 @@ function PremiumClientsPage() {
                     <div key={message.id} className="rounded-xl border p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="font-medium">{displayClientName(client)}</p>
+                          <p className="font-medium">{displayClientName(client, contactsByClient.get(client.id))}</p>
                           <p className="mt-0.5 text-xs text-muted-foreground">
                             {fmtDateTime(message.created_at)}
                           </p>
@@ -557,7 +583,7 @@ function PremiumClientsPage() {
                       className="flex items-center justify-between gap-3 rounded-xl border p-4"
                     >
                       <div className="min-w-0">
-                        <p className="truncate font-medium">{displayClientName(client)}</p>
+                        <p className="truncate font-medium">{displayClientName(client, contactsByClient.get(client.id))}</p>
                         <p className="truncate text-sm">{document.title}</p>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
                           {document.filename} · {fmtDateTime(document.created_at)}
@@ -586,7 +612,7 @@ function PremiumClientsPage() {
                       className="flex items-start justify-between gap-3 rounded-xl border p-4"
                     >
                       <div className="min-w-0">
-                        <p className="font-medium">{displayClientName(client)}</p>
+                        <p className="font-medium">{displayClientName(client, contactsByClient.get(client.id))}</p>
                         <p className="mt-1 truncate text-sm">{item.title}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                           {fmtDateTime(item.client_interest_at)}
@@ -622,7 +648,7 @@ function PremiumClientsPage() {
                     <details key={clientId} className="group rounded-xl border bg-background">
                       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 [&::-webkit-details-marker]:hidden">
                         <div className="min-w-0">
-                          <p className="truncate font-medium">{displayClientName(client)}</p>
+                          <p className="truncate font-medium">{displayClientName(client, contactsByClient.get(client.id))}</p>
                           <p className="mt-0.5 text-xs text-muted-foreground">
                             {sortedAccesses.length} consultation{sortedAccesses.length > 1 ? "s" : ""} · dernière le {fmtDateTime(sortedAccesses[0]?.accessed_at ?? null)}
                           </p>
