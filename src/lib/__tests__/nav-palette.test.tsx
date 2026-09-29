@@ -5,7 +5,7 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { NavCommandPalette, filterNavItems, DEFAULT_OPEN_GROUP } from "@/components/AppShell";
 
 const items = [
-  { to: "/pilot", label: "Centre de décision", short: "Accueil" },
+  { to: "/pilot/dashboard", label: "Dashboard", short: "Dashboard" },
   { to: "/pilot/ca", label: "Chiffre d'affaires", short: "CA" },
   { to: "/clients", label: "Fiches clients", short: "Clients" },
   { to: "/interventions", label: "CR chantier", short: "CR" },
