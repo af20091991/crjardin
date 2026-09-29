@@ -111,7 +111,7 @@ function fmtDateTime(value: string | null) {
 }
 
 // prettier-ignore
-function PremiumClientsPage() {
+// Regroupement des consultations Premium par client.\nfunction PremiumClientsPage() {
   const { isAdmin, isLoading: adminLoading } = useIsAdmin();
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
