@@ -56,11 +56,22 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
 
     const { data: client, error: clientError } = await supabaseAdmin
       .from("clients")
-      .select("id, name, civility, first_name, last_name, email, emails, share_token, contract_type")
+      .select("id, name, civility, email, emails, share_token, contract_type, default_contact_id")
       .eq("id", data.clientId)
       .is("merged_into_client_id", null)
       .single();
     if (clientError) throw clientError;
+
+    let contact: { civility: string | null; first_name: string | null; last_name: string | null } | null = null;
+    if (client.default_contact_id) {
+      const { data: contactData, error: contactError } = await supabaseAdmin
+        .from("contacts")
+        .select("civility, first_name, last_name")
+        .eq("id", client.default_contact_id)
+        .maybeSingle();
+      if (contactError) throw contactError;
+      contact = contactData;
+    }
 
     if (client.contract_type !== "Entretien annuel") {
       throw new Error("Le Compte Premium est réservé aux clients ayant un entretien annuel.");
@@ -81,9 +92,9 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
     const subject = "Votre Compte Premium est prêt — De la graine au jardin";
     const messageId = crypto.randomUUID();
     const templateData = {
-      civility: client.civility,
-      firstName: client.first_name,
-      lastName: client.last_name ?? client.name,
+      civility: contact?.civility ?? client.civility,
+      firstName: contact?.first_name,
+      lastName: contact?.last_name ?? client.name,
       premiumUrl,
     };
     const element = React.createElement(premiumWelcomeTemplate.component, templateData);
@@ -96,9 +107,9 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
       message_id: messageId,
       client_id: client.id,
       recipient_email: recipient,
-      civility: client.civility,
-      first_name: client.first_name,
-      last_name: client.last_name ?? client.name,
+      civility: contact?.civility ?? client.civility,
+      first_name: contact?.first_name,
+      last_name: contact?.last_name ?? client.name,
       subject,
       premium_url: premiumUrl,
       html_body: html,
