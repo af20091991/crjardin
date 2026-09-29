@@ -5,16 +5,23 @@ export interface PremiumClientIdentity {
   lastName?: string | null;
 }
 
+export interface ResolvedPremiumClientIdentity {
+  title: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
+}
+
 /**
- * Identité affichée partout dans l'espace Premium.
+ * Règle d'identité Premium : civilité → prénom → nom.
  *
- * Règle métier : civilité → prénom → nom.
  * Les anciens clients peuvent encore avoir un nom stocké sous la forme
  * « Nom Prénom » dans clients.name ; ce format historique est converti ici.
- * Les nouvelles données disposant de firstName/lastName utilisent toujours
- * ces champs comme source de vérité.
+ * Dès que firstName/lastName existent, ils sont la source de vérité.
  */
-export function formatPremiumClientName(client: PremiumClientIdentity): string {
+export function resolvePremiumClientIdentity(
+  client: PremiumClientIdentity,
+): ResolvedPremiumClientIdentity {
   const civility = client.civility?.trim().toLowerCase();
   let title = client.civility?.trim() || "";
 
@@ -31,17 +38,24 @@ export function formatPremiumClientName(client: PremiumClientIdentity): string {
     title = "Monsieur";
   }
 
-  const firstName = client.firstName?.trim() || "";
-  const lastName = client.lastName?.trim() || "";
-  if (firstName || lastName) {
-    return [title, firstName, lastName].filter(Boolean).join(" ");
+  let firstName = client.firstName?.trim() || "";
+  let lastName = client.lastName?.trim() || "";
+
+  if (!firstName && !lastName) {
+    const name = client.name.trim();
+    const nameParts = name.split(/\s+/).filter(Boolean);
+    if (nameParts.length === 2 && nameParts[0].toLowerCase() !== "de") {
+      lastName = nameParts[0];
+      firstName = nameParts[1];
+    } else {
+      lastName = name;
+    }
   }
 
-  const name = client.name.trim();
-  const nameParts = name.split(/\s+/).filter(Boolean);
-  if (nameParts.length === 2 && nameParts[0].toLowerCase() !== "de") {
-    return [title, nameParts[1], nameParts[0]].filter(Boolean).join(" ");
-  }
+  const displayName = [title, firstName, lastName].filter(Boolean).join(" ");
+  return { title, firstName, lastName, displayName };
+}
 
-  return [title, name].filter(Boolean).join(" ");
+export function formatPremiumClientName(client: PremiumClientIdentity): string {
+  return resolvePremiumClientIdentity(client).displayName;
 }
