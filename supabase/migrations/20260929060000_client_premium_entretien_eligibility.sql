@@ -5,8 +5,6 @@
 create or replace function public.enforce_client_premium_eligibility()
 returns trigger
 language plpgsql
-security definer
-set search_path = public
 as $$
 declare
   v_contract_type text;
@@ -36,8 +34,6 @@ execute function public.enforce_client_premium_eligibility();
 create or replace function public.prevent_contract_downgrade_with_premium()
 returns trigger
 language plpgsql
-security definer
-set search_path = public
 as $$
 begin
   if new.contract_type is distinct from 'Entretien annuel'
