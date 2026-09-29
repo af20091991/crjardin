@@ -1,15 +1,26 @@
+// prettier-ignore
 import { createServerFn } from "@tanstack/react-start";
+// prettier-ignore
 import { render } from "@react-email/render";
+// prettier-ignore
 import React from "react";
+// prettier-ignore
 import { sendLovableEmail, EmailAPIError } from "@lovable.dev/email-js";
+// prettier-ignore
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+// prettier-ignore
 import { template as premiumWelcomeTemplate } from "@/lib/email-templates/premium-welcome";
 
+// prettier-ignore
 const FROM = "De la graine au jardin <noreply@delagraineaujardin.com>";
+// prettier-ignore
 const SENDER_DOMAIN = "notify.delagraineaujardin.com";
+// prettier-ignore
 const TRACKING_ORIGIN = "https://crjardin.lovable.app";
+// prettier-ignore
 const TEMPLATE_NAME = "premium-welcome";
 
+// prettier-ignore
 export interface PremiumEmailLogEntry {
   id: string;
   message_id: string;
@@ -30,10 +41,12 @@ export interface PremiumEmailLogEntry {
   open_count: number;
 }
 
+// prettier-ignore
 function assertAdmin(isAdmin: boolean | null | undefined) {
   if (!isAdmin) throw new Response("Forbidden", { status: 403 });
 }
 
+// prettier-ignore
 export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { clientId: string }) => input)
@@ -145,6 +158,7 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
     return { messageId, recipient, subject };
   });
 
+// prettier-ignore
 export const listPremiumEmailLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
