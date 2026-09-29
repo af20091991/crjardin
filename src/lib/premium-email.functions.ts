@@ -107,7 +107,7 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
     const templateData = {
       civility: contact?.civility ?? client.civility ?? undefined,
       firstName: contact?.first_name ?? undefined,
-      lastName: contact?.last_name ?? client.name,
+      lastName: contact?.last_name ?? (client.name.split(/\s+/).length === 2 ? client.name.split(/\s+/)[0] : client.name),
       premiumUrl,
       unsubscribeUrl: `https://api.lovable.dev/v1/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
     };
@@ -123,7 +123,7 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
       recipient_email: recipient,
       civility: contact?.civility ?? client.civility,
       first_name: contact?.first_name,
-      last_name: contact?.last_name ?? client.name,
+      last_name: contact?.last_name ?? (client.name.split(/\s+/).length === 2 ? client.name.split(/\s+/)[0] : client.name),
       subject,
       premium_url: premiumUrl,
       html_body: html,
