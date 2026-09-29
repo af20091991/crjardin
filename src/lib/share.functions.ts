@@ -265,6 +265,7 @@ export const getSharedClient = createServerFn({ method: "GET" })
     if (!payload) return null;
 
     const result = payload as unknown as SharedClientData;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // The public RPC historically did not expose civility. Read it from the
     // authoritative client record so Premium can always display the title
@@ -279,7 +280,6 @@ export const getSharedClient = createServerFn({ method: "GET" })
     // Sign photo URLs with the admin client (private bucket).
     const paths = result.interventions.flatMap((iv) => iv.photos.map((p) => p.storage_path));
     if (paths.length > 0) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: signed } = await supabaseAdmin.storage
         .from(BUCKET)
         .createSignedUrls(paths, 60 * 60 * 24 * 7);
