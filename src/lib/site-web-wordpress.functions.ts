@@ -201,13 +201,13 @@ export const getWordPressOverview = createServerFn({ method: "POST" })
     const reachable = Boolean(root.response?.ok && rootBody);
 
     const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-    const notDetected = {
+    const notDetected: WordPressCollection = {
       total: null,
       items: [],
       error: root.error ?? "API REST WordPress non détectée sur ce site.",
     };
-    let posts = notDetected;
-    let pages = notDetected;
+    let posts: WordPressCollection = notDetected;
+    let pages: WordPressCollection = notDetected;
     let core: WordPressCoreInfo = {
       installedVersion: null,
       latestVersion: null,
