@@ -559,8 +559,12 @@ function PremiumExperience({
             {section === "reports" && (
               <section>
                 <div className="border-b pb-6">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">Le carnet du jardin</p>
-                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">Interventions</h1>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                    Le carnet du jardin
+                  </p>
+                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
+                    Interventions
+                  </h1>
                   <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
                     Retrouvez les visites, les travaux réalisés et les observations qui accompagnent votre jardin au fil des saisons.
                   </p>
@@ -576,8 +580,12 @@ function PremiumExperience({
             {section === "photos" && (
               <section>
                 <div className="border-b pb-6">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">Mémoire du jardin</p>
-                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">Photos</h1>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                    Mémoire du jardin
+                  </p>
+                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
+                    Photos
+                  </h1>
                   <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
                     Les images qui permettent de suivre l’évolution de votre jardin au fil du temps.
                   </p>
@@ -588,8 +596,12 @@ function PremiumExperience({
             {section === "recos" && (
               <section>
                 <div className="border-b pb-6">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">Le regard du paysagiste</p>
-                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">Conseils</h1>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                    Le regard du paysagiste
+                  </p>
+                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
+                    Conseils
+                  </h1>
                   <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
                     Mes observations et recommandations pour accompagner votre jardin dans la durée.
                   </p>
@@ -600,8 +612,12 @@ function PremiumExperience({
             {section === "premium" && (
               <section>
                 <div className="border-b pb-6">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">Votre jardin</p>
-                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">Mon jardin</h1>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                    Votre jardin
+                  </p>
+                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
+                    Mon jardin
+                  </h1>
                   <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
                     Les repères et informations utiles pour garder une vision claire de votre jardin.
                   </p>
@@ -617,8 +633,12 @@ function PremiumExperience({
             {section === "documents" && (
               <section>
                 <div className="border-b pb-6">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">Votre dossier</p>
-                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">Documents</h1>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                    Votre dossier
+                  </p>
+                  <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">
+                    Documents
+                  </h1>
                   <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
                     Retrouvez ici les documents mis à votre disposition dans le cadre du suivi de votre jardin.
                   </p>
