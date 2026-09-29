@@ -18,12 +18,19 @@ export interface WordPressCollection {
   error: string | null;
 }
 
+export interface WordPressCoreInfo {
+  installedVersion: string | null;
+  latestVersion: string | null;
+  updateAvailable: boolean | null;
+}
+
 export interface WordPressOverview {
   siteUrl: string;
   reachable: boolean;
   responseTimeMs: number | null;
   siteName: string | null;
   siteDescription: string | null;
+  core: WordPressCoreInfo;
   posts: WordPressCollection;
   pages: WordPressCollection;
   checkedAt: string;
@@ -46,14 +53,17 @@ function decodeEntities(value: string) {
     .replace(/&(amp|lt|gt|quot|nbsp);|&#039;/g, (match) => ENTITIES[match] ?? match);
 }
 
-/** Espace les requêtes vers le même site pour éviter de déclencher les limites anti-bot de l'hébergeur. */
-async function sequentially<T>(tasks: Array<() => Promise<T>>): Promise<T[]> {
-  const results: T[] = [];
-  for (const task of tasks) {
-    if (results.length > 0) await new Promise((resolve) => setTimeout(resolve, 250));
-    results.push(await task());
+async function fetchRaw(url: string, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    return { response, text: await response.text().catch(() => "") };
+  } catch {
+    return { response: null, text: "" };
+  } finally {
+    clearTimeout(timeout);
   }
-  return results;
 }
 
 async function fetchJson(path: string) {
@@ -77,6 +87,56 @@ async function fetchJson(path: string) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function versionParts(version: string) {
+  return version
+    .split(/[^0-9]+/)
+    .filter(Boolean)
+    .map(Number);
+}
+
+/** true si `latest` est strictement plus récente que `installed`. */
+function isNewerVersion(latest: string, installed: string) {
+  const a = versionParts(latest);
+  const b = versionParts(installed);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const diff = (a[i] ?? 0) - (b[i] ?? 0);
+    if (diff !== 0) return diff > 0;
+  }
+  return false;
+}
+
+/** Version du cœur WordPress lue sur des pages publiques (flux RSS, balise generator) : aucune authentification nécessaire. */
+async function detectInstalledCoreVersion() {
+  const feed = await fetchRaw(`${WORDPRESS_SITE_URL}/feed/`, 6000);
+  const fromFeed = feed.text.match(/wordpress\.org\/\?v=([0-9][0-9.]*)/i)?.[1];
+  if (fromFeed) return fromFeed;
+  const home = await fetchRaw(`${WORDPRESS_SITE_URL}/`, 6000);
+  return home.text.match(/<meta[^>]+generator[^>]+WordPress\s+([0-9][0-9.]*)/i)?.[1] ?? null;
+}
+
+async function detectLatestCoreVersion() {
+  const result = await fetchRaw("https://api.wordpress.org/core/version-check/1.7/", 6000);
+  try {
+    const offers = (JSON.parse(result.text) as { offers?: Array<{ current?: string }> })?.offers;
+    return offers?.[0]?.current ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadCoreInfo(reachable: boolean): Promise<WordPressCoreInfo> {
+  if (!reachable) return { installedVersion: null, latestVersion: null, updateAvailable: null };
+  const [installed, latest] = await Promise.all([
+    detectInstalledCoreVersion(),
+    detectLatestCoreVersion(),
+  ]);
+  return {
+    installedVersion: installed,
+    latestVersion: latest,
+    updateAvailable: installed && latest ? isNewerVersion(latest, installed) : null,
+  };
 }
 
 async function loadCollection(type: "posts" | "pages"): Promise<WordPressCollection> {
@@ -140,20 +200,26 @@ export const getWordPressOverview = createServerFn({ method: "POST" })
         : null;
     const reachable = Boolean(root.response?.ok && rootBody);
 
-    const [posts, pages] = reachable
-      ? await sequentially([() => loadCollection("posts"), () => loadCollection("pages")])
-      : [
-          {
-            total: null,
-            items: [],
-            error: root.error ?? "API REST WordPress non détectée sur ce site.",
-          },
-          {
-            total: null,
-            items: [],
-            error: root.error ?? "API REST WordPress non détectée sur ce site.",
-          },
-        ];
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const notDetected = {
+      total: null,
+      items: [],
+      error: root.error ?? "API REST WordPress non détectée sur ce site.",
+    };
+    let posts = notDetected;
+    let pages = notDetected;
+    let core: WordPressCoreInfo = {
+      installedVersion: null,
+      latestVersion: null,
+      updateAvailable: null,
+    };
+    if (reachable) {
+      posts = await loadCollection("posts");
+      await delay(250);
+      pages = await loadCollection("pages");
+      await delay(250);
+      core = await loadCoreInfo(reachable);
+    }
 
     return {
       siteUrl: WORDPRESS_SITE_URL,
@@ -161,6 +227,7 @@ export const getWordPressOverview = createServerFn({ method: "POST" })
       responseTimeMs: root.elapsed,
       siteName: rootBody?.name ? decodeEntities(rootBody.name) : null,
       siteDescription: rootBody?.description ? decodeEntities(rootBody.description) : null,
+      core,
       posts,
       pages,
       checkedAt: new Date().toISOString(),

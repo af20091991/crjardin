@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-29",
+    version: "2.3.27",
+    theme: "Général",
+    title: "Site web — WordPress simplifié (sans identifiants)",
+    details: [
+      "Retrait de la partie nécessitant un mot de passe d'application WordPress (santé du site, extensions), trop dépendante de la configuration de chaque hébergeur.",
+      "La version de WordPress et la disponibilité d'une mise à jour s'affichent désormais sans aucune authentification.",
+    ],
+  },
+
+  {
+    date: "2026-09-29",
     version: "2.3.26",
     theme: "Général",
     title: "Site web — WordPress : requêtes espacées, message clair en cas de blocage",
