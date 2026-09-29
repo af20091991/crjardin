@@ -295,6 +295,14 @@ export const getSharedPremium = createServerFn({ method: "GET" })
     return { token: data.token };
   })
   .handler(async ({ data }): Promise<SharedPremiumData | null> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: client } = await supabaseAdmin
+      .from("clients")
+      .select("id, contract_type")
+      .eq("share_token", data.token)
+      .maybeSingle();
+    if (!client || client.contract_type !== "Entretien annuel") return null;
+
     const { data: payload, error } = await publicClient().rpc("get_shared_premium", {
       p_token: data.token,
     });
@@ -320,8 +328,6 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       }>;
       upcoming: SharedPremiumUpcoming[];
     };
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     let coverPhotoUrl: string | null = null;
     if (raw.cover_photo_id) {
@@ -413,6 +419,9 @@ async function requireEnabledPremiumClient(token: string) {
     .eq("share_token", token)
     .maybeSingle();
   if (!client) throw new Error("Lien invalide");
+  if (client.contract_type !== "Entretien annuel") {
+    throw new Error("Espace Premium réservé aux clients en entretien annuel");
+  }
   const { data: premium } = await supabaseAdmin
     .from("client_premium")
     .select("enabled")
