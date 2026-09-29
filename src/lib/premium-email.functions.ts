@@ -1,0 +1,170 @@
+import { createServerFn } from "@tanstack/react-start";
+import { render } from "@react-email/render";
+import React from "react";
+import { sendLovableEmail, EmailAPIError } from "@lovable.dev/email-js";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { template as premiumWelcomeTemplate } from "@/lib/email-templates/premium-welcome";
+
+const FROM = "De la graine au jardin <noreply@delagraineaujardin.com>";
+const SENDER_DOMAIN = "notify.delagraineaujardin.com";
+const TRACKING_ORIGIN = "https://crjardin.lovable.app";
+const TEMPLATE_NAME = "premium-welcome";
+
+export interface PremiumEmailLogEntry {
+  id: string;
+  message_id: string;
+  client_id: string;
+  recipient_email: string;
+  civility: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  subject: string;
+  premium_url: string;
+  html_body: string;
+  text_body: string;
+  status: string;
+  error_message: string | null;
+  sent_at: string | null;
+  created_at: string;
+  opened_at: string | null;
+  open_count: number;
+}
+
+function assertAdmin(isAdmin: boolean | null | undefined) {
+  if (!isAdmin) throw new Response("Forbidden", { status: 403 });
+}
+
+function recipientLabel(civility: string | null, firstName: string | null, lastName: string | null) {
+  return [civility, firstName, lastName].filter((value) => value?.trim()).join(" ");
+}
+
+async function getAdminClient(context: { userId: string }) {
+  const { data: isAdmin, error } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (error) throw error;
+  assertAdmin(isAdmin);
+  return (await import("@/integrations/supabase/client.server")).supabaseAdmin;
+}
+
+export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: { clientId: string }) => input)
+  .handler(async ({ context, data }) => {
+    const supabaseAdmin = await getAdminClient(context);
+
+    const { data: client, error: clientError } = await supabaseAdmin
+      .from("clients")
+      .select("id, name, civility, first_name, last_name, email, emails, share_token, contract_type")
+      .eq("id", data.clientId)
+      .is("merged_into_client_id", null)
+      .single();
+    if (clientError) throw clientError;
+
+    if (client.contract_type !== "Entretien annuel") {
+      throw new Error("Le Compte Premium est réservé aux clients ayant un entretien annuel.");
+    }
+
+    const { data: premium, error: premiumError } = await supabaseAdmin
+      .from("client_premium")
+      .select("enabled")
+      .eq("client_id", client.id)
+      .maybeSingle();
+    if (premiumError) throw premiumError;
+    if (!premium?.enabled) throw new Error("Le Compte Premium n’est pas actif pour ce client.");
+
+    const recipient = (client.email ?? client.emails?.[0] ?? "").trim();
+    if (!recipient) throw new Error("Aucune adresse e-mail n’est renseignée pour ce client.");
+
+    const premiumUrl = `${TRACKING_ORIGIN}/partage/${client.share_token}`;
+    const subject = "Votre Compte Premium est prêt — De la graine au jardin";
+    const messageId = crypto.randomUUID();
+    const templateData = {
+      civility: client.civility,
+      firstName: client.first_name,
+      lastName: client.last_name ?? client.name,
+      premiumUrl,
+    };
+    const element = React.createElement(premiumWelcomeTemplate.component, templateData);
+    let html = await render(element);
+    const text = await render(element, { plainText: true });
+    const trackingPixel = `<img src="${TRACKING_ORIGIN}/api/public/email-open?m=${messageId}" width="1" height="1" alt="" style="display:none" />`;
+    html = html.includes("</body>") ? html.replace("</body>", `${trackingPixel}</body>`) : `${html}${trackingPixel}`;
+
+    const { error: logError } = await supabaseAdmin.from("premium_email_log" as never).insert({
+      message_id: messageId,
+      client_id: client.id,
+      recipient_email: recipient,
+      civility: client.civility,
+      first_name: client.first_name,
+      last_name: client.last_name ?? client.name,
+      subject,
+      premium_url: premiumUrl,
+      html_body: html,
+      text_body: text,
+      status: "pending",
+    } as never);
+    if (logError) throw logError;
+
+    try {
+      await sendLovableEmail(
+        {
+          to: recipient,
+          from: FROM,
+          sender_domain: SENDER_DOMAIN,
+          subject,
+          html,
+          text,
+          purpose: "transactional",
+          label: TEMPLATE_NAME,
+          idempotency_key: messageId,
+        },
+        { apiKey: process.env["LOVABLE_API_KEY"], sendUrl: process.env["LOVABLE_SEND_URL"] },
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await supabaseAdmin
+        .from("premium_email_log" as never)
+        .update({ status: error instanceof EmailAPIError && error.code === "recipient_suppressed" ? "suppressed" : "failed", error_message: errorMessage.slice(0, 1000) } as never)
+        .eq("message_id", messageId);
+      throw error;
+    }
+
+    await supabaseAdmin
+      .from("premium_email_log" as never)
+      .update({ status: "sent", sent_at: new Date().toISOString() } as never)
+      .eq("message_id", messageId);
+
+    return { messageId, recipient, subject };
+  });
+
+export const listPremiumEmailLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabaseAdmin = await getAdminClient(context);
+    const { data, error } = await supabaseAdmin
+      .from("premium_email_log" as never)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) throw error;
+
+    const rows = (data ?? []) as unknown as PremiumEmailLogEntry[];
+    const messageIds = rows.map((row) => row.message_id);
+    if (!messageIds.length) return rows;
+
+    const { data: opens } = await supabaseAdmin
+      .from("email_opens")
+      .select("message_id, opened_at, open_count")
+      .in("message_id", messageIds);
+    const byId = new Map((opens ?? []).map((open) => [open.message_id, open]));
+    return rows.map((row) => {
+      const open = byId.get(row.message_id);
+      return {
+        ...row,
+        opened_at: open?.opened_at ?? null,
+        open_count: open?.open_count ?? 0,
+      };
+    });
+  });
