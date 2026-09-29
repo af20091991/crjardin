@@ -470,7 +470,7 @@ function PremiumClientsPage() {
                             }
                             if (
                               window.confirm(
-                                `Envoyer le mail de mise à disposition du Compte Premium à ${displayClientName(client)} (\${recipient}) ?`,
+                                `Envoyer le mail de mise à disposition du Compte Premium à ${displayClientName(client)} (${recipient}) ?`,
                               )
                             ) {
                               premiumEmailMutation.mutate(client.id);
