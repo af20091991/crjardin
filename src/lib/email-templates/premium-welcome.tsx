@@ -1,3 +1,5 @@
+// prettier-ignore-start
+
 import React from "react";
 import {
   Body,
@@ -146,3 +148,5 @@ const signature = {
   fontFamily: garamond,
   marginTop: "18px",
 };
+
+// prettier-ignore-end
