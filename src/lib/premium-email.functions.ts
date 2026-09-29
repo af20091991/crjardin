@@ -12,7 +12,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { template as premiumWelcomeTemplate } from "@/lib/email-templates/premium-welcome";
 
 // prettier-ignore
-// Premium invitation sender configuration.
 const FROM = "De la graine au jardin <noreply@delagraineaujardin.com>";
 // prettier-ignore
 const SENDER_DOMAIN = "notify.delagraineaujardin.com";
