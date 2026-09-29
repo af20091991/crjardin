@@ -389,6 +389,10 @@ function SharePage() {
 }
 
 
+const premiumNavActiveClass = "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary";
+const premiumNavInactiveClass =
+  "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+
 function PremiumPageIntro({
   eyebrow,
   title,
@@ -501,8 +505,8 @@ function PremiumExperience({
               onClick={() => setSection("home")}
               className={
                 section === "home"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? premiumNavActiveClass
+                  : premiumNavInactiveClass
               }
             >
               Accueil
@@ -511,8 +515,8 @@ function PremiumExperience({
               onClick={() => setSection("premium")}
               className={
                 section === "premium"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? premiumNavActiveClass
+                  : premiumNavInactiveClass
               }
             >
               Mon jardin
@@ -521,8 +525,8 @@ function PremiumExperience({
               onClick={() => setSection("reports")}
               className={
                 section === "reports"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? premiumNavActiveClass
+                  : premiumNavInactiveClass
               }
             >
               Interventions
@@ -531,8 +535,8 @@ function PremiumExperience({
               onClick={() => setSection("photos")}
               className={
                 section === "photos"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? premiumNavActiveClass
+                  : premiumNavInactiveClass
               }
             >
               Photos
@@ -541,8 +545,8 @@ function PremiumExperience({
               onClick={() => setSection("recos")}
               className={
                 section === "recos"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? premiumNavActiveClass
+                  : premiumNavInactiveClass
               }
             >
               Conseils
@@ -551,8 +555,8 @@ function PremiumExperience({
               onClick={() => setSection("documents")}
               className={
                 section === "documents"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? premiumNavActiveClass
+                  : premiumNavInactiveClass
               }
             >
               Documents
