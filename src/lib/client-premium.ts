@@ -8,6 +8,8 @@ export interface ClientPremium {
   activated_at: string | null;
   deactivated_at: string | null;
   garden_state: string | null;
+  garden_objectives: string | null;
+  garden_specificities: string | null;
   google_review_url: string | null;
   commercial_note: string | null;
   cover_photo_id: string | null;
@@ -67,7 +69,15 @@ export async function setClientPremiumEnabled(clientId: string, enabled: boolean
 export async function updateClientPremium(
   clientId: string,
   patch: Partial<
-    Pick<ClientPremium, "garden_state" | "google_review_url" | "commercial_note" | "cover_photo_id">
+    Pick<
+      ClientPremium,
+      | "garden_state"
+      | "garden_objectives"
+      | "garden_specificities"
+      | "google_review_url"
+      | "commercial_note"
+      | "cover_photo_id"
+    >
   >,
 ): Promise<void> {
   const user_id = await uid();

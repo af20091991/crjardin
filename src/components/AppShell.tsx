@@ -35,6 +35,7 @@ import {
   Wrench,
   PackageSearch,
   Truck,
+  Crown,
 } from "lucide-react";
 import {
   Sheet,
@@ -262,6 +263,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           icon: Users,
           exact: false,
           primary: true,
+        },
+        {
+          to: "/clients/premium",
+          label: "Comptes Premium",
+          short: "Premium",
+          icon: Crown,
+          exact: true,
+          primary: false,
         },
         ...(canView
           ? [

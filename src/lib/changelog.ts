@@ -24,12 +24,52 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-28",
-    version: "2.3.23",
+    version: "2.3.25",
     theme: "Général",
     title: "Site web — WordPress : santé, extensions et mises à jour",
     details: [
       "Une fois un mot de passe d'application WordPress configuré, l'onglet WordPress affiche aussi : version du cœur et mise à jour disponible, diagnostic de santé du site, liste des extensions avec leurs mises à jour disponibles, thème actif.",
       "Lecture seule : aucune mise à jour n'est effectuée depuis PP.",
+    ],
+  },
+  {
+    date: "2026-09-28",
+    version: "2.3.24",
+    theme: "Clients",
+    title: "Comptes Premium — accès centralisé aux espaces clients",
+    details: [
+      "Une page dédiée « Comptes Premium » dans la rubrique Clients liste uniquement les clients dont l'accès Premium est actif.",
+      "Le nom du client ouvre directement son interface Premium ; la fiche client reste accessible séparément.",
+    ],
+  },
+  {
+    date: "2026-09-28",
+    version: "2.3.23",
+    theme: "PDF & Partage",
+    title: "Espace Premium — fiche « Mon jardin » enrichie",
+    details: [
+      "La fiche « Mon jardin » rassemble désormais l'état actuel du jardin, les repères du suivi, le dernier passage, les points de suivi et les prochaines étapes.",
+      "Les informations absentes restent explicitement signalées : aucune caractéristique ou objectif n'est inventé.",
+    ],
+  },
+  {
+    date: "2026-09-28",
+    version: "2.3.23",
+    theme: "PDF & Partage",
+    title: "Enrichissement de l'accueil client Premium",
+    details: [
+      "Ajout de repères synthétiques sur le jardin : adresse, type de suivi et rythme d'entretien.",
+      "Correction du lien Documents de l'accueil Premium.",
+    ],
+  },
+  {
+    date: "2026-09-28",
+    version: "2.3.23",
+    theme: "PDF & Partage",
+    title: "Espace client Premium — nouvel accueil centré sur le jardin",
+    details: [
+      "L'accueil Premium devient un véritable espace de suivi du jardin : dernières nouvelles, prochaine intervention, observations, évolution en photos et accès simplifié aux contenus.",
+      "Navigation mobile-first et bouton central « Besoin de quelque chose ? » pour faciliter la relation avec le jardinier.",
     ],
   },
 

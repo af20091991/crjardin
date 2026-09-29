@@ -66,6 +66,7 @@ import {
   Reply,
   RotateCcw,
   Crown,
+  Sprout,
   Star,
   Upload,
 } from "lucide-react";
@@ -73,6 +74,7 @@ import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
+import { PremiumHome } from "@/components/share/PremiumHome";
 
 const sharedQuery = (token: string) =>
   queryOptions({
@@ -211,6 +213,23 @@ function SharePage() {
     .at(-1) as string | undefined;
   const lastIntervention = interventions[0];
   const unread = interventions.filter((i) => !i.client_read_at).length;
+
+  if (premium?.enabled) {
+    return (
+      <PremiumExperience
+        client={client}
+        interventions={interventions}
+        recommendations={recommendations}
+        premium={premium}
+        messages={messages ?? []}
+        token={token}
+        large={large}
+        dark={dark}
+        toggleDark={toggleDark}
+        toggleLarge={toggleLarge}
+      />
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
@@ -361,6 +380,252 @@ function SharePage() {
   );
 }
 
+function premiumClientTitle(client: SharedClientData["client"]) {
+  const civility = client.civility?.trim().toLowerCase();
+  if (
+    civility === "madame et monsieur" ||
+    civility === "monsieur et madame" ||
+    civility === "mme et m." ||
+    civility === "m. et mme"
+  ) {
+    return `Madame et Monsieur ${client.name}`;
+  }
+  if (civility === "madame" || civility === "mme" || civility === "mrs") {
+    return `Madame ${client.name}`;
+  }
+  if (civility === "monsieur" || civility === "m." || civility === "mr") {
+    return `Monsieur ${client.name}`;
+  }
+  return client.name;
+}
+
+function PremiumExperience({
+  client,
+  interventions,
+  recommendations,
+  premium,
+  messages,
+  token,
+  large,
+  dark,
+  toggleDark,
+  toggleLarge,
+}: {
+  client: SharedClientData["client"];
+  interventions: SharedIntervention[];
+  recommendations: SharedRecommendation[];
+  premium: SharedPremiumData;
+  messages: ClientMessage[];
+  token: string;
+  large: boolean;
+  dark: boolean;
+  toggleDark: () => void;
+  toggleLarge: () => void;
+}) {
+  const [section, setSection] = useState<
+    "home" | "reports" | "photos" | "recos" | "premium" | "documents"
+  >("home");
+  const clientTitle = premiumClientTitle(client);
+
+  return (
+    <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
+      <header className="border-b bg-background">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="relative overflow-hidden rounded-b-[1.5rem] border-x border-b bg-background">
+            {premium.cover_photo_url ? (
+              <img
+                src={premium.cover_photo_url}
+                alt={`Le jardin de ${clientTitle}`}
+                className="h-[220px] w-full object-cover sm:h-[300px]"
+              />
+            ) : (
+              <div className="h-[180px] bg-muted sm:h-[240px]" />
+            )}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/80 to-transparent p-5 pt-20 sm:p-7 sm:pt-24">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                De la graine au jardin
+              </p>
+              <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">
+                Le jardin de {clientTitle}
+              </h1>
+              {client.address && (
+                <p className="mt-1 text-sm text-muted-foreground">{client.address}</p>
+              )}
+            </div>
+            <div className="absolute right-4 top-4 flex items-center gap-1.5 sm:right-6 sm:top-6">
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label={dark ? "Mode clair" : "Mode sombre"}
+                onClick={toggleDark}
+                className="bg-background/90 backdrop-blur"
+              >
+                {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="Agrandir le texte"
+                onClick={toggleLarge}
+                className={`bg-background/90 backdrop-blur ${
+                  large ? "bg-primary/10 text-primary" : ""
+                }`}
+              >
+                <Type className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <nav
+            className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b py-4 text-sm"
+            aria-label="Navigation Premium"
+          >
+            <button
+              onClick={() => setSection("home")}
+              className={
+                section === "home"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Accueil
+            </button>
+            <button
+              onClick={() => setSection("premium")}
+              className={
+                section === "premium"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Mon jardin
+            </button>
+            <button
+              onClick={() => setSection("reports")}
+              className={
+                section === "reports"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Interventions
+            </button>
+            <button
+              onClick={() => setSection("photos")}
+              className={
+                section === "photos"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Photos
+            </button>
+            <button
+              onClick={() => setSection("recos")}
+              className={
+                section === "recos"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Conseils
+            </button>
+            <button
+              onClick={() => setSection("documents")}
+              className={
+                section === "documents"
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }
+            >
+              Documents
+            </button>
+          </nav>
+        </div>
+      </header>
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        {section === "home" ? (
+          <PremiumHome
+            client={client}
+            interventions={interventions}
+            recommendations={recommendations}
+            premium={premium}
+            messages={messages}
+            token={token}
+            onNavigate={setSection}
+            showHeader={false}
+          />
+        ) : (
+          <div className="space-y-5">
+            {section === "reports" && (
+              <section>
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Interventions</h1>
+                <ReportsTab
+                  interventions={interventions}
+                  token={token}
+                  messages={messages}
+                  client={client}
+                />
+              </section>
+            )}
+            {section === "photos" && (
+              <section>
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Photos</h1>
+                <PhotoGallery interventions={interventions} />
+              </section>
+            )}
+            {section === "recos" && (
+              <section>
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Conseils</h1>
+                <RecommendationsTab recommendations={recommendations} token={token} />
+              </section>
+            )}
+            {section === "premium" && (
+              <section>
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Mon jardin</h1>
+                <GardenTab
+                  client={client}
+                  interventions={interventions}
+                  recommendations={recommendations}
+                  premium={premium}
+                />
+              </section>
+            )}
+            {section === "documents" && (
+              <section>
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Documents</h1>
+                <Card>
+                  <CardContent className="pt-6">
+                    {premium.documents.length > 0 ? (
+                      <div className="space-y-2">
+                        {premium.documents.map((document) => (
+                          <a
+                            key={document.id}
+                            href={document.url ?? "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between gap-2 rounded-lg border p-3 text-sm transition-colors hover:border-primary/40"
+                          >
+                            <span className="truncate">{document.title}</span>
+                            <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Aucun document pour le moment.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </section>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
 function StatCard({
   label,
   value,
@@ -817,6 +1082,208 @@ function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function GardenTab({
+  client,
+  interventions,
+  recommendations,
+  premium,
+}: {
+  client: SharedClientData["client"];
+  interventions: SharedIntervention[];
+  recommendations: SharedRecommendation[];
+  premium: SharedPremiumData;
+}) {
+  const latest = interventions[0] ?? null;
+  const activeRecommendations = recommendations.filter(
+    (recommendation) => recommendation.status !== "termine",
+  );
+
+  return (
+    <div className="space-y-5">
+      <Card className="overflow-hidden">
+        {premium.cover_photo_url ? (
+          <img
+            src={premium.cover_photo_url}
+            alt="Votre jardin"
+            className="h-56 w-full object-cover sm:h-72"
+          />
+        ) : (
+          <div className="grid h-48 place-items-center bg-muted text-sm text-muted-foreground sm:h-56">
+            Aucune photo de couverture
+          </div>
+        )}
+        <CardContent className="space-y-2 pt-5">
+          <div className="flex items-center gap-2">
+            <Leaf className="h-5 w-5 text-primary" />
+            <h2 className="font-serif text-xl font-semibold">
+              Le jardin de {premiumClientTitle(client)}
+            </h2>
+          </div>
+          {client.address && <p className="text-sm text-muted-foreground">{client.address}</p>}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <p className="flex items-center gap-2 font-medium">
+              <Leaf className="h-4 w-4 text-primary" />
+              État actuel
+            </p>
+            {premium.garden_state ? (
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {premium.garden_state}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                L’état actuel du jardin n’est pas encore renseigné.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <p className="flex items-center gap-2 font-medium">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              Repères du suivi
+            </p>
+            <div className="space-y-2 text-sm">
+              {client.contract_type && (
+                <div className="flex justify-between gap-4 border-b pb-2">
+                  <span className="text-muted-foreground">Type de suivi</span>
+                  <span className="text-right">{client.contract_type}</span>
+                </div>
+              )}
+              {client.frequency && (
+                <div className="flex justify-between gap-4 border-b pb-2">
+                  <span className="text-muted-foreground">Rythme</span>
+                  <span className="text-right">{client.frequency}</span>
+                </div>
+              )}
+              {!client.contract_type && !client.frequency && (
+                <p className="text-sm text-muted-foreground">Aucun repère de suivi renseigné.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {latest && (
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <div className="flex items-start justify-between gap-3">
+              <p className="flex items-center gap-2 font-medium">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                Dernier passage
+              </p>
+              <Badge variant="outline">{fmtDate(latest.intervention_date)}</Badge>
+            </div>
+            <p className="text-sm font-medium">
+              {latest.title ?? latest.intervention_type ?? "Intervention"}
+            </p>
+            {latest.garden_state ? (
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {latest.garden_state}
+              </p>
+            ) : latest.summary ? (
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">{latest.summary}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Aucune observation détaillée enregistrée.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <p className="flex items-center gap-2 font-medium">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Points de suivi
+            </p>
+            {activeRecommendations.length > 0 ? (
+              <ul className="space-y-2 text-sm">
+                {activeRecommendations.slice(0, 5).map((recommendation) => (
+                  <li key={recommendation.id} className="rounded-lg bg-muted/50 p-2.5">
+                    <p className="font-medium">{recommendation.title}</p>
+                    {recommendation.description && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {recommendation.description}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Aucun point de suivi particulier n'est enregistré actuellement.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <p className="flex items-center gap-2 font-medium">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              Prochaines étapes
+            </p>
+            {premium.upcoming.length > 0 ? (
+              <div className="space-y-2">
+                {premium.upcoming.slice(0, 5).map((item) => (
+                  <div key={item.id} className="rounded-lg bg-muted/50 p-2.5 text-sm">
+                    <p className="font-medium">{item.title}</p>
+                    <p className="text-xs text-muted-foreground">{fmtDate(item.scheduled_date)}</p>
+                    {item.details && <p className="mt-1 text-muted-foreground">{item.details}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Aucune prochaine étape n'est actuellement programmée.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {(premium.garden_objectives || premium.garden_specificities) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {premium.garden_objectives && (
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <p className="flex items-center gap-2 font-medium">
+                  <Sprout className="h-4 w-4 text-primary" />
+                  Objectifs du jardin
+                </p>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  {premium.garden_objectives}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          {premium.garden_specificities && (
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <p className="flex items-center gap-2 font-medium">
+                  <Leaf className="h-4 w-4 text-primary" />
+                  Particularités du jardin
+                </p>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  {premium.garden_specificities}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
