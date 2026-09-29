@@ -11,6 +11,7 @@ import {
   Preview,
   Section,
   Text,
+  Link,
 } from "@react-email/components";
 // prettier-ignore
 import type { TemplateEntry } from "./registry";
@@ -21,10 +22,11 @@ interface Props {
   firstName?: string;
   lastName?: string;
   premiumUrl?: string;
+  unsubscribeUrl?: string;
 }
 
 // prettier-ignore
-const Email = ({ civility, firstName, lastName, premiumUrl }: Props) => {
+const Email = ({ civility, firstName, lastName, premiumUrl, unsubscribeUrl }: Props) => {
   const recipient =
     [civility, firstName, lastName].filter((value) => value?.trim()).join(" ") ||
     "Madame, Monsieur";
@@ -84,7 +86,15 @@ const Email = ({ civility, firstName, lastName, premiumUrl }: Props) => {
           <Text style={paragraph}>À très bientôt,</Text>
           <Text style={unsubscribe}>
             Vous recevez cet e-mail dans le cadre du suivi de votre jardin avec De la graine au jardin.
-            Si vous ne souhaitez plus recevoir ce type de message, vous pouvez vous désabonner via le lien prévu à cet effet en bas de cet e-mail.
+            Si vous ne souhaitez plus recevoir ce type de message,{" "}
+            {unsubscribeUrl ? (
+              <Link href={unsubscribeUrl} style={unsubscribeLink}>
+                vous pouvez vous désabonner ici
+              </Link>
+            ) : (
+              " vous pouvez vous désabonner via le lien prévu à cet effet en bas de cet e-mail."
+            )}
+            .
           </Text>
           <Text style={signature}>
             Anthony Fournier
@@ -155,6 +165,11 @@ const button = {
   fontWeight: 700,
   padding: "12px 22px",
   textDecoration: "none",
+};
+// prettier-ignore
+const unsubscribeLink = {
+  color: "#4F8E33",
+  textDecoration: "underline",
 };
 // prettier-ignore
 const unsubscribe = {
