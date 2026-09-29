@@ -52,6 +52,24 @@ export async function getClientPremium(clientId: string): Promise<ClientPremium 
 
 export async function setClientPremiumEnabled(clientId: string, enabled: boolean): Promise<void> {
   const user_id = await uid();
+
+  if (enabled) {
+    const { data: client, error: clientError } = await supabase
+      .from("clients")
+      .select("contract_type")
+      .eq("id", clientId)
+      .single();
+
+    if (clientError) {
+      throw new Error(`Impossible de vérifier l'éligibilité Premium : ${clientError.message}`);
+    }
+    if (client.contract_type !== "Entretien annuel") {
+      throw new Error(
+        "Le compte Premium est réservé aux clients ayant souscrit un entretien annuel.",
+      );
+    }
+  }
+
   const now = new Date().toISOString();
   const { error } = await supabase.from("client_premium").upsert(
     {
