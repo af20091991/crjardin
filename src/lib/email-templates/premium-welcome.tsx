@@ -21,7 +21,8 @@ interface Props {
 
 const Email = ({ civility, firstName, lastName, premiumUrl }: Props) => {
   const recipient =
-    [civility, firstName, lastName].filter((value) => value?.trim()).join(" ") || "Madame, Monsieur";
+    [civility, firstName, lastName].filter((value) => value?.trim()).join(" ") ||
+    "Madame, Monsieur";
 
   return (
     <Html lang="fr" dir="ltr">
