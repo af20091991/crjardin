@@ -153,7 +153,9 @@ function PremiumClientsPage() {
     queryFn: async (): Promise<PremiumDocumentRow[]> => {
       const { data, error } = await supabase
         .from("client_premium_documents")
-        .select("id, client_id, title, filename, storage_path, uploaded_by, created_at, visible_to_client")
+        .select(
+          "id, client_id, title, filename, storage_path, uploaded_by, created_at, visible_to_client",
+        )
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw new Error(`Impossible de charger les documents Premium : ${error.message}`);
@@ -170,7 +172,9 @@ function PremiumClientsPage() {
         .select("client_id, accessed_at")
         .order("accessed_at", { ascending: false })
         .limit(500);
-      if (error) throw new Error(`Impossible de charger les consultations Premium : ${error.message}`);
+      if (error) {
+        throw new Error(`Impossible de charger les consultations Premium : ${error.message}`);
+      }
       return (data ?? []) as PremiumAccess[];
     },
   });
@@ -236,7 +240,10 @@ function PremiumClientsPage() {
   const pendingMessages = useMemo(
     () =>
       (messagesQuery.data ?? []).filter(
-        (message) => premiumIds.has(message.client_id) && !message.resolved && message.sender === "client",
+        (message) =>
+          premiumIds.has(message.client_id) &&
+          !message.resolved &&
+          message.sender === "client",
       ),
     [messagesQuery.data, premiumIds],
   );
@@ -260,8 +267,13 @@ function PremiumClientsPage() {
   );
 
   const countsByClient = useMemo(() => {
-    const result = new Map<string, { pending: number; documents: number; lastAccess: string | null }>();
-    for (const row of rows) result.set(row.client.id, { pending: 0, documents: 0, lastAccess: null });
+    const result = new Map<
+      string,
+      { pending: number; documents: number; lastAccess: string | null }
+    >();
+    for (const row of rows) {
+      result.set(row.client.id, { pending: 0, documents: 0, lastAccess: null });
+    }
     for (const message of pendingMessages) {
       const row = result.get(message.client_id);
       if (row) row.pending += 1;
@@ -272,7 +284,9 @@ function PremiumClientsPage() {
     }
     for (const access of recentAccess) {
       const row = result.get(access.client_id);
-      if (row && (!row.lastAccess || access.accessed_at > row.lastAccess)) row.lastAccess = access.accessed_at;
+      if (row && (!row.lastAccess || access.accessed_at > row.lastAccess)) {
+        row.lastAccess = access.accessed_at;
+      }
     }
     return result;
   }, [newDocuments, pendingMessages, recentAccess, rows]);
@@ -325,7 +339,8 @@ function PremiumClientsPage() {
             <p className="text-sm text-muted-foreground">Administration Premium</p>
             <h1 className="text-2xl font-medium tracking-tight">Comptes Premium</h1>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Suivez les comptes actifs, les demandes reçues, les documents déposés par les clients et les dernières consultations.
+              Suivez les comptes actifs, les demandes reçues, les documents déposés par les clients
+              et les dernières consultations.
             </p>
           </div>
           <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
@@ -340,15 +355,31 @@ function PremiumClientsPage() {
           </div>
         ) : error ? (
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive">
-            {error instanceof Error ? error.message : "Impossible de charger l'administration Premium."}
+            {error instanceof Error
+              ? error.message
+              : "Impossible de charger l'administration Premium."}
           </div>
         ) : (
           <>
             <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <AdminStat icon={Users} label="Comptes actifs" value={rows.length} />
-              <AdminStat icon={MessageSquare} label="Demandes à traiter" value={pendingMessages.length} highlight={pendingMessages.length > 0} />
-              <AdminStat icon={FileText} label="Documents envoyés par les clients" value={newDocuments.length} highlight={newDocuments.length > 0} />
-              <AdminStat icon={Activity} label="Consultations récentes" value={recentAccess.length} />
+              <AdminStat
+                icon={MessageSquare}
+                label="Demandes à traiter"
+                value={pendingMessages.length}
+                highlight={pendingMessages.length > 0}
+              />
+              <AdminStat
+                icon={FileText}
+                label="Documents envoyés par les clients"
+                value={newDocuments.length}
+                highlight={newDocuments.length > 0}
+              />
+              <AdminStat
+                icon={Activity}
+                label="Consultations récentes"
+                value={recentAccess.length}
+              />
             </section>
 
             <div className="flex items-center gap-3 rounded-xl border bg-background px-3 py-2 shadow-sm">
@@ -365,7 +396,9 @@ function PremiumClientsPage() {
             </div>
 
             <section className="overflow-hidden rounded-xl border bg-background">
-              <div className="hidden grid-cols-[minmax(280px,2fr)_minmax(110px,0.7fr)_minmax(110px,0.7fr)_minmax(190px,1fr)_auto] items-center border-b bg-muted/20 px-5 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground lg:grid">
+              <div
+                className="hidden grid-cols-[minmax(280px,2fr)_minmax(110px,0.7fr)_minmax(110px,0.7fr)_minmax(190px,1fr)_auto] items-center border-b bg-muted/20 px-5 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground lg:grid"
+              >
                 <span>Client</span>
                 <span>Demandes</span>
                 <span>Documents</span>
@@ -376,7 +409,10 @@ function PremiumClientsPage() {
                 {rows.map(({ client, premium }) => {
                   const activity = countsByClient.get(client.id);
                   return (
-                    <div key={client.id} className="grid gap-3 px-4 py-4 lg:grid-cols-[minmax(280px,2fr)_minmax(110px,0.7fr)_minmax(110px,0.7fr)_minmax(190px,1fr)_auto] lg:items-center lg:px-5">
+                    <div
+                      key={client.id}
+                      className="grid gap-3 px-4 py-4 lg:grid-cols-[minmax(280px,2fr)_minmax(110px,0.7fr)_minmax(110px,0.7fr)_minmax(190px,1fr)_auto] lg:items-center lg:px-5"
+                    >
                       <div className="min-w-0">
                         <Link
                           to="/partage/$token"
@@ -393,10 +429,16 @@ function PremiumClientsPage() {
                           Premium depuis {fmtDate(premium.activated_at)}
                         </p>
                       </div>
-                      <Badge variant={activity?.pending ? "default" : "secondary"} className="w-fit">
+                      <Badge
+                        variant={activity?.pending ? "default" : "secondary"}
+                        className="w-fit"
+                      >
                         {activity?.pending ?? 0}
                       </Badge>
-                      <Badge variant={activity?.documents ? "default" : "secondary"} className="w-fit">
+                      <Badge
+                        variant={activity?.documents ? "default" : "secondary"}
+                        className="w-fit"
+                      >
                         {activity?.documents ?? 0}
                       </Badge>
                       <div className="text-xs text-muted-foreground">
@@ -439,11 +481,17 @@ function PremiumClientsPage() {
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="font-medium">{displayClientName(client)}</p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">{fmtDateTime(message.created_at)}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {fmtDateTime(message.created_at)}
+                          </p>
                         </div>
-                        <Badge variant="outline">{message.kind === "question" ? "Question" : "Demande"}</Badge>
+                        <Badge variant="outline">
+                          {message.kind === "question" ? "Question" : "Demande"}
+                        </Badge>
                       </div>
-                      <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{message.content}</p>
+                      <p className="mt-3 whitespace-pre-wrap text-sm leading-6">
+                        {message.content}
+                      </p>
                       <div className="mt-3 flex justify-end">
                         <Button
                           size="sm"
@@ -469,7 +517,10 @@ function PremiumClientsPage() {
                   const client = clientsById.get(document.client_id);
                   if (!client) return null;
                   return (
-                    <div key={document.id} className="flex items-center justify-between gap-3 rounded-xl border p-4">
+                    <div
+                      key={document.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border p-4"
+                    >
                       <div className="min-w-0">
                         <p className="truncate font-medium">{displayClientName(client)}</p>
                         <p className="truncate text-sm">{document.title}</p>
@@ -495,11 +546,16 @@ function PremiumClientsPage() {
                   if (!client) return null;
                   const interested = item.client_interest === "interested";
                   return (
-                    <div key={item.id} className="flex items-start justify-between gap-3 rounded-xl border p-4">
+                    <div
+                      key={item.id}
+                      className="flex items-start justify-between gap-3 rounded-xl border p-4"
+                    >
                       <div className="min-w-0">
                         <p className="font-medium">{displayClientName(client)}</p>
                         <p className="mt-1 truncate text-sm">{item.title}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{fmtDateTime(item.client_interest_at)}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {fmtDateTime(item.client_interest_at)}
+                        </p>
                       </div>
                       <Badge variant={interested ? "default" : "secondary"}>
                         {interested ? "Intéressé" : "Décliné"}
@@ -518,9 +574,14 @@ function PremiumClientsPage() {
                   const client = clientsById.get(access.client_id);
                   if (!client) return null;
                   return (
-                    <div key={`${access.client_id}-${access.accessed_at}-${index}`} className="flex items-center justify-between gap-3 rounded-xl border p-4">
+                    <div
+                      key={`${access.client_id}-${access.accessed_at}-${index}`}
+                      className="flex items-center justify-between gap-3 rounded-xl border p-4"
+                    >
                       <p className="truncate font-medium">{displayClientName(client)}</p>
-                      <p className="shrink-0 text-xs text-muted-foreground">{fmtDateTime(access.accessed_at)}</p>
+                      <p className="shrink-0 text-xs text-muted-foreground">
+                        {fmtDateTime(access.accessed_at)}
+                      </p>
                     </div>
                   );
                 })}
