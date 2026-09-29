@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, PenLine, Upload, Stamp, Trash2 } from "lucide-react";
+import { Loader2, PenLine, Upload, Stamp, Trash2, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 
 /** Lit un fichier image et renvoie un dataURL redimensionné (max 600px). */
@@ -102,6 +102,22 @@ function SettingsPage() {
           <Skeleton className="h-64 w-full rounded-xl" />
         ) : (
           <>
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <div className="flex items-center gap-2">
+                  <MailCheck className="h-5 w-5 text-primary" />
+                  <h3 className="font-serif text-lg font-semibold">Mailing Premium</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Préparez et suivez les e-mails de mise à disposition des Comptes Premium clients,
+                  avec historique des destinataires, contenu exact envoyé et suivi des ouvertures.
+                </p>
+                <Button variant="outline" asChild>
+                  <Link to="/emails">Gestion et suivi des emails clients</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardContent className="space-y-4 pt-6">
                 <h3 className="font-serif text-lg font-semibold">Informations</h3>

@@ -24,6 +24,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-29",
+    version: "2.3.30",
+    theme: "Clients",
+    title: "Comptes Premium — mailing personnalisé et suivi",
+    details: [
+      "Un bouton « Prévenir » permet d'envoyer au client son invitation personnalisée avec son identité et son lien Premium personnel.",
+      "La rubrique Gestion et suivi des emails clients dispose d'un onglet « Mailing Premium » avec identité du destinataire, statut, suivi des ouvertures et visualisation exacte du mail envoyé.",
+      "La rubrique Configuration comporte désormais un encart dédié au mailing Premium.",
+    ],
+  },
+
+  {
+    date: "2026-09-29",
     version: "2.3.29",
     theme: "Général",
     title: "Site web — WordPress simplifié (sans identifiants)",

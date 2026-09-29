@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { listEmailLog } from "@/lib/email-log.functions";
+import { listPremiumEmailLog, type PremiumEmailLogEntry } from "@/lib/premium-email.functions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,8 @@ import {
   Clock,
   AlertTriangle,
   RefreshCw,
+  Eye,
+  MailCheck,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/emails")({
@@ -44,6 +47,7 @@ function fmtDate(iso: string): string {
 }
 
 function EmailsPage() {
+
   const { isAdmin, isLoading } = useIsAdmin();
   const navigate = useNavigate();
 
@@ -63,8 +67,155 @@ function EmailsPage() {
 
   return (
     <AppShell title="Gestion et suivi des emails clients">
-      <PpReportEmails />
+      <EmailManagement />
     </AppShell>
+  );
+}
+
+type EmailTab = "reports" | "premium";
+
+function EmailManagement() {
+  const [tab, setTab] = useState<EmailTab>("reports");
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap gap-2 border-b">
+        <Button
+          variant={tab === "reports" ? "default" : "ghost"}
+          onClick={() => setTab("reports")}
+        >
+          Comptes rendus
+        </Button>
+        <Button
+          variant={tab === "premium" ? "default" : "ghost"}
+          onClick={() => setTab("premium")}
+        >
+          <MailCheck className="mr-2 h-4 w-4" />
+          Mailing Premium
+        </Button>
+      </div>
+      {tab === "reports" ? <PpReportEmails /> : <PremiumMailingTab />}
+    </div>
+  );
+}
+
+function PremiumMailingTab() {
+  const fetchLog = useServerFn(listPremiumEmailLog);
+  const [selected, setSelected] = useState<PremiumEmailLogEntry | null>(null);
+  const { data, isPending, isFetching, refetch, error } = useQuery({
+    queryKey: ["premium-email-log"],
+    queryFn: () => fetchLog(),
+  });
+  const rows = data ?? [];
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-serif text-2xl">Mailing Premium</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Historique des invitations au Compte Premium, identité du destinataire, contenu exact envoyé et suivi des ouvertures.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          Actualiser
+        </Button>
+      </div>
+
+      {error && <p className="text-sm text-destructive">Impossible de charger le suivi du mailing Premium.</p>}
+
+      <Card>
+        <CardContent className="p-0">
+          {isPending ? (
+            <div className="flex items-center justify-center py-16 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : rows.length === 0 ? (
+            <p className="py-16 text-center text-sm text-muted-foreground">
+              Aucun mail Premium envoyé pour le moment.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Client</TableHead>
+                    <TableHead>E-mail</TableHead>
+                    <TableHead>Envoi</TableHead>
+                    <TableHead>Ouverture</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>
+                        <div className="font-medium">
+                          {[row.civility, row.first_name, row.last_name].filter(Boolean).join(" ")}
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">{row.recipient_email}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                        {fmtDate(row.sent_at ?? row.created_at)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {row.opened_at ? (
+                          <span className="inline-flex items-center gap-1 text-primary">
+                            <MailOpen className="h-3.5 w-3.5" />
+                            {fmtDate(row.opened_at)}
+                            {row.open_count > 1 ? ` (${row.open_count}×)` : ""}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Non ouvert</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={row.status === "sent" ? "default" : "destructive"}>
+                          {row.status === "sent" ? "Envoyé" : row.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="outline" onClick={() => setSelected(row)}>
+                          <Eye className="mr-1.5 h-4 w-4" />
+                          Voir le mail
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border bg-background shadow-xl">
+            <div className="flex items-start justify-between gap-4 border-b p-5">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Mail envoyé</p>
+                <h3 className="mt-1 font-serif text-xl">{selected.subject}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {[selected.civility, selected.first_name, selected.last_name].filter(Boolean).join(" ")} · {selected.recipient_email}
+                </p>
+              </div>
+              <Button variant="ghost" onClick={() => setSelected(null)}>Fermer</Button>
+            </div>
+            <div className="min-h-0 flex-1 bg-muted/20 p-4">
+              <iframe
+                title={`Mail envoyé à ${selected.recipient_email}`}
+                srcDoc={selected.html_body}
+                sandbox=""
+                className="h-[70vh] w-full rounded-xl border bg-background"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

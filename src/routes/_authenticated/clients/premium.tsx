@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Activity,
   CheckCircle2,
@@ -21,6 +22,8 @@ import { listClients, type Client } from "@/lib/clients";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { signedPremiumDocumentUrl } from "@/lib/client-premium";
+import { sendPremiumWelcomeEmail } from "@/lib/premium-email.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/clients/premium")({
   head: () => ({
@@ -116,6 +119,17 @@ function PremiumClientsPage() {
   const { isAdmin, isLoading: adminLoading } = useIsAdmin();
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const sendPremiumEmail = useServerFn(sendPremiumWelcomeEmail);
+
+  const premiumEmailMutation = useMutation({
+    mutationFn: (clientId: string) => sendPremiumEmail({ data: { clientId } }),
+    onSuccess: (result) => {
+      toast.success(`E-mail envoyé à ${result.recipient}`);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Impossible d’envoyer l’e-mail Premium.");
+    },
+  });
 
   const clientsQuery = useQuery({
     queryKey: ["clients"],
@@ -445,6 +459,27 @@ function PremiumClientsPage() {
                         {fmtDateTime(activity?.lastAccess ?? null)}
                       </div>
                       <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={premiumEmailMutation.isPending}
+                          onClick={() => {
+                            const recipient = client.email ?? client.emails?.[0];
+                            if (!recipient) {
+                              toast.error("Aucune adresse e-mail n’est renseignée pour ce client.");
+                              return;
+                            }
+                            if (
+                              window.confirm(
+                                `Envoyer le mail de mise à disposition du Compte Premium à ${displayClientName(client)} (${recipient}) ?`,
+                              )
+                            ) {
+                              premiumEmailMutation.mutate(client.id);
+                            }
+                          }}
+                        >
+                          Prévenir
+                        </Button>
                         <Button variant="ghost" size="sm" asChild>
                           <Link to="/clients/$clientId" params={{ clientId: client.id }}>
                             Fiche client
