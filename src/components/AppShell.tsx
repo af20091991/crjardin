@@ -140,8 +140,15 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     navigate({ to: "/auth", replace: true });
   }
 
-  const isActive = (to: string, exact: boolean) =>
-    exact ? pathname === to : pathname.startsWith(to);
+  const isActive = (to: string, exact: boolean) => {
+    if (exact) return pathname === to;
+    if (to === "/clients") {
+      // /clients/premium is a distinct menu entry: it must not also activate
+      // the parent "Fiches client" item.
+      return pathname === "/clients" || (pathname.startsWith("/clients/") && !pathname.startsWith("/clients/premium"));
+    }
+    return pathname.startsWith(to);
+  };
 
   const groups: NavGroup[] = [
     {
