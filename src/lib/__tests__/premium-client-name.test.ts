@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "bun:test";
 import { formatPremiumClientName, resolvePremiumClientIdentity } from "@/lib/premium-client-name";
 
 describe("identité client Premium", () => {
