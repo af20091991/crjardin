@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-29",
+    version: "2.3.32",
+    theme: "Clients",
+    title: "Comptes Premium — interface « carnet du jardin »",
+    details: [
+      "L’accueil Premium adopte une présentation plus éditoriale inspirée d’un carnet de jardin : couverture plus immersive, navigation persistante et hiérarchie plus lisible.",
+      "Les interventions, repères, observations, photos et demandes bénéficient de surfaces plus travaillées sans modification des données ni des fonctionnalités.",
+    ],
+  },
+
+  {
+    date: "2026-09-29",
     version: "2.3.31",
     theme: "Clients",
     title: "Comptes Premium — identité client uniformisée",
