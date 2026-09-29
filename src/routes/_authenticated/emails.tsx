@@ -155,7 +155,6 @@ function PremiumMailingTab() {
                         <div className="font-medium">
                           {[row.civility, row.first_name, row.last_name].filter(Boolean).join(" ")}
                         </div>
-                        <div className="text-xs text-muted-foreground">{row.last_name ?? "—"}</div>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-sm">{row.recipient_email}</TableCell>
                       <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
