@@ -389,7 +389,8 @@ function SharePage() {
 }
 
 
-const premiumNavActiveClass = "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary";
+const premiumNavActiveClass =
+  "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary";
 const premiumNavInactiveClass =
   "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
 
