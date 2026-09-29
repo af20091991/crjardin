@@ -34,21 +34,17 @@ function assertAdmin(isAdmin: boolean | null | undefined) {
   if (!isAdmin) throw new Response("Forbidden", { status: 403 });
 }
 
-async function getAdminClient(context: { userId: string }) {
-  const { data: isAdmin, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
-  if (error) throw error;
-  assertAdmin(isAdmin);
-  return (await import("@/integrations/supabase/client.server")).supabaseAdmin;
-}
-
 export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: { clientId: string }) => input)
+  .inputValidator((input: { clientId: string }) => input)
   .handler(async ({ context, data }) => {
-    const supabaseAdmin = await getAdminClient(context);
+    const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleError) throw roleError;
+    assertAdmin(isAdmin);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: client, error: clientError } = await supabaseAdmin
       .from("clients")
@@ -88,8 +84,8 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
     const subject = "Votre Compte Premium est prêt — De la graine au jardin";
     const messageId = crypto.randomUUID();
     const templateData = {
-      civility: contact?.civility ?? client.civility,
-      firstName: contact?.first_name,
+      civility: contact?.civility ?? client.civility ?? undefined,
+      firstName: contact?.first_name ?? undefined,
       lastName: contact?.last_name ?? client.name,
       premiumUrl,
     };
@@ -152,7 +148,13 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
 export const listPremiumEmailLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const supabaseAdmin = await getAdminClient(context);
+    const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleError) throw roleError;
+    assertAdmin(isAdmin);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("premium_email_log" as never)
       .select("*")
