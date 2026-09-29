@@ -415,7 +415,7 @@ async function requireEnabledPremiumClient(token: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: client } = await supabaseAdmin
     .from("clients")
-    .select("id, name, user_id")
+    .select("id, name, user_id, contract_type")
     .eq("share_token", token)
     .maybeSingle();
   if (!client) throw new Error("Lien invalide");
