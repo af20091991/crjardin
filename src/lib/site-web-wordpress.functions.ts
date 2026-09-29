@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const WORDPRESS_SITE_URL = "https://www.delagraineaujardin.com";
+export const WORDPRESS_SITE_URL = "https://www.delagraineaujardin.com";
 const REQUEST_TIMEOUT_MS = 10000;
 
 export interface WordPressItem {
