@@ -142,6 +142,7 @@ export function PremiumHome({
 
   return (
     <>
+      {/* prettier-ignore */}
       <div className="space-y-10">
         {showHeader && (
           <>
@@ -452,7 +453,7 @@ export function PremiumHome({
           </section>
         )}
 
-        <div className="flex justify-center pt-2">
+        <div className="flex flex-col items-center gap-2 pt-2">
           <Button
             variant="outline"
             className="rounded-full px-6"
@@ -463,9 +464,13 @@ export function PremiumHome({
           >
             Besoin de quelque chose ?
           </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            Les demandes envoyées depuis cet espace sont traitées en priorité.
+          </p>
         </div>
       </div>
 
+      {/* prettier-ignore */}
       <Dialog open={requestOpen} onOpenChange={setRequestOpen}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
@@ -531,16 +536,22 @@ export function PremiumHome({
 
 function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">{eyebrow}</p>
-      <h2 className="mt-1 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
-    </div>
+    <>
+      {/* prettier-ignore */}
+      <div>
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">{eyebrow}</p>
+        <h2 className="mt-1 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
+      </div>
+    </>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">{text}</div>
+    <>
+      {/* prettier-ignore */}
+      <div className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">{text}</div>
+    </>
   );
 }
 
