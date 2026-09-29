@@ -462,7 +462,20 @@ function PremiumClientsPage() {
                           variant="ghost"
                           size="sm"
                           disabled={premiumEmailMutation.isPending}
-                          onClick={() => premiumEmailMutation.mutate(client.id)}
+                          onClick={() => {
+                            const recipient = client.email ?? client.emails?.[0];
+                            if (!recipient) {
+                              toast.error("Aucune adresse e-mail n’est renseignée pour ce client.");
+                              return;
+                            }
+                            if (
+                              window.confirm(
+                                `Envoyer le mail de mise à disposition du Compte Premium à ${displayClientName(client)} (\${recipient}) ?`,
+                              )
+                            ) {
+                              premiumEmailMutation.mutate(client.id);
+                            }
+                          }}
                         >
                           Prévenir
                         </Button>
