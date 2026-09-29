@@ -389,7 +389,15 @@ function SharePage() {
 }
 
 
-function PremiumPageIntro({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
+function PremiumPageIntro({
+  eyebrow,
+  title,
+  text,
+}: {
+  eyebrow: string;
+  title: string;
+  text: string;
+}) {
   return (
     <header className="border-b pb-6">
       <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
@@ -568,7 +576,11 @@ function PremiumExperience({
           <div className="space-y-5">
             {section === "reports" && (
               <section>
-                <PremiumPageIntro eyebrow="Le carnet du jardin" title="Interventions" text="Retrouvez les visites, les travaux réalisés et les observations qui accompagnent votre jardin au fil des saisons." />
+                <PremiumPageIntro
+            eyebrow="Le carnet du jardin"
+            title="Interventions"
+            text="Retrouvez les visites, les travaux réalisés et les observations qui accompagnent votre jardin au fil des saisons."
+          />
                 <ReportsTab
                   interventions={interventions}
                   token={token}
@@ -579,19 +591,31 @@ function PremiumExperience({
             )}
             {section === "photos" && (
               <section>
-                <PremiumPageIntro eyebrow="Mémoire du jardin" title="Photos" text="Les images qui permettent de suivre l’évolution de votre jardin au fil du temps." />
+                <PremiumPageIntro
+            eyebrow="Mémoire du jardin"
+            title="Photos"
+            text="Les images qui permettent de suivre l’évolution de votre jardin au fil du temps."
+          />
                 <PhotoGallery interventions={interventions} />
               </section>
             )}
             {section === "recos" && (
               <section>
-                <PremiumPageIntro eyebrow="Le regard du paysagiste" title="Conseils" text="Mes observations et recommandations pour accompagner votre jardin dans la durée." />
+                <PremiumPageIntro
+            eyebrow="Le regard du paysagiste"
+            title="Conseils"
+            text="Mes observations et recommandations pour accompagner votre jardin dans la durée."
+          />
                 <RecommendationsTab recommendations={recommendations} token={token} />
               </section>
             )}
             {section === "premium" && (
               <section>
-                <PremiumPageIntro eyebrow="Votre jardin" title="Mon jardin" text="Les repères et informations utiles pour garder une vision claire de votre jardin." />
+                <PremiumPageIntro
+            eyebrow="Votre jardin"
+            title="Mon jardin"
+            text="Les repères et informations utiles pour garder une vision claire de votre jardin."
+          />
                 <GardenTab
                   client={client}
                   interventions={interventions}
@@ -602,7 +626,11 @@ function PremiumExperience({
             )}
             {section === "documents" && (
               <section>
-                <PremiumPageIntro eyebrow="Votre dossier" title="Documents" text="Retrouvez ici les documents mis à votre disposition dans le cadre du suivi de votre jardin." />
+                <PremiumPageIntro
+            eyebrow="Votre dossier"
+            title="Documents"
+            text="Retrouvez ici les documents mis à votre disposition dans le cadre du suivi de votre jardin."
+          />
                 <Card>
                   <CardContent className="pt-6">
                     {premium.documents.length > 0 ? (
