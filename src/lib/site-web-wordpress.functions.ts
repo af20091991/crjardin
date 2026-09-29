@@ -46,6 +46,16 @@ function decodeEntities(value: string) {
     .replace(/&(amp|lt|gt|quot|nbsp);|&#039;/g, (match) => ENTITIES[match] ?? match);
 }
 
+/** Espace les requêtes vers le même site pour éviter de déclencher les limites anti-bot de l'hébergeur. */
+async function sequentially<T>(tasks: Array<() => Promise<T>>): Promise<T[]> {
+  const results: T[] = [];
+  for (const task of tasks) {
+    if (results.length > 0) await new Promise((resolve) => setTimeout(resolve, 250));
+    results.push(await task());
+  }
+  return results;
+}
+
 async function fetchJson(path: string) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -77,6 +87,14 @@ async function loadCollection(type: "posts" | "pages"): Promise<WordPressCollect
     return { total: null, items: [], error: result.error };
   }
   if (!result.response.ok || !Array.isArray(result.body)) {
+    if (result.response.status === 429) {
+      return {
+        total: null,
+        items: [],
+        error:
+          "Trop de requêtes envoyées d'affilée : le site limite temporairement l'accès. Réessaie dans une minute.",
+      };
+    }
     return {
       total: null,
       items: [],
@@ -123,7 +141,7 @@ export const getWordPressOverview = createServerFn({ method: "POST" })
     const reachable = Boolean(root.response?.ok && rootBody);
 
     const [posts, pages] = reachable
-      ? await Promise.all([loadCollection("posts"), loadCollection("pages")])
+      ? await sequentially([() => loadCollection("posts"), () => loadCollection("pages")])
       : [
           {
             total: null,

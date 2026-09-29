@@ -40,11 +40,10 @@ export function SiteWebWordPress() {
     setLoading(true);
     setError(null);
     try {
-      const [publicOverview, adminOverview] = await Promise.all([
-        getWordPressOverview(),
-        getWordPressAdminOverview().catch(() => null),
-      ]);
+      // Séquentiel : évite d'envoyer trop de requêtes d'un coup au site (limites anti-bot).
+      const publicOverview = await getWordPressOverview();
       setOverview(publicOverview);
+      const adminOverview = await getWordPressAdminOverview().catch(() => null);
       setAdmin(adminOverview);
     } catch {
       setError("Impossible de lire le site WordPress pour le moment.");

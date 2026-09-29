@@ -137,6 +137,9 @@ function authFailureMessage(status: number) {
     return "Le compte WordPress n'a pas les droits nécessaires : utilise un compte administrateur.";
   }
   if (status === 404) return "API REST WordPress introuvable sur ce site.";
+  if (status === 429) {
+    return "Trop de requêtes envoyées d'affilée : le site limite temporairement l'accès. Réessaie dans une minute.";
+  }
   if (status === 0) return "Le site WordPress ne répond pas.";
   return `Lecture des extensions impossible (HTTP ${status}).`;
 }
@@ -179,18 +182,22 @@ export const getWordPressAdminOverview = createServerFn({ method: "POST" })
       status?: string;
     }>;
 
-    const [healthResults, themeResult, installedCore, latestCore, pluginVersions] =
-      await Promise.all([
-        Promise.all(
-          HEALTH_TESTS.map((id) => request(`${api}/wp-site-health/v1/tests/${id}`, authorization)),
-        ),
-        request(`${api}/wp/v2/themes?status=active`, authorization),
-        detectCoreVersion(),
-        latestCoreVersion(),
-        Promise.all(
-          rawPlugins.map((plugin) => latestPluginVersion((plugin.plugin ?? "").split("/")[0])),
-        ),
-      ]);
+    // Requêtes vers le site espacées (limites anti-bot de l'hébergeur) ; les appels vers
+    // api.wordpress.org (cœur, extensions) ne comptent pas et restent en parallèle.
+    const healthResults: Awaited<ReturnType<typeof request>>[] = [];
+    for (const id of HEALTH_TESTS) {
+      if (healthResults.length > 0) await new Promise((resolve) => setTimeout(resolve, 250));
+      healthResults.push(await request(`${api}/wp-site-health/v1/tests/${id}`, authorization));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const themeResult = await request(`${api}/wp/v2/themes?status=active`, authorization);
+    const [installedCore, latestCore, pluginVersions] = await Promise.all([
+      detectCoreVersion(),
+      latestCoreVersion(),
+      Promise.all(
+        rawPlugins.map((plugin) => latestPluginVersion((plugin.plugin ?? "").split("/")[0])),
+      ),
+    ]);
 
     const health: WordPressHealthTest[] = HEALTH_TESTS.map((id, index) => {
       const result = healthResults[index];
