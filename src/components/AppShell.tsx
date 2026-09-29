@@ -20,7 +20,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   HardHat,
-  Home,
   Euro,
   Target,
   Calculator,
@@ -161,14 +160,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           icon: LayoutDashboard,
           exact: true,
           primary: true,
-        },
-        {
-          to: "/pilot",
-          label: "Centre de décision",
-          short: "Décision",
-          icon: Home,
-          exact: true,
-          primary: false,
         },
         ...(canView
           ? [
