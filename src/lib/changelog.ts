@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-29",
+    version: "2.3.27",
+    theme: "Clients",
+    title: "Comptes Premium — activation réservée aux clients en entretien",
+    details: [
+      "L’activation d’un espace Premium est désormais réservée aux clients dont le contrat est « Entretien annuel ».",
+      "Le contrôle est effectué dans Pilot Pro avant l’activation et également au niveau de la base de données.",
+    ],
+  },
+
+  {
+    date: "2026-09-29",
     version: "2.3.26",
     theme: "Général",
     title: "Site web — WordPress : requêtes espacées, message clair en cas de blocage",
