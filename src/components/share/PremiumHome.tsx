@@ -31,8 +31,14 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 type PremiumSection = "reports" | "photos" | "recos" | "premium" | "documents";
 
 const REQUESTS = [
-  { label: "Demander une intervention", text: "Je souhaite demander une intervention." },
-  { label: "Poser une question", text: "J'ai une question concernant mon jardin." },
+  {
+    label: "Demander une intervention",
+    text: "Je souhaite demander une intervention.",
+  },
+  {
+    label: "Poser une question",
+    text: "J'ai une question concernant mon jardin.",
+  },
   {
     label: "Signaler un problème",
     text: "Je souhaite signaler un problème concernant mon jardin.",
@@ -41,7 +47,10 @@ const REQUESTS = [
     label: "Modifier une intervention",
     text: "Je souhaite demander une modification d'une intervention.",
   },
-  { label: "Demander une proposition", text: "Je souhaite demander une proposition." },
+  {
+    label: "Demander une proposition",
+    text: "Je souhaite demander une proposition.",
+  },
   { label: "Demander un document", text: "Je souhaite demander un document." },
 ] as const;
 
@@ -65,7 +74,9 @@ export function PremiumHome({
   showHeader?: boolean;
 }) {
   const [requestOpen, setRequestOpen] = useState(false);
-  const [requestType, setRequestType] = useState<(typeof REQUESTS)[number] | null>(null);
+  const [requestType, setRequestType] = useState<
+    (typeof REQUESTS)[number] | null
+  >(null);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [attachment, setAttachment] = useState<File | null>(null);
@@ -102,7 +113,7 @@ export function PremiumHome({
           .from("client-premium")
           .uploadToSignedUrl(target.path, target.token, attachment);
         if (uploadError) {
-          throw new Error(`Envoi de la photo impossible : ${uploadError.message}`);
+          throw new Error(\n            `Envoi de la photo impossible : ${uploadError.message}`,\n          );
         }
 
         attachmentLabel = attachment.name;
@@ -134,7 +145,9 @@ export function PremiumHome({
       setRequestType(null);
       setRequestOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible d'envoyer la demande.");
+      toast.error(
+        error instanceof Error ? error.message : "Impossible d'envoyer la demande.",
+      );
     } finally {
       setSending(false);
     }
