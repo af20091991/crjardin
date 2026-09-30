@@ -61,6 +61,8 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
   }
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
+  const invalidateDocuments = () =>
+    qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
 
   const toggleEnabled = useMutation({
     mutationFn: (enabled: boolean) => setClientPremiumEnabled(clientId, enabled),
@@ -293,7 +295,7 @@ function PremiumDocumentsCard({
     try {
       await uploadPremiumDocument(clientId, file, title || file.name);
       setTitle("");
-      invalidate();
+      invalidateDocuments();
       toast.success("Document ajouté");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Échec de l'envoi");
@@ -305,7 +307,7 @@ function PremiumDocumentsCard({
   const toggleVisibility = useMutation({
     mutationFn: ({ id, visible }: { id: string; visible: boolean }) =>
       updatePremiumDocumentVisibility(id, visible),
-    onSuccess: invalidate,
+    onSuccess: invalidateDocuments,
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
@@ -314,7 +316,7 @@ function PremiumDocumentsCard({
       deletePremiumDocument(id, storagePath),
     onSuccess: () => {
       toast.success("Document supprimé");
-      invalidate();
+      invalidateDocuments();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
