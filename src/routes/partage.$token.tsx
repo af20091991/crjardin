@@ -75,6 +75,7 @@ import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
+// prettier-ignore
 import { PremiumHome, PremiumExchange, type PremiumSection } from "@/components/share/PremiumHome";
 import { useIsAdmin } from "@/hooks/use-admin";
 
