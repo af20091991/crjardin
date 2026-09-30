@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Crown,
   CalendarDays,
@@ -38,6 +37,7 @@ import {
 import { signedPhotoUrl } from "@/lib/interventions";
 import { parsePlanning } from "@/lib/file-parser";
 import { normalizePremiumWorkCalendar } from "@/lib/premium-work-calendar.functions";
+import { getCeevPlanningUrlByClientId } from "@/lib/client-portal.functions";
 
 export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
   const qc = useQueryClient();
@@ -88,26 +88,18 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
       const blob = await response.blob();
       file = new File([blob], existingPlanning.filename, { type: "application/pdf" });
     } else {
-      const { data: files, error } = await supabase.storage
-        .from("client-plannings")
-        .list(clientId, { limit: 100, sortBy: { column: "updated_at", order: "desc" } });
-      if (error)
-        throw new Error(`Impossible de rechercher le calendrier client : ${error.message}`);
-
-      const source = (files ?? []).find((candidate) => /.pdf$/i.test(candidate.name));
-      if (!source) return false;
-
-      const { data: signed, error: signError } = await supabase.storage
-        .from("client-plannings")
-        .createSignedUrl(`${clientId}/${source.name}`, 60 * 60);
-      if (signError || !signed?.signedUrl) {
-        throw new Error("Impossible d'accéder au PDF du calendrier client.");
+      try {
+        const source = await getCeevPlanningUrlByClientId({ data: { clientId } });
+        const response = await fetch(source.url);
+        if (!response.ok) {
+          throw new Error("Impossible de télécharger le PDF du calendrier client.");
+        }
+        const blob = await response.blob();
+        file = new File([blob], source.filename, { type: "application/pdf" });
+      } catch (error) {
+        if (error instanceof Error && error.message === "Aucun calendrier disponible") return false;
+        throw error;
       }
-
-      const response = await fetch(signed.signedUrl);
-      if (!response.ok) throw new Error("Impossible de télécharger le PDF du calendrier client.");
-      const blob = await response.blob();
-      file = new File([blob], source.name, { type: "application/pdf" });
     }
 
     if (!file) throw new Error("Impossible de récupérer le PDF du calendrier travaux.");

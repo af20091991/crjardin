@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { PLANNING_MAX_BYTES as MAX_BYTES, validateClientId as validateId } from "./client-portal-validation";
 
 export const createOrUpdateClient = createServerFn({ method: "POST" })
@@ -114,4 +115,37 @@ export const getCeevPlanningUrl = createServerFn({ method: "POST" })
     const { data: signed, error: signedError } = await db.storage.from(BUCKET).createSignedUrl(client.ceev_planning_path, 3600);
     if (signedError || !signed?.signedUrl) throw signedError ?? new Error("Impossible d'ouvrir le calendrier");
     return { url: signed.signedUrl };
+  });
+
+
+export const getCeevPlanningUrlByClientId = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { clientId: string }) => {
+    validateId(data.clientId);
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const { admin, BUCKET } = await import("./client-portal.server");
+    const db = admin();
+    const { data: client, error } = await db
+      .from("clients")
+      .select("id,ceev_enabled,ceev_planning_path,ceev_planning_filename")
+      .eq("id", data.clientId)
+      .single();
+    if (error || !client) throw new Error("Client introuvable");
+    if (!client.ceev_enabled || !client.ceev_planning_path) {
+      throw new Error("Aucun calendrier disponible");
+    }
+
+    const { data: signed, error: signedError } = await db.storage
+      .from(BUCKET)
+      .createSignedUrl(client.ceev_planning_path, 3600);
+    if (signedError || !signed?.signedUrl) {
+      throw signedError ?? new Error("Impossible d'ouvrir le calendrier");
+    }
+
+    return {
+      url: signed.signedUrl,
+      filename: client.ceev_planning_filename ?? "Calendrier travaux.pdf",
+    };
   });
