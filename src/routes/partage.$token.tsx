@@ -75,6 +75,7 @@ import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
+// prettier-ignore
 import { PremiumHome, PremiumExchange, type PremiumSection } from "@/components/share/PremiumHome";
 import { useIsAdmin } from "@/hooks/use-admin";
 
@@ -99,6 +100,7 @@ const premiumQuery = (token: string) =>
     staleTime: 10_000,
   });
 
+// prettier-ignore
 export const Route = createFileRoute("/partage/$token")({
   // `?intervention=` cible un compte-rendu précis. Il n'ouvre AUCUN accès :
   // le périmètre reste celui du token (token → client → ses interventions).
@@ -132,6 +134,7 @@ export const Route = createFileRoute("/partage/$token")({
   ),
 });
 
+// prettier-ignore
 function Centered({ title, text }: { title: string; text: string }) {
   return (
     <div className="grid min-h-screen place-items-center bg-muted/30 p-6 text-center">
@@ -150,6 +153,7 @@ const TASK_LABELS: Record<string, string> = {
   impossible: "Non réalisable",
 };
 
+// prettier-ignore
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("fr-FR", {
     day: "numeric",
@@ -159,6 +163,7 @@ function fmtDate(d: string) {
 }
 
 /* ---------- Accessibility / theme controls (client #10) ---------- */
+// prettier-ignore
 function useShareTheme() {
   const [dark, setDark] = useState(false);
   const [large, setLarge] = useState(false);
@@ -187,6 +192,7 @@ function useShareTheme() {
   return { dark, large, toggleDark, toggleLarge };
 }
 
+// prettier-ignore
 function SharePage() {
   const { token } = Route.useParams();
   const { data } = useSuspenseQuery(sharedQuery(token));
@@ -388,6 +394,7 @@ function SharePage() {
   );
 }
 
+// prettier-ignore
 function PremiumPageIntro({
   eyebrow,
   title,
@@ -407,7 +414,18 @@ function PremiumPageIntro({
 }
 
 // prettier-ignore
-function PremiumExperience({ client, interventions, recommendations, premium, messages, token, large, dark, toggleDark, toggleLarge }: {
+function PremiumExperience({
+  client,
+  interventions,
+  recommendations,
+  premium,
+  messages,
+  token,
+  large,
+  dark,
+  toggleDark,
+  toggleLarge,
+}: {
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
   recommendations: SharedRecommendation[];
@@ -423,41 +441,185 @@ function PremiumExperience({ client, interventions, recommendations, premium, me
   const { isAdmin } = useIsAdmin();
   const qc = useQueryClient();
   const sections: { id: PremiumSection; label: string }[] = [
-    { id: "home", label: "Accueil" }, { id: "garden", label: "Le jardin" },
-    { id: "reports", label: "Les interventions" }, { id: "documents", label: "Documents" },
+    { id: "home", label: "Accueil" },
+    { id: "garden", label: "Le jardin" },
+    { id: "reports", label: "Les interventions" },
+    { id: "documents", label: "Documents" },
     { id: "exchange", label: "Échanger" },
   ];
-  function navigate(next: PremiumSection) { setSection(next); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  return <div className={`premium-carnet min-h-screen bg-background pb-20 font-sans ${large ? "text-[1.08rem]" : ""}`}>
-    <header className="mx-auto w-full max-w-[1320px]">
-      <div className="relative bg-muted">
-        {premium.cover_photo_url ? <img src={premium.cover_photo_url} alt={`Le jardin de ${premiumClientTitle(client)}`} className="h-[320px] w-full object-cover sm:h-[520px] lg:h-[620px]" /> : <div className="grid h-[280px] place-items-center sm:h-[440px]"><Leaf className="size-14 text-primary/30" aria-hidden="true" /></div>}
-        <div className="absolute right-4 top-4 flex gap-1 sm:right-8 sm:top-8">
-          <Button variant="secondary" size="icon" aria-label={dark ? "Mode clair" : "Mode sombre"} onClick={toggleDark}>{dark ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>
-          <Button variant="secondary" size="icon" aria-label="Agrandir le texte" onClick={toggleLarge} aria-pressed={large}><Type className="size-4" /></Button>
+
+  function navigate(next: PremiumSection) {
+    setSection(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  return (
+    <div
+      className={`premium-carnet min-h-screen bg-background pb-20 font-sans ${large ? "text-[1.08rem]" : ""}`}
+    >
+      <header className="border-b bg-background">
+        <div className="mx-auto flex min-h-16 w-full max-w-[1320px] items-center justify-between gap-5 px-5 sm:px-10 lg:px-16">
+          <div className="min-w-0">
+            <p className="truncate font-premium-serif text-xl font-medium sm:text-2xl">
+              Le carnet du jardin
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              De la graine au jardin · Compte Premium
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={dark ? "Mode clair" : "Mode sombre"}
+              onClick={toggleDark}
+            >
+              {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Agrandir le texte"
+              onClick={toggleLarge}
+              aria-pressed={large}
+            >
+              <Type className="size-4" />
+            </Button>
+            {isAdmin && (
+              <Button
+                asChild
+                variant="link"
+                className="hidden h-10 px-0 text-xs text-primary sm:inline-flex"
+              >
+                <Link to="/clients/premium">← Pilot Pro</Link>
+              </Button>
+            )}
+          </div>
         </div>
+      </header>
+
+      <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
+        <nav
+          className="mx-auto flex w-full max-w-[1320px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16"
+          aria-label="Navigation Premium"
+        >
+          {sections.map((item) => (
+            <Button
+              key={item.id}
+              type="button"
+              variant="ghost"
+              onClick={() => navigate(item.id)}
+              aria-current={section === item.id ? "page" : undefined}
+              className={`h-14 shrink-0 rounded-none border-b-2 px-0 text-sm font-normal hover:bg-transparent ${
+                section === item.id
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {item.label}
+            </Button>
+          ))}
+        </nav>
       </div>
-      <div className="premium-carnet-heading border-b bg-background px-5 pb-8 pt-7 sm:px-10 sm:pb-10 lg:px-16">
-        <p className="text-xs uppercase text-primary">De la graine au jardin · Carnet Premium</p>
-        <h1 className="mt-3 font-premium-serif text-5xl font-medium leading-none sm:text-7xl">Le jardin de {premiumClientTitle(client)}</h1>
-        {client.address && <p className="mt-3 text-sm text-muted-foreground">{client.address}</p>}
-      </div>
-    </header>
-    <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
-      <nav className="mx-auto flex w-full max-w-[1728px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16" aria-label="Navigation Premium">
-        {sections.map((item) => <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined} className={`h-14 shrink-0 rounded-none border-b-2 px-0 text-sm font-normal hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item.label}</Button>)}
-        {isAdmin && <Button asChild variant="link" className="ml-auto h-14 shrink-0 px-0 text-xs text-primary"><Link to="/clients/premium">← Retour à Pilot Pro</Link></Button>}
-      </nav>
+
+      <main className="mx-auto w-full max-w-[1320px] px-5 py-10 sm:px-10 sm:py-14 lg:px-16">
+        {section === "home" && (
+          <PremiumHome
+            client={client}
+            interventions={interventions}
+            recommendations={recommendations}
+            premium={premium}
+            messages={messages}
+            token={token}
+            onNavigate={navigate}
+          />
+        )}
+        {section === "garden" && (
+          <section>
+            <PremiumPageIntro
+              eyebrow="Portrait du jardin"
+              title="Le jardin"
+              text="Un lieu vivant, ses particularités et son suivi au fil des saisons."
+            />
+            <GardenTab
+              client={client}
+              interventions={interventions}
+              recommendations={recommendations}
+              premium={premium}
+              onNavigate={navigate}
+              token={token}
+            />
+          </section>
+        )}
+        {section === "reports" && (
+          <section>
+            <PremiumPageIntro
+              eyebrow="Au fil des saisons"
+              title="Les interventions"
+              text="Les passages et les soins apportés à votre jardin."
+            />
+            <ReportsTab
+              interventions={interventions}
+              token={token}
+              messages={messages}
+              client={client}
+              editorial
+            />
+          </section>
+        )}
+        {section === "documents" && (
+          <section>
+            <PremiumPageIntro
+              eyebrow="Les pièces du carnet"
+              title="Documents"
+              text="Les documents partagés pour le suivi de votre jardin."
+            />
+            <div className="mt-8 max-w-4xl divide-y border-t">
+              {premium.documents.length ? (
+                premium.documents.map((document) => (
+                    <a
+                      key={document.id}
+                      href={document.url ?? undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-w-0 items-center gap-4 py-5 text-sm hover:text-primary"
+                    >
+                      <FileText className="size-5 shrink-0 text-primary" />
+                      <span className="min-w-0 flex-1 truncate">
+                        {document.title}
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {fmtDate(document.created_at)}
+                        </span>
+                      </span>
+                      <Download className="size-4 shrink-0" />
+                    </a>
+                  ))
+              ) : (
+                <p className="py-8 text-sm text-muted-foreground">
+                  Aucun document n'a encore été partagé.
+                </p>
+              )}
+            </div>
+            {isAdmin && (
+              <div className="mt-8 max-w-xl">
+                <PremiumDocumentUpload
+                  token={token}
+                  onUploaded={() =>
+                    qc.invalidateQueries({ queryKey: ["shared-premium", token] })
+                  }
+                />
+              </div>
+            )}
+          </section>
+        )}
+        {section === "exchange" && (
+          <PremiumExchange client={client} token={token} messages={messages} />
+        )}
+      </main>
     </div>
-    <main className="mx-auto w-full max-w-[1728px] px-5 py-12 sm:px-10 sm:py-16 lg:px-16">
-      {section === "home" && <PremiumHome client={client} interventions={interventions} recommendations={recommendations} premium={premium} messages={messages} token={token} onNavigate={navigate} />}
-      {section === "garden" && <section><PremiumPageIntro eyebrow="Portrait du jardin" title="Le jardin" text="Un lieu vivant, ses particularités et son suivi au fil des saisons." /><GardenTab client={client} interventions={interventions} recommendations={recommendations} premium={premium} onNavigate={navigate} token={token} /></section>}
-      {section === "reports" && <section><PremiumPageIntro eyebrow="Au fil des saisons" title="Les interventions" text="Les passages et les soins apportés à votre jardin." /><ReportsTab interventions={interventions} token={token} messages={messages} client={client} editorial /></section>}
-      {section === "documents" && <section><PremiumPageIntro eyebrow="Les pièces du carnet" title="Documents" text="Les documents partagés pour le suivi de votre jardin." /><div className="mt-8 max-w-4xl divide-y border-t">{premium.documents.length ? premium.documents.map((document) => <a key={document.id} href={document.url ?? undefined} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-4 py-5 text-sm hover:text-primary"><FileText className="size-5 shrink-0 text-primary" /><span className="min-w-0 flex-1 truncate">{document.title}<span className="mt-1 block text-xs text-muted-foreground">{fmtDate(document.created_at)}</span></span><Download className="size-4 shrink-0" /></a>) : <p className="py-8 text-sm text-muted-foreground">Aucun document n'a encore été partagé.</p>}</div>{isAdmin && <div className="mt-8 max-w-xl"><PremiumDocumentUpload token={token} onUploaded={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })} /></div>}</section>}
-      {section === "exchange" && <PremiumExchange client={client} token={token} messages={messages} />}
-    </main>
-  </div>;
+  );
 }
+// prettier-ignore
 function StatCard({
   label,
   value,
@@ -478,6 +640,7 @@ function StatCard({
 }
 
 /* ---------- Reports tab: filters (#7) + list/calendar (#1) ---------- */
+// prettier-ignore
 function ReportsTab({
   interventions,
   token,
@@ -653,6 +816,7 @@ function ReportsTab({
   );
 }
 
+// prettier-ignore
 function InterventionCard({
   iv,
   token,
@@ -794,6 +958,7 @@ function InterventionCard({
 }
 
 /* ---------- Photo gallery (client #3) ---------- */
+// prettier-ignore
 function PhotoGallery({ interventions }: { interventions: SharedIntervention[] }) {
   const photos = interventions.flatMap((iv) =>
     iv.photos
@@ -838,6 +1003,7 @@ function PhotoGallery({ interventions }: { interventions: SharedIntervention[] }
 }
 
 /* ---------- Recommendations + interest (client #9) ---------- */
+// prettier-ignore
 function RecommendationsTab({
   recommendations,
   token,
@@ -864,6 +1030,7 @@ function RecommendationsTab({
   );
 }
 
+// prettier-ignore
 function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }) {
   const qc = useQueryClient();
   const price = recommendationPrice(reco);
@@ -956,6 +1123,7 @@ function GardenTab({ client, interventions, recommendations, premium, token }: {
   </div>;
 }
 
+// prettier-ignore
 function PremiumTab({
   premium,
   token,
@@ -1074,6 +1242,7 @@ function PremiumTab({
   );
 }
 
+// prettier-ignore
 function PremiumDocumentUpload({ token, onUploaded }: { token: string; onUploaded: () => void }) {
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1128,6 +1297,7 @@ function PremiumDocumentUpload({ token, onUploaded }: { token: string; onUploade
   );
 }
 
+// prettier-ignore
 function GeneralMessages({ token, messages }: { token: string; messages: ClientMessage[] }) {
   return (
     <Card className="border-primary/30 bg-primary/5">
@@ -1143,6 +1313,7 @@ function GeneralMessages({ token, messages }: { token: string; messages: ClientM
 }
 
 /* ---------- Message thread with gardener replies (client #4) ---------- */
+// prettier-ignore
 function MessageThread({
   token,
   interventionId,
@@ -1265,6 +1436,7 @@ function MessageThread({
   );
 }
 
+// prettier-ignore
 function Section({ title, text }: { title: string; text: string }) {
   return (
     <div>
@@ -1274,6 +1446,7 @@ function Section({ title, text }: { title: string; text: string }) {
   );
 }
 
+// prettier-ignore
 function Info({ icon: Icon, text }: { icon: typeof MapPin; text: string }) {
   return (
     <div className="flex items-center gap-2">
