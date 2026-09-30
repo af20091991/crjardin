@@ -33,7 +33,7 @@ import {
 } from "@/lib/client-premium";
 import { signedPhotoUrl } from "@/lib/interventions";
 
-export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
+export function ClientPremiumTab({\n  clientId,\n  canEdit,\n}: {\n  clientId: string;\n  canEdit: boolean;\n}) {
   const qc = useQueryClient();
 
   const { data: premium, isLoading } = useQuery({
@@ -349,7 +349,7 @@ function PremiumDocumentsCard({
           <Button type="button" variant="outline" disabled={!canEdit || busy} asChild>
             <label className="cursor-pointer">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              <input type="file" className="hidden" onChange={upload} disabled={!canEdit || busy} />
+              <input\n                type="file"\n                className="hidden"\n                onChange={upload}\n                disabled={!canEdit || busy}\n              />
             </label>
           </Button>
         </div>
