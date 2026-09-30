@@ -41,7 +41,11 @@ const REQUESTS = [
 const heading = "font-premium-serif font-medium leading-none";
 const dateLabel = "text-xs uppercase text-primary";
 function fmtDate(value: string) {
-  return new Date(value).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(value).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 // prettier-ignore-start
