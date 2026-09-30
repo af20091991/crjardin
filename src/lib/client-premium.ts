@@ -71,6 +71,21 @@ export async function setClientPremiumEnabled(clientId: string, enabled: boolean
   }
 
   const now = new Date().toISOString();
+  let cover_photo_id: string | null | undefined = undefined;
+
+  if (enabled) {
+    const { data: existing } = await supabase
+      .from("client_premium")
+      .select("cover_photo_id")
+      .eq("client_id", clientId)
+      .maybeSingle();
+
+    if (!existing?.cover_photo_id) {
+      const photos = await listClientPhotosForCover(clientId);
+      cover_photo_id = photos[0]?.id ?? null;
+    }
+  }
+
   const { error } = await supabase.from("client_premium").upsert(
     {
       client_id: clientId,
@@ -78,6 +93,7 @@ export async function setClientPremiumEnabled(clientId: string, enabled: boolean
       enabled,
       activated_at: enabled ? now : undefined,
       deactivated_at: enabled ? null : now,
+      ...(cover_photo_id !== undefined ? { cover_photo_id } : {}),
     },
     { onConflict: "client_id" },
   );

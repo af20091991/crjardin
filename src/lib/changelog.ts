@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-30",
+    version: "2.3.36",
+    theme: "Clients",
+    title: "Comptes Premium — nouvel accueil « espace client »",
+    details: [
+      "L'accueil Premium adopte une architecture inspirée de la maquette 3 : grande couverture, identité client, navigation simple et zone « Aujourd'hui dans votre jardin ».",
+      "Des icônes, états d'attente et éléments graphiques sont affichés même lorsqu'une fiche Premium vient d'être créée sans contenu complet.",
+      "À l'activation d'un Premium, la dernière photo d'intervention disponible est automatiquement proposée comme couverture ; à défaut, une couverture graphique neutre est affichée.",
+    ],
+  },
+  {
+    date: "2026-09-30",
     version: "2.3.35",
     theme: "Clients",
     title: "Comptes Premium — fidélité renforcée à la maquette",
