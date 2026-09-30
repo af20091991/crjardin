@@ -70,10 +70,9 @@ export function PremiumHome({
   const latest = interventions[0];
   const cover = premium.cover_photo_url;
   const currentKey = new Date().getFullYear() * 12 + (new Date().getMonth() + 1);
-  const nextCalendar = premium.work_calendar.find((item) =>
+  const next = premium.work_calendar.find((item) =>
     item.year != null && item.month != null ? item.year * 12 + item.month >= currentKey : true,
   );
-  const next = nextCalendar ?? premium.upcoming[0];
   const latestPhoto = latest?.photos.find((p) => p.url);
   const hasDocuments = premium.documents.length > 0;
   const hasConversation = messages.some((m) => !m.intervention_id);
@@ -144,11 +143,11 @@ export function PremiumHome({
           <div className="grid gap-5">
             <article className="rounded-2xl border p-6 sm:p-7">
               <CalendarDays className="size-6 text-primary" strokeWidth={1.5} />
-              <p className={`${dateLabel} mt-5`}>Prochaine visite</p>
+              <p className={`${dateLabel} mt-5`}>Prochaine intervention</p>
               <h4 className={`${heading} mt-2 text-3xl`}>{next?.title ?? "Votre prochaine intervention"}</h4>
-              <p className="mt-2 text-sm text-muted-foreground">{next ? ("scheduled_date" in next ? fmtDate(next.scheduled_date) : next.period_label) : "Elle apparaîtra ici dès que le calendrier sera associé."}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{next?.period_label ?? "Elle apparaîtra ici dès que le calendrier travaux sera associé."}</p>
               {next?.details && <p className="mt-3 text-sm leading-6 text-muted-foreground">{next.details}</p>}
-              {next && <Button variant="link" className="mt-3 h-auto px-0 text-primary" onClick={() => onNavigate("calendar")}>Voir le calendrier travaux <ChevronRight className="ml-1 size-4" /></Button>}
+              <Button variant="link" className="mt-3 h-auto px-0 text-primary" onClick={() => onNavigate("calendar")}>Voir le calendrier travaux <ChevronRight className="ml-1 size-4" /></Button>
             </article>
 
             <button type="button" onClick={() => onNavigate("exchange")} className="group rounded-2xl border bg-primary/5 p-6 text-left transition-colors hover:border-primary/40 sm:p-7">
