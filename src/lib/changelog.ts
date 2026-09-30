@@ -24,6 +24,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-30",
+    version: "2.3.34",
+    theme: "Clients",
+    title: "Comptes Premium — mémoire du jardin enrichie",
+    details: [
+      "Les interventions adoptent une présentation plus éditoriale, avec une hiérarchie visuelle inspirée d'une chronologie de jardin.",
+      "La galerie photo met davantage en valeur les images et la progression du jardin grâce à une mosaïque immersive.",
+      "Les conseils bénéficient de surfaces plus sobres et plus proches de l'esprit du carnet du jardin, sans modification des fonctionnalités.",
+    ],
+  },
+
+  {
+    date: "2026-09-30",
     version: "2.3.33",
     theme: "Clients",
     title: "Comptes Premium — carnet du jardin enrichi",
