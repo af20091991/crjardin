@@ -410,7 +410,9 @@ export const getSharedPremium = createServerFn({ method: "GET" })
 
       if (!planningDownloadError && planningFile) {
         const { parsePlanningPdf } = await import("@/lib/premium-planning-parser");
-        const parsed = await parsePlanningPdf(new Uint8Array(await planningFile.arrayBuffer()));
+        const parsed = await parsePlanningPdf(
+          new Uint8Array(await planningFile.arrayBuffer()),
+        );
         if (parsed.length > 0) {
           const rows = parsed.map((item) => ({
             client_id: client.id,
@@ -429,15 +431,17 @@ export const getSharedPremium = createServerFn({ method: "GET" })
             .insert(rows)
             .select("id, period_label, year, month, sequence, title, details");
           if (insertError) throw insertError;
-          syncedWorkCalendar = inserted ?? rows.map((row) => ({
-            id: "",
-            period_label: row.period_label,
-            year: row.year,
-            month: row.month,
-            sequence: row.sequence,
-            title: row.title,
-            details: row.details,
-          }));
+          syncedWorkCalendar =
+            inserted ??
+            rows.map((row) => ({
+              id: "",
+              period_label: row.period_label,
+              year: row.year,
+              month: row.month,
+              sequence: row.sequence,
+              title: row.title,
+              details: row.details,
+            }));
         }
       }
     }
