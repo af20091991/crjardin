@@ -11,8 +11,18 @@ export interface ParsedPlanningItem {
 }
 
 const MONTHS = [
-  "janvier", "février", "mars", "avril", "mai", "juin",
-  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+  "janvier",
+  "février",
+  "mars",
+  "avril",
+  "mai",
+  "juin",
+  "juillet",
+  "août",
+  "septembre",
+  "octobre",
+  "novembre",
+  "décembre",
 ];
 
 function normalize(value: string) {
@@ -98,7 +108,8 @@ export async function parsePlanningPdf(
       if (current) items.push(current);
       const year = inferYear(period.month, period.year, currentYear);
       current = {
-        period_label: `${MONTHS[period.month - 1][0].toUpperCase()}${MONTHS[period.month - 1].slice(1)}${year ? ` ${year}` : ""}`,
+        period_label:
+          `${MONTHS[period.month - 1][0].toUpperCase()}${MONTHS[period.month - 1].slice(1)}${year ? ` ${year}` : ""}`,
         year,
         month: period.month,
         sequence: period.sequence,
@@ -119,7 +130,9 @@ export async function parsePlanningPdf(
       continue;
     if (/^\d+\s*(?:facturations?|interventions?)/i.test(line)) continue;
 
-    current.details = normalize([current.details, line].filter(Boolean).join(" "));
+    current.details = normalize(
+      [current.details, line].filter(Boolean).join(" "),
+    );
   }
 
   if (current) items.push(current);
