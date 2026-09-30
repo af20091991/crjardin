@@ -429,27 +429,14 @@ function PremiumExperience({ client, interventions, recommendations, premium, me
   ];
   function navigate(next: PremiumSection) { setSection(next); window.scrollTo({ top: 0, behavior: "smooth" }); }
   return <div className={`premium-carnet min-h-screen bg-background pb-20 font-sans ${large ? "text-[1.08rem]" : ""}`}>
-    <header className="mx-auto w-full max-w-[1320px]">
-      <div className="relative bg-muted">
-        {premium.cover_photo_url ? <img src={premium.cover_photo_url} alt={`Le jardin de ${premiumClientTitle(client)}`} className="h-[320px] w-full object-cover sm:h-[520px] lg:h-[620px]" /> : <div className="grid h-[280px] place-items-center sm:h-[440px]"><Leaf className="size-14 text-primary/30" aria-hidden="true" /></div>}
-        <div className="absolute right-4 top-4 flex gap-1 sm:right-8 sm:top-8">
-          <Button variant="secondary" size="icon" aria-label={dark ? "Mode clair" : "Mode sombre"} onClick={toggleDark}>{dark ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>
-          <Button variant="secondary" size="icon" aria-label="Agrandir le texte" onClick={toggleLarge} aria-pressed={large}><Type className="size-4" /></Button>
-        </div>
-      </div>
-      <div className="premium-carnet-heading border-b bg-background px-5 pb-8 pt-7 sm:px-10 sm:pb-10 lg:px-16">
-        <p className="text-xs uppercase text-primary">De la graine au jardin · Carnet Premium</p>
-        <h1 className="mt-3 font-premium-serif text-5xl font-medium leading-none sm:text-7xl">Le jardin de {premiumClientTitle(client)}</h1>
-        {client.address && <p className="mt-3 text-sm text-muted-foreground">{client.address}</p>}
-      </div>
-    </header>
     <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
-      <nav className="mx-auto flex w-full max-w-[1728px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16" aria-label="Navigation Premium">
+      <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16" aria-label="Navigation Premium">
+        <span className="mr-2 shrink-0 font-premium-serif text-xl font-medium">Le carnet du jardin</span>
         {sections.map((item) => <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined} className={`h-14 shrink-0 rounded-none border-b-2 px-0 text-sm font-normal hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item.label}</Button>)}
         {isAdmin && <Button asChild variant="link" className="ml-auto h-14 shrink-0 px-0 text-xs text-primary"><Link to="/clients/premium">← Retour à Pilot Pro</Link></Button>}
       </nav>
     </div>
-    <main className="mx-auto w-full max-w-[1728px] px-5 py-12 sm:px-10 sm:py-16 lg:px-16">
+    <main className="mx-auto w-full max-w-[1320px] px-5 py-12 sm:px-10 sm:py-16 lg:px-16">
       {section === "home" && <PremiumHome client={client} interventions={interventions} recommendations={recommendations} premium={premium} messages={messages} token={token} onNavigate={navigate} />}
       {section === "garden" && <section><PremiumPageIntro eyebrow="Portrait du jardin" title="Le jardin" text="Un lieu vivant, ses particularités et son suivi au fil des saisons." /><GardenTab client={client} interventions={interventions} recommendations={recommendations} premium={premium} onNavigate={navigate} token={token} /></section>}
       {section === "reports" && <section><PremiumPageIntro eyebrow="Au fil des saisons" title="Les interventions" text="Les passages et les soins apportés à votre jardin." /><ReportsTab interventions={interventions} token={token} messages={messages} client={client} editorial /></section>}
