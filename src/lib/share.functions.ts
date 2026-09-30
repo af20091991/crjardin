@@ -345,7 +345,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: client } = await supabaseAdmin
       .from("clients")
-      .select("id, contract_type")
+      .select("id, user_id, contract_type, ceev_planning_path, ceev_planning_filename")
       .eq("share_token", data.token)
       .maybeSingle();
     if (!client || client.contract_type !== "Entretien annuel") return null;
@@ -402,6 +402,48 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       .order("position", { ascending: true });
     if (workCalendarError) throw workCalendarError;
 
+    let syncedWorkCalendar = workCalendarRows ?? [];
+    if (syncedWorkCalendar.length === 0 && client.ceev_planning_path) {
+      const { data: planningFile, error: planningDownloadError } = await supabaseAdmin.storage
+        .from("client-plannings")
+        .download(client.ceev_planning_path);
+
+      if (!planningDownloadError && planningFile) {
+        const { parsePlanningPdf } = await import("@/lib/premium-planning-parser");
+        const parsed = await parsePlanningPdf(new Uint8Array(await planningFile.arrayBuffer()));
+        if (parsed.length > 0) {
+          const rows = parsed.map((item) => ({
+            client_id: client.id,
+            user_id: client.user_id,
+            period_label: item.period_label,
+            year: item.year,
+            month: item.month,
+            sequence: item.sequence,
+            title: item.title,
+            details: item.details,
+            position: item.position,
+            source: "pdf" as const,
+          }));
+          const { data: inserted, error: insertError } = await premiumCalendarDb
+            .from("client_premium_work_calendar_items")
+            .insert(rows)
+            .select("id, period_label, year, month, sequence, title, details");
+          if (insertError) throw insertError;
+          syncedWorkCalendar =
+            inserted ??
+            rows.map((row) => ({
+              id: "",
+              period_label: row.period_label,
+              year: row.year,
+              month: row.month,
+              sequence: row.sequence,
+              title: row.title,
+              details: row.details,
+            }));
+        }
+      }
+    }
+
     const docPaths = raw.documents.map((d) => d.storage_path);
     const docUrlMap = new Map<string, string>();
     if (docPaths.length > 0) {
@@ -432,7 +474,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       commercial_note: raw.commercial_note,
       cover_photo_url: coverPhotoUrl,
       upcoming: raw.upcoming,
-      work_calendar: (workCalendarRows ?? []) as SharedPremiumWorkCalendarItem[],
+      work_calendar: syncedWorkCalendar as SharedPremiumWorkCalendarItem[],
       documents: raw.documents.map((d) => ({
         id: d.id,
         title: d.title,
