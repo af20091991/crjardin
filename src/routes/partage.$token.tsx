@@ -389,6 +389,12 @@ function SharePage() {
 }
 
 
+const PREMIUM_NAV_CLASS =
+  "sticky top-0 z-30 flex flex-wrap items-center gap-1 border-b bg-background/95 py-3 text-sm backdrop-blur";
+const PREMIUM_NAV_ACTIVE_CLASS = "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary";
+const PREMIUM_NAV_INACTIVE_CLASS =
+  "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+
 function PremiumExperience({
   client,
   interventions,
@@ -468,7 +474,7 @@ function PremiumExperience({
           </div>
 
           <nav
-            className="sticky top-0 z-30 flex flex-wrap items-center gap-1 border-b bg-background/95 py-3 text-sm backdrop-blur"
+            className={PREMIUM_NAV_CLASS}
             aria-label="Navigation Premium"
           >
             {isAdmin && (
@@ -483,8 +489,8 @@ function PremiumExperience({
               onClick={() => setSection("home")}
               className={
                 section === "home"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? PREMIUM_NAV_ACTIVE_CLASS
+                  : PREMIUM_NAV_INACTIVE_CLASS
               }
             >
               Accueil
@@ -493,8 +499,8 @@ function PremiumExperience({
               onClick={() => setSection("premium")}
               className={
                 section === "premium"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? PREMIUM_NAV_ACTIVE_CLASS
+                  : PREMIUM_NAV_INACTIVE_CLASS
               }
             >
               Mon jardin
@@ -503,8 +509,8 @@ function PremiumExperience({
               onClick={() => setSection("reports")}
               className={
                 section === "reports"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? PREMIUM_NAV_ACTIVE_CLASS
+                  : PREMIUM_NAV_INACTIVE_CLASS
               }
             >
               Interventions
@@ -513,8 +519,8 @@ function PremiumExperience({
               onClick={() => setSection("photos")}
               className={
                 section === "photos"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? PREMIUM_NAV_ACTIVE_CLASS
+                  : PREMIUM_NAV_INACTIVE_CLASS
               }
             >
               Photos
@@ -523,8 +529,8 @@ function PremiumExperience({
               onClick={() => setSection("recos")}
               className={
                 section === "recos"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? PREMIUM_NAV_ACTIVE_CLASS
+                  : PREMIUM_NAV_INACTIVE_CLASS
               }
             >
               Conseils
@@ -533,8 +539,8 @@ function PremiumExperience({
               onClick={() => setSection("documents")}
               className={
                 section === "documents"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  ? PREMIUM_NAV_ACTIVE_CLASS
+                  : PREMIUM_NAV_INACTIVE_CLASS
               }
             >
               Documents
