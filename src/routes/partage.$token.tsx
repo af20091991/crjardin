@@ -77,6 +77,7 @@ import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
 // prettier-ignore
 import { PremiumHome, PremiumExchange, type PremiumSection } from "@/components/share/PremiumHome";
+import { PremiumWorkCalendar } from "@/components/share/PremiumWorkCalendar";
 import { useIsAdmin } from "@/hooks/use-admin";
 
 const sharedQuery = (token: string) =>
@@ -445,6 +446,7 @@ function PremiumExperience({
     { id: "garden", label: "Le jardin" },
     { id: "reports", label: "Les interventions" },
     { id: "documents", label: "Documents" },
+    { id: "calendar", label: "Calendrier travaux" },
     { id: "exchange", label: "Échanger" },
   ];
 
@@ -481,19 +483,39 @@ function PremiumExperience({
             token={token}
             onNavigate={navigate}
             afterCover={
-              <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
-                <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-6 overflow-x-auto px-5 sm:gap-10 sm:px-10 lg:px-16" aria-label="Navigation Premium">
-                  {sections.map((item) => (
-                    <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined}
-                      className={`h-16 shrink-0 rounded-none border-b-2 px-0 text-base font-medium sm:h-[4.5rem] sm:text-lg hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-                      {item.label}
-                    </Button>
-                  ))}
-                </nav>
-              </div>
+              <div className="-mt-10 sm:-mt-12 premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
+  <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-6 overflow-x-auto px-5 sm:gap-10 sm:px-10 lg:px-16" aria-label="Navigation Premium">
+    {sections.map((item) => (
+      <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined}
+        className={`h-16 shrink-0 rounded-none border-b-2 px-0 text-base font-medium sm:h-[4.5rem] sm:text-lg hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+        {item.label}
+      </Button>
+    ))}
+  </nav>
+</div>
             }
           />
         )}
+        {section === "calendar" && (
+          <section>
+            <PremiumPageIntro
+              eyebrow="Le rythme du jardin"
+              title="Calendrier travaux"
+              text="Les prochaines interventions prévues dans votre calendrier d'entretien, présentées simplement au fil des saisons."
+            />
+            <PremiumWorkCalendar items={premium.work_calendar} editorial />
+          </section>
+        )}
+        {section !== "home" && <div className="-mt-10 sm:-mt-12 premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
+  <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-6 overflow-x-auto px-5 sm:gap-10 sm:px-10 lg:px-16" aria-label="Navigation Premium">
+    {sections.map((item) => (
+      <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined}
+        className={`h-16 shrink-0 rounded-none border-b-2 px-0 text-base font-medium sm:h-[4.5rem] sm:text-lg hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+        {item.label}
+      </Button>
+    ))}
+  </nav>
+</div>}
         {section === "garden" && (
           <section>
             <PremiumPageIntro
