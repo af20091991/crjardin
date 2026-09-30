@@ -109,7 +109,7 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
       file = new File([blob], source.name, { type: "application/pdf" });
     }
 
-    const rows = await parsePlanning(file);
+    if (!file) throw new Error("Impossible de récupérer le PDF du calendrier travaux.");\n\n    const rows = await parsePlanning(file);
     if (rows.length === 0) {
       throw new Error("Le PDF du calendrier client ne contient aucune intervention exploitable.");
     }
@@ -159,7 +159,7 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
       .catch((error) => {
         toast.error(error instanceof Error ? error.message : "Impossible de synchroniser le calendrier travaux.");
       });
-  }, [canEdit, premium?.enabled, documents, workCalendar, clientId]);
+  }, [canEdit, premium?.enabled, documents, workCalendar, clientId, importExistingPlanning]);
 
   const toggleEnabled = useMutation({
     mutationFn: async (enabled: boolean) => {
