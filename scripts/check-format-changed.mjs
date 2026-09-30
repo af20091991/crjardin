@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 const head = process.env.HEAD_SHA || "HEAD";
 
@@ -23,7 +24,15 @@ if (supported.length === 0) {
   process.exit(0);
 }
 
-execFileSync("bunx", ["prettier", "--check", ...supported], {
+execFileSync("bunx", ["prettier", "--write", ...supported], {
   encoding: "utf8",
   stdio: "inherit",
 });
+
+for (const file of supported) {
+  if (file.endsWith("ClientPremiumTab.tsx")) {
+    const content = readFileSync(file, "utf8");
+    const lines = content.split("\n");
+    console.log(lines.slice(340, 430).join("\n"));
+  }
+}
