@@ -28,7 +28,6 @@ import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedPilotIndexRouteImport } from './routes/_authenticated/pilot.index'
-import { Route as AuthenticatedPilotDashboardRouteImport } from './routes/_authenticated/pilot.dashboard'
 import { Route as AuthenticatedParcMaterielIndexRouteImport } from './routes/_authenticated/parc-materiel.index'
 import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
@@ -55,6 +54,7 @@ import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authe
 import { Route as AuthenticatedPilotFinanceRouteImport } from './routes/_authenticated/pilot.finance'
 import { Route as AuthenticatedPilotDonneesRouteImport } from './routes/_authenticated/pilot.donnees'
 import { Route as AuthenticatedPilotDirectionRouteImport } from './routes/_authenticated/pilot.direction'
+import { Route as AuthenticatedPilotDashboardRouteImport } from './routes/_authenticated/pilot.dashboard'
 import { Route as AuthenticatedPilotCorrectionsRouteImport } from './routes/_authenticated/pilot.corrections'
 import { Route as AuthenticatedPilotControleRouteImport } from './routes/_authenticated/pilot.controle'
 import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
@@ -70,6 +70,7 @@ import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_aut
 import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './routes/_authenticated/interventions.$interventionId'
 import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
 import { Route as AuthenticatedFichesFicheIdRouteImport } from './routes/_authenticated/fiches.$ficheId'
+import { Route as AuthenticatedClientsPremiumRouteImport } from './routes/_authenticated/clients/premium'
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients.$clientId'
 import { Route as AuthenticatedPilotClientsIndexRouteImport } from './routes/_authenticated/pilot.clients.index'
 import { Route as AuthenticatedPilotCeevContratsIndexRouteImport } from './routes/_authenticated/pilot.ceev-contrats.index'
@@ -173,11 +174,6 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
 const AuthenticatedPilotIndexRoute = AuthenticatedPilotIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthenticatedPilotRoute,
-} as any)
-const AuthenticatedPilotDashboardRoute = AuthenticatedPilotDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
   getParentRoute: () => AuthenticatedPilotRoute,
 } as any)
 const AuthenticatedParcMaterielIndexRoute =
@@ -327,6 +323,12 @@ const AuthenticatedPilotDirectionRoute =
     path: '/direction',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
+const AuthenticatedPilotDashboardRoute =
+  AuthenticatedPilotDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
 const AuthenticatedPilotCorrectionsRoute =
   AuthenticatedPilotCorrectionsRouteImport.update({
     id: '/corrections',
@@ -414,6 +416,12 @@ const AuthenticatedFichesFicheIdRoute =
     path: '/fiches/$ficheId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedClientsPremiumRoute =
+  AuthenticatedClientsPremiumRouteImport.update({
+    id: '/clients/premium',
+    path: '/clients/premium',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientsClientIdRoute =
   AuthenticatedClientsClientIdRouteImport.update({
     id: '/clients/$clientId',
@@ -475,7 +483,6 @@ export interface FileRoutesByFullPath {
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
   '/pilot': typeof AuthenticatedPilotRouteWithChildren
-  '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/planning': typeof AuthenticatedPlanningRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/sst': typeof AuthenticatedSstRoute
@@ -483,6 +490,7 @@ export interface FileRoutesByFullPath {
   '/versions': typeof AuthenticatedVersionsRoute
   '/partage/$token': typeof PartageTokenRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
+  '/clients/premium': typeof AuthenticatedClientsPremiumRoute
   '/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
@@ -498,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
   '/pilot/controle': typeof AuthenticatedPilotControleRoute
   '/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
+  '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/pilot/direction': typeof AuthenticatedPilotDirectionRoute
   '/pilot/donnees': typeof AuthenticatedPilotDonneesRoute
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
@@ -517,8 +526,8 @@ export interface FileRoutesByFullPath {
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
-  '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
+  '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/fiches/': typeof AuthenticatedFichesIndexRoute
@@ -551,6 +560,7 @@ export interface FileRoutesByTo {
   '/partage/$token': typeof PartageTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
+  '/clients/premium': typeof AuthenticatedClientsPremiumRoute
   '/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
   '/fiches/new': typeof AuthenticatedFichesNewRoute
   '/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
@@ -565,6 +575,7 @@ export interface FileRoutesByTo {
   '/pilot/charges': typeof AuthenticatedPilotChargesRoute
   '/pilot/controle': typeof AuthenticatedPilotControleRoute
   '/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
+  '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/pilot/direction': typeof AuthenticatedPilotDirectionRoute
   '/pilot/donnees': typeof AuthenticatedPilotDonneesRoute
   '/pilot/finance': typeof AuthenticatedPilotFinanceRoute
@@ -584,16 +595,14 @@ export interface FileRoutesByTo {
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
-  '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
+  '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/fiches': typeof AuthenticatedFichesIndexRoute
   '/interventions': typeof AuthenticatedInterventionsIndexRoute
   '/parc-materiel': typeof AuthenticatedParcMaterielIndexRoute
   '/pilot': typeof AuthenticatedPilotIndexRoute
-  '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
-  '/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
@@ -623,6 +632,7 @@ export interface FileRoutesById {
   '/partage/$token': typeof PartageTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/clients/$clientId': typeof AuthenticatedClientsClientIdRoute
+  '/_authenticated/clients/premium': typeof AuthenticatedClientsPremiumRoute
   '/_authenticated/fiches/$ficheId': typeof AuthenticatedFichesFicheIdRoute
   '/_authenticated/fiches/new': typeof AuthenticatedFichesNewRoute
   '/_authenticated/interventions/$interventionId': typeof AuthenticatedInterventionsInterventionIdRoute
@@ -638,6 +648,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/clients': typeof AuthenticatedPilotClientsRouteWithChildren
   '/_authenticated/pilot/controle': typeof AuthenticatedPilotControleRoute
   '/_authenticated/pilot/corrections': typeof AuthenticatedPilotCorrectionsRoute
+  '/_authenticated/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/_authenticated/pilot/direction': typeof AuthenticatedPilotDirectionRoute
   '/_authenticated/pilot/donnees': typeof AuthenticatedPilotDonneesRoute
   '/_authenticated/pilot/finance': typeof AuthenticatedPilotFinanceRoute
@@ -657,15 +668,14 @@ export interface FileRoutesById {
   '/_authenticated/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/_authenticated/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
-  '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
+  '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/fiches/': typeof AuthenticatedFichesIndexRoute
   '/_authenticated/interventions/': typeof AuthenticatedInterventionsIndexRoute
   '/_authenticated/parc-materiel/': typeof AuthenticatedParcMaterielIndexRoute
   '/_authenticated/pilot/': typeof AuthenticatedPilotIndexRoute
-  '/_authenticated/pilot/dashboard': typeof AuthenticatedPilotDashboardRoute
   '/_authenticated/pilot/ceev-contrats/$agreementId': typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   '/_authenticated/pilot/clients/$clientKey': typeof AuthenticatedPilotClientsClientKeyRoute
   '/_authenticated/pilot/fiche/$clientId': typeof AuthenticatedPilotFicheClientIdRoute
@@ -695,6 +705,7 @@ export interface FileRouteTypes {
     | '/versions'
     | '/partage/$token'
     | '/clients/$clientId'
+    | '/clients/premium'
     | '/fiches/$ficheId'
     | '/fiches/new'
     | '/interventions/$interventionId'
@@ -710,6 +721,7 @@ export interface FileRouteTypes {
     | '/pilot/clients'
     | '/pilot/controle'
     | '/pilot/corrections'
+    | '/pilot/dashboard'
     | '/pilot/direction'
     | '/pilot/donnees'
     | '/pilot/finance'
@@ -729,8 +741,8 @@ export interface FileRouteTypes {
     | '/pilot/temps'
     | '/pilot/validation'
     | '/api/public/ap-reminders'
-    | '/api/public/email-open'
     | '/api/public/brevo-webhook'
+    | '/api/public/email-open'
     | '/lovable/email/events'
     | '/clients/'
     | '/fiches/'
@@ -763,6 +775,7 @@ export interface FileRouteTypes {
     | '/partage/$token'
     | '/'
     | '/clients/$clientId'
+    | '/clients/premium'
     | '/fiches/$ficheId'
     | '/fiches/new'
     | '/interventions/$interventionId'
@@ -777,6 +790,7 @@ export interface FileRouteTypes {
     | '/pilot/charges'
     | '/pilot/controle'
     | '/pilot/corrections'
+    | '/pilot/dashboard'
     | '/pilot/direction'
     | '/pilot/donnees'
     | '/pilot/finance'
@@ -796,15 +810,14 @@ export interface FileRouteTypes {
     | '/pilot/temps'
     | '/pilot/validation'
     | '/api/public/ap-reminders'
-    | '/api/public/email-open'
     | '/api/public/brevo-webhook'
+    | '/api/public/email-open'
     | '/lovable/email/events'
     | '/clients'
     | '/fiches'
     | '/interventions'
     | '/parc-materiel'
     | '/pilot'
-    | '/pilot/dashboard'
     | '/pilot/ceev-contrats/$agreementId'
     | '/pilot/clients/$clientKey'
     | '/pilot/fiche/$clientId'
@@ -833,6 +846,7 @@ export interface FileRouteTypes {
     | '/partage/$token'
     | '/_authenticated/'
     | '/_authenticated/clients/$clientId'
+    | '/_authenticated/clients/premium'
     | '/_authenticated/fiches/$ficheId'
     | '/_authenticated/fiches/new'
     | '/_authenticated/interventions/$interventionId'
@@ -848,6 +862,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/clients'
     | '/_authenticated/pilot/controle'
     | '/_authenticated/pilot/corrections'
+    | '/_authenticated/pilot/dashboard'
     | '/_authenticated/pilot/direction'
     | '/_authenticated/pilot/donnees'
     | '/_authenticated/pilot/finance'
@@ -867,15 +882,14 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/temps'
     | '/_authenticated/pilot/validation'
     | '/api/public/ap-reminders'
-    | '/api/public/email-open'
     | '/api/public/brevo-webhook'
+    | '/api/public/email-open'
     | '/lovable/email/events'
     | '/_authenticated/clients/'
     | '/_authenticated/fiches/'
     | '/_authenticated/interventions/'
     | '/_authenticated/parc-materiel/'
     | '/_authenticated/pilot/'
-    | '/_authenticated/pilot/dashboard'
     | '/_authenticated/pilot/ceev-contrats/$agreementId'
     | '/_authenticated/pilot/clients/$clientKey'
     | '/_authenticated/pilot/fiche/$clientId'
@@ -893,8 +907,8 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   PartageTokenRoute: typeof PartageTokenRoute
   ApiPublicApRemindersRoute: typeof ApiPublicApRemindersRoute
-  ApiPublicEmailOpenRoute: typeof ApiPublicEmailOpenRoute
   ApiPublicBrevoWebhookRoute: typeof ApiPublicBrevoWebhookRoute
+  ApiPublicEmailOpenRoute: typeof ApiPublicEmailOpenRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
@@ -1032,13 +1046,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/pilot/'
       preLoaderRoute: typeof AuthenticatedPilotIndexRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/dashboard': {
-      id: '/_authenticated/pilot/dashboard'
-      path: '/dashboard'
-      fullPath: '/pilot/dashboard'
-      preLoaderRoute: typeof AuthenticatedPilotDashboardRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
     '/_authenticated/parc-materiel/': {
@@ -1223,6 +1230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotDirectionRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
+    '/_authenticated/pilot/dashboard': {
+      id: '/_authenticated/pilot/dashboard'
+      path: '/dashboard'
+      fullPath: '/pilot/dashboard'
+      preLoaderRoute: typeof AuthenticatedPilotDashboardRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
     '/_authenticated/pilot/corrections': {
       id: '/_authenticated/pilot/corrections'
       path: '/corrections'
@@ -1328,6 +1342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFichesFicheIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clients/premium': {
+      id: '/_authenticated/clients/premium'
+      path: '/clients/premium'
+      fullPath: '/clients/premium'
+      preLoaderRoute: typeof AuthenticatedClientsPremiumRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clients/$clientId': {
       id: '/_authenticated/clients/$clientId'
       path: '/clients/$clientId'
@@ -1415,6 +1436,7 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotClientsRoute: typeof AuthenticatedPilotClientsRouteWithChildren
   AuthenticatedPilotControleRoute: typeof AuthenticatedPilotControleRoute
   AuthenticatedPilotCorrectionsRoute: typeof AuthenticatedPilotCorrectionsRoute
+  AuthenticatedPilotDashboardRoute: typeof AuthenticatedPilotDashboardRoute
   AuthenticatedPilotDirectionRoute: typeof AuthenticatedPilotDirectionRoute
   AuthenticatedPilotDonneesRoute: typeof AuthenticatedPilotDonneesRoute
   AuthenticatedPilotFinanceRoute: typeof AuthenticatedPilotFinanceRoute
@@ -1434,7 +1456,6 @@ interface AuthenticatedPilotRouteChildren {
   AuthenticatedPilotTempsRoute: typeof AuthenticatedPilotTempsRoute
   AuthenticatedPilotValidationRoute: typeof AuthenticatedPilotValidationRoute
   AuthenticatedPilotIndexRoute: typeof AuthenticatedPilotIndexRoute
-  AuthenticatedPilotDashboardRoute: typeof AuthenticatedPilotDashboardRoute
   AuthenticatedPilotCeevContratsAgreementIdRoute: typeof AuthenticatedPilotCeevContratsAgreementIdRoute
   AuthenticatedPilotFicheClientIdRoute: typeof AuthenticatedPilotFicheClientIdRoute
   AuthenticatedPilotFocusTopicRoute: typeof AuthenticatedPilotFocusTopicRoute
@@ -1452,6 +1473,7 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotClientsRoute: AuthenticatedPilotClientsRouteWithChildren,
   AuthenticatedPilotControleRoute: AuthenticatedPilotControleRoute,
   AuthenticatedPilotCorrectionsRoute: AuthenticatedPilotCorrectionsRoute,
+  AuthenticatedPilotDashboardRoute: AuthenticatedPilotDashboardRoute,
   AuthenticatedPilotDirectionRoute: AuthenticatedPilotDirectionRoute,
   AuthenticatedPilotDonneesRoute: AuthenticatedPilotDonneesRoute,
   AuthenticatedPilotFinanceRoute: AuthenticatedPilotFinanceRoute,
@@ -1471,7 +1493,6 @@ const AuthenticatedPilotRouteChildren: AuthenticatedPilotRouteChildren = {
   AuthenticatedPilotTempsRoute: AuthenticatedPilotTempsRoute,
   AuthenticatedPilotValidationRoute: AuthenticatedPilotValidationRoute,
   AuthenticatedPilotIndexRoute: AuthenticatedPilotIndexRoute,
-  AuthenticatedPilotDashboardRoute: AuthenticatedPilotDashboardRoute,
   AuthenticatedPilotCeevContratsAgreementIdRoute:
     AuthenticatedPilotCeevContratsAgreementIdRoute,
   AuthenticatedPilotFicheClientIdRoute: AuthenticatedPilotFicheClientIdRoute,
@@ -1497,6 +1518,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVersionsRoute: typeof AuthenticatedVersionsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedClientsClientIdRoute: typeof AuthenticatedClientsClientIdRoute
+  AuthenticatedClientsPremiumRoute: typeof AuthenticatedClientsPremiumRoute
   AuthenticatedFichesFicheIdRoute: typeof AuthenticatedFichesFicheIdRoute
   AuthenticatedFichesNewRoute: typeof AuthenticatedFichesNewRoute
   AuthenticatedInterventionsInterventionIdRoute: typeof AuthenticatedInterventionsInterventionIdRoute
@@ -1522,6 +1544,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVersionsRoute: AuthenticatedVersionsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedClientsClientIdRoute: AuthenticatedClientsClientIdRoute,
+  AuthenticatedClientsPremiumRoute: AuthenticatedClientsPremiumRoute,
   AuthenticatedFichesFicheIdRoute: AuthenticatedFichesFicheIdRoute,
   AuthenticatedFichesNewRoute: AuthenticatedFichesNewRoute,
   AuthenticatedInterventionsInterventionIdRoute:
@@ -1546,8 +1569,8 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   PartageTokenRoute: PartageTokenRoute,
   ApiPublicApRemindersRoute: ApiPublicApRemindersRoute,
-  ApiPublicEmailOpenRoute: ApiPublicEmailOpenRoute,
   ApiPublicBrevoWebhookRoute: ApiPublicBrevoWebhookRoute,
+  ApiPublicEmailOpenRoute: ApiPublicEmailOpenRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
