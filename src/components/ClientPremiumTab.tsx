@@ -413,7 +413,9 @@ function PremiumDocumentsCard({
                     className="text-destructive hover:text-destructive"
                     aria-label="Supprimer"
                     disabled={!canEdit || remove.isPending}
-                    onClick={() => remove.mutate({ id: doc.id, storagePath: doc.storage_path })}
+                    onClick={() =>
+                      remove.mutate({ id: doc.id, storagePath: doc.storage_path })
+                    }
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
