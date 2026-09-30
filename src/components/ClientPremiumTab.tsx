@@ -33,7 +33,13 @@ import {
 } from "@/lib/client-premium";
 import { signedPhotoUrl } from "@/lib/interventions";
 
-export function ClientPremiumTab({ clientId }: { clientId: string }) {
+export function ClientPremiumTab({
+  clientId,
+  canEdit,
+}: {
+  clientId: string;
+  canEdit: boolean;
+}) {
   const qc = useQueryClient();
 
   const { data: premium, isLoading } = useQuery({
@@ -112,7 +118,7 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
           </div>
           <Switch
             checked={premium?.enabled ?? false}
-            disabled={toggleEnabled.isPending}
+            disabled={!canEdit || toggleEnabled.isPending}
             onCheckedChange={(v) => toggleEnabled.mutate(v)}
           />
         </CardContent>
@@ -124,7 +130,7 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
             <Label htmlFor="garden-state">État du jardin</Label>
             <Textarea
               id="garden-state"
-              value={gardenState}
+              value={gardenState}\n              disabled={!canEdit}
               onChange={(e) => setGardenState(e.target.value)}
               placeholder="Ex : jardin en bon état général, taille des rosiers prévue en mars…"
               rows={3}
@@ -135,7 +141,7 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
             <Label htmlFor="garden-objectives">Objectifs du jardin</Label>
             <Textarea
               id="garden-objectives"
-              value={gardenObjectives}
+              value={gardenObjectives}\n              disabled={!canEdit}
               onChange={(e) => setGardenObjectives(e.target.value)}
               placeholder="Ex : préserver les plantes existantes, réduire l’arrosage, garder une floraison étalée…"
               rows={3}
@@ -146,7 +152,7 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
             <Label htmlFor="garden-specificities">Particularités du jardin</Label>
             <Textarea
               id="garden-specificities"
-              value={gardenSpecificities}
+              value={gardenSpecificities}\n              disabled={!canEdit}
               onChange={(e) => setGardenSpecificities(e.target.value)}
               placeholder="Ex : sol très calcaire, zone ventée, présence d’un chien, contraintes d’accès…"
               rows={3}
@@ -157,7 +163,7 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
             <Label htmlFor="commercial-note">Note commerciale (visible du client)</Label>
             <Textarea
               id="commercial-note"
-              value={commercialNote}
+              value={commercialNote}\n              disabled={!canEdit}
               onChange={(e) => setCommercialNote(e.target.value)}
               placeholder="Message libre affiché dans l'espace client"
               rows={2}
@@ -168,7 +174,7 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
             <Label htmlFor="google-review">Lien avis Google</Label>
             <Input
               id="google-review"
-              value={googleReviewUrl}
+              value={googleReviewUrl}\n              disabled={!canEdit}
               onChange={(e) => setGoogleReviewUrl(e.target.value)}
               placeholder="https://g.page/r/..."
               className="mt-1.5"
@@ -177,7 +183,7 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
           <Button
             type="button"
             size="sm"
-            disabled={saveFields.isPending}
+            disabled={!canEdit || saveFields.isPending}
             onClick={() => saveFields.mutate()}
           >
             Enregistrer
@@ -187,11 +193,12 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
 
       <CoverPhotoPicker
         clientId={clientId}
+        canEdit={canEdit}
         currentPhotoId={premium?.cover_photo_id ?? null}
         onSelected={invalidate}
       />
 
-      <PremiumDocumentsCard clientId={clientId} documents={documents ?? []} />
+      <PremiumDocumentsCard clientId={clientId} documents={documents ?? []} canEdit={canEdit} />
     </div>
   );
 }
@@ -199,10 +206,12 @@ export function ClientPremiumTab({ clientId }: { clientId: string }) {
 function CoverPhotoPicker({
   clientId,
   currentPhotoId,
+  canEdit,
   onSelected,
 }: {
   clientId: string;
   currentPhotoId: string | null;
+  canEdit: boolean;
   onSelected: () => void;
 }) {
   const { data: photos } = useQuery({
@@ -247,7 +256,7 @@ function CoverPhotoPicker({
                 key={p.id}
                 type="button"
                 onClick={() => select.mutate(p.id)}
-                disabled={select.isPending}
+                disabled={!canEdit || select.isPending}
                 className={`aspect-square overflow-hidden rounded-lg border-2 ${
                   currentPhotoId === p.id ? "border-primary" : "border-transparent"
                 }`}
@@ -274,9 +283,11 @@ const UPLOADER_LABEL: Record<PremiumDocument["uploaded_by"], string> = {
 function PremiumDocumentsCard({
   clientId,
   documents,
+  canEdit,
 }: {
   clientId: string;
   documents: PremiumDocument[];
+  canEdit: boolean;
 }) {
   const qc = useQueryClient();
   const [title, setTitle] = useState("");
@@ -338,10 +349,10 @@ function PremiumDocumentsCard({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Titre du document"
           />
-          <Button type="button" variant="outline" disabled={busy} asChild>
+          <Button type="button" variant="outline" disabled={!canEdit || busy} asChild>
             <label className="cursor-pointer">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              <input type="file" className="hidden" onChange={upload} disabled={busy} />
+              <input type="file" className="hidden" onChange={upload} disabled={!canEdit || busy} />
             </label>
           </Button>
         </div>
