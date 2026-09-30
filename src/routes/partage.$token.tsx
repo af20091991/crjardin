@@ -82,7 +82,7 @@ const sharedQuery = (token: string) =>
   queryOptions({
     queryKey: ["shared-client", token],
     queryFn: () => getSharedClient({ data: { token } }),
-    staleTime: 60_000,
+    staleTime: 10_000,
   });
 
 const messagesQuery = (token: string) =>
@@ -96,7 +96,7 @@ const premiumQuery = (token: string) =>
   queryOptions({
     queryKey: ["shared-premium", token],
     queryFn: () => getSharedPremium({ data: { token } }),
-    staleTime: 60_000,
+    staleTime: 10_000,
   });
 
 export const Route = createFileRoute("/partage/$token")({
