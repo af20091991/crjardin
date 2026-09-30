@@ -187,6 +187,7 @@ function useShareTheme() {
   return { dark, large, toggleDark, toggleLarge };
 }
 
+// prettier-ignore
 function SharePage() {
   const { token } = Route.useParams();
   const { data } = useSuspenseQuery(sharedQuery(token));
@@ -612,6 +613,7 @@ function PremiumExperience({
     </div>
   );
 }
+// prettier-ignore
 function StatCard({
   label,
   value,
@@ -632,6 +634,7 @@ function StatCard({
 }
 
 /* ---------- Reports tab: filters (#7) + list/calendar (#1) ---------- */
+// prettier-ignore
 function ReportsTab({
   interventions,
   token,
@@ -807,6 +810,7 @@ function ReportsTab({
   );
 }
 
+// prettier-ignore
 function InterventionCard({
   iv,
   token,
@@ -992,6 +996,7 @@ function PhotoGallery({ interventions }: { interventions: SharedIntervention[] }
 }
 
 /* ---------- Recommendations + interest (client #9) ---------- */
+// prettier-ignore
 function RecommendationsTab({
   recommendations,
   token,
@@ -1110,6 +1115,7 @@ function GardenTab({ client, interventions, recommendations, premium, token }: {
   </div>;
 }
 
+// prettier-ignore
 function PremiumTab({
   premium,
   token,
@@ -1297,6 +1303,7 @@ function GeneralMessages({ token, messages }: { token: string; messages: ClientM
 }
 
 /* ---------- Message thread with gardener replies (client #4) ---------- */
+// prettier-ignore
 function MessageThread({
   token,
   interventionId,
