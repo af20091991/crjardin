@@ -407,6 +407,7 @@ function PremiumPageIntro({
 }
 
 // prettier-ignore-start
+
 // prettier-ignore
 function PremiumExperience({ client, interventions, recommendations, premium, messages, token, large, dark, toggleDark, toggleLarge }: {
   client: SharedClientData["client"];
@@ -457,6 +458,7 @@ function PremiumExperience({ client, interventions, recommendations, premium, me
     </main>
   </div>;
 }
+
 // prettier-ignore-end
 
 function StatCard({
