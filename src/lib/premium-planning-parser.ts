@@ -1,4 +1,5 @@
-import { getDocument, type TextItem } from "pdfjs-dist/legacy/build/pdf.mjs";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import type { TextItem } from "pdfjs-dist/types/src/display/api";
 
 export interface ParsedPlanningItem {
   period_label: string;
