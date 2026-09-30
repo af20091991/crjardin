@@ -33,7 +33,13 @@ import {
 } from "@/lib/client-premium";
 import { signedPhotoUrl } from "@/lib/interventions";
 
-export function ClientPremiumTab({\n  clientId,\n  canEdit,\n}: {\n  clientId: string;\n  canEdit: boolean;\n}) {
+export function ClientPremiumTab({
+  clientId,
+  canEdit,
+}: {
+  clientId: string;
+  canEdit: boolean;
+}) {
   const qc = useQueryClient();
 
   const { data: premium, isLoading } = useQuery({
@@ -205,6 +211,7 @@ export function ClientPremiumTab({\n  clientId,\n  canEdit,\n}: {\n  clientId: s
 function CoverPhotoPicker({
   clientId,
   currentPhotoId,
+  canEdit,
   onSelected,
 }: {
   clientId: string;
@@ -281,6 +288,7 @@ const UPLOADER_LABEL: Record<PremiumDocument["uploaded_by"], string> = {
 function PremiumDocumentsCard({
   clientId,
   documents,
+  canEdit,
 }: {
   clientId: string;
   documents: PremiumDocument[];
@@ -349,7 +357,12 @@ function PremiumDocumentsCard({
           <Button type="button" variant="outline" disabled={!canEdit || busy} asChild>
             <label className="cursor-pointer">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              <input\n                type="file"\n                className="hidden"\n                onChange={upload}\n                disabled={!canEdit || busy}\n              />
+              <input
+                type="file"
+                className="hidden"
+                onChange={upload}
+                disabled={!canEdit || busy}
+              />
             </label>
           </Button>
         </div>
