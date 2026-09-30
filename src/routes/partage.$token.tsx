@@ -449,7 +449,6 @@ function PremiumExperience({ client, interventions, recommendations, premium, me
       <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
         <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16" aria-label="Navigation Premium">
           {sections.map((item) => <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined} className={`h-14 shrink-0 rounded-none border-b-2 px-0 text-sm font-normal hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item.label}</Button>)}
-          {isAdmin && <Button asChild variant="link" className="ml-auto hidden h-14 shrink-0 px-0 text-xs text-primary sm:inline-flex"><Link to="/clients/premium">← Retour à Pilot Pro</Link></Button>}
         </nav>
       </div>
       <main className="mx-auto w-full max-w-[1320px] px-5 py-10 sm:px-10 sm:py-14 lg:px-16">
