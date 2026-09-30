@@ -91,7 +91,8 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
       const { data: files, error } = await supabase.storage
         .from("client-plannings")
         .list(clientId, { limit: 100, sortBy: { column: "updated_at", order: "desc" } });
-      if (error) throw new Error(`Impossible de rechercher le calendrier client : ${error.message}`);
+      if (error)
+        throw new Error(`Impossible de rechercher le calendrier client : ${error.message}`);
 
       const source = (files ?? []).find((candidate) => /.pdf$/i.test(candidate.name));
       if (!source) return false;
@@ -159,7 +160,11 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
         toast.success("Calendrier travaux synchronisé depuis la fiche client.");
       })
       .catch((error) => {
-        toast.error(error instanceof Error ? error.message : "Impossible de synchroniser le calendrier travaux.");
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Impossible de synchroniser le calendrier travaux.",
+        );
       });
   }, [canEdit, premium?.enabled, documents, workCalendar, clientId, importExistingPlanning]);
 
