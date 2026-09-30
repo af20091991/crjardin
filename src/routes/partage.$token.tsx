@@ -389,12 +389,6 @@ function SharePage() {
 }
 
 
-const PREMIUM_NAV_CLASS =
-  "sticky top-0 z-30 flex flex-wrap items-center gap-1 border-b bg-background/95 py-3 text-sm backdrop-blur";
-const PREMIUM_NAV_ACTIVE_CLASS = "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary";
-const PREMIUM_NAV_INACTIVE_CLASS =
-  "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
-
 function PremiumExperience({
   client,
   interventions,
@@ -474,7 +468,7 @@ function PremiumExperience({
           </div>
 
           <nav
-            className={PREMIUM_NAV_CLASS}
+            className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b py-4 text-sm"
             aria-label="Navigation Premium"
           >
             {isAdmin && (
@@ -489,8 +483,8 @@ function PremiumExperience({
               onClick={() => setSection("home")}
               className={
                 section === "home"
-                  ? PREMIUM_NAV_ACTIVE_CLASS
-                  : PREMIUM_NAV_INACTIVE_CLASS
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }
             >
               Accueil
@@ -499,8 +493,8 @@ function PremiumExperience({
               onClick={() => setSection("premium")}
               className={
                 section === "premium"
-                  ? PREMIUM_NAV_ACTIVE_CLASS
-                  : PREMIUM_NAV_INACTIVE_CLASS
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }
             >
               Mon jardin
@@ -509,8 +503,8 @@ function PremiumExperience({
               onClick={() => setSection("reports")}
               className={
                 section === "reports"
-                  ? PREMIUM_NAV_ACTIVE_CLASS
-                  : PREMIUM_NAV_INACTIVE_CLASS
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }
             >
               Interventions
@@ -519,8 +513,8 @@ function PremiumExperience({
               onClick={() => setSection("photos")}
               className={
                 section === "photos"
-                  ? PREMIUM_NAV_ACTIVE_CLASS
-                  : PREMIUM_NAV_INACTIVE_CLASS
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }
             >
               Photos
@@ -529,8 +523,8 @@ function PremiumExperience({
               onClick={() => setSection("recos")}
               className={
                 section === "recos"
-                  ? PREMIUM_NAV_ACTIVE_CLASS
-                  : PREMIUM_NAV_INACTIVE_CLASS
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }
             >
               Conseils
@@ -539,8 +533,8 @@ function PremiumExperience({
               onClick={() => setSection("documents")}
               className={
                 section === "documents"
-                  ? PREMIUM_NAV_ACTIVE_CLASS
-                  : PREMIUM_NAV_INACTIVE_CLASS
+                  ? "font-medium text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }
             >
               Documents
@@ -548,7 +542,7 @@ function PremiumExperience({
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-[1152px] px-4 py-7 sm:px-6 sm:py-10 lg:px-10">
+      <main className="mx-auto w-full max-w-[1152px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
         {section === "home" ? (
           <PremiumHome
             client={client}
@@ -561,7 +555,7 @@ function PremiumExperience({
             showHeader={false}
           />
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-5">
             {section === "reports" && (
               <section>
                 <h1 className="mb-5 font-serif text-3xl font-semibold">Interventions</h1>
