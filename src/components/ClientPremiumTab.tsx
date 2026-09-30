@@ -109,7 +109,9 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
       file = new File([blob], source.name, { type: "application/pdf" });
     }
 
-    if (!file) throw new Error("Impossible de récupérer le PDF du calendrier travaux.");\n\n    const rows = await parsePlanning(file);
+    if (!file) throw new Error("Impossible de récupérer le PDF du calendrier travaux.");
+
+    const rows = await parsePlanning(file);
     if (rows.length === 0) {
       throw new Error("Le PDF du calendrier client ne contient aucune intervention exploitable.");
     }
