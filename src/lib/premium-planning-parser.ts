@@ -23,7 +23,7 @@ function detectPeriod(line: string) {
   const lower = line.toLocaleLowerCase("fr-FR");
   for (let index = 0; index < MONTHS.length; index += 1) {
     const month = MONTHS[index];
-    const match = lower.match(new RegExp(`^\\s*${month}(?:\\s+(\\d+))?(?:\\s+(20\\d{2}))?\\s*$`));
+    const match = lower.match(new RegExp(`^\\s*${month}(?:\\s+(20\\d{2}))?(?:\\s+(\\d+))?(?:\\s+|$)`));
     if (match) {
       return {
         month: index + 1,
