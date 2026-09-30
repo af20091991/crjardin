@@ -24,12 +24,14 @@ if (supported.length === 0) {
   process.exit(0);
 }
 
-execFileSync("bunx", ["prettier", "--write", ...supported], {
+const filesToFormat = [...supported, "src/components/ClientPremiumTab.tsx"];
+
+execFileSync("bunx", ["prettier", "--write", ...filesToFormat], {
   encoding: "utf8",
   stdio: "inherit",
 });
 
-for (const file of supported) {
+for (const file of filesToFormat) {
   if (file.endsWith("ClientPremiumTab.tsx")) {
     const content = readFileSync(file, "utf8");
     const lines = content.split("\n");
