@@ -1,0 +1,15 @@
+name: tmp-prettier-premium
+on:
+  push:
+    branches: ["tmp/prettier-premium-fix"]
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx prettier --write src/components/ClientPremiumTab.tsx
+      - run: cat src/components/ClientPremiumTab.tsx
