@@ -41,20 +41,18 @@ function inferYear(month: number, explicitYear: number | null, currentYear: numb
 }
 
 export async function parsePlanningPdf(bytes: Uint8Array, currentYear = new Date().getFullYear()) {
-  const pdf = await getDocument({
-    data: bytes,
-    disableWorker: true,
-    useWorkerFetch: false,
-    isEvalSupported: false,
-  }).promise;
+  const pdf = await getDocument({ data: bytes }).promise;
 
   const lines: string[] = [];
   try {
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
       const page = await pdf.getPage(pageNumber);
-      const content = await page.getTextContent({ normalizeWhitespace: true });
+      const content = await page.getTextContent();
       const items = content.items
-        .filter((item): item is typeof item & { str: string } => "str" in item && Boolean(item.str.trim()))
+        .filter(
+          (item): item is { str: string; transform: number[] } =>
+            "str" in item && "transform" in item && Boolean(item.str.trim()),
+        )
         .map((item) => ({ text: normalize(item.str), x: item.transform[4], y: item.transform[5] }))
         .sort((a, b) => b.y - a.y || a.x - b.x);
 
@@ -74,8 +72,6 @@ export async function parsePlanningPdf(bytes: Uint8Array, currentYear = new Date
       }
       page.cleanup();
     }
-  } finally {
-    await pdf.destroy();
   }
 
   const items: ParsedPlanningItem[] = [];
