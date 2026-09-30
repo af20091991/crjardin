@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,25 +80,38 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
     );
     if (existingPlanning && (workCalendar?.length ?? 0) > 0) return true;
 
-    const { data: files, error } = await supabase.storage
-      .from("client-plannings")
-      .list(clientId, { limit: 100, sortBy: { column: "updated_at", order: "desc" } });
-    if (error) throw new Error(`Impossible de rechercher le calendrier client : ${error.message}`);
+    let file: File | null = null;
+    if (existingPlanning) {
+      const signedUrl = await signedPremiumDocumentUrl(existingPlanning.storage_path);
+      const response = await fetch(signedUrl);
+      if (!response.ok) throw new Error("Impossible de télécharger le PDF du calendrier Premium.");
+      const blob = await response.blob();
+      file = new File([blob], existingPlanning.filename, { type: "application/pdf" });
+    } else {
+      const { data: files, error } = await supabase.storage
+        .from("client-plannings")
+        .list(clientId, { limit: 100, sortBy: { column: "updated_at", order: "desc" } });
+      if (error)
+        throw new Error(`Impossible de rechercher le calendrier client : ${error.message}`);
 
-    const source = (files ?? []).find((file) => /.pdf$/i.test(file.name));
-    if (!source) return false;
+      const source = (files ?? []).find((candidate) => /.pdf$/i.test(candidate.name));
+      if (!source) return false;
 
-    const { data: signed, error: signError } = await supabase.storage
-      .from("client-plannings")
-      .createSignedUrl(`${clientId}/${source.name}`, 60 * 60);
-    if (signError || !signed?.signedUrl) {
-      throw new Error("Impossible d'accéder au PDF du calendrier client.");
+      const { data: signed, error: signError } = await supabase.storage
+        .from("client-plannings")
+        .createSignedUrl(`${clientId}/${source.name}`, 60 * 60);
+      if (signError || !signed?.signedUrl) {
+        throw new Error("Impossible d'accéder au PDF du calendrier client.");
+      }
+
+      const response = await fetch(signed.signedUrl);
+      if (!response.ok) throw new Error("Impossible de télécharger le PDF du calendrier client.");
+      const blob = await response.blob();
+      file = new File([blob], source.name, { type: "application/pdf" });
     }
 
-    const response = await fetch(signed.signedUrl);
-    if (!response.ok) throw new Error("Impossible de télécharger le PDF du calendrier client.");
-    const blob = await response.blob();
-    const file = new File([blob], source.name, { type: "application/pdf" });
+    if (!file) throw new Error("Impossible de récupérer le PDF du calendrier travaux.");
+
     const rows = await parsePlanning(file);
     if (rows.length === 0) {
       throw new Error("Le PDF du calendrier client ne contient aucune intervention exploitable.");
@@ -116,10 +129,44 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
         })),
       },
     });
-    const document = await uploadPremiumDocument(clientId, file, "Calendrier travaux");
+
+    const document = existingPlanning
+      ? existingPlanning
+      : await uploadPremiumDocument(clientId, file, "Calendrier travaux");
     await replacePremiumWorkCalendar(clientId, document.id, normalized.items);
     return true;
   };
+
+  const calendarSyncAttempted = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      !canEdit ||
+      !premium?.enabled ||
+      documents === undefined ||
+      workCalendar === undefined ||
+      calendarSyncAttempted.current === clientId ||
+      workCalendar.length > 0
+    ) {
+      return;
+    }
+
+    calendarSyncAttempted.current = clientId;
+    importExistingPlanning()
+      .then((imported) => {
+        if (!imported) return;
+        qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+        qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+        qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
+        toast.success("Calendrier travaux synchronisé depuis la fiche client.");
+      })
+      .catch((error) => {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Impossible de synchroniser le calendrier travaux.",
+        );
+      });
+  }, [canEdit, premium?.enabled, documents, workCalendar, clientId, importExistingPlanning]);
 
   const toggleEnabled = useMutation({
     mutationFn: async (enabled: boolean) => {
