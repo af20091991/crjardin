@@ -295,7 +295,7 @@ function PremiumDocumentsCard({
     try {
       await uploadPremiumDocument(clientId, file, title || file.name);
       setTitle("");
-      invalidateDocuments();
+      invalidate();
       toast.success("Document ajouté");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Échec de l'envoi");
@@ -307,7 +307,7 @@ function PremiumDocumentsCard({
   const toggleVisibility = useMutation({
     mutationFn: ({ id, visible }: { id: string; visible: boolean }) =>
       updatePremiumDocumentVisibility(id, visible),
-    onSuccess: invalidateDocuments,
+    onSuccess: invalidate,
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
@@ -316,7 +316,7 @@ function PremiumDocumentsCard({
       deletePremiumDocument(id, storagePath),
     onSuccess: () => {
       toast.success("Document supprimé");
-      invalidateDocuments();
+      invalidate();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
