@@ -1,4 +1,4 @@
-import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import { getDocument, type TextItem } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 export interface ParsedPlanningItem {
   period_label: string;
@@ -65,7 +65,7 @@ export async function parsePlanningPdf(
       const content = await page.getTextContent();
       const items = content.items
         .filter(
-          (item): item is { str: string; transform: number[] } =>
+          (item): item is TextItem =>
             "str" in item && "transform" in item && Boolean(item.str.trim()),
         )
         .map((item) => ({
