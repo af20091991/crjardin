@@ -358,12 +358,7 @@ function PremiumDocumentsCard({
           <Button type="button" variant="outline" disabled={!canEdit || busy} asChild>
             <label className="cursor-pointer">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              <input
-                type="file"
-                className="hidden"
-                onChange={upload}
-                disabled={!canEdit || busy}
-              />
+              <input type="file" className="hidden" onChange={upload} disabled={!canEdit || busy} />
             </label>
           </Button>
         </div>
@@ -418,9 +413,7 @@ function PremiumDocumentsCard({
                     className="text-destructive hover:text-destructive"
                     aria-label="Supprimer"
                     disabled={!canEdit || remove.isPending}
-                    onClick={() =>
-                      remove.mutate({ id: doc.id, storagePath: doc.storage_path })
-                    }
+                    onClick={() => remove.mutate({ id: doc.id, storagePath: doc.storage_path })}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
