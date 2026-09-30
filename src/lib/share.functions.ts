@@ -3,7 +3,6 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { formatPremiumClientName } from "@/lib/premium-client-name";
-import { parsePlanningPdf } from "@/lib/premium-planning-parser";
 
 export interface SharedTask {
   id: string;
@@ -410,6 +409,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
         .download(client.ceev_planning_path);
 
       if (!planningDownloadError && planningFile) {
+        const { parsePlanningPdf } = await import("@/lib/premium-planning-parser");
         const parsed = await parsePlanningPdf(new Uint8Array(await planningFile.arrayBuffer()));
         if (parsed.length > 0) {
           const rows = parsed.map((item) => ({
