@@ -89,7 +89,9 @@ export function ClientPremiumTab({
     const { data: files, error } = await supabase.storage
       .from("client-plannings")
       .list(clientId, { limit: 100, sortBy: { column: "updated_at", order: "desc" } });
-    if (error) {\n      throw new Error(`Impossible de rechercher le calendrier client : ${error.message}`);\n    }
+    if (error) {
+      throw new Error(`Impossible de rechercher le calendrier client : ${error.message}`);
+    }
 
     const source = (files ?? []).find((file) => /.pdf$/i.test(file.name));
     if (!source) return false;
@@ -102,7 +104,9 @@ export function ClientPremiumTab({
     }
 
     const response = await fetch(signed.signedUrl);
-    if (!response.ok) {\n      throw new Error("Impossible de télécharger le PDF du calendrier client.");\n    }
+    if (!response.ok) {
+      throw new Error("Impossible de télécharger le PDF du calendrier client.");
+    }
     const blob = await response.blob();
     const file = new File([blob], source.name, { type: "application/pdf" });
     const rows = await parsePlanning(file);
@@ -116,7 +120,7 @@ export function ClientPremiumTab({
           period_label: row.label || row.monthLabel,
           year: row.year,
           month: row.month,
-          sequence: Number((row.label.match(/(\\d+)\\s*$/)?.[1] ?? row.index + 1)),
+          sequence: Number((row.label.match(/(\d+)\\s*$/)?.[1] ?? row.index + 1)),
           type: row.type,
           tasks: row.tasks,
         })),
@@ -403,7 +407,7 @@ function PremiumWorkCalendarCard({
             period_label: row.label || row.monthLabel,
             year: row.year,
             month: row.month,
-            sequence: Number((row.label.match(/(\\d+)\\s*$/)?.[1] ?? row.index + 1)),
+            sequence: Number((row.label.match(/(\d+)\\s*$/)?.[1] ?? row.index + 1)),
             type: row.type,
             tasks: row.tasks,
           })),
