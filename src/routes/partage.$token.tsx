@@ -482,11 +482,13 @@ function ReportsTab({
   token,
   messages,
   client,
+  editorial = false,
 }: {
   interventions: SharedIntervention[];
   token: string;
   messages: ClientMessage[];
   client: SharedClientData["client"];
+  editorial?: boolean;
 }) {
   const [view, setView] = useState<"list" | "calendar">("list");
   const [q, setQ] = useState("");
@@ -550,7 +552,7 @@ function ReportsTab({
   const interventionDates = interventions.map((i) => new Date(i.intervention_date));
 
   return (
-    <div className="space-y-4">
+    <div className="mt-8 space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -637,6 +639,7 @@ function ReportsTab({
       ) : (
         filtered.map((iv) => (
           <InterventionCard
+            editorial={editorial}
             key={iv.id}
             iv={iv}
             token={token}
@@ -654,11 +657,13 @@ function InterventionCard({
   token,
   messages,
   client,
+  editorial = false,
 }: {
   iv: SharedIntervention;
   token: string;
   messages: ClientMessage[];
   client: SharedClientData["client"];
+  editorial?: boolean;
 }) {
   const [downloading, setDownloading] = useState(false);
   const isNew = !iv.client_read_at;
@@ -684,12 +689,15 @@ function InterventionCard({
   }
 
   return (
-    <Card className={`overflow-hidden shadow-sm ${isNew ? "border-primary/40 border-l-2" : "border-l-2 border-l-muted"}`}>
-      <CardContent className="space-y-4 pt-6">
+    <Card className={editorial ? "overflow-hidden rounded-none border-x-0 border-t-0 bg-transparent shadow-none" : `overflow-hidden shadow-sm ${isNew ? "border-primary/40 border-l-2" : "border-l-2 border-l-muted"}`}>
+      {editorial && iv.photos.find((photo) => photo.url)?.url && (
+        <img src={iv.photos.find((photo) => photo.url)?.url ?? undefined} alt={iv.photos.find((photo) => photo.url)?.caption ?? "Photo de l'intervention"} className="aspect-[21/9] max-h-96 w-full object-cover" />
+      )}
+      <CardContent className={editorial ? "space-y-5 px-0 py-7" : "space-y-4 pt-6"}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-medium">{iv.title ?? iv.intervention_type ?? "Intervention"}</h3>
+              <h3 className={editorial ? "font-['Cormorant_Garamond',Georgia,serif] text-3xl font-medium" : "font-medium"}>{iv.title ?? iv.intervention_type ?? "Intervention"}</h3>
               {isNew && <Badge className="bg-primary text-primary-foreground">Nouveau</Badge>}
               {iv.sent_to_client_at && (
                 <Badge
