@@ -29,3 +29,4 @@ jobs:
           git add src/routes/partage.$token.tsx
           git commit -m "style(premium): format partage route"
           git push
+# trigger
