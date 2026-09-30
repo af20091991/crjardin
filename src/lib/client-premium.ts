@@ -141,7 +141,10 @@ export async function uploadPremiumDocument(
     })
     .select()
     .single();
-  if (error) throw new Error(`Impossible d'enregistrer le document : ${error.message}`);
+  if (error) {
+    await supabase.storage.from(DOCS_BUCKET).remove([path]);
+    throw new Error(`Impossible d'enregistrer le document : ${error.message}`);
+  }
   return data as PremiumDocument;
 }
 
@@ -154,7 +157,10 @@ export async function updatePremiumDocumentVisibility(id: string, visible: boole
 }
 
 export async function deletePremiumDocument(id: string, storagePath: string): Promise<void> {
-  await supabase.storage.from(DOCS_BUCKET).remove([storagePath]);
+  const { error: storageError } = await supabase.storage.from(DOCS_BUCKET).remove([storagePath]);
+  if (storageError) {
+    throw new Error(`Impossible de supprimer le fichier : ${storageError.message}`);
+  }
   const { error } = await supabase.from("client_premium_documents").delete().eq("id", id);
   if (error) throw new Error(`Impossible de supprimer le document : ${error.message}`);
 }
