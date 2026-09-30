@@ -496,16 +496,6 @@ function PremiumExperience({
             }
           />
         )}
-        {section === "calendar" && (
-          <section>
-            <PremiumPageIntro
-              eyebrow="Le rythme du jardin"
-              title="Calendrier travaux"
-              text="Les prochaines interventions prévues dans votre calendrier d'entretien, présentées simplement au fil des saisons."
-            />
-            <PremiumWorkCalendar items={premium.work_calendar} editorial />
-          </section>
-        )}
         {section !== "home" && <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
   <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-6 overflow-x-auto px-5 sm:gap-10 sm:px-10 lg:px-16" aria-label="Navigation Premium">
     {sections.map((item) => (
@@ -516,6 +506,16 @@ function PremiumExperience({
     ))}
   </nav>
 </div>}
+        {section === "calendar" && (
+          <section>
+            <PremiumPageIntro
+              eyebrow="Le rythme du jardin"
+              title="Calendrier travaux"
+              text="Les prochaines interventions prévues dans votre calendrier d'entretien, présentées simplement au fil des saisons."
+            />
+            <PremiumWorkCalendar items={premium.work_calendar} editorial />
+          </section>
+        )}
         {section === "garden" && (
           <section>
             <PremiumPageIntro
