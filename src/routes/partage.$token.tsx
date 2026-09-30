@@ -75,7 +75,7 @@ import { toast } from "sonner";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
-import { PremiumHome } from "@/components/share/PremiumHome";
+import { PremiumHome, PremiumExchange, type PremiumSection } from "@/components/share/PremiumHome";
 import { useIsAdmin } from "@/hooks/use-admin";
 
 const sharedQuery = (token: string) =>
@@ -406,18 +406,7 @@ function PremiumPageIntro({
   );
 }
 
-function PremiumExperience({
-  client,
-  interventions,
-  recommendations,
-  premium,
-  messages,
-  token,
-  large,
-  dark,
-  toggleDark,
-  toggleLarge,
-}: {
+function PremiumExperience({ client, interventions, recommendations, premium, messages, token, large, dark, toggleDark, toggleLarge }: {
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
   recommendations: SharedRecommendation[];
@@ -429,238 +418,44 @@ function PremiumExperience({
   toggleDark: () => void;
   toggleLarge: () => void;
 }) {
-  const [section, setSection] = useState<
-    "home" | "reports" | "photos" | "recos" | "premium" | "documents"
-  >("home");
-  const clientTitle = premiumClientTitle(client);
+  const [section, setSection] = useState<PremiumSection>("home");
   const { isAdmin } = useIsAdmin();
-
-  return (
-    <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
-      <header className="border-b bg-background">
-        <div className="mx-auto w-full max-w-[1152px] px-4 sm:px-6 lg:px-10">
-          <div className="relative overflow-hidden rounded-b-[1.5rem] border-x border-b bg-background">
-            {premium.cover_photo_url ? (
-              <img
-                src={premium.cover_photo_url}
-                alt={`Le jardin de ${clientTitle}`}
-                className="h-[220px] w-full object-cover sm:h-[300px]"
-              />
-            ) : (
-              <div className="h-[180px] bg-muted sm:h-[240px]" />
-            )}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/80 to-transparent p-5 pt-20 sm:p-7 sm:pt-24">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
-                De la graine au jardin
-              </p>
-              <h1 className="mt-1 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">
-                Le jardin de {clientTitle}
-              </h1>
-              {client.address && (
-                <p className="mt-1 text-sm text-muted-foreground">{client.address}</p>
-              )}
-            </div>
-            <div className="absolute right-4 top-4 flex items-center gap-1.5 sm:right-6 sm:top-6">
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label={dark ? "Mode clair" : "Mode sombre"}
-                onClick={toggleDark}
-                className="bg-background/90 backdrop-blur"
-              >
-                {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label="Agrandir le texte"
-                onClick={toggleLarge}
-                className={`bg-background/90 backdrop-blur ${
-                  large ? "bg-primary/10 text-primary" : ""
-                }`}
-              >
-                <Type className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <nav
-            className="sticky top-0 z-30 flex flex-wrap items-center gap-1 border-b bg-background/95 py-3 text-sm backdrop-blur"
-            aria-label="Navigation Premium"
-          >
-            {isAdmin && (
-              <Link
-                to="/clients/premium"
-                className="mr-1 inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 font-medium text-primary transition-colors hover:bg-primary/10"
-              >
-                ← Retour à Pilot Pro
-              </Link>
-            )}
-            <button
-              onClick={() => setSection("home")}
-              className={
-                section === "home"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              }
-            >
-              Accueil
-            </button>
-            <button
-              onClick={() => setSection("premium")}
-              className={
-                section === "premium"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              }
-            >
-              Mon jardin
-            </button>
-            <button
-              onClick={() => setSection("reports")}
-              className={
-                section === "reports"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              }
-            >
-              Interventions
-            </button>
-            <button
-              onClick={() => setSection("photos")}
-              className={
-                section === "photos"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              }
-            >
-              Photos
-            </button>
-            <button
-              onClick={() => setSection("recos")}
-              className={
-                section === "recos"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              }
-            >
-              Conseils
-            </button>
-            <button
-              onClick={() => setSection("documents")}
-              className={
-                section === "documents"
-                  ? "rounded-full bg-primary/10 px-3 py-1.5 font-medium text-primary"
-                  : "rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              }
-            >
-              Documents
-            </button>
-          </nav>
+  const qc = useQueryClient();
+  const sections: { id: PremiumSection; label: string }[] = [
+    { id: "home", label: "Accueil" }, { id: "garden", label: "Le jardin" },
+    { id: "reports", label: "Les interventions" }, { id: "documents", label: "Documents" },
+    { id: "exchange", label: "Échanger" },
+  ];
+  function navigate(next: PremiumSection) { setSection(next); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  return <div className={`min-h-screen bg-background pb-20 font-['Inter',sans-serif] ${large ? "text-[1.08rem]" : ""}`}>
+    <header className="mx-auto w-full max-w-[1728px]">
+      <div className="relative bg-muted">
+        {premium.cover_photo_url ? <img src={premium.cover_photo_url} alt={`Le jardin de ${premiumClientTitle(client)}`} className="h-[320px] w-full object-cover sm:h-[520px] lg:h-[620px]" /> : <div className="grid h-[280px] place-items-center sm:h-[440px]"><Leaf className="size-14 text-primary/30" aria-hidden="true" /></div>}
+        <div className="absolute right-4 top-4 flex gap-1 sm:right-8 sm:top-8">
+          <Button variant="secondary" size="icon" aria-label={dark ? "Mode clair" : "Mode sombre"} onClick={toggleDark}>{dark ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>
+          <Button variant="secondary" size="icon" aria-label="Agrandir le texte" onClick={toggleLarge} aria-pressed={large}><Type className="size-4" /></Button>
         </div>
-      </header>
-      <main className="mx-auto w-full max-w-[1152px] px-4 py-7 sm:px-6 sm:py-10 lg:px-10">
-        {section === "home" ? (
-          <PremiumHome
-            client={client}
-            interventions={interventions}
-            recommendations={recommendations}
-            premium={premium}
-            messages={messages}
-            token={token}
-            onNavigate={setSection}
-            showHeader={false}
-          />
-        ) : (
-          <div className="space-y-8">
-            {section === "reports" && (
-              <section>
-                <PremiumPageIntro
-                  eyebrow="Le carnet du jardin"
-                  title="Interventions"
-                  text="Retrouvez les visites, les travaux réalisés et les observations qui accompagnent votre jardin au fil des saisons."
-                />
-                <ReportsTab
-                  interventions={interventions}
-                  token={token}
-                  messages={messages}
-                  client={client}
-                />
-              </section>
-            )}
-            {section === "photos" && (
-              <section>
-                <PremiumPageIntro
-                  eyebrow="Mémoire du jardin"
-                  title="Photos"
-                  text="Les images qui permettent de suivre l’évolution de votre jardin au fil du temps."
-                />
-                <PhotoGallery interventions={interventions} />
-              </section>
-            )}
-            {section === "recos" && (
-              <section>
-                <PremiumPageIntro
-                  eyebrow="Le regard du paysagiste"
-                  title="Conseils"
-                  text="Mes observations et recommandations pour accompagner votre jardin dans la durée."
-                />
-                <RecommendationsTab recommendations={recommendations} token={token} />
-              </section>
-            )}
-            {section === "premium" && (
-              <section>
-                <PremiumPageIntro
-                  eyebrow="Votre jardin"
-                  title="Mon jardin"
-                  text="Les repères et informations utiles pour garder une vision claire de votre jardin."
-                />
-                <GardenTab
-                  client={client}
-                  interventions={interventions}
-                  recommendations={recommendations}
-                  premium={premium}
-                />
-              </section>
-            )}
-            {section === "documents" && (
-              <section>
-                <PremiumPageIntro
-                  eyebrow="Votre dossier"
-                  title="Documents"
-                  text="Retrouvez ici les documents mis à votre disposition dans le cadre du suivi de votre jardin."
-                />
-                <Card>
-                  <CardContent className="pt-6">
-                    {premium.documents.length > 0 ? (
-                      <div className="space-y-2">
-                        {premium.documents.map((document) => (
-                          <a
-                            key={document.id}
-                            href={document.url ?? "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-between gap-2 rounded-lg border p-3 text-sm transition-colors hover:border-primary/40"
-                          >
-                            <span className="truncate">{document.title}</span>
-                            <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Aucun document pour le moment.
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </section>
-            )}
-          </div>
-        )}
-      </main>
+      </div>
+      <div className="border-b bg-background px-5 pb-8 pt-7 sm:px-10 sm:pb-10 lg:px-16">
+        <p className="text-xs uppercase text-primary">De la graine au jardin · Carnet Premium</p>
+        <h1 className="mt-3 font-['Cormorant_Garamond',Georgia,serif] text-5xl font-medium leading-none sm:text-7xl">Le jardin de {premiumClientTitle(client)}</h1>
+        {client.address && <p className="mt-3 text-sm text-muted-foreground">{client.address}</p>}
+      </div>
+    </header>
+    <div className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
+      <nav className="mx-auto flex w-full max-w-[1728px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16" aria-label="Navigation Premium">
+        {sections.map((item) => <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined} className={`h-14 shrink-0 rounded-none border-b-2 px-0 text-sm font-normal hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item.label}</Button>)}
+        {isAdmin && <Button asChild variant="link" className="ml-auto h-14 shrink-0 px-0 text-xs text-primary"><Link to="/clients/premium">← Retour à Pilot Pro</Link></Button>}
+      </nav>
     </div>
-  );
+    <main className="mx-auto w-full max-w-[1728px] px-5 py-12 sm:px-10 sm:py-16 lg:px-16">
+      {section === "home" && <PremiumHome client={client} interventions={interventions} recommendations={recommendations} premium={premium} messages={messages} token={token} onNavigate={navigate} />}
+      {section === "garden" && <section><PremiumPageIntro eyebrow="Portrait du jardin" title="Le jardin" text="Un lieu vivant, ses particularités et son suivi au fil des saisons." /><GardenTab client={client} interventions={interventions} recommendations={recommendations} premium={premium} onNavigate={navigate} token={token} /></section>}
+      {section === "reports" && <section><PremiumPageIntro eyebrow="Au fil des saisons" title="Les interventions" text="Les passages et les soins apportés à votre jardin." /><ReportsTab interventions={interventions} token={token} messages={messages} client={client} editorial /></section>}
+      {section === "documents" && <section><PremiumPageIntro eyebrow="Les pièces du carnet" title="Documents" text="Les documents partagés pour le suivi de votre jardin." /><div className="mt-8 max-w-4xl divide-y border-t">{premium.documents.length ? premium.documents.map((document) => <a key={document.id} href={document.url ?? undefined} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-4 py-5 text-sm hover:text-primary"><FileText className="size-5 shrink-0 text-primary" /><span className="min-w-0 flex-1 truncate">{document.title}<span className="mt-1 block text-xs text-muted-foreground">{fmtDate(document.created_at)}</span></span><Download className="size-4 shrink-0" /></a>) : <p className="py-8 text-sm text-muted-foreground">Aucun document n'a encore été partagé.</p>}</div><div className="mt-8 max-w-xl"><PremiumDocumentUpload token={token} onUploaded={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })} /></div></section>}
+      {section === "exchange" && <PremiumExchange client={client} token={token} messages={messages} />}
+    </main>
+  </div>;
 }
 function StatCard({
   label,
