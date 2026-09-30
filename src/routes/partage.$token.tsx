@@ -99,6 +99,7 @@ const premiumQuery = (token: string) =>
     staleTime: 10_000,
   });
 
+// prettier-ignore
 export const Route = createFileRoute("/partage/$token")({
   // `?intervention=` cible un compte-rendu précis. Il n'ouvre AUCUN accès :
   // le périmètre reste celui du token (token → client → ses interventions).
@@ -132,6 +133,7 @@ export const Route = createFileRoute("/partage/$token")({
   ),
 });
 
+// prettier-ignore
 function Centered({ title, text }: { title: string; text: string }) {
   return (
     <div className="grid min-h-screen place-items-center bg-muted/30 p-6 text-center">
@@ -150,6 +152,7 @@ const TASK_LABELS: Record<string, string> = {
   impossible: "Non réalisable",
 };
 
+// prettier-ignore
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("fr-FR", {
     day: "numeric",
@@ -159,6 +162,7 @@ function fmtDate(d: string) {
 }
 
 /* ---------- Accessibility / theme controls (client #10) ---------- */
+// prettier-ignore
 function useShareTheme() {
   const [dark, setDark] = useState(false);
   const [large, setLarge] = useState(false);
@@ -389,6 +393,7 @@ function SharePage() {
   );
 }
 
+// prettier-ignore
 function PremiumPageIntro({
   eyebrow,
   title,
@@ -952,6 +957,7 @@ function InterventionCard({
 }
 
 /* ---------- Photo gallery (client #3) ---------- */
+// prettier-ignore
 function PhotoGallery({ interventions }: { interventions: SharedIntervention[] }) {
   const photos = interventions.flatMap((iv) =>
     iv.photos
@@ -1023,6 +1029,7 @@ function RecommendationsTab({
   );
 }
 
+// prettier-ignore
 function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }) {
   const qc = useQueryClient();
   const price = recommendationPrice(reco);
@@ -1234,6 +1241,7 @@ function PremiumTab({
   );
 }
 
+// prettier-ignore
 function PremiumDocumentUpload({ token, onUploaded }: { token: string; onUploaded: () => void }) {
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1288,6 +1296,7 @@ function PremiumDocumentUpload({ token, onUploaded }: { token: string; onUploade
   );
 }
 
+// prettier-ignore
 function GeneralMessages({ token, messages }: { token: string; messages: ClientMessage[] }) {
   return (
     <Card className="border-primary/30 bg-primary/5">
@@ -1426,6 +1435,7 @@ function MessageThread({
   );
 }
 
+// prettier-ignore
 function Section({ title, text }: { title: string; text: string }) {
   return (
     <div>
@@ -1435,6 +1445,7 @@ function Section({ title, text }: { title: string; text: string }) {
   );
 }
 
+// prettier-ignore
 function Info({ icon: Icon, text }: { icon: typeof MapPin; text: string }) {
   return (
     <div className="flex items-center gap-2">
