@@ -271,22 +271,32 @@ export function PremiumHome({
           )}
 
           {previous.length > 0 && (
-            <div className="mt-6 grid gap-3 border-l border-primary/20 pl-4 sm:grid-cols-3 sm:border-l-0 sm:pl-0">
-              {previous.map((iv) => (
-                <button
-                  key={iv.id}
-                  onClick={() => onNavigate("reports")}
-                  className="rounded-2xl border bg-muted/20 p-5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background hover:shadow-sm"
-                >
-                  <p className="text-xs text-muted-foreground">{fmtDate(iv.intervention_date)}</p>
-                  <p className="mt-1 font-medium">
-                    {iv.title ?? iv.intervention_type ?? "Intervention"}
-                  </p>
-                  <span className="mt-3 inline-flex items-center text-xs text-primary">
-                    Voir l'intervention <ChevronRight className="ml-1 h-3.5 w-3.5" />
-                  </span>
-                </button>
-              ))}
+            <div className="relative mt-8 pl-5 sm:pl-7">
+              <div className="absolute bottom-3 left-1 top-3 w-px bg-primary/20" aria-hidden="true" />
+              <div className="space-y-5">
+                {previous.map((iv) => (
+                  <button
+                    key={iv.id}
+                    onClick={() => onNavigate("reports")}
+                    className="group relative block w-full rounded-2xl border bg-background p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                  >
+                    <span
+                      className="absolute -left-[1.65rem] top-6 h-3 w-3 rounded-full border-2 border-background bg-primary sm:-left-[1.95rem]"
+                      aria-hidden="true"
+                    />
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      {fmtDate(iv.intervention_date)}
+                    </p>
+                    <p className="mt-1 font-serif text-lg font-medium">
+                      {iv.title ?? iv.intervention_type ?? "Intervention"}
+                    </p>
+                    <span className="mt-3 inline-flex items-center text-xs text-primary">
+                      Voir l'intervention
+                      <ChevronRight className="ml-1 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </section>
@@ -403,8 +413,8 @@ export function PremiumHome({
                 Toutes les photos
               </Button>
             </div>
-            <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3">
-              {photos.slice(0, 3).map((photo) => (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              {photos.slice(0, 5).map((photo, index) => (
                 <ImageLightbox
                   key={photo.id}
                   src={photo.url!}
@@ -415,7 +425,11 @@ export function PremiumHome({
                     src={photo.url!}
                     alt={photo.caption ?? "Photo du jardin"}
                     loading="lazy"
-                    className="h-48 w-full rounded-2xl object-cover shadow-sm transition-transform duration-300 hover:scale-[1.015] sm:h-60"
+                    className={
+                      index === 0
+                        ? "h-64 w-full rounded-[1.5rem] object-cover shadow-sm transition-transform duration-300 hover:scale-[1.015] sm:col-span-2 sm:h-[340px] md:col-span-2"
+                        : "h-48 w-full rounded-2xl object-cover shadow-sm transition-transform duration-300 hover:scale-[1.015] sm:h-60"
+                    }
                   />
                 </ImageLightbox>
               ))}
