@@ -24,19 +24,6 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-30",
-    version: "2.3.38",
-    theme: "Clients",
-    title: "Comptes Premium — synchronisation réelle des données client",
-    details: [
-      "Les comptes Premium déjà actifs récupèrent automatiquement le calendrier PDF présent dans la fiche client, sans attendre une nouvelle activation.",
-      "Le PDF est conservé dans Documents et ses interventions détaillées alimentent réellement l'onglet « Calendrier travaux » ainsi que l'encart « Votre prochaine intervention ».",
-      "L'état du jardin reprend automatiquement la dernière saisie « État du jardin » d'un compte-rendu effectivement destiné au client.",
-    ],
-  },
-
-export const CHANGELOG: ChangeEntry[
-  {
-    date: "2026-09-30",
     version: "2.3.37",
     theme: "Clients",
     title: "Comptes Premium — calendrier travaux intégré",
