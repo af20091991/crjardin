@@ -406,6 +406,7 @@ function PremiumPageIntro({
   );
 }
 
+// prettier-ignore
 function PremiumExperience({ client, interventions, recommendations, premium, messages, token, large, dark, toggleDark, toggleLarge }: {
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
@@ -929,6 +930,7 @@ function RecoCard({ reco, token }: { reco: SharedRecommendation; token: string }
   );
 }
 
+// prettier-ignore
 function GardenTab({ client, interventions, recommendations, premium, token }: {
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
