@@ -389,25 +389,6 @@ function SharePage() {
 }
 
 
-// prettier-ignore
-function PremiumPageIntro({
-  eyebrow,
-  title,
-  text,
-}: {
-  eyebrow: string;
-  title: string;
-  text: string;
-}) {
-  return (
-    <header className="border-b pb-6">
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
-      <h1 className="mt-2 font-serif text-3xl font-medium tracking-tight sm:text-4xl">{title}</h1>
-      <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">{text}</p>
-    </header>
-  );
-}
-
 function PremiumExperience({
   client,
   interventions,
@@ -577,12 +558,7 @@ function PremiumExperience({
           <div className="space-y-8">
             {section === "reports" && (
               <section>
-                {/* prettier-ignore */}
-                <PremiumPageIntro
-                  eyebrow="Le carnet du jardin"
-                  title="Interventions"
-                  text="Retrouvez les visites, les travaux réalisés et les observations qui accompagnent votre jardin au fil des saisons."
-                />
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Interventions</h1>
                 <ReportsTab
                   interventions={interventions}
                   token={token}
@@ -593,34 +569,19 @@ function PremiumExperience({
             )}
             {section === "photos" && (
               <section>
-                {/* prettier-ignore */}
-                <PremiumPageIntro
-                  eyebrow="Mémoire du jardin"
-                  title="Photos"
-                  text="Les images qui permettent de suivre l’évolution de votre jardin au fil du temps."
-                />
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Photos</h1>
                 <PhotoGallery interventions={interventions} />
               </section>
             )}
             {section === "recos" && (
               <section>
-                {/* prettier-ignore */}
-                <PremiumPageIntro
-                  eyebrow="Le regard du paysagiste"
-                  title="Conseils"
-                  text="Mes observations et recommandations pour accompagner votre jardin dans la durée."
-                />
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Conseils</h1>
                 <RecommendationsTab recommendations={recommendations} token={token} />
               </section>
             )}
             {section === "premium" && (
               <section>
-                {/* prettier-ignore */}
-                <PremiumPageIntro
-                  eyebrow="Votre jardin"
-                  title="Mon jardin"
-                  text="Les repères et informations utiles pour garder une vision claire de votre jardin."
-                />
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Mon jardin</h1>
                 <GardenTab
                   client={client}
                   interventions={interventions}
@@ -631,12 +592,7 @@ function PremiumExperience({
             )}
             {section === "documents" && (
               <section>
-                {/* prettier-ignore */}
-                <PremiumPageIntro
-                  eyebrow="Votre dossier"
-                  title="Documents"
-                  text="Retrouvez ici les documents mis à votre disposition dans le cadre du suivi de votre jardin."
-                />
+                <h1 className="mb-5 font-serif text-3xl font-semibold">Documents</h1>
                 <Card>
                   <CardContent className="pt-6">
                     {premium.documents.length > 0 ? (
