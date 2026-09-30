@@ -24,6 +24,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-30",
+    version: "2.3.37",
+    theme: "Clients",
+    title: "Comptes Premium — calendrier travaux intégré",
+    details: [
+      "Le calendrier PDF d'entretien peut désormais être importé à la création du Compte Premium, conservé dans Documents et structuré dans un nouvel onglet « Calendrier travaux ».",
+      "Les passages sont présentés sous forme de liste déroulante sobre, avec une reformulation IA qui conserve strictement les travaux et périodes du document source.",
+      "L'accueil Premium reprend automatiquement la prochaine intervention issue du calendrier travaux et la navigation reste visible sur toutes les pages.",
+    ],
+  },
+
+  {
+    date: "2026-09-30",
     version: "2.3.36",
     theme: "Clients",
     title: "Comptes Premium — nouvel accueil « espace client »",
