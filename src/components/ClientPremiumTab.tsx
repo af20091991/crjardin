@@ -88,7 +88,7 @@ export function ClientPremiumTab({
 
     const { data: files, error } = await supabase.storage
       .from("client-plannings")
-      .list(clientId, { limit: 100, sortBy: { column: "updated_at", order: "desc" } });
+      .list(clientId, {\n        limit: 100,\n        sortBy: { column: "updated_at", order: "desc" },\n      });
     if (error) {
       throw new Error(`Impossible de rechercher le calendrier client : ${error.message}`);
     }
