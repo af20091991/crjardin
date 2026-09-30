@@ -44,7 +44,6 @@ export async function parsePlanningPdf(bytes: Uint8Array, currentYear = new Date
   const pdf = await getDocument({ data: bytes }).promise;
 
   const lines: string[] = [];
-  try {
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
       const page = await pdf.getPage(pageNumber);
       const content = await page.getTextContent();
@@ -72,7 +71,6 @@ export async function parsePlanningPdf(bytes: Uint8Array, currentYear = new Date
       }
       page.cleanup();
     }
-  }
 
   const items: ParsedPlanningItem[] = [];
   let current: ParsedPlanningItem | null = null;
