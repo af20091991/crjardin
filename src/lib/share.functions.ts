@@ -94,6 +94,17 @@ export interface SharedPremiumData {
   cover_photo_url: string | null;
   documents: SharedPremiumDocument[];
   upcoming: SharedPremiumUpcoming[];
+  work_calendar: SharedPremiumWorkCalendarItem[];
+}
+
+export interface SharedPremiumWorkCalendarItem {
+  id: string;
+  period_label: string;
+  year: number | null;
+  month: number | null;
+  sequence: number;
+  title: string;
+  details: string | null;
 }
 
 const BUCKET = "chantier-photos";
@@ -380,6 +391,16 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       }
     }
 
+    const { data: workCalendarRows, error: workCalendarError } = await supabaseAdmin
+      .from("client_premium_work_calendar_items")
+      .select("id, period_label, year, month, sequence, title, details")
+      .eq("client_id", client.id)
+      .order("year", { ascending: true, nullsFirst: false })
+      .order("month", { ascending: true, nullsFirst: false })
+      .order("sequence", { ascending: true })
+      .order("position", { ascending: true });
+    if (workCalendarError) throw workCalendarError;
+
     const docPaths = raw.documents.map((d) => d.storage_path);
     const docUrlMap = new Map<string, string>();
     if (docPaths.length > 0) {
@@ -400,6 +421,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       commercial_note: raw.commercial_note,
       cover_photo_url: coverPhotoUrl,
       upcoming: raw.upcoming,
+      work_calendar: (workCalendarRows ?? []) as SharedPremiumWorkCalendarItem[],
       documents: raw.documents.map((d) => ({
         id: d.id,
         title: d.title,
