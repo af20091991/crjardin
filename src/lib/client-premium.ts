@@ -50,7 +50,24 @@ export async function getClientPremium(clientId: string): Promise<ClientPremium 
     .eq("client_id", clientId)
     .maybeSingle();
   if (error) throw new Error(`Impossible de charger le statut Premium : ${error.message}`);
-  return data as ClientPremium | null;
+  if (!data) return null;
+
+  // L'état du jardin affiché dans Premium provient en priorité du dernier
+  // compte-rendu effectivement destiné au client.
+  const { data: latestReport } = await supabase
+    .from("interventions")
+    .select("garden_state, intervention_date")
+    .eq("client_id", clientId)
+    .not("sent_to_client_at", "is", null)
+    .not("garden_state", "is", null)
+    .order("intervention_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    ...(data as ClientPremium),
+    garden_state: latestReport?.garden_state ?? (data.garden_state as string | null),
+  };
 }
 
 export async function setClientPremiumEnabled(clientId: string, enabled: boolean): Promise<void> {
