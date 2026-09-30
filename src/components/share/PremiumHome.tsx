@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, FileText, MessageCircle, Paperclip, Send } from "lucide-react";
+import { CalendarDays, ChevronRight, FileText, Images, Leaf, MessageCircle, Paperclip, Send, Sprout } from "lucide-react";
 import { toast } from "sonner";
 import { addClientMessage, createSharedPremiumDocumentUpload, finalizeSharedPremiumDocumentUpload } from "@/lib/share.functions";
 import { supabase } from "@/integrations/supabase/client";
