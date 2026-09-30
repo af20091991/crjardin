@@ -13,7 +13,7 @@ import { template as premiumWelcomeTemplate } from "@/lib/email-templates/premiu
 import { resolvePremiumClientIdentity } from "@/lib/premium-client-name";
 
 // prettier-ignore
-const FROM = "De la graine au jardin <noreply@delagraineaujardin.com>";
+const FROM = "De la graine au jardin <contact@delagraineaujardin.com>";
 // prettier-ignore
 const SENDER_DOMAIN = "notify.delagraineaujardin.com";
 // prettier-ignore
