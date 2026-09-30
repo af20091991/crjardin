@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { formatPremiumClientName } from "@/lib/premium-client-name";
 
@@ -391,7 +391,8 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       }
     }
 
-    const { data: workCalendarRows, error: workCalendarError } = await supabaseAdmin
+    const premiumCalendarDb = supabaseAdmin as unknown as SupabaseClient<any>;
+    const { data: workCalendarRows, error: workCalendarError } = await premiumCalendarDb
       .from("client_premium_work_calendar_items")
       .select("id, period_label, year, month, sequence, title, details")
       .eq("client_id", client.id)
