@@ -1,16 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  CalendarDays,
-  ChevronRight,
-  FileText,
-  Images,
-  Leaf,
-  MessageCircle,
-  Paperclip,
-  Send,
-  Sprout,
-} from "lucide-react";
+import { ChevronRight, FileText, MessageCircle, Paperclip, Send } from "lucide-react";
 import { toast } from "sonner";
 import { addClientMessage, createSharedPremiumDocumentUpload, finalizeSharedPremiumDocumentUpload } from "@/lib/share.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,7 +47,7 @@ export function PremiumHome({ client, interventions, recommendations, premium, m
             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
-                <Leaf className="mx-auto size-14 text-primary/70" strokeWidth={1.25} />
+                <FileText className="mx-auto size-14 text-primary/70" strokeWidth={1.25} />
                 <p className={`${heading} mt-3 text-4xl text-primary/80 sm:text-6xl`}>Votre jardin</p>
                 <p className="mt-2 text-sm text-muted-foreground">La couverture de votre jardin apparaîtra ici.</p>
               </div>
@@ -100,7 +90,7 @@ export function PremiumHome({ client, interventions, recommendations, premium, m
             ) : (
               <div className="flex aspect-[16/8] items-center justify-center bg-primary/5">
                 <div className="text-center text-muted-foreground">
-                  <Sprout className="mx-auto size-9 text-primary/60" />
+                  <MessageCircle className="mx-auto size-9 text-primary/60" />
                   <p className="mt-2 text-sm">Votre première intervention apparaîtra ici.</p>
                 </div>
               </div>
@@ -119,7 +109,7 @@ export function PremiumHome({ client, interventions, recommendations, premium, m
 
           <div className="grid gap-5">
             <article className="rounded-2xl border p-6 sm:p-7">
-              <CalendarDays className="size-6 text-primary" strokeWidth={1.5} />
+              <MessageCircle className="size-6 text-primary" strokeWidth={1.5} />
               <p className={`${dateLabel} mt-5`}>Prochaine visite</p>
               <h4 className={`${heading} mt-2 text-3xl`}>{next?.title ?? "Votre prochaine intervention"}</h4>
               <p className="mt-2 text-sm text-muted-foreground">{next ? fmtDate(next.scheduled_date) : "Elle apparaîtra ici dès qu'elle sera planifiée."}</p>
@@ -147,14 +137,14 @@ export function PremiumHome({ client, interventions, recommendations, premium, m
         </button>
 
         <button type="button" onClick={() => onNavigate("garden")} className="group rounded-2xl border p-6 text-left transition-colors hover:border-primary/40">
-          <Leaf className="size-6 text-primary" strokeWidth={1.5} />
+          <FileText className="size-6 text-primary" strokeWidth={1.5} />
           <h4 className={`${heading} mt-5 text-3xl`}>Mon jardin</h4>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{premium.garden_objectives ?? "Retrouvez l'état, les objectifs et les particularités de votre jardin."}</p>
           <span className="mt-4 inline-flex items-center text-sm text-primary">Découvrir mon jardin <ChevronRight className="ml-1 size-4" /></span>
         </button>
 
         <button type="button" onClick={() => onNavigate("reports")} className="group rounded-2xl border p-6 text-left transition-colors hover:border-primary/40">
-          <Images className="size-6 text-primary" strokeWidth={1.5} />
+          <FileText className="size-6 text-primary" strokeWidth={1.5} />
           <h4 className={`${heading} mt-5 text-3xl`}>La vie du jardin</h4>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{interventions.length ? `${interventions.length} intervention${interventions.length > 1 ? "s" : ""} suivie${interventions.length > 1 ? "s" : ""} dans votre carnet.` : "Les interventions et les photos enrichiront votre carnet."}</p>
           <span className="mt-4 inline-flex items-center text-sm text-primary">Voir les interventions <ChevronRight className="ml-1 size-4" /></span>
@@ -164,7 +154,7 @@ export function PremiumHome({ client, interventions, recommendations, premium, m
       {recommendations[0] && (
         <section className="grid gap-8 border-y py-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-center">
           <div>
-            <Sprout className="size-7 text-primary" strokeWidth={1.5} />
+            <MessageCircle className="size-7 text-primary" strokeWidth={1.5} />
             <p className={`${dateLabel} mt-5`}>Le regard du paysagiste</p>
             <h3 className={`${heading} mt-2 text-4xl`}>{recommendations[0].title}</h3>
           </div>
