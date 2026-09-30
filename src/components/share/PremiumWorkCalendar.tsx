@@ -12,7 +12,13 @@ export function PremiumWorkCalendar({
   items: SharedPremiumWorkCalendarItem[];
   editorial?: boolean;
 }) {
-  if (items.length === 0) {
+  const currentKey = new Date().getFullYear() * 12 + (new Date().getMonth() + 1);
+  const upcomingItems = items.filter((item) => {
+    if (item.year == null || item.month == null) return true;
+    return item.year * 12 + item.month >= currentKey;
+  });
+
+  if (upcomingItems.length === 0) {
     return (
       <div className="mt-8 rounded-2xl border border-dashed bg-muted/20 p-8 text-center">
         <CalendarDays className="mx-auto size-8 text-primary/60" strokeWidth={1.4} />
@@ -26,7 +32,7 @@ export function PremiumWorkCalendar({
 
   return (
     <div className="mt-8 space-y-3">
-      {items.map((item, index) => (
+      {upcomingItems.map((item, index) => (
         <details
           key={item.id}
           open={index === 0}
