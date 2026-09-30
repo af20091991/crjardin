@@ -23,6 +23,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-09-30",
+    version: "2.3.33",
+    theme: "Clients",
+    title: "Comptes Premium — carnet du jardin enrichi",
+    details: [
+      "Les interventions récentes sont présentées comme une chronologie plus naturelle, inspirée d'un carnet de jardin.",
+      "La mémoire photographique adopte une mosaïque plus immersive afin de mieux mettre en valeur l'évolution du jardin.",
+    ],
+  },
+
+
+  {
     date: "2026-09-29",
     version: "2.3.32",
     theme: "Clients",
