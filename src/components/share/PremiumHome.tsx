@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
   ChevronRight,
@@ -30,7 +31,6 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 import { premiumClientTitle } from "@/lib/share.functions";
 
 type PremiumSection = "reports" | "photos" | "recos" | "premium" | "documents";
-
 
 const REQUESTS = [
   { label: "Demander une intervention", text: "Je souhaite demander une intervention." },
@@ -67,6 +67,7 @@ export function PremiumHome({
   showHeader?: boolean;
 }) {
   const clientTitle = premiumClientTitle(client);
+  const queryClient = useQueryClient();
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestType, setRequestType] = useState<(typeof REQUESTS)[number] | null>(null);
   const [message, setMessage] = useState("");
@@ -131,6 +132,10 @@ export function PremiumHome({
           authorName: client.name,
         },
       });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["shared-messages", token] }),
+        queryClient.invalidateQueries({ queryKey: ["shared-premium", token] }),
+      ]);
       toast.success("Votre demande a bien été envoyée.");
       setMessage("");
       setAttachment(null);
