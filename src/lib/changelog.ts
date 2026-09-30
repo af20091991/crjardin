@@ -21,7 +21,7 @@ export const THEME_LABELS: ChangeTheme[] = [
   "Général",
 ];
 // Historique des évolutions de l'application — du plus récent au plus ancien.
-export const CHANGELOG: ChangeEntry[] = [] = [
+export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-30",
     version: "2.3.38",
