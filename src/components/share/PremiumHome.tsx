@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
@@ -56,6 +56,7 @@ export function PremiumHome({
   messages,
   token,
   onNavigate,
+  afterCover,
 }: {
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
@@ -64,6 +65,7 @@ export function PremiumHome({
   messages: ClientMessage[];
   token: string;
   onNavigate: (section: PremiumSection) => void;
+  afterCover?: ReactNode;
 }) {
   const latest = interventions[0];
   const cover = premium.cover_photo_url;
@@ -101,6 +103,7 @@ export function PremiumHome({
         </div>
       </section>
 
+      {afterCover}
 
       <section>
         <div className="mb-7">
