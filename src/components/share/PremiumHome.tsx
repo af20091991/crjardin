@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ChevronRight, FileText, Images, Leaf, MessageCircle, Paperclip, Send, Sprout } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronRight,
+  FileText,
+  Images,
+  Leaf,
+  MessageCircle,
+  Paperclip,
+  Send,
+  Sprout,
+} from "lucide-react";
 import { toast } from "sonner";
 import { addClientMessage, createSharedPremiumDocumentUpload, finalizeSharedPremiumDocumentUpload } from "@/lib/share.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +27,7 @@ function fmtDate(value: string) {
   return new Date(value).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 }
 
+// prettier-ignore
 export function PremiumHome({ client, interventions, recommendations, premium, messages, token, onNavigate }: {
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
@@ -168,6 +179,7 @@ export function PremiumHome({ client, interventions, recommendations, premium, m
   );
 }
 
+// prettier-ignore
 export function PremiumExchange({ client, token, messages }: { client: SharedClientData["client"]; token: string; messages: ClientMessage[] }) {
   const qc = useQueryClient();
   const [requestType, setRequestType] = useState<(typeof REQUESTS)[number]>(REQUESTS[0]);
