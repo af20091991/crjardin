@@ -101,20 +101,6 @@ export function PremiumHome({
         </div>
       </section>
 
-      <nav aria-label="Navigation du Compte Premium" className="flex flex-wrap items-center gap-x-7 gap-y-3 border-b pb-5 text-sm">
-        {[
-          ["home", "Accueil"],
-          ["garden", "Mon jardin"],
-          ["reports", "Interventions"],
-          ["documents", "Documents"],
-          ["exchange", "Demandes"],
-        ].map(([value, label]) => (
-          <button key={value} type="button" onClick={() => onNavigate(value as PremiumSection)} className={`transition-colors hover:text-primary ${value === "home" ? "font-medium text-primary" : "text-muted-foreground"}`}>
-            {label}
-          </button>
-        ))}
-      </nav>
-
       <section>
         <div className="mb-7">
           <p className={dateLabel}>Votre espace client</p>
