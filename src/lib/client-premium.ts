@@ -141,7 +141,11 @@ export async function uploadPremiumDocument(
     })
     .select()
     .single();
-  if (error) throw new Error(`Impossible d'enregistrer le document : ${error.message}`);
+  if (error) {
+    // Évite de laisser un fichier orphelin dans Storage si l'enregistrement SQL échoue.
+    await supabase.storage.from(DOCS_BUCKET).remove([path]);
+    throw new Error(`Impossible d'enregistrer le document : ${error.message}`);
+  }
   return data as PremiumDocument;
 }
 
