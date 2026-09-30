@@ -428,8 +428,8 @@ function PremiumExperience({ client, interventions, recommendations, premium, me
     { id: "exchange", label: "Échanger" },
   ];
   function navigate(next: PremiumSection) { setSection(next); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  return <div className={`min-h-screen bg-background pb-20 font-['Inter',sans-serif] ${large ? "text-[1.08rem]" : ""}`}>
-    <header className="mx-auto w-full max-w-[1728px]">
+  return <div className={`premium-carnet min-h-screen bg-background pb-20 font-sans ${large ? "text-[1.08rem]" : ""}`}>
+    <header className="mx-auto w-full max-w-[1320px]">
       <div className="relative bg-muted">
         {premium.cover_photo_url ? <img src={premium.cover_photo_url} alt={`Le jardin de ${premiumClientTitle(client)}`} className="h-[320px] w-full object-cover sm:h-[520px] lg:h-[620px]" /> : <div className="grid h-[280px] place-items-center sm:h-[440px]"><Leaf className="size-14 text-primary/30" aria-hidden="true" /></div>}
         <div className="absolute right-4 top-4 flex gap-1 sm:right-8 sm:top-8">
@@ -437,13 +437,13 @@ function PremiumExperience({ client, interventions, recommendations, premium, me
           <Button variant="secondary" size="icon" aria-label="Agrandir le texte" onClick={toggleLarge} aria-pressed={large}><Type className="size-4" /></Button>
         </div>
       </div>
-      <div className="border-b bg-background px-5 pb-8 pt-7 sm:px-10 sm:pb-10 lg:px-16">
+      <div className="premium-carnet-heading border-b bg-background px-5 pb-8 pt-7 sm:px-10 sm:pb-10 lg:px-16">
         <p className="text-xs uppercase text-primary">De la graine au jardin · Carnet Premium</p>
-        <h1 className="mt-3 font-['Cormorant_Garamond',Georgia,serif] text-5xl font-medium leading-none sm:text-7xl">Le jardin de {premiumClientTitle(client)}</h1>
+        <h1 className="mt-3 font-premium-serif text-5xl font-medium leading-none sm:text-7xl">Le jardin de {premiumClientTitle(client)}</h1>
         {client.address && <p className="mt-3 text-sm text-muted-foreground">{client.address}</p>}
       </div>
     </header>
-    <div className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
+    <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
       <nav className="mx-auto flex w-full max-w-[1728px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16" aria-label="Navigation Premium">
         {sections.map((item) => <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined} className={`h-14 shrink-0 rounded-none border-b-2 px-0 text-sm font-normal hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item.label}</Button>)}
         {isAdmin && <Button asChild variant="link" className="ml-auto h-14 shrink-0 px-0 text-xs text-primary"><Link to="/clients/premium">← Retour à Pilot Pro</Link></Button>}
@@ -698,7 +698,7 @@ function InterventionCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className={editorial ? "font-['Cormorant_Garamond',Georgia,serif] text-3xl font-medium" : "font-medium"}>{iv.title ?? iv.intervention_type ?? "Intervention"}</h3>
+              <h3 className={editorial ? "font-premium-serif text-3xl font-medium" : "font-medium"}>{iv.title ?? iv.intervention_type ?? "Intervention"}</h3>
               {isNew && <Badge className="bg-primary text-primary-foreground">Nouveau</Badge>}
               {iv.sent_to_client_at && (
                 <Badge

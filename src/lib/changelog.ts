@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-09-30",
+    version: "2.3.35",
+    theme: "Clients",
+    title: "Comptes Premium — fidélité renforcée à la maquette",
+    details: [
+      "Le carnet Premium utilise désormais sa typographie éditoriale dédiée et une largeur de lecture mieux proportionnée.",
+      "La couverture, la navigation et le contenu sont resserrés pour renforcer la hiérarchie visuelle et la lecture sur écran large.",
+      "Aucune donnée, règle métier ou fonctionnalité Premium n’est modifiée.",
+    ],
+  },
+  {
+    date: "2026-09-30",
     version: "2.3.34",
     theme: "Clients",
     title: "Comptes Premium — mémoire du jardin enrichie",
