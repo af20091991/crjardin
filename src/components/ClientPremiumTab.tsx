@@ -351,6 +351,7 @@ function PremiumDocumentsCard({
         <div className="mb-3 flex gap-2">
           <Input
             value={title}
+            disabled={!canEdit}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Titre du document"
           />
@@ -385,6 +386,7 @@ function PremiumDocumentsCard({
                     variant="ghost"
                     size="icon"
                     aria-label={doc.visible_to_client ? "Masquer au client" : "Rendre visible"}
+                    disabled={!canEdit || toggleVisibility.isPending}
                     onClick={() =>
                       toggleVisibility.mutate({ id: doc.id, visible: !doc.visible_to_client })
                     }
@@ -410,6 +412,7 @@ function PremiumDocumentsCard({
                     size="icon"
                     className="text-destructive hover:text-destructive"
                     aria-label="Supprimer"
+                    disabled={!canEdit || remove.isPending}
                     onClick={() => remove.mutate({ id: doc.id, storagePath: doc.storage_path })}
                   >
                     <Trash2 className="h-4 w-4" />
