@@ -358,7 +358,12 @@ function PremiumDocumentsCard({
           <Button type="button" variant="outline" disabled={!canEdit || busy} asChild>
             <label className="cursor-pointer">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              <input type="file" className="hidden" onChange={upload} disabled={!canEdit || busy} />
+              <input
+                type="file"
+                className="hidden"
+                onChange={upload}
+                disabled={!canEdit || busy}
+              />
             </label>
           </Button>
         </div>
