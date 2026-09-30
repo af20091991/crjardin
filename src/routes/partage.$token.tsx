@@ -568,8 +568,8 @@ function PremiumExperience({
               text="Les documents partagés pour le suivi de votre jardin."
             />
             <div className="mt-8 max-w-4xl divide-y border-t">
-              {premium.documents.length
-                ? premium.documents.map((document) => (
+              {premium.documents.length ? (
+                premium.documents.map((document) => (
                     <a
                       key={document.id}
                       href={document.url ?? undefined}
@@ -587,11 +587,11 @@ function PremiumExperience({
                       <Download className="size-4 shrink-0" />
                     </a>
                   ))
-                : (
-                    <p className="py-8 text-sm text-muted-foreground">
-                      Aucun document n'a encore été partagé.
-                    </p>
-                  )}
+              ) : (
+                <p className="py-8 text-sm text-muted-foreground">
+                  Aucun document n'a encore été partagé.
+                </p>
+              )}
             </div>
             {isAdmin && (
               <div className="mt-8 max-w-xl">
