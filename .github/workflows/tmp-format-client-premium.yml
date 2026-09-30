@@ -1,0 +1,14 @@
+name: TEMP Exact Prettier Premium Calendar
+on:
+  push:
+    branches:
+      - tmp/format-premium-calendar-exact
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx prettier --write 'src/components/ClientPremiumTab.tsx'
+      - run: cat 'src/components/ClientPremiumTab.tsx'
