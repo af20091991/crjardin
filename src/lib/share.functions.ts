@@ -410,9 +410,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
 
       if (!planningDownloadError && planningFile) {
         const { parsePlanningPdf } = await import("@/lib/premium-planning-parser");
-        const parsed = await parsePlanningPdf(
-          new Uint8Array(await planningFile.arrayBuffer()),
-        );
+        const parsed = await parsePlanningPdf(new Uint8Array(await planningFile.arrayBuffer()));
         if (parsed.length > 0) {
           const rows = parsed.map((item) => ({
             client_id: client.id,
