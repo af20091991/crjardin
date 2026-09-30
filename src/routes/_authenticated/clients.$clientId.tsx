@@ -439,7 +439,7 @@ function ClientDetail() {
               <ClientOpportunitiesWidget clientId={clientId} />
             </TabsContent>
             <TabsContent value="premium">
-              <ClientPremiumTab clientId={clientId} />
+              <ClientPremiumTab clientId={clientId} canEdit={canEdit} />
             </TabsContent>
           </Tabs>
         )}

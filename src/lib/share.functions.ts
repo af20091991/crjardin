@@ -520,7 +520,10 @@ export const finalizeSharedPremiumDocumentUpload = createServerFn({ method: "POS
       p_storage_path: data.path,
       p_size_bytes: data.size,
     });
-    if (error) throw error;
+    if (error) {
+      await supabaseAdmin.storage.from(PREMIUM_BUCKET).remove([data.path]);
+      throw error;
+    }
 
     try {
       const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(client.user_id);
