@@ -209,3 +209,69 @@ export async function listClientPhotosForCover(
   if (error) throw new Error(`Impossible de charger les photos : ${error.message}`);
   return data as ClientCoverPhotoOption[];
 }
+
+
+export interface PremiumWorkCalendarItem {
+  id: string;
+  client_id: string;
+  document_id: string | null;
+  period_label: string;
+  year: number | null;
+  month: number | null;
+  sequence: number;
+  title: string;
+  details: string | null;
+  position: number;
+}
+
+export async function listPremiumWorkCalendar(clientId: string): Promise<PremiumWorkCalendarItem[]> {
+  const { data, error } = await supabase
+    .from("client_premium_work_calendar_items")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("year", { ascending: true, nullsFirst: false })
+    .order("month", { ascending: true, nullsFirst: false })
+    .order("sequence", { ascending: true })
+    .order("position", { ascending: true });
+  if (error) throw new Error(`Impossible de charger le calendrier travaux : ${error.message}`);
+  return data as PremiumWorkCalendarItem[];
+}
+
+export async function replacePremiumWorkCalendar(
+  clientId: string,
+  documentId: string,
+  items: Array<{
+    period_label: string;
+    year: number | null;
+    month: number | null;
+    sequence: number;
+    title: string;
+    details: string;
+  }>,
+): Promise<void> {
+  const user_id = await uid();
+  const { error: deleteError } = await supabase
+    .from("client_premium_work_calendar_items")
+    .delete()
+    .eq("client_id", clientId);
+  if (deleteError) throw new Error(`Impossible de remplacer le calendrier : ${deleteError.message}`);
+
+  if (items.length === 0) return;
+
+  const rows = items.map((item, position) => ({
+    client_id: clientId,
+    document_id: documentId,
+    user_id,
+    period_label: item.period_label,
+    year: item.year,
+    month: item.month,
+    sequence: item.sequence,
+    title: item.title,
+    details: item.details,
+    position,
+    source: "ia" as const,
+  }));
+
+  const { error } = await supabase.from("client_premium_work_calendar_items").insert(rows);
+  if (error) throw new Error(`Impossible d'enregistrer le calendrier : ${error.message}`);
+}
