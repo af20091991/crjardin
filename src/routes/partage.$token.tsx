@@ -241,7 +241,8 @@ function SharePage() {
 
   return (
     <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
-      <header className="border-b bg-background">
+      // prettier-ignore
+    <header className="border-b bg-background">
         <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -442,11 +443,13 @@ function PremiumExperience({ client, interventions, recommendations, premium, me
         </div>
       </div>
     </header>
+    // prettier-ignore
     <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
       <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16" aria-label="Navigation Premium">
         {sections.map((item) => <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined} className={`h-14 shrink-0 rounded-none border-b-2 px-0 text-sm font-normal hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item.label}</Button>)}
       </nav>
     </div>
+    // prettier-ignore
     <main className="mx-auto w-full max-w-[1320px] px-5 py-10 sm:px-10 sm:py-14 lg:px-16">
       {section === "home" && <PremiumHome client={client} interventions={interventions} recommendations={recommendations} premium={premium} messages={messages} token={token} onNavigate={navigate} />}
       {section === "garden" && <section><PremiumPageIntro eyebrow="Portrait du jardin" title="Le jardin" text="Un lieu vivant, ses particularités et son suivi au fil des saisons." /><GardenTab client={client} interventions={interventions} recommendations={recommendations} premium={premium} onNavigate={navigate} token={token} /></section>}
