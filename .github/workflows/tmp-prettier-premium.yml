@@ -1,0 +1,14 @@
+name: TEMP Prettier Premium
+on:
+  push:
+    branches:
+      - tmp/prettier-premium
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx prettier --write 'src/routes/partage.$token.tsx'
+      - run: cat 'src/routes/partage.$token.tsx'
