@@ -457,71 +457,6 @@ function PremiumExperience({
     <div
       className={`premium-carnet min-h-screen bg-background pb-20 font-sans ${large ? "text-[1.08rem]" : ""}`}
     >
-      <header className="border-b bg-background">
-        <div className="mx-auto flex min-h-16 w-full max-w-[1320px] items-center justify-between gap-5 px-5 sm:px-10 lg:px-16">
-          <div className="min-w-0">
-            <p className="truncate font-premium-serif text-xl font-medium sm:text-2xl">
-              Le carnet du jardin
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
-              De la graine au jardin · Compte Premium
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={dark ? "Mode clair" : "Mode sombre"}
-              onClick={toggleDark}
-            >
-              {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Agrandir le texte"
-              onClick={toggleLarge}
-              aria-pressed={large}
-            >
-              <Type className="size-4" />
-            </Button>
-            {isAdmin && (
-              <Button
-                asChild
-                variant="link"
-                className="hidden h-10 px-0 text-xs text-primary sm:inline-flex"
-              >
-                <Link to="/clients/premium">← Pilot Pro</Link>
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
-        <nav
-          className="mx-auto flex w-full max-w-[1320px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16"
-          aria-label="Navigation Premium"
-        >
-          {sections.map((item) => (
-            <Button
-              key={item.id}
-              type="button"
-              variant="ghost"
-              onClick={() => navigate(item.id)}
-              aria-current={section === item.id ? "page" : undefined}
-              className={`h-14 shrink-0 rounded-none border-b-2 px-0 text-sm font-normal hover:bg-transparent ${
-                section === item.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </Button>
-          ))}
-        </nav>
-      </div>
-
       <main className="mx-auto w-full max-w-[1320px] px-5 py-10 sm:px-10 sm:py-14 lg:px-16">
         {section === "home" && (
           <PremiumHome
@@ -532,6 +467,47 @@ function PremiumExperience({
             messages={messages}
             token={token}
             onNavigate={navigate}
+            afterCover={
+              <>
+                <header className="border-b bg-background">
+                  <div className="mx-auto flex min-h-16 w-full max-w-[1320px] items-center justify-between gap-5 px-5 sm:px-10 lg:px-16">
+                    <div className="min-w-0">
+                      <p className="truncate font-premium-serif text-xl font-medium sm:text-2xl">
+                        Le carnet du jardin
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        De la graine au jardin · Compte Premium
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <Button variant="ghost" size="icon" aria-label={dark ? "Mode clair" : "Mode sombre"} onClick={toggleDark}>
+                        {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" aria-label="Agrandir le texte" onClick={toggleLarge} aria-pressed={large}>
+                        <Type className="size-4" />
+                      </Button>
+                      {isAdmin && (
+                        <Button asChild variant="link" className="hidden h-10 px-0 text-xs text-primary sm:inline-flex">
+                          <Link to="/clients/premium">← Pilot Pro</Link>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </header>
+                <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
+                  <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16" aria-label="Navigation Premium">
+                    {sections.map((item) => (
+                      <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined}
+                        className={`h-14 shrink-0 rounded-none border-b-2 px-0 text-sm font-normal hover:bg-transparent ${
+                          section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                        }`}>
+                        {item.label}
+                      </Button>
+                    ))}
+                  </nav>
+                </div>
+              </>
+            }
           />
         )}
         {section === "garden" && (
