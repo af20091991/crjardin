@@ -1,4 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+const premiumCalendarDb = supabase as unknown as SupabaseClient<any>;
 
 const DOCS_BUCKET = "client-premium";
 
@@ -225,7 +228,7 @@ export interface PremiumWorkCalendarItem {
 }
 
 export async function listPremiumWorkCalendar(clientId: string): Promise<PremiumWorkCalendarItem[]> {
-  const { data, error } = await supabase
+  const { data, error } = await premiumCalendarDb
     .from("client_premium_work_calendar_items")
     .select("*")
     .eq("client_id", clientId)
@@ -250,7 +253,7 @@ export async function replacePremiumWorkCalendar(
   }>,
 ): Promise<void> {
   const user_id = await uid();
-  const { error: deleteError } = await supabase
+  const { error: deleteError } = await premiumCalendarDb
     .from("client_premium_work_calendar_items")
     .delete()
     .eq("client_id", clientId);
@@ -272,6 +275,6 @@ export async function replacePremiumWorkCalendar(
     source: "ia" as const,
   }));
 
-  const { error } = await supabase.from("client_premium_work_calendar_items").insert(rows);
+  const { error } = await premiumCalendarDb.from("client_premium_work_calendar_items").insert(rows);
   if (error) throw new Error(`Impossible d'enregistrer le calendrier : ${error.message}`);
 }
