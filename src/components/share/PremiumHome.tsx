@@ -32,7 +32,6 @@ import { premiumClientTitle } from "@/lib/share.functions";
 
 type PremiumSection = "reports" | "photos" | "recos" | "premium" | "documents";
 
-
 const REQUESTS = [
   { label: "Demander une intervention", text: "Je souhaite demander une intervention." },
   { label: "Poser une question", text: "J'ai une question concernant mon jardin." },
