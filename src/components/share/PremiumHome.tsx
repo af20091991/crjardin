@@ -12,15 +12,32 @@ import {
   Sprout,
 } from "lucide-react";
 import { toast } from "sonner";
-import { addClientMessage, createSharedPremiumDocumentUpload, finalizeSharedPremiumDocumentUpload } from "@/lib/share.functions";
+import {
+  addClientMessage,
+  createSharedPremiumDocumentUpload,
+  finalizeSharedPremiumDocumentUpload,
+} from "@/lib/share.functions";
 import { supabase } from "@/integrations/supabase/client";
-import type { ClientMessage, SharedClientData, SharedIntervention, SharedPremiumData, SharedRecommendation } from "@/lib/share.functions";
+import type {
+  ClientMessage,
+  SharedClientData,
+  SharedIntervention,
+  SharedPremiumData,
+  SharedRecommendation,
+} from "@/lib/share.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageLightbox } from "@/components/ImageLightbox";
 
 export type PremiumSection = "home" | "garden" | "reports" | "documents" | "exchange";
-const REQUESTS = ["Demander une intervention", "Poser une question", "Signaler un problème", "Modifier une intervention", "Demander une proposition", "Demander un document"] as const;
+const REQUESTS = [
+  "Demander une intervention",
+  "Poser une question",
+  "Signaler un problème",
+  "Modifier une intervention",
+  "Demander une proposition",
+  "Demander un document",
+] as const;
 const heading = "font-premium-serif font-medium leading-none";
 const dateLabel = "text-xs uppercase text-primary";
 function fmtDate(value: string) {
