@@ -88,9 +88,14 @@ export function ClientPremiumTab({
 
     const { data: files, error } = await supabase.storage
       .from("client-plannings")
-      .list(clientId, { limit: 100, sortBy: { column: "updated_at", order: "desc" } });
+      .list(clientId, {
+        limit: 100,
+        sortBy: { column: "updated_at", order: "desc" },
+      });
     if (error) {
-      throw new Error(`Impossible de rechercher le calendrier client : ${error.message}`);
+      throw new Error(
+        `Impossible de rechercher le calendrier client : ${error.message}`,
+      );
     }
 
     const source = (files ?? []).find((file) => /.pdf$/i.test(file.name));
@@ -105,13 +110,17 @@ export function ClientPremiumTab({
 
     const response = await fetch(signed.signedUrl);
     if (!response.ok) {
-      throw new Error("Impossible de télécharger le PDF du calendrier client.");
+      throw new Error(
+        "Impossible de télécharger le PDF du calendrier client.",
+      );
     }
     const blob = await response.blob();
     const file = new File([blob], source.name, { type: "application/pdf" });
     const rows = await parsePlanning(file);
     if (rows.length === 0) {
-      throw new Error("Le PDF du calendrier client ne contient aucune intervention exploitable.");
+      throw new Error(
+        "Le PDF du calendrier client ne contient aucune intervention exploitable.",
+      );
     }
 
     const normalized = await normalizePremiumWorkCalendar({
