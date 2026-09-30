@@ -27,7 +27,8 @@ function fmtDate(value: string) {
   return new Date(value).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 }
 
-// prettier-ignore
+// prettier-ignore-start
+
 export function PremiumHome({ client, interventions, recommendations, premium, messages, token, onNavigate }: {
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
@@ -179,7 +180,6 @@ export function PremiumHome({ client, interventions, recommendations, premium, m
   );
 }
 
-// prettier-ignore
 export function PremiumExchange({ client, token, messages }: { client: SharedClientData["client"]; token: string; messages: ClientMessage[] }) {
   const qc = useQueryClient();
   const [requestType, setRequestType] = useState<(typeof REQUESTS)[number]>(REQUESTS[0]);
@@ -217,3 +217,4 @@ export function PremiumExchange({ client, token, messages }: { client: SharedCli
     <section><p className={dateLabel}>Conversation</p><h2 className={`mt-3 text-3xl ${heading}`}>Nos échanges</h2><div className="mt-6 divide-y border-t">{messages.filter((m) => !m.intervention_id).length ? messages.filter((m) => !m.intervention_id).map((m) => <article key={m.id} className="py-5"><p className="text-xs text-primary">{m.sender === "gardener" ? "Votre jardinier" : "Vous"} · {fmtDate(m.created_at)}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6">{m.content}</p></article>) : <p className="py-6 text-sm text-muted-foreground">La conversation commencera ici avec votre premier message.</p>}</div></section>
   </div>;
 }
+// prettier-ignore-end
