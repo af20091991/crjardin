@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Crown,
   CalendarDays,
@@ -38,13 +39,7 @@ import { signedPhotoUrl } from "@/lib/interventions";
 import { parsePlanning } from "@/lib/file-parser";
 import { normalizePremiumWorkCalendar } from "@/lib/premium-work-calendar.functions";
 
-export function ClientPremiumTab({
-  clientId,
-  canEdit,
-}: {
-  clientId: string;
-  canEdit: boolean;
-}) {
+export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
   const qc = useQueryClient();
 
   const { data: premium, isLoading } = useQuery({
@@ -77,10 +72,75 @@ export function ClientPremiumTab({
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
 
+  const importExistingPlanning = async () => {
+    const existingPlanning = (documents ?? []).find(
+      (doc) =>
+        doc.title.toLowerCase() === "calendrier travaux" ||
+        /calendrier|planning/.test(doc.filename.toLowerCase()),
+    );
+    if (existingPlanning && (workCalendar?.length ?? 0) > 0) return true;
+
+    const { data: files, error } = await supabase.storage
+      .from("client-plannings")
+      .list(clientId, { limit: 100, sortBy: { column: "updated_at", order: "desc" } });
+    if (error) throw new Error(`Impossible de rechercher le calendrier client : ${error.message}`);
+
+    const source = (files ?? []).find((file) => /.pdf$/i.test(file.name));
+    if (!source) return false;
+
+    const { data: signed, error: signError } = await supabase.storage
+      .from("client-plannings")
+      .createSignedUrl(`${clientId}/${source.name}`, 60 * 60);
+    if (signError || !signed?.signedUrl) {
+      throw new Error("Impossible d'accéder au PDF du calendrier client.");
+    }
+
+    const response = await fetch(signed.signedUrl);
+    if (!response.ok) throw new Error("Impossible de télécharger le PDF du calendrier client.");
+    const blob = await response.blob();
+    const file = new File([blob], source.name, { type: "application/pdf" });
+    const rows = await parsePlanning(file);
+    if (rows.length === 0) {
+      throw new Error("Le PDF du calendrier client ne contient aucune intervention exploitable.");
+    }
+
+    const normalized = await normalizePremiumWorkCalendar({
+      data: {
+        rows: rows.map((row) => ({
+          period_label: row.label || row.monthLabel,
+          year: row.year,
+          month: row.month,
+          sequence: Number(row.label.match(/(\d+)\s*$/)?.[1] ?? row.index + 1),
+          type: row.type,
+          tasks: row.tasks,
+        })),
+      },
+    });
+    const document = await uploadPremiumDocument(clientId, file, "Calendrier travaux");
+    await replacePremiumWorkCalendar(clientId, document.id, normalized.items);
+    return true;
+  };
+
   const toggleEnabled = useMutation({
-    mutationFn: (enabled: boolean) => setClientPremiumEnabled(clientId, enabled),
-    onSuccess: (_data, enabled) => {
-      toast.success(enabled ? "Espace Premium activé" : "Espace Premium désactivé");
+    mutationFn: async (enabled: boolean) => {
+      await setClientPremiumEnabled(clientId, enabled);
+      if (enabled) {
+        return await importExistingPlanning();
+      }
+      return null;
+    },
+    onSuccess: (calendarImported, enabled) => {
+      if (enabled) {
+        toast.success(
+          calendarImported
+            ? "Espace Premium activé avec le calendrier travaux."
+            : "Espace Premium activé. Importez le PDF du calendrier travaux pour compléter l'espace client.",
+        );
+        qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+        qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+      } else {
+        toast.success("Espace Premium désactivé");
+      }
       invalidate();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
@@ -330,14 +390,15 @@ function PremiumWorkCalendarCard({
     setBusy(true);
     try {
       const rows = await parsePlanning(file);
-      if (rows.length === 0) throw new Error("Aucune intervention exploitable n'a été trouvée dans ce PDF.");
+      if (rows.length === 0)
+        throw new Error("Aucune intervention exploitable n'a été trouvée dans ce PDF.");
       const normalized = await normalizePremiumWorkCalendar({
         data: {
           rows: rows.map((row) => ({
             period_label: row.label || row.monthLabel,
             year: row.year,
             month: row.month,
-            sequence: Number((row.label.match(/(\\d+)\\s*$/)?.[1] ?? row.index + 1)),
+            sequence: Number(row.label.match(/(\d+)\s*$/)?.[1] ?? row.index + 1),
             type: row.type,
             tasks: row.tasks,
           })),
@@ -355,14 +416,19 @@ function PremiumWorkCalendarCard({
   };
 
   return (
-    <Card className={planningDocument && workCalendar.length > 0 ? "" : "border-primary/40 bg-primary/5"}>
+    <Card
+      className={
+        planningDocument && workCalendar.length > 0 ? "" : "border-primary/40 bg-primary/5"
+      }
+    >
       <CardContent className="space-y-4 pt-6">
         <div className="flex items-start gap-3">
           <CalendarDays className="mt-0.5 size-5 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
             <p className="font-medium">Calendrier travaux</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Le PDF source est conservé dans Documents et son contenu est repris dans l'onglet « Calendrier travaux » du Compte Premium.
+              Le PDF source est conservé dans Documents et son contenu est repris dans l'onglet «
+              Calendrier travaux » du Compte Premium.
             </p>
           </div>
         </div>
@@ -371,23 +437,45 @@ function PremiumWorkCalendarCard({
           <div className="rounded-lg border bg-background p-3 text-sm">
             <p className="font-medium truncate">{planningDocument.filename}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {workCalendar.length} passage{workCalendar.length > 1 ? "s" : ""} structuré{workCalendar.length > 1 ? "s" : ""}.
+              {workCalendar.length} passage{workCalendar.length > 1 ? "s" : ""} structuré
+              {workCalendar.length > 1 ? "s" : ""}.
             </p>
           </div>
         ) : (
           <div className="rounded-xl border border-dashed bg-background p-5">
             <p className="font-medium">Le calendrier travaux n'est pas encore associé.</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Importez le PDF du calendrier d'entretien à la création du Compte Premium. Il sera automatiquement ajouté aux Documents et transformé en liste de prochaines interventions.
+              Importez le PDF du calendrier d'entretien à la création du Compte Premium. Il sera
+              automatiquement ajouté aux Documents et transformé en liste de prochaines
+              interventions.
             </p>
           </div>
         )}
 
-        <Button type="button" variant={planningDocument ? "outline" : "default"} disabled={!canEdit || busy} asChild>
+        <Button
+          type="button"
+          variant={planningDocument ? "outline" : "default"}
+          disabled={!canEdit || busy}
+          asChild
+        >
           <label className="cursor-pointer">
-            {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
-            {busy ? "Analyse du calendrier…" : planningDocument ? "Remplacer le calendrier PDF" : "Importer le calendrier PDF"}
-            <input type="file" accept="application/pdf,.pdf" className="hidden" onChange={importCalendar} disabled={!canEdit || busy} />
+            {busy ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 size-4" />
+            )}
+            {busy
+              ? "Analyse du calendrier…"
+              : planningDocument
+                ? "Remplacer le calendrier PDF"
+                : "Importer le calendrier PDF"}
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={importCalendar}
+              disabled={!canEdit || busy}
+            />
           </label>
         </Button>
       </CardContent>
