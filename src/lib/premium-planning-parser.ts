@@ -52,6 +52,7 @@ function inferYear(month: number, explicitYear: number | null, currentYear: numb
   return month >= new Date().getMonth() + 1 ? currentYear : currentYear + 1;
 }
 
+// prettier-ignore
 export async function parsePlanningPdf(
   bytes: Uint8Array,
   currentYear = new Date().getFullYear(),
