@@ -39,13 +39,7 @@ import { signedPhotoUrl } from "@/lib/interventions";
 import { parsePlanning } from "@/lib/file-parser";
 import { normalizePremiumWorkCalendar } from "@/lib/premium-work-calendar.functions";
 
-export function ClientPremiumTab({
-  clientId,
-  canEdit,
-}: {
-  clientId: string;
-  canEdit: boolean;
-}) {
+export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
   const qc = useQueryClient();
 
   const { data: premium, isLoading } = useQuery({
@@ -116,7 +110,7 @@ export function ClientPremiumTab({
           period_label: row.label || row.monthLabel,
           year: row.year,
           month: row.month,
-          sequence: Number((row.label.match(/(\d+)\s*$/)?.[1] ?? row.index + 1)),
+          sequence: Number(row.label.match(/(\d+)\s*$/)?.[1] ?? row.index + 1),
           type: row.type,
           tasks: row.tasks,
         })),
@@ -396,14 +390,15 @@ function PremiumWorkCalendarCard({
     setBusy(true);
     try {
       const rows = await parsePlanning(file);
-      if (rows.length === 0) throw new Error("Aucune intervention exploitable n'a été trouvée dans ce PDF.");
-    const normalized = await normalizePremiumWorkCalendar({
+      if (rows.length === 0)
+        throw new Error("Aucune intervention exploitable n'a été trouvée dans ce PDF.");
+      const normalized = await normalizePremiumWorkCalendar({
         data: {
           rows: rows.map((row) => ({
             period_label: row.label || row.monthLabel,
             year: row.year,
             month: row.month,
-            sequence: Number((row.label.match(/(\d+)\s*$/)?.[1] ?? row.index + 1)),
+            sequence: Number(row.label.match(/(\d+)\s*$/)?.[1] ?? row.index + 1),
             type: row.type,
             tasks: row.tasks,
           })),
@@ -421,14 +416,19 @@ function PremiumWorkCalendarCard({
   };
 
   return (
-    <Card className={planningDocument && workCalendar.length > 0 ? "" : "border-primary/40 bg-primary/5"}>
+    <Card
+      className={
+        planningDocument && workCalendar.length > 0 ? "" : "border-primary/40 bg-primary/5"
+      }
+    >
       <CardContent className="space-y-4 pt-6">
         <div className="flex items-start gap-3">
           <CalendarDays className="mt-0.5 size-5 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
             <p className="font-medium">Calendrier travaux</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Le PDF source est conservé dans Documents et son contenu est repris dans l'onglet « Calendrier travaux » du Compte Premium.
+              Le PDF source est conservé dans Documents et son contenu est repris dans l'onglet «
+              Calendrier travaux » du Compte Premium.
             </p>
           </div>
         </div>
@@ -437,23 +437,45 @@ function PremiumWorkCalendarCard({
           <div className="rounded-lg border bg-background p-3 text-sm">
             <p className="font-medium truncate">{planningDocument.filename}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {workCalendar.length} passage{workCalendar.length > 1 ? "s" : ""} structuré{workCalendar.length > 1 ? "s" : ""}.
+              {workCalendar.length} passage{workCalendar.length > 1 ? "s" : ""} structuré
+              {workCalendar.length > 1 ? "s" : ""}.
             </p>
           </div>
         ) : (
           <div className="rounded-xl border border-dashed bg-background p-5">
             <p className="font-medium">Le calendrier travaux n'est pas encore associé.</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Importez le PDF du calendrier d'entretien à la création du Compte Premium. Il sera automatiquement ajouté aux Documents et transformé en liste de prochaines interventions.
+              Importez le PDF du calendrier d'entretien à la création du Compte Premium. Il sera
+              automatiquement ajouté aux Documents et transformé en liste de prochaines
+              interventions.
             </p>
           </div>
         )}
 
-        <Button type="button" variant={planningDocument ? "outline" : "default"} disabled={!canEdit || busy} asChild>
+        <Button
+          type="button"
+          variant={planningDocument ? "outline" : "default"}
+          disabled={!canEdit || busy}
+          asChild
+        >
           <label className="cursor-pointer">
-            {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
-            {busy ? "Analyse du calendrier…" : planningDocument ? "Remplacer le calendrier PDF" : "Importer le calendrier PDF"}
-            <input type="file" accept="application/pdf,.pdf" className="hidden" onChange={importCalendar} disabled={!canEdit || busy} />
+            {busy ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 size-4" />
+            )}
+            {busy
+              ? "Analyse du calendrier…"
+              : planningDocument
+                ? "Remplacer le calendrier PDF"
+                : "Importer le calendrier PDF"}
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={importCalendar}
+              disabled={!canEdit || busy}
+            />
           </label>
         </Button>
       </CardContent>
