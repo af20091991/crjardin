@@ -27,8 +27,8 @@ function detectPeriod(line: string) {
     if (match) {
       return {
         month: index + 1,
-        sequence: match[1] ? Number(match[1]) : 1,
-        year: match[2] ? Number(match[2]) : null,
+        sequence: match[2] ? Number(match[2]) : 1,
+        year: match[1] ? Number(match[1]) : null,
       };
     }
   }
