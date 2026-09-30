@@ -77,10 +77,75 @@ export function ClientPremiumTab({
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
 
+  const importExistingPlanning = async () => {
+    const existingPlanning = (documents ?? []).find(
+      (doc) =>
+        doc.title.toLowerCase() === "calendrier travaux" ||
+        /calendrier|planning/.test(doc.filename.toLowerCase()),
+    );
+    if (existingPlanning && (workCalendar?.length ?? 0) > 0) return true;
+
+    const { data: files, error } = await supabase.storage
+      .from("client-plannings")
+      .list(clientId, { limit: 100, sortBy: { column: "updated_at", order: "desc" } });
+    if (error) throw new Error(`Impossible de rechercher le calendrier client : ${error.message}`);
+
+    const source = (files ?? []).find((file) => /.pdf$/i.test(file.name));
+    if (!source) return false;
+
+    const { data: signed, error: signError } = await supabase.storage
+      .from("client-plannings")
+      .createSignedUrl(`${clientId}/${source.name}`, 60 * 60);
+    if (signError || !signed?.signedUrl) {
+      throw new Error("Impossible d'accéder au PDF du calendrier client.");
+    }
+
+    const response = await fetch(signed.signedUrl);
+    if (!response.ok) throw new Error("Impossible de télécharger le PDF du calendrier client.");
+    const blob = await response.blob();
+    const file = new File([blob], source.name, { type: "application/pdf" });
+    const rows = await parsePlanning(file);
+    if (rows.length === 0) {
+      throw new Error("Le PDF du calendrier client ne contient aucune intervention exploitable.");
+    }
+
+    const normalized = await normalizePremiumWorkCalendar({
+      data: {
+        rows: rows.map((row) => ({
+          period_label: row.label || row.monthLabel,
+          year: row.year,
+          month: row.month,
+          sequence: Number((row.label.match(/(\\d+)\\s*$/)?.[1] ?? row.index + 1)),
+          type: row.type,
+          tasks: row.tasks,
+        })),
+      },
+    });
+    const document = await uploadPremiumDocument(clientId, file, "Calendrier travaux");
+    await replacePremiumWorkCalendar(clientId, document.id, normalized.items);
+    return true;
+  };
+
   const toggleEnabled = useMutation({
-    mutationFn: (enabled: boolean) => setClientPremiumEnabled(clientId, enabled),
-    onSuccess: (_data, enabled) => {
-      toast.success(enabled ? "Espace Premium activé" : "Espace Premium désactivé");
+    mutationFn: async (enabled: boolean) => {
+      await setClientPremiumEnabled(clientId, enabled);
+      if (enabled) {
+        return await importExistingPlanning();
+      }
+      return null;
+    },
+    onSuccess: (calendarImported, enabled) => {
+      if (enabled) {
+        toast.success(
+          calendarImported
+            ? "Espace Premium activé avec le calendrier travaux."
+            : "Espace Premium activé. Importez le PDF du calendrier travaux pour compléter l'espace client.",
+        );
+        qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+        qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+      } else {
+        toast.success("Espace Premium désactivé");
+      }
       invalidate();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
