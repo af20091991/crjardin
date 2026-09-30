@@ -577,6 +577,7 @@ function PremiumExperience({
           <div className="space-y-8">
             {section === "reports" && (
               <section>
+                {/* prettier-ignore */}
                 <PremiumPageIntro
                   eyebrow="Le carnet du jardin"
                   title="Interventions"
@@ -592,6 +593,7 @@ function PremiumExperience({
             )}
             {section === "photos" && (
               <section>
+                {/* prettier-ignore */}
                 <PremiumPageIntro
                   eyebrow="Mémoire du jardin"
                   title="Photos"
@@ -602,6 +604,7 @@ function PremiumExperience({
             )}
             {section === "recos" && (
               <section>
+                {/* prettier-ignore */}
                 <PremiumPageIntro
                   eyebrow="Le regard du paysagiste"
                   title="Conseils"
@@ -612,6 +615,7 @@ function PremiumExperience({
             )}
             {section === "premium" && (
               <section>
+                {/* prettier-ignore */}
                 <PremiumPageIntro
                   eyebrow="Votre jardin"
                   title="Mon jardin"
@@ -627,6 +631,7 @@ function PremiumExperience({
             )}
             {section === "documents" && (
               <section>
+                {/* prettier-ignore */}
                 <PremiumPageIntro
                   eyebrow="Votre dossier"
                   title="Documents"
