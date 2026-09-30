@@ -130,7 +130,8 @@ export function ClientPremiumTab({
             <Label htmlFor="garden-state">État du jardin</Label>
             <Textarea
               id="garden-state"
-              value={gardenState}\n              disabled={!canEdit}
+              value={gardenState}
+              disabled={!canEdit}
               onChange={(e) => setGardenState(e.target.value)}
               placeholder="Ex : jardin en bon état général, taille des rosiers prévue en mars…"
               rows={3}
@@ -141,7 +142,8 @@ export function ClientPremiumTab({
             <Label htmlFor="garden-objectives">Objectifs du jardin</Label>
             <Textarea
               id="garden-objectives"
-              value={gardenObjectives}\n              disabled={!canEdit}
+              value={gardenObjectives}
+              disabled={!canEdit}
               onChange={(e) => setGardenObjectives(e.target.value)}
               placeholder="Ex : préserver les plantes existantes, réduire l’arrosage, garder une floraison étalée…"
               rows={3}
@@ -152,7 +154,8 @@ export function ClientPremiumTab({
             <Label htmlFor="garden-specificities">Particularités du jardin</Label>
             <Textarea
               id="garden-specificities"
-              value={gardenSpecificities}\n              disabled={!canEdit}
+              value={gardenSpecificities}
+              disabled={!canEdit}
               onChange={(e) => setGardenSpecificities(e.target.value)}
               placeholder="Ex : sol très calcaire, zone ventée, présence d’un chien, contraintes d’accès…"
               rows={3}
@@ -163,7 +166,8 @@ export function ClientPremiumTab({
             <Label htmlFor="commercial-note">Note commerciale (visible du client)</Label>
             <Textarea
               id="commercial-note"
-              value={commercialNote}\n              disabled={!canEdit}
+              value={commercialNote}
+              disabled={!canEdit}
               onChange={(e) => setCommercialNote(e.target.value)}
               placeholder="Message libre affiché dans l'espace client"
               rows={2}
@@ -174,7 +178,8 @@ export function ClientPremiumTab({
             <Label htmlFor="google-review">Lien avis Google</Label>
             <Input
               id="google-review"
-              value={googleReviewUrl}\n              disabled={!canEdit}
+              value={googleReviewUrl}
+              disabled={!canEdit}
               onChange={(e) => setGoogleReviewUrl(e.target.value)}
               placeholder="https://g.page/r/..."
               className="mt-1.5"
