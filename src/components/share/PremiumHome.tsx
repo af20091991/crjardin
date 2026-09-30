@@ -48,9 +48,15 @@ function fmtDate(value: string) {
   });
 }
 
-// prettier-ignore-start
-
-export function PremiumHome({ client, interventions, recommendations, premium, messages, token, onNavigate }: {
+export function PremiumHome({
+  client,
+  interventions,
+  recommendations,
+  premium,
+  messages,
+  token,
+  onNavigate,
+}: {
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
   recommendations: SharedRecommendation[];
@@ -66,6 +72,7 @@ export function PremiumHome({ client, interventions, recommendations, premium, m
   const hasDocuments = premium.documents.length > 0;
   const hasConversation = messages.some((m) => !m.intervention_id);
 
+  // prettier-ignore
   return (
     <div className="space-y-14 sm:space-y-20">
       <section className="relative overflow-hidden rounded-[1.5rem] border bg-muted shadow-sm">
@@ -201,12 +208,21 @@ export function PremiumHome({ client, interventions, recommendations, premium, m
   );
 }
 
-export function PremiumExchange({ client, token, messages }: { client: SharedClientData["client"]; token: string; messages: ClientMessage[] }) {
+export function PremiumExchange({
+  client,
+  token,
+  messages,
+}: {
+  client: SharedClientData["client"];
+  token: string;
+  messages: ClientMessage[];
+}) {
   const qc = useQueryClient();
   const [requestType, setRequestType] = useState<(typeof REQUESTS)[number]>(REQUESTS[0]);
   const [message, setMessage] = useState("");
   const [attachment, setAttachment] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
+  // prettier-ignore
   async function sendRequest() {
     if (!message.trim()) return;
     setSending(true);
@@ -228,6 +244,7 @@ export function PremiumExchange({ client, token, messages }: { client: SharedCli
     } catch (error) { toast.error(error instanceof Error ? error.message : "Impossible d'envoyer la demande."); }
     finally { setSending(false); }
   }
+  // prettier-ignore
   return <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
     <section className="space-y-6"><div><p className={dateLabel}>Une question, une demande</p><h2 className={`mt-3 text-4xl ${heading}`}>Écrivons-nous</h2></div>
       <label className="block space-y-2 text-sm"><span>Votre demande</span><select value={requestType} onChange={(e) => setRequestType(e.target.value as (typeof REQUESTS)[number])} className="w-full rounded-md border border-input bg-background px-3 py-2">{REQUESTS.map((r) => <option key={r}>{r}</option>)}</select></label>
@@ -238,4 +255,3 @@ export function PremiumExchange({ client, token, messages }: { client: SharedCli
     <section><p className={dateLabel}>Conversation</p><h2 className={`mt-3 text-3xl ${heading}`}>Nos échanges</h2><div className="mt-6 divide-y border-t">{messages.filter((m) => !m.intervention_id).length ? messages.filter((m) => !m.intervention_id).map((m) => <article key={m.id} className="py-5"><p className="text-xs text-primary">{m.sender === "gardener" ? "Votre jardinier" : "Vous"} · {fmtDate(m.created_at)}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6">{m.content}</p></article>) : <p className="py-6 text-sm text-muted-foreground">La conversation commencera ici avec votre premier message.</p>}</div></section>
   </div>;
 }
-// prettier-ignore-end
