@@ -506,7 +506,7 @@ function PremiumExperience({
             <PremiumWorkCalendar items={premium.work_calendar} editorial />
           </section>
         )}
-        {section !== "home" && <div className="-mt-10 sm:-mt-12 premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
+        {section !== "home" && <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
   <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-6 overflow-x-auto px-5 sm:gap-10 sm:px-10 lg:px-16" aria-label="Navigation Premium">
     {sections.map((item) => (
       <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined}
