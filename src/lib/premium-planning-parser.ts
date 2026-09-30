@@ -23,7 +23,9 @@ function detectPeriod(line: string) {
   const lower = line.toLocaleLowerCase("fr-FR");
   for (let index = 0; index < MONTHS.length; index += 1) {
     const month = MONTHS[index];
-    const match = lower.match(new RegExp(`^\\s*${month}(?:\\s+(20\\d{2}))?(?:\\s+(\\d+))?(?:\\s+|$)`));
+    const match = lower.match(
+      new RegExp(`^\\s*${month}(?:\\s+(20\\d{2}))?(?:\\s+(\\d+))?(?:\\s+|$)`),
+    );
     if (match) {
       return {
         month: index + 1,
@@ -40,7 +42,10 @@ function inferYear(month: number, explicitYear: number | null, currentYear: numb
   return month >= new Date().getMonth() + 1 ? currentYear : currentYear + 1;
 }
 
-export async function parsePlanningPdf(bytes: Uint8Array, currentYear = new Date().getFullYear()) {
+export async function parsePlanningPdf(
+  bytes: Uint8Array,
+  currentYear = new Date().getFullYear(),
+) {
   const pdf = await getDocument({ data: bytes }).promise;
 
   const lines: string[] = [];
@@ -52,10 +57,17 @@ export async function parsePlanningPdf(bytes: Uint8Array, currentYear = new Date
           (item): item is { str: string; transform: number[] } =>
             "str" in item && "transform" in item && Boolean(item.str.trim()),
         )
-        .map((item) => ({ text: normalize(item.str), x: item.transform[4], y: item.transform[5] }))
+        .map((item) => ({
+          text: normalize(item.str),
+          x: item.transform[4],
+          y: item.transform[5],
+        }))
         .sort((a, b) => b.y - a.y || a.x - b.x);
 
-      const pageLines: { y: number; texts: { x: number; text: string }[] }[] = [];
+      const pageLines: {
+        y: number;
+        texts: { x: number; text: string }[];
+      }[] = [];
       for (const item of items) {
         let line = pageLines.find((candidate) => Math.abs(candidate.y - item.y) < 2.5);
         if (!line) {
@@ -66,7 +78,12 @@ export async function parsePlanningPdf(bytes: Uint8Array, currentYear = new Date
       }
 
       for (const line of pageLines.sort((a, b) => b.y - a.y)) {
-        const text = normalize(line.texts.sort((a, b) => a.x - b.x).map((part) => part.text).join(" "));
+        const text = normalize(
+          line.texts
+            .sort((a, b) => a.x - b.x)
+            .map((part) => part.text)
+            .join(" "),
+        );
         if (text) lines.push(text);
       }
       page.cleanup();
@@ -94,7 +111,12 @@ export async function parsePlanningPdf(bytes: Uint8Array, currentYear = new Date
 
     if (!current) continue;
     if (/^planning d['’]entretien/i.test(line)) continue;
-    if (/^(total entretien annuel|ce planning prévoit|ce planning ne prévoit pas|signature précédée|remise fidélité|sous-total|prix ttc)/i.test(line)) continue;
+    if (
+      /^(total entretien annuel|ce planning prévoit|ce planning ne prévoit pas|signature précédée|remise fidélité|sous-total|prix ttc)/i.test(
+        line,
+      )
+    )
+      continue;
     if (/^\d+\s*(?:facturations?|interventions?)/i.test(line)) continue;
 
     current.details = normalize([current.details, line].filter(Boolean).join(" "));
