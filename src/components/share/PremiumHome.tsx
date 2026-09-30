@@ -11,7 +11,7 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 
 export type PremiumSection = "home" | "garden" | "reports" | "documents" | "exchange";
 const REQUESTS = ["Demander une intervention", "Poser une question", "Signaler un problème", "Modifier une intervention", "Demander une proposition", "Demander un document"] as const;
-const heading = "font-['Cormorant_Garamond',Georgia,serif] font-medium leading-none";
+const heading = "font-premium-serif font-medium leading-none";
 const dateLabel = "text-xs uppercase text-primary";
 function fmtDate(value: string) {
   return new Date(value).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
