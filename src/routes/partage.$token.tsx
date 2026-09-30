@@ -407,7 +407,18 @@ function PremiumPageIntro({
 }
 
 // prettier-ignore
-function PremiumExperience({ client, interventions, recommendations, premium, messages, token, large, dark, toggleDark, toggleLarge }: {
+function PremiumExperience({
+  client,
+  interventions,
+  recommendations,
+  premium,
+  messages,
+  token,
+  large,
+  dark,
+  toggleDark,
+  toggleLarge,
+}: {
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
   recommendations: SharedRecommendation[];
@@ -423,39 +434,183 @@ function PremiumExperience({ client, interventions, recommendations, premium, me
   const { isAdmin } = useIsAdmin();
   const qc = useQueryClient();
   const sections: { id: PremiumSection; label: string }[] = [
-    { id: "home", label: "Accueil" }, { id: "garden", label: "Le jardin" },
-    { id: "reports", label: "Les interventions" }, { id: "documents", label: "Documents" },
+    { id: "home", label: "Accueil" },
+    { id: "garden", label: "Le jardin" },
+    { id: "reports", label: "Les interventions" },
+    { id: "documents", label: "Documents" },
     { id: "exchange", label: "Échanger" },
   ];
-  function navigate(next: PremiumSection) { setSection(next); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  // prettier-ignore
-  return <div className={`premium-carnet min-h-screen bg-background pb-20 font-sans ${large ? "text-[1.08rem]" : ""}`}>
-    <header className="border-b bg-background">
-      <div className="mx-auto flex min-h-16 w-full max-w-[1320px] items-center justify-between gap-5 px-5 sm:px-10 lg:px-16">
-        <div className="min-w-0">
-          <p className="truncate font-premium-serif text-xl font-medium sm:text-2xl">Le carnet du jardin</p>
-          <p className="truncate text-xs text-muted-foreground">De la graine au jardin · Compte Premium</p>
+
+  function navigate(next: PremiumSection) {
+    setSection(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  return (
+    <div
+      className={`premium-carnet min-h-screen bg-background pb-20 font-sans ${large ? "text-[1.08rem]" : ""}`}
+    >
+      <header className="border-b bg-background">
+        <div className="mx-auto flex min-h-16 w-full max-w-[1320px] items-center justify-between gap-5 px-5 sm:px-10 lg:px-16">
+          <div className="min-w-0">
+            <p className="truncate font-premium-serif text-xl font-medium sm:text-2xl">
+              Le carnet du jardin
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              De la graine au jardin · Compte Premium
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={dark ? "Mode clair" : "Mode sombre"}
+              onClick={toggleDark}
+            >
+              {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Agrandir le texte"
+              onClick={toggleLarge}
+              aria-pressed={large}
+            >
+              <Type className="size-4" />
+            </Button>
+            {isAdmin && (
+              <Button
+                asChild
+                variant="link"
+                className="hidden h-10 px-0 text-xs text-primary sm:inline-flex"
+              >
+                <Link to="/clients/premium">← Pilot Pro</Link>
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <Button variant="ghost" size="icon" aria-label={dark ? "Mode clair" : "Mode sombre"} onClick={toggleDark}>{dark ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>
-          <Button variant="ghost" size="icon" aria-label="Agrandir le texte" onClick={toggleLarge} aria-pressed={large}><Type className="size-4" /></Button>
-          {isAdmin && <Button asChild variant="link" className="hidden h-10 px-0 text-xs text-primary sm:inline-flex"><Link to="/clients/premium">← Pilot Pro</Link></Button>}
-        </div>
+      </header>
+
+      <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
+        <nav
+          className="mx-auto flex w-full max-w-[1320px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16"
+          aria-label="Navigation Premium"
+        >
+          {sections.map((item) => (
+            <Button
+              key={item.id}
+              type="button"
+              variant="ghost"
+              onClick={() => navigate(item.id)}
+              aria-current={section === item.id ? "page" : undefined}
+              className={`h-14 shrink-0 rounded-none border-b-2 px-0 text-sm font-normal hover:bg-transparent ${
+                section === item.id
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {item.label}
+            </Button>
+          ))}
+        </nav>
       </div>
-    </header>
-    <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
-      <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-5 overflow-x-auto px-5 sm:gap-9 sm:px-10 lg:px-16" aria-label="Navigation Premium">
-        {sections.map((item) => <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined} className={`h-14 shrink-0 rounded-none border-b-2 px-0 text-sm font-normal hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{item.label}</Button>)}
-      </nav>
+
+      <main className="mx-auto w-full max-w-[1320px] px-5 py-10 sm:px-10 sm:py-14 lg:px-16">
+        {section === "home" && (
+          <PremiumHome
+            client={client}
+            interventions={interventions}
+            recommendations={recommendations}
+            premium={premium}
+            messages={messages}
+            token={token}
+            onNavigate={navigate}
+          />
+        )}
+        {section === "garden" && (
+          <section>
+            <PremiumPageIntro
+              eyebrow="Portrait du jardin"
+              title="Le jardin"
+              text="Un lieu vivant, ses particularités et son suivi au fil des saisons."
+            />
+            <GardenTab
+              client={client}
+              interventions={interventions}
+              recommendations={recommendations}
+              premium={premium}
+              onNavigate={navigate}
+              token={token}
+            />
+          </section>
+        )}
+        {section === "reports" && (
+          <section>
+            <PremiumPageIntro
+              eyebrow="Au fil des saisons"
+              title="Les interventions"
+              text="Les passages et les soins apportés à votre jardin."
+            />
+            <ReportsTab
+              interventions={interventions}
+              token={token}
+              messages={messages}
+              client={client}
+              editorial
+            />
+          </section>
+        )}
+        {section === "documents" && (
+          <section>
+            <PremiumPageIntro
+              eyebrow="Les pièces du carnet"
+              title="Documents"
+              text="Les documents partagés pour le suivi de votre jardin."
+            />
+            <div className="mt-8 max-w-4xl divide-y border-t">
+              {premium.documents.length
+                ? premium.documents.map((document) => (
+                    <a
+                      key={document.id}
+                      href={document.url ?? undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-w-0 items-center gap-4 py-5 text-sm hover:text-primary"
+                    >
+                      <FileText className="size-5 shrink-0 text-primary" />
+                      <span className="min-w-0 flex-1 truncate">
+                        {document.title}
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {fmtDate(document.created_at)}
+                        </span>
+                      </span>
+                      <Download className="size-4 shrink-0" />
+                    </a>
+                  ))
+                : (
+                    <p className="py-8 text-sm text-muted-foreground">
+                      Aucun document n'a encore été partagé.
+                    </p>
+                  )}
+            </div>
+            {isAdmin && (
+              <div className="mt-8 max-w-xl">
+                <PremiumDocumentUpload
+                  token={token}
+                  onUploaded={() =>
+                    qc.invalidateQueries({ queryKey: ["shared-premium", token] })
+                  }
+                />
+              </div>
+            )}
+          </section>
+        )}
+        {section === "exchange" && (
+          <PremiumExchange client={client} token={token} messages={messages} />
+        )}
+      </main>
     </div>
-    <main className="mx-auto w-full max-w-[1320px] px-5 py-10 sm:px-10 sm:py-14 lg:px-16">
-      {section === "home" && <PremiumHome client={client} interventions={interventions} recommendations={recommendations} premium={premium} messages={messages} token={token} onNavigate={navigate} />}
-      {section === "garden" && <section><PremiumPageIntro eyebrow="Portrait du jardin" title="Le jardin" text="Un lieu vivant, ses particularités et son suivi au fil des saisons." /><GardenTab client={client} interventions={interventions} recommendations={recommendations} premium={premium} onNavigate={navigate} token={token} /></section>}
-      {section === "reports" && <section><PremiumPageIntro eyebrow="Au fil des saisons" title="Les interventions" text="Les passages et les soins apportés à votre jardin." /><ReportsTab interventions={interventions} token={token} messages={messages} client={client} editorial /></section>}
-      {section === "documents" && <section><PremiumPageIntro eyebrow="Les pièces du carnet" title="Documents" text="Les documents partagés pour le suivi de votre jardin." /><div className="mt-8 max-w-4xl divide-y border-t">{premium.documents.length ? premium.documents.map((document) => <a key={document.id} href={document.url ?? undefined} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-4 py-5 text-sm hover:text-primary"><FileText className="size-5 shrink-0 text-primary" /><span className="min-w-0 flex-1 truncate">{document.title}<span className="mt-1 block text-xs text-muted-foreground">{fmtDate(document.created_at)}</span></span><Download className="size-4 shrink-0" /></a>) : <p className="py-8 text-sm text-muted-foreground">Aucun document n'a encore été partagé.</p>}</div>{isAdmin && <div className="mt-8 max-w-xl"><PremiumDocumentUpload token={token} onUploaded={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })} /></div>}</section>}
-      {section === "exchange" && <PremiumExchange client={client} token={token} messages={messages} />}
-    </main>
-  </div>;
+  );
 }
 function StatCard({
   label,
