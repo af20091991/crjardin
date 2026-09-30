@@ -389,6 +389,7 @@ function SharePage() {
 }
 
 
+// prettier-ignore
 function PremiumPageIntro({
   eyebrow,
   title,
@@ -663,7 +664,6 @@ function PremiumExperience({
     </div>
   );
 }
-
 function StatCard({
   label,
   value,
