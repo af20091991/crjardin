@@ -403,48 +403,40 @@ export const getSharedPremium = createServerFn({ method: "GET" })
     if (workCalendarError) throw workCalendarError;
 
     let syncedWorkCalendar = workCalendarRows ?? [];
+    let syncedDocuments = raw.documents;
     if (syncedWorkCalendar.length === 0 && client.ceev_planning_path) {
-      const { data: planningFile, error: planningDownloadError } = await supabaseAdmin.storage
-        .from("client-plannings")
-        .download(client.ceev_planning_path);
-
-      if (!planningDownloadError && planningFile) {
-        const { parsePlanningPdf } = await import("@/lib/premium-planning-parser");
-        const parsed = await parsePlanningPdf(new Uint8Array(await planningFile.arrayBuffer()));
-        if (parsed.length > 0) {
-          const rows = parsed.map((item) => ({
-            client_id: client.id,
-            user_id: client.user_id,
-            period_label: item.period_label,
-            year: item.year,
-            month: item.month,
-            sequence: item.sequence,
-            title: item.title,
-            details: item.details,
-            position: item.position,
-            source: "pdf" as const,
-          }));
-          const { data: inserted, error: insertError } = await premiumCalendarDb
+      try {
+        const { importPremiumPlanning } = await import("@/lib/premium-planning-import.server");
+        const result = await importPremiumPlanning(premiumCalendarDb, {
+          id: client.id,
+          user_id: client.user_id,
+          ceev_planning_path: client.ceev_planning_path,
+          ceev_planning_filename: client.ceev_planning_filename ?? null,
+        });
+        if (result.status === "imported") {
+          const { data: refreshed } = await premiumCalendarDb
             .from("client_premium_work_calendar_items")
-            .insert(rows)
-            .select("id, period_label, year, month, sequence, title, details");
-          if (insertError) throw insertError;
-          syncedWorkCalendar =
-            inserted ??
-            rows.map((row) => ({
-              id: "",
-              period_label: row.period_label,
-              year: row.year,
-              month: row.month,
-              sequence: row.sequence,
-              title: row.title,
-              details: row.details,
-            }));
+            .select("id, period_label, year, month, sequence, title, details")
+            .eq("client_id", client.id)
+            .order("year", { ascending: true, nullsFirst: false })
+            .order("month", { ascending: true, nullsFirst: false })
+            .order("sequence", { ascending: true })
+            .order("position", { ascending: true });
+          syncedWorkCalendar = refreshed ?? [];
+          const { data: freshDocs } = await premiumCalendarDb
+            .from("client_premium_documents")
+            .select("id, title, filename, storage_path, size_bytes, uploaded_by, created_at")
+            .eq("client_id", client.id)
+            .eq("visible_to_client", true)
+            .order("created_at", { ascending: false });
+          if (freshDocs) syncedDocuments = freshDocs as typeof raw.documents;
         }
+      } catch (error) {
+        console.error("[premium-calendar] import automatique impossible", error);
       }
     }
 
-    const docPaths = raw.documents.map((d) => d.storage_path);
+    const docPaths = syncedDocuments.map((d) => d.storage_path);
     const docUrlMap = new Map<string, string>();
     if (docPaths.length > 0) {
       const { data: signed } = await supabaseAdmin.storage
@@ -475,7 +467,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       cover_photo_url: coverPhotoUrl,
       upcoming: raw.upcoming,
       work_calendar: syncedWorkCalendar as SharedPremiumWorkCalendarItem[],
-      documents: raw.documents.map((d) => ({
+      documents: syncedDocuments.map((d) => ({
         id: d.id,
         title: d.title,
         filename: d.filename,

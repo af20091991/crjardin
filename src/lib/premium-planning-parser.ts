@@ -1,142 +1,56 @@
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
+import { planningFromPdfItems, type PdfTextItem } from "@/lib/file-parser";
 
 export interface ParsedPlanningItem {
   period_label: string;
   year: number | null;
-  month: number | null;
+  month: number;
   sequence: number;
   title: string;
   details: string | null;
   position: number;
 }
 
-const MONTHS = [
-  "janvier",
-  "février",
-  "mars",
-  "avril",
-  "mai",
-  "juin",
-  "juillet",
-  "août",
-  "septembre",
-  "octobre",
-  "novembre",
-  "décembre",
-];
+const DEFAULT_TITLE = "Entretien du jardin";
 
-function normalize(value: string) {
-  return value.replace(/\s+/g, " ").trim();
-}
-
-function detectPeriod(line: string) {
-  const lower = line.toLocaleLowerCase("fr-FR");
-  for (let index = 0; index < MONTHS.length; index += 1) {
-    const month = MONTHS[index];
-    const match = lower.match(
-      new RegExp(`^\\s*${month}(?:\\s+(20\\d{2}))?(?:\\s+(\\d+))?(?:\\s+|$)`),
-    );
-    if (match) {
-      return {
-        month: index + 1,
-        sequence: match[2] ? Number(match[2]) : 1,
-        year: match[1] ? Number(match[1]) : null,
-      };
-    }
-  }
-  return null;
-}
-
-function inferYear(month: number, explicitYear: number | null, currentYear: number) {
-  if (explicitYear != null) return explicitYear;
-  return month >= new Date().getMonth() + 1 ? currentYear : currentYear + 1;
-}
-
-// prettier-ignore
+/**
+ * Lit le PDF du calendrier CEEV avec le MÊME parseur par colonnes
+ * (Mois / Type / Travaux / Remarques) que l'espace client classique,
+ * afin que le calendrier Premium reprenne exactement les mêmes données.
+ */
 export async function parsePlanningPdf(
   bytes: Uint8Array,
-  currentYear = new Date().getFullYear(),
-) {
-  const pdf = await getDocument({ data: bytes }).promise;
-
-  const lines: string[] = [];
-    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-      const page = await pdf.getPage(pageNumber);
-      const content = await page.getTextContent();
-      const items = content.items
-        .filter(
-          (item): item is TextItem =>
-            "str" in item && "transform" in item && Boolean(item.str.trim()),
-        )
-        .map((item) => ({
-          text: normalize(item.str),
-          x: item.transform[4],
-          y: item.transform[5],
-        }))
-        .sort((a, b) => b.y - a.y || a.x - b.x);
-
-      const pageLines: {
-        y: number;
-        texts: { x: number; text: string }[];
-      }[] = [];
-      for (const item of items) {
-        let line = pageLines.find((candidate) => Math.abs(candidate.y - item.y) < 2.5);
-        if (!line) {
-          line = { y: item.y, texts: [] };
-          pageLines.push(line);
-        }
-        line.texts.push({ x: item.x, text: item.text });
-      }
-
-      for (const line of pageLines.sort((a, b) => b.y - a.y)) {
-        const text = normalize(
-          line.texts
-            .sort((a, b) => a.x - b.x)
-            .map((part) => part.text)
-            .join(" "),
-        );
-        if (text) lines.push(text);
-      }
-      page.cleanup();
+  fallbackYear: number | null = new Date().getFullYear(),
+): Promise<ParsedPlanningItem[]> {
+  const pdf = await getDocument({ data: bytes, useWorkerFetch: false }).promise;
+  const all: PdfTextItem[] = [];
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const offset = (pageNumber - 1) * 100000;
+    for (const item of content.items) {
+      if (!("str" in item) || !item.str.trim()) continue;
+      const text = item as TextItem;
+      all.push({ str: text.str, x: text.transform[4], y: offset - text.transform[5] });
     }
-
-  const items: ParsedPlanningItem[] = [];
-  let current: ParsedPlanningItem | null = null;
-
-  for (const line of lines) {
-    const period = detectPeriod(line);
-    if (period) {
-      if (current) items.push(current);
-      const year = inferYear(period.month, period.year, currentYear);
-      current = {
-        period_label:
-          `${MONTHS[period.month - 1][0].toUpperCase()}${MONTHS[period.month - 1].slice(1)}${year ? ` ${year}` : ""}`,
-        year,
-        month: period.month,
-        sequence: period.sequence,
-        title: "Entretien du jardin",
-        details: null,
-        position: items.length,
-      };
-      continue;
-    }
-
-    if (!current) continue;
-    if (/^planning d['’]entretien/i.test(line)) continue;
-    if (
-      /^(total entretien annuel|ce planning prévoit|ce planning ne prévoit pas|signature précédée|remise fidélité|sous-total|prix ttc)/i.test(
-        line,
-      )
-    )
-      continue;
-    if (/^\d+\s*(?:facturations?|interventions?)/i.test(line)) continue;
-
-    current.details = normalize(
-      [current.details, line].filter(Boolean).join(" "),
-    );
+    page.cleanup();
   }
 
-  if (current) items.push(current);
-  return items.filter((item) => item.month != null && item.title);
+  const seenPerMonth = new Map<number, number>();
+  return planningFromPdfItems(all, fallbackYear).map((row, position) => {
+    const trailing = Number(row.label.match(/(\d+)\s*$/)?.[1]);
+    const count = (seenPerMonth.get(row.month) ?? 0) + 1;
+    seenPerMonth.set(row.month, count);
+    return {
+      period_label:
+        row.year && !/\b20\d{2}\b/.test(row.label) ? `${row.label} ${row.year}` : row.label,
+      year: row.year,
+      month: row.month,
+      sequence: Number.isFinite(trailing) && trailing > 0 ? trailing : count,
+      title: row.type || DEFAULT_TITLE,
+      details: row.tasks.length ? row.tasks.join(" · ") : null,
+      position,
+    };
+  });
 }
