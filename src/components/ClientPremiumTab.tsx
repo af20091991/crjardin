@@ -173,9 +173,21 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
       if (enabled) {
         toast.success(
           provisioning?.calendarImported
-            ? "Espace Premium activé et construit automatiquement à partir du modèle Premium."
-            : "Espace Premium activé. Le modèle Premium est en place ; le calendrier travaux sera ajouté dès qu'il sera disponible.",
+            ? "Espace Premium activé : calendrier travaux importé depuis le PDF."
+            : "Espace Premium activé.",
         );
+        if (provisioning?.status === "no_pdf") {
+          toast.warning(
+            "Aucun calendrier PDF pour ce client. Importez-le dans l'onglet Calendrier de la fiche : il sera converti automatiquement.",
+          );
+        } else if (
+          provisioning?.status === "pdf_unreadable" ||
+          provisioning?.status === "pdf_unavailable"
+        ) {
+          toast.warning(
+            "Le calendrier PDF n'a pas pu être lu. Réimportez le fichier dans l'onglet Calendrier.",
+          );
+        }
         qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
         qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
       } else {
@@ -232,6 +244,16 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
           />
         </CardContent>
       </Card>
+
+      {premium?.enabled && workCalendar !== undefined && workCalendar.length === 0 && (
+        <Card className="border-accent bg-accent/10">
+          <CardContent className="pt-6 text-sm">
+            Aucun calendrier travaux n'est encore importé. Importez le PDF dans l'onglet Calendrier
+            de cette fiche : il sera copié dans Documents et converti ici automatiquement ; l'encart
+            « Prochaine intervention » sera alimenté.
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="space-y-3 pt-6">

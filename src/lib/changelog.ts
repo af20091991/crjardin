@@ -24,6 +24,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-01",
+    version: "2.3.39",
+    theme: "Clients",
+    title: "Compte Premium — calendrier PDF importé automatiquement",
+    details: [
+      "Le calendrier PDF du client est lu avec le même parseur par colonnes que l'espace client CEEV.",
+      "Import automatique à l'activation, à l'envoi du PDF et à l'ouverture de l'espace client.",
+      "Le PDF est copié dans Documents ; l'encart « Prochaine intervention » et l'onglet Calendrier travaux sont alimentés.",
+      "Avertissement dans la fiche client si aucun PDF n'est disponible ou lisible.",
+    ],
+  },
+  {
+    date: "2026-10-01",
     version: "2.3.38",
     theme: "Clients",
     title: "Comptes Premium — construction automatique",

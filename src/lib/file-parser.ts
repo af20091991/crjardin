@@ -156,6 +156,8 @@ async function tableFromDocx(file: File): Promise<string[][]> {
   return rows;
 }
 
+export type PdfTextItem = { str: string; x: number; y: number };
+
 async function planningFromPdf(
   file: File,
   fallbackYear: number | null = null,
@@ -169,19 +171,26 @@ async function planningFromPdf(
   const data = await file.arrayBuffer();
   const pdf = await pdfjs.getDocument({ data }).promise;
 
-  type Item = { str: string; x: number; y: number };
-  const all: Item[] = [];
+  const all: PdfTextItem[] = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     const pageOffset = (i - 1) * 100000;
-    for (const it of content.items as any[]) {
-      if (!("str" in it) || !it.str.trim()) continue;
-      const tr = it.transform as number[];
+    for (const it of content.items as { str?: string; transform: number[] }[]) {
+      if (!it.str?.trim()) continue;
+      const tr = it.transform;
       all.push({ str: it.str, x: tr[4], y: pageOffset - tr[5] });
     }
   }
+  return planningFromPdfItems(all, fallbackYear);
+}
 
+/** Cœur pur (sans DOM ni worker) : partagé navigateur / serveur. */
+export function planningFromPdfItems(
+  all: PdfTextItem[],
+  fallbackYear: number | null = null,
+): PlanningRow[] {
+  type Item = PdfTextItem;
   // Détection prioritaire à partir de l'en-tête réel du tableau.
   // Les positions de texte « Mois / Type / Travaux / Remarques » sont beaucoup
   // plus fiables que les pics de densité : les tâches elles-mêmes peuvent créer
