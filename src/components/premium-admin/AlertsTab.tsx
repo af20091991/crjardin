@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { alertFix } from "@/lib/premium-admin-health";
 import type { PremiumRow } from "@/components/premium-admin/data";
 import { displayClientName } from "@/components/premium-admin/shared";
 
@@ -48,32 +48,37 @@ export function AlertsTab({
             <AlertTriangle className="h-5 w-5 shrink-0 text-primary" />
           </div>
           <ul className="space-y-2">
-            {row.alerts.map((alert) => (
-              <li
-                key={alert.code}
-                className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2 text-sm"
-              >
-                <span>{alert.label}</span>
-                <Badge variant={alert.level === "warning" ? "default" : "secondary"}>
-                  {alert.level === "warning" ? "À faire" : "Conseillé"}
-                </Badge>
-              </li>
-            ))}
+            {row.alerts.map((alert) => {
+              const fix = alertFix(alert.code);
+              return (
+                <li
+                  key={alert.code}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2 text-sm"
+                >
+                  <span className="min-w-0 flex-1">{alert.label}</span>
+                  {fix.kind === "calendars" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onOpenCalendar(row.client.id)}
+                    >
+                      {fix.label}
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" asChild>
+                      <Link
+                        to="/clients/$clientId"
+                        params={{ clientId: row.client.id }}
+                        search={{ tab: fix.tab }}
+                      >
+                        {fix.label}
+                      </Link>
+                    </Button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
-          <div className="flex flex-wrap justify-end gap-2">
-            {row.alerts.some(
-              (alert) => alert.code === "no_calendar" || alert.code === "calendar_over",
-            ) && (
-              <Button size="sm" variant="outline" onClick={() => onOpenCalendar(row.client.id)}>
-                Ouvrir le calendrier
-              </Button>
-            )}
-            <Button size="sm" variant="ghost" asChild>
-              <Link to="/clients/$clientId" params={{ clientId: row.client.id }}>
-                Fiche client
-              </Link>
-            </Button>
-          </div>
         </Card>
       ))}
     </div>

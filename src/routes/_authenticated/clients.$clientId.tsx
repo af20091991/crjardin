@@ -79,16 +79,20 @@ import { ClientOpportunitiesWidget } from "@/components/ClientOpportunitiesWidge
 import { ClientPremiumTab } from "@/components/ClientPremiumTab";
 import { ClientPilotageTabs } from "@/components/pilot/ClientPilotageTabs";
 
+const CLIENT_TABS = ["interventions", "calendar", "health", "reco", "opps", "premium"] as const;
+type ClientTab = (typeof CLIENT_TABS)[number];
+
 export const Route = createFileRoute("/_authenticated/clients/$clientId")({
-  validateSearch: (search: Record<string, unknown>): { edit?: boolean } => ({
+  validateSearch: (search: Record<string, unknown>): { edit?: boolean; tab?: ClientTab } => ({
     edit: search.edit === true || search.edit === "true" || search.edit === "1" ? true : undefined,
+    tab: CLIENT_TABS.includes(search.tab as ClientTab) ? (search.tab as ClientTab) : undefined,
   }),
   component: ClientDetail,
 });
 
 function ClientDetail() {
   const { clientId } = Route.useParams();
-  const { edit } = Route.useSearch();
+  const { edit, tab: initialTab } = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { canEdit } = useRole();
@@ -292,7 +296,7 @@ function ClientDetail() {
         </div>
 
         {group === "gestion" && (
-          <Tabs defaultValue="interventions">
+          <Tabs defaultValue={initialTab ?? "interventions"}>
             <TabsList className="w-full">
               <TabsTrigger value="interventions" className="flex-1">
                 <Calendar className="mr-1.5 h-4 w-4" />

@@ -79,3 +79,23 @@ export function linesToDetails(lines: string): string | null {
     .join(" · ");
   return joined || null;
 }
+
+export type PremiumAlertFix =
+  | { kind: "calendars"; label: string }
+  | { kind: "client"; tab: "interventions" | "premium"; label: string };
+
+/** Page qui permet de résoudre chaque alerte. */
+export function alertFix(code: PremiumAlert["code"]): PremiumAlertFix {
+  switch (code) {
+    case "no_calendar":
+      return { kind: "client", tab: "premium", label: "Importer le calendrier PDF" };
+    case "calendar_over":
+      return { kind: "calendars", label: "Ajouter des interventions" };
+    case "no_cover":
+      return { kind: "client", tab: "premium", label: "Choisir la photo de couverture" };
+    case "no_profile":
+      return { kind: "client", tab: "premium", label: "Renseigner le profil du jardin" };
+    case "no_report":
+      return { kind: "client", tab: "interventions", label: "Envoyer un compte-rendu" };
+  }
+}

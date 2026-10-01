@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  alertFix,
   computePremiumAlerts,
   detailsToLines,
   linesToDetails,
@@ -52,5 +53,15 @@ describe("édition des détails de travaux", () => {
     expect(linesToDetails("Taille\n\n Tonte ")).toBe("Taille · Tonte");
     expect(detailsToLines("Taille · Tonte")).toBe("Taille\nTonte");
     expect(linesToDetails("  ")).toBeNull();
+  });
+});
+
+describe("résolution des alertes", () => {
+  test("chaque alerte mène à une page de correction", () => {
+    expect(alertFix("no_calendar")).toMatchObject({ kind: "client", tab: "premium" });
+    expect(alertFix("no_cover")).toMatchObject({ kind: "client", tab: "premium" });
+    expect(alertFix("no_profile")).toMatchObject({ kind: "client", tab: "premium" });
+    expect(alertFix("no_report")).toMatchObject({ kind: "client", tab: "interventions" });
+    expect(alertFix("calendar_over").kind).toBe("calendars");
   });
 });
