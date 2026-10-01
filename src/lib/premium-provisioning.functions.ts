@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const MODEL_LABEL = "Addala";
 
+// prettier-ignore
 type PremiumCalendarRow = {
   client_id: string;
   user_id: string;
@@ -17,6 +18,7 @@ type PremiumCalendarRow = {
   source: "pdf";
 };
 
+// prettier-ignore
 type PremiumCalendarDb = {
   from: (table: "client_premium_work_calendar_items") => {
     select: (columns: string) => {
