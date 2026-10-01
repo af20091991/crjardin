@@ -78,11 +78,21 @@ export const provisionPremiumAccount = createServerFn({ method: "POST" })
     if (calendarError) throw calendarError;
 
     if ((existingCalendar ?? []).length > 0) {
-      return { ok: true, calendarImported: false, alreadyProvisioned: true, model: MODEL_LABEL };
+      return {
+        ok: true,
+        calendarImported: false,
+        alreadyProvisioned: true,
+        model: MODEL_LABEL,
+      };
     }
 
     if (!client.ceev_planning_path) {
-      return { ok: true, calendarImported: false, alreadyProvisioned: false, model: MODEL_LABEL };
+      return {
+        ok: true,
+        calendarImported: false,
+        alreadyProvisioned: false,
+        model: MODEL_LABEL,
+      };
     }
 
     const { data: planningFile, error: planningError } = await supabaseAdmin.storage
@@ -99,7 +109,9 @@ export const provisionPremiumAccount = createServerFn({ method: "POST" })
       };
     }
 
-    const parsed = await parsePlanningPdf(new Uint8Array(await planningFile.arrayBuffer()));
+    const parsed = await parsePlanningPdf(
+      new Uint8Array(await planningFile.arrayBuffer()),
+    );
     if (parsed.length === 0) {
       return {
         ok: true,
