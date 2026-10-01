@@ -78,7 +78,17 @@ export function PremiumHome({
   const latest = interventions[0];
   const cover = premium.cover_photo_url;
   const next = pickNextIntervention(premium.work_calendar);
-  const latestPhoto = latest?.photos.find((p) => p.url);
+  // L'encart ne reste jamais vide : photo de la dernière intervention, sinon la plus récente
+  // photo disponible, sinon la couverture de l'espace.
+  const photoOf = (photos: SharedIntervention["photos"] | undefined) =>
+    photos?.find((p) => p.url) ?? null;
+  const hero =
+    photoOf(latest?.photos) ?? interventions.map((iv) => photoOf(iv.photos)).find(Boolean) ?? null;
+  const heroPhoto = hero?.url
+    ? { url: hero.url, caption: hero.caption }
+    : cover
+      ? { url: cover, caption: null }
+      : null;
   const hasDocuments = premium.documents.length > 0;
   const hasConversation = messages.some((m) => !m.intervention_id);
 
@@ -121,9 +131,9 @@ export function PremiumHome({
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.75fr)]">
           <article className="overflow-hidden rounded-2xl border bg-background">
-            {latestPhoto?.url ? (
-              <ImageLightbox src={latestPhoto.url} alt={latestPhoto.caption ?? "Dernière intervention"} caption={latestPhoto.caption}>
-                <img src={latestPhoto.url} alt={latestPhoto.caption ?? "Dernière intervention"} className="aspect-[16/8] w-full object-cover" />
+            {heroPhoto ? (
+              <ImageLightbox src={heroPhoto.url} alt={heroPhoto.caption ?? "Votre jardin"} caption={heroPhoto.caption}>
+                <img src={heroPhoto.url} alt={heroPhoto.caption ?? "Votre jardin"} className="aspect-[16/8] w-full object-cover" />
               </ImageLightbox>
             ) : (
               <div className="flex aspect-[16/8] items-center justify-center bg-primary/5">
