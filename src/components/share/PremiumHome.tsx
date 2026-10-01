@@ -1,3 +1,4 @@
+import { pickNextIntervention } from "@/lib/premium-planning-items";
 import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -69,10 +70,7 @@ export function PremiumHome({
 }) {
   const latest = interventions[0];
   const cover = premium.cover_photo_url;
-  const currentKey = new Date().getFullYear() * 12 + (new Date().getMonth() + 1);
-  const next = premium.work_calendar.find((item) =>
-    item.year != null && item.month != null ? item.year * 12 + item.month >= currentKey : true,
-  );
+  const next = pickNextIntervention(premium.work_calendar);
   const latestPhoto = latest?.photos.find((p) => p.url);
   const hasDocuments = premium.documents.length > 0;
   const hasConversation = messages.some((m) => !m.intervention_id);
@@ -146,7 +144,7 @@ export function PremiumHome({
               <p className={`${dateLabel} mt-5`}>Prochaine intervention</p>
               <h4 className={`${heading} mt-2 text-3xl`}>{next?.title ?? "Votre prochaine intervention"}</h4>
               <p className="mt-2 text-sm text-muted-foreground">{next?.period_label ?? "Elle apparaîtra ici dès que le calendrier travaux sera associé."}</p>
-              {next?.details && <p className="mt-3 text-sm leading-6 text-muted-foreground">{next.details}</p>}
+              {next?.details && <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">{next.details.split(" · ").join(", ")}</p>}
               <Button variant="link" className="mt-3 h-auto px-0 text-primary" onClick={() => onNavigate("calendar")}>Voir le calendrier travaux <ChevronRight className="ml-1 size-4" /></Button>
             </article>
 

@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const premiumCalendarDb = supabase as unknown as SupabaseClient<any>;
 
 const DOCS_BUCKET = "client-premium";
@@ -230,7 +231,6 @@ export async function listClientPhotosForCover(
   return data as ClientCoverPhotoOption[];
 }
 
-
 export interface PremiumWorkCalendarItem {
   id: string;
   client_id: string;
@@ -244,7 +244,9 @@ export interface PremiumWorkCalendarItem {
   position: number;
 }
 
-export async function listPremiumWorkCalendar(clientId: string): Promise<PremiumWorkCalendarItem[]> {
+export async function listPremiumWorkCalendar(
+  clientId: string,
+): Promise<PremiumWorkCalendarItem[]> {
   const { data, error } = await premiumCalendarDb
     .from("client_premium_work_calendar_items")
     .select("*")
@@ -268,13 +270,15 @@ export async function replacePremiumWorkCalendar(
     title: string;
     details: string;
   }>,
+  source: "pdf" | "ia" | "manuel" = "ia",
 ): Promise<void> {
   const user_id = await uid();
   const { error: deleteError } = await premiumCalendarDb
     .from("client_premium_work_calendar_items")
     .delete()
     .eq("client_id", clientId);
-  if (deleteError) throw new Error(`Impossible de remplacer le calendrier : ${deleteError.message}`);
+  if (deleteError)
+    throw new Error(`Impossible de remplacer le calendrier : ${deleteError.message}`);
 
   if (items.length === 0) return;
 
@@ -289,7 +293,7 @@ export async function replacePremiumWorkCalendar(
     title: item.title,
     details: item.details,
     position,
-    source: "ia" as const,
+    source,
   }));
 
   const { error } = await premiumCalendarDb.from("client_premium_work_calendar_items").insert(rows);
