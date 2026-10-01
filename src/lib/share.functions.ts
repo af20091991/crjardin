@@ -93,6 +93,7 @@ export interface SharedPremiumData {
   google_review_url: string | null;
   commercial_note: string | null;
   cover_photo_url: string | null;
+  cover_photo_id: string | null;
   documents: SharedPremiumDocument[];
   upcoming: SharedPremiumUpcoming[];
   work_calendar: SharedPremiumWorkCalendarItem[];
@@ -466,6 +467,7 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       google_review_url: raw.google_review_url,
       commercial_note: raw.commercial_note,
       cover_photo_url: coverPhotoUrl,
+      cover_photo_id: raw.cover_photo_id ?? null,
       upcoming: raw.upcoming,
       work_calendar: syncedWorkCalendar as SharedPremiumWorkCalendarItem[],
       documents: syncedDocuments.map((d) => ({
@@ -612,5 +614,36 @@ export const finalizeSharedPremiumDocumentUpload = createServerFn({ method: "POS
       // best-effort
     }
 
+    return { ok: true };
+  });
+
+/** Définit n'importe quelle photo transmise au client comme couverture de son espace Premium. */
+export const setSharedPremiumCover = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; photoId: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.photoId || typeof data.photoId !== "string") throw new Error("Photo invalide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const { data: photo } = await supabaseAdmin
+      .from("intervention_photos")
+      .select("id, intervention_id")
+      .eq("id", data.photoId)
+      .maybeSingle();
+    if (!photo) throw new Error("Photo introuvable");
+    const { data: intervention } = await supabaseAdmin
+      .from("interventions")
+      .select("client_id, sent_to_client_at")
+      .eq("id", photo.intervention_id)
+      .maybeSingle();
+    if (!intervention || intervention.client_id !== client.id || !intervention.sent_to_client_at) {
+      throw new Error("Cette photo n'a pas été transmise à ce client");
+    }
+    const { error } = await supabaseAdmin
+      .from("client_premium")
+      .update({ cover_photo_id: photo.id })
+      .eq("client_id", client.id);
+    if (error) throw new Error(`Couverture non enregistrée : ${error.message}`);
     return { ok: true };
   });

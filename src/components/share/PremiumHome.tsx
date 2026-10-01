@@ -30,7 +30,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageLightbox } from "@/components/ImageLightbox";
 
-export type PremiumSection = "home" | "garden" | "reports" | "documents" | "calendar" | "exchange";
+export type PremiumSection =
+  | "home"
+  | "garden"
+  | "reports"
+  | "photos"
+  | "documents"
+  | "calendar"
+  | "exchange";
 const REQUESTS = [
   "Demander une intervention",
   "Poser une question",

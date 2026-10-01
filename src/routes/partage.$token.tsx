@@ -77,6 +77,8 @@ import { formatEuro, recommendationPrice } from "@/lib/garden";
 import { ShareInstallGuide } from "@/components/ShareInstallGuide";
 // prettier-ignore
 import { PremiumHome, PremiumExchange, type PremiumSection } from "@/components/share/PremiumHome";
+import { PremiumNav } from "@/components/share/PremiumNav";
+import { PremiumPhotos } from "@/components/share/PremiumPhotos";
 import { PremiumWorkCalendar } from "@/components/share/PremiumWorkCalendar";
 import { useIsAdmin } from "@/hooks/use-admin";
 
@@ -441,15 +443,6 @@ function PremiumExperience({
   const [section, setSection] = useState<PremiumSection>("home");
   const { isAdmin } = useIsAdmin();
   const qc = useQueryClient();
-  const sections: { id: PremiumSection; label: string }[] = [
-    { id: "home", label: "Accueil" },
-    { id: "garden", label: "Le jardin" },
-    { id: "reports", label: "Les interventions" },
-    { id: "documents", label: "Documents" },
-    { id: "calendar", label: "Calendrier travaux" },
-    { id: "exchange", label: "Échanger" },
-  ];
-
   function navigate(next: PremiumSection) {
     setSection(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -482,18 +475,7 @@ function PremiumExperience({
             messages={messages}
             token={token}
             onNavigate={navigate}
-            afterCover={
-              <div className="-mt-10 sm:-mt-12 premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
-  <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-6 overflow-x-auto px-5 sm:gap-10 sm:px-10 lg:px-16" aria-label="Navigation Premium">
-    {sections.map((item) => (
-      <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined}
-        className={`h-16 shrink-0 rounded-none border-b-2 px-0 text-base font-medium sm:h-[4.5rem] sm:text-lg hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-        {item.label}
-      </Button>
-    ))}
-  </nav>
-</div>
-            }
+            afterCover={<PremiumNav section={section} onNavigate={navigate} className="-mt-10 sm:-mt-12" />}
           />
         )}
         {section === "calendar" && (
@@ -506,16 +488,7 @@ function PremiumExperience({
             <PremiumWorkCalendar items={premium.work_calendar} editorial />
           </section>
         )}
-        {section !== "home" && <div className="premium-carnet-nav sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
-  <nav className="mx-auto flex w-full max-w-[1320px] items-center gap-6 overflow-x-auto px-5 sm:gap-10 sm:px-10 lg:px-16" aria-label="Navigation Premium">
-    {sections.map((item) => (
-      <Button key={item.id} type="button" variant="ghost" onClick={() => navigate(item.id)} aria-current={section === item.id ? "page" : undefined}
-        className={`h-16 shrink-0 rounded-none border-b-2 px-0 text-base font-medium sm:h-[4.5rem] sm:text-lg hover:bg-transparent ${section === item.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-        {item.label}
-      </Button>
-    ))}
-  </nav>
-</div>}
+        {section !== "home" && <PremiumNav section={section} onNavigate={navigate} />}
         {section === "garden" && (
           <section>
             <PremiumPageIntro
@@ -546,6 +519,21 @@ function PremiumExperience({
               messages={messages}
               client={client}
               editorial
+            />
+          </section>
+        )}
+        {section === "photos" && (
+          <section>
+            <PremiumPageIntro
+              eyebrow="Le jardin en images"
+              title="Photos"
+              text="Les photos de chaque intervention, classées par passage. Choisissez celle qui illustre votre espace."
+            />
+            <PremiumPhotos
+              interventions={interventions}
+              coverPhotoId={premium.cover_photo_id}
+              token={token}
+              onCoverChanged={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })}
             />
           </section>
         )}
