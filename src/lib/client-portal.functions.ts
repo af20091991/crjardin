@@ -1,3 +1,4 @@
+import type { PremiumPlanningDb } from "./premium-planning-import.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -5,7 +6,7 @@ import {
   validateClientId as validateId,
 } from "./client-portal-validation";
 
-async function resyncPremiumCalendar(db: any, clientId: string) {
+async function resyncPremiumCalendar(db: PremiumPlanningDb, clientId: string) {
   try {
     const { data: premium } = await db
       .from("client_premium")

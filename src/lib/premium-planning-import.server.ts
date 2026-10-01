@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PremiumPlanningDb = SupabaseClient<any>;
+
 export type PremiumPlanningImportStatus =
   | "imported"
   | "already_imported"
@@ -28,8 +31,7 @@ const DOCUMENT_TITLE = "Calendrier travaux";
  * Ne touche jamais aux lignes saisies à la main (source <> 'pdf').
  */
 export async function importPremiumPlanning(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db: SupabaseClient<any>,
+  db: PremiumPlanningDb,
   client: ClientRow,
   options: { replace?: boolean } = {},
 ): Promise<PremiumPlanningImportResult> {
