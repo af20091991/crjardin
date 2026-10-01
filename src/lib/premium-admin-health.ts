@@ -9,8 +9,7 @@ export interface PremiumAlert {
 export interface PremiumHealthInput {
   calendar: Array<{ year: number | null; month: number | null }>;
   coverPhotoId: string | null;
-  gardenObjectives: string | null;
-  gardenSpecificities: string | null;
+  gardenProfile: string | null;
   lastReportSentAt: string | null;
 }
 
@@ -41,7 +40,7 @@ export function computePremiumAlerts(input: PremiumHealthInput, now = new Date()
     alerts.push({ code: "no_cover", level: "info", label: "Pas de photo de couverture" });
   }
 
-  if (!input.gardenObjectives?.trim() && !input.gardenSpecificities?.trim()) {
+  if (!input.gardenProfile?.trim()) {
     alerts.push({ code: "no_profile", level: "info", label: "Profil du jardin non renseigné" });
   }
 

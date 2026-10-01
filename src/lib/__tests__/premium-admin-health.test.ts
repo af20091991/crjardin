@@ -10,8 +10,7 @@ const NOW = new Date(2026, 9, 2);
 const complete: PremiumHealthInput = {
   calendar: [{ year: 2026, month: 11 }],
   coverPhotoId: "p1",
-  gardenObjectives: "Jardin fleuri",
-  gardenSpecificities: null,
+  gardenProfile: "Jardin fleuri",
   lastReportSentAt: new Date(2026, 8, 20).toISOString(),
 };
 
@@ -25,8 +24,7 @@ describe("alertes des fiches Premium", () => {
       {
         calendar: [],
         coverPhotoId: null,
-        gardenObjectives: " ",
-        gardenSpecificities: null,
+        gardenProfile: " ",
         lastReportSentAt: null,
       },
       NOW,
