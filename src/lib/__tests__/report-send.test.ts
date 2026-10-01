@@ -33,7 +33,11 @@ describe("états d'envoi du compte-rendu", () => {
     expect(reportSendStatus({ ...base, sending: true })).toBe("envoi_en_cours");
     expect(reportSendStatus({ ...base, sentToClientAt: "2026-08-16T10:00:00Z" })).toBe("envoye");
     expect(
-      reportSendStatus({ ...base, sentToClientAt: "2026-08-16T10:00:00Z", clientReadAt: "2026-08-17T09:00:00Z" }),
+      reportSendStatus({
+        ...base,
+        sentToClientAt: "2026-08-16T10:00:00Z",
+        clientReadAt: "2026-08-17T09:00:00Z",
+      }),
     ).toBe("consulte");
   });
 
@@ -42,7 +46,10 @@ describe("états d'envoi du compte-rendu", () => {
       reportSendStatus({ ...base, lastOutcome: { sent: [], logPending: ["a@x.fr"], failed: [] } }),
     ).toBe("reprise_journalisation");
     expect(
-      reportSendStatus({ ...base, lastOutcome: { sent: [], logPending: [], failed: [{ recipient: "a@x.fr", message: "ko" }] } }),
+      reportSendStatus({
+        ...base,
+        lastOutcome: { sent: [], logPending: [], failed: [{ recipient: "a@x.fr", message: "ko" }] },
+      }),
     ).toBe("echec");
   });
 
@@ -71,7 +78,11 @@ describe("boucle multi-destinataires reprenable", () => {
         logSent: async () => {},
         markSent: async () => {},
       },
-      { interventionId: "iv1", pdfStoragePath: "p.pdf", recipients: ["a@x.fr", "b@x.fr", "c@x.fr"] },
+      {
+        interventionId: "iv1",
+        pdfStoragePath: "p.pdf",
+        recipients: ["a@x.fr", "b@x.fr", "c@x.fr"],
+      },
     );
     expect(calls).toEqual(["a@x.fr", "b@x.fr", "c@x.fr"]);
     expect(out.sent).toEqual(["a@x.fr", "c@x.fr"]);
@@ -82,8 +93,12 @@ describe("boucle multi-destinataires reprenable", () => {
     let sends = 0;
     const out = await sendReportToRecipients(
       {
-        sendEmail: async () => { sends += 1; },
-        logSent: async () => { throw new Error("journal indisponible"); },
+        sendEmail: async () => {
+          sends += 1;
+        },
+        logSent: async () => {
+          throw new Error("journal indisponible");
+        },
         markSent: async () => {},
       },
       { interventionId: "iv1", pdfStoragePath: "p.pdf", recipients: ["a@x.fr"] },
@@ -98,7 +113,9 @@ describe("boucle multi-destinataires reprenable", () => {
     const calls: string[] = [];
     const out = await sendReportToRecipients(
       {
-        sendEmail: async (r) => { calls.push(r); },
+        sendEmail: async (r) => {
+          calls.push(r);
+        },
         logSent: async () => {},
         markSent: async () => {},
       },
@@ -119,9 +136,16 @@ describe("boucle multi-destinataires reprenable", () => {
       {
         sendEmail: async () => {},
         logSent: async () => {},
-        markSent: async () => { marked += 1; },
+        markSent: async () => {
+          marked += 1;
+        },
       },
-      { interventionId: "iv1", pdfStoragePath: "p.pdf", recipients: ["a@x.fr"], alreadySent: ["a@x.fr"] },
+      {
+        interventionId: "iv1",
+        pdfStoragePath: "p.pdf",
+        recipients: ["a@x.fr"],
+        alreadySent: ["a@x.fr"],
+      },
     );
     expect(marked).toBe(0);
     expect(out.sent).toEqual([]);
@@ -133,7 +157,14 @@ describe("reprise : rejouer le journal sans jamais renvoyer d'e-mail", () => {
     let marked = 0;
     const logged: string[] = [];
     const out = await resumeReportLogging(
-      { logSent: async (r) => { logged.push(r); }, markSent: async () => { marked += 1; } },
+      {
+        logSent: async (r) => {
+          logged.push(r);
+        },
+        markSent: async () => {
+          marked += 1;
+        },
+      },
       { recipients: ["a@x.fr", "b@x.fr"] },
     );
     expect(logged).toEqual(["a@x.fr", "b@x.fr"]);
@@ -143,7 +174,12 @@ describe("reprise : rejouer le journal sans jamais renvoyer d'e-mail", () => {
 
   test("journal encore indisponible : reprise toujours signalée, aucun échec d'envoi", async () => {
     const out = await resumeReportLogging(
-      { logSent: async () => { throw new Error("journal ko"); }, markSent: async () => {} },
+      {
+        logSent: async () => {
+          throw new Error("journal ko");
+        },
+        markSent: async () => {},
+      },
       { recipients: ["a@x.fr"] },
     );
     expect(out.logPending).toEqual(["a@x.fr"]);
@@ -153,7 +189,12 @@ describe("reprise : rejouer le journal sans jamais renvoyer d'e-mail", () => {
 
   test("marquage d'envoi en échec : tout reste à reprendre", async () => {
     const out = await resumeReportLogging(
-      { logSent: async () => {}, markSent: async () => { throw new Error("update ko"); } },
+      {
+        logSent: async () => {},
+        markSent: async () => {
+          throw new Error("update ko");
+        },
+      },
       { recipients: ["a@x.fr", "b@x.fr"] },
     );
     expect(out.sent).toEqual([]);
@@ -163,7 +204,12 @@ describe("reprise : rejouer le journal sans jamais renvoyer d'e-mail", () => {
   test("rien à reprendre : aucun marquage", async () => {
     let marked = 0;
     const out = await resumeReportLogging(
-      { logSent: async () => {}, markSent: async () => { marked += 1; } },
+      {
+        logSent: async () => {},
+        markSent: async () => {
+          marked += 1;
+        },
+      },
       { recipients: [] },
     );
     expect(marked).toBe(0);
@@ -176,7 +222,7 @@ describe("notifyClient : un seul chemin de reprise", () => {
     const src = readFileSync("src/routes/_authenticated/interventions.$interventionId.tsx", "utf8");
     expect(src).toContain("resumeReportLogging");
     // Le chemin de reprise court-circuite l'envoi.
-    const resumeIdx = src.indexOf("resumeReportLogging({ logSent, markSent }");
+    const resumeIdx = src.search(/resumeReportLogging\(\s*\{\s*logSent,\s*markSent/);
     const sendIdx = src.indexOf("sendReportToRecipients(");
     expect(resumeIdx).toBeGreaterThan(0);
     expect(resumeIdx).toBeLessThan(sendIdx);
@@ -201,7 +247,9 @@ describe("clé d'idempotence — renvoi volontaire", () => {
   test("un second envoi de la même archive ne réutilise pas la clé précédente", async () => {
     const keys: string[] = [];
     const deps = {
-      sendEmail: async (_r: string, k: string) => { keys.push(k); },
+      sendEmail: async (_r: string, k: string) => {
+        keys.push(k);
+      },
       logSent: async () => {},
       markSent: async () => {},
     };
