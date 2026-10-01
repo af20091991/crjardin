@@ -36,9 +36,16 @@ import {
 } from "@/lib/client-premium";
 import { signedPhotoUrl } from "@/lib/interventions";
 import { parsePlanning } from "@/lib/file-parser";
-import { normalizePremiumWorkCalendar } from "@/lib/premium-work-calendar.functions";
+import { planningRowsToCalendarItems } from "@/lib/premium-planning-items";
 import { getCeevPlanningUrlByClientId } from "@/lib/client-portal.functions";
-import { provisionPremiumAccount } from "@/lib/premium-provisioning.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
   const qc = useQueryClient();
@@ -110,23 +117,12 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
       throw new Error("Le PDF du calendrier client ne contient aucune intervention exploitable.");
     }
 
-    const normalized = await normalizePremiumWorkCalendar({
-      data: {
-        rows: rows.map((row) => ({
-          period_label: row.label || row.monthLabel,
-          year: row.year,
-          month: row.month,
-          sequence: Number(row.label.match(/(\d+)\s*$/)?.[1] ?? row.index + 1),
-          type: row.type,
-          tasks: row.tasks,
-        })),
-      },
-    });
+    const items = planningRowsToCalendarItems(rows);
 
     const document = existingPlanning
       ? existingPlanning
       : await uploadPremiumDocument(clientId, file, "Calendrier travaux");
-    await replacePremiumWorkCalendar(clientId, document.id, normalized.items);
+    await replacePremiumWorkCalendar(clientId, document.id, items, "pdf");
     return true;
   };
 
@@ -161,38 +157,51 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
       });
   }, [canEdit, premium?.enabled, documents, workCalendar, clientId, importExistingPlanning]);
 
-  const toggleEnabled = useMutation({
-    mutationFn: async (enabled: boolean) => {
-      await setClientPremiumEnabled(clientId, enabled);
-      if (enabled) {
-        return await provisionPremiumAccount({ data: { clientId } });
+  const [activationOpen, setActivationOpen] = useState(false);
+  const [activationFile, setActivationFile] = useState<File | null>(null);
+
+  const activatePremium = useMutation({
+    mutationFn: async (useClientPlanning: boolean) => {
+      let file = activationFile;
+      if (useClientPlanning) {
+        const source = await getCeevPlanningUrlByClientId({ data: { clientId } });
+        const response = await fetch(source.url);
+        if (!response.ok) throw new Error("Impossible de télécharger le PDF de la fiche client.");
+        file = new File([await response.blob()], source.filename, { type: "application/pdf" });
       }
-      return null;
+      if (!file) throw new Error("Choisissez le PDF du calendrier travaux.");
+      if (!/\.pdf$/i.test(file.name) && file.type !== "application/pdf") {
+        throw new Error("Le calendrier travaux doit être fourni au format PDF.");
+      }
+      const rows = await parsePlanning(file);
+      if (rows.length === 0) {
+        throw new Error("Aucune intervention exploitable n'a été trouvée dans ce PDF.");
+      }
+      await setClientPremiumEnabled(clientId, true);
+      const document = await uploadPremiumDocument(clientId, file, "Calendrier travaux");
+      await replacePremiumWorkCalendar(
+        clientId,
+        document.id,
+        planningRowsToCalendarItems(rows),
+        "pdf",
+      );
+      return rows.length;
     },
-    onSuccess: (provisioning, enabled) => {
-      if (enabled) {
-        toast.success(
-          provisioning?.calendarImported
-            ? "Espace Premium activé : calendrier travaux importé depuis le PDF."
-            : "Espace Premium activé.",
-        );
-        if (provisioning?.status === "no_pdf") {
-          toast.warning(
-            "Aucun calendrier PDF pour ce client. Importez-le dans l'onglet Calendrier de la fiche : il sera converti automatiquement.",
-          );
-        } else if (
-          provisioning?.status === "pdf_unreadable" ||
-          provisioning?.status === "pdf_unavailable"
-        ) {
-          toast.warning(
-            "Le calendrier PDF n'a pas pu être lu. Réimportez le fichier dans l'onglet Calendrier.",
-          );
-        }
-        qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
-        qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
-      } else {
-        toast.success("Espace Premium désactivé");
-      }
+    onSuccess: (count) => {
+      toast.success(`Espace Premium activé : ${count} interventions importées depuis le PDF.`);
+      setActivationOpen(false);
+      setActivationFile(null);
+      qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
+      qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Activation impossible"),
+  });
+
+  const deactivatePremium = useMutation({
+    mutationFn: () => setClientPremiumEnabled(clientId, false),
+    onSuccess: () => {
+      toast.success("Espace Premium désactivé");
       invalidate();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
@@ -239,11 +248,51 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
           </div>
           <Switch
             checked={premium?.enabled ?? false}
-            disabled={!canEdit || toggleEnabled.isPending}
-            onCheckedChange={(v) => toggleEnabled.mutate(v)}
+            disabled={!canEdit || deactivatePremium.isPending}
+            onCheckedChange={(v) => (v ? setActivationOpen(true) : deactivatePremium.mutate())}
           />
         </CardContent>
       </Card>
+
+      <Dialog
+        open={activationOpen}
+        onOpenChange={(open) => !activatePremium.isPending && setActivationOpen(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Activer l'espace Premium</DialogTitle>
+            <DialogDescription>
+              Fournissez le PDF du calendrier travaux : il sera classé dans Documents, converti en
+              planning et alimentera « Prochaine intervention » sur l'accueil du client.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="activation-pdf">Calendrier travaux (PDF)</Label>
+            <Input
+              id="activation-pdf"
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={(e) => setActivationFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button
+              variant="ghost"
+              disabled={activatePremium.isPending}
+              onClick={() => activatePremium.mutate(true)}
+            >
+              Utiliser le PDF de la fiche client
+            </Button>
+            <Button
+              disabled={!activationFile || activatePremium.isPending}
+              onClick={() => activatePremium.mutate(false)}
+            >
+              {activatePremium.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Activer et importer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {premium?.enabled && workCalendar !== undefined && workCalendar.length === 0 && (
         <Card className="border-accent bg-accent/10">
@@ -454,21 +503,10 @@ function PremiumWorkCalendarCard({
       const rows = await parsePlanning(file);
       if (rows.length === 0)
         throw new Error("Aucune intervention exploitable n'a été trouvée dans ce PDF.");
-      const normalized = await normalizePremiumWorkCalendar({
-        data: {
-          rows: rows.map((row) => ({
-            period_label: row.label || row.monthLabel,
-            year: row.year,
-            month: row.month,
-            sequence: Number(row.label.match(/(\d+)\s*$/)?.[1] ?? row.index + 1),
-            type: row.type,
-            tasks: row.tasks,
-          })),
-        },
-      });
+      const items = planningRowsToCalendarItems(rows);
       const document = await uploadPremiumDocument(clientId, file, "Calendrier travaux");
-      await replacePremiumWorkCalendar(clientId, document.id, normalized.items);
-      toast.success("Calendrier travaux importé et adapté pour le Compte Premium.");
+      await replacePremiumWorkCalendar(clientId, document.id, items, "pdf");
+      toast.success("Calendrier travaux importé depuis le PDF.");
       onUpdated();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Impossible d'importer le calendrier.");
