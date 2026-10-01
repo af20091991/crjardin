@@ -3,6 +3,34 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const MODEL_LABEL = "Addala";
 
+type PremiumCalendarRow = {
+  client_id: string;
+  user_id: string;
+  document_id: string | null;
+  period_label: string;
+  year: number | null;
+  month: number | null;
+  sequence: number;
+  title: string;
+  details: string | null;
+  position: number;
+  source: "pdf";
+};
+
+type PremiumCalendarDb = {
+  from: (table: "client_premium_work_calendar_items") => {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        limit: (count: number) => Promise<{
+          data: Array<Pick<PremiumCalendarRow, "client_id">> | null;
+          error: Error | null;
+        }>;
+      };
+    };
+    insert: (rows: PremiumCalendarRow[]) => Promise<{ error: Error | null }>;
+  };
+};
+
 export const provisionPremiumAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { clientId: string }) => {
@@ -40,10 +68,10 @@ export const provisionPremiumAccount = createServerFn({ method: "POST" })
       throw new Error("Le Compte Premium est réservé aux clients en entretien annuel.");
     }
 
-    const calendarDb = supabaseAdmin as any;
+    const calendarDb = supabaseAdmin as unknown as PremiumCalendarDb;
     const { data: existingCalendar, error: calendarError } = await calendarDb
       .from("client_premium_work_calendar_items")
-      .select("id")
+      .select("client_id")
       .eq("client_id", client.id)
       .limit(1);
     if (calendarError) throw calendarError;
