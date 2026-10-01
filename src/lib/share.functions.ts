@@ -626,19 +626,25 @@ export const setSharedPremiumCover = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    // Mêmes critères que get_shared_client : photo d'une intervention terminée du client,
+    // incluse dans le compte-rendu (c'est-à-dire visible dans l'espace client).
     const { data: photo } = await supabaseAdmin
       .from("intervention_photos")
-      .select("id, intervention_id")
+      .select("id, intervention_id, include_in_report")
       .eq("id", data.photoId)
       .maybeSingle();
-    if (!photo) throw new Error("Photo introuvable");
+    if (!photo || !photo.include_in_report) throw new Error("Photo introuvable");
     const { data: intervention } = await supabaseAdmin
       .from("interventions")
-      .select("client_id, sent_to_client_at")
+      .select("client_id, status")
       .eq("id", photo.intervention_id)
       .maybeSingle();
-    if (!intervention || intervention.client_id !== client.id || !intervention.sent_to_client_at) {
-      throw new Error("Cette photo n'a pas été transmise à ce client");
+    if (
+      !intervention ||
+      intervention.client_id !== client.id ||
+      !["termine", "terminee"].includes(intervention.status)
+    ) {
+      throw new Error("Cette photo n'appartient pas à ce client");
     }
     const { error } = await supabaseAdmin
       .from("client_premium")
