@@ -19,7 +19,7 @@ export const provisionPremiumAccount = createServerFn({ method: "POST" })
     if (roleError) throw roleError;
     if (!isEditor) {
       const { data: editor, error: editorError } = await context.supabase.rpc("is_editor", {
-        p_user_id: context.userId,
+        _user_id: context.userId,
       });
       if (editorError) throw editorError;
       if (!editor) throw new Response("Forbidden", { status: 403 });
