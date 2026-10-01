@@ -78,6 +78,7 @@ import { ShareInstallGuide } from "@/components/ShareInstallGuide";
 // prettier-ignore
 import { PremiumHome, PremiumExchange, type PremiumSection } from "@/components/share/PremiumHome";
 import { PremiumNav } from "@/components/share/PremiumNav";
+import { PremiumInstall } from "@/components/share/PremiumInstall";
 import { PremiumPhotos } from "@/components/share/PremiumPhotos";
 import { PremiumWorkCalendar } from "@/components/share/PremiumWorkCalendar";
 import { useIsAdmin } from "@/hooks/use-admin";
@@ -459,6 +460,7 @@ function PremiumExperience({
             <p className="truncate text-sm text-muted-foreground">De la graine au jardin · Compte Premium</p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
+            <PremiumInstall />
             <Button variant="ghost" size="icon" aria-label={dark ? "Mode clair" : "Mode sombre"} onClick={toggleDark}>{dark ? <Sun className="size-4" /> : <Moon className="size-4" />}</Button>
             <Button variant="ghost" size="icon" aria-label="Agrandir le texte" onClick={toggleLarge} aria-pressed={large}><Type className="size-4" /></Button>
             {isAdmin && <Button asChild variant="link" className="hidden h-10 px-0 text-sm text-primary sm:inline-flex"><Link to="/clients/premium">← Pilot Pro</Link></Button>}

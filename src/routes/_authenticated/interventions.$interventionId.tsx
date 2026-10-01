@@ -4,21 +4,53 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import {
-  getIntervention, updateIntervention, deleteIntervention,
-  listTasks, addTask, updateTask, deleteTask,
-  listPhotos, addPhoto, updatePhoto, deletePhoto, signedPhotoUrl, reorderPhotos,
-  TASK_STATUS_META, type TaskStatus, type InterventionPhoto, type Intervention,
-  DEFAULT_REPORT_SECTIONS, REPORT_SECTION_LABELS, SELECTABLE_REPORT_SECTIONS, normalizeReportSections, type ReportSections,
+  getIntervention,
+  updateIntervention,
+  deleteIntervention,
+  listTasks,
+  addTask,
+  updateTask,
+  deleteTask,
+  listPhotos,
+  addPhoto,
+  updatePhoto,
+  deletePhoto,
+  signedPhotoUrl,
+  reorderPhotos,
+  TASK_STATUS_META,
+  type TaskStatus,
+  type InterventionPhoto,
+  type Intervention,
+  DEFAULT_REPORT_SECTIONS,
+  REPORT_SECTION_LABELS,
+  SELECTABLE_REPORT_SECTIONS,
+  normalizeReportSections,
+  type ReportSections,
   listServiceCatalog,
   completeInterventionWithHoursAutofill,
 } from "@/lib/interventions";
 import {
-  listHealthByClient, addHealth, deleteHealth, HEALTH_RATINGS, HEALTH_RATING_META, type HealthRating,
-  listRecommendationsByClient, addRecommendation, updateRecommendation, deleteRecommendation,
-  RECO_STATUSES, RECO_STATUS_META, type RecommendationStatus,
-  recommendationPrice, formatEuro,
-  RECO_PRIORITIES, RECO_PRIORITY_META, type RecommendationPriority,
-  RECO_SEASONS, RECO_SEASON_LABELS, type RecommendationSeason,
+  listHealthByClient,
+  addHealth,
+  deleteHealth,
+  HEALTH_RATINGS,
+  HEALTH_RATING_META,
+  type HealthRating,
+  listRecommendationsByClient,
+  addRecommendation,
+  updateRecommendation,
+  deleteRecommendation,
+  RECO_STATUSES,
+  RECO_STATUS_META,
+  type RecommendationStatus,
+  recommendationPrice,
+  formatEuro,
+  RECO_PRIORITIES,
+  RECO_PRIORITY_META,
+  type RecommendationPriority,
+  RECO_SEASONS,
+  RECO_SEASON_LABELS,
+  type RecommendationSeason,
 } from "@/lib/garden";
 import { generateInterventionInsights, analyzeInterventionPhotos } from "@/lib/ai.functions";
 import { getClient, clientEmails, listClients } from "@/lib/clients";
@@ -38,7 +70,14 @@ import { getMyProfile } from "@/lib/profile";
 import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
 import { exportInterventionPdf } from "@/lib/intervention-pdf";
-import { archiveInterventionReport, listReportHistory, signedReportUrl, logReportEvent, REPORT_EVENT_LABEL, withVersions } from "@/lib/report-history";
+import {
+  archiveInterventionReport,
+  listReportHistory,
+  signedReportUrl,
+  logReportEvent,
+  REPORT_EVENT_LABEL,
+  withVersions,
+} from "@/lib/report-history";
 import { getWorksiteSheet } from "@/lib/worksite";
 import { InterventionReportPreview } from "@/components/InterventionReportPreview";
 import { sendTransactionalEmail } from "@/lib/email/send";
@@ -53,19 +92,54 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  ArrowLeft, Plus, Trash2, Loader2, ImagePlus, CheckCircle2, X, Sparkles, Leaf, Lightbulb,
-  FileDown, ScanSearch, Check, Mail, Archive, Eye, History, Download, ArrowUp, ArrowDown, Settings2,
-  Clock, AlertTriangle,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Loader2,
+  ImagePlus,
+  CheckCircle2,
+  X,
+  Sparkles,
+  Leaf,
+  Lightbulb,
+  FileDown,
+  ScanSearch,
+  Check,
+  Mail,
+  Archive,
+  Eye,
+  History,
+  Download,
+  ArrowUp,
+  ArrowDown,
+  Settings2,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -120,8 +194,6 @@ function InterventionDetail() {
     queryFn: listServiceCatalog,
   });
 
-
-
   const invTasks = () => qc.invalidateQueries({ queryKey: ["tasks", interventionId] });
   const invPhotos = () => qc.invalidateQueries({ queryKey: ["photos", interventionId] });
   const invIv = () => qc.invalidateQueries({ queryKey: ["intervention", interventionId] });
@@ -141,7 +213,6 @@ function InterventionDetail() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
-
   const setStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: TaskStatus }) => updateTask(id, { status }),
     onSuccess: invTasks,
@@ -158,7 +229,11 @@ function InterventionDetail() {
   const addT = useMutation({
     mutationFn: ({ label, service_id }: { label: string; service_id: string | null }) =>
       addTask(interventionId, label, tasks?.length ?? 0, service_id),
-    onSuccess: () => { invTasks(); setNewTask(""); setNewTaskService(""); },
+    onSuccess: () => {
+      invTasks();
+      setNewTask("");
+      setNewTaskService("");
+    },
   });
   const delT = useMutation({ mutationFn: deleteTask, onSuccess: invTasks });
 
@@ -167,18 +242,26 @@ function InterventionDetail() {
     onSuccess: () => {
       toast.success("Compte-rendu supprimé");
       qc.invalidateQueries({ queryKey: ["interventions"] });
-      navigate({ to: client ? "/clients/$clientId" : "/", params: client ? { clientId: client.id } : undefined as never });
+      navigate({
+        to: client ? "/clients/$clientId" : "/",
+        params: client ? { clientId: client.id } : (undefined as never),
+      });
     },
   });
 
   const saveSynthese = useMutation({
-    mutationFn: (patch: Parameters<typeof updateIntervention>[1]) => updateIntervention(interventionId, patch),
-    onSuccess: () => { invIv(); toast.success("Enregistré"); },
+    mutationFn: (patch: Parameters<typeof updateIntervention>[1]) =>
+      updateIntervention(interventionId, patch),
+    onSuccess: () => {
+      invIv();
+      toast.success("Enregistré");
+    },
   });
 
   const sections: ReportSections = normalizeReportSections(iv?.report_sections);
   const saveSections = useMutation({
-    mutationFn: (next: ReportSections) => updateIntervention(interventionId, { report_sections: next }),
+    mutationFn: (next: ReportSections) =>
+      updateIntervention(interventionId, { report_sections: next }),
     onSuccess: () => invIv(),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
@@ -187,7 +270,12 @@ function InterventionDetail() {
 
   const generateAi = useServerFn(generateInterventionInsights);
   const analyzePhotos = useServerFn(analyzeInterventionPhotos);
-  type PhotoSuggestion = { title: string; description: string; category: string; estimated_hours: number | null };
+  type PhotoSuggestion = {
+    title: string;
+    description: string;
+    category: string;
+    estimated_hours: number | null;
+  };
   const [suggestions, setSuggestions] = useState<PhotoSuggestion[]>([]);
   const { data: recos } = useQuery({
     queryKey: ["recommendations-iv", interventionId],
@@ -253,8 +341,6 @@ function InterventionDetail() {
     },
   });
 
-
-
   const exportPdf = useMutation({
     mutationFn: async () => {
       if (!iv || !client) throw new Error("Données indisponibles");
@@ -315,13 +401,19 @@ function InterventionDetail() {
         stampData: profile?.stamp_data ?? undefined,
       });
     },
-    onSuccess: () => { invIv(); invHistory(); toast.success("Compte-rendu archivé"); },
+    onSuccess: () => {
+      invIv();
+      invHistory();
+      toast.success("Compte-rendu archivé");
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'archivage"),
   });
 
   const openArchivedPdf = useMutation({
     mutationFn: async (path: string) => signedReportUrl(path),
-    onSuccess: (url) => { window.open(url, "_blank", "noopener"); },
+    onSuccess: (url) => {
+      window.open(url, "_blank", "noopener");
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Lien indisponible"),
   });
 
@@ -361,14 +453,19 @@ function InterventionDetail() {
       // Reprise : e-mails déjà acceptés par la file → on rejoue uniquement
       // journalisation + marquage, jamais un nouvel envoi.
       if (logPending.length > 0) {
-        const outcome = await resumeReportLogging({ logSent, markSent }, { recipients: logPending });
+        const outcome = await resumeReportLogging(
+          { logSent, markSent },
+          { recipients: logPending },
+        );
         return { outcome, resumed: true };
       }
 
       const settings = await getEmailSettings();
       const shareUrl = reportShareUrl(window.location.origin, client.share_token!, interventionId);
       const reportDate = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
-        day: "numeric", month: "long", year: "numeric",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
       });
       const bodyText = fillTemplate(settings.body, {
         titre: client.civility ?? "",
@@ -421,25 +518,27 @@ function InterventionDetail() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur d'envoi"),
   });
 
-  const sendCtx: ReportSendContext | null = iv && client
-    ? {
-        done: iv.status === "terminee",
-        pdfStoragePath: iv.pdf_storage_path,
-        shareToken: client.share_token,
-        recipients: clientEmails(client),
-        sentToClientAt: iv.sent_to_client_at,
-        clientReadAt: iv.client_read_at,
-        sending: notifyClient.isPending,
-        lastOutcome,
-      }
-    : null;
+  const sendCtx: ReportSendContext | null =
+    iv && client
+      ? {
+          done: iv.status === "terminee",
+          pdfStoragePath: iv.pdf_storage_path,
+          shareToken: client.share_token,
+          recipients: clientEmails(client),
+          sentToClientAt: iv.sent_to_client_at,
+          clientReadAt: iv.client_read_at,
+          sending: notifyClient.isPending,
+          lastOutcome,
+        }
+      : null;
   const sendStatus = sendCtx ? reportSendStatus(sendCtx) : "archive_indisponible";
 
   const runPhotoAi = useMutation({
     mutationFn: () => analyzePhotos({ data: { interventionId } }),
     onSuccess: (res) => {
       setSuggestions(res.suggestions);
-      if (res.suggestions.length === 0) toast.info("L'IA n'a détecté aucune préconisation sur les photos.");
+      if (res.suggestions.length === 0)
+        toast.info("L'IA n'a détecté aucune préconisation sur les photos.");
       else toast.success(`${res.suggestions.length} suggestion(s) à vérifier`);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur IA"),
@@ -459,7 +558,8 @@ function InterventionDetail() {
     invRecos();
     toast.success("Préconisation ajoutée");
   };
-  const ignoreSuggestion = (idx: number) => setSuggestions((prev) => prev.filter((_, i) => i !== idx));
+  const ignoreSuggestion = (idx: number) =>
+    setSuggestions((prev) => prev.filter((_, i) => i !== idx));
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -497,7 +597,11 @@ function InterventionDetail() {
     <AppShell title="Compte-rendu">
       <div className="mx-auto max-w-3xl space-y-4">
         {client && (
-          <Link to="/clients/$clientId" params={{ clientId: client.id }} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/clients/$clientId"
+            params={{ clientId: client.id }}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> {client.name}
           </Link>
         )}
@@ -509,71 +613,147 @@ function InterventionDetail() {
                 <Label>Client</Label>
                 <Select
                   value={client.id}
-                  onValueChange={(v) => { if (v !== client.id) changeClient.mutate(v); }}
+                  onValueChange={(v) => {
+                    if (v !== client.id) changeClient.mutate(v);
+                  }}
                   disabled={changeClient.isPending}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {(clients ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
+                    {(clients ?? [])
+                      .slice()
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
             )}
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="font-serif text-xl font-semibold">{iv.title ?? iv.intervention_type ?? "Intervention"}</h2>
+                <h2 className="font-serif text-xl font-semibold">
+                  {iv.title ?? iv.intervention_type ?? "Intervention"}
+                </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {iv.reference && <span className="font-mono">{iv.reference} · </span>}
-                  {new Date(iv.intervention_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                  {new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1.5">
-                <Badge variant={done ? "default" : "secondary"}>{done ? "Terminé" : "Brouillon"}</Badge>
+                <Badge variant={done ? "default" : "secondary"}>
+                  {done ? "Terminé" : "Brouillon"}
+                </Badge>
                 {iv.client_read_at && (
-                  <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">
-                    Lu par le client · {new Date(iv.client_read_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                  <Badge
+                    variant="outline"
+                    className="border-emerald-300 bg-emerald-50 text-emerald-700"
+                  >
+                    Lu par le client ·{" "}
+                    {new Date(iv.client_read_at).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                    })}
                   </Badge>
                 )}
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button size="sm" variant={done ? "outline" : "default"} onClick={() => toggleComplete.mutate()}>
+              <Button
+                size="sm"
+                variant={done ? "outline" : "default"}
+                onClick={() => toggleComplete.mutate()}
+              >
                 <CheckCircle2 className="mr-1.5 h-4 w-4" />
                 {done ? "Repasser en brouillon" : "Marquer comme terminé"}
-              </Button>
-              <Button size="sm" variant="outline" disabled={exportPdf.isPending || !client} onClick={() => exportPdf.mutate()}>
-                {exportPdf.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileDown className="mr-1.5 h-4 w-4" />}
-                Exporter le PDF
               </Button>
               <Button
                 size="sm"
                 variant="outline"
-                disabled={!sendCtx || !canSendReport(sendCtx)}
-                title={REPORT_SEND_LABELS[sendStatus]}
-                onClick={() => notifyClient.mutate()}
+                disabled={exportPdf.isPending || !client}
+                onClick={() => exportPdf.mutate()}
               >
-                {notifyClient.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Mail className="mr-1.5 h-4 w-4" />}
-                {logPending.length > 0 ? "Reprendre l'envoi" : "Prévenir le client"}
+                {exportPdf.isPending ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="mr-1.5 h-4 w-4" />
+                )}
+                Exporter le PDF
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!sendCtx || !canSendReport(sendCtx)}
+                    title={REPORT_SEND_LABELS[sendStatus]}
+                  >
+                    {notifyClient.isPending ? (
+                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Mail className="mr-1.5 h-4 w-4" />
+                    )}
+                    {logPending.length > 0 ? "Reprendre l'envoi" : "Prévenir le client"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      {logPending.length > 0
+                        ? "Reprendre l'envoi ?"
+                        : "Envoyer l'email au client ?"}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {logPending.length > 0
+                        ? "Aucun nouvel email ne sera envoyé : seule la journalisation en attente sera reprise."
+                        : `Le compte-rendu sera mis à disposition dans son espace et un email de prévenance sera envoyé à : ${client ? clientEmails(client).join(", ") || "aucun destinataire" : ""}.`}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => notifyClient.mutate()}>
+                      {logPending.length > 0 ? "Reprendre" : "Envoyer l'email"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Badge variant="outline" className="self-center text-xs">
                 {REPORT_SEND_LABELS[sendStatus]}
               </Badge>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive hover:text-destructive"
+                  >
                     <Trash2 className="mr-1.5 h-4 w-4" /> Supprimer
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Supprimer ce compte-rendu ?</AlertDialogTitle>
-                    <AlertDialogDescription>Tâches et photos associées seront supprimées.</AlertDialogDescription>
+                    <AlertDialogDescription>
+                      Tâches et photos associées seront supprimées.
+                    </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => del.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                    <AlertDialogAction
+                      onClick={() => del.mutate()}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Supprimer
+                    </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -596,16 +776,22 @@ function InterventionDetail() {
                   {iv.sent_to_client_at && (
                     <p className="text-xs text-emerald-700">
                       Envoyé au client le {new Date(iv.sent_to_client_at).toLocaleString("fr-FR")}
-                      {iv.sent_pdf_storage_path && iv.pdf_storage_path && iv.sent_pdf_storage_path !== iv.pdf_storage_path && (
-                        <span className="ml-1 text-amber-700">· une version plus récente est archivée</span>
-                      )}
+                      {iv.sent_pdf_storage_path &&
+                        iv.pdf_storage_path &&
+                        iv.sent_pdf_storage_path !== iv.pdf_storage_path && (
+                          <span className="ml-1 text-amber-700">
+                            · une version plus récente est archivée
+                          </span>
+                        )}
                     </p>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm" variant="outline"><Eye className="mr-1.5 h-4 w-4" /> Aperçu</Button>
+                      <Button size="sm" variant="outline">
+                        <Eye className="mr-1.5 h-4 w-4" /> Aperçu
+                      </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl overflow-y-auto sm:max-h-[90vh]">
                       <DialogHeader>
@@ -628,12 +814,25 @@ function InterventionDetail() {
                       )}
                     </DialogContent>
                   </Dialog>
-                  <Button size="sm" variant="outline" disabled={archivePdf.isPending} onClick={() => archivePdf.mutate()}>
-                    {archivePdf.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Archive className="mr-1.5 h-4 w-4" />}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={archivePdf.isPending}
+                    onClick={() => archivePdf.mutate()}
+                  >
+                    {archivePdf.isPending ? (
+                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Archive className="mr-1.5 h-4 w-4" />
+                    )}
                     Archiver le PDF
                   </Button>
                   {iv.pdf_storage_path && (
-                    <Button size="sm" variant="outline" onClick={() => openArchivedPdf.mutate(iv.pdf_storage_path!)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openArchivedPdf.mutate(iv.pdf_storage_path!)}
+                    >
                       <Download className="mr-1.5 h-4 w-4" /> Dernière archive
                     </Button>
                   )}
@@ -646,31 +845,35 @@ function InterventionDetail() {
                     <History className="h-3.5 w-3.5" /> Historique
                   </div>
                   <ul className="space-y-1 text-sm">
-                    {withVersions(reportHistory!).slice(0, 12).map((h) => (
-                      <li key={h.id} className="flex items-center justify-between gap-2">
-                        <span>
-                          {h.version != null && (
-                            <span className="mr-1.5 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">
-                              Version {h.version}
-                            </span>
-                          )}
-                          <span className="font-medium">{REPORT_EVENT_LABEL[h.event_type]}</span>
-                          {h.recipient && <span className="text-muted-foreground"> · {h.recipient}</span>}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(h.created_at).toLocaleString("fr-FR")}
-                          {h.pdf_storage_path && (
-                            <button
-                              type="button"
-                              onClick={() => openArchivedPdf.mutate(h.pdf_storage_path!)}
-                              className="ml-2 text-primary hover:underline"
-                            >
-                              Ouvrir
-                            </button>
-                          )}
-                        </span>
-                      </li>
-                    ))}
+                    {withVersions(reportHistory!)
+                      .slice(0, 12)
+                      .map((h) => (
+                        <li key={h.id} className="flex items-center justify-between gap-2">
+                          <span>
+                            {h.version != null && (
+                              <span className="mr-1.5 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">
+                                Version {h.version}
+                              </span>
+                            )}
+                            <span className="font-medium">{REPORT_EVENT_LABEL[h.event_type]}</span>
+                            {h.recipient && (
+                              <span className="text-muted-foreground"> · {h.recipient}</span>
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(h.created_at).toLocaleString("fr-FR")}
+                            {h.pdf_storage_path && (
+                              <button
+                                type="button"
+                                onClick={() => openArchivedPdf.mutate(h.pdf_storage_path!)}
+                                className="ml-2 text-primary hover:underline"
+                              >
+                                Ouvrir
+                              </button>
+                            )}
+                          </span>
+                        </li>
+                      ))}
                   </ul>
                 </div>
               )}
@@ -694,26 +897,20 @@ function InterventionDetail() {
                 <p className="mb-2 text-sm font-medium">Sections</p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {SELECTABLE_REPORT_SECTIONS.map((k) => (
-                    <label key={k} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
-                      <Checkbox
-                        checked={sections[k]}
-                        onCheckedChange={() => toggleSection(k)}
-                      />
+                    <label
+                      key={k}
+                      className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
+                    >
+                      <Checkbox checked={sections[k]} onCheckedChange={() => toggleSection(k)} />
                       <span>{REPORT_SECTION_LABELS[k]}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <ReportPhotosPicker
-                photos={photos ?? []}
-                onChange={invPhotos}
-              />
+              <ReportPhotosPicker photos={photos ?? []} onChange={invPhotos} />
 
-              <ReportRecosPicker
-                recos={recos ?? []}
-                onChange={invRecos}
-              />
+              <ReportRecosPicker recos={recos ?? []} onChange={invRecos} />
             </CardContent>
           </Card>
         )}
@@ -722,16 +919,24 @@ function InterventionDetail() {
         <Card>
           <CardContent className="space-y-3 pt-6">
             <h3 className="font-serif text-lg font-semibold">Travaux réalisés</h3>
-            {(tasks?.length ?? 0) === 0 && <p className="text-sm text-muted-foreground">Aucune tâche. Ajoutez-en ci-dessous.</p>}
+            {(tasks?.length ?? 0) === 0 && (
+              <p className="text-sm text-muted-foreground">Aucune tâche. Ajoutez-en ci-dessous.</p>
+            )}
             <div className="space-y-3">
               {tasks?.map((t) => {
-                const status = (t.status as TaskStatus) in TASK_STATUS_META ? (t.status as TaskStatus) : "realise";
+                const status =
+                  (t.status as TaskStatus) in TASK_STATUS_META
+                    ? (t.status as TaskStatus)
+                    : "realise";
                 const svc = (serviceCatalog ?? []).find((s) => s.id === (t.service_id ?? ""));
                 return (
                   <div key={t.id} className="rounded-lg border border-border p-3">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-medium">{t.label}</p>
-                      <button onClick={() => delT.mutate(t.id)} className="shrink-0 text-muted-foreground hover:text-destructive">
+                      <button
+                        onClick={() => delT.mutate(t.id)}
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                      >
                         <X className="h-4 w-4" />
                       </button>
                     </div>
@@ -739,14 +944,16 @@ function InterventionDetail() {
                       <Select
                         value={t.service_id ?? "__none__"}
                         onValueChange={(v) =>
-                          setTaskService.mutate({ id: t.id, service_id: v === "__none__" ? null : v })
+                          setTaskService.mutate({
+                            id: t.id,
+                            service_id: v === "__none__" ? null : v,
+                          })
                         }
                       >
                         <SelectTrigger className="h-8 w-full max-w-xs text-xs">
                           <SelectValue placeholder="Rattacher au catalogue…" />
                         </SelectTrigger>
                         <SelectContent>
-                          
                           {(serviceCatalog ?? []).map((s) => (
                             <SelectItem key={s.id} value={s.id}>
                               {s.label}
@@ -756,7 +963,9 @@ function InterventionDetail() {
                         </SelectContent>
                       </Select>
                       {svc?.category_label && (
-                        <Badge variant="secondary" className="text-[10px]">{svc.category_label}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {svc.category_label}
+                        </Badge>
                       )}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
@@ -765,7 +974,9 @@ function InterventionDetail() {
                           key={s}
                           onClick={() => setStatus.mutate({ id: t.id, status: s })}
                           className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
-                            status === s ? TASK_STATUS_META[s].tone + " ring-1 ring-current" : "bg-muted text-muted-foreground"
+                            status === s
+                              ? TASK_STATUS_META[s].tone + " ring-1 ring-current"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {TASK_STATUS_META[s].label}
@@ -776,7 +987,10 @@ function InterventionDetail() {
                       defaultValue={t.note ?? ""}
                       placeholder="Observation / conseil (optionnel)…"
                       className="mt-2 min-h-[2.5rem] text-sm"
-                      onBlur={(e) => { if (e.target.value !== (t.note ?? "")) setNote.mutate({ id: t.id, note: e.target.value }); }}
+                      onBlur={(e) => {
+                        if (e.target.value !== (t.note ?? ""))
+                          setNote.mutate({ id: t.id, note: e.target.value });
+                      }}
                     />
                   </div>
                 );
@@ -823,7 +1037,9 @@ function InterventionDetail() {
                 <Button
                   variant="outline"
                   disabled={!newTask.trim() || addT.isPending}
-                  onClick={() => addT.mutate({ label: newTask.trim(), service_id: newTaskService || null })}
+                  onClick={() =>
+                    addT.mutate({ label: newTask.trim(), service_id: newTaskService || null })
+                  }
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -832,7 +1048,11 @@ function InterventionDetail() {
           </CardContent>
         </Card>
 
-        <InterventionMessages clientId={iv.client_id} interventionId={interventionId} authorName={profile?.display_name ?? profile?.company_name ?? null} />
+        <InterventionMessages
+          clientId={iv.client_id}
+          interventionId={interventionId}
+          authorName={profile?.display_name ?? profile?.company_name ?? null}
+        />
 
         {/* Photos */}
         <Card>
@@ -840,14 +1060,33 @@ function InterventionDetail() {
             <div className="flex items-center justify-between">
               <h3 className="font-serif text-lg font-semibold">Photos</h3>
               <div className="flex gap-2">
-                <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
-                <Button size="sm" variant="outline" disabled={uploading} onClick={() => fileRef.current?.click()}>
-                  {uploading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1.5 h-4 w-4" />}Importer
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  onChange={(e) => handleFiles(e.target.files)}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={uploading}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  {uploading ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ImagePlus className="mr-1.5 h-4 w-4" />
+                  )}
+                  Importer
                 </Button>
               </div>
             </div>
             {(photos?.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucune photo. Ajoutez des clichés du chantier.</p>
+              <p className="text-sm text-muted-foreground">
+                Aucune photo. Ajoutez des clichés du chantier.
+              </p>
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -855,8 +1094,18 @@ function InterventionDetail() {
                     <PhotoCard key={p.id} photo={p} onChange={invPhotos} />
                   ))}
                 </div>
-                <Button size="sm" variant="outline" className="w-full" disabled={runPhotoAi.isPending} onClick={() => runPhotoAi.mutate()}>
-                  {runPhotoAi.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ScanSearch className="mr-1.5 h-4 w-4" />}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  disabled={runPhotoAi.isPending}
+                  onClick={() => runPhotoAi.mutate()}
+                >
+                  {runPhotoAi.isPending ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ScanSearch className="mr-1.5 h-4 w-4" />
+                  )}
                   Analyser les photos (IA)
                 </Button>
                 {suggestions.length > 0 && (
@@ -872,15 +1121,25 @@ function InterventionDetail() {
                             <div className="mt-1 flex flex-wrap items-center gap-1.5">
                               <Badge variant="secondary">{s.category}</Badge>
                               {s.estimated_hours != null && (
-                                <span className="text-xs text-muted-foreground">~{s.estimated_hours} h</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ~{s.estimated_hours} h
+                                </span>
                               )}
                             </div>
                           </div>
                         </div>
-                        {s.description && <p className="mt-1.5 text-sm text-muted-foreground">{s.description}</p>}
+                        {s.description && (
+                          <p className="mt-1.5 text-sm text-muted-foreground">{s.description}</p>
+                        )}
                         <div className="mt-2 flex gap-2">
-                          <Button size="sm" onClick={() => acceptSuggestion(s, idx)}><Check className="mr-1.5 h-4 w-4" />Accepter</Button>
-                          <Button size="sm" variant="ghost" onClick={() => ignoreSuggestion(idx)}><X className="mr-1.5 h-4 w-4" />Ignorer</Button>
+                          <Button size="sm" onClick={() => acceptSuggestion(s, idx)}>
+                            <Check className="mr-1.5 h-4 w-4" />
+                            Accepter
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => ignoreSuggestion(idx)}>
+                            <X className="mr-1.5 h-4 w-4" />
+                            Ignorer
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -896,19 +1155,65 @@ function InterventionDetail() {
           <CardContent className="space-y-4 pt-6">
             <div className="flex items-center justify-between gap-2">
               <h3 className="font-serif text-lg font-semibold">Synthèse & recommandations</h3>
-              <Button size="sm" variant="outline" disabled={runAi.isPending} onClick={() => runAi.mutate()}>
-                {runAi.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1.5 h-4 w-4" />}
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={runAi.isPending}
+                onClick={() => runAi.mutate()}
+              >
+                {runAi.isPending ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1.5 h-4 w-4" />
+                )}
                 Assistant IA
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">L'assistant rédige automatiquement la synthèse à partir des travaux saisis.</p>
-            <SyntheseField label="Synthèse de l'intervention" field="summary" iv={iv} onSave={(v) => saveSynthese.mutate({ summary: v })} />
-            <SyntheseField label="Points positifs observés" field="positive_points" iv={iv} onSave={(v) => saveSynthese.mutate({ positive_points: v })} />
-            <SyntheseField label="Points de vigilance" field="attention_points" iv={iv} onSave={(v) => saveSynthese.mutate({ attention_points: v })} />
-            <SyntheseField label="Évolution du jardin" field="garden_evolution" iv={iv} onSave={(v) => saveSynthese.mutate({ garden_evolution: v })} />
-            <SyntheseField label="État du jardin" field="garden_state" iv={iv} onSave={(v) => saveSynthese.mutate({ garden_state: v })} />
-            <SyntheseField label="Travaux prévus prochaine intervention" field="upcoming_works" iv={iv} onSave={(v) => saveSynthese.mutate({ upcoming_works: v })} />
-            <SyntheseField label="Préconisations / conseils" field="recommendations_text" iv={iv} onSave={(v) => saveSynthese.mutate({ recommendations_text: v })} />
+            <p className="text-xs text-muted-foreground">
+              L'assistant rédige automatiquement la synthèse à partir des travaux saisis.
+            </p>
+            <SyntheseField
+              label="Synthèse de l'intervention"
+              field="summary"
+              iv={iv}
+              onSave={(v) => saveSynthese.mutate({ summary: v })}
+            />
+            <SyntheseField
+              label="Points positifs observés"
+              field="positive_points"
+              iv={iv}
+              onSave={(v) => saveSynthese.mutate({ positive_points: v })}
+            />
+            <SyntheseField
+              label="Points de vigilance"
+              field="attention_points"
+              iv={iv}
+              onSave={(v) => saveSynthese.mutate({ attention_points: v })}
+            />
+            <SyntheseField
+              label="Évolution du jardin"
+              field="garden_evolution"
+              iv={iv}
+              onSave={(v) => saveSynthese.mutate({ garden_evolution: v })}
+            />
+            <SyntheseField
+              label="État du jardin"
+              field="garden_state"
+              iv={iv}
+              onSave={(v) => saveSynthese.mutate({ garden_state: v })}
+            />
+            <SyntheseField
+              label="Travaux prévus prochaine intervention"
+              field="upcoming_works"
+              iv={iv}
+              onSave={(v) => saveSynthese.mutate({ upcoming_works: v })}
+            />
+            <SyntheseField
+              label="Préconisations / conseils"
+              field="recommendations_text"
+              iv={iv}
+              onSave={(v) => saveSynthese.mutate({ recommendations_text: v })}
+            />
           </CardContent>
         </Card>
 
@@ -920,30 +1225,51 @@ function InterventionDetail() {
               <h3 className="font-serif text-lg font-semibold">Préconisations commerciales</h3>
             </div>
             {(recos?.length ?? 0) === 0 && (
-              <p className="text-sm text-muted-foreground">Aucune préconisation. Utilisez l'assistant IA ou ajoutez-en une.</p>
+              <p className="text-sm text-muted-foreground">
+                Aucune préconisation. Utilisez l'assistant IA ou ajoutez-en une.
+              </p>
             )}
             <div className="space-y-2">
               {recos?.map((r) => {
-                const status = (r.status as RecommendationStatus) in RECO_STATUS_META ? (r.status as RecommendationStatus) : "en_attente";
+                const status =
+                  (r.status as RecommendationStatus) in RECO_STATUS_META
+                    ? (r.status as RecommendationStatus)
+                    : "en_attente";
                 return (
                   <div key={r.id} className="rounded-lg border border-border p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="font-medium">{r.title}</p>
-                        {r.category && <Badge variant="secondary" className="mt-1">{r.category}</Badge>}
+                        {r.category && (
+                          <Badge variant="secondary" className="mt-1">
+                            {r.category}
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1">
                         {recommendationPrice(r) != null && (
-                          <span className="text-sm font-semibold text-primary">{formatEuro(recommendationPrice(r)!)}</span>
+                          <span className="text-sm font-semibold text-primary">
+                            {formatEuro(recommendationPrice(r)!)}
+                          </span>
                         )}
-                        <button onClick={async () => { await deleteRecommendation(r.id); invRecos(); }} className="text-muted-foreground hover:text-destructive">
+                        <button
+                          onClick={async () => {
+                            await deleteRecommendation(r.id);
+                            invRecos();
+                          }}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
                           <X className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
-                    {r.description && <p className="mt-1.5 text-sm text-muted-foreground">{r.description}</p>}
+                    {r.description && (
+                      <p className="mt-1.5 text-sm text-muted-foreground">{r.description}</p>
+                    )}
                     <div className="mt-2 flex items-center gap-2">
-                      <Label className="text-xs text-muted-foreground">Heures de M.O. estimées</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Heures de M.O. estimées
+                      </Label>
                       <Input
                         type="number"
                         min="0"
@@ -953,18 +1279,28 @@ function InterventionDetail() {
                         placeholder="—"
                         onBlur={async (e) => {
                           const v = e.target.value === "" ? null : Number(e.target.value);
-                          if (v !== (r.estimated_hours ?? null)) { await updateRecommendation(r.id, { estimated_hours: v }); invRecos(); }
+                          if (v !== (r.estimated_hours ?? null)) {
+                            await updateRecommendation(r.id, { estimated_hours: v });
+                            invRecos();
+                          }
                         }}
                       />
-                      <span className="text-xs text-muted-foreground">× {formatEuro(r.unit_price ?? 70)}/h</span>
+                      <span className="text-xs text-muted-foreground">
+                        × {formatEuro(r.unit_price ?? 70)}/h
+                      </span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {RECO_STATUSES.map((s) => (
                         <button
                           key={s}
-                          onClick={async () => { await updateRecommendation(r.id, { status: s }); invRecos(); }}
+                          onClick={async () => {
+                            await updateRecommendation(r.id, { status: s });
+                            invRecos();
+                          }}
                           className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
-                            status === s ? RECO_STATUS_META[s].tone + " ring-1 ring-current" : "bg-muted text-muted-foreground"
+                            status === s
+                              ? RECO_STATUS_META[s].tone + " ring-1 ring-current"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {RECO_STATUS_META[s].label}
@@ -975,7 +1311,11 @@ function InterventionDetail() {
                 );
               })}
             </div>
-            <AddRecoForm clientId={iv.client_id} interventionId={interventionId} onAdded={invRecos} />
+            <AddRecoForm
+              clientId={iv.client_id}
+              interventionId={interventionId}
+              onAdded={invRecos}
+            />
           </CardContent>
         </Card>
 
@@ -987,29 +1327,51 @@ function InterventionDetail() {
               <h3 className="font-serif text-lg font-semibold">Carnet de santé du jardin</h3>
             </div>
             {(healthList?.length ?? 0) === 0 && (
-              <p className="text-sm text-muted-foreground">Aucune évaluation pour cette intervention.</p>
+              <p className="text-sm text-muted-foreground">
+                Aucune évaluation pour cette intervention.
+              </p>
             )}
             <div className="space-y-2">
               {healthList?.map((h) => {
-                const rating = (h.rating as HealthRating) in HEALTH_RATING_META ? (h.rating as HealthRating) : "bon";
+                const rating =
+                  (h.rating as HealthRating) in HEALTH_RATING_META
+                    ? (h.rating as HealthRating)
+                    : "bon";
                 return (
-                  <div key={h.id} className="flex items-start justify-between gap-2 rounded-lg border border-border p-3">
+                  <div
+                    key={h.id}
+                    className="flex items-start justify-between gap-2 rounded-lg border border-border p-3"
+                  >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className={`h-2.5 w-2.5 rounded-full ${HEALTH_RATING_META[rating].dot}`} />
+                        <span
+                          className={`h-2.5 w-2.5 rounded-full ${HEALTH_RATING_META[rating].dot}`}
+                        />
                         <p className="font-medium">{h.zone}</p>
-                        <Badge className={HEALTH_RATING_META[rating].tone}>{HEALTH_RATING_META[rating].label}</Badge>
+                        <Badge className={HEALTH_RATING_META[rating].tone}>
+                          {HEALTH_RATING_META[rating].label}
+                        </Badge>
                       </div>
                       {h.note && <p className="mt-1 text-sm text-muted-foreground">{h.note}</p>}
                     </div>
-                    <button onClick={async () => { await deleteHealth(h.id); invHealth(); }} className="shrink-0 text-muted-foreground hover:text-destructive">
+                    <button
+                      onClick={async () => {
+                        await deleteHealth(h.id);
+                        invHealth();
+                      }}
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                    >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                 );
               })}
             </div>
-            <AddHealthForm clientId={iv.client_id} interventionId={interventionId} onAdded={invHealth} />
+            <AddHealthForm
+              clientId={iv.client_id}
+              interventionId={interventionId}
+              onAdded={invHealth}
+            />
           </CardContent>
         </Card>
       </div>
@@ -1018,10 +1380,20 @@ function InterventionDetail() {
 }
 
 function SyntheseField({
-  label, field, iv, onSave,
+  label,
+  field,
+  iv,
+  onSave,
 }: {
   label: string;
-  field: "summary" | "garden_state" | "upcoming_works" | "recommendations_text" | "positive_points" | "attention_points" | "garden_evolution";
+  field:
+    | "summary"
+    | "garden_state"
+    | "upcoming_works"
+    | "recommendations_text"
+    | "positive_points"
+    | "attention_points"
+    | "garden_evolution";
   iv: Intervention;
   onSave: (v: string) => void;
 }) {
@@ -1033,18 +1405,37 @@ function SyntheseField({
         key={initial}
         defaultValue={initial}
         className="min-h-[4rem]"
-        onBlur={(e) => { if (e.target.value !== initial) onSave(e.target.value); }}
+        onBlur={(e) => {
+          if (e.target.value !== initial) onSave(e.target.value);
+        }}
       />
     </div>
   );
 }
 
-function AddRecoForm({ clientId, interventionId, onAdded }: { clientId: string; interventionId: string; onAdded: () => void }) {
+function AddRecoForm({
+  clientId,
+  interventionId,
+  onAdded,
+}: {
+  clientId: string;
+  interventionId: string;
+  onAdded: () => void;
+}) {
   const [title, setTitle] = useState("");
   const [open, setOpen] = useState(false);
   const add = useMutation({
-    mutationFn: () => addRecommendation({ client_id: clientId, intervention_id: interventionId, title: title.trim() }),
-    onSuccess: () => { setTitle(""); setOpen(false); onAdded(); },
+    mutationFn: () =>
+      addRecommendation({
+        client_id: clientId,
+        intervention_id: interventionId,
+        title: title.trim(),
+      }),
+    onSuccess: () => {
+      setTitle("");
+      setOpen(false);
+      onAdded();
+    },
   });
   if (!open) {
     return (
@@ -1055,23 +1446,59 @@ function AddRecoForm({ clientId, interventionId, onAdded }: { clientId: string; 
   }
   return (
     <div className="flex gap-2">
-      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre de la préconisation…" autoFocus
-        onKeyDown={(e) => { if (e.key === "Enter" && title.trim()) add.mutate(); }} />
-      <Button variant="outline" disabled={!title.trim() || add.isPending} onClick={() => add.mutate()}>
-        {add.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Titre de la préconisation…"
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && title.trim()) add.mutate();
+        }}
+      />
+      <Button
+        variant="outline"
+        disabled={!title.trim() || add.isPending}
+        onClick={() => add.mutate()}
+      >
+        {add.isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Plus className="h-4 w-4" />
+        )}
       </Button>
     </div>
   );
 }
 
-function AddHealthForm({ clientId, interventionId, onAdded }: { clientId: string; interventionId: string; onAdded: () => void }) {
+function AddHealthForm({
+  clientId,
+  interventionId,
+  onAdded,
+}: {
+  clientId: string;
+  interventionId: string;
+  onAdded: () => void;
+}) {
   const [zone, setZone] = useState("");
   const [rating, setRating] = useState<HealthRating>("bon");
   const [note, setNote] = useState("");
   const [open, setOpen] = useState(false);
   const add = useMutation({
-    mutationFn: () => addHealth({ client_id: clientId, intervention_id: interventionId, zone: zone.trim(), rating, note: note.trim() || null }),
-    onSuccess: () => { setZone(""); setNote(""); setRating("bon"); setOpen(false); onAdded(); },
+    mutationFn: () =>
+      addHealth({
+        client_id: clientId,
+        intervention_id: interventionId,
+        zone: zone.trim(),
+        rating,
+        note: note.trim() || null,
+      }),
+    onSuccess: () => {
+      setZone("");
+      setNote("");
+      setRating("bon");
+      setOpen(false);
+      onAdded();
+    },
   });
   if (!open) {
     return (
@@ -1083,22 +1510,38 @@ function AddHealthForm({ clientId, interventionId, onAdded }: { clientId: string
   return (
     <div className="space-y-2 rounded-lg border border-border p-3">
       <div className="grid gap-2 sm:grid-cols-2">
-        <Input value={zone} onChange={(e) => setZone(e.target.value)} placeholder="Zone (ex: Pelouse, Haies…)" autoFocus />
+        <Input
+          value={zone}
+          onChange={(e) => setZone(e.target.value)}
+          placeholder="Zone (ex: Pelouse, Haies…)"
+          autoFocus
+        />
         <Select value={rating} onValueChange={(v) => setRating(v as HealthRating)}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             {HEALTH_RATINGS.map((r) => (
-              <SelectItem key={r} value={r}>{HEALTH_RATING_META[r].label}</SelectItem>
+              <SelectItem key={r} value={r}>
+                {HEALTH_RATING_META[r].label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
-      <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Observation (optionnel)…" className="min-h-[2.5rem]" />
+      <Textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Observation (optionnel)…"
+        className="min-h-[2.5rem]"
+      />
       <div className="flex gap-2">
         <Button size="sm" disabled={!zone.trim() || add.isPending} onClick={() => add.mutate()}>
           {add.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />} Enregistrer
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+          Annuler
+        </Button>
       </div>
     </div>
   );
@@ -1122,7 +1565,10 @@ function PhotoCard({ photo, onChange }: { photo: InterventionPhoto; onChange: ()
           <Skeleton className="h-full w-full" />
         )}
         <button
-          onClick={async () => { await deletePhoto(photo.id, photo.storage_path); onChange(); }}
+          onClick={async () => {
+            await deletePhoto(photo.id, photo.storage_path);
+            onChange();
+          }}
           className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-foreground/55 text-background hover:bg-foreground/75"
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -1133,12 +1579,20 @@ function PhotoCard({ photo, onChange }: { photo: InterventionPhoto; onChange: ()
           defaultValue={photo.caption ?? ""}
           placeholder="Légende…"
           className="h-8 text-xs"
-          onBlur={async (e) => { if (e.target.value !== (photo.caption ?? "")) { await updatePhoto(photo.id, { caption: e.target.value }); onChange(); } }}
+          onBlur={async (e) => {
+            if (e.target.value !== (photo.caption ?? "")) {
+              await updatePhoto(photo.id, { caption: e.target.value });
+              onChange();
+            }
+          }}
         />
         <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Checkbox
             checked={photo.include_in_report}
-            onCheckedChange={async (c) => { await updatePhoto(photo.id, { include_in_report: !!c }); onChange(); }}
+            onCheckedChange={async (c) => {
+              await updatePhoto(photo.id, { include_in_report: !!c });
+              onChange();
+            }}
           />
           Inclure dans le rapport
         </label>
@@ -1149,7 +1603,8 @@ function PhotoCard({ photo, onChange }: { photo: InterventionPhoto; onChange: ()
 
 /* ---- Sélection & réordonnancement des photos ---- */
 function ReportPhotosPicker({
-  photos, onChange,
+  photos,
+  onChange,
 }: {
   photos: InterventionPhoto[];
   onChange: () => void;
@@ -1165,8 +1620,7 @@ function ReportPhotosPicker({
     onSuccess: onChange,
   });
   const setCaption = useMutation({
-    mutationFn: ({ id, caption }: { id: string; caption: string }) =>
-      updatePhoto(id, { caption }),
+    mutationFn: ({ id, caption }: { id: string; caption: string }) => updatePhoto(id, { caption }),
     onSuccess: onChange,
   });
   function reorder(idx: number, dir: -1 | 1) {
@@ -1180,7 +1634,9 @@ function ReportPhotosPicker({
     return (
       <div>
         <p className="mb-1 text-sm font-medium">Photos du rapport</p>
-        <p className="text-xs text-muted-foreground">Aucune photo n'a été ajoutée à cette intervention.</p>
+        <p className="text-xs text-muted-foreground">
+          Aucune photo n'a été ajoutée à cette intervention.
+        </p>
       </div>
     );
   }
@@ -1189,7 +1645,10 @@ function ReportPhotosPicker({
       <p className="mb-2 text-sm font-medium">Photos du rapport</p>
       <ul className="space-y-1.5">
         {ordered.map((p, idx) => (
-          <li key={p.id} className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5">
+          <li
+            key={p.id}
+            className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5"
+          >
             <Checkbox
               checked={p.include_in_report}
               onCheckedChange={(v) => toggle.mutate({ id: p.id, include: !!v })}
@@ -1200,7 +1659,8 @@ function ReportPhotosPicker({
               placeholder="Légende…"
               className="h-8 text-xs"
               onBlur={(e) => {
-                if (e.target.value !== (p.caption ?? "")) setCaption.mutate({ id: p.id, caption: e.target.value });
+                if (e.target.value !== (p.caption ?? ""))
+                  setCaption.mutate({ id: p.id, caption: e.target.value });
               }}
             />
             <div className="flex gap-0.5">
@@ -1232,7 +1692,8 @@ function ReportPhotosPicker({
 
 /* ---- Sélection, ordre, priorité et saison des préconisations ---- */
 function ReportRecosPicker({
-  recos, onChange,
+  recos,
+  onChange,
 }: {
   recos: import("@/lib/garden").Recommendation[];
   onChange: () => void;
@@ -1263,7 +1724,9 @@ function ReportRecosPicker({
     return (
       <div>
         <p className="mb-1 text-sm font-medium">Préconisations du rapport</p>
-        <p className="text-xs text-muted-foreground">Aucune préconisation liée à cette intervention.</p>
+        <p className="text-xs text-muted-foreground">
+          Aucune préconisation liée à cette intervention.
+        </p>
       </div>
     );
   }
@@ -1276,7 +1739,9 @@ function ReportRecosPicker({
             <div className="flex items-center gap-2">
               <Checkbox
                 checked={r.include_in_report ?? true}
-                onCheckedChange={(v) => update.mutate({ id: r.id, patch: { include_in_report: !!v } })}
+                onCheckedChange={(v) =>
+                  update.mutate({ id: r.id, patch: { include_in_report: !!v } })
+                }
               />
               <span className="w-5 text-center text-xs text-muted-foreground">#{idx + 1}</span>
               <span className="flex-1 truncate text-sm font-medium">{r.title}</span>
@@ -1308,25 +1773,36 @@ function ReportRecosPicker({
                   update.mutate({ id: r.id, patch: { priority: v === "__none__" ? null : v } })
                 }
               >
-                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Priorité" /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Priorité" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">— Priorité —</SelectItem>
                   {RECO_PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p}>{RECO_PRIORITY_META[p as RecommendationPriority].label}</SelectItem>
+                    <SelectItem key={p} value={p}>
+                      {RECO_PRIORITY_META[p as RecommendationPriority].label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select
                 value={r.recommended_season ?? "__none__"}
                 onValueChange={(v) =>
-                  update.mutate({ id: r.id, patch: { recommended_season: v === "__none__" ? null : v } })
+                  update.mutate({
+                    id: r.id,
+                    patch: { recommended_season: v === "__none__" ? null : v },
+                  })
                 }
               >
-                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Saison" /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Saison" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">— Saison —</SelectItem>
                   {RECO_SEASONS.map((s) => (
-                    <SelectItem key={s} value={s}>{RECO_SEASON_LABELS[s as RecommendationSeason]}</SelectItem>
+                    <SelectItem key={s} value={s}>
+                      {RECO_SEASON_LABELS[s as RecommendationSeason]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
