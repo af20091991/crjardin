@@ -31,6 +31,7 @@ type PremiumCalendarDb = {
   };
 };
 
+// prettier-ignore
 export const provisionPremiumAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { clientId: string }) => {
