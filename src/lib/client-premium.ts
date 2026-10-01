@@ -242,6 +242,7 @@ export interface PremiumWorkCalendarItem {
   title: string;
   details: string | null;
   position: number;
+  source: "pdf" | "manuel" | "ia";
 }
 
 export async function listPremiumWorkCalendar(
@@ -298,4 +299,61 @@ export async function replacePremiumWorkCalendar(
 
   const { error } = await premiumCalendarDb.from("client_premium_work_calendar_items").insert(rows);
   if (error) throw new Error(`Impossible d'enregistrer le calendrier : ${error.message}`);
+}
+
+export interface PremiumCalendarItemInput {
+  period_label: string;
+  year: number | null;
+  month: number | null;
+  sequence: number;
+  title: string;
+  details: string | null;
+}
+
+/** Lignes du calendrier de plusieurs clients Premium (tableau de bord admin). */
+export async function listPremiumCalendarItemsForClients(
+  clientIds: string[],
+): Promise<PremiumWorkCalendarItem[]> {
+  if (clientIds.length === 0) return [];
+  const { data, error } = await premiumCalendarDb
+    .from("client_premium_work_calendar_items")
+    .select("*")
+    .in("client_id", clientIds);
+  if (error) throw new Error(`Impossible de charger les calendriers : ${error.message}`);
+  return data as PremiumWorkCalendarItem[];
+}
+
+export async function addPremiumCalendarItem(
+  clientId: string,
+  item: PremiumCalendarItemInput,
+  position: number,
+): Promise<void> {
+  const user_id = await uid();
+  const { error } = await premiumCalendarDb.from("client_premium_work_calendar_items").insert({
+    client_id: clientId,
+    user_id,
+    ...item,
+    position,
+    source: "manuel",
+  });
+  if (error) throw new Error(`Impossible d'ajouter l'intervention : ${error.message}`);
+}
+
+export async function updatePremiumCalendarItem(
+  id: string,
+  item: PremiumCalendarItemInput,
+): Promise<void> {
+  const { error } = await premiumCalendarDb
+    .from("client_premium_work_calendar_items")
+    .update({ ...item, source: "manuel" })
+    .eq("id", id);
+  if (error) throw new Error(`Impossible d'enregistrer l'intervention : ${error.message}`);
+}
+
+export async function deletePremiumCalendarItem(id: string): Promise<void> {
+  const { error } = await premiumCalendarDb
+    .from("client_premium_work_calendar_items")
+    .delete()
+    .eq("id", id);
+  if (error) throw new Error(`Impossible de supprimer l'intervention : ${error.message}`);
 }
