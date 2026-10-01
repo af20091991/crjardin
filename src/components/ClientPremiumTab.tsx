@@ -38,6 +38,7 @@ import { signedPhotoUrl } from "@/lib/interventions";
 import { parsePlanning } from "@/lib/file-parser";
 import { normalizePremiumWorkCalendar } from "@/lib/premium-work-calendar.functions";
 import { getCeevPlanningUrlByClientId } from "@/lib/client-portal.functions";
+import { provisionPremiumAccount } from "@/lib/premium-provisioning.functions";
 
 export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canEdit: boolean }) {
   const qc = useQueryClient();
@@ -164,16 +165,16 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
     mutationFn: async (enabled: boolean) => {
       await setClientPremiumEnabled(clientId, enabled);
       if (enabled) {
-        return await importExistingPlanning();
+        return await provisionPremiumAccount({ data: { clientId } });
       }
       return null;
     },
-    onSuccess: (calendarImported, enabled) => {
+    onSuccess: (provisioning, enabled) => {
       if (enabled) {
         toast.success(
-          calendarImported
-            ? "Espace Premium activé avec le calendrier travaux."
-            : "Espace Premium activé. Importez le PDF du calendrier travaux pour compléter l'espace client.",
+          provisioning?.calendarImported
+            ? "Espace Premium activé et construit automatiquement à partir du modèle Premium."
+            : "Espace Premium activé. Le modèle Premium est en place ; le calendrier travaux sera ajouté dès qu'il sera disponible.",
         );
         qc.invalidateQueries({ queryKey: ["client-premium-documents", clientId] });
         qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });

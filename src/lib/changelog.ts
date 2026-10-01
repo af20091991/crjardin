@@ -23,6 +23,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-01",
+    version: "2.3.38",
+    theme: "Clients",
+    title: "Comptes Premium — construction automatique",
+    details: [
+      "Le Compte Premium reprend désormais automatiquement le gabarit fonctionnel et visuel validé sur le compte Addala.",
+      "À l’activation d’un nouveau Premium, la couverture disponible et le calendrier d’entretien CEEV sont préparés automatiquement sans saisie manuelle du calendrier.",
+      "Les données propres à chaque client restent séparées : le modèle sert de structure, jamais de source pour les informations personnelles d’un autre client.",
+    ],
+  },
+
+  {
     date: "2026-09-30",
     version: "2.3.37",
     theme: "Clients",
