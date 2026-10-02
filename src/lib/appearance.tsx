@@ -393,6 +393,32 @@ function load(): Appearance {
   }
 }
 
+const loadedGoogleFonts = new Set<string>();
+
+/**
+ * Personalization exposes many font choices, but only the selected families need
+ * to be downloaded. The default PP fonts are loaded by the root document.
+ */
+function ensureGoogleFontLoaded(choice: FontChoice) {
+  if (typeof document === "undefined" || choice === "auto" || choice === "system") return;
+
+  const family = FONT_STACKS[choice].match(/^"([^"]+)"/)?.[1];
+  if (!family || loadedGoogleFonts.has(family)) return;
+
+  if (document.head.querySelector(`link[data-pp-font="${family}"]`)) {
+    loadedGoogleFonts.add(family);
+    return;
+  }
+
+  const weights = family === "Bebas Neue" ? "400" : family === "Syne" ? "400;500;600;700;800" : "400;500;600;700";
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, "+")}:wght@${weights}&display=swap`;
+  link.dataset.ppFont = family;
+  document.head.appendChild(link);
+  loadedGoogleFonts.add(family);
+}
+
 /** Pose l'attribut uniquement hors valeur par défaut : sans action utilisateur, aucun sélecteur ne matche. */
 function setFlag(root: HTMLElement, name: string, value: string | null) {
   if (value === null) root.removeAttribute(name);
@@ -428,6 +454,7 @@ export function applyAppearance(a: Appearance) {
     root.style.removeProperty("--font-serif");
     root.removeAttribute("data-font-heading");
   } else {
+    ensureGoogleFontLoaded(heading);
     root.style.setProperty("--font-heading", FONT_STACKS[heading]);
     // --font-serif alimente les titres de base et toutes les classes .font-serif :
     // sans cette surcharge, la plupart des titres de l'app ignoraient le choix.
@@ -438,6 +465,7 @@ export function applyAppearance(a: Appearance) {
     root.style.removeProperty("--font-sans");
     root.removeAttribute("data-font-body");
   } else {
+    ensureGoogleFontLoaded(body);
     root.style.setProperty("--font-sans", FONT_STACKS[body]);
     root.setAttribute("data-font-body", "custom");
   }
@@ -445,6 +473,7 @@ export function applyAppearance(a: Appearance) {
     root.style.removeProperty("--font-numeric");
     root.removeAttribute("data-font-numeric");
   } else {
+    ensureGoogleFontLoaded(numeric);
     root.style.setProperty("--font-numeric", FONT_STACKS[numeric]);
     root.setAttribute("data-font-numeric", "custom");
   }
