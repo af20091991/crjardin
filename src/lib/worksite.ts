@@ -1,14 +1,62 @@
+import { requestSstChangeEmails } from "@/lib/sst-calendar-changes";
 import { supabase } from "@/integrations/supabase/client";
 
 /** Listes de référence reprises de l'outil « Fiche chantier » SST. */
 export const INTERVENANTS = ["Chloé", "Fanny", "Angélique", "Lionel"] as const;
 
 export const EQUIPMENT_GROUPS: { group: string; items: string[] }[] = [
-  { group: "Taille-haie", items: ["Taille-haie déflecteur (R)", "Taille-haie double peigne (T)", "Taille-haie perche télescopique", "Taille-haie perche de rabattage"] },
-  { group: "Motorisé", items: ["Souffleur", "Tondeuse", "Débroussailleuse", "Broyeur", "Désherbeur thermique", "Tronçonneuse", "Tronçonneuse perche"] },
-  { group: "Outils à main", items: ["Râteau feuille", "Râteau métal", "Pioche", "Bêche", "Fourche", "Balai brosse", "Pelle minérale", "Pelle terre", "Échenilloir", "Sécateur à main", "Sécateur de force", "Cisaille"] },
+  {
+    group: "Taille-haie",
+    items: [
+      "Taille-haie déflecteur (R)",
+      "Taille-haie double peigne (T)",
+      "Taille-haie perche télescopique",
+      "Taille-haie perche de rabattage",
+    ],
+  },
+  {
+    group: "Motorisé",
+    items: [
+      "Souffleur",
+      "Tondeuse",
+      "Débroussailleuse",
+      "Broyeur",
+      "Désherbeur thermique",
+      "Tronçonneuse",
+      "Tronçonneuse perche",
+    ],
+  },
+  {
+    group: "Outils à main",
+    items: [
+      "Râteau feuille",
+      "Râteau métal",
+      "Pioche",
+      "Bêche",
+      "Fourche",
+      "Balai brosse",
+      "Pelle minérale",
+      "Pelle terre",
+      "Échenilloir",
+      "Sécateur à main",
+      "Sécateur de force",
+      "Cisaille",
+    ],
+  },
   { group: "Accessoires", items: ["Escabeau", "Poubelle", "Sacs à déchets", "Rampes"] },
-  { group: "Batterie", items: ["AP200S", "AP300", "AP500S", "AR3000", "AS1", "Batterie portable", "Chargeur AL301", "Chargeur AS1"] },
+  {
+    group: "Batterie",
+    items: [
+      "AP200S",
+      "AP300",
+      "AP500S",
+      "AR3000",
+      "AS1",
+      "Batterie portable",
+      "Chargeur AL301",
+      "Chargeur AS1",
+    ],
+  },
 ];
 
 export const EPI_OPTIONS = [
@@ -25,12 +73,69 @@ export const EPI_OPTIONS = [
 ] as const;
 
 export const TASK_GROUPS: { group: string; items: string[] }[] = [
-  { group: "Taille de haie", items: ["Taille de haie sur 1 face", "Taille de haie sur 2 faces", "Taille de haie sur 3 faces", "Taille de haie de rabattage"] },
-  { group: "Élagage & arbres", items: ["Taille d'arbustes", "Taille de rosiers", "Taille de fruitiers", "Élagage", "Abattage", "Broyage des branches"] },
-  { group: "Entretien de pelouse", items: ["Tonte", "Tonte mulching", "Scarification", "Aération du gazon", "Engazonnement / semis", "Réfection de pelouse"] },
-  { group: "Entretien de massif", items: ["Désherbage manuel", "Désherbage thermique", "Binage", "Sarclage", "Paillage", "Apport d'engrais / amendement", "Nettoyage des massifs", "Plantation", "Bêchage / préparation du sol"] },
-  { group: "Débroussaillage", items: ["Débroussaillage léger", "Débroussaillage dense", "Débroussaillage réglementaire (OLD)"] },
-  { group: "Nettoyage & finitions", items: ["Ramassage de feuilles", "Soufflage des allées", "Nettoyage des terrasses / allées", "Désherbage des joints", "Arrosage"] },
+  {
+    group: "Taille de haie",
+    items: [
+      "Taille de haie sur 1 face",
+      "Taille de haie sur 2 faces",
+      "Taille de haie sur 3 faces",
+      "Taille de haie de rabattage",
+    ],
+  },
+  {
+    group: "Élagage & arbres",
+    items: [
+      "Taille d'arbustes",
+      "Taille de rosiers",
+      "Taille de fruitiers",
+      "Élagage",
+      "Abattage",
+      "Broyage des branches",
+    ],
+  },
+  {
+    group: "Entretien de pelouse",
+    items: [
+      "Tonte",
+      "Tonte mulching",
+      "Scarification",
+      "Aération du gazon",
+      "Engazonnement / semis",
+      "Réfection de pelouse",
+    ],
+  },
+  {
+    group: "Entretien de massif",
+    items: [
+      "Désherbage manuel",
+      "Désherbage thermique",
+      "Binage",
+      "Sarclage",
+      "Paillage",
+      "Apport d'engrais / amendement",
+      "Nettoyage des massifs",
+      "Plantation",
+      "Bêchage / préparation du sol",
+    ],
+  },
+  {
+    group: "Débroussaillage",
+    items: [
+      "Débroussaillage léger",
+      "Débroussaillage dense",
+      "Débroussaillage réglementaire (OLD)",
+    ],
+  },
+  {
+    group: "Nettoyage & finitions",
+    items: [
+      "Ramassage de feuilles",
+      "Soufflage des allées",
+      "Nettoyage des terrasses / allées",
+      "Désherbage des joints",
+      "Arrosage",
+    ],
+  },
   { group: "Évacuation", items: ["Évacuation des déchets verts", "Dépôt en déchèterie"] },
 ];
 
@@ -221,10 +326,14 @@ export async function createWorksiteSheet(input: WorksiteSheetInput): Promise<Wo
   if (!data) {
     throw new Error("Impossible de créer la fiche SST : aucune fiche retournée.");
   }
+  requestSstChangeEmails();
   return normalize(data as Record<string, unknown>);
 }
 
-export async function updateWorksiteSheet(id: string, input: WorksiteSheetInput): Promise<WorksiteSheet> {
+export async function updateWorksiteSheet(
+  id: string,
+  input: WorksiteSheetInput,
+): Promise<WorksiteSheet> {
   const { data, error } = await supabase
     .from("worksite_sheets")
     .update(input as never)
@@ -232,6 +341,7 @@ export async function updateWorksiteSheet(id: string, input: WorksiteSheetInput)
     .select()
     .single();
   if (error) throw error;
+  requestSstChangeEmails();
   return normalize(data as Record<string, unknown>);
 }
 
@@ -239,13 +349,18 @@ export async function updateWorksitePlanning(
   id: string,
   patch: Partial<Pick<WorksiteSheet, "estimated_hours" | "required_people" | "planning_status">>,
 ): Promise<void> {
-  const { error } = await supabase.from("worksite_sheets").update(patch as never).eq("id", id);
+  const { error } = await supabase
+    .from("worksite_sheets")
+    .update(patch as never)
+    .eq("id", id);
   if (error) throw error;
+  requestSstChangeEmails();
 }
 
 export async function deleteWorksiteSheet(id: string): Promise<void> {
   const { error } = await supabase.from("worksite_sheets").delete().eq("id", id);
   if (error) throw error;
+  requestSstChangeEmails();
 }
 
 /** Upload d'une photo de chantier de fiche, renvoie le chemin de stockage. */

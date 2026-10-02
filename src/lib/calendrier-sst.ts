@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { requestSstChangeEmails } from "@/lib/sst-calendar-changes";
 
 // La table de disponibilités SST est restaurée par migration mais n’est pas encore dans les types générés de main.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -148,6 +149,7 @@ export async function declareAvailability(date: string, comment: string | null) 
     .from("sst_availability_calendar")
     .upsert({ date, comment: value }, { onConflict: "user_id,date" });
   if (error) throw error;
+  requestSstChangeEmails();
 }
 
 export async function updateAvailabilityComment(id: string, comment: string | null) {
@@ -157,9 +159,11 @@ export async function updateAvailabilityComment(id: string, comment: string | nu
     .update({ comment: value })
     .eq("id", id);
   if (error) throw error;
+  requestSstChangeEmails();
 }
 
 export async function removeAvailability(id: string) {
   const { error } = await sstFrom("sst_availability_calendar").delete().eq("id", id);
   if (error) throw error;
+  requestSstChangeEmails();
 }

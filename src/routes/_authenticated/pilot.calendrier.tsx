@@ -24,6 +24,8 @@ import {
   TreePine,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SstChangesPanel, useUnseenSstChanges } from "@/components/pilot/SstChangesPanel";
+import { unseenCountByDate } from "@/lib/sst-calendar-changes";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -151,6 +153,8 @@ function CalendrierSstPage() {
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const unseenChanges = useUnseenSstChanges(isAdmin);
+  const unseenByDate = useMemo(() => unseenCountByDate(unseenChanges), [unseenChanges]);
   const [openComment, setOpenComment] = useState<string | null>(null);
   const [highlightedPlanningId, setHighlightedPlanningId] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<CalendarPreferences>(DEFAULT_CALENDAR_PREFERENCES);
@@ -314,8 +318,20 @@ function CalendrierSstPage() {
     for (let i = 0; i < grid.length; i += 7) rows.push(grid.slice(i, i + 7));
     return rows;
   }, [grid]);
+  const showChangedDay = (iso: string) => {
+    const [year, month] = iso.split("-").map(Number);
+    if (Number.isFinite(year) && Number.isFinite(month)) setCursor({ year, month: month - 1 });
+    setSelectedDate(iso);
+    window.requestAnimationFrame(() =>
+      document
+        .getElementById(`sst-calendar-day-${iso}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    );
+  };
+
   return (
     <>
+      <SstChangesPanel changes={unseenChanges} onShowDay={showChangedDay} />
       <SstPlanningByPerson
         sheets={worksiteSheets}
         selectedSst={selectedSstPlanning}
@@ -472,6 +488,8 @@ function CalendrierSstPage() {
                             preferences.highlightWeekend && weekend && "bg-muted/50",
                             !inMonth && preferences.dimOtherMonths && "bg-muted/20 opacity-35",
                             isToday && tone.selected,
+                            unseenByDate.has(iso) &&
+                              "border-amber-500 bg-amber-100/70 ring-2 ring-amber-400",
                             highlightedPlanningId &&
                               (byPlanningDate.get(iso) ?? []).some(
                                 (sheet) => sheet.id === highlightedPlanningId,
@@ -490,6 +508,11 @@ function CalendrierSstPage() {
                             >
                               {date.getDate()}
                             </span>
+                            {unseenByDate.has(iso) ? (
+                              <span className="inline-flex items-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">
+                                Modifié
+                              </span>
+                            ) : null}
                             {preferences.showCounters && dayEntries.length > 0 ? (
                               <span
                                 className={cn(
