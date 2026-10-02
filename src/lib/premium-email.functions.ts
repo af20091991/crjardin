@@ -1,23 +1,11 @@
 // prettier-ignore
 import { createServerFn } from "@tanstack/react-start";
 // prettier-ignore
-import { render } from "@react-email/render";
-// prettier-ignore
-import React from "react";
-// prettier-ignore
-import { sendLovableEmail, EmailAPIError } from "@lovable.dev/email-js";
-// prettier-ignore
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 // prettier-ignore
 import { template as premiumWelcomeTemplate } from "@/lib/email-templates/premium-welcome";
-import { resolvePremiumClientIdentity } from "@/lib/premium-client-name";
+import { template as premiumReplyTemplate } from "@/lib/email-templates/premium-reply";
 
-// prettier-ignore
-const FROM = "De la graine au jardin <contact@delagraineaujardin.com>";
-// prettier-ignore
-const SENDER_DOMAIN = "notify.delagraineaujardin.com";
-// prettier-ignore
-const TRACKING_ORIGIN = "https://crjardin.lovable.app";
 // prettier-ignore
 const TEMPLATE_NAME = "premium-welcome";
 
@@ -50,7 +38,7 @@ function assertAdmin(isAdmin: boolean | null | undefined) {
 // prettier-ignore
 export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { clientId: string }) => input)
+  .inputValidator((input: { clientId: string; resend?: boolean }) => input)
   .handler(async ({ context, data }) => {
     const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
@@ -68,17 +56,6 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
       .single();
     if (clientError) throw clientError;
 
-    let contact: { civility: string | null; first_name: string | null; last_name: string | null } | null = null;
-    if (client.default_contact_id) {
-      const { data: contactData, error: contactError } = await supabaseAdmin
-        .from("contacts")
-        .select("civility, first_name, last_name")
-        .eq("id", client.default_contact_id)
-        .maybeSingle();
-      if (contactError) throw contactError;
-      contact = contactData;
-    }
-
     if (client.contract_type !== "Entretien annuel") {
       throw new Error("Le Compte Premium est réservé aux clients ayant un entretien annuel.");
     }
@@ -91,88 +68,16 @@ export const sendPremiumWelcomeEmail = createServerFn({ method: "POST" })
     if (premiumError) throw premiumError;
     if (!premium?.enabled) throw new Error("Le Compte Premium n’est pas actif pour ce client.");
 
-    const recipient = (client.email ?? client.emails?.[0] ?? "").trim();
-    if (!recipient) throw new Error("Aucune adresse e-mail n’est renseignée pour ce client.");
-
-    const premiumUrl = `${TRACKING_ORIGIN}/partage/${client.share_token}`;
-    const subject = "Votre Compte Premium est prêt — De la graine au jardin";
-    const messageId = crypto.randomUUID();
-    const { data: unsubscribeToken, error: unsubscribeError } = await supabaseAdmin.rpc(
-      "get_or_create_unsubscribe_token",
-      { p_email: recipient },
-    );
-    if (unsubscribeError || !unsubscribeToken) {
-      throw unsubscribeError ?? new Error("Impossible de préparer le désabonnement de cette adresse.");
-    }
-
-    const identity = resolvePremiumClientIdentity({
-      name: client.name,
-      civility: contact?.civility ?? client.civility,
-      firstName: contact?.first_name,
-      lastName: contact?.last_name,
+    const { sendPremiumMailToAll } = await import("@/lib/premium-mailer.server");
+    const results = await sendPremiumMailToAll({
+      supabaseAdmin,
+      client,
+      templateName: TEMPLATE_NAME,
+      subject: "Votre Compte Premium est prêt — De la graine au jardin",
+      component: premiumWelcomeTemplate.component,
+      skipAlreadySent: !data.resend,
     });
-
-    const templateData = {
-      civility: identity.title || undefined,
-      firstName: identity.firstName || undefined,
-      lastName: identity.lastName || undefined,
-      premiumUrl,
-      unsubscribeUrl: `https://api.lovable.dev/v1/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
-    };
-    const element = React.createElement(premiumWelcomeTemplate.component, templateData);
-    let html = await render(element);
-    const text = await render(element, { plainText: true });
-    const trackingPixel = `<img src="${TRACKING_ORIGIN}/api/public/email-open?m=${messageId}" width="1" height="1" alt="" style="display:none" />`;
-    html = html.includes("</body>") ? html.replace("</body>", `${trackingPixel}</body>`) : `${html}${trackingPixel}`;
-
-    const { error: logError } = await supabaseAdmin.from("premium_email_log" as never).insert({
-      message_id: messageId,
-      client_id: client.id,
-      recipient_email: recipient,
-      civility: contact?.civility ?? client.civility,
-      first_name: identity.firstName || null,
-      last_name: identity.lastName || null,
-      subject,
-      premium_url: premiumUrl,
-      html_body: html,
-      text_body: text,
-      status: "pending",
-    } as never);
-    if (logError) throw logError;
-
-    const apiKey = process.env["LOVABLE_API_KEY"];
-    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
-
-    try {
-      await sendLovableEmail(
-        {
-          to: recipient,
-          from: FROM,
-          sender_domain: SENDER_DOMAIN,
-          subject,
-          html,
-          text,
-          purpose: "transactional",
-          label: TEMPLATE_NAME,
-          idempotency_key: messageId,
-        },
-        { apiKey, sendUrl: process.env["LOVABLE_SEND_URL"] },
-      );
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      await supabaseAdmin
-        .from("premium_email_log" as never)
-        .update({ status: error instanceof EmailAPIError && error.code === "recipient_suppressed" ? "suppressed" : "failed", error_message: errorMessage.slice(0, 1000) } as never)
-        .eq("message_id", messageId);
-      throw error;
-    }
-
-    await supabaseAdmin
-      .from("premium_email_log" as never)
-      .update({ status: "sent", sent_at: new Date().toISOString() } as never)
-      .eq("message_id", messageId);
-
-    return { messageId, recipient, subject };
+    return { results };
   });
 
 // prettier-ignore
@@ -210,4 +115,41 @@ export const listPremiumEmailLog = createServerFn({ method: "GET" })
         open_count: open?.open_count ?? 0,
       };
     });
+  });
+
+// prettier-ignore
+export const sendPremiumReplyNotification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clientId: string }) => input)
+  .handler(async ({ context, data }) => {
+    const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleError) throw roleError;
+    assertAdmin(isAdmin);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: client, error: clientError } = await supabaseAdmin
+      .from("clients")
+      .select("id, name, civility, email, emails, share_token, contract_type, default_contact_id")
+      .eq("id", data.clientId)
+      .is("merged_into_client_id", null)
+      .single();
+    if (clientError) throw clientError;
+    const { data: premium } = await supabaseAdmin
+      .from("client_premium")
+      .select("enabled")
+      .eq("client_id", client.id)
+      .maybeSingle();
+    if (!premium?.enabled) throw new Error("Le Compte Premium n’est pas actif pour ce client.");
+    const { sendPremiumMailToAll } = await import("@/lib/premium-mailer.server");
+    const results = await sendPremiumMailToAll({
+      supabaseAdmin,
+      client,
+      templateName: "premium-reply",
+      subject: "J'ai répondu à votre message — De la graine au jardin",
+      component: premiumReplyTemplate.component,
+      skipAlreadySent: false,
+    });
+    return { results };
   });

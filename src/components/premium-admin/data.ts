@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { listClients, type Client } from "@/lib/clients";
+import type { PremiumPlanningDb } from "@/lib/premium-planning-import.server";
 import {
   listPremiumCalendarItemsForClients,
   type PremiumWorkCalendarItem,
@@ -39,6 +40,12 @@ export type PremiumDocumentRow = {
   uploaded_by: "gardener" | "client";
   created_at: string;
   visible_to_client: boolean;
+};
+
+export type PremiumDocumentView = {
+  id: string;
+  client_viewed_at: string | null;
+  client_view_count: number;
 };
 
 export type PremiumAccess = { client_id: string; accessed_at: string };
@@ -145,6 +152,19 @@ export function usePremiumAdminData(enabled: boolean) {
         .limit(100);
       if (error) fail("Impossible de charger les documents Premium", error);
       return (data ?? []) as PremiumDocumentRow[];
+    },
+  });
+
+  // Suivi des vues : requête séparée et tolérante, pour ne jamais bloquer la page.
+  const documentViewsQuery = useQuery({
+    queryKey: ["premium-admin-document-views"],
+    enabled,
+    queryFn: async (): Promise<PremiumDocumentView[]> => {
+      const { data, error } = await (supabase as unknown as PremiumPlanningDb)
+        .from("client_premium_documents")
+        .select("id, client_viewed_at, client_view_count");
+      if (error) return [];
+      return (data ?? []) as PremiumDocumentView[];
     },
   });
 
@@ -282,6 +302,7 @@ export function usePremiumAdminData(enabled: boolean) {
     contactsByClient,
     messages: (messagesQuery.data ?? []).filter((m) => premiumIds.has(m.client_id)),
     documents: (documentsQuery.data ?? []).filter((d) => premiumIds.has(d.client_id)),
+    documentViews: documentViewsQuery.data ?? [],
     access: (accessQuery.data ?? []).filter((a) => premiumIds.has(a.client_id)),
     recommendations: (recommendationsQuery.data ?? []).filter((r) => premiumIds.has(r.client_id)),
     sentReports: (interventionsQuery.data ?? []).filter((iv) => premiumIds.has(iv.client_id)),

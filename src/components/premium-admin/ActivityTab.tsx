@@ -7,6 +7,7 @@ import { signedPremiumDocumentUrl } from "@/lib/client-premium";
 import type {
   PremiumAccess,
   PremiumDocumentRow,
+  PremiumDocumentView,
   PremiumIntervention,
   PremiumRecommendation,
   PremiumRow,
@@ -22,12 +23,14 @@ export function ActivityTab({
   rows,
   access,
   documents,
+  documentViews,
   recommendations,
   sentReports,
 }: {
   rows: PremiumRow[];
   access: PremiumAccess[];
   documents: PremiumDocumentRow[];
+  documentViews: PremiumDocumentView[];
   recommendations: PremiumRecommendation[];
   sentReports: PremiumIntervention[];
 }) {
@@ -45,6 +48,10 @@ export function ActivityTab({
     return Array.from(groups.entries());
   }, [access]);
 
+  const viewById = useMemo(
+    () => new Map(documentViews.map((view) => [view.id, view])),
+    [documentViews],
+  );
   const unread = sentReports.filter((iv) => !iv.client_read_at);
 
   async function openDocument(document: PremiumDocumentRow) {
@@ -132,6 +139,43 @@ export function ActivityTab({
             </details>
           );
         })}
+      </AdminListCard>
+
+      <AdminListCard
+        title="Documents transmis : consultation par les clients"
+        icon={FileText}
+        empty="Aucun document transmis à un client."
+      >
+        {documents
+          .filter((document) => document.uploaded_by === "gardener")
+          .slice(0, 12)
+          .map((document) => {
+            const name = nameOf(document.client_id);
+            if (!name) return null;
+            const view = viewById.get(document.id);
+            return (
+              <div
+                key={document.id}
+                className="flex items-start justify-between gap-3 rounded-xl border p-4"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{name}</p>
+                  <p className="truncate text-sm">{document.title}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    Transmis le {fmtDate(document.created_at)}
+                  </p>
+                </div>
+                <Badge
+                  variant={view?.client_viewed_at ? "secondary" : "default"}
+                  className="shrink-0"
+                >
+                  {view?.client_viewed_at
+                    ? `Consulté le ${fmtDate(view.client_viewed_at)}`
+                    : "Non consulté"}
+                </Badge>
+              </div>
+            );
+          })}
       </AdminListCard>
 
       <AdminListCard

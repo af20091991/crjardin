@@ -26,6 +26,7 @@ import { template as sstPlanningTemplate } from "./sst-planning";
 import { template as apReminderTemplate } from "./ap-reminder";
 import { template as sstWorksiteSheetTemplate } from "./sst-worksite-sheet";
 import { template as premiumWelcomeTemplate } from "./premium-welcome";
+import { template as premiumReplyTemplate } from "./premium-reply";
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   "new-report": newReportTemplate,
@@ -34,4 +35,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   "ap-reminder": apReminderTemplate,
   "sst-worksite-sheet": sstWorksiteSheetTemplate,
   "premium-welcome": premiumWelcomeTemplate,
+  "premium-reply": premiumReplyTemplate,
 };
