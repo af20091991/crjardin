@@ -5,10 +5,10 @@ type R = typeof import("recharts");
 function lazyRecharts(name: string) {
   const LazyComponent = lazy(async () => {
     const module = await import("recharts");
-    return { default: module[name as keyof typeof module] as ComponentType<any> };
+    return { default: module[name as keyof typeof module] as ComponentType<Record<string, unknown>> };
   });
 
-  return function DeferredRechartsComponent(props: any) {
+  return function DeferredRechartsComponent(props: Record<string, unknown>) {
     return (
       <Suspense fallback={null}>
         <LazyComponent {...props} />
