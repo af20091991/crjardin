@@ -1,15 +1,12 @@
 import { lazy, Suspense, type ComponentType } from "react";
 
 type R = typeof import("recharts");
+type C = ComponentType<Record<string, unknown>>;
 
 function lazyRecharts(name: string) {
   const LazyComponent = lazy(async () => {
     const module = await import("recharts");
-    return {
-      default: module[name as keyof typeof module] as ComponentType<
-        Record<string, unknown>
-      >,
-    };
+    return { default: module[name as keyof typeof module] as C };
   });
 
   return function DeferredRechartsComponent(props: Record<string, unknown>) {
