@@ -401,7 +401,8 @@ const loadedGoogleFonts = new Set<string>();
  */
 function ensureGoogleFontLoaded(choice: FontChoice) {
   if (typeof document === "undefined" || choice === "auto" || choice === "system") return;
-  if (!document.head) return;\n  if (typeof document.head.querySelector !== "function") return;
+  if (!document.head) return;
+  if (typeof document.head.querySelector !== "function") return;
 
   const family = FONT_STACKS[choice].match(/^"([^"]+)"/)?.[1];
   if (!family || loadedGoogleFonts.has(family)) return;
