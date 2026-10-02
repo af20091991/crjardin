@@ -7,6 +7,7 @@ import { FONT_STACKS, FONT_OPTIONS } from "@/lib/appearance";
 
 const rootSrc = readFileSync("src/routes/__root.tsx", "utf8");
 const css = readFileSync("src/styles.css", "utf8");
+const appearanceSrc = readFileSync("src/lib/appearance.tsx", "utf8");
 
 /** Nom de famille (sans guillemets) de la première police d'une pile. */
 function primaryFamily(stack: string): string {
@@ -14,37 +15,24 @@ function primaryFamily(stack: string): string {
 }
 
 describe("catalogue typographique — chargement effectif", () => {
-  it("chaque famille du catalogue est demandée à Google Fonts", () => {
-    const missing: string[] = [];
-    for (const [key, stack] of Object.entries(FONT_STACKS)) {
-      if (key === "system") continue;
-      const family = primaryFamily(stack);
-      const urlName = family.replace(/ /g, "+");
-      if (!rootSrc.includes(`family=${urlName}:`) && !rootSrc.includes(`family=${urlName}&`)) {
-        missing.push(family);
-      }
-    }
-    expect(missing).toEqual([]);
+  it("les polices du rendu par défaut sont chargées au démarrage", () => {
+    expect(rootSrc).toContain("family=Syne:");
+    expect(rootSrc).toContain("family=Plus+Jakarta+Sans:");
+    expect(rootSrc).toContain("family=Cormorant+Garamond:");
+    expect(rootSrc).toContain("family=Newsreader:");
   });
 
-  it("les graisses courantes (400 et 600 ou 700) sont demandées", () => {
-    const weak: string[] = [];
-    for (const [key, stack] of Object.entries(FONT_STACKS)) {
-      if (key === "system") continue;
-      const family = primaryFamily(stack);
-      if (family === "Bebas Neue") continue; // famille à graisse unique
-      const urlName = family.replace(/ /g, "+");
-      const match = rootSrc.match(new RegExp(`family=${urlName.replace(/\+/g, "\\+")}:wght@([\\d;]+)`));
-      if (!match) {
-        weak.push(family);
-        continue;
-      }
-      const weights = match[1]!.split(";");
-      if (!weights.includes("400") || !(weights.includes("600") || weights.includes("700"))) {
-        weak.push(family);
-      }
-    }
-    expect(weak).toEqual([]);
+  it("les familles de personnalisation sont chargées à la demande", () => {
+    expect(appearanceSrc).toContain("ensureGoogleFontLoaded");
+    expect(appearanceSrc).toContain("FONT_STACKS[choice]");
+    expect(appearanceSrc).toContain('https://fonts.googleapis.com/css2?family=');
+    expect(appearanceSrc).toContain('link.dataset.ppFont = family');
+  });
+
+  it("les graisses courantes restent disponibles pour les polices personnalisées", () => {
+    expect(appearanceSrc).toContain('family === "Bebas Neue" ? "400"');
+    expect(appearanceSrc).toContain('family === "Syne" ? "400;500;600;700;800"');
+    expect(appearanceSrc).toContain('"400;500;600;700"');
   });
 
   it("chaque option du sélecteur possède une pile de polices", () => {
@@ -58,8 +46,8 @@ describe("catalogue typographique — chargement effectif", () => {
     expect(css).toContain('html[data-font-heading="custom"]');
     expect(css).toContain('html[data-font-body="custom"]');
     expect(css).toContain('html[data-font-numeric="custom"]');
-    // Les titres couvrent aussi les surfaces shadcn (cartes, dialogues, panneaux).
     expect(css).toContain('[data-slot="dialog-title"]');
     expect(css).toContain('[data-slot="card-title"]');
   });
+
 });
