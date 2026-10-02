@@ -17,6 +17,7 @@ import {
   finalizeSharedPremiumDocumentUpload,
   setRecommendationInterest,
   markRecommendationsViewed,
+  markSharedDocumentViewed,
   getSharedInterventionPdfUrl,
   type SharedIntervention,
   type ClientMessage,
@@ -554,6 +555,7 @@ function PremiumExperience({
                       href={document.url ?? undefined}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() => void markSharedDocumentViewed({ data: { token, documentId: document.id } }).catch(() => undefined)}
                       className="flex min-w-0 items-center gap-4 py-5 text-sm hover:text-primary"
                     >
                       <FileText className="size-5 shrink-0 text-primary" />
@@ -1174,6 +1176,7 @@ function PremiumTab({
                   href={d.url ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => void markSharedDocumentViewed({ data: { token, documentId: d.id } }).catch(() => undefined)}
                   className="flex items-center justify-between gap-2 rounded-lg border p-2.5 text-sm transition-colors hover:border-primary/40"
                 >
                   <span className="truncate">{d.title}</span>

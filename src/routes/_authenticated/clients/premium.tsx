@@ -114,6 +114,7 @@ function PremiumClientsPage() {
                 rows={data.rows}
                 access={data.access}
                 documents={data.documents}
+                documentViews={data.documentViews}
                 recommendations={data.recommendations}
                 sentReports={data.sentReports}
               />

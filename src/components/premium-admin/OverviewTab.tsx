@@ -40,7 +40,16 @@ export function OverviewTab({
   const sendPremiumEmail = useServerFn(sendPremiumWelcomeEmail);
   const welcomeMutation = useMutation({
     mutationFn: (clientId: string) => sendPremiumEmail({ data: { clientId } }),
-    onSuccess: (result) => toast.success(`E-mail envoyé à ${result.recipient}`),
+    onSuccess: ({ results }) => {
+      const sent = results.filter((r) => r.status === "sent").map((r) => r.recipient);
+      const skipped = results.filter((r) => r.status === "skipped").map((r) => r.recipient);
+      const failed = results.filter((r) => r.status === "failed" || r.status === "suppressed");
+      if (sent.length > 0) toast.success(`E-mail envoyé à : ${sent.join(", ")}`);
+      if (skipped.length > 0) toast.info(`Déjà prévenu(s), ignoré(s) : ${skipped.join(", ")}`);
+      if (failed.length > 0) {
+        toast.error(`Échec pour : ${failed.map((r) => r.recipient).join(", ")}`);
+      }
+    },
     onError: (error) =>
       toast.error(
         error instanceof Error ? error.message : "Impossible d'envoyer l'e-mail Premium.",
@@ -164,14 +173,14 @@ export function OverviewTab({
                   size="sm"
                   disabled={welcomeMutation.isPending}
                   onClick={() => {
-                    const recipient = client.email ?? clientEmails(client)[0];
-                    if (!recipient) {
+                    const recipients = clientEmails(client);
+                    if (recipients.length === 0) {
                       toast.error("Aucune adresse e-mail n'est renseignée pour ce client.");
                       return;
                     }
                     if (
                       window.confirm(
-                        `Envoyer le mail de mise à disposition du Compte Premium à ${name} (${recipient}) ?`,
+                        `Envoyer le mail de mise à disposition du Compte Premium à ${name} ?\n\n${recipients.join("\n")}\n\nLes adresses déjà prévenues sont ignorées.`,
                       )
                     ) {
                       welcomeMutation.mutate(client.id);

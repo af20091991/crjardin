@@ -653,3 +653,32 @@ export const setSharedPremiumCover = createServerFn({ method: "POST" })
     if (error) throw new Error(`Couverture non enregistrée : ${error.message}`);
     return { ok: true };
   });
+
+/** Enregistre la consultation par le client d'un document que le jardinier lui a transmis. */
+export const markSharedDocumentViewed = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; documentId: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.documentId || typeof data.documentId !== "string")
+      throw new Error("Document invalide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const db = supabaseAdmin as unknown as PremiumPlanningDb;
+    const { data: document } = await db
+      .from("client_premium_documents")
+      .select("id, uploaded_by, client_view_count")
+      .eq("id", data.documentId)
+      .eq("client_id", client.id)
+      .eq("visible_to_client", true)
+      .maybeSingle();
+    if (!document || document.uploaded_by !== "gardener") return { ok: false };
+    const { error } = await db
+      .from("client_premium_documents")
+      .update({
+        client_viewed_at: new Date().toISOString(),
+        client_view_count: (document.client_view_count ?? 0) + 1,
+      })
+      .eq("id", document.id);
+    return { ok: !error };
+  });

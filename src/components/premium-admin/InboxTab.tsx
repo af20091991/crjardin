@@ -1,11 +1,22 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Loader2, MessageSquare, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { clientEmails } from "@/lib/clients";
+import { sendPremiumReplyNotification } from "@/lib/premium-email.functions";
 import { replyToClient, resolveMessage } from "@/lib/messages";
 import type { PremiumMessage, PremiumRow } from "@/components/premium-admin/data";
 import { displayClientName, fmtDateTime } from "@/components/premium-admin/shared";
@@ -31,8 +42,21 @@ export function InboxTab({ rows, messages }: { rows: PremiumRow[]; messages: Pre
       });
   }, [rows, messages, onlyPending]);
 
+  const notify = useServerFn(sendPremiumReplyNotification);
+  const [confirm, setConfirm] = useState<{
+    clientId: string;
+    content: string;
+    pendingIds: string[];
+    emails: string[];
+  } | null>(null);
+
   const reply = useMutation({
-    mutationFn: async (input: { clientId: string; content: string; pendingIds: string[] }) => {
+    mutationFn: async (input: {
+      clientId: string;
+      content: string;
+      pendingIds: string[];
+      withEmail: boolean;
+    }) => {
       await replyToClient({
         client_id: input.clientId,
         intervention_id: null,
@@ -40,9 +64,22 @@ export function InboxTab({ rows, messages }: { rows: PremiumRow[]; messages: Pre
         authorName: null,
       });
       await Promise.all(input.pendingIds.map((id) => resolveMessage(id, true)));
+      if (input.withEmail) return notify({ data: { clientId: input.clientId } });
+      return null;
     },
-    onSuccess: (_, input) => {
+    onSuccess: (result, input) => {
       toast.success("Réponse envoyée au client.");
+      if (result) {
+        const sent = result.results.filter((r) => r.status === "sent").map((r) => r.recipient);
+        const failed = result.results.filter(
+          (r) => r.status === "failed" || r.status === "suppressed",
+        );
+        if (sent.length > 0) toast.success(`E-mail de prévenance envoyé à : ${sent.join(", ")}`);
+        if (failed.length > 0) {
+          toast.error(`E-mail non envoyé à : ${failed.map((r) => r.recipient).join(", ")}`);
+        }
+      }
+      setConfirm(null);
       setDrafts((prev) => ({ ...prev, [input.clientId]: "" }));
       qc.invalidateQueries({ queryKey: ["premium-admin-messages"] });
     },
@@ -142,10 +179,11 @@ export function InboxTab({ rows, messages }: { rows: PremiumRow[]; messages: Pre
                     size="sm"
                     disabled={!draft.trim() || reply.isPending}
                     onClick={() =>
-                      reply.mutate({
+                      setConfirm({
                         clientId,
                         content: draft,
                         pendingIds: pending.map((m) => m.id),
+                        emails: clientEmails(row.client),
                       })
                     }
                   >
@@ -162,6 +200,47 @@ export function InboxTab({ rows, messages }: { rows: PremiumRow[]; messages: Pre
           );
         })}
       </div>
+
+      <Dialog
+        open={confirm !== null}
+        onOpenChange={(open) => !open && !reply.isPending && setConfirm(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Envoyer la réponse</DialogTitle>
+            <DialogDescription>
+              La réponse sera visible dans l'espace Premium du client. Souhaitez-vous aussi le
+              prévenir par e-mail ?
+            </DialogDescription>
+          </DialogHeader>
+          {confirm && confirm.emails.length > 0 && (
+            <ul className="space-y-1 rounded-lg bg-muted/30 p-3 text-sm">
+              {confirm.emails.map((email) => (
+                <li key={email}>{email}</li>
+              ))}
+            </ul>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" disabled={reply.isPending} onClick={() => setConfirm(null)}>
+              Annuler
+            </Button>
+            <Button
+              variant="outline"
+              disabled={reply.isPending}
+              onClick={() => confirm && reply.mutate({ ...confirm, withEmail: false })}
+            >
+              Répondre sans e-mail
+            </Button>
+            <Button
+              disabled={reply.isPending || !confirm || confirm.emails.length === 0}
+              onClick={() => confirm && reply.mutate({ ...confirm, withEmail: true })}
+            >
+              {reply.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Répondre et prévenir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
