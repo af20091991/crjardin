@@ -1,17 +1,9 @@
-import {
-  lazy,
-  Suspense,
-  type ComponentProps,
-  type ElementType,
-} from "react";
+import { lazy, Suspense, type ComponentProps, type ElementType } from "react";
 
 function lazyRecharts<T extends ElementType>(loader: () => Promise<T>) {
   const LazyComponent = lazy(async () => {
     const Component = await loader();
-
-    return {
-      default: (props: ComponentProps<T>) => <Component {...props} />,
-    };
+    return { default: (props: ComponentProps<T>) => <Component {...props} /> };
   });
 
   return function DeferredRechartsComponent(props: ComponentProps<T>) {
@@ -43,14 +35,10 @@ export const Pie = lazyRecharts(() => import("recharts").then((m) => m.Pie));
 export const PieChart = lazyRecharts(() => import("recharts").then((m) => m.PieChart));
 export const PolarAngleAxis = lazyRecharts(() => import("recharts").then((m) => m.PolarAngleAxis));
 export const PolarGrid = lazyRecharts(() => import("recharts").then((m) => m.PolarGrid));
-export const PolarRadiusAxis = lazyRecharts(() =>
-  import("recharts").then((m) => m.PolarRadiusAxis),
-);
+export const PolarRadiusAxis = lazyRecharts(() => import("recharts").then((m) => m.PolarRadiusAxis));
 export const Radar = lazyRecharts(() => import("recharts").then((m) => m.Radar));
 export const RadarChart = lazyRecharts(() => import("recharts").then((m) => m.RadarChart));
-export const ResponsiveContainer = lazyRecharts(() =>
-  import("recharts").then((m) => m.ResponsiveContainer),
-);
+export const ResponsiveContainer = lazyRecharts(() => import("recharts").then((m) => m.ResponsiveContainer));
 export const Scatter = lazyRecharts(() => import("recharts").then((m) => m.Scatter));
 export const ScatterChart = lazyRecharts(() => import("recharts").then((m) => m.ScatterChart));
 export const Tooltip = lazyRecharts(() => import("recharts").then((m) => m.Tooltip));
