@@ -1,7 +1,7 @@
 export type PremiumAlertLevel = "warning" | "info";
 
 export interface PremiumAlert {
-  code: "no_calendar" | "calendar_over" | "no_cover" | "no_profile" | "no_report";
+  code: "no_calendar" | "calendar_over" | "no_cover" | "no_report";
   level: PremiumAlertLevel;
   label: string;
 }
@@ -9,7 +9,6 @@ export interface PremiumAlert {
 export interface PremiumHealthInput {
   calendar: Array<{ year: number | null; month: number | null }>;
   coverPhotoId: string | null;
-  gardenProfile: string | null;
   lastReportSentAt: string | null;
 }
 
@@ -38,10 +37,6 @@ export function computePremiumAlerts(input: PremiumHealthInput, now = new Date()
 
   if (!input.coverPhotoId) {
     alerts.push({ code: "no_cover", level: "info", label: "Pas de photo de couverture" });
-  }
-
-  if (!input.gardenProfile?.trim()) {
-    alerts.push({ code: "no_profile", level: "info", label: "Profil du jardin non renseigné" });
   }
 
   if (!input.lastReportSentAt) {
@@ -93,8 +88,6 @@ export function alertFix(code: PremiumAlert["code"]): PremiumAlertFix {
       return { kind: "calendars", label: "Ajouter des interventions" };
     case "no_cover":
       return { kind: "client", tab: "premium", label: "Choisir la photo de couverture" };
-    case "no_profile":
-      return { kind: "client", tab: "premium", label: "Renseigner le profil du jardin" };
     case "no_report":
       return { kind: "client", tab: "interventions", label: "Envoyer un compte-rendu" };
   }

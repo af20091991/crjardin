@@ -28,7 +28,7 @@ export function AlertsTab({
         <CheckCircle2 className="mx-auto h-8 w-8 text-primary" />
         <p className="mt-3 font-serif text-xl">Toutes les fiches Premium sont complètes</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Calendrier, couverture, profil du jardin et comptes-rendus sont à jour.
+          Calendrier, couverture et comptes-rendus sont à jour.
         </p>
       </Card>
     );
