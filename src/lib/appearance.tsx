@@ -400,7 +400,8 @@ const loadedGoogleFonts = new Set<string>();
  * to be downloaded. The default PP fonts are loaded by the root document.
  */
 function ensureGoogleFontLoaded(choice: FontChoice) {
-  if (typeof document === "undefined" || choice === "auto" || choice === "system") return;\n  if (!document.head || typeof document.head.querySelector !== "function") return;
+  if (typeof document === "undefined" || choice === "auto" || choice === "system") return;
+  if (!document.head || typeof document.head.querySelector !== "function") return;
 
   const family = FONT_STACKS[choice].match(/^"([^"]+)"/)?.[1];
   if (!family || loadedGoogleFonts.has(family)) return;
