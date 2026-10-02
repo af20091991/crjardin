@@ -11,7 +11,6 @@ const NOW = new Date(2026, 9, 2);
 const complete: PremiumHealthInput = {
   calendar: [{ year: 2026, month: 11 }],
   coverPhotoId: "p1",
-  gardenProfile: "Jardin fleuri",
   lastReportSentAt: new Date(2026, 8, 20).toISOString(),
 };
 
@@ -20,17 +19,16 @@ describe("alertes des fiches Premium", () => {
     expect(computePremiumAlerts(complete, NOW)).toEqual([]);
   });
 
-  test("signale calendrier, couverture, profil et CR manquants", () => {
+  test("signale calendrier, couverture et CR manquants", () => {
     const codes = computePremiumAlerts(
       {
         calendar: [],
         coverPhotoId: null,
-        gardenProfile: " ",
         lastReportSentAt: null,
       },
       NOW,
     ).map((alert) => alert.code);
-    expect(codes).toEqual(["no_calendar", "no_cover", "no_profile", "no_report"]);
+    expect(codes).toEqual(["no_calendar", "no_cover", "no_report"]);
   });
 
   test("calendrier entièrement passé", () => {
@@ -60,7 +58,6 @@ describe("résolution des alertes", () => {
   test("chaque alerte mène à une page de correction", () => {
     expect(alertFix("no_calendar")).toMatchObject({ kind: "client", tab: "premium" });
     expect(alertFix("no_cover")).toMatchObject({ kind: "client", tab: "premium" });
-    expect(alertFix("no_profile")).toMatchObject({ kind: "client", tab: "premium" });
     expect(alertFix("no_report")).toMatchObject({ kind: "client", tab: "interventions" });
     expect(alertFix("calendar_over").kind).toBe("calendars");
   });

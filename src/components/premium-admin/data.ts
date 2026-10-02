@@ -16,7 +16,6 @@ export type PremiumStatus = {
   activated_at: string | null;
   updated_at: string | null;
   cover_photo_id: string | null;
-  garden_state: string | null;
 };
 
 export type PremiumMessage = {
@@ -93,7 +92,7 @@ export function usePremiumAdminData(enabled: boolean) {
     queryFn: async (): Promise<PremiumStatus[]> => {
       const { data, error } = await supabase
         .from("client_premium")
-        .select("client_id, enabled, activated_at, updated_at, cover_photo_id, garden_state")
+        .select("client_id, enabled, activated_at, updated_at, cover_photo_id")
         .eq("enabled", true)
         .order("activated_at", { ascending: false });
       if (error) fail("Impossible de charger les comptes Premium", error);
@@ -264,7 +263,6 @@ export function usePremiumAdminData(enabled: boolean) {
         alerts: computePremiumAlerts({
           calendar,
           coverPhotoId: premium.cover_photo_id,
-          gardenProfile: premium.garden_state,
           lastReportSentAt,
         }),
       });
