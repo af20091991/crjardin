@@ -401,13 +401,13 @@ const loadedGoogleFonts = new Set<string>();
  */
 function ensureGoogleFontLoaded(choice: FontChoice) {
   if (typeof document === "undefined" || choice === "auto" || choice === "system") return;
-  if (!document.head) return;
-  if (typeof document.head.querySelector !== "function") return;
+  const head = document.head;
+  if (!head?.querySelector || !document.createElement) return;
 
   const family = FONT_STACKS[choice].match(/^"([^"]+)"/)?.[1];
   if (!family || loadedGoogleFonts.has(family)) return;
 
-  if (document.head.querySelector(`link[data-pp-font="${family}"]`)) {
+  if (head.querySelector(`link[data-pp-font="${family}"]`)) {
     loadedGoogleFonts.add(family);
     return;
   }
@@ -417,7 +417,7 @@ function ensureGoogleFontLoaded(choice: FontChoice) {
   link.rel = "stylesheet";
   link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, "+")}:wght@${weights}&display=swap`;
   link.dataset.ppFont = family;
-  document.head.appendChild(link);
+  head.appendChild(link);
   loadedGoogleFonts.add(family);
 }
 
