@@ -1,10 +1,18 @@
-import { lazy, type ComponentType } from "react";
+import { lazy, Suspense, type ComponentType } from "react";
 
 function lazyRecharts(name: string) {
-  return lazy(async () => {
+  const LazyComponent = lazy(async () => {
     const module = await import("recharts");
     return { default: module[name as keyof typeof module] as ComponentType<any> };
   });
+
+  return function DeferredRechartsComponent(props: any) {
+    return (
+      <Suspense fallback={null}>
+        <LazyComponent {...props} />
+      </Suspense>
+    );
+  };
 }
 
 // Recharts is one of PP's heaviest client dependencies. Keep it out of the
