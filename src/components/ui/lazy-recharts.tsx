@@ -40,7 +40,9 @@ export const PolarGrid = lazyRecharts("PolarGrid") as Recharts["PolarGrid"];
 export const PolarRadiusAxis = lazyRecharts("PolarRadiusAxis") as Recharts["PolarRadiusAxis"];
 export const Radar = lazyRecharts("Radar") as Recharts["Radar"];
 export const RadarChart = lazyRecharts("RadarChart") as Recharts["RadarChart"];
-export const ResponsiveContainer = lazyRecharts("ResponsiveContainer") as Recharts["ResponsiveContainer"];
+export const ResponsiveContainer = lazyRecharts("ResponsiveContainer") as Recharts[
+  "ResponsiveContainer"
+];
 export const Scatter = lazyRecharts("Scatter") as Recharts["Scatter"];
 export const ScatterChart = lazyRecharts("ScatterChart") as Recharts["ScatterChart"];
 export const Tooltip = lazyRecharts("Tooltip") as Recharts["Tooltip"];
