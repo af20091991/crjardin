@@ -1,7 +1,18 @@
-import { lazy, Suspense, type ComponentProps, type ComponentType } from "react";
+import {
+  lazy,
+  Suspense,
+  type ComponentProps,
+  type ElementType,
+} from "react";
 
-function lazyRecharts<T extends ComponentType<any>>(loader: () => Promise<T>) {
-  const LazyComponent = lazy(loader);
+function lazyRecharts<T extends ElementType>(loader: () => Promise<T>) {
+  const LazyComponent = lazy(async () => {
+    const Component = await loader();
+
+    return {
+      default: (props: ComponentProps<T>) => <Component {...props} />,
+    };
+  });
 
   return function DeferredRechartsComponent(props: ComponentProps<T>) {
     return (
