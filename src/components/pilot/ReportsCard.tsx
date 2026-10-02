@@ -6,8 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileDown, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
-import { jsPDF } from "jspdf";
 import { entriesForMode } from "@/lib/pilot-realized";
 import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 
@@ -42,8 +40,9 @@ export function ReportsCard() {
     [realEntries, year, confirmed.data],
   );
 
-  function exportPdf() {
+  async function exportPdf() {
     try {
+      const { jsPDF } = await import("jspdf");
       const doc = new jsPDF();
       doc.setFontSize(18); doc.text(`Rapport dirigeant — ${year}`, 14, 20);
       doc.setFontSize(11);
@@ -65,8 +64,9 @@ export function ReportsCard() {
     } catch { toast.error("Erreur PDF"); }
   }
 
-  function exportXlsx() {
+  async function exportXlsx() {
     try {
+      const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
       const kpi = [
         { Indicateur: "CA annuel HT", Valeur: k.caYear },
