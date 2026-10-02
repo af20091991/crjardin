@@ -1,12 +1,14 @@
-import { lazy, Suspense, type ComponentProps, type ElementType } from "react";
+import { lazy, Suspense, type ComponentType } from "react";
 
-function lazyRecharts<T extends ElementType>(loader: () => Promise<T>) {
+type Recharts = typeof import("recharts");
+
+function lazyRecharts(name: string) {
   const LazyComponent = lazy(async () => {
-    const Component = await loader();
-    return { default: (props: ComponentProps<T>) => <Component {...props} /> };
+    const module = await import("recharts");
+    return { default: module[name as keyof typeof module] as ComponentType<any> };
   });
 
-  return function DeferredRechartsComponent(props: ComponentProps<T>) {
+  return function DeferredRechartsComponent(props: any) {
     return (
       <Suspense fallback={null}>
         <LazyComponent {...props} />
@@ -18,33 +20,33 @@ function lazyRecharts<T extends ElementType>(loader: () => Promise<T>) {
 // Recharts is one of PP's heaviest client dependencies. Keep it out of the
 // initial application graph and load the charting chunk only when a chart is
 // actually rendered. The public component names remain unchanged.
-export const Area = lazyRecharts(() => import("recharts").then((m) => m.Area));
-export const AreaChart = lazyRecharts(() => import("recharts").then((m) => m.AreaChart));
-export const Bar = lazyRecharts(() => import("recharts").then((m) => m.Bar));
-export const BarChart = lazyRecharts(() => import("recharts").then((m) => m.BarChart));
-export const CartesianGrid = lazyRecharts(() => import("recharts").then((m) => m.CartesianGrid));
-export const Cell = lazyRecharts(() => import("recharts").then((m) => m.Cell));
-export const ComposedChart = lazyRecharts(() => import("recharts").then((m) => m.ComposedChart));
-export const Funnel = lazyRecharts(() => import("recharts").then((m) => m.Funnel));
-export const FunnelChart = lazyRecharts(() => import("recharts").then((m) => m.FunnelChart));
-export const LabelList = lazyRecharts(() => import("recharts").then((m) => m.LabelList));
-export const Legend = lazyRecharts(() => import("recharts").then((m) => m.Legend));
-export const Line = lazyRecharts(() => import("recharts").then((m) => m.Line));
-export const LineChart = lazyRecharts(() => import("recharts").then((m) => m.LineChart));
-export const Pie = lazyRecharts(() => import("recharts").then((m) => m.Pie));
-export const PieChart = lazyRecharts(() => import("recharts").then((m) => m.PieChart));
-export const PolarAngleAxis = lazyRecharts(() => import("recharts").then((m) => m.PolarAngleAxis));
-export const PolarGrid = lazyRecharts(() => import("recharts").then((m) => m.PolarGrid));
-export const PolarRadiusAxis = lazyRecharts(() => import("recharts").then((m) => m.PolarRadiusAxis));
-export const Radar = lazyRecharts(() => import("recharts").then((m) => m.Radar));
-export const RadarChart = lazyRecharts(() => import("recharts").then((m) => m.RadarChart));
-export const ResponsiveContainer = lazyRecharts(() => import("recharts").then((m) => m.ResponsiveContainer));
-export const Scatter = lazyRecharts(() => import("recharts").then((m) => m.Scatter));
-export const ScatterChart = lazyRecharts(() => import("recharts").then((m) => m.ScatterChart));
-export const Tooltip = lazyRecharts(() => import("recharts").then((m) => m.Tooltip));
-export const Treemap = lazyRecharts(() => import("recharts").then((m) => m.Treemap));
-export const XAxis = lazyRecharts(() => import("recharts").then((m) => m.XAxis));
-export const YAxis = lazyRecharts(() => import("recharts").then((m) => m.YAxis));
-export const ZAxis = lazyRecharts(() => import("recharts").then((m) => m.ZAxis));
+export const Area = lazyRecharts("Area") as Recharts["Area"];
+export const AreaChart = lazyRecharts("AreaChart") as Recharts["AreaChart"];
+export const Bar = lazyRecharts("Bar") as Recharts["Bar"];
+export const BarChart = lazyRecharts("BarChart") as Recharts["BarChart"];
+export const CartesianGrid = lazyRecharts("CartesianGrid") as Recharts["CartesianGrid"];
+export const Cell = lazyRecharts("Cell") as Recharts["Cell"];
+export const ComposedChart = lazyRecharts("ComposedChart") as Recharts["ComposedChart"];
+export const Funnel = lazyRecharts("Funnel") as Recharts["Funnel"];
+export const FunnelChart = lazyRecharts("FunnelChart") as Recharts["FunnelChart"];
+export const LabelList = lazyRecharts("LabelList") as Recharts["LabelList"];
+export const Legend = lazyRecharts("Legend") as Recharts["Legend"];
+export const Line = lazyRecharts("Line") as Recharts["Line"];
+export const LineChart = lazyRecharts("LineChart") as Recharts["LineChart"];
+export const Pie = lazyRecharts("Pie") as Recharts["Pie"];
+export const PieChart = lazyRecharts("PieChart") as Recharts["PieChart"];
+export const PolarAngleAxis = lazyRecharts("PolarAngleAxis") as Recharts["PolarAngleAxis"];
+export const PolarGrid = lazyRecharts("PolarGrid") as Recharts["PolarGrid"];
+export const PolarRadiusAxis = lazyRecharts("PolarRadiusAxis") as Recharts["PolarRadiusAxis"];
+export const Radar = lazyRecharts("Radar") as Recharts["Radar"];
+export const RadarChart = lazyRecharts("RadarChart") as Recharts["RadarChart"];
+export const ResponsiveContainer = lazyRecharts("ResponsiveContainer") as Recharts["ResponsiveContainer"];
+export const Scatter = lazyRecharts("Scatter") as Recharts["Scatter"];
+export const ScatterChart = lazyRecharts("ScatterChart") as Recharts["ScatterChart"];
+export const Tooltip = lazyRecharts("Tooltip") as Recharts["Tooltip"];
+export const Treemap = lazyRecharts("Treemap") as Recharts["Treemap"];
+export const XAxis = lazyRecharts("XAxis") as Recharts["XAxis"];
+export const YAxis = lazyRecharts("YAxis") as Recharts["YAxis"];
+export const ZAxis = lazyRecharts("ZAxis") as Recharts["ZAxis"];
 
 export type { LegendProps } from "recharts";
