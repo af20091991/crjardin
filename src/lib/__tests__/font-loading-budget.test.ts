@@ -3,10 +3,10 @@ import { readFileSync } from "node:fs";
 import { FONT_STACKS } from "@/lib/appearance";
 
 const root = readFileSync("src/routes/__root.tsx", "utf8");
+const appearance = readFileSync("src/lib/appearance.tsx", "utf8");
 const hrefs = [...root.matchAll(/https:\/\/fonts\.googleapis\.com\/css2\?[^"]+/g)].map((m) => m[0]);
 
-/** Familles historiques : graisses conservées pour ne rien changer au rendu existant. */
-const LEGACY = new Set(["Syne", "Plus Jakarta Sans", "Newsreader"]);
+const INITIAL = new Set(["Syne", "Plus Jakarta Sans", "Cormorant Garamond", "Newsreader"]);
 
 function families() {
   const out: { name: string; weights: string[] }[] = [];
@@ -21,22 +21,29 @@ function families() {
 }
 
 describe("budget de chargement des polices", () => {
-  test("toutes les familles du catalogue sont importées, display=swap partout", () => {
-    // Une famille proposée mais non importée resterait sans effet visible.
-    const catalogue = Object.entries(FONT_STACKS).filter(([k]) => k !== "system").length;
-    expect(families().length).toBe(catalogue);
+  test("seules les familles nécessaires au rendu initial sont importées", () => {
+    expect(families().length).toBe(INITIAL.size);
+    for (const family of INITIAL) {
+      expect(families().some((f) => f.name === family)).toBe(true);
+    }
     for (const href of hrefs) expect(href).toContain("display=swap");
   });
 
-  test("max 5 graisses par famille (400 + graisses de titres)", () => {
+  test("les familles de personnalisation restent chargeables à la demande", () => {
+    const catalogue = Object.keys(FONT_STACKS).filter((key) => key !== "system");
+    expect(catalogue.length).toBeGreaterThan(INITIAL.size);
+    expect(appearance).toContain("ensureGoogleFontLoaded");
+    expect(appearance).toContain("FONT_STACKS[choice]");
+    expect(appearance).toContain("link.dataset.ppFont = family");
+  });
+
+  test("max 5 graisses par famille initiale", () => {
     for (const f of families()) {
-      if (LEGACY.has(f.name)) continue;
       expect(f.weights.length <= 5).toBe(true);
     }
   });
 
-
-  test("chaque famille importée est proposée dans le catalogue", () => {
+  test("chaque famille initiale est proposée dans le catalogue", () => {
     const stacks = Object.values(FONT_STACKS).join(" ");
     for (const f of families()) expect(stacks).toContain(`"${f.name}"`);
   });
