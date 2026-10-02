@@ -1,11 +1,9 @@
-import { lazy } from "react";
+import { lazy, type ComponentType } from "react";
 
-type RechartsModule = typeof import("recharts");
-
-function lazyRecharts<K extends keyof RechartsModule>(name: K) {
+function lazyRecharts(name: string) {
   return lazy(async () => {
     const module = await import("recharts");
-    return { default: module[name] as RechartsModule[K] };
+    return { default: module[name as keyof typeof module] as ComponentType<any> };
   });
 }
 
