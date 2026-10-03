@@ -14,7 +14,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts";
+} from "@/components/ui/lazy-recharts";
 import {
   AlertCircle,
   Bell,

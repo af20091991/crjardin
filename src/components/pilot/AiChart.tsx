@@ -15,7 +15,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts";
+} from "@/components/ui/lazy-recharts";
 import { formatEuro } from "@/lib/pilot";
 import { PP_SERIES } from "@/lib/pilot-colors";
 import type { AiChartSpec } from "@/lib/pilot-ai.functions";

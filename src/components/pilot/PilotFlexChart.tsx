@@ -35,7 +35,7 @@ import {
   XAxis,
   YAxis,
   ZAxis,
-} from "recharts";
+} from "@/components/ui/lazy-recharts";
 import { AlertTriangle, BarChart3, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";

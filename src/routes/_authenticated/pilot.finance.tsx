@@ -7,7 +7,7 @@ import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Wallet, Clock } fr
 import {
   ResponsiveContainer, LineChart, BarChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie,
-} from "recharts";
+} from "@/components/ui/lazy-recharts";
 import { currentYear } from "@/lib/date-utils";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 

@@ -25,7 +25,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-} from "recharts";
+} from "@/components/ui/lazy-recharts";
 import {
   analyzeCharges,
   categoryBreakdown,
