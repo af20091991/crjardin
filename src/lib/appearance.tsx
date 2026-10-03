@@ -423,9 +423,11 @@ const GOOGLE_FONT_FAMILY: Record<Exclude<FontChoice, "auto" | "system">, string>
 
 function ensureGoogleFonts(a: Appearance) {
   if (typeof document === "undefined") return;
+  const head = document.head;
+  if (!head?.querySelector || !head.appendChild || !document.createElement) return;
   const families = new Set<string>();
   if (a.fontBody === "auto") families.add("Plus Jakarta Sans:wght@400;500;600;700");
-  if (window.location.pathname.startsWith("/partage/")) {
+  if (typeof window !== "undefined" && window.location?.pathname?.startsWith("/partage/")) {
     families.add("Cormorant Garamond:wght@400;500;600;700");
   }
   if (a.fontHeading === "auto") families.add("Syne:wght@400;500;600;700;800");
@@ -443,12 +445,12 @@ function ensureGoogleFonts(a: Appearance) {
       .map((family) => `family=${encodeURIComponent(family)}`)
       .join("&") +
     "&display=swap";
-  let link = document.getElementById(FONT_CSS_LINK_ID) as HTMLLinkElement | null;
+  let link = head.querySelector<HTMLLinkElement>(`#${FONT_CSS_LINK_ID}`);
   if (!link) {
     link = document.createElement("link");
     link.id = FONT_CSS_LINK_ID;
     link.rel = "stylesheet";
-    document.head.appendChild(link);
+    head.appendChild(link);
   }
   if (link.getAttribute("href") !== href) link.setAttribute("href", href);
 }
