@@ -398,8 +398,10 @@ const GOOGLE_FONT_FAMILY: Record<Exclude<FontChoice, "auto" | "system">, string>
 
 function ensureGoogleFonts(a: Appearance) {
   if (typeof document === "undefined") return;
-  const families = new Set<string>(["Plus Jakarta Sans:wght@400;500;600;700", "Syne:wght@400;500;600;700;800"]);
-  if (a.ui === "next") families.add("Newsreader:wght@400;500;600;700");
+  const families = new Set<string>();
+  if (a.fontBody === "auto") families.add("Plus Jakarta Sans:wght@400;500;600;700");
+  if (a.fontHeading === "auto") families.add("Syne:wght@400;500;600;700;800");
+  if (a.fontNumeric === "auto" && a.ui === "next") families.add("Newsreader:wght@400;500;600;700");
   for (const choice of [a.fontHeading, a.fontBody, a.fontNumeric]) {
     if (choice && choice !== "auto" && choice !== "system") families.add(GOOGLE_FONT_FAMILY[choice]);
   }
