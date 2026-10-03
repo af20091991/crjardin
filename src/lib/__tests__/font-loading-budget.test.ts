@@ -23,6 +23,7 @@ describe("budget de chargement des polices", () => {
     expect(appearance).toContain("Newsreader:wght@400;500;600;700");
     expect(appearance).toContain("Cormorant Garamond:wght@400;500;600;700");
     expect(appearance).toContain("FONT_STACKS[choice]");
+    expect(appearance).toContain("GOOGLE_FONT_FAMILY[choice]");
   });
 
   test("chaque famille du catalogue est prévue pour un chargement dynamique", () => {
