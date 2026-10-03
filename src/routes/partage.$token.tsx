@@ -6,7 +6,11 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type ChangeEvent } from "react";
+
+const Calendar = lazy(() =>
+  import("@/components/ui/calendar").then((m) => ({ default: m.Calendar })),
+);
 import {
   getSharedClient,
   markSharedRead,
@@ -27,14 +31,12 @@ import {
   premiumClientTitle,
 } from "@/lib/share.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { exportSharedInterventionPdf } from "@/lib/share-pdf";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Select,
   SelectContent,
@@ -766,6 +768,7 @@ function ReportsTab({
       {view === "calendar" && (
         <Card>
           <CardContent className="flex flex-col items-center pt-6">
+            <Suspense fallback={<div className="h-72 w-full" aria-hidden />}>
             <Calendar
               mode="single"
               selected={day}
@@ -774,6 +777,7 @@ function ReportsTab({
               modifiersClassNames={{ has: "bg-primary/15 font-semibold text-primary rounded-md" }}
               className="pointer-events-auto"
             />
+            </Suspense>
             {day && (
               <Button variant="ghost" size="sm" className="mt-2" onClick={() => setDay(undefined)}>
                 Afficher tout
@@ -831,7 +835,7 @@ function InterventionCard({
         });
         window.open(url, "_blank", "noopener");
       } else {
-        await exportSharedInterventionPdf(iv, client);
+        await (await import("@/lib/share-pdf")).exportSharedInterventionPdf(iv, client);
       }
     } catch {
       toast.error("Impossible de générer le PDF.");

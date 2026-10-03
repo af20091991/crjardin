@@ -89,7 +89,6 @@ import {
   type WorksiteSheet,
 } from "@/lib/worksite";
 import { listClients } from "@/lib/clients";
-import { exportCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
 import { cn } from "@/lib/utils";
 
@@ -655,7 +654,7 @@ function SstPlanningByPerson({
   const downloadSheet = async (sheet: WorksiteSheet) => {
     setDownloadingId(sheet.id);
     try {
-      await exportCompleteWorksiteSheetPdf(sheet);
+      await (await import("@/lib/worksite-pdf-complete")).exportCompleteWorksiteSheetPdf(sheet);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Échec du téléchargement de la fiche");
     } finally {

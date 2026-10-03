@@ -30,7 +30,6 @@ import {
 import { Link } from "@tanstack/react-router";
 import { listOrphanEntries } from "@/lib/pilot-ca-matching";
 import { supabase } from "@/integrations/supabase/client";
-import * as XLSX from "xlsx";
 import { useRef } from "react";
 
 export const Route = createFileRoute("/_authenticated/pilot/parametres")({
@@ -387,6 +386,7 @@ function ExcelImportCard() {
     setBusy(true);
     try {
       const buf = await f.arrayBuffer();
+      const XLSX = await import("xlsx");
       const wb = XLSX.read(buf, { type: "array" });
       const rows: ImportRow[] = [];
       for (const name of wb.SheetNames) {
