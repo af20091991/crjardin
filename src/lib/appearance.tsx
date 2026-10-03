@@ -411,7 +411,7 @@ function ensureGoogleFonts(a: Appearance) {
     link.rel = "stylesheet";
     document.head.appendChild(link);
   }
-  if (link.href !== href) link.href = href;
+  if (link.getAttribute("href") !== href) link.setAttribute("href", href);
 }
 
 const STORAGE_KEY = "cr-appearance";
