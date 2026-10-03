@@ -1,8 +1,10 @@
 import { pickNextIntervention } from "@/lib/premium-planning-items";
+import { archiveDayLabel, archivedConversations, openMessages } from "@/lib/message-threads";
 import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
+  ChevronDown,
   ChevronRight,
   FileText,
   Images,
@@ -252,6 +254,9 @@ export function PremiumExchange({
     } catch (error) { toast.error(error instanceof Error ? error.message : "Impossible d'envoyer la demande."); }
     finally { setSending(false); }
   }
+  const generalMessages = messages.filter((m) => !m.intervention_id);
+  const currentMessages = openMessages(generalMessages);
+  const pastConversations = archivedConversations(generalMessages);
   // prettier-ignore
   return <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
     <section className="space-y-6"><div><p className={dateLabel}>Une question, une demande</p><h2 className={`mt-3 text-4xl ${heading}`}>Écrivons-nous</h2></div>
@@ -260,6 +265,56 @@ export function PremiumExchange({
       <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"><Paperclip className="size-4" />{attachment ? attachment.name : "Joindre une photo (10 Mo maximum)"}<input type="file" accept="image/*" className="sr-only" onChange={(e) => setAttachment(e.target.files?.[0] ?? null)} disabled={sending} /></label>
       <Button onClick={sendRequest} disabled={!message.trim() || sending}><Send className="mr-2 size-4" />Envoyer</Button>
     </section>
-    <section><p className={dateLabel}>Conversation</p><h2 className={`mt-3 text-3xl ${heading}`}>Nos échanges</h2><div className="mt-6 divide-y border-t">{messages.filter((m) => !m.intervention_id).length ? messages.filter((m) => !m.intervention_id).map((m) => <article key={m.id} className="py-5"><p className="text-xs text-primary">{m.sender === "gardener" ? "Votre jardinier" : "Vous"} · {fmtDate(m.created_at)}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6">{m.content}</p></article>) : <p className="py-6 text-sm text-muted-foreground">La conversation commencera ici avec votre premier message.</p>}</div></section>
+    <section>
+      <p className={dateLabel}>Conversation</p>
+      <h2 className={`mt-3 text-3xl ${heading}`}>Nos échanges</h2>
+      <div className="mt-6 divide-y border-t">
+        {currentMessages.length ? (
+          currentMessages.map((m) => (
+            <article key={m.id} className="py-5">
+              <p className="text-xs text-primary">
+                {m.sender === "gardener" ? "Votre jardinier" : "Vous"} · {fmtDate(m.created_at)}
+              </p>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{m.content}</p>
+            </article>
+          ))
+        ) : (
+          <p className="py-6 text-sm text-muted-foreground">
+            La conversation commencera ici avec votre premier message.
+          </p>
+        )}
+      </div>
+      {pastConversations.length > 0 && (
+        <div className="mt-10">
+          <p className={dateLabel}>Archives</p>
+          <div className="mt-4 space-y-3">
+            {pastConversations.map((conversation) => (
+              <details key={conversation.archivedAt} className="group rounded-xl border">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
+                  <span>
+                    Conversation clôturée le {archiveDayLabel(conversation.archivedAt)}
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {conversation.messages.length} message
+                      {conversation.messages.length > 1 ? "s" : ""}
+                    </span>
+                  </span>
+                  <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="divide-y border-t px-4">
+                  {conversation.messages.map((m) => (
+                    <article key={m.id} className="py-4">
+                      <p className="text-xs text-primary">
+                        {m.sender === "gardener" ? "Votre jardinier" : "Vous"} · {fmtDate(m.created_at)}
+                      </p>
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{m.content}</p>
+                    </article>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
   </div>;
 }

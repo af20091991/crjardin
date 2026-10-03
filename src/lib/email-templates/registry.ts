@@ -27,6 +27,7 @@ import { template as apReminderTemplate } from "./ap-reminder";
 import { template as sstWorksiteSheetTemplate } from "./sst-worksite-sheet";
 import { template as premiumWelcomeTemplate } from "./premium-welcome";
 import { template as premiumReplyTemplate } from "./premium-reply";
+import { template as premiumMessageTemplate } from "./premium-message";
 import { template as sstCalendarChangeTemplate } from "./sst-calendar-change";
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
@@ -37,5 +38,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   "sst-worksite-sheet": sstWorksiteSheetTemplate,
   "premium-welcome": premiumWelcomeTemplate,
   "premium-reply": premiumReplyTemplate,
+  "premium-message": premiumMessageTemplate,
   "sst-calendar-change": sstCalendarChangeTemplate,
 };
