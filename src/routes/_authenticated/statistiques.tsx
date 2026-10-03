@@ -8,9 +8,24 @@ import { listAllRecommendations, recommendationPrice, formatEuro } from "@/lib/g
 import { getMyProfile } from "@/lib/profile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "@/components/ui/lazy-recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+} from "@/components/ui/lazy-recharts";
 import { FileDown, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,7 +34,20 @@ export const Route = createFileRoute("/_authenticated/statistiques")({
   component: StatsPage,
 });
 
-const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+const MONTHS = [
+  "Jan",
+  "Fév",
+  "Mar",
+  "Avr",
+  "Mai",
+  "Juin",
+  "Juil",
+  "Aoû",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Déc",
+];
 const PIE_COLORS = [
   "var(--primary)",
   "var(--pp-sales)",
@@ -32,14 +60,23 @@ const PIE_COLORS = [
 ];
 
 function StatsPage() {
-  const { data: interventions } = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });
+  const { data: interventions } = useQuery({
+    queryKey: ["interventions"],
+    queryFn: listAllInterventions,
+  });
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
-  const { data: recos } = useQuery({ queryKey: ["recommendations-all"], queryFn: listAllRecommendations });
+  const { data: recos } = useQuery({
+    queryKey: ["recommendations-all"],
+    queryFn: listAllRecommendations,
+  });
   const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
 
   const list = interventions ?? [];
   const years = useMemo(
-    () => Array.from(new Set(list.map((i) => new Date(i.intervention_date).getFullYear()))).sort((a, b) => b - a),
+    () =>
+      Array.from(new Set(list.map((i) => new Date(i.intervention_date).getFullYear()))).sort(
+        (a, b) => b - a,
+      ),
     [list],
   );
   const [year, setYear] = useState<string>(String(new Date().getFullYear()));
@@ -55,14 +92,18 @@ function StatsPage() {
 
   const byType = useMemo(() => {
     const map = new Map<string, number>();
-    list.filter((i) => new Date(i.intervention_date).getFullYear() === Number(year)).forEach((i) => {
-      const t = i.intervention_type ?? "Autre";
-      map.set(t, (map.get(t) ?? 0) + 1);
-    });
+    list
+      .filter((i) => new Date(i.intervention_date).getFullYear() === Number(year))
+      .forEach((i) => {
+        const t = i.intervention_type ?? "Autre";
+        map.set(t, (map.get(t) ?? 0) + 1);
+      });
     return Array.from(map, ([name, value]) => ({ name, value }));
   }, [list, year]);
 
-  const yearRecos = (recos ?? []).filter((r) => new Date(r.created_at).getFullYear() === Number(year));
+  const yearRecos = (recos ?? []).filter(
+    (r) => new Date(r.created_at).getFullYear() === Number(year),
+  );
   const accepted = yearRecos.filter((r) => r.status === "acceptee" || r.status === "realisee");
   const revenue = accepted.reduce((s, r) => s + (recommendationPrice(r) ?? 0), 0);
   const yearIvs = list.filter((i) => new Date(i.intervention_date).getFullYear() === Number(year));
@@ -70,13 +111,18 @@ function StatsPage() {
   async function downloadReport(scope: "year" | "month", monthIdx?: number) {
     const y = Number(year);
     const from = scope === "year" ? new Date(y, 0, 1) : new Date(y, monthIdx!, 1);
-    const to = scope === "year" ? new Date(y, 11, 31, 23, 59) : new Date(y, monthIdx! + 1, 0, 23, 59);
+    const to =
+      scope === "year" ? new Date(y, 11, 31, 23, 59) : new Date(y, monthIdx! + 1, 0, 23, 59);
     const label = scope === "year" ? `Année ${y}` : `${MONTHS[monthIdx!]} ${y}`;
     try {
       const { exportPeriodReport } = await import("@/lib/period-report");
       exportPeriodReport({
-        label, from, to,
-        interventions: list, clients: clients ?? [], recommendations: recos ?? [],
+        label,
+        from,
+        to,
+        interventions: list,
+        clients: clients ?? [],
+        recommendations: recos ?? [],
         companyName: profile?.company_name ?? undefined,
       });
     } catch {
@@ -90,18 +136,30 @@ function StatsPage() {
     <AppShell title="Statistiques">
       <div className="mx-auto max-w-4xl space-y-5">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="font-serif text-lg font-semibold flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" />Activité</h2>
+          <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Activité
+          </h2>
           <Select value={year} onValueChange={setYear}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
-              {(years.length ? years : [new Date().getFullYear()]).map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              {(years.length ? years : [new Date().getFullYear()]).map((y) => (
+                <SelectItem key={y} value={String(y)}>
+                  {y}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Interventions" value={String(yearIvs.length)} />
-          <Stat label="Terminées" value={String(yearIvs.filter((i) => i.status === "terminee").length)} />
+          <Stat
+            label="Terminées"
+            value={String(yearIvs.filter((i) => i.status === "terminee").length)}
+          />
           <Stat label="Préco. acceptées" value={String(accepted.length)} />
           <Stat label="CA accepté" value={formatEuro(revenue)} />
         </div>
@@ -109,11 +167,20 @@ function StatsPage() {
         <Card>
           <CardContent className="pt-6">
             <h3 className="mb-3 font-medium">Interventions par mois</h3>
-            <ChartContainer config={{ count: { label: "Interventions", color: "var(--primary)" } }} className="h-[260px] w-full">
+            <ChartContainer
+              config={{ count: { label: "Interventions", color: "var(--primary)" } }}
+              className="h-[260px] w-full"
+            >
               <BarChart data={monthly}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
-                <YAxis allowDecimals={false} tickLine={false} axisLine={false} fontSize={11} width={24} />
+                <YAxis
+                  allowDecimals={false}
+                  tickLine={false}
+                  axisLine={false}
+                  fontSize={11}
+                  width={24}
+                />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -127,8 +194,18 @@ function StatsPage() {
               <h3 className="mb-3 font-medium">Répartition par type</h3>
               <ChartContainer config={{}} className="mx-auto h-[260px]">
                 <PieChart>
-                  <Pie data={byType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
-                    {byType.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                  <Pie
+                    data={byType}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={90}
+                    label
+                  >
+                    {byType.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
                   </Pie>
                   <ChartTooltip content={<ChartTooltipContent />} />
                 </PieChart>
@@ -140,18 +217,30 @@ function StatsPage() {
         <Card>
           <CardContent className="space-y-3 pt-6">
             <h3 className="font-medium">Rapport périodique</h3>
-            <p className="text-sm text-muted-foreground">Générez un rapport PDF récapitulatif à transmettre ou à archiver.</p>
+            <p className="text-sm text-muted-foreground">
+              Générez un rapport PDF récapitulatif à transmettre ou à archiver.
+            </p>
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" onClick={() => downloadReport("year")}>
                 <FileDown className="mr-1.5 h-4 w-4" /> Rapport annuel {year}
               </Button>
               <Select value={month} onValueChange={setMonth}>
-                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {MONTHS.map((m, i) => <SelectItem key={m} value={String(i)}>{m}</SelectItem>)}
+                  {MONTHS.map((m, i) => (
+                    <SelectItem key={m} value={String(i)}>
+                      {m}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <Button size="sm" variant="outline" onClick={() => downloadReport("month", Number(month))}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => downloadReport("month", Number(month))}
+              >
                 <FileDown className="mr-1.5 h-4 w-4" /> Rapport mensuel
               </Button>
             </div>
@@ -164,9 +253,11 @@ function StatsPage() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <Card><CardContent className="py-4">
-      <div className="font-serif text-2xl font-semibold">{value}</div>
-      <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
-    </CardContent></Card>
+    <Card>
+      <CardContent className="py-4">
+        <div className="font-serif text-2xl font-semibold">{value}</div>
+        <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
+      </CardContent>
+    </Card>
   );
 }
