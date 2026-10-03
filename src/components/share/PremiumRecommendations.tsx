@@ -40,8 +40,42 @@ function RecommendationRow({ reco, token }: { reco: SharedRecommendation; token:
   const interested = reco.client_interest === "interested";
 
   return (
-    <li className="grid gap-4 border-b py-6 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-      <div className="min-w-0">
+    <li className="grid gap-5 border-b py-6 last:border-b-0 sm:grid-cols-[13rem_minmax(0,1fr)] sm:items-start">
+      <div
+        className="order-2 flex flex-col gap-2 sm:order-1"
+        role="group"
+        aria-label="Votre décision"
+      >
+        <button
+          type="button"
+          disabled={choose.isPending}
+          aria-pressed={interested}
+          onClick={() => choose.mutate(interested ? "none" : "interested")}
+          className={`inline-flex items-center justify-center gap-2 rounded-full border-2 px-5 py-3 text-base font-semibold transition-colors disabled:opacity-60 ${
+            interested
+              ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
+              : "border-emerald-600 bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white dark:bg-emerald-950/40 dark:text-emerald-300"
+          }`}
+        >
+          <Check className="size-5" />
+          Intéressé
+        </button>
+        <button
+          type="button"
+          disabled={choose.isPending}
+          aria-pressed={answered && !interested}
+          onClick={() => choose.mutate(answered && !interested ? "none" : "not_interested")}
+          className={`inline-flex items-center justify-center gap-2 rounded-full border-2 px-5 py-3 text-base font-semibold transition-colors disabled:opacity-60 ${
+            answered && !interested
+              ? "border-red-600 bg-red-600 text-white shadow-sm"
+              : "border-red-600 bg-red-50 text-red-800 hover:bg-red-600 hover:text-white dark:bg-red-950/40 dark:text-red-300"
+          }`}
+        >
+          <X className="size-5" />
+          Pas intéressé
+        </button>
+      </div>
+      <div className="order-1 min-w-0 sm:order-2">
         <h3 className="font-premium-serif text-xl font-medium leading-tight sm:text-2xl">
           {reco.title}
         </h3>
@@ -50,40 +84,6 @@ function RecommendationRow({ reco, token }: { reco: SharedRecommendation; token:
             {reco.description}
           </p>
         )}
-      </div>
-      <div
-        className="flex flex-wrap items-center gap-2 sm:justify-end"
-        role="group"
-        aria-label="Votre choix"
-      >
-        <button
-          type="button"
-          disabled={choose.isPending}
-          aria-pressed={interested}
-          onClick={() => choose.mutate(interested ? "none" : "interested")}
-          className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-medium transition-colors disabled:opacity-60 ${
-            interested
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border bg-background text-foreground hover:border-primary hover:text-primary"
-          }`}
-        >
-          <Check className="size-4" />
-          Intéressé
-        </button>
-        <button
-          type="button"
-          disabled={choose.isPending}
-          aria-pressed={answered && !interested}
-          onClick={() => choose.mutate(answered && !interested ? "none" : "not_interested")}
-          className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-medium transition-colors disabled:opacity-60 ${
-            answered && !interested
-              ? "border-foreground/70 bg-foreground/10 text-foreground"
-              : "border-border bg-background text-muted-foreground hover:border-foreground/50 hover:text-foreground"
-          }`}
-        >
-          <X className="size-4" />
-          Pas intéressé
-        </button>
       </div>
     </li>
   );

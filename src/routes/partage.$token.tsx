@@ -445,6 +445,10 @@ function PremiumExperience({
 }) {
   const [section, setSection] = useState<PremiumSection>("home");
   const { isAdmin } = useIsAdmin();
+  const pendingRecommendations = premium.recommendation_groups.reduce(
+    (total, group) => total + group.items.filter((item) => !item.client_interest).length,
+    0,
+  );
   const qc = useQueryClient();
   function navigate(next: PremiumSection) {
     setSection(next);
@@ -479,11 +483,23 @@ function PremiumExperience({
             messages={messages}
             token={token}
             onNavigate={navigate}
-            afterCover={<PremiumNav section={section} onNavigate={navigate} className="-mt-10 sm:-mt-12" />}
+            afterCover={
+              <PremiumNav
+                section={section}
+                onNavigate={navigate}
+                className="-mt-10 sm:-mt-12"
+                pendingRecommendations={pendingRecommendations}
+              />
+            }
           />
         )}
         {section !== "home" && (
-          <PremiumNav section={section} onNavigate={navigate} className="mb-10 sm:mb-14" />
+          <PremiumNav
+            section={section}
+            onNavigate={navigate}
+            className="mb-10 sm:mb-14"
+            pendingRecommendations={pendingRecommendations}
+          />
         )}
         {section === "calendar" && (
           <section>
