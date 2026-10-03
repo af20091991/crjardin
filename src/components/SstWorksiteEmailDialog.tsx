@@ -15,7 +15,6 @@ import { Mail, Loader2, FileText, CheckCircle2, AlertTriangle } from "lucide-rea
 import { toast } from "sonner";
 import type { WorksiteSheet } from "@/lib/worksite";
 import { uploadWorksiteMethodPdf } from "@/lib/worksite";
-import { createCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
 import {
   resolveSstRecipientEmails,
@@ -59,7 +58,7 @@ export function SstWorksiteEmailDialog({ sheet }: { sheet: WorksiteSheet }) {
     }
     setSending(true);
     try {
-      const pdfBlob = await createCompleteWorksiteSheetPdf(sheet);
+      const pdfBlob = await (await import("@/lib/worksite-pdf-complete")).createCompleteWorksiteSheetPdf(sheet);
       const pdfUrl = await uploadWorksiteMethodPdf(sheet.id, pdfBlob);
       const commonData = {
         clientName: [sheet.civility?.trim(), sheet.client_name?.trim()].filter(Boolean).join(" "),

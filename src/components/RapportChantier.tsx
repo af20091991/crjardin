@@ -32,7 +32,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { parsePlanning, type PlanningRow } from "@/lib/file-parser";
 import { uploadPhoto, type UploadedPhoto } from "@/lib/storage";
-import { exportReportPdf } from "@/lib/pdf-export";
 
 type TaskStatus = "pending" | "realise" | "reporte";
 
@@ -245,7 +244,7 @@ export default function RapportChantier() {
     }
     setSending(true);
     try {
-      await exportReportPdf({
+      await (await import("@/lib/pdf-export")).exportReportPdf({
         nomClient: nomClient.trim(),
         emailClient: emailClient.trim(),
         dateLabel: dateIntervention

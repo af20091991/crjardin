@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ClientForm } from "@/components/ClientForm";
-import { parseClientsFile, type ParsedClient } from "@/lib/client-import";
+import type { ParsedClient } from "@/lib/client-import";
 import type { Client } from "@/lib/clients";
 import { toast } from "sonner";
 import { Upload, FileSpreadsheet, Check, Loader2, MapPin, Phone, Mail } from "lucide-react";
@@ -27,7 +27,7 @@ export function ClientImportDialog({ trigger }: { trigger: ReactNode }) {
   const handleFile = async (file: File) => {
     setLoading(true);
     try {
-      const parsed = await parseClientsFile(file);
+      const parsed = await (await import("@/lib/client-import")).parseClientsFile(file);
       if (!parsed.length) {
         toast.error("Aucun client détecté dans ce fichier.");
       } else {

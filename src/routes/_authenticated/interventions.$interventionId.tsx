@@ -69,7 +69,6 @@ import {
 import { getMyProfile } from "@/lib/profile";
 import { InterventionMessages } from "@/components/InterventionMessages";
 import { uploadInterventionPhoto } from "@/lib/storage";
-import { exportInterventionPdf } from "@/lib/intervention-pdf";
 import {
   archiveInterventionReport,
   listReportHistory,
@@ -351,7 +350,7 @@ function InterventionDetail() {
         listRecommendationsByClient(iv.client_id),
         getMyProfile(),
       ]);
-      await exportInterventionPdf({
+      await (await import("@/lib/intervention-pdf")).exportInterventionPdf({
         intervention: iv,
         client,
         tasks: t,

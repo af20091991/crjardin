@@ -27,7 +27,6 @@ import {
   premiumClientTitle,
 } from "@/lib/share.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { exportSharedInterventionPdf } from "@/lib/share-pdf";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -831,7 +830,7 @@ function InterventionCard({
         });
         window.open(url, "_blank", "noopener");
       } else {
-        await exportSharedInterventionPdf(iv, client);
+        await (await import("@/lib/share-pdf")).exportSharedInterventionPdf(iv, client);
       }
     } catch {
       toast.error("Impossible de générer le PDF.");

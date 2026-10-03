@@ -5,7 +5,6 @@ import { AppShell } from "@/components/AppShell";
 import { listAllInterventions } from "@/lib/interventions";
 import { listClients } from "@/lib/clients";
 import { listAllRecommendations, recommendationPrice, formatEuro } from "@/lib/garden";
-import { exportPeriodReport } from "@/lib/period-report";
 import { getMyProfile } from "@/lib/profile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,12 +67,13 @@ function StatsPage() {
   const revenue = accepted.reduce((s, r) => s + (recommendationPrice(r) ?? 0), 0);
   const yearIvs = list.filter((i) => new Date(i.intervention_date).getFullYear() === Number(year));
 
-  function downloadReport(scope: "year" | "month", monthIdx?: number) {
+  async function downloadReport(scope: "year" | "month", monthIdx?: number) {
     const y = Number(year);
     const from = scope === "year" ? new Date(y, 0, 1) : new Date(y, monthIdx!, 1);
     const to = scope === "year" ? new Date(y, 11, 31, 23, 59) : new Date(y, monthIdx! + 1, 0, 23, 59);
     const label = scope === "year" ? `Année ${y}` : `${MONTHS[monthIdx!]} ${y}`;
     try {
+      const { exportPeriodReport } = await import("@/lib/period-report");
       exportPeriodReport({
         label, from, to,
         interventions: list, clients: clients ?? [], recommendations: recos ?? [],

@@ -12,7 +12,6 @@ import {
   type WorksiteSheetInput,
 } from "@/lib/worksite";
 import { duplicateWorksiteSheet } from "@/lib/worksite-sst";
-import { exportCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { ArrowLeft, Copy, FileDown, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRole } from "@/hooks/use-role";
@@ -89,7 +88,7 @@ function EditFiche() {
     if (!sheet) return;
     setExporting(true);
     try {
-      await exportCompleteWorksiteSheetPdf(sheet);
+      await (await import("@/lib/worksite-pdf-complete")).exportCompleteWorksiteSheetPdf(sheet);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Échec de l'export");
     } finally {
