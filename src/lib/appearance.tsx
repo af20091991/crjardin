@@ -425,6 +425,9 @@ function ensureGoogleFonts(a: Appearance) {
   if (typeof document === "undefined") return;
   const families = new Set<string>();
   if (a.fontBody === "auto") families.add("Plus Jakarta Sans:wght@400;500;600;700");
+  if (window.location.pathname.startsWith("/partage/")) {
+    families.add("Cormorant Garamond:wght@400;500;600;700");
+  }
   if (a.fontHeading === "auto") families.add("Syne:wght@400;500;600;700;800");
   if (a.fontNumeric === "auto" && a.ui === "next") {
     families.add("Newsreader:wght@400;500;600;700");
