@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-03",
+    version: "2.3.41",
+    theme: "PDF & Partage",
+    title: "Compte-rendu d’intervention PDF — style du carnet Premium",
+    details: [
+      "Le PDF du compte-rendu reprend l’en-tête éditorial, les titres serif, le vert profond et les filets fins de l’espace Premium client.",
+      "Un cartouche crème regroupe le client, l’adresse et la date ; le pied de page et les puces sont harmonisés.",
+      "Les contenus, les photos, la signature, le cachet et le nom du fichier restent inchangés.",
+    ],
+  },
+  {
+    date: "2026-10-03",
     version: "2.3.40",
     theme: "PDF & Partage",
     title: "Rapport de chantier — style du carnet Premium",
