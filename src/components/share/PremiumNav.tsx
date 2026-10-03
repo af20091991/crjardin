@@ -99,10 +99,13 @@ export function PremiumNav({
   section,
   onNavigate,
   className = "",
+  pendingRecommendations = 0,
 }: {
   section: PremiumSection;
   onNavigate: (section: PremiumSection) => void;
   className?: string;
+  /** Préconisations encore sans réponse du client : affichées en « +N » à côté de l'onglet. */
+  pendingRecommendations?: number;
 }) {
   return (
     <div
@@ -131,6 +134,14 @@ export function PremiumNav({
               className={itemClass(section === entry.id)}
             >
               {entry.label}
+              {entry.id === "recommendations" && pendingRecommendations > 0 && (
+                <span
+                  className="ml-2 inline-flex items-center rounded-full bg-primary px-2.5 py-0.5 text-sm font-semibold leading-5 text-primary-foreground"
+                  aria-label={`${pendingRecommendations} préconisation${pendingRecommendations > 1 ? "s" : ""} en attente de décision`}
+                >
+                  +{pendingRecommendations}
+                </span>
+              )}
             </Button>
           ),
         )}
