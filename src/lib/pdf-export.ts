@@ -14,9 +14,12 @@ export interface ReportData {
   photos: UploadedPhoto[];
 }
 
-const GREEN: [number, number, number] = [76, 138, 47];
-const DARK: [number, number, number] = [45, 55, 40];
-const MUTED: [number, number, number] = [110, 110, 100];
+// Palette du carnet Premium, adaptée au rendu PDF (vert profond, crème et encre).
+const GREEN: [number, number, number] = [79, 142, 51];
+const DARK: [number, number, number] = [48, 55, 45];
+const MUTED: [number, number, number] = [112, 116, 106];
+const LINE: [number, number, number] = [221, 226, 215];
+const SURFACE: [number, number, number] = [247, 249, 243];
 
 async function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -36,51 +39,94 @@ export async function exportReportPdf(data: ReportData): Promise<void> {
   const contentW = pageW - margin * 2;
   let y = margin;
 
+  // Le pied de page reprend la discrétion et les filets fins du carnet Premium.
+  const footer = () => {
+    const pages = doc.getNumberOfPages();
+    for (let p = 1; p <= pages; p++) {
+      doc.setPage(p);
+      doc.setDrawColor(...LINE);
+      doc.setLineWidth(0.25);
+      doc.line(margin, pageH - 13, pageW - margin, pageH - 13);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(...MUTED);
+      doc.text("De la graine au jardin · Rapport de fin de chantier", margin, pageH - 8);
+      doc.text(`${p} / ${pages}`, pageW - margin, pageH - 8, { align: "right" });
+    }
+  };
+
+  // Laisse une zone dédiée au pied de page sur toutes les pages.
   const ensureSpace = (h: number) => {
-    if (y + h > pageH - margin) {
+    if (y + h > pageH - margin - 10) {
       doc.addPage();
       y = margin;
     }
   };
 
-  // En-tête avec logo
+  // En-tête éditorial : marque discrète, grand titre serif et repère Premium.
+  doc.setDrawColor(...GREEN);
+  doc.setLineWidth(0.65);
+  doc.line(margin, 12, pageW - margin, 12);
   try {
     const img = await loadImage(logo);
-    doc.addImage(img, "PNG", margin, y, 22, 22);
+    doc.addImage(img, "PNG", margin, 19, 22, 22);
   } catch {
     /* logo optionnel */
   }
   doc.setTextColor(...GREEN);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
-  doc.text("Rapport de fin de chantier", margin + 26, y + 9);
+  doc.setFontSize(8);
+  doc.text("DE LA GRAINE AU JARDIN", margin + 28, 24);
+  doc.setTextColor(...DARK);
+  doc.setFont("times", "bold");
+  doc.setFontSize(23);
+  doc.text("Rapport de fin de chantier", margin + 28, 34);
   doc.setTextColor(...MUTED);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text("De la graine au jardin · paysagiste", margin + 26, y + 16);
-  y += 28;
+  doc.setFontSize(9);
+  doc.text("Le carnet du jardin · Compte-rendu d'intervention", margin + 28, 41);
 
-  doc.setDrawColor(...GREEN);
-  doc.setLineWidth(0.5);
-  doc.line(margin, y, pageW - margin, y);
-  y += 8;
+  // Cartouche client/date : surface crème, séparation fine, libellés en capitales.
+  const metaY = 51;
+  const metaH = 25;
+  const dividerX = margin + contentW * 0.63;
+  doc.setFillColor(...SURFACE);
+  doc.roundedRect(margin, metaY, contentW, metaH, 2, 2, "F");
+  doc.setDrawColor(...LINE);
+  doc.setLineWidth(0.25);
+  doc.line(dividerX, metaY + 4, dividerX, metaY + metaH - 4);
 
-  // Infos client
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...GREEN);
+  doc.text("CLIENT", margin + 5, metaY + 7);
+  doc.text("DATE D'INTERVENTION", dividerX + 5, metaY + 7);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10.5);
   doc.setTextColor(...DARK);
+  const clientLines = doc
+    .splitTextToSize(data.nomClient.trim() || "—", dividerX - margin - 12)
+    .slice(0, 2);
+  doc.text(clientLines, margin + 5, metaY + 14);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.text(`Client : ${data.nomClient || "—"}`, margin, y);
-  y += 6;
-  doc.text(`Date d'intervention : ${data.dateLabel}`, margin, y);
-  y += 10;
+  doc.setFontSize(9.5);
+  const dateLines = doc
+    .splitTextToSize(data.dateLabel || "—", pageW - margin - dividerX - 10)
+    .slice(0, 2);
+  doc.text(dateLines, dividerX + 5, metaY + 14);
+  y = metaY + metaH + 10;
 
   const heading = (title: string) => {
-    ensureSpace(12);
+    ensureSpace(15);
+    doc.setFont("times", "bold");
+    doc.setFontSize(15);
     doc.setTextColor(...GREEN);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
     doc.text(title, margin, y);
-    y += 7;
+    doc.setDrawColor(...GREEN);
+    doc.setLineWidth(0.6);
+    doc.line(margin, y + 3, margin + 11, y + 3);
+    y += 10;
     doc.setTextColor(...DARK);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
@@ -89,7 +135,9 @@ export async function exportReportPdf(data: ReportData): Promise<void> {
   const bullet = (text: string) => {
     const lines = doc.splitTextToSize(text, contentW - 5);
     ensureSpace(lines.length * 5 + 1);
-    doc.text("•", margin, y);
+    doc.setFillColor(...GREEN);
+    doc.circle(margin + 1, y - 1.2, 0.65, "F");
+    doc.setTextColor(...DARK);
     doc.text(lines, margin + 5, y);
     y += lines.length * 5 + 1;
   };
@@ -98,6 +146,7 @@ export async function exportReportPdf(data: ReportData): Promise<void> {
     const lines = doc.splitTextToSize(text, contentW);
     for (const line of lines) {
       ensureSpace(5);
+      doc.setTextColor(...DARK);
       doc.text(line, margin, y);
       y += 5;
     }
@@ -117,9 +166,7 @@ export async function exportReportPdf(data: ReportData): Promise<void> {
 
   heading("Travaux reportés");
   if (data.reportes.length)
-    data.reportes.forEach((t) =>
-      bullet(t.note ? `${t.label} — motif : ${t.note}` : t.label),
-    );
+    data.reportes.forEach((t) => bullet(t.note ? `${t.label} — motif : ${t.note}` : t.label));
   else bullet("Aucun");
   y += 3;
 
@@ -152,8 +199,9 @@ export async function exportReportPdf(data: ReportData): Promise<void> {
         const img = await loadImage(p.url);
         doc.addImage(img, "JPEG", x, rowY, imgW, imgH);
       } catch {
-        doc.setDrawColor(...MUTED);
-        doc.rect(x, rowY, imgW, imgH);
+        doc.setDrawColor(...LINE);
+        doc.setLineWidth(0.35);
+        doc.roundedRect(x, rowY, imgW, imgH, 1.5, 1.5, "S");
       }
       col++;
       if (col >= cols) {
@@ -163,6 +211,8 @@ export async function exportReportPdf(data: ReportData): Promise<void> {
     }
     if (col !== 0) y = rowY + imgH + gap;
   }
+
+  footer();
 
   const safe = (data.nomClient || "client").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   doc.save(`rapport-${safe}.pdf`);
