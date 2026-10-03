@@ -82,10 +82,22 @@ import { ShareInstallGuide } from "@/components/ShareInstallGuide";
 import { PremiumHome, PremiumExchange, type PremiumSection } from "@/components/share/PremiumHome";
 import { PremiumNav } from "@/components/share/PremiumNav";
 import { PremiumInstall } from "@/components/share/PremiumInstall";
-import { PremiumPhotos } from "@/components/share/PremiumPhotos";
-import { PremiumRecommendations } from "@/components/share/PremiumRecommendations";
-import { PremiumWorkCalendar } from "@/components/share/PremiumWorkCalendar";
 import { useIsAdmin } from "@/hooks/use-admin";
+
+// Sections Premium hors accueil : chargées seulement à l'ouverture de la section.
+const PremiumPhotos = lazy(() =>
+  import("@/components/share/PremiumPhotos").then((m) => ({ default: m.PremiumPhotos })),
+);
+const PremiumRecommendations = lazy(() =>
+  import("@/components/share/PremiumRecommendations").then((m) => ({
+    default: m.PremiumRecommendations,
+  })),
+);
+const PremiumWorkCalendar = lazy(() =>
+  import("@/components/share/PremiumWorkCalendar").then((m) => ({
+    default: m.PremiumWorkCalendar,
+  })),
+);
 
 const sharedQuery = (token: string) =>
   queryOptions({
@@ -494,7 +506,7 @@ function PremiumExperience({
               title="Calendrier travaux"
               text="Les prochaines interventions prévues dans votre calendrier d'entretien, présentées simplement au fil des saisons."
             />
-            <PremiumWorkCalendar items={premium.work_calendar} editorial />
+            <Suspense fallback={null}><PremiumWorkCalendar items={premium.work_calendar} editorial /></Suspense>
           </section>
         )}
         {section === "garden" && (
@@ -537,7 +549,7 @@ function PremiumExperience({
               title="Préconisations"
               text="Les recommandations rédigées après chaque intervention. Dites-nous simplement celles qui vous intéressent."
             />
-            <PremiumRecommendations groups={premium.recommendation_groups} token={token} />
+            <Suspense fallback={null}><PremiumRecommendations groups={premium.recommendation_groups} token={token} /></Suspense>
           </section>
         )}
         {section === "photos" && (
@@ -547,12 +559,14 @@ function PremiumExperience({
               title="Photos"
               text="Les photos de chaque intervention, classées par passage. Choisissez celle qui illustre votre espace."
             />
+            <Suspense fallback={null}>
             <PremiumPhotos
               interventions={interventions}
               coverPhotoId={premium.cover_photo_id}
               token={token}
               onCoverChanged={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })}
             />
+            </Suspense>
           </section>
         )}
         {section === "documents" && (
