@@ -1,23 +1,35 @@
 import { jsPDF } from "jspdf";
 import logo from "@/assets/logo.png";
 import type { Intervention, InterventionTask, InterventionPhoto } from "@/lib/interventions";
-import { TASK_STATUS_META, type TaskStatus, signedPhotoUrl, normalizeReportSections } from "@/lib/interventions";
+import {
+  TASK_STATUS_META,
+  type TaskStatus,
+  signedPhotoUrl,
+  normalizeReportSections,
+} from "@/lib/interventions";
 import type { Client } from "@/lib/clients";
 import { gardenLabel } from "@/lib/clients";
 import { reportRecipient } from "@/lib/report-recipient";
 import type { GardenHealth, Recommendation } from "@/lib/garden";
 import {
-  HEALTH_RATING_META, type HealthRating, RECO_STATUS_META, type RecommendationStatus,
-  RECO_PRIORITY_META, type RecommendationPriority,
-  RECO_SEASON_LABELS, type RecommendationSeason,
+  HEALTH_RATING_META,
+  type HealthRating,
+  RECO_STATUS_META,
+  type RecommendationStatus,
+  RECO_PRIORITY_META,
+  type RecommendationPriority,
+  RECO_SEASON_LABELS,
+  type RecommendationSeason,
 } from "@/lib/garden";
 import { recommendationPrice, formatEuro } from "@/lib/garden";
 import type { WorksiteSheet } from "@/lib/worksite";
 
-const GREEN: [number, number, number] = [76, 138, 47];
-const DARK: [number, number, number] = [45, 55, 40];
-const MUTED: [number, number, number] = [120, 120, 110];
-const LIGHT: [number, number, number] = [240, 244, 236];
+// Palette du carnet Premium, adaptée au rendu PDF (vert profond, crème et encre).
+const GREEN: [number, number, number] = [79, 142, 51];
+const DARK: [number, number, number] = [48, 55, 45];
+const MUTED: [number, number, number] = [112, 116, 106];
+const LINE: [number, number, number] = [221, 226, 215];
+const SURFACE: [number, number, number] = [247, 249, 243];
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -43,7 +55,9 @@ export interface InterventionReportData {
   stampData?: string;
 }
 
-export async function buildInterventionPdf(data: InterventionReportData): Promise<{ blob: Blob; filename: string }> {
+export async function buildInterventionPdf(
+  data: InterventionReportData,
+): Promise<{ blob: Blob; filename: string }> {
   const { intervention: iv, client, tasks, photos, health, recommendations } = data;
   const sections = normalizeReportSections(iv.report_sections);
   const reportRecos = recommendations
@@ -65,90 +79,171 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
   let y = margin;
 
   const dateStr = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 
   const footer = () => {
     const pages = doc.getNumberOfPages();
     for (let p = 1; p <= pages; p++) {
       doc.setPage(p);
+      doc.setDrawColor(...LINE);
+      doc.setLineWidth(0.25);
+      doc.line(margin, pageH - 13, pageW - margin, pageH - 13);
       doc.setFontSize(8);
       doc.setTextColor(...MUTED);
       doc.setFont("helvetica", "normal");
-      doc.text(garden, margin, pageH - 8);
+      doc.text(`De la graine au jardin · ${garden}`, margin, pageH - 8);
       doc.text(`${p} / ${pages}`, pageW - margin, pageH - 8, { align: "right" });
     }
   };
 
   const ensureSpace = (h: number) => {
-    if (y + h > pageH - margin - 6) { doc.addPage(); y = margin; }
+    if (y + h > pageH - margin - 10) {
+      doc.addPage();
+      y = margin;
+    }
   };
 
   const heading = (title: string) => {
-    ensureSpace(14);
-    doc.setFillColor(...LIGHT);
-    doc.roundedRect(margin, y - 1, contentW, 9, 1.5, 1.5, "F");
+    y += 5;
+    ensureSpace(16);
+    doc.setFont("times", "bold");
+    doc.setFontSize(15);
     doc.setTextColor(...GREEN);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text(title, margin + 3, y + 5.5);
-    y += 13;
+    doc.text(title, margin, y);
+    doc.setDrawColor(...GREEN);
+    doc.setLineWidth(0.6);
+    doc.line(margin, y + 3, margin + 11, y + 3);
+    y += 10;
     doc.setTextColor(...DARK);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10.5);
   };
 
+  // Puce ronde verte, comme les repères du carnet Premium.
+  const dot = (lineY: number) => {
+    doc.setFillColor(...GREEN);
+    doc.circle(margin + 1, lineY - 1.2, 0.65, "F");
+  };
+
   const paragraph = (text: string) => {
-    if (!text?.trim()) { ensureSpace(5); doc.setTextColor(...MUTED); doc.text("—", margin, y); doc.setTextColor(...DARK); y += 6; return; }
+    if (!text?.trim()) {
+      ensureSpace(5);
+      doc.setTextColor(...MUTED);
+      doc.text("—", margin, y);
+      doc.setTextColor(...DARK);
+      y += 6;
+      return;
+    }
     const lines = doc.splitTextToSize(text.trim(), contentW);
-    for (const line of lines) { ensureSpace(5); doc.text(line, margin, y); y += 5; }
+    for (const line of lines) {
+      ensureSpace(5);
+      doc.text(line, margin, y);
+      y += 5;
+    }
     y += 2;
   };
 
-  // ---- Cover ----
-  doc.setFillColor(...GREEN);
-  doc.rect(0, 0, pageW, 70, "F");
-  // Logo dans une pastille blanche en haut à droite (identification de la marque)
-  const badge = 30;
-  const badgeX = pageW - margin - badge;
-  doc.setFillColor(255, 255, 255);
-  doc.roundedRect(badgeX, 14, badge, badge, 4, 4, "F");
+  // ---- En-tête éditorial : filet vert, marque, grand titre serif ----
+  doc.setDrawColor(...GREEN);
+  doc.setLineWidth(0.65);
+  doc.line(margin, 12, pageW - margin, 12);
   try {
     const img = await loadImage(logo);
-    doc.addImage(img, "PNG", badgeX + 4, 18, badge - 8, badge - 8, undefined, "NONE");
-  } catch { /* logo optionnel */ }
-  doc.setTextColor(255, 255, 255);
+    doc.addImage(img, "PNG", margin, 19, 22, 22, undefined, "NONE");
+  } catch {
+    /* logo optionnel */
+  }
+  doc.setTextColor(...GREEN);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.text("Compte-rendu d'intervention", margin, 50);
+  doc.setFontSize(8);
+  doc.text("DE LA GRAINE AU JARDIN", margin + 28, 24);
+  doc.setTextColor(...DARK);
+  doc.setFont("times", "bold");
+  doc.setFontSize(23);
+  doc.text("Compte-rendu d'intervention", margin + 28, 34);
+  doc.setTextColor(...MUTED);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.text(company, margin, 60);
-  y = 84;
+  doc.setFontSize(9);
+  doc.text(company, margin + 28, 41);
 
-  // Première ligne après l'en-tête : destinataire (personne) et jamais un nom de lieu
-  // précédé d'une civilité. Le lieu du chantier apparaît sur la ligne « Client / Site ».
+  // Destinataire (personne) et jamais un nom de lieu précédé d'une civilité.
+  // Le lieu du chantier apparaît dans le cartouche « Client ».
   const recipient = reportRecipient({ civility: client.civility, name: client.name }, garden);
   const clientFull = recipient.line || garden;
-  doc.setTextColor(...DARK);
+
+  // Cartouche client/date : surface crème, séparation fine, libellés en capitales.
+  const metaY = 51;
+  const metaH = 25;
+  const dividerX = margin + contentW * 0.63;
+  doc.setFillColor(...SURFACE);
+  doc.roundedRect(margin, metaY, contentW, metaH, 2, 2, "F");
+  doc.setDrawColor(...LINE);
+  doc.setLineWidth(0.25);
+  doc.line(dividerX, metaY + 4, dividerX, metaY + metaH - 4);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(15);
-  doc.text(clientFull, margin, y);
-  y += 8;
-  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...GREEN);
+  doc.text("CLIENT", margin + 5, metaY + 7);
+  doc.text("DATE D'INTERVENTION", dividerX + 5, metaY + 7);
   doc.setFontSize(10.5);
+  doc.setTextColor(...DARK);
+  doc.text(
+    doc.splitTextToSize(clientFull, dividerX - margin - 12).slice(0, 1),
+    margin + 5,
+    metaY + 14,
+  );
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
   doc.setTextColor(...MUTED);
-  const infoLines = [
-    iv.title?.trim() ? `Objet : ${iv.title.trim()}` : null,
-    iv.reference ? `Référence : ${iv.reference}` : null,
-    `Client : ${garden}`,
-    client.address ? `Adresse : ${client.address}` : null,
-    `Date : ${dateStr}`,
-    `Type d'intervention : ${iv.intervention_type ?? "Entretien"}`,
-    client.contract_type ? `Contrat : ${client.contract_type}${client.frequency ? ` (${client.frequency})` : ""}` : null,
-  ].filter(Boolean) as string[];
-  for (const line of infoLines) { doc.text(line, margin, y); y += 6; }
-  y += 4;
+  const placeLine = [garden !== clientFull ? garden : null, client.address]
+    .filter(Boolean)
+    .join(" · ");
+  if (placeLine)
+    doc.text(
+      doc.splitTextToSize(placeLine, dividerX - margin - 12).slice(0, 2),
+      margin + 5,
+      metaY + 19,
+    );
+  doc.setFontSize(9.5);
+  doc.setTextColor(...DARK);
+  doc.text(
+    doc.splitTextToSize(dateStr, pageW - margin - dividerX - 10).slice(0, 2),
+    dividerX + 5,
+    metaY + 14,
+  );
+  y = metaY + metaH + 8;
+
+  // Détails de l'intervention : libellé en capitales, valeur en encre.
+  const infoRows: [string, string][] = [
+    ["OBJET", iv.title?.trim() ?? ""],
+    ["RÉFÉRENCE", iv.reference ?? ""],
+    ["TYPE", iv.intervention_type ?? "Entretien"],
+    [
+      "CONTRAT",
+      client.contract_type
+        ? `${client.contract_type}${client.frequency ? ` (${client.frequency})` : ""}`
+        : "",
+    ],
+  ].filter((r): r is [string, string] => Boolean(r[1]));
+  for (const [label, value] of infoRows) {
+    const vl = doc.splitTextToSize(value, contentW - 32);
+    ensureSpace(vl.length * 5 + 1);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GREEN);
+    doc.text(label, margin, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...DARK);
+    doc.text(vl, margin + 28, y);
+    y += vl.length * 5 + 1;
+  }
+  y += 6;
+  doc.setFontSize(10.5);
   doc.setTextColor(...DARK);
 
   // ---- Synthèse ----
@@ -164,8 +259,10 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
     if (w.client_name) lines.push(`Jardin : ${w.client_name}`);
     if (w.address) lines.push(`Adresse : ${w.address}`);
     if (w.access_complement) lines.push(`Accès : ${w.access_complement}`);
-    if (w.tasks && w.tasks.length) lines.push(`Travaux prévus sur la fiche : ${w.tasks.join(", ")}`);
-    if (w.garden_markers && w.garden_markers.length) lines.push(`Repères jardin : ${w.garden_markers.length} point(s) identifié(s)`);
+    if (w.tasks && w.tasks.length)
+      lines.push(`Travaux prévus sur la fiche : ${w.tasks.join(", ")}`);
+    if (w.garden_markers && w.garden_markers.length)
+      lines.push(`Repères jardin : ${w.garden_markers.length} point(s) identifié(s)`);
     if (w.notes?.trim()) lines.push(`Observations : ${w.notes.trim()}`);
     if (lines.length) {
       heading("Fiche jardin");
@@ -179,26 +276,27 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
     if (tasks.length === 0) paragraph("");
     else {
       for (const t of tasks) {
-      const st = (t.status as TaskStatus) in TASK_STATUS_META ? (t.status as TaskStatus) : "realise";
-      const label = `${t.label}  —  ${TASK_STATUS_META[st].label}`;
-      const lines = doc.splitTextToSize(label, contentW - 6);
-      ensureSpace(lines.length * 5 + 1);
-      doc.setFont("helvetica", "bold");
-      doc.text("•", margin, y);
-      doc.text(lines, margin + 5, y);
-      doc.setFont("helvetica", "normal");
-      y += lines.length * 5;
-      if (t.note?.trim()) {
-        const nl = doc.splitTextToSize(t.note.trim(), contentW - 8);
-        ensureSpace(nl.length * 4.5 + 1);
-        doc.setTextColor(...MUTED);
-        doc.setFontSize(9.5);
-        doc.text(nl, margin + 5, y);
-        doc.setFontSize(10.5);
-        doc.setTextColor(...DARK);
-        y += nl.length * 4.5;
-      }
-      y += 2;
+        const st =
+          (t.status as TaskStatus) in TASK_STATUS_META ? (t.status as TaskStatus) : "realise";
+        const label = `${t.label}  —  ${TASK_STATUS_META[st].label}`;
+        const lines = doc.splitTextToSize(label, contentW - 6);
+        ensureSpace(lines.length * 5 + 1);
+        dot(y);
+        doc.setFont("helvetica", "bold");
+        doc.text(lines, margin + 5, y);
+        doc.setFont("helvetica", "normal");
+        y += lines.length * 5;
+        if (t.note?.trim()) {
+          const nl = doc.splitTextToSize(t.note.trim(), contentW - 8);
+          ensureSpace(nl.length * 4.5 + 1);
+          doc.setTextColor(...MUTED);
+          doc.setFontSize(9.5);
+          doc.text(nl, margin + 5, y);
+          doc.setFontSize(10.5);
+          doc.setTextColor(...DARK);
+          y += nl.length * 4.5;
+        }
+        y += 2;
       }
     }
   }
@@ -226,11 +324,12 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
     heading("État du jardin");
     if (iv.garden_state?.trim()) paragraph(iv.garden_state);
     for (const h of health) {
-      const r = (h.rating as HealthRating) in HEALTH_RATING_META ? (h.rating as HealthRating) : "bon";
+      const r =
+        (h.rating as HealthRating) in HEALTH_RATING_META ? (h.rating as HealthRating) : "bon";
       const line = `${h.zone} : ${HEALTH_RATING_META[r].label}${h.note ? ` — ${h.note}` : ""}`;
       const lines = doc.splitTextToSize(line, contentW - 5);
       ensureSpace(lines.length * 5 + 1);
-      doc.text("•", margin, y);
+      dot(y);
       doc.text(lines, margin + 5, y);
       y += lines.length * 5 + 1;
     }
@@ -241,7 +340,10 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
     heading("Préconisations & conseils");
     if (iv.recommendations_text?.trim()) paragraph(iv.recommendations_text);
     for (const r of reportRecos) {
-      const st = (r.status as RecommendationStatus) in RECO_STATUS_META ? (r.status as RecommendationStatus) : "en_attente";
+      const st =
+        (r.status as RecommendationStatus) in RECO_STATUS_META
+          ? (r.status as RecommendationStatus)
+          : "en_attente";
       const price = recommendationPrice(r);
       const pr = r.priority as RecommendationPriority | null | undefined;
       const se = r.recommended_season as RecommendationSeason | null | undefined;
@@ -250,8 +352,8 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
       const title = `${r.title}${r.category ? ` [${r.category}]` : ""} — ${RECO_STATUS_META[st].label}${price != null ? ` · ${formatEuro(price)}` : ""}${prTxt}${seTxt}`;
       const lines = doc.splitTextToSize(title, contentW - 6);
       ensureSpace(lines.length * 5 + 1);
+      dot(y);
       doc.setFont("helvetica", "bold");
-      doc.text("•", margin, y);
       doc.text(lines, margin + 5, y);
       doc.setFont("helvetica", "normal");
       y += lines.length * 5;
@@ -288,15 +390,19 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
     let col = 0;
     let rowY = y;
     for (const p of reportPhotos) {
-      if (col === 0) { ensureSpace(imgH + 8); rowY = y; }
+      if (col === 0) {
+        ensureSpace(imgH + 8);
+        rowY = y;
+      }
       const x = margin + col * (imgW + gap);
       try {
         const url = await signedPhotoUrl(p.storage_path);
         const img = await loadImage(url);
         doc.addImage(img, "JPEG", x, rowY, imgW, imgH);
       } catch {
-        doc.setDrawColor(...MUTED);
-        doc.rect(x, rowY, imgW, imgH);
+        doc.setDrawColor(...LINE);
+        doc.setLineWidth(0.35);
+        doc.roundedRect(x, rowY, imgW, imgH, 1.5, 1.5, "S");
       }
       if (p.caption?.trim()) {
         doc.setFontSize(8);
@@ -307,7 +413,10 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
         doc.setTextColor(...DARK);
       }
       col++;
-      if (col >= cols) { col = 0; y = rowY + imgH + 12; }
+      if (col >= cols) {
+        col = 0;
+        y = rowY + imgH + 12;
+      }
     }
     if (col !== 0) y = rowY + imgH + 12;
   }
@@ -315,7 +424,7 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
   // ---- Signature ----
   ensureSpace(52);
   y += 8;
-  doc.setDrawColor(...MUTED);
+  doc.setDrawColor(...LINE);
   doc.setLineWidth(0.3);
   const author = data.authorName?.trim() || company;
 
@@ -323,12 +432,18 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
   const fitImage = async (dataUrl: string, x: number, top: number, maxW: number, maxH: number) => {
     try {
       const img = await loadImage(dataUrl);
-      const ratio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
+      const ratio =
+        img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
       let w = maxW;
       let h = w / ratio;
-      if (h > maxH) { h = maxH; w = h * ratio; }
+      if (h > maxH) {
+        h = maxH;
+        w = h * ratio;
+      }
       doc.addImage(dataUrl, "PNG", x, top, w, h, undefined, "NONE");
-    } catch { /* image optionnelle */ }
+    } catch {
+      /* image optionnelle */
+    }
   };
 
   // Bloc « Signature — l'intervenant » (à gauche)
@@ -379,13 +494,18 @@ export async function buildInterventionPdf(data: InterventionReportData): Promis
   ]
     .filter(Boolean)
     .join(" ");
-  const fileName = parts.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+  const fileName = parts
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   const filename = `${fileName}.pdf`;
   const blob = doc.output("blob");
   return { blob, filename };
 }
 
-export async function exportInterventionPdf(data: InterventionReportData): Promise<{ blob: Blob; filename: string }> {
+export async function exportInterventionPdf(
+  data: InterventionReportData,
+): Promise<{ blob: Blob; filename: string }> {
   const built = await buildInterventionPdf(data);
   const url = URL.createObjectURL(built.blob);
   const a = document.createElement("a");
