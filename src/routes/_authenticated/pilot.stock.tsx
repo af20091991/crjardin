@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "@/components/ui/lazy-recharts";
 import { AddStockMovementDialog } from "@/components/pilot/stock/AddStockMovementDialog";
 import { BulkAddStockItemsDialog } from "@/components/pilot/stock/BulkAddStockItemsDialog";
 import { EditStockItemDialog } from "@/components/pilot/stock/EditStockItemDialog";

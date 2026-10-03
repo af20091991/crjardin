@@ -9,7 +9,7 @@ import { usePilotData } from "@/components/pilot/usePilotData";
 import { formatEuro, formatPct, MONTHS, sum } from "@/lib/pilot";
 import { isRealizedAccountingDate, todayIso } from "@/lib/pilot-realized";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "@/components/ui/lazy-recharts";
 
 export const Route = createFileRoute("/_authenticated/pilot/benchmark")({
   head: () => ({

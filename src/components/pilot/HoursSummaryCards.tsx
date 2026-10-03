@@ -1,7 +1,7 @@
 import { Clock, Gauge, Scale, Timer, History } from "lucide-react";
 import { PilotCard } from "@/components/pilot/PilotCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { PieChart, Pie, Cell } from "recharts";
+import { PieChart, Pie, Cell } from "@/components/ui/lazy-recharts";
 import { formatHours } from "@/lib/pilot-hours-ledger";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import type { RealHoursResolution } from "@/lib/pilot-real-hours";

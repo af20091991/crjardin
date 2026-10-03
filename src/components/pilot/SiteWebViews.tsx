@@ -9,7 +9,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts";
+} from "@/components/ui/lazy-recharts";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import {
