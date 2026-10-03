@@ -350,7 +350,9 @@ function InterventionDetail() {
         listRecommendationsByClient(iv.client_id),
         getMyProfile(),
       ]);
-      await (await import("@/lib/intervention-pdf")).exportInterventionPdf({
+      await (
+        await import("@/lib/intervention-pdf")
+      ).exportInterventionPdf({
         intervention: iv,
         client,
         tasks: t,

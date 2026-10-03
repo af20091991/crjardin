@@ -58,7 +58,9 @@ export function SstWorksiteEmailDialog({ sheet }: { sheet: WorksiteSheet }) {
     }
     setSending(true);
     try {
-      const pdfBlob = await (await import("@/lib/worksite-pdf-complete")).createCompleteWorksiteSheetPdf(sheet);
+      const pdfBlob = await (
+        await import("@/lib/worksite-pdf-complete")
+      ).createCompleteWorksiteSheetPdf(sheet);
       const pdfUrl = await uploadWorksiteMethodPdf(sheet.id, pdfBlob);
       const commonData = {
         clientName: [sheet.civility?.trim(), sheet.client_name?.trim()].filter(Boolean).join(" "),

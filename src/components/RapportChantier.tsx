@@ -59,9 +59,7 @@ function Section({
   return (
     <section className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
       <h2 className="text-2xl font-semibold text-foreground">{title}</h2>
-      {description && (
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-      )}
+      {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       <div className="mt-6">{children}</div>
     </section>
   );
@@ -70,9 +68,7 @@ function Section({
 export default function RapportChantier() {
   const [nomClient, setNomClient] = useState("");
   const [emailClient, setEmailClient] = useState("");
-  const [dateIntervention, setDateIntervention] = useState<Date | undefined>(
-    new Date(),
-  );
+  const [dateIntervention, setDateIntervention] = useState<Date | undefined>(new Date());
   const [planning, setPlanning] = useState<PlanningRow[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -133,9 +129,7 @@ export default function RapportChantier() {
         return;
       }
       setPlanning(rows);
-      toast.success(
-        `Planning importé : ${rows.length} mois, ${total} tâche(s) au total.`,
-      );
+      toast.success(`Planning importé : ${rows.length} mois, ${total} tâche(s) au total.`);
     } catch (err) {
       console.error(err);
       toast.error("Impossible de lire ce fichier. Formats acceptés : PDF, Word (.docx).");
@@ -152,9 +146,7 @@ export default function RapportChantier() {
       const byLabel = new Map(prev.map((t) => [t.label.toLowerCase(), t]));
       const planned = labels.map<Task>((label) => {
         const ex = byLabel.get(label.toLowerCase());
-        return ex
-          ? { ...ex, label }
-          : { id: uid(), label, status: "pending", note: "" };
+        return ex ? { ...ex, label } : { id: uid(), label, status: "pending", note: "" };
       });
       // conserve les tâches ajoutées manuellement (absentes du planning)
       const plannedSet = new Set(labels.map((l) => l.toLowerCase()));
@@ -170,9 +162,7 @@ export default function RapportChantier() {
     const reportes = tasks.filter((t) => t.status === "reporte");
     if (reportes.length && currentRow) {
       parts.push(`Travaux reportés de ${currentRow.monthLabel} :`);
-      reportes.forEach((t) =>
-        parts.push(`- ${t.label}${t.note ? ` (${t.note})` : ""}`),
-      );
+      reportes.forEach((t) => parts.push(`- ${t.label}${t.note ? ` (${t.note})` : ""}`));
     }
     if (nextRow && nextRow.tasks.length) {
       if (parts.length) parts.push("");
@@ -184,19 +174,14 @@ export default function RapportChantier() {
 
   // Met à jour le champ tant que l'utilisateur ne l'a pas édité manuellement
   useEffect(() => {
-    setTravauxProchaine((prev) =>
-      prev === autoProchaineRef.current ? autoProchaine : prev,
-    );
+    setTravauxProchaine((prev) => (prev === autoProchaineRef.current ? autoProchaine : prev));
     autoProchaineRef.current = autoProchaine;
   }, [autoProchaine]);
 
   function addManualTask() {
     const label = newTask.trim();
     if (!label) return;
-    setTasks((prev) => [
-      ...prev,
-      { id: uid(), label, status: "pending", note: "", manual: true },
-    ]);
+    setTasks((prev) => [...prev, { id: uid(), label, status: "pending", note: "", manual: true }]);
     setNewTask("");
   }
 
@@ -244,7 +229,9 @@ export default function RapportChantier() {
     }
     setSending(true);
     try {
-      await (await import("@/lib/pdf-export")).exportReportPdf({
+      await (
+        await import("@/lib/pdf-export")
+      ).exportReportPdf({
         nomClient: nomClient.trim(),
         emailClient: emailClient.trim(),
         dateLabel: dateIntervention
@@ -406,8 +393,8 @@ export default function RapportChantier() {
               {candidates.length === 0 && currentMonth != null && (
                 <p className="text-xs text-muted-foreground">
                   Aucune intervention planifiée en{" "}
-                  {format(dateIntervention!, "MMMM", { locale: fr })} : choisissez
-                  l'intervention manuellement ci-dessus.
+                  {format(dateIntervention!, "MMMM", { locale: fr })} : choisissez l'intervention
+                  manuellement ci-dessus.
                 </p>
               )}
             </div>
@@ -432,10 +419,7 @@ export default function RapportChantier() {
 
           <div className="space-y-3">
             {tasks.map((t) => (
-              <div
-                key={t.id}
-                className="rounded-xl border border-border bg-background/60 p-4"
-              >
+              <div key={t.id} className="rounded-xl border border-border bg-background/60 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <p className="flex-1 font-medium text-foreground">{t.label}</p>
                   <button
@@ -470,9 +454,7 @@ export default function RapportChantier() {
                     value={t.note}
                     onChange={(e) => updateTask(t.id, { note: e.target.value })}
                     placeholder={
-                      t.status === "realise"
-                        ? "Commentaire (optionnel)"
-                        : "Motif du report"
+                      t.status === "realise" ? "Commentaire (optionnel)" : "Motif du report"
                     }
                     className="mt-3"
                     maxLength={300}
@@ -483,8 +465,7 @@ export default function RapportChantier() {
 
             {tasks.length === 0 && (
               <p className="rounded-xl border border-dashed border-border bg-secondary/30 px-4 py-6 text-center text-sm text-muted-foreground">
-                Aucune tâche pour le moment. Importez un planning ou ajoutez une tâche
-                manuellement.
+                Aucune tâche pour le moment. Importez un planning ou ajoutez une tâche manuellement.
               </p>
             )}
           </div>
