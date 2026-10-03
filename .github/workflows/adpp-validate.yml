@@ -99,3 +99,9 @@ jobs:
             -f state="${STATE}" \
             -f context="ADPP Validation / validate" \
             -f description="ADPP validation ${STATE}"
+          if [ "${STATUS_SHA}" != "${GITHUB_SHA}" ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+              -f state="${STATE}" \
+              -f context="ADPP Validation / validate" \
+              -f description="ADPP validation ${STATE}"
+          fi
