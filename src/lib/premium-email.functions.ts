@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 // prettier-ignore
 import { template as premiumWelcomeTemplate } from "@/lib/email-templates/premium-welcome";
 import { template as premiumReplyTemplate } from "@/lib/email-templates/premium-reply";
+import { template as premiumMessageTemplate } from "@/lib/email-templates/premium-message";
 
 // prettier-ignore
 const TEMPLATE_NAME = "premium-welcome";
@@ -120,7 +121,7 @@ export const listPremiumEmailLog = createServerFn({ method: "GET" })
 // prettier-ignore
 export const sendPremiumReplyNotification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { clientId: string }) => input)
+  .inputValidator((input: { clientId: string; spontaneous?: boolean }) => input)
   .handler(async ({ context, data }) => {
     const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
@@ -146,9 +147,13 @@ export const sendPremiumReplyNotification = createServerFn({ method: "POST" })
     const results = await sendPremiumMailToAll({
       supabaseAdmin,
       client,
-      templateName: "premium-reply",
-      subject: "J'ai répondu à votre message — De la graine au jardin",
-      component: premiumReplyTemplate.component,
+      templateName: data.spontaneous ? "premium-message" : "premium-reply",
+      subject: data.spontaneous
+        ? "Un message pour vous — De la graine au jardin"
+        : "J'ai répondu à votre message — De la graine au jardin",
+      component: data.spontaneous
+        ? premiumMessageTemplate.component
+        : premiumReplyTemplate.component,
       skipAlreadySent: false,
     });
     return { results };

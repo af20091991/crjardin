@@ -125,6 +125,7 @@ export interface ClientMessage {
   author_name: string | null;
   sender: string;
   created_at: string;
+  archived_at?: string | null;
 }
 
 export const markSharedRead = createServerFn({ method: "POST" })
