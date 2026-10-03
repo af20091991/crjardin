@@ -380,6 +380,81 @@ export const DEFAULT_APPEARANCE: Appearance = {
 export const PRIMARY_PRESETS = ["#4F8E33", "#1F3D2B", "#3E7D44", "#2E8CCC", "#825A41", "#0F766E"];
 export const ACCENT_PRESETS = ["#EE8627", "#D98A3D", "#E0A21B", "#C97B4A", "#B4531F", "#DC2626"];
 
+const FONT_CSS_LINK_ID = "pp-google-fonts";
+const GOOGLE_FONT_FAMILY: Record<Exclude<FontChoice, "auto" | "system">, string> = {
+  jakarta: "Plus Jakarta Sans:wght@400;500;600;700",
+  inter: "Inter:wght@400;500;600;700",
+  worksans: "Work Sans:wght@400;500;600;700",
+  manrope: "Manrope:wght@400;500;600;700",
+  outfit: "Outfit:wght@400;500;600;700",
+  sora: "Sora:wght@400;500;600;700",
+  spacegrotesk: "Space Grotesk:wght@400;500;600;700",
+  dmsans: "DM Sans:wght@400;500;600;700",
+  poppins: "Poppins:wght@400;500;600;700",
+  nunito: "Nunito:wght@400;500;600;700",
+  quicksand: "Quicksand:wght@400;500;600;700",
+  roboto: "Roboto:wght@400;500;600;700",
+  opensans: "Open Sans:wght@400;500;600;700",
+  lato: "Lato:wght@400;700",
+  montserrat: "Montserrat:wght@400;500;600;700",
+  raleway: "Raleway:wght@400;500;600;700",
+  rubik: "Rubik:wght@400;500;600;700",
+  figtree: "Figtree:wght@400;500;600;700",
+  karla: "Karla:wght@400;500;600;700",
+  newsreader: "Newsreader:wght@400;500;600;700",
+  fraunces: "Fraunces:wght@400;500;600;700",
+  lora: "Lora:wght@400;500;600;700",
+  sourceserif: "Source Serif 4:wght@400;500;600;700",
+  playfair: "Playfair Display:wght@400;500;600;700",
+  cormorant: "Cormorant Garamond:wght@400;500;600;700",
+  baskerville: "Libre Baskerville:wght@400;700",
+  spectral: "Spectral:wght@400;500;600;700",
+  ptserif: "PT Serif:wght@400;700",
+  robotoslab: "Roboto Slab:wght@400;500;600;700",
+  merriweather: "Merriweather:wght@400;500;600;700",
+  bitter: "Bitter:wght@400;500;600;700",
+  syne: "Syne:wght@400;500;600;700;800",
+  oswald: "Oswald:wght@400;500;600;700",
+  bebas: "Bebas Neue:wght@400",
+  jetbrains: "JetBrains Mono:wght@400;500;600;700",
+  ibmplexmono: "IBM Plex Mono:wght@400;500;600;700",
+  spacemono: "Space Mono:wght@400;700",
+};
+
+function ensureGoogleFonts(a: Appearance) {
+  if (typeof document === "undefined") return;
+  const head = document.head;
+  if (!head?.querySelector || !head.appendChild || !document.createElement) return;
+  const families = new Set<string>();
+  if (a.fontBody === "auto") families.add("Plus Jakarta Sans:wght@400;500;600;700");
+  if (typeof window !== "undefined" && window.location?.pathname?.startsWith("/partage/")) {
+    families.add("Cormorant Garamond:wght@400;500;600;700");
+  }
+  if (a.fontHeading === "auto") families.add("Syne:wght@400;500;600;700;800");
+  if (a.fontNumeric === "auto" && a.ui === "next") {
+    families.add("Newsreader:wght@400;500;600;700");
+  }
+  for (const choice of [a.fontHeading, a.fontBody, a.fontNumeric]) {
+    if (choice && choice !== "auto" && choice !== "system") {
+      families.add(GOOGLE_FONT_FAMILY[choice]);
+    }
+  }
+  const href =
+    "https://fonts.googleapis.com/css2?" +
+    [...families]
+      .map((family) => `family=${encodeURIComponent(family)}`)
+      .join("&") +
+    "&display=swap";
+  let link = head.querySelector<HTMLLinkElement>(`#${FONT_CSS_LINK_ID}`);
+  if (!link) {
+    link = document.createElement("link");
+    link.id = FONT_CSS_LINK_ID;
+    link.rel = "stylesheet";
+    head.appendChild(link);
+  }
+  if (link.getAttribute("href") !== href) link.setAttribute("href", href);
+}
+
 const STORAGE_KEY = "cr-appearance";
 
 function load(): Appearance {
@@ -402,6 +477,7 @@ function setFlag(root: HTMLElement, name: string, value: string | null) {
 export function applyAppearance(a: Appearance) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
+  ensureGoogleFonts(a);
   const prefersDark =
     typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches;
   const dark = a.theme === "dark" || (a.theme === "auto" && prefersDark);
