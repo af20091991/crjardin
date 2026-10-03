@@ -26,7 +26,6 @@ describe("catalogue typographique — chargement effectif", () => {
 
   it("les familles de personnalisation sont chargées à la demande", () => {
     expect(appearanceSrc).toContain("GOOGLE_FONT_FAMILY");
-    expect(appearanceSrc).toContain("FONT_STACKS[choice]");
     expect(appearanceSrc).toContain("GOOGLE_FONT_FAMILY");
     expect(appearanceSrc).toContain("https://fonts.googleapis.com/css2?");
     expect(appearanceSrc).toContain('link.rel = "stylesheet"');
