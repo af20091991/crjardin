@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-03",
+    version: "2.3.40",
+    theme: "PDF & Partage",
+    title: "Rapport de chantier — style du carnet Premium",
+    details: [
+      "L’export PDF reprend la typographie éditoriale, le vert profond et les séparateurs sobres du carnet Premium.",
+      "La fiche client/date et la pagination bénéficient d’une mise en page plus lisible, y compris sur plusieurs pages.",
+      "Les contenus du rapport, les photos et le nom du fichier restent inchangés.",
+    ],
+  },
+  {
     date: "2026-10-01",
     version: "2.3.39",
     theme: "Clients",
