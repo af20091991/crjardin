@@ -81,6 +81,7 @@ import { PremiumHome, PremiumExchange, type PremiumSection } from "@/components/
 import { PremiumNav } from "@/components/share/PremiumNav";
 import { PremiumInstall } from "@/components/share/PremiumInstall";
 import { PremiumPhotos } from "@/components/share/PremiumPhotos";
+import { PremiumRecommendations } from "@/components/share/PremiumRecommendations";
 import { PremiumWorkCalendar } from "@/components/share/PremiumWorkCalendar";
 import { useIsAdmin } from "@/hooks/use-admin";
 
@@ -481,6 +482,9 @@ function PremiumExperience({
             afterCover={<PremiumNav section={section} onNavigate={navigate} className="-mt-10 sm:-mt-12" />}
           />
         )}
+        {section !== "home" && (
+          <PremiumNav section={section} onNavigate={navigate} className="mb-10 sm:mb-14" />
+        )}
         {section === "calendar" && (
           <section>
             <PremiumPageIntro
@@ -491,7 +495,6 @@ function PremiumExperience({
             <PremiumWorkCalendar items={premium.work_calendar} editorial />
           </section>
         )}
-        {section !== "home" && <PremiumNav section={section} onNavigate={navigate} />}
         {section === "garden" && (
           <section>
             <PremiumPageIntro
@@ -523,6 +526,16 @@ function PremiumExperience({
               client={client}
               editorial
             />
+          </section>
+        )}
+        {section === "recommendations" && (
+          <section>
+            <PremiumPageIntro
+              eyebrow="Vos conseils"
+              title="Préconisations"
+              text="Les recommandations rédigées après chaque intervention. Dites-nous simplement celles qui vous intéressent."
+            />
+            <PremiumRecommendations groups={premium.recommendation_groups} token={token} />
           </section>
         )}
         {section === "photos" && (

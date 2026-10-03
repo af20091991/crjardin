@@ -36,6 +36,7 @@ export type PremiumSection =
   | "home"
   | "garden"
   | "reports"
+  | "recommendations"
   | "photos"
   | "documents"
   | "calendar"

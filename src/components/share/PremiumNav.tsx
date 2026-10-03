@@ -17,10 +17,11 @@ export const PREMIUM_NAV: NavEntry[] = [
   { id: "home", label: "Accueil" },
   { id: "garden", label: "Le jardin" },
   { id: "reports", label: "Les interventions" },
-  { id: "photos", label: "Photos" },
+  { id: "recommendations", label: "Préconisations" },
   {
-    label: "Documents",
+    label: "Photos et Documents",
     children: [
+      { id: "photos", label: "Photos" },
       { id: "documents", label: "Documents" },
       { id: "calendar", label: "Calendrier travaux" },
     ],
