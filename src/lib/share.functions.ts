@@ -85,7 +85,15 @@ export interface SharedPremiumUpcoming {
   details: string | null;
 }
 
+export interface PremiumRecommendationGroup {
+  intervention_id: string | null;
+  title: string;
+  date: string | null;
+  items: SharedRecommendation[];
+}
+
 export interface SharedPremiumData {
+  recommendation_groups: PremiumRecommendationGroup[];
   enabled: boolean;
   garden_state: string | null;
   garden_objectives: string | null;
@@ -460,7 +468,61 @@ export const getSharedPremium = createServerFn({ method: "GET" })
       .limit(1)
       .maybeSingle();
 
+    // Préconisations rédigées dans les comptes-rendus de chantier, regroupées par intervention.
+    const { data: recoRows } = await supabaseAdmin
+      .from("recommendations")
+      .select(
+        "id, title, description, category, status, estimated_hours, unit_price, client_interest, client_viewed_at, intervention_id",
+      )
+      .eq("client_id", client.id)
+      .in("status", ["en_attente", "acceptee", "proposee"])
+      .order("created_at", { ascending: false });
+    const recoInterventionIds = Array.from(
+      new Set((recoRows ?? []).map((row) => row.intervention_id).filter(Boolean)),
+    ) as string[];
+    const { data: recoInterventions } = recoInterventionIds.length
+      ? await supabaseAdmin
+          .from("interventions")
+          .select("id, title, intervention_type, intervention_date")
+          .in("id", recoInterventionIds)
+      : {
+          data: [] as Array<{
+            id: string;
+            title: string | null;
+            intervention_type: string | null;
+            intervention_date: string;
+          }>,
+        };
+    const interventionById = new Map((recoInterventions ?? []).map((iv) => [iv.id, iv]));
+    const groupsMap = new Map<string, PremiumRecommendationGroup>();
+    for (const row of recoRows ?? []) {
+      const key = row.intervention_id ?? "none";
+      const iv = row.intervention_id ? interventionById.get(row.intervention_id) : undefined;
+      const group = groupsMap.get(key) ?? {
+        intervention_id: row.intervention_id ?? null,
+        title: iv?.title || iv?.intervention_type || "Préconisations",
+        date: iv?.intervention_date ?? null,
+        items: [],
+      };
+      group.items.push({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        category: row.category,
+        status: row.status,
+        estimated_hours: row.estimated_hours,
+        unit_price: row.unit_price,
+        client_interest: row.client_interest,
+        client_viewed_at: row.client_viewed_at,
+      });
+      groupsMap.set(key, group);
+    }
+    const recommendationGroups = Array.from(groupsMap.values()).sort((a, b) =>
+      (b.date ?? "").localeCompare(a.date ?? ""),
+    );
+
     return {
+      recommendation_groups: recommendationGroups,
       enabled: raw.enabled,
       garden_state: latestGardenReport?.garden_state ?? raw.garden_state,
       garden_objectives: raw.garden_objectives,
@@ -682,4 +744,60 @@ export const markSharedDocumentViewed = createServerFn({ method: "POST" })
       })
       .eq("id", document.id);
     return { ok: !error };
+  });
+
+/**
+ * Suivi de consultation : le client vient d'ouvrir la page Préconisations de son espace Premium.
+ * Marque les préconisations comme vues, journalise la consultation et prévient le jardinier
+ * dans l'appli (au plus une alerte toutes les 6 heures pour ne pas le submerger).
+ */
+export const trackPremiumRecommendationsConsulted = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin, client } = await requireEnabledPremiumClient(data.token);
+    const now = new Date().toISOString();
+    const forwarded = getRequestHeader("x-forwarded-for") ?? "";
+    const ip = forwarded.split(",")[0].trim() || getRequestHeader("cf-connecting-ip") || null;
+
+    await supabaseAdmin.from("share_access_log").insert({
+      client_id: client.id,
+      user_agent: getRequestHeader("user-agent") ?? null,
+      ip_address: ip,
+      section: "preconisations",
+    } as never);
+
+    const { data: newlyViewed } = await supabaseAdmin
+      .from("recommendations")
+      .update({ client_viewed_at: now })
+      .eq("client_id", client.id)
+      .in("status", ["en_attente", "acceptee", "proposee"])
+      .is("client_viewed_at", null)
+      .select("id");
+
+    const title = `${client.name} a consulté la page Préconisations`;
+    const since = new Date(Date.now() - 6 * 3_600_000).toISOString();
+    const { data: recent } = await supabaseAdmin
+      .from("notifications")
+      .select("id")
+      .eq("client_id", client.id)
+      .eq("title", title)
+      .gte("created_at", since)
+      .limit(1);
+    if ((recent ?? []).length === 0) {
+      const fresh = newlyViewed?.length ?? 0;
+      await supabaseAdmin.from("notifications").insert({
+        user_id: client.user_id,
+        type: "read",
+        title,
+        body:
+          fresh > 0
+            ? `Il vient de découvrir ${fresh} nouvelle${fresh > 1 ? "s" : ""} préconisation${fresh > 1 ? "s" : ""}.`
+            : "Il vient de relire ses préconisations.",
+        client_id: client.id,
+      });
+    }
+    return { ok: true };
   });
