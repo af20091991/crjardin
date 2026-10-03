@@ -28,7 +28,12 @@ export async function listMessagesByClient(clientId: string): Promise<ClientMess
   return data as ClientMessageRow[];
 }
 
-export async function replyToClient(input: { client_id: string; intervention_id: string | null; content: string; authorName?: string | null }): Promise<void> {
+export async function replyToClient(input: {
+  client_id: string;
+  intervention_id: string | null;
+  content: string;
+  authorName?: string | null;
+}): Promise<void> {
   await uid();
   const { error } = await supabase.from("client_messages").insert({
     client_id: input.client_id,
@@ -40,6 +45,25 @@ export async function replyToClient(input: { client_id: string; intervention_id:
     resolved: true,
   });
   if (error) throw error;
+}
+
+/**
+ * Clôture la conversation en cours d'un client : tous ses messages ouverts reçoivent la date du jour
+ * et sont classés dans les archives. Un nouveau message rouvre ensuite une conversation vierge.
+ */
+export async function archiveConversation(clientId: string): Promise<void> {
+  const { error } = await supabase
+    .from("client_messages")
+    .update({ archived_at: new Date().toISOString(), resolved: true } as never)
+    .eq("client_id", clientId)
+    .is("archived_at" as never, null);
+  if (error) {
+    throw new Error(
+      error.message.includes("archived_at")
+        ? "L'archivage n'est pas encore activé sur la base de données."
+        : error.message,
+    );
+  }
 }
 
 export async function resolveMessage(id: string, resolved: boolean): Promise<void> {

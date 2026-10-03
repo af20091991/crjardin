@@ -28,6 +28,7 @@ export type PremiumMessage = {
   sender: string;
   resolved: boolean;
   created_at: string;
+  archived_at?: string | null;
 };
 
 export type PremiumDocumentRow = {
@@ -129,9 +130,7 @@ export function usePremiumAdminData(enabled: boolean) {
     queryFn: async (): Promise<PremiumMessage[]> => {
       const { data, error } = await supabase
         .from("client_messages")
-        .select(
-          "id, client_id, intervention_id, kind, content, author_name, sender, resolved, created_at",
-        )
+        .select("*")
         .order("created_at", { ascending: false });
       if (error) fail("Impossible de charger les demandes Premium", error);
       return (data ?? []) as PremiumMessage[];
@@ -255,7 +254,8 @@ export function usePremiumAdminData(enabled: boolean) {
         lastReportSentAt,
         lastAccess,
         pendingMessages: (messagesQuery.data ?? []).filter(
-          (m) => m.client_id === client.id && !m.resolved && m.sender === "client",
+          (m) =>
+            m.client_id === client.id && !m.resolved && !m.archived_at && m.sender === "client",
         ).length,
         clientDocuments: (documentsQuery.data ?? []).filter(
           (d) => d.client_id === client.id && d.uploaded_by === "client",
