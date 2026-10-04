@@ -7,3 +7,4 @@ package-lock.json
 bun.lock
 routeTree.gen.ts
 src/routes/partage.$token.tsx
+public/spellcheck

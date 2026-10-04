@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-04",
+    version: "2.3.48",
+    theme: "Général",
+    title: "Détecteur d'orthographe sur tous les champs de saisie",
+    details: [
+      "Un correcteur français intégré repère les fautes possibles dans tous les champs de texte rédigé (notes, commentaires, titres…) et affiche « N fautes possibles » sous le champ concerné.",
+      "Un clic liste chaque mot avec des suggestions (accents compris), un bouton Ignorer et « Ajouter au dictionnaire » (mémorisé sur l'appareil).",
+      "Le texte ne quitte jamais le navigateur ; les champs techniques (e-mail, code, URL), les sigles et les noms propres probables sont ignorés.",
+    ],
+  },
+  {
+    date: "2026-10-04",
     version: "2.3.47",
     theme: "Général",
     title: "Calendrier SST — vues Mois, Semaine et Agenda",
