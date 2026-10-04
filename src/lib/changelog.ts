@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-04",
+    version: "2.3.43",
+    theme: "PDF & Partage",
+    title: "Aperçu du compte-rendu aligné sur le PDF",
+    details: [
+      "L’aperçu à l’écran reprend l’en-tête éditorial, le cartouche crème, les titres serif et les puces rondes du PDF.",
+      "Le titre « Compte-rendu d’intervention » du PDF est allégé (graisse normale).",
+    ],
+  },
+  {
+    date: "2026-10-04",
     version: "2.3.42",
     theme: "PDF & Partage",
     title: "PDF téléchargé par le client — style du carnet Premium",

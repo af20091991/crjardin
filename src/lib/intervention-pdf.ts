@@ -162,7 +162,7 @@ export async function buildInterventionPdf(
   doc.setFontSize(8);
   doc.text("DE LA GRAINE AU JARDIN", margin + 28, 24);
   doc.setTextColor(...DARK);
-  doc.setFont("times", "bold");
+  doc.setFont("times", "normal");
   doc.setFontSize(23);
   doc.text("Compte-rendu d'intervention", margin + 28, 34);
   doc.setTextColor(...MUTED);
