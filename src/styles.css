@@ -1161,3 +1161,9 @@ html[data-active-indicator="strong"] [data-shell="nav"] a[data-active="true"] {
 [data-personalization="preview"] {
   background-color: color-mix(in oklab, var(--secondary) 55%, var(--card));
 }
+
+/* Détecteur d'orthographe : repère visuel sur un champ contenant des fautes possibles. */
+[data-spell-issues="true"] {
+  outline: 1px dotted var(--destructive);
+  outline-offset: 1px;
+}

@@ -1,3 +1,4 @@
+import { SpellcheckAssistant } from "@/components/SpellcheckAssistant";
 import { SpellcheckGuard } from "@/components/SpellcheckGuard";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -157,6 +158,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <SpellcheckGuard />
+      <SpellcheckAssistant />
       <AuthProvider>
         <AppearanceProvider>
           <PilotModeProvider>
