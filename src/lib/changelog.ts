@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-04",
+    version: "2.3.42",
+    theme: "PDF & Partage",
+    title: "PDF téléchargé par le client — style du carnet Premium",
+    details: [
+      "Le compte-rendu PDF téléchargé depuis l’espace client reprend l’en-tête éditorial, les titres serif et le cartouche crème du carnet Premium.",
+      "Les contenus, photos et le nom du fichier restent inchangés.",
+    ],
+  },
+  {
     date: "2026-10-03",
     version: "2.3.41",
     theme: "PDF & Partage",

@@ -1,13 +1,19 @@
 import { jsPDF } from "jspdf";
+import logo from "@/assets/logo.png";
 import type { SharedIntervention, SharedClientData } from "@/lib/share.functions";
 
-const GREEN: [number, number, number] = [76, 138, 47];
-const DARK: [number, number, number] = [45, 55, 40];
-const MUTED: [number, number, number] = [120, 120, 110];
-const LIGHT: [number, number, number] = [240, 244, 236];
+// Palette du carnet Premium, adaptée au rendu PDF (vert profond, crème et encre).
+const GREEN: [number, number, number] = [79, 142, 51];
+const DARK: [number, number, number] = [48, 55, 45];
+const MUTED: [number, number, number] = [112, 116, 106];
+const LINE: [number, number, number] = [221, 226, 215];
+const SURFACE: [number, number, number] = [247, 249, 243];
 
 const TASK_LABELS: Record<string, string> = {
-  realise: "Réalisé", partiel: "Partiel", reporte: "Reporté", impossible: "Non réalisable",
+  realise: "Réalisé",
+  partiel: "Partiel",
+  reporte: "Reporté",
+  impossible: "Non réalisable",
 };
 
 function loadImage(url: string): Promise<HTMLImageElement> {
@@ -37,20 +43,30 @@ export async function exportSharedInterventionPdf(
   let y = margin;
 
   const dateStr = new Date(iv.intervention_date).toLocaleDateString("fr-FR", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 
-  const ensureSpace = (h: number) => { if (y + h > pageH - margin - 6) { doc.addPage(); y = margin; } };
+  const ensureSpace = (h: number) => {
+    if (y + h > pageH - margin - 10) {
+      doc.addPage();
+      y = margin;
+    }
+  };
 
   const heading = (title: string) => {
-    ensureSpace(14);
-    doc.setFillColor(...LIGHT);
-    doc.roundedRect(margin, y - 1, contentW, 9, 1.5, 1.5, "F");
+    y += 5;
+    ensureSpace(16);
+    doc.setFont("times", "bold");
+    doc.setFontSize(15);
     doc.setTextColor(...GREEN);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text(title, margin + 3, y + 5.5);
-    y += 13;
+    doc.text(title, margin, y);
+    doc.setDrawColor(...GREEN);
+    doc.setLineWidth(0.6);
+    doc.line(margin, y + 3, margin + 11, y + 3);
+    y += 10;
     doc.setTextColor(...DARK);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10.5);
@@ -66,44 +82,113 @@ export async function exportSharedInterventionPdf(
     y += 2;
   };
 
-  // Header
-  doc.setFillColor(...GREEN);
-  doc.rect(0, 0, pageW, 28, "F");
-  doc.setTextColor(255, 255, 255);
+  // En-tête éditorial : filet vert, marque, grand titre serif, cartouche crème.
+  doc.setDrawColor(...GREEN);
+  doc.setLineWidth(0.65);
+  doc.line(margin, 12, pageW - margin, 12);
+  try {
+    const img = await loadImage(logo);
+    doc.addImage(img, "PNG", margin, 19, 22, 22, undefined, "NONE");
+  } catch {
+    /* logo optionnel */
+  }
+  doc.setTextColor(...GREEN);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("Compte-rendu d'intervention", margin, 13);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(clientLabel(client), margin, 21);
-  y = 36;
-
+  doc.setFontSize(8);
+  doc.text("DE LA GRAINE AU JARDIN", margin + 28, 24);
   doc.setTextColor(...DARK);
+  doc.setFont("times", "bold");
+  doc.setFontSize(23);
+  doc.text("Compte-rendu d'intervention", margin + 28, 34);
+  doc.setTextColor(...MUTED);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text("Le carnet du jardin", margin + 28, 41);
+
+  const metaY = 51;
+  const metaH = 25;
+  const dividerX = margin + contentW * 0.63;
+  doc.setFillColor(...SURFACE);
+  doc.roundedRect(margin, metaY, contentW, metaH, 2, 2, "F");
+  doc.setDrawColor(...LINE);
+  doc.setLineWidth(0.25);
+  doc.line(dividerX, metaY + 4, dividerX, metaY + metaH - 4);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.text(iv.title ?? iv.intervention_type ?? "Intervention", margin, y);
-  y += 6;
+  doc.setFontSize(7.5);
+  doc.setTextColor(...GREEN);
+  doc.text("CLIENT", margin + 5, metaY + 7);
+  doc.text("DATE D'INTERVENTION", dividerX + 5, metaY + 7);
+  doc.setFontSize(10.5);
+  doc.setTextColor(...DARK);
+  doc.text(
+    doc.splitTextToSize(clientLabel(client) || "—", dividerX - margin - 12).slice(0, 2),
+    margin + 5,
+    metaY + 14,
+  );
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
-  doc.setTextColor(...MUTED);
-  doc.text([iv.reference, dateStr].filter(Boolean).join(" · "), margin, y);
-  y += 9;
+  doc.text(
+    doc.splitTextToSize(dateStr, pageW - margin - dividerX - 10).slice(0, 2),
+    dividerX + 5,
+    metaY + 14,
+  );
+  y = metaY + metaH + 11;
+
+  doc.setTextColor(...DARK);
+  doc.setFont("times", "bold");
+  doc.setFontSize(16);
+  doc.text(iv.title ?? iv.intervention_type ?? "Intervention", margin, y);
+  y += 6;
+  if (iv.reference) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(...MUTED);
+    doc.text(`Référence ${iv.reference}`, margin, y);
+    y += 6;
+  }
+  y += 3;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10.5);
   doc.setTextColor(...DARK);
 
-  if (iv.summary) { heading("Résumé"); paragraph(iv.summary); }
+  if (iv.summary) {
+    heading("Résumé");
+    paragraph(iv.summary);
+  }
 
   if (iv.tasks.length > 0) {
     heading("Travaux réalisés");
     iv.tasks.forEach((t) => {
       ensureSpace(6);
-      const status = t.status && t.status !== "realise" ? ` (${TASK_LABELS[t.status] ?? t.status})` : "";
-      paragraph(`• ${t.label}${status}${t.note ? " — " + t.note : ""}`);
+      const status =
+        t.status && t.status !== "realise" ? ` (${TASK_LABELS[t.status] ?? t.status})` : "";
+      doc.setFillColor(...GREEN);
+      doc.circle(margin + 1, y - 1.2, 0.65, "F");
+      const lines = doc.splitTextToSize(
+        `${t.label}${status}${t.note ? " — " + t.note : ""}`,
+        contentW - 5,
+      );
+      lines.forEach((line: string) => {
+        ensureSpace(6);
+        doc.text(line, margin + 5, y);
+        y += 5.4;
+      });
+      y += 1;
     });
   }
 
-  if (iv.garden_state) { heading("État du jardin"); paragraph(iv.garden_state); }
-  if (iv.recommendations_text) { heading("Préconisations"); paragraph(iv.recommendations_text); }
-  if (iv.upcoming_works) { heading("Travaux à prévoir"); paragraph(iv.upcoming_works); }
+  if (iv.garden_state) {
+    heading("État du jardin");
+    paragraph(iv.garden_state);
+  }
+  if (iv.recommendations_text) {
+    heading("Préconisations");
+    paragraph(iv.recommendations_text);
+  }
+  if (iv.upcoming_works) {
+    heading("Travaux à prévoir");
+    paragraph(iv.upcoming_works);
+  }
 
   const photos = iv.photos.filter((p) => p.url);
   if (photos.length > 0) {
@@ -117,7 +202,10 @@ export async function exportSharedInterventionPdf(
     for (const p of photos) {
       try {
         const img = await loadImage(p.url!);
-        if (col === 0) { ensureSpace(h + 12); rowY = y; }
+        if (col === 0) {
+          ensureSpace(h + 12);
+          rowY = y;
+        }
         const x = margin + col * (w + gap);
         doc.addImage(img, "JPEG", x, rowY, w, h, undefined, "FAST");
         if (p.caption?.trim()) {
@@ -129,8 +217,13 @@ export async function exportSharedInterventionPdf(
           doc.setTextColor(...DARK);
         }
         col++;
-        if (col >= cols) { col = 0; y = rowY + h + 12; }
-      } catch { /* skip */ }
+        if (col >= cols) {
+          col = 0;
+          y = rowY + h + 12;
+        }
+      } catch {
+        /* skip */
+      }
     }
     if (col !== 0) y = rowY + h + 12;
   }
@@ -138,9 +231,13 @@ export async function exportSharedInterventionPdf(
   const pages = doc.getNumberOfPages();
   for (let p = 1; p <= pages; p++) {
     doc.setPage(p);
+    doc.setDrawColor(...LINE);
+    doc.setLineWidth(0.25);
+    doc.line(margin, pageH - 13, pageW - margin, pageH - 13);
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(...MUTED);
-    doc.text(`${clientLabel(client)} · Compte-rendu`, margin, pageH - 8);
+    doc.text(`De la graine au jardin · ${clientLabel(client)}`, margin, pageH - 8);
     doc.text(`${p} / ${pages}`, pageW - margin, pageH - 8, { align: "right" });
   }
 
@@ -154,6 +251,9 @@ export async function exportSharedInterventionPdf(
   ]
     .filter(Boolean)
     .join(" ");
-  const fname = parts.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+  const fname = parts
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   doc.save(`${fname}.pdf`);
 }
