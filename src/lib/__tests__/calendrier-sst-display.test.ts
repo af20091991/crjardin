@@ -2,6 +2,10 @@ import { describe, expect, it } from "bun:test";
 import {
   DEFAULT_CALENDAR_FILTERS,
   DEFAULT_CALENDAR_PREFERENCES,
+  addDaysIso,
+  firstWeekOfMonth,
+  mondayOfIso,
+  weekDatesIso,
   isFilteringCalendar,
   matchesPersonFilter,
   personKey,
@@ -77,5 +81,30 @@ describe("calendrier SST — préférences d'affichage", () => {
       true,
     );
     expect(isFilteringCalendar({ ...DEFAULT_CALENDAR_FILTERS, showWorksites: false })).toBe(true);
+  });
+
+  it("calcule le lundi d'une semaine, y compris le dimanche", () => {
+    expect(mondayOfIso("2026-10-04")).toBe("2026-09-28"); // dimanche
+    expect(mondayOfIso("2026-10-05")).toBe("2026-10-05"); // lundi
+    expect(mondayOfIso("2026-10-08")).toBe("2026-10-05");
+  });
+
+  it("ajoute des jours à travers les mois et années", () => {
+    expect(addDaysIso("2026-10-30", 3)).toBe("2026-11-02");
+    expect(addDaysIso("2026-01-02", -3)).toBe("2025-12-30");
+  });
+
+  it("liste les 7 jours d'une semaine", () => {
+    const days = weekDatesIso("2026-09-28");
+    expect(days).toHaveLength(7);
+    expect(days[0]).toBe("2026-09-28");
+    expect(days[6]).toBe("2026-10-04");
+  });
+
+  it("trouve la première semaine d'un mois (règle du jeudi)", () => {
+    // 1er oct. 2026 = jeudi → semaine du 28 sept.
+    expect(firstWeekOfMonth(2026, 9)).toBe("2026-09-28");
+    // 1er nov. 2026 = dimanche, jeudi précédent en octobre → semaine suivante
+    expect(firstWeekOfMonth(2026, 10)).toBe("2026-11-02");
   });
 });

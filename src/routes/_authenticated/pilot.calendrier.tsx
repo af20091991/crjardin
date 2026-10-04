@@ -70,9 +70,13 @@ import {
   CALENDAR_STORAGE_KEY,
   DEFAULT_CALENDAR_FILTERS,
   DEFAULT_CALENDAR_PREFERENCES,
+  addDaysIso,
   cornerClass,
+  firstWeekOfMonth,
   isFilteringCalendar,
   matchesPersonFilter,
+  mondayOfIso,
+  parseIso,
   personKey,
   gapClass,
   heightClass,
@@ -80,8 +84,10 @@ import {
   splitDayItems,
   styleClass,
   toneClasses,
+  weekDatesIso,
   type CalendarCorner,
   type CalendarFilters,
+  type CalendarView,
   type CalendarDensity,
   type CalendarGap,
   type CalendarPreferences,
@@ -161,6 +167,13 @@ function CalendrierSstPage() {
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [view, setView] = useState<CalendarView>("month");
+  const [weekStart, setWeekStart] = useState(() => mondayOfIso(isoDate(new Date())));
+
+  useEffect(() => {
+    // Sur petit écran, la liste par jour est plus lisible que la grille.
+    if (window.innerWidth < 640) setView("agenda");
+  }, []);
   const unseenChanges = useUnseenSstChanges(isAdmin);
   const unseenByDate = useMemo(() => unseenCountByDate(unseenChanges), [unseenChanges]);
   const [openComment, setOpenComment] = useState<string | null>(null);
@@ -343,15 +356,47 @@ function CalendrierSstPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  // Place l'affichage (mois et semaine) sur une date donnée.
+  const focusDate = (iso: string) => {
+    const date = parseIso(iso);
+    setCursor({ year: date.getFullYear(), month: date.getMonth() });
+    setWeekStart(mondayOfIso(iso));
+  };
+
   const goToday = () => {
     const now = new Date();
-    setCursor({ year: now.getFullYear(), month: now.getMonth() });
+    focusDate(isoDate(now));
     setSelectedDate(isoDate(now));
   };
 
   const shiftMonth = (delta: number) => {
     const next = new Date(cursor.year, cursor.month + delta, 1);
     setCursor({ year: next.getFullYear(), month: next.getMonth() });
+  };
+
+  // Précédent / suivant : une semaine en vue Semaine, un mois sinon.
+  const shift = (delta: number) => {
+    if (view !== "week") return shiftMonth(delta);
+    const next = addDaysIso(weekStart, 7 * delta);
+    setWeekStart(next);
+    const thursday = parseIso(addDaysIso(next, 3));
+    setCursor({ year: thursday.getFullYear(), month: thursday.getMonth() });
+  };
+
+  const changeView = (next: CalendarView) => {
+    if (next === "week") {
+      const thursday = parseIso(addDaysIso(weekStart, 3));
+      if (thursday.getMonth() !== cursor.month || thursday.getFullYear() !== cursor.year) {
+        const todayWeek = mondayOfIso(today);
+        const todayThursday = parseIso(addDaysIso(todayWeek, 3));
+        setWeekStart(
+          todayThursday.getMonth() === cursor.month && todayThursday.getFullYear() === cursor.year
+            ? todayWeek
+            : firstWeekOfMonth(cursor.year, cursor.month),
+        );
+      }
+    }
+    setView(next);
   };
 
   const monthCount = [...shownByDate.entries()].reduce(
@@ -370,9 +415,28 @@ function CalendrierSstPage() {
     for (let i = 0; i < grid.length; i += 7) rows.push(grid.slice(i, i + 7));
     return rows;
   }, [grid]);
+  const displayedWeeks = useMemo(
+    () => (view === "week" ? [weekDatesIso(weekStart).map(parseIso)] : weeks),
+    [view, weekStart, weeks],
+  );
+  const agendaDates = useMemo(() => {
+    const dates = new Set<string>([...shownByDate.keys(), ...shownByPlanningDate.keys()]);
+    return [...dates].filter((date) => date >= monthRange.start && date <= monthRange.end).sort();
+  }, [shownByDate, shownByPlanningDate, monthRange.start, monthRange.end]);
+  const periodTitle = (() => {
+    if (view !== "week") return monthLabel(cursor.year, cursor.month);
+    const first = parseIso(weekStart);
+    const last = parseIso(addDaysIso(weekStart, 6));
+    const fmt = (d: Date, withYear: boolean) =>
+      d.toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "short",
+        ...(withYear ? { year: "numeric" } : {}),
+      });
+    return `Semaine ${isoWeekNumber(first)} · ${fmt(first, false)} – ${fmt(last, true)}`;
+  })();
   const showChangedDay = (iso: string) => {
-    const [year, month] = iso.split("-").map(Number);
-    if (Number.isFinite(year) && Number.isFinite(month)) setCursor({ year, month: month - 1 });
+    focusDate(iso);
     setSelectedDate(iso);
     window.requestAnimationFrame(() =>
       document
@@ -390,9 +454,7 @@ function CalendrierSstPage() {
         onSelectSst={setSelectedSstPlanning}
         onNavigateToPlanning={(sheet) => {
           if (!sheet.intervention_date) return;
-          const [year, month] = sheet.intervention_date.split("-").map(Number);
-          if (!Number.isFinite(year) || !Number.isFinite(month)) return;
-          setCursor({ year, month: month - 1 });
+          focusDate(sheet.intervention_date);
           setHighlightedPlanningId(sheet.id);
         }}
         isAdmin={isAdmin}
@@ -414,10 +476,35 @@ function CalendrierSstPage() {
                   preferences.titleFont === "serif" ? "font-serif" : "font-sans",
                 )}
               >
-                {monthLabel(cursor.year, cursor.month)}
+                {periodTitle}
               </h2>
             </div>
             <div className="flex items-center gap-1.5">
+              <div
+                className="flex items-center rounded-md border border-border bg-background p-0.5"
+                role="group"
+                aria-label="Type de vue"
+              >
+                {(
+                  [
+                    ["month", "Mois"],
+                    ["week", "Semaine"],
+                    ["agenda", "Agenda"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    size="sm"
+                    variant={view === value ? "secondary" : "ghost"}
+                    aria-pressed={view === value}
+                    className="h-7 px-2.5 text-xs"
+                    onClick={() => changeView(value)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
               <Button variant="outline" size="sm" onClick={goToday}>
                 Aujourd'hui
               </Button>
@@ -425,16 +512,16 @@ function CalendrierSstPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => shiftMonth(-1)}
-                  aria-label="Mois précédent"
+                  onClick={() => shift(-1)}
+                  aria-label={view === "week" ? "Semaine précédente" : "Mois précédent"}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => shiftMonth(1)}
-                  aria-label="Mois suivant"
+                  onClick={() => shift(1)}
+                  aria-label={view === "week" ? "Semaine suivante" : "Mois suivant"}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -566,194 +653,275 @@ function CalendrierSstPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto p-1.5 sm:p-2">
-          <div className="min-w-[44rem]">
-            <div
-              className={cn(
-                "mb-1 grid text-center text-[10px] font-semibold uppercase text-muted-foreground sm:text-xs",
-                gapClass(preferences.gap),
-                preferences.showWeekNumbers
-                  ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
-                  : "grid-cols-7",
-              )}
-            >
-              {preferences.showWeekNumbers ? <div>Sem.</div> : null}
-              {WEEKDAYS.map((label) => (
-                <div key={label}>{label}</div>
-              ))}
-            </div>
-            <div className={cn("grid", gapClass(preferences.gap))}>
-              {weeks.map((week) => {
-                const weekKey = week[0] ? isoDate(week[0]) : "week";
-                return (
-                  <div
-                    key={weekKey}
-                    className={cn(
-                      "grid",
-                      gapClass(preferences.gap),
-                      preferences.showWeekNumbers
-                        ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
-                        : "grid-cols-7",
-                    )}
-                  >
-                    {preferences.showWeekNumbers && week[0] ? (
-                      <div className="flex items-center justify-center text-[11px] text-muted-foreground">
-                        {isoWeekNumber(week[0])}
-                      </div>
+        {view === "agenda" ? (
+          <div className="divide-y divide-border">
+            {agendaDates.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                {filtering
+                  ? "Aucun élément ne correspond aux filtres ce mois-ci."
+                  : "Aucune disponibilité ni chantier ce mois-ci."}
+              </p>
+            ) : (
+              agendaDates.map((iso) => (
+                <div
+                  key={iso}
+                  id={`sst-calendar-day-${iso}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedDate(iso)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedDate(iso);
+                    }
+                  }}
+                  className={cn(
+                    "grid cursor-pointer gap-2 px-3 py-3 transition-colors hover:bg-muted/30 sm:grid-cols-[9rem_1fr] sm:px-5",
+                    iso === today && "bg-primary/5",
+                    unseenByDate.has(iso) && "bg-amber-100/70",
+                  )}
+                >
+                  <div className="flex items-start gap-2">
+                    <p className={cn("text-sm font-semibold", iso === today && "text-primary")}>
+                      {shortDateLabel(iso)}
+                    </p>
+                    {unseenByDate.has(iso) ? (
+                      <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">
+                        Modifié
+                      </span>
                     ) : null}
-                    {week.map((date) => {
-                      const iso = isoDate(date);
-                      const inMonth = date.getMonth() === cursor.month;
-                      const dayEntries = shownByDate.get(iso) ?? [];
-                      const isToday = iso === today;
-                      const weekend = date.getDay() === 0 || date.getDay() === 6;
-                      return (
-                        <div
-                          key={iso}
-                          id={`sst-calendar-day-${iso}`}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedDate(iso)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              setSelectedDate(iso);
-                            }
-                          }}
-                          className={cn(
-                            "flex min-w-0 cursor-pointer flex-col items-stretch justify-start gap-0.5 overflow-hidden border p-1 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-1.5",
-                            cornerClass(preferences.corner),
-                            heightClass(preferences.density),
-                            styleClass(preferences.style),
-                            preferences.highlightWeekend && weekend && "bg-muted/50",
-                            !inMonth && preferences.dimOtherMonths && "bg-muted/20 opacity-35",
-                            isToday && tone.selected,
-                            unseenByDate.has(iso) &&
-                              "border-amber-500 bg-amber-100/70 ring-2 ring-amber-400",
-                            highlightedPlanningId &&
-                              (shownByPlanningDate.get(iso) ?? []).some(
-                                (sheet) => sheet.id === highlightedPlanningId,
-                              ) &&
-                              "border-primary bg-primary/10 ring-2 ring-primary/70 shadow-md",
-                          )}
-                        >
-                          <span className="flex items-center justify-between">
-                            <span
-                              className={cn(
-                                "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold",
-                                isToday
-                                  ? "bg-primary text-primary-foreground"
-                                  : "text-muted-foreground",
-                              )}
-                            >
-                              {date.getDate()}
-                            </span>
-                            {unseenByDate.has(iso) ? (
-                              <span className="inline-flex items-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">
-                                Modifié
-                              </span>
-                            ) : null}
-                            {preferences.showCounters && dayEntries.length > 0 ? (
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    {(shownByDate.get(iso) ?? []).map((entry) => (
+                      <CommentChip
+                        key={entry.id}
+                        entry={entry}
+                        isMine={entry.user_id === user?.id}
+                        chipClass={tone.chip}
+                        detailed
+                        open={openComment === entry.id}
+                        onOpenChange={(open) => setOpenComment(open ? entry.id : null)}
+                        onEdit={() => {
+                          setOpenComment(null);
+                          setSelectedDate(iso);
+                        }}
+                      />
+                    ))}
+                    {(shownByPlanningDate.get(iso) ?? []).map((sheet) => (
+                      <WorksitePlanningChip
+                        key={sheet.id}
+                        sheet={sheet}
+                        detailed
+                        highlighted={sheet.id === highlightedPlanningId}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+            {isLoading ? (
+              <p className="px-4 py-3 text-sm text-muted-foreground">Chargement…</p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="overflow-x-auto p-1.5 sm:p-2">
+            <div className="min-w-[44rem]">
+              <div
+                className={cn(
+                  "mb-1 grid text-center text-[10px] font-semibold uppercase text-muted-foreground sm:text-xs",
+                  gapClass(preferences.gap),
+                  preferences.showWeekNumbers
+                    ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
+                    : "grid-cols-7",
+                )}
+              >
+                {preferences.showWeekNumbers ? <div>Sem.</div> : null}
+                {WEEKDAYS.map((label) => (
+                  <div key={label}>{label}</div>
+                ))}
+              </div>
+              <div className={cn("grid", gapClass(preferences.gap))}>
+                {displayedWeeks.map((week) => {
+                  const weekKey = week[0] ? isoDate(week[0]) : "week";
+                  return (
+                    <div
+                      key={weekKey}
+                      className={cn(
+                        "grid",
+                        gapClass(preferences.gap),
+                        preferences.showWeekNumbers
+                          ? "grid-cols-[2.25rem_repeat(7,minmax(0,1fr))]"
+                          : "grid-cols-7",
+                      )}
+                    >
+                      {preferences.showWeekNumbers && week[0] ? (
+                        <div className="flex items-center justify-center text-[11px] text-muted-foreground">
+                          {isoWeekNumber(week[0])}
+                        </div>
+                      ) : null}
+                      {week.map((date) => {
+                        const iso = isoDate(date);
+                        const inMonth = view === "week" || date.getMonth() === cursor.month;
+                        const dayEntries = shownByDate.get(iso) ?? [];
+                        const isToday = iso === today;
+                        const weekend = date.getDay() === 0 || date.getDay() === 6;
+                        return (
+                          <div
+                            key={iso}
+                            id={`sst-calendar-day-${iso}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setSelectedDate(iso)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setSelectedDate(iso);
+                              }
+                            }}
+                            className={cn(
+                              "flex min-w-0 cursor-pointer flex-col items-stretch justify-start gap-0.5 overflow-hidden border p-1 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-1.5",
+                              cornerClass(preferences.corner),
+                              view === "week" ? "min-h-56" : heightClass(preferences.density),
+                              styleClass(preferences.style),
+                              preferences.highlightWeekend && weekend && "bg-muted/50",
+                              !inMonth && preferences.dimOtherMonths && "bg-muted/20 opacity-35",
+                              isToday && tone.selected,
+                              unseenByDate.has(iso) &&
+                                "border-amber-500 bg-amber-100/70 ring-2 ring-amber-400",
+                              highlightedPlanningId &&
+                                (shownByPlanningDate.get(iso) ?? []).some(
+                                  (sheet) => sheet.id === highlightedPlanningId,
+                                ) &&
+                                "border-primary bg-primary/10 ring-2 ring-primary/70 shadow-md",
+                            )}
+                          >
+                            <span className="flex items-center justify-between">
                               <span
                                 className={cn(
-                                  "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
-                                  tone.badge,
+                                  "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold",
+                                  isToday
+                                    ? "bg-primary text-primary-foreground"
+                                    : "text-muted-foreground",
                                 )}
                               >
-                                {dayEntries.length}
+                                {date.getDate()}
                               </span>
-                            ) : null}
-                          </span>
-                          {(() => {
-                            const dayPlannings = shownByPlanningDate.get(iso) ?? [];
-                            const items = [
-                              ...dayEntries.map((entry) => ({ kind: "entry" as const, entry })),
-                              ...dayPlannings.map((sheet) => ({ kind: "sheet" as const, sheet })),
-                            ];
-                            const ordered = highlightedPlanningId
-                              ? [
-                                  ...items.filter(
-                                    (it) =>
-                                      it.kind === "sheet" && it.sheet.id === highlightedPlanningId,
-                                  ),
-                                  ...items.filter(
-                                    (it) =>
-                                      !(
-                                        it.kind === "sheet" && it.sheet.id === highlightedPlanningId
-                                      ),
-                                  ),
-                                ]
-                              : items;
-                            const { visible, hidden } = splitDayItems(
-                              ordered,
-                              preferences.entriesPerDay,
-                            );
-                            const renderItem = (item: (typeof items)[number], detailed: boolean) =>
-                              item.kind === "entry" ? (
-                                <CommentChip
-                                  key={item.entry.id}
-                                  entry={item.entry}
-                                  isMine={item.entry.user_id === user?.id}
-                                  chipClass={tone.chip}
-                                  detailed={detailed}
-                                  open={openComment === item.entry.id}
-                                  onOpenChange={(open) =>
-                                    setOpenComment(open ? item.entry.id : null)
-                                  }
-                                  onEdit={() => {
-                                    setOpenComment(null);
-                                    setSelectedDate(iso);
-                                  }}
-                                />
-                              ) : (
-                                <WorksitePlanningChip
-                                  key={item.sheet.id}
-                                  sheet={item.sheet}
-                                  detailed={detailed}
-                                  highlighted={item.sheet.id === highlightedPlanningId}
-                                />
+                              {unseenByDate.has(iso) ? (
+                                <span className="inline-flex items-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">
+                                  Modifié
+                                </span>
+                              ) : null}
+                              {preferences.showCounters && dayEntries.length > 0 ? (
+                                <span
+                                  className={cn(
+                                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold",
+                                    tone.badge,
+                                  )}
+                                >
+                                  {dayEntries.length}
+                                </span>
+                              ) : null}
+                            </span>
+                            {(() => {
+                              const dayPlannings = shownByPlanningDate.get(iso) ?? [];
+                              const items = [
+                                ...dayEntries.map((entry) => ({ kind: "entry" as const, entry })),
+                                ...dayPlannings.map((sheet) => ({ kind: "sheet" as const, sheet })),
+                              ];
+                              const ordered = highlightedPlanningId
+                                ? [
+                                    ...items.filter(
+                                      (it) =>
+                                        it.kind === "sheet" &&
+                                        it.sheet.id === highlightedPlanningId,
+                                    ),
+                                    ...items.filter(
+                                      (it) =>
+                                        !(
+                                          it.kind === "sheet" &&
+                                          it.sheet.id === highlightedPlanningId
+                                        ),
+                                    ),
+                                  ]
+                                : items;
+                              const { visible, hidden } = splitDayItems(
+                                ordered,
+                                view === "week"
+                                  ? Number.MAX_SAFE_INTEGER
+                                  : preferences.entriesPerDay,
                               );
-                            return (
-                              <span className="flex min-w-0 flex-col gap-0.5">
-                                {visible.map((item) => renderItem(item, false))}
-                                {hidden.length > 0 ? (
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <button
-                                        type="button"
+                              const renderItem = (
+                                item: (typeof items)[number],
+                                detailed: boolean,
+                              ) =>
+                                item.kind === "entry" ? (
+                                  <CommentChip
+                                    key={item.entry.id}
+                                    entry={item.entry}
+                                    isMine={item.entry.user_id === user?.id}
+                                    chipClass={tone.chip}
+                                    detailed={detailed}
+                                    open={openComment === item.entry.id}
+                                    onOpenChange={(open) =>
+                                      setOpenComment(open ? item.entry.id : null)
+                                    }
+                                    onEdit={() => {
+                                      setOpenComment(null);
+                                      setSelectedDate(iso);
+                                    }}
+                                  />
+                                ) : (
+                                  <WorksitePlanningChip
+                                    key={item.sheet.id}
+                                    sheet={item.sheet}
+                                    detailed={detailed}
+                                    highlighted={item.sheet.id === highlightedPlanningId}
+                                  />
+                                );
+                              return (
+                                <span className="flex min-w-0 flex-col gap-0.5">
+                                  {visible.map((item) => renderItem(item, view === "week"))}
+                                  {hidden.length > 0 ? (
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <button
+                                          type="button"
+                                          onClick={(event) => event.stopPropagation()}
+                                          onKeyDown={(event) => event.stopPropagation()}
+                                          className="rounded-md border border-dashed border-border bg-background px-1 py-0.5 text-left text-[10px] font-semibold text-muted-foreground hover:border-primary/50 hover:text-primary sm:text-[11px]"
+                                          aria-label={`Voir les ${hidden.length} autres éléments du ${fullDateLabel(iso)}`}
+                                        >
+                                          +{hidden.length} autre{hidden.length > 1 ? "s" : ""}
+                                        </button>
+                                      </PopoverTrigger>
+                                      <PopoverContent
+                                        align="start"
+                                        className="w-72 max-w-[90vw] space-y-1.5"
                                         onClick={(event) => event.stopPropagation()}
-                                        onKeyDown={(event) => event.stopPropagation()}
-                                        className="rounded-md border border-dashed border-border bg-background px-1 py-0.5 text-left text-[10px] font-semibold text-muted-foreground hover:border-primary/50 hover:text-primary sm:text-[11px]"
-                                        aria-label={`Voir les ${hidden.length} autres éléments du ${fullDateLabel(iso)}`}
                                       >
-                                        +{hidden.length} autre{hidden.length > 1 ? "s" : ""}
-                                      </button>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                      align="start"
-                                      className="w-72 max-w-[90vw] space-y-1.5"
-                                      onClick={(event) => event.stopPropagation()}
-                                    >
-                                      <p className="text-sm font-semibold">{fullDateLabel(iso)}</p>
-                                      <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
-                                        {ordered.map((item) => renderItem(item, true))}
-                                      </div>
-                                    </PopoverContent>
-                                  </Popover>
-                                ) : null}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
+                                        <p className="text-sm font-semibold">
+                                          {fullDateLabel(iso)}
+                                        </p>
+                                        <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
+                                          {ordered.map((item) => renderItem(item, true))}
+                                        </div>
+                                      </PopoverContent>
+                                    </Popover>
+                                  ) : null}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+            {isLoading ? <p className="mt-3 text-sm text-muted-foreground">Chargement…</p> : null}
           </div>
-          {isLoading ? <p className="mt-3 text-sm text-muted-foreground">Chargement…</p> : null}
-        </div>
+        )}
       </section>
 
       <DayDialog

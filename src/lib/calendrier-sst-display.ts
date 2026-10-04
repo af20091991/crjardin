@@ -179,3 +179,47 @@ export function matchesPersonFilter(names: string[], person: string): boolean {
   if (person === "all") return true;
   return names.some((name) => personKey(name) === person);
 }
+
+/** Vues du calendrier : mois (grille), semaine (grille détaillée) et agenda (liste par jour). */
+export type CalendarView = "month" | "week" | "agenda";
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function toIso(date: Date): string {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+/** Date locale (minuit) à partir d'un « aaaa-mm-jj ». */
+export function parseIso(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function addDaysIso(iso: string, days: number): string {
+  const date = parseIso(iso);
+  date.setDate(date.getDate() + days);
+  return toIso(date);
+}
+
+/** Lundi de la semaine contenant la date (semaine commençant le lundi). */
+export function mondayOfIso(iso: string): string {
+  const date = parseIso(iso);
+  const offset = (date.getDay() + 6) % 7;
+  return addDaysIso(iso, -offset);
+}
+
+export function weekDatesIso(mondayIso: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => addDaysIso(mondayIso, i));
+}
+
+/**
+ * Première semaine « du mois » : celle du 1er, ou la suivante si son jeudi tombe
+ * dans le mois précédent (règle ISO) — elle appartient alors bien au mois affiché.
+ */
+export function firstWeekOfMonth(year: number, month: number): string {
+  const monday = mondayOfIso(toIso(new Date(year, month, 1)));
+  const thursday = parseIso(addDaysIso(monday, 3));
+  return thursday.getMonth() === month ? monday : addDaysIso(monday, 7);
+}

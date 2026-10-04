@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-04",
+    version: "2.3.47",
+    theme: "Général",
+    title: "Calendrier SST — vues Mois, Semaine et Agenda",
+    details: [
+      "Un sélecteur permet de passer de la grille du mois à une semaine détaillée (tout le contenu de chaque jour) ou à un agenda en liste par jour.",
+      "Sur téléphone, l'agenda s'ouvre par défaut. Les flèches avancent d'une semaine en vue Semaine.",
+      "Mêmes données et mêmes filtres dans les trois vues ; aucune donnée modifiée.",
+    ],
+  },
+  {
+    date: "2026-10-04",
     version: "2.3.46",
     theme: "Général",
     title: "Calendrier SST — en-tête fixe et liste des chantiers repliable",
