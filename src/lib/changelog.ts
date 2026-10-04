@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-04",
+    version: "2.3.45",
+    theme: "Général",
+    title: "Calendrier SST — filtres rapides et légende",
+    details: [
+      "Nouvelle barre pour afficher ou masquer les disponibilités et les chantiers, filtrer par état (validé, à confirmer) et par personne.",
+      "« Tout réafficher » rétablit la vue complète ; le détail d'un jour montre toujours tout.",
+      "Une légende rappelle les états Validé, À confirmer et Modifié. Affichage uniquement, aucune donnée modifiée.",
+    ],
+  },
+  {
+    date: "2026-10-04",
     version: "2.3.44",
     theme: "Général",
     title: "Calendrier SST — jours chargés plus lisibles",

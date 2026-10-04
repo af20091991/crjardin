@@ -67,8 +67,12 @@ import {
 } from "@/lib/calendrier-sst";
 import {
   CALENDAR_STORAGE_KEY,
+  DEFAULT_CALENDAR_FILTERS,
   DEFAULT_CALENDAR_PREFERENCES,
   cornerClass,
+  isFilteringCalendar,
+  matchesPersonFilter,
+  personKey,
   gapClass,
   heightClass,
   mergePreferences,
@@ -76,6 +80,7 @@ import {
   styleClass,
   toneClasses,
   type CalendarCorner,
+  type CalendarFilters,
   type CalendarDensity,
   type CalendarGap,
   type CalendarPreferences,
@@ -203,6 +208,7 @@ function CalendrierSstPage() {
     queryFn: listWorksiteSheets,
   });
   const [selectedSstPlanning, setSelectedSstPlanning] = useState("all");
+  const [filters, setFilters] = useState<CalendarFilters>(DEFAULT_CALENDAR_FILTERS);
 
   const entries = useMemo(() => data ?? [], [data]);
   const planningSheets = useMemo(
@@ -253,6 +259,43 @@ function CalendrierSstPage() {
     }
     return map;
   }, [planningSheets]);
+
+  const personOptions = useMemo(() => {
+    const options = new Map<string, string>();
+    for (const entry of entries) options.set(personKey(entry.userLabel), entry.userLabel);
+    for (const name of INTERVENANTS) options.set(personKey(name), name);
+    for (const sheet of planningSheets)
+      for (const name of parseWorksiteIntervenants(sheet.intervenant))
+        options.set(personKey(name), name);
+    options.delete("");
+    return [...options.entries()].sort((a, b) => a[1].localeCompare(b[1], "fr"));
+  }, [entries, planningSheets]);
+
+  // Filtres : n'agissent que sur l'affichage de la grille (jamais sur les données).
+  const shownByDate = useMemo(() => {
+    const map = new Map<string, SstAvailabilityWithUser[]>();
+    if (!filters.showAvailabilities) return map;
+    for (const [date, list] of byDate) {
+      const kept = list.filter((entry) => matchesPersonFilter([entry.userLabel], filters.person));
+      if (kept.length) map.set(date, kept);
+    }
+    return map;
+  }, [byDate, filters.showAvailabilities, filters.person]);
+  const shownByPlanningDate = useMemo(() => {
+    const map = new Map<string, WorksiteSheet[]>();
+    if (!filters.showWorksites) return map;
+    for (const [date, list] of byPlanningDate) {
+      const kept = list.filter((sheet) => {
+        if (filters.worksiteStatus === "validated" && sheet.planning_status !== "validated")
+          return false;
+        if (filters.worksiteStatus === "draft" && sheet.planning_status === "validated")
+          return false;
+        return matchesPersonFilter(parseWorksiteIntervenants(sheet.intervenant), filters.person);
+      });
+      if (kept.length) map.set(date, kept);
+    }
+    return map;
+  }, [byPlanningDate, filters.showWorksites, filters.worksiteStatus, filters.person]);
 
   const invalidate = () =>
     Promise.all([
@@ -309,10 +352,16 @@ function CalendrierSstPage() {
     setCursor({ year: next.getFullYear(), month: next.getMonth() });
   };
 
-  const monthCount = entries.filter(
-    (entry) => entry.date >= monthRange.start && entry.date <= monthRange.end,
-  ).length;
-  const monthPlanningCount = planningSheets.length;
+  const monthCount = [...shownByDate.entries()].reduce(
+    (total, [date, list]) =>
+      date >= monthRange.start && date <= monthRange.end ? total + list.length : total,
+    0,
+  );
+  const monthPlanningCount = [...shownByPlanningDate.values()].reduce(
+    (total, list) => total + list.length,
+    0,
+  );
+  const filtering = isFilteringCalendar(filters);
 
   const weeks = useMemo(() => {
     const rows: Date[][] = [];
@@ -427,6 +476,90 @@ function CalendrierSstPage() {
           ) : null}
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 sm:px-4">
+          <span className="text-[11px] font-semibold uppercase text-muted-foreground">
+            Afficher
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant={filters.showAvailabilities ? "secondary" : "outline"}
+            aria-pressed={filters.showAvailabilities}
+            className="h-7 px-2.5 text-xs"
+            onClick={() => setFilters((f) => ({ ...f, showAvailabilities: !f.showAvailabilities }))}
+          >
+            Disponibilités
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={filters.showWorksites ? "secondary" : "outline"}
+            aria-pressed={filters.showWorksites}
+            className="h-7 px-2.5 text-xs"
+            onClick={() => setFilters((f) => ({ ...f, showWorksites: !f.showWorksites }))}
+          >
+            Chantiers
+          </Button>
+          <Select
+            value={filters.worksiteStatus}
+            onValueChange={(value) =>
+              setFilters((f) => ({
+                ...f,
+                worksiteStatus: value as CalendarFilters["worksiteStatus"],
+              }))
+            }
+          >
+            <SelectTrigger className="h-7 w-[9.5rem] text-xs" aria-label="État des chantiers">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les états</SelectItem>
+              <SelectItem value="validated">Validés</SelectItem>
+              <SelectItem value="draft">À confirmer</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={filters.person}
+            onValueChange={(value) => setFilters((f) => ({ ...f, person: value }))}
+          >
+            <SelectTrigger className="h-7 w-[9.5rem] text-xs" aria-label="Personne">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tout le monde</SelectItem>
+              {personOptions.map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {filtering ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs"
+              onClick={() => setFilters(DEFAULT_CALENDAR_FILTERS)}
+            >
+              Tout réafficher
+            </Button>
+          ) : null}
+          <span className="ml-auto hidden items-center gap-3 text-[11px] text-muted-foreground md:flex">
+            <span className="inline-flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3 text-primary" /> Validé
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Clock3 className="h-3 w-3 text-amber-600" /> À confirmer
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">
+                Modifié
+              </span>
+            </span>
+          </span>
+        </div>
+
         <div className="overflow-x-auto p-1.5 sm:p-2">
           <div className="min-w-[44rem]">
             <div
@@ -465,7 +598,7 @@ function CalendrierSstPage() {
                     {week.map((date) => {
                       const iso = isoDate(date);
                       const inMonth = date.getMonth() === cursor.month;
-                      const dayEntries = byDate.get(iso) ?? [];
+                      const dayEntries = shownByDate.get(iso) ?? [];
                       const isToday = iso === today;
                       const weekend = date.getDay() === 0 || date.getDay() === 6;
                       return (
@@ -492,7 +625,7 @@ function CalendrierSstPage() {
                             unseenByDate.has(iso) &&
                               "border-amber-500 bg-amber-100/70 ring-2 ring-amber-400",
                             highlightedPlanningId &&
-                              (byPlanningDate.get(iso) ?? []).some(
+                              (shownByPlanningDate.get(iso) ?? []).some(
                                 (sheet) => sheet.id === highlightedPlanningId,
                               ) &&
                               "border-primary bg-primary/10 ring-2 ring-primary/70 shadow-md",
@@ -526,7 +659,7 @@ function CalendrierSstPage() {
                             ) : null}
                           </span>
                           {(() => {
-                            const dayPlannings = byPlanningDate.get(iso) ?? [];
+                            const dayPlannings = shownByPlanningDate.get(iso) ?? [];
                             const items = [
                               ...dayEntries.map((entry) => ({ kind: "entry" as const, entry })),
                               ...dayPlannings.map((sheet) => ({ kind: "sheet" as const, sheet })),
