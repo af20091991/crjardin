@@ -112,6 +112,15 @@ export function heightClass(density: CalendarDensity): string {
   }
 }
 
+/**
+ * Sépare les éléments d'un jour en visibles / repliés. Rien n'est supprimé :
+ * si un seul élément dépasserait, on l'affiche plutôt qu'un « +1 ».
+ */
+export function splitDayItems<T>(items: T[], limit: number): { visible: T[]; hidden: T[] } {
+  if (items.length <= limit + 1) return { visible: items, hidden: [] };
+  return { visible: items.slice(0, limit), hidden: items.slice(limit) };
+}
+
 export function cornerClass(corner: CalendarCorner): string {
   switch (corner) {
     case "square":

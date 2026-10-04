@@ -72,6 +72,7 @@ import {
   gapClass,
   heightClass,
   mergePreferences,
+  splitDayItems,
   styleClass,
   toneClasses,
   type CalendarCorner,
@@ -524,29 +525,86 @@ function CalendrierSstPage() {
                               </span>
                             ) : null}
                           </span>
-                          <span className="flex min-w-0 flex-col gap-0.5">
-                            {dayEntries.map((entry) => (
-                              <CommentChip
-                                key={entry.id}
-                                entry={entry}
-                                isMine={entry.user_id === user?.id}
-                                chipClass={tone.chip}
-                                open={openComment === entry.id}
-                                onOpenChange={(open) => setOpenComment(open ? entry.id : null)}
-                                onEdit={() => {
-                                  setOpenComment(null);
-                                  setSelectedDate(iso);
-                                }}
-                              />
-                            ))}
-                            {(byPlanningDate.get(iso) ?? []).map((sheet) => (
-                              <WorksitePlanningChip
-                                key={sheet.id}
-                                sheet={sheet}
-                                highlighted={sheet.id === highlightedPlanningId}
-                              />
-                            ))}
-                          </span>
+                          {(() => {
+                            const dayPlannings = byPlanningDate.get(iso) ?? [];
+                            const items = [
+                              ...dayEntries.map((entry) => ({ kind: "entry" as const, entry })),
+                              ...dayPlannings.map((sheet) => ({ kind: "sheet" as const, sheet })),
+                            ];
+                            const ordered = highlightedPlanningId
+                              ? [
+                                  ...items.filter(
+                                    (it) =>
+                                      it.kind === "sheet" && it.sheet.id === highlightedPlanningId,
+                                  ),
+                                  ...items.filter(
+                                    (it) =>
+                                      !(
+                                        it.kind === "sheet" && it.sheet.id === highlightedPlanningId
+                                      ),
+                                  ),
+                                ]
+                              : items;
+                            const { visible, hidden } = splitDayItems(
+                              ordered,
+                              preferences.entriesPerDay,
+                            );
+                            const renderItem = (item: (typeof items)[number], detailed: boolean) =>
+                              item.kind === "entry" ? (
+                                <CommentChip
+                                  key={item.entry.id}
+                                  entry={item.entry}
+                                  isMine={item.entry.user_id === user?.id}
+                                  chipClass={tone.chip}
+                                  detailed={detailed}
+                                  open={openComment === item.entry.id}
+                                  onOpenChange={(open) =>
+                                    setOpenComment(open ? item.entry.id : null)
+                                  }
+                                  onEdit={() => {
+                                    setOpenComment(null);
+                                    setSelectedDate(iso);
+                                  }}
+                                />
+                              ) : (
+                                <WorksitePlanningChip
+                                  key={item.sheet.id}
+                                  sheet={item.sheet}
+                                  detailed={detailed}
+                                  highlighted={item.sheet.id === highlightedPlanningId}
+                                />
+                              );
+                            return (
+                              <span className="flex min-w-0 flex-col gap-0.5">
+                                {visible.map((item) => renderItem(item, false))}
+                                {hidden.length > 0 ? (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        type="button"
+                                        onClick={(event) => event.stopPropagation()}
+                                        onKeyDown={(event) => event.stopPropagation()}
+                                        className="rounded-md border border-dashed border-border bg-background px-1 py-0.5 text-left text-[10px] font-semibold text-muted-foreground hover:border-primary/50 hover:text-primary sm:text-[11px]"
+                                        aria-label={`Voir les ${hidden.length} autres éléments du ${fullDateLabel(iso)}`}
+                                      >
+                                        +{hidden.length} autre{hidden.length > 1 ? "s" : ""}
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                      align="start"
+                                      className="w-72 max-w-[90vw] space-y-1.5"
+                                      onClick={(event) => event.stopPropagation()}
+                                    >
+                                      <p className="text-sm font-semibold">{fullDateLabel(iso)}</p>
+                                      <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
+                                        {ordered.map((item) => renderItem(item, true))}
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                ) : null}
+                              </span>
+                            );
+                          })()}
                         </div>
                       );
                     })}
@@ -581,9 +639,12 @@ function CalendrierSstPage() {
 function WorksitePlanningChip({
   sheet,
   highlighted = false,
+  detailed = false,
 }: {
   sheet: WorksiteSheet;
   highlighted?: boolean;
+  /** Vue détaillée (2 lignes) ; sinon une seule ligne, détail en infobulle. */
+  detailed?: boolean;
 }) {
   const people = parseWorksiteIntervenants(sheet.intervenant);
   const names = people.length ? people.join(", ") : "SST à définir";
@@ -593,7 +654,7 @@ function WorksitePlanningChip({
       : null;
   return (
     <span
-      title={`${sheet.client_name} · ${names}${hours ? ` · ${hours}` : ""}`}
+      title={`${sheet.client_name} · ${names} · ${sheet.required_people} pers.${hours ? ` · ${hours}` : ""}`}
       className={cn(
         "block min-w-0 rounded-md border px-1 py-0.5 text-[10px] leading-tight",
         highlighted
@@ -611,9 +672,11 @@ function WorksitePlanningChip({
         )}
         <span className="truncate font-semibold">{sheet.client_name}</span>
       </span>
-      <span className="block truncate pl-4 opacity-80">
-        {names} · {sheet.required_people} pers.{hours ? ` · ${hours}` : ""}
-      </span>
+      {detailed ? (
+        <span className="block truncate pl-4 opacity-80">
+          {names} · {sheet.required_people} pers.{hours ? ` · ${hours}` : ""}
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -1065,9 +1128,12 @@ function CommentChip({
   open,
   onOpenChange,
   onEdit,
+  detailed = false,
 }: {
   entry: SstAvailabilityWithUser;
   isMine: boolean;
+  /** Vue détaillée (commentaire complet) ; sinon une seule ligne tronquée. */
+  detailed?: boolean;
   chipClass: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -1079,6 +1145,7 @@ function CommentChip({
         <span
           role="button"
           tabIndex={0}
+          title={entry.comment ? `${entry.userLabel} · ${entry.comment}` : entry.userLabel}
           onClick={(event) => {
             event.stopPropagation();
             onOpenChange(!open);
@@ -1098,9 +1165,14 @@ function CommentChip({
         >
           <span className="flex min-w-0 items-center gap-1">
             <UserIdentityBadge entry={entry} isMine={isMine} />
-            <span className="break-words font-semibold">{entry.userLabel}</span>
+            <span className={cn("font-semibold", detailed ? "break-words" : "shrink-0")}>
+              {entry.userLabel}
+            </span>
+            {!detailed && entry.comment ? (
+              <span className="truncate opacity-80">· {entry.comment}</span>
+            ) : null}
           </span>
-          {entry.comment ? (
+          {detailed && entry.comment ? (
             <span className="block break-words pl-5 opacity-80">{entry.comment}</span>
           ) : null}
         </span>
