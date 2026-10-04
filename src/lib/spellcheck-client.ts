@@ -17,6 +17,7 @@ type Pending = {
 let worker: Worker | null = null;
 let nextId = 1;
 let failed = false;
+let ready = false;
 const pending = new Map<number, Pending>();
 const sessionIgnored = new Set<string>();
 const suggestionCache = new Map<string, string[]>();
@@ -53,7 +54,10 @@ function getWorker(): Worker | null {
     if (!entry) return;
     pending.delete(event.data.id);
     if (typeof event.data.error === "string") entry.reject(new Error(event.data.error));
-    else entry.resolve(event.data);
+    else {
+      if (event.data.bad || event.data.suggestions || event.data.ready) ready = true;
+      entry.resolve(event.data);
+    }
   };
   worker.onerror = () => {
     failed = true;
@@ -91,6 +95,16 @@ function request(payload: Record<string, unknown>): Promise<Record<string, unkno
 function isIgnored(word: string): boolean {
   const key = word.toLowerCase();
   return sessionIgnored.has(key) || personalWords().has(key);
+}
+
+/** Le dictionnaire est-il chargé ? (premier chargement : plusieurs secondes selon l'appareil) */
+export function isDictionaryReady(): boolean {
+  return ready;
+}
+
+/** Lance le chargement du dictionnaire en arrière-plan pour qu'il soit prêt à la première saisie. */
+export function warmUpSpellchecker(): void {
+  void request({ type: "warmup" }).catch(() => {});
 }
 
 /** Vrai tant que le correcteur n'a pas échoué (dictionnaire ou worker inaccessible). */

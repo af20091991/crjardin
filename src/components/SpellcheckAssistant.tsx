@@ -5,7 +5,9 @@ import {
   addToPersonalDictionary,
   findSpellingIssues,
   ignoreWordForSession,
+  isDictionaryReady,
   spellcheckAvailable,
+  warmUpSpellchecker,
   suggestSpelling,
 } from "@/lib/spellcheck-client";
 import { groupIssues, isProseField, replaceIssues, type SpellIssue } from "@/lib/spellcheck";
@@ -28,6 +30,10 @@ function asTextField(target: EventTarget | null): TextField | null {
     readOnly: target.readOnly,
     disabled: target.disabled,
     optOut: Boolean(target.closest("[data-no-spellcheck]")),
+    searchLike:
+      target.getAttribute("role") === "combobox" ||
+      target.hasAttribute("cmdk-input") ||
+      target.hasAttribute("aria-autocomplete"),
   });
   return ok ? target : null;
 }
@@ -55,6 +61,7 @@ export function SpellcheckAssistant() {
   const [issues, setIssues] = useState<SpellIssue[]>([]);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Record<string, string[]>>({});
   const timer = useRef<number | null>(null);
   const run = useRef(0);
@@ -63,8 +70,10 @@ export function SpellcheckAssistant() {
   const analyse = useCallback(async (target: TextField) => {
     const ticket = ++run.current;
     const text = target.value.slice(0, MAX_LENGTH);
+    if (text.trim() && !isDictionaryReady()) setLoading(true);
     const found = text.trim() ? await findSpellingIssues(text) : [];
     if (ticket !== run.current || fieldRef.current !== target) return;
+    setLoading(false);
     setIssues(found);
     if (found.length > 0) target.setAttribute("data-spell-issues", "true");
     else target.removeAttribute("data-spell-issues");
@@ -73,10 +82,15 @@ export function SpellcheckAssistant() {
   useEffect(() => {
     if (!spellcheckAvailable()) return;
 
+    // Le premier chargement du dictionnaire prend plusieurs secondes : on le lance dès que
+    // l'application est au repos, pour qu'il soit prêt avant la première saisie.
+    const idle = window.setTimeout(warmUpSpellchecker, 1500);
+
     const onFocusIn = (event: FocusEvent) => {
       const target = asTextField(event.target);
       if (!target) return;
       fieldRef.current = target;
+      warmUpSpellchecker();
       setField(target);
       setOpen(false);
       setRect(target.getBoundingClientRect());
@@ -96,6 +110,7 @@ export function SpellcheckAssistant() {
       fieldRef.current = null;
       setField(null);
       setOpen(false);
+      setLoading(false);
     };
     const reposition = () => {
       if (fieldRef.current) setRect(fieldRef.current.getBoundingClientRect());
@@ -107,6 +122,7 @@ export function SpellcheckAssistant() {
     window.addEventListener("scroll", reposition, true);
     window.addEventListener("resize", reposition);
     return () => {
+      window.clearTimeout(idle);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("input", onInput, true);
       document.removeEventListener("focusout", onFocusOut);
@@ -133,7 +149,8 @@ export function SpellcheckAssistant() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, issues]);
 
-  if (!field || !rect || issues.length === 0 || typeof document === "undefined") return null;
+  if (!field || !rect || typeof document === "undefined") return null;
+  if (issues.length === 0 && !loading) return null;
 
   const replace = (word: string, replacement: string) => {
     const next = replaceIssues(field.value, issues, word, replacement);
@@ -167,16 +184,22 @@ export function SpellcheckAssistant() {
       onMouseDown={keepFocus}
       data-no-spellcheck
     >
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-background px-2.5 py-1 text-xs font-medium text-destructive shadow-sm hover:bg-destructive/10"
-      >
-        <AlertTriangle className="h-3.5 w-3.5" />
-        {issues.length} faute{issues.length > 1 ? "s" : ""} possible{issues.length > 1 ? "s" : ""}
-      </button>
-      {open ? (
+      {issues.length === 0 ? (
+        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground shadow-sm">
+          Orthographe : chargement du dictionnaire…
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+          className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-background px-2.5 py-1 text-xs font-medium text-destructive shadow-sm hover:bg-destructive/10"
+        >
+          <AlertTriangle className="h-3.5 w-3.5" />
+          {issues.length} faute{issues.length > 1 ? "s" : ""} possible{issues.length > 1 ? "s" : ""}
+        </button>
+      )}
+      {open && issues.length > 0 ? (
         <div
           role="dialog"
           aria-label="Corrections orthographiques"
