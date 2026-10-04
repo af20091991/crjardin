@@ -135,8 +135,53 @@ export function groupIssues(issues: SpellIssue[]): { word: string; count: number
   return [...map.entries()].map(([word, count]) => ({ word, count }));
 }
 
-const SKIP_FIELD_RE =
-  /(e-?mail|mail|phone|tel|mobile|fax|url|site|web|siret|siren|iban|bic|code|password|passwd|token|slug|ref|reference|zip|postal|cp$|search|recherche|login|user(name)?|identifiant|lat|lng|lon)/i;
+// Mots entiers (id/name découpés en mots, camelCase compris) qui désignent un champ technique.
+// Comparaison exacte : « relation » ou « hotel » ne sont plus exclus par erreur.
+const SKIP_FIELD_WORDS = new Set([
+  "email",
+  "mail",
+  "courriel",
+  "phone",
+  "tel",
+  "telephone",
+  "mobile",
+  "fax",
+  "url",
+  "uri",
+  "website",
+  "siret",
+  "siren",
+  "iban",
+  "bic",
+  "code",
+  "password",
+  "passwd",
+  "token",
+  "slug",
+  "zip",
+  "postal",
+  "cp",
+  "search",
+  "recherche",
+  "login",
+  "username",
+  "identifiant",
+  "lat",
+  "lng",
+  "lon",
+  "latitude",
+  "longitude",
+  "ref",
+  "reference",
+]);
+
+function fieldWords(label: string): string[] {
+  return label
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter(Boolean);
+}
 
 /** Un champ est-il du texte rédigé ? Les champs techniques (e-mail, code, URL…) sont exclus. */
 export function isProseField(attrs: {
@@ -149,8 +194,10 @@ export function isProseField(attrs: {
   readOnly?: boolean;
   disabled?: boolean;
   optOut?: boolean;
+  /** Champ de recherche / liste déroulante filtrante (role=combobox, cmdk…). */
+  searchLike?: boolean;
 }): boolean {
-  if (attrs.optOut || attrs.readOnly || attrs.disabled) return false;
+  if (attrs.optOut || attrs.readOnly || attrs.disabled || attrs.searchLike) return false;
   if (attrs.spellcheck === "false") return false;
   const tag = attrs.tag.toLowerCase();
   if (tag === "input") {
@@ -164,6 +211,7 @@ export function isProseField(attrs: {
     /email|tel|url|username|password|postal|cc-|one-time/i.test(attrs.autocomplete)
   )
     return false;
-  const label = `${attrs.id ?? ""} ${attrs.name ?? ""}`;
-  return !SKIP_FIELD_RE.test(label);
+  return !fieldWords(`${attrs.id ?? ""} ${attrs.name ?? ""}`).some((word) =>
+    SKIP_FIELD_WORDS.has(word),
+  );
 }

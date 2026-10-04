@@ -104,4 +104,16 @@ describe("détecteur d'orthographe — champs concernés", () => {
     expect(isProseField({ tag: "TEXTAREA", optOut: true })).toBe(false);
     expect(isProseField({ tag: "SELECT" })).toBe(false);
   });
+
+  it("n'exclut un champ que sur un mot entier de son nom, pas sur une syllabe", () => {
+    expect(isProseField({ tag: "TEXTAREA", name: "relation_notes" })).toBe(true);
+    expect(isProseField({ tag: "INPUT", type: "text", id: "hotel" })).toBe(true);
+    expect(isProseField({ tag: "TEXTAREA", id: "comment" })).toBe(true);
+    expect(isProseField({ tag: "INPUT", type: "text", name: "clientEmail" })).toBe(false);
+    expect(isProseField({ tag: "INPUT", type: "text", name: "code_postal" })).toBe(false);
+  });
+
+  it("exclut les champs de recherche / liste filtrante", () => {
+    expect(isProseField({ tag: "INPUT", type: "text", searchLike: true })).toBe(false);
+  });
 });

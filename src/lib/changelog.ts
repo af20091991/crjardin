@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-04",
+    version: "2.3.49",
+    theme: "Général",
+    title: "Détecteur d'orthographe — chargement anticipé et champs mieux couverts",
+    details: [
+      "Le dictionnaire se charge en arrière-plan dès l'ouverture de l'application ; un message « chargement du dictionnaire » s'affiche tant qu'il n'est pas prêt, au lieu de ne rien montrer.",
+      "Les champs techniques sont désormais reconnus par mots entiers (e-mail, code postal…), si bien que davantage de champs de texte sont vérifiés ; les champs de recherche sont ignorés.",
+    ],
+  },
+  {
+    date: "2026-10-04",
     version: "2.3.48",
     theme: "Général",
     title: "Détecteur d'orthographe sur tous les champs de saisie",
