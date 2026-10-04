@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-04",
+    version: "2.3.46",
+    theme: "Général",
+    title: "Calendrier SST — en-tête fixe et liste des chantiers repliable",
+    details: [
+      "Le mois, la navigation et les filtres restent visibles en défilant (écrans larges).",
+      "La liste des chantiers à venir peut être repliée pour voir le calendrier plus haut ; le choix est mémorisé sur l'appareil.",
+      "Affichage uniquement, aucune donnée modifiée.",
+    ],
+  },
+  {
+    date: "2026-10-04",
     version: "2.3.45",
     theme: "Général",
     title: "Calendrier SST — filtres rapides et légende",

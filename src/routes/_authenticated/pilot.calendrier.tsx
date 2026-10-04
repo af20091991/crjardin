@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   Clock3,
   BrickWall,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -116,6 +117,7 @@ export const Route = createFileRoute("/_authenticated/pilot/calendrier")({
   component: CalendrierSstPage,
 });
 
+const PLANNING_LIST_STORAGE_KEY = "sst-calendar-planning-list";
 const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 function monthLabel(year: number, month: number) {
@@ -399,165 +401,169 @@ function CalendrierSstPage() {
         loading={isLoadingWorksites}
       />
 
-      <section className="w-full overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-3 sm:px-5">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase text-muted-foreground">
-              Planning SST
-            </p>
-            <h2
-              className={cn(
-                "truncate text-xl font-semibold sm:text-2xl",
-                preferences.titleFont === "serif" ? "font-serif" : "font-sans",
-              )}
-            >
-              {monthLabel(cursor.year, cursor.month)}
-            </h2>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Button variant="outline" size="sm" onClick={goToday}>
-              Aujourd'hui
-            </Button>
-            <div className="flex items-center rounded-md border border-border bg-background p-0.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => shiftMonth(-1)}
-                aria-label="Mois précédent"
+      <section className="w-full overflow-clip rounded-lg border border-border bg-card shadow-sm">
+        <div className="z-20 bg-card md:sticky md:top-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-3 sm:px-5">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+                Planning SST
+              </p>
+              <h2
+                className={cn(
+                  "truncate text-xl font-semibold sm:text-2xl",
+                  preferences.titleFont === "serif" ? "font-serif" : "font-sans",
+                )}
               >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => shiftMonth(1)}
-                aria-label="Mois suivant"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+                {monthLabel(cursor.year, cursor.month)}
+              </h2>
             </div>
-            <CalendarAppearanceMenu
-              preferences={preferences}
-              onChange={updatePreferences}
-              onReset={() => {
-                try {
-                  window.localStorage.removeItem(CALENDAR_STORAGE_KEY);
-                } catch {
-                  // Rien à nettoyer si le stockage local est indisponible.
-                }
-                setPreferences(DEFAULT_CALENDAR_PREFERENCES);
-              }}
-            />
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" onClick={goToday}>
+                Aujourd'hui
+              </Button>
+              <div className="flex items-center rounded-md border border-border bg-background p-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => shiftMonth(-1)}
+                  aria-label="Mois précédent"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => shiftMonth(1)}
+                  aria-label="Mois suivant"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <CalendarAppearanceMenu
+                preferences={preferences}
+                onChange={updatePreferences}
+                onReset={() => {
+                  try {
+                    window.localStorage.removeItem(CALENDAR_STORAGE_KEY);
+                  } catch {
+                    // Rien à nettoyer si le stockage local est indisponible.
+                  }
+                  setPreferences(DEFAULT_CALENDAR_PREFERENCES);
+                }}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between border-b border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground sm:px-4">
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span>
-              {monthCount} disponibilité{monthCount > 1 ? "s" : ""}
+          <div className="flex items-center justify-between border-b border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground sm:px-4">
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>
+                {monthCount} disponibilité{monthCount > 1 ? "s" : ""}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <ClipboardCheck className="h-3.5 w-3.5 text-primary" />
+                {monthPlanningCount} chantier{monthPlanningCount > 1 ? "s" : ""} programmé
+                {monthPlanningCount > 1 ? "s" : ""}
+              </span>
             </span>
-            <span className="inline-flex items-center gap-1">
-              <ClipboardCheck className="h-3.5 w-3.5 text-primary" />
-              {monthPlanningCount} chantier{monthPlanningCount > 1 ? "s" : ""} programmé
-              {monthPlanningCount > 1 ? "s" : ""}
-            </span>
-          </span>
-          {isAdmin ? (
-            <RecentUpdates
-              entries={recentData ?? []}
-              onSelect={(date) => {
-                const [year, month] = date.split("-").map(Number);
-                if (Number.isFinite(year) && Number.isFinite(month)) {
-                  setCursor({ year, month: month - 1 });
-                }
-                setSelectedDate(date);
-              }}
-            />
-          ) : null}
-        </div>
+            {isAdmin ? (
+              <RecentUpdates
+                entries={recentData ?? []}
+                onSelect={(date) => {
+                  const [year, month] = date.split("-").map(Number);
+                  if (Number.isFinite(year) && Number.isFinite(month)) {
+                    setCursor({ year, month: month - 1 });
+                  }
+                  setSelectedDate(date);
+                }}
+              />
+            ) : null}
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 sm:px-4">
-          <span className="text-[11px] font-semibold uppercase text-muted-foreground">
-            Afficher
-          </span>
-          <Button
-            type="button"
-            size="sm"
-            variant={filters.showAvailabilities ? "secondary" : "outline"}
-            aria-pressed={filters.showAvailabilities}
-            className="h-7 px-2.5 text-xs"
-            onClick={() => setFilters((f) => ({ ...f, showAvailabilities: !f.showAvailabilities }))}
-          >
-            Disponibilités
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={filters.showWorksites ? "secondary" : "outline"}
-            aria-pressed={filters.showWorksites}
-            className="h-7 px-2.5 text-xs"
-            onClick={() => setFilters((f) => ({ ...f, showWorksites: !f.showWorksites }))}
-          >
-            Chantiers
-          </Button>
-          <Select
-            value={filters.worksiteStatus}
-            onValueChange={(value) =>
-              setFilters((f) => ({
-                ...f,
-                worksiteStatus: value as CalendarFilters["worksiteStatus"],
-              }))
-            }
-          >
-            <SelectTrigger className="h-7 w-[9.5rem] text-xs" aria-label="État des chantiers">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les états</SelectItem>
-              <SelectItem value="validated">Validés</SelectItem>
-              <SelectItem value="draft">À confirmer</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={filters.person}
-            onValueChange={(value) => setFilters((f) => ({ ...f, person: value }))}
-          >
-            <SelectTrigger className="h-7 w-[9.5rem] text-xs" aria-label="Personne">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tout le monde</SelectItem>
-              {personOptions.map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {filtering ? (
+          <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 sm:px-4">
+            <span className="text-[11px] font-semibold uppercase text-muted-foreground">
+              Afficher
+            </span>
             <Button
               type="button"
               size="sm"
-              variant="ghost"
-              className="h-7 px-2 text-xs"
-              onClick={() => setFilters(DEFAULT_CALENDAR_FILTERS)}
+              variant={filters.showAvailabilities ? "secondary" : "outline"}
+              aria-pressed={filters.showAvailabilities}
+              className="h-7 px-2.5 text-xs"
+              onClick={() =>
+                setFilters((f) => ({ ...f, showAvailabilities: !f.showAvailabilities }))
+              }
             >
-              Tout réafficher
+              Disponibilités
             </Button>
-          ) : null}
-          <span className="ml-auto hidden items-center gap-3 text-[11px] text-muted-foreground md:flex">
-            <span className="inline-flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3 text-primary" /> Validé
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Clock3 className="h-3 w-3 text-amber-600" /> À confirmer
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">
-                Modifié
+            <Button
+              type="button"
+              size="sm"
+              variant={filters.showWorksites ? "secondary" : "outline"}
+              aria-pressed={filters.showWorksites}
+              className="h-7 px-2.5 text-xs"
+              onClick={() => setFilters((f) => ({ ...f, showWorksites: !f.showWorksites }))}
+            >
+              Chantiers
+            </Button>
+            <Select
+              value={filters.worksiteStatus}
+              onValueChange={(value) =>
+                setFilters((f) => ({
+                  ...f,
+                  worksiteStatus: value as CalendarFilters["worksiteStatus"],
+                }))
+              }
+            >
+              <SelectTrigger className="h-7 w-[9.5rem] text-xs" aria-label="État des chantiers">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les états</SelectItem>
+                <SelectItem value="validated">Validés</SelectItem>
+                <SelectItem value="draft">À confirmer</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={filters.person}
+              onValueChange={(value) => setFilters((f) => ({ ...f, person: value }))}
+            >
+              <SelectTrigger className="h-7 w-[9.5rem] text-xs" aria-label="Personne">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tout le monde</SelectItem>
+                {personOptions.map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {filtering ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() => setFilters(DEFAULT_CALENDAR_FILTERS)}
+              >
+                Tout réafficher
+              </Button>
+            ) : null}
+            <span className="ml-auto hidden items-center gap-3 text-[11px] text-muted-foreground md:flex">
+              <span className="inline-flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 text-primary" /> Validé
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Clock3 className="h-3 w-3 text-amber-600" /> À confirmer
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">
+                  Modifié
+                </span>
               </span>
             </span>
-          </span>
+          </div>
         </div>
 
         <div className="overflow-x-auto p-1.5 sm:p-2">
@@ -835,6 +841,24 @@ function SstPlanningByPerson({
 }) {
   const today = isoDate(new Date());
   const [statusFilter, setStatusFilter] = useState<"all" | "validated" | "draft">("all");
+  // Liste des chantiers repliable (préférence d'affichage mémorisée sur cet appareil).
+  const [listOpen, setListOpen] = useState(true);
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(PLANNING_LIST_STORAGE_KEY) === "closed") setListOpen(false);
+    } catch {
+      // Liste ouverte par défaut si le stockage local est indisponible.
+    }
+  }, []);
+  const toggleList = () =>
+    setListOpen((open) => {
+      try {
+        window.localStorage.setItem(PLANNING_LIST_STORAGE_KEY, open ? "closed" : "open");
+      } catch {
+        // Le réglage reste valable pour la session courante.
+      }
+      return !open;
+    });
   const [selectedSheet, setSelectedSheet] = useState<WorksiteSheet | null>(null);
   const selectedSheetDetailsQuery = useQuery({
     queryKey: ["sst-calendar-worksite-sheet", selectedSheet?.id],
@@ -910,9 +934,24 @@ function SstPlanningByPerson({
             Sélectionnez un SST pour afficher ses chantiers à venir.
           </p>
         </div>
-        <div className="text-xs text-muted-foreground">
-          {allStats.total} chantier{allStats.total > 1 ? "s" : ""} à venir ·{" "}
-          {allStats.hours ? allStats.hours.toLocaleString("fr-FR") + " h" : "—"}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>
+            {allStats.total} chantier{allStats.total > 1 ? "s" : ""} à venir ·{" "}
+            {allStats.hours ? allStats.hours.toLocaleString("fr-FR") + " h" : "—"}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            aria-expanded={listOpen}
+            onClick={toggleList}
+          >
+            <ChevronDown
+              className={cn("mr-1 h-3.5 w-3.5 transition-transform", !listOpen && "-rotate-90")}
+            />
+            {listOpen ? "Replier la liste" : "Afficher la liste"}
+          </Button>
         </div>
       </div>
 
@@ -948,154 +987,163 @@ function SstPlanningByPerson({
         })}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
-        <div>
-          <p className="text-sm font-semibold">{selectedLabel}</p>
-          <p className="text-[11px] text-muted-foreground">
-            Filtrer les chantiers par état du planning.
-          </p>
-        </div>
-        <div className="flex items-center gap-1 rounded-md border bg-background p-1">
-          {(
-            [
-              ["all", "Tous"],
-              ["validated", "Validés"],
-              ["draft", "À confirmer"],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              size="sm"
-              variant={statusFilter === value ? "secondary" : "ghost"}
-              className="h-7 px-2.5 text-xs"
-              onClick={() => setStatusFilter(value)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-2">
-        {loading ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            Chargement des chantiers…
-          </p>
-        ) : upcoming.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-4 text-center">
-            <ClipboardCheck className="mx-auto h-5 w-5 text-muted-foreground" />
-            <p className="mt-1.5 text-sm font-medium">Aucun chantier correspondant</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Aucun chantier à venir ne correspond à cette sélection.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {upcoming.map((sheet) => {
-              const people = parseWorksiteIntervenants(sheet.intervenant);
-              const dateLabel = sheet.intervention_date
-                ? shortDateLabel(sheet.intervention_date)
-                : "Date à définir";
-              const peopleName = people.length ? people.join(" + ") : "SST à définir";
-              const hoursLabel =
-                sheet.estimated_hours != null
-                  ? Number(sheet.estimated_hours).toLocaleString("fr-FR") + " h"
-                  : "Durée non renseignée";
-
-              return (
-                <div
-                  key={sheet.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onNavigateToPlanning(sheet)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      setSelectedSheet(sheet);
-                    }
-                  }}
-                  className="min-w-0 cursor-pointer rounded-lg border border-border bg-background p-2.5 transition-colors hover:border-primary/50 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      {listOpen ? (
+        <>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
+            <div>
+              <p className="text-sm font-semibold">{selectedLabel}</p>
+              <p className="text-[11px] text-muted-foreground">
+                Filtrer les chantiers par état du planning.
+              </p>
+            </div>
+            <div className="flex items-center gap-1 rounded-md border bg-background p-1">
+              {(
+                [
+                  ["all", "Tous"],
+                  ["validated", "Validés"],
+                  ["draft", "À confirmer"],
+                ] as const
+              ).map(([value, label]) => (
+                <Button
+                  key={value}
+                  size="sm"
+                  variant={statusFilter === value ? "secondary" : "ghost"}
+                  className="h-7 px-2.5 text-xs"
+                  onClick={() => setStatusFilter(value)}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground">{dateLabel}</p>
-                      <p className="mt-0.5 truncate text-sm font-semibold">{sheet.client_name}</p>
-                    </div>
-                    <span
-                      className={cn(
-                        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium",
-                        sheet.planning_status === "validated"
-                          ? "bg-primary/10 text-primary"
-                          : "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200",
-                      )}
-                    >
-                      {sheet.planning_status === "validated" ? (
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                      ) : (
-                        <Clock3 className="h-3.5 w-3.5" />
-                      )}
-                      {sheet.planning_status === "validated" ? "Validé" : "À confirmer"}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {peopleName} · {sheet.required_people} personne
-                    {sheet.required_people > 1 ? "s" : ""} · {hoursLabel}
-                  </p>
-                  {sheet.address ? (
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{sheet.address}</p>
-                  ) : null}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-[11px]"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setSelectedSheet(sheet);
-                      }}
-                    >
-                      <Eye className="mr-1 h-3.5 w-3.5" />
-                      Extrait
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-[11px]"
-                      disabled={downloadingId === sheet.id}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void downloadSheet(sheet);
-                      }}
-                    >
-                      {downloadingId === sheet.id ? (
-                        <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <FileDown className="mr-1 h-3.5 w-3.5" />
-                      )}
-                      Télécharger
-                    </Button>
-                    {isAdmin && sheet.planning_status !== "validated" ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-[11px]"
-                        disabled={validatingId === sheet.id}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onValidate(sheet.id);
-                        }}
-                      >
-                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                        Valider
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
+                  {label}
+                </Button>
+              ))}
+            </div>
           </div>
-        )}
-      </div>
+
+          <div className="mt-2">
+            {loading ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Chargement des chantiers…
+              </p>
+            ) : upcoming.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-4 text-center">
+                <ClipboardCheck className="mx-auto h-5 w-5 text-muted-foreground" />
+                <p className="mt-1.5 text-sm font-medium">Aucun chantier correspondant</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Aucun chantier à venir ne correspond à cette sélection.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                {upcoming.map((sheet) => {
+                  const people = parseWorksiteIntervenants(sheet.intervenant);
+                  const dateLabel = sheet.intervention_date
+                    ? shortDateLabel(sheet.intervention_date)
+                    : "Date à définir";
+                  const peopleName = people.length ? people.join(" + ") : "SST à définir";
+                  const hoursLabel =
+                    sheet.estimated_hours != null
+                      ? Number(sheet.estimated_hours).toLocaleString("fr-FR") + " h"
+                      : "Durée non renseignée";
+
+                  return (
+                    <div
+                      key={sheet.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onNavigateToPlanning(sheet)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedSheet(sheet);
+                        }
+                      }}
+                      className="min-w-0 cursor-pointer rounded-lg border border-border bg-background p-2.5 transition-colors hover:border-primary/50 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground">{dateLabel}</p>
+                          <p className="mt-0.5 truncate text-sm font-semibold">
+                            {sheet.client_name}
+                          </p>
+                        </div>
+                        <span
+                          className={cn(
+                            "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium",
+                            sheet.planning_status === "validated"
+                              ? "bg-primary/10 text-primary"
+                              : "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200",
+                          )}
+                        >
+                          {sheet.planning_status === "validated" ? (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : (
+                            <Clock3 className="h-3.5 w-3.5" />
+                          )}
+                          {sheet.planning_status === "validated" ? "Validé" : "À confirmer"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {peopleName} · {sheet.required_people} personne
+                        {sheet.required_people > 1 ? "s" : ""} · {hoursLabel}
+                      </p>
+                      {sheet.address ? (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {sheet.address}
+                        </p>
+                      ) : null}
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-[11px]"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedSheet(sheet);
+                          }}
+                        >
+                          <Eye className="mr-1 h-3.5 w-3.5" />
+                          Extrait
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-[11px]"
+                          disabled={downloadingId === sheet.id}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void downloadSheet(sheet);
+                          }}
+                        >
+                          {downloadingId === sheet.id ? (
+                            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <FileDown className="mr-1 h-3.5 w-3.5" />
+                          )}
+                          Télécharger
+                        </Button>
+                        {isAdmin && sheet.planning_status !== "validated" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2 text-[11px]"
+                            disabled={validatingId === sheet.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onValidate(sheet.id);
+                            }}
+                          >
+                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                            Valider
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      ) : null}
+
       <Dialog
         open={selectedSheet !== null}
         onOpenChange={(open) => {
