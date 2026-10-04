@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-04",
+    version: "2.3.44",
+    theme: "Général",
+    title: "Calendrier SST — jours chargés plus lisibles",
+    details: [
+      "Chaque jour affiche des puces sur une seule ligne ; le détail complet reste en infobulle et au clic.",
+      "Au-delà de 3 éléments par jour, un repli « +N autres » ouvre la liste complète du jour.",
+      "Aucune donnée ni fonctionnalité modifiée : affichage uniquement.",
+    ],
+  },
+  {
+    date: "2026-10-04",
     version: "2.3.43",
     theme: "PDF & Partage",
     title: "Aperçu du compte-rendu aligné sur le PDF",

@@ -5,6 +5,7 @@ import {
   gapClass,
   heightClass,
   mergePreferences,
+  splitDayItems,
   styleClass,
   toneClasses,
 } from "@/lib/calendrier-sst-display";
@@ -40,5 +41,18 @@ describe("calendrier SST — préférences d'affichage", () => {
   it("calcule le numéro de semaine ISO", () => {
     expect(isoWeekNumber(new Date(2026, 0, 1))).toBe(1);
     expect(isoWeekNumber(new Date(2026, 8, 21))).toBe(39);
+  });
+
+  it("replie les éléments au-delà de la limite sans rien perdre", () => {
+    const { visible, hidden } = splitDayItems([1, 2, 3, 4, 5, 6], 3);
+    expect(visible).toEqual([1, 2, 3]);
+    expect(hidden).toEqual([4, 5, 6]);
+    expect([...visible, ...hidden]).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
+  it("affiche l'élément en trop plutôt qu'un « +1 »", () => {
+    const { visible, hidden } = splitDayItems([1, 2, 3, 4], 3);
+    expect(visible).toEqual([1, 2, 3, 4]);
+    expect(hidden).toEqual([]);
   });
 });
