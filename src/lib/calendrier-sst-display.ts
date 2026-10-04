@@ -142,3 +142,40 @@ export function gapClass(gap: CalendarGap): string {
       return "gap-1 sm:gap-2";
   }
 }
+
+/** Filtres d'affichage du calendrier : masquent seulement, ne modifient aucune donnée. */
+export type CalendarWorksiteStatusFilter = "all" | "validated" | "draft";
+
+export interface CalendarFilters {
+  showAvailabilities: boolean;
+  showWorksites: boolean;
+  worksiteStatus: CalendarWorksiteStatusFilter;
+  /** Clé normalisée d'une personne (voir `personKey`), ou « all ». */
+  person: string;
+}
+
+export const DEFAULT_CALENDAR_FILTERS: CalendarFilters = {
+  showAvailabilities: true,
+  showWorksites: true,
+  worksiteStatus: "all",
+  person: "all",
+};
+
+/** Clé de comparaison d'un prénom : sans accents, sans casse, sans espaces superflus. */
+export function personKey(name: string | null | undefined): string {
+  return (name ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+}
+
+export function isFilteringCalendar(filters: CalendarFilters): boolean {
+  return (
+    !filters.showAvailabilities ||
+    !filters.showWorksites ||
+    filters.worksiteStatus !== "all" ||
+    filters.person !== "all"
+  );
+}
+
+export function matchesPersonFilter(names: string[], person: string): boolean {
+  if (person === "all") return true;
+  return names.some((name) => personKey(name) === person);
+}

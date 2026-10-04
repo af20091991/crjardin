@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
+  DEFAULT_CALENDAR_FILTERS,
   DEFAULT_CALENDAR_PREFERENCES,
+  isFilteringCalendar,
+  matchesPersonFilter,
+  personKey,
   cornerClass,
   gapClass,
   heightClass,
@@ -54,5 +58,24 @@ describe("calendrier SST — préférences d'affichage", () => {
     const { visible, hidden } = splitDayItems([1, 2, 3, 4], 3);
     expect(visible).toEqual([1, 2, 3, 4]);
     expect(hidden).toEqual([]);
+  });
+
+  it("normalise les prénoms pour les filtres (accents, casse)", () => {
+    expect(personKey(" Chloé ")).toBe("chloe");
+    expect(personKey(null)).toBe("");
+  });
+
+  it("filtre par personne sans accent ni casse, « all » laisse tout passer", () => {
+    expect(matchesPersonFilter(["Chloé", "Fanny"], "chloe")).toBe(true);
+    expect(matchesPersonFilter(["Fanny"], "chloe")).toBe(false);
+    expect(matchesPersonFilter([], "all")).toBe(true);
+  });
+
+  it("détecte qu'un filtre est actif", () => {
+    expect(isFilteringCalendar(DEFAULT_CALENDAR_FILTERS)).toBe(false);
+    expect(isFilteringCalendar({ ...DEFAULT_CALENDAR_FILTERS, worksiteStatus: "draft" })).toBe(
+      true,
+    );
+    expect(isFilteringCalendar({ ...DEFAULT_CALENDAR_FILTERS, showWorksites: false })).toBe(true);
   });
 });
