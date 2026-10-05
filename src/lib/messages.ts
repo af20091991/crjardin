@@ -28,6 +28,9 @@ export async function listMessagesByClient(clientId: string): Promise<ClientMess
   return data as ClientMessageRow[];
 }
 
+/** Nom affiché au client pour les messages écrits depuis PP. */
+export const GARDENER_AUTHOR_NAME = "Anthony";
+
 export async function replyToClient(input: {
   client_id: string;
   intervention_id: string | null;
@@ -41,7 +44,7 @@ export async function replyToClient(input: {
     kind: "annotation",
     sender: "gardener",
     content: input.content.trim().slice(0, 2000),
-    author_name: input.authorName ?? null,
+    author_name: input.authorName ?? GARDENER_AUTHOR_NAME,
     resolved: true,
   });
   if (error) throw error;

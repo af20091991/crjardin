@@ -29,6 +29,7 @@ function PremiumClientsPage() {
   const data = usePremiumAdminData(isAdmin);
   const [tab, setTab] = useState("overview");
   const [calendarClientId, setCalendarClientId] = useState<string | null>(null);
+  const [composeFor, setComposeFor] = useState<{ clientId: string; nonce: number } | null>(null);
 
   if (!adminLoading && !isAdmin) {
     return (
@@ -50,6 +51,11 @@ function PremiumClientsPage() {
   function openCalendar(clientId: string) {
     setCalendarClientId(clientId);
     setTab("calendars");
+  }
+
+  function openMessage(clientId: string) {
+    setComposeFor({ clientId, nonce: Date.now() });
+    setTab("inbox");
   }
 
   return (
@@ -94,13 +100,18 @@ function PremiumClientsPage() {
             </TabsList>
 
             <TabsContent value="overview">
-              <OverviewTab rows={data.rows} access={data.access} onOpenCalendar={openCalendar} />
+              <OverviewTab
+                rows={data.rows}
+                access={data.access}
+                onOpenCalendar={openCalendar}
+                onOpenMessage={openMessage}
+              />
             </TabsContent>
             <TabsContent value="alerts">
               <AlertsTab rows={data.rows} onOpenCalendar={openCalendar} />
             </TabsContent>
             <TabsContent value="inbox">
-              <InboxTab rows={data.rows} messages={data.messages} />
+              <InboxTab rows={data.rows} messages={data.messages} composeFor={composeFor} />
             </TabsContent>
             <TabsContent value="calendars">
               <CalendarsTab

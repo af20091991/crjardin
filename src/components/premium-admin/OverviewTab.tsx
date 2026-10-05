@@ -31,10 +31,12 @@ export function OverviewTab({
   rows,
   access,
   onOpenCalendar,
+  onOpenMessage,
 }: {
   rows: PremiumRow[];
   access: Array<{ client_id: string }>;
   onOpenCalendar: (clientId: string) => void;
+  onOpenMessage: (clientId: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const sendPremiumEmail = useServerFn(sendPremiumWelcomeEmail);
@@ -164,6 +166,10 @@ export function OverviewTab({
               </p>
 
               <div className="mt-auto flex flex-wrap justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => onOpenMessage(client.id)}>
+                  <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+                  Écrire
+                </Button>
                 <Button variant="ghost" size="sm" onClick={() => onOpenCalendar(client.id)}>
                   <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
                   Calendrier
