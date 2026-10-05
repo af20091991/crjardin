@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-05",
+    version: "2.3.50",
+    theme: "Général",
+    title: "Détecteur d'orthographe — mot souligné et correction au clic droit",
+    details: [
+      "Le bouton « faute possible » est supprimé : le mot douteux est désormais souligné en rouge ondulé directement dans le champ.",
+      "Un clic droit sur le mot souligné propose les corrections possibles (la majuscule est conservée), ainsi que « Ignorer » et « Ajouter au dictionnaire ».",
+    ],
+  },
+  {
     date: "2026-10-04",
     version: "2.3.49",
     theme: "Général",
