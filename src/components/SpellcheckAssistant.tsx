@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, X } from "lucide-react";
 import {
   addToPersonalDictionary,
   findSpellingIssues,
@@ -10,13 +9,25 @@ import {
   warmUpSpellchecker,
   suggestSpelling,
 } from "@/lib/spellcheck-client";
-import { groupIssues, isProseField, replaceIssues, type SpellIssue } from "@/lib/spellcheck";
+import {
+  buildMirrorSegments,
+  isProseField,
+  matchCase,
+  replaceIssueAt,
+  type SpellIssue,
+} from "@/lib/spellcheck";
 
 type TextField = HTMLInputElement | HTMLTextAreaElement;
 
-const DEBOUNCE_MS = 600;
+const DEBOUNCE_MS = 500;
 const MAX_LENGTH = 20_000;
-const MAX_WORDS_SHOWN = 8;
+const MAX_SUGGESTIONS = 5;
+
+interface MenuState {
+  x: number;
+  y: number;
+  issue: SpellIssue;
+}
 
 function asTextField(target: EventTarget | null): TextField | null {
   if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return null;
@@ -51,32 +62,39 @@ function setFieldValue(field: TextField, value: string, caret: number) {
 }
 
 /**
- * Détecteur d'orthographe de PP : surveille tous les champs de texte rédigé (délégation
- * d'événements, donc aussi les champs ajoutés plus tard), repère les fautes avec un
- * dictionnaire français local et propose des corrections. Le texte ne quitte jamais
- * le navigateur.
+ * Détecteur d'orthographe de PP : surveille les champs de texte rédigé (délégation
+ * d'événements, donc aussi les champs ajoutés plus tard), souligne en rouge ondulé les mots
+ * douteux directement dans le champ et propose des corrections au clic droit. Le texte ne
+ * quitte jamais le navigateur.
  */
 export function SpellcheckAssistant() {
   const [field, setField] = useState<TextField | null>(null);
   const [issues, setIssues] = useState<SpellIssue[]>([]);
-  const [rect, setRect] = useState<DOMRect | null>(null);
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<Record<string, string[]>>({});
+  const [, setTick] = useState(0);
+  const [menu, setMenu] = useState<MenuState | null>(null);
+  const [suggestions, setSuggestions] = useState<string[] | null>(null);
   const timer = useRef<number | null>(null);
   const run = useRef(0);
   const fieldRef = useRef<TextField | null>(null);
+  const issuesRef = useRef<SpellIssue[]>([]);
+  const frame = useRef<number | null>(null);
+  const mirrorRef = useRef<HTMLDivElement | null>(null);
+
+  const refresh = useCallback(() => {
+    if (frame.current !== null) return;
+    frame.current = window.requestAnimationFrame(() => {
+      frame.current = null;
+      setTick((value) => value + 1);
+    });
+  }, []);
 
   const analyse = useCallback(async (target: TextField) => {
     const ticket = ++run.current;
     const text = target.value.slice(0, MAX_LENGTH);
-    if (text.trim() && !isDictionaryReady()) setLoading(true);
     const found = text.trim() ? await findSpellingIssues(text) : [];
     if (ticket !== run.current || fieldRef.current !== target) return;
-    setLoading(false);
+    issuesRef.current = found;
     setIssues(found);
-    if (found.length > 0) target.setAttribute("data-spell-issues", "true");
-    else target.removeAttribute("data-spell-issues");
   }, []);
 
   useEffect(() => {
@@ -89,11 +107,14 @@ export function SpellcheckAssistant() {
     const onFocusIn = (event: FocusEvent) => {
       const target = asTextField(event.target);
       if (!target) return;
+      if (fieldRef.current !== target) {
+        issuesRef.current = [];
+        setIssues([]);
+      }
       fieldRef.current = target;
       warmUpSpellchecker();
       setField(target);
-      setOpen(false);
-      setRect(target.getBoundingClientRect());
+      setMenu(null);
       void analyse(target);
     };
     const onInput = (event: Event) => {
@@ -101,166 +122,255 @@ export function SpellcheckAssistant() {
       if (!target || target !== fieldRef.current) return;
       if (timer.current) window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => void analyse(target), DEBOUNCE_MS);
-      setRect(target.getBoundingClientRect());
+      refresh();
     };
-    const onFocusOut = (event: FocusEvent) => {
-      if (event.target !== fieldRef.current) return;
-      if (timer.current) window.clearTimeout(timer.current);
-      run.current++;
-      fieldRef.current = null;
-      setField(null);
-      setOpen(false);
-      setLoading(false);
+    const onContextMenu = (event: MouseEvent) => {
+      const target = fieldRef.current;
+      if (!target || event.target !== target || !mirrorRef.current) return;
+      const spans = mirrorRef.current.querySelectorAll<HTMLElement>("[data-issue-start]");
+      for (const span of spans) {
+        for (const box of span.getClientRects()) {
+          if (
+            event.clientX >= box.left - 1 &&
+            event.clientX <= box.right + 1 &&
+            event.clientY >= box.top - 1 &&
+            event.clientY <= box.bottom + 1
+          ) {
+            const start = Number(span.dataset.issueStart);
+            const issue = issuesRef.current.find((item) => item.start === start);
+            if (!issue) continue;
+            event.preventDefault();
+            setSuggestions(null);
+            setMenu({ x: event.clientX, y: event.clientY, issue });
+            return;
+          }
+        }
+      }
     };
-    const reposition = () => {
-      if (fieldRef.current) setRect(fieldRef.current.getBoundingClientRect());
+    const onPointerDown = (event: Event) => {
+      const node = event.target as Element | null;
+      if (node?.closest?.("[data-spell-menu]")) return;
+      setMenu(null);
     };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenu(null);
+    };
+    const onViewportChange = () => refresh();
 
     document.addEventListener("focusin", onFocusIn);
     document.addEventListener("input", onInput, true);
-    document.addEventListener("focusout", onFocusOut);
-    window.addEventListener("scroll", reposition, true);
-    window.addEventListener("resize", reposition);
+    document.addEventListener("contextmenu", onContextMenu, true);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("scroll", onViewportChange, true);
+    window.addEventListener("resize", onViewportChange);
     return () => {
       window.clearTimeout(idle);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("input", onInput, true);
-      document.removeEventListener("focusout", onFocusOut);
-      window.removeEventListener("scroll", reposition, true);
-      window.removeEventListener("resize", reposition);
+      document.removeEventListener("contextmenu", onContextMenu, true);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("scroll", onViewportChange, true);
+      window.removeEventListener("resize", onViewportChange);
       if (timer.current) window.clearTimeout(timer.current);
+      if (frame.current !== null) window.cancelAnimationFrame(frame.current);
     };
-  }, [analyse]);
+  }, [analyse, refresh]);
 
-  const groups = groupIssues(issues);
-  const shown = groups.slice(0, MAX_WORDS_SHOWN);
-
+  // Redimensionnement du champ (poignée des zones de texte, mise en page qui change).
   useEffect(() => {
-    if (!open) return;
+    if (!field || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(refresh);
+    observer.observe(field);
+    return () => observer.disconnect();
+  }, [field, refresh]);
+
+  // Propositions de correction pour le mot visé par le menu.
+  useEffect(() => {
+    if (!menu) return;
     let alive = true;
-    void Promise.all(
-      shown.map(async ({ word }) => [word, await suggestSpelling(word)] as const),
-    ).then((entries) => {
-      if (alive) setSuggestions(Object.fromEntries(entries));
+    void suggestSpelling(menu.issue.word).then((list) => {
+      if (alive) setSuggestions(list.slice(0, MAX_SUGGESTIONS));
     });
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, issues]);
+  }, [menu]);
 
-  if (!field || !rect || typeof document === "undefined") return null;
-  if (issues.length === 0 && !loading) return null;
+  // Place le miroir sous les yeux de l'utilisateur après chaque rendu (position, défilement).
+  useLayoutEffect(() => {
+    const mirror = mirrorRef.current;
+    if (!mirror || !field) return;
+    const inner = mirror.firstElementChild as HTMLElement | null;
+    if (inner) inner.style.transform = `translate(${-field.scrollLeft}px, ${-field.scrollTop}px)`;
+  });
 
-  const replace = (word: string, replacement: string) => {
-    const next = replaceIssues(field.value, issues, word, replacement);
-    if (next === field.value) {
-      void analyse(field);
-      return;
+  if (!field || typeof document === "undefined") return null;
+  if (!field.isConnected) return null;
+
+  const rect = field.getBoundingClientRect();
+  const visible =
+    rect.width > 0 &&
+    rect.height > 0 &&
+    rect.bottom > 0 &&
+    rect.top < window.innerHeight &&
+    rect.right > 0 &&
+    rect.left < window.innerWidth;
+  const segments = buildMirrorSegments(field.value, issues);
+  const hasIssues = segments.some((segment) => segment.issue);
+
+  const replace = (issue: SpellIssue, replacement: string) => {
+    const next = replaceIssueAt(field.value, issue, matchCase(issue.word, replacement));
+    setMenu(null);
+    if (next !== field.value) {
+      setFieldValue(field, next, issue.start + replacement.length);
     }
-    const first = issues.find((issue) => issue.word === word);
-    setFieldValue(field, next, (first?.start ?? 0) + replacement.length);
+    field.focus();
     void analyse(field);
   };
 
-  const dismiss = (word: string, persist: boolean) => {
-    if (persist) addToPersonalDictionary(word);
-    else ignoreWordForSession(word);
+  const dismiss = (issue: SpellIssue, persist: boolean) => {
+    if (persist) addToPersonalDictionary(issue.word);
+    else ignoreWordForSession(issue.word);
+    setMenu(null);
+    field.focus();
     void analyse(field);
   };
 
-  const keepFocus = (event: React.MouseEvent) => event.preventDefault();
-  // Champ dans la moitié basse de l'écran : le panneau s'ouvre vers le haut pour rester visible.
-  const above = rect.bottom > window.innerHeight * 0.6;
-  const right = Math.max(window.innerWidth - rect.right, 8);
-  const position = above
-    ? { bottom: Math.max(window.innerHeight - rect.top + 4, 8), right }
-    : { top: Math.min(rect.bottom + 4, window.innerHeight - 40), right };
+  const style = window.getComputedStyle(field);
+  const isTextarea = field instanceof HTMLTextAreaElement;
+  const textStyle: React.CSSProperties = {
+    fontFamily: style.fontFamily,
+    fontSize: style.fontSize,
+    fontWeight: style.fontWeight,
+    fontStyle: style.fontStyle,
+    letterSpacing: style.letterSpacing,
+    lineHeight: style.lineHeight,
+    wordSpacing: style.wordSpacing,
+    textTransform: style.textTransform as React.CSSProperties["textTransform"],
+    textIndent: style.textIndent,
+    textAlign: style.textAlign as React.CSSProperties["textAlign"],
+    tabSize: style.tabSize as unknown as number,
+    direction: style.direction as React.CSSProperties["direction"],
+    paddingTop: style.paddingTop,
+    paddingRight: style.paddingRight,
+    paddingBottom: style.paddingBottom,
+    paddingLeft: style.paddingLeft,
+    boxSizing: "border-box",
+    color: "transparent",
+  };
+
+  const menuLeft = menu ? Math.min(menu.x, window.innerWidth - 232) : 0;
+  const menuTop = menu ? Math.min(menu.y, window.innerHeight - 260) : 0;
 
   return createPortal(
-    <div
-      className={`fixed z-[70] flex items-end gap-1 ${above ? "flex-col-reverse" : "flex-col"}`}
-      style={position}
-      onMouseDown={keepFocus}
-      data-no-spellcheck
-    >
-      {issues.length === 0 ? (
-        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground shadow-sm">
-          Orthographe : chargement du dictionnaire…
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          aria-expanded={open}
-          className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-background px-2.5 py-1 text-xs font-medium text-destructive shadow-sm hover:bg-destructive/10"
-        >
-          <AlertTriangle className="h-3.5 w-3.5" />
-          {issues.length} faute{issues.length > 1 ? "s" : ""} possible{issues.length > 1 ? "s" : ""}
-        </button>
-      )}
-      {open && issues.length > 0 ? (
+    <>
+      {visible && hasIssues ? (
         <div
-          role="dialog"
-          aria-label="Corrections orthographiques"
-          className="w-80 max-w-[92vw] rounded-md border border-border bg-popover p-2 text-popover-foreground shadow-lg"
+          ref={mirrorRef}
+          aria-hidden="true"
+          data-no-spellcheck
+          className="pointer-events-none fixed z-[60] overflow-hidden"
+          style={{
+            left: rect.left + field.clientLeft,
+            top: rect.top + field.clientTop,
+            width: field.clientWidth,
+            height: field.clientHeight,
+          }}
         >
-          <div className="mb-1 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase text-muted-foreground">Orthographe</p>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Fermer"
-              className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+          <div
+            style={{
+              ...textStyle,
+              width: isTextarea ? field.clientWidth : "max-content",
+              minWidth: "100%",
+              minHeight: isTextarea ? undefined : field.clientHeight,
+              display: isTextarea ? "block" : "flex",
+              alignItems: isTextarea ? undefined : "center",
+            }}
+          >
+            <div
+              style={{
+                whiteSpace: isTextarea ? "pre-wrap" : "pre",
+                overflowWrap: isTextarea ? "break-word" : undefined,
+                wordBreak: isTextarea ? "normal" : undefined,
+              }}
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
+              {segments.map((segment, index) =>
+                segment.issue ? (
+                  <span
+                    key={`${segment.issue.start}-${index}`}
+                    data-issue-start={segment.issue.start}
+                    style={{
+                      textDecorationLine: "underline",
+                      textDecorationStyle: "wavy",
+                      textDecorationColor: "var(--destructive)",
+                      textDecorationThickness: "1.5px",
+                      textUnderlineOffset: "2px",
+                      textDecorationSkipInk: "none",
+                    }}
+                  >
+                    {segment.text}
+                  </span>
+                ) : (
+                  <span key={`t-${index}`}>{segment.text}</span>
+                ),
+              )}
+            </div>
           </div>
-          <ul className="max-h-72 space-y-2 overflow-y-auto">
-            {shown.map(({ word, count }) => (
-              <li key={word} className="rounded-md border border-border p-2">
-                <p className="text-sm">
-                  <span className="font-semibold text-destructive">{word}</span>
-                  {count > 1 ? (
-                    <span className="ml-1 text-xs text-muted-foreground">× {count}</span>
-                  ) : null}
-                </p>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {(suggestions[word] ?? []).map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => replace(word, suggestion)}
-                      className="rounded border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary hover:bg-primary/20"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                  {suggestions[word] && suggestions[word].length === 0 ? (
-                    <span className="text-xs text-muted-foreground">Aucune suggestion</span>
-                  ) : null}
-                </div>
-                <div className="mt-1.5 flex gap-3 text-xs text-muted-foreground">
-                  <button type="button" className="underline" onClick={() => dismiss(word, false)}>
-                    Ignorer
-                  </button>
-                  <button type="button" className="underline" onClick={() => dismiss(word, true)}>
-                    Ajouter au dictionnaire
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-          {groups.length > shown.length ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              + {groups.length - shown.length} autre{groups.length - shown.length > 1 ? "s" : ""}{" "}
-              mot
-              {groups.length - shown.length > 1 ? "s" : ""} à vérifier
-            </p>
-          ) : null}
         </div>
       ) : null}
-    </div>,
+      {menu ? (
+        <div
+          role="menu"
+          aria-label="Corrections orthographiques"
+          data-spell-menu
+          data-no-spellcheck
+          className="pointer-events-auto fixed z-[80] w-56 rounded-md border border-border bg-popover p-1 text-sm text-popover-foreground shadow-lg"
+          style={{ left: menuLeft, top: menuTop }}
+          onMouseDown={(event) => event.preventDefault()}
+          onPointerDown={(event) => event.stopPropagation()}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          {suggestions === null ? (
+            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+              {isDictionaryReady() ? "Recherche…" : "Chargement du dictionnaire…"}
+            </p>
+          ) : suggestions.length === 0 ? (
+            <p className="px-2 py-1.5 text-xs text-muted-foreground">Aucune suggestion</p>
+          ) : (
+            suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                role="menuitem"
+                onClick={() => replace(menu.issue, suggestion)}
+                className="block w-full rounded-sm px-2 py-1.5 text-left font-semibold hover:bg-accent hover:text-accent-foreground"
+              >
+                {matchCase(menu.issue.word, suggestion)}
+              </button>
+            ))
+          )}
+          <div className="my-1 h-px bg-border" />
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => dismiss(menu.issue, false)}
+            className="block w-full rounded-sm px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
+          >
+            Ignorer
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => dismiss(menu.issue, true)}
+            className="block w-full rounded-sm px-2 py-1.5 text-left hover:bg-accent hover:text-accent-foreground"
+          >
+            Ajouter au dictionnaire
+          </button>
+        </div>
+      ) : null}
+    </>,
     document.body,
   );
 }

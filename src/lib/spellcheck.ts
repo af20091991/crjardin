@@ -215,3 +215,44 @@ export function isProseField(attrs: {
     SKIP_FIELD_WORDS.has(word),
   );
 }
+
+export interface MirrorSegment {
+  text: string;
+  /** Présent quand le segment est un mot signalé comme fautif. */
+  issue?: SpellIssue;
+}
+
+/**
+ * Découpe un texte en segments « normal » / « fautif » pour dessiner le soulignement.
+ * Les fautes qui ne correspondent plus au texte courant (frappe en cours) sont ignorées.
+ */
+export function buildMirrorSegments(text: string, issues: SpellIssue[]): MirrorSegment[] {
+  const valid = issues
+    .filter((issue) => issue.start >= 0 && text.slice(issue.start, issue.end) === issue.word)
+    .sort((a, b) => a.start - b.start);
+  const segments: MirrorSegment[] = [];
+  let cursor = 0;
+  for (const issue of valid) {
+    if (issue.start < cursor) continue;
+    if (issue.start > cursor) segments.push({ text: text.slice(cursor, issue.start) });
+    segments.push({ text: issue.word, issue });
+    cursor = issue.end;
+  }
+  if (cursor < text.length) segments.push({ text: text.slice(cursor) });
+  return segments;
+}
+
+/** Garde la casse du mot d'origine (« Trés » → « Très »). */
+export function matchCase(original: string, replacement: string): string {
+  const first = original.charAt(0);
+  const capitalised =
+    first !== first.toLowerCase() && original.slice(1) === original.slice(1).toLowerCase();
+  if (capitalised && replacement) return replacement.charAt(0).toUpperCase() + replacement.slice(1);
+  return replacement;
+}
+
+/** Remplace une seule occurrence signalée. */
+export function replaceIssueAt(text: string, issue: SpellIssue, replacement: string): string {
+  if (text.slice(issue.start, issue.end) !== issue.word) return text;
+  return text.slice(0, issue.start) + replacement + text.slice(issue.end);
+}

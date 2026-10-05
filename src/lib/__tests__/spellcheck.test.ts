@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import {
+  buildMirrorSegments,
   extractWords,
+  matchCase,
+  replaceIssueAt,
   groupIssues,
   isProseField,
   maskNonProse,
@@ -115,5 +118,25 @@ describe("détecteur d'orthographe — champs concernés", () => {
 
   it("exclut les champs de recherche / liste filtrante", () => {
     expect(isProseField({ tag: "INPUT", type: "text", searchLike: true })).toBe(false);
+  });
+});
+
+describe("soulignement et correction ponctuelle", () => {
+  const issues = [{ word: "trés", start: 7, end: 11 }];
+  it("découpe le texte autour du mot fautif", () => {
+    const segments = buildMirrorSegments("jardin trés bo", issues);
+    expect(segments.map((s) => s.text)).toEqual(["jardin ", "trés", " bo"]);
+    expect(segments[1].issue?.word).toBe("trés");
+  });
+  it("ignore une faute qui ne correspond plus au texte", () => {
+    expect(buildMirrorSegments("jardin très bo", issues)).toEqual([{ text: "jardin très bo" }]);
+  });
+  it("remplace une seule occurrence", () => {
+    expect(replaceIssueAt("jardin trés bo", issues[0], "très")).toBe("jardin très bo");
+  });
+  it("garde la majuscule initiale", () => {
+    expect(matchCase("Trés", "très")).toBe("Très");
+    expect(matchCase("trés", "très")).toBe("très");
+    expect(matchCase("TRÉS", "très")).toBe("très");
   });
 });
