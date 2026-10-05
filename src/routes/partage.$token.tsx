@@ -1367,7 +1367,7 @@ function MessageThread({
                     <MessageSquarePlus className="h-3 w-3" />
                   )}
                   {isGardener
-                    ? "Réponse de votre jardinier"
+                    ? "Réponse d'Anthony"
                     : m.kind === "question"
                       ? "Votre question"
                       : "Votre annotation"}

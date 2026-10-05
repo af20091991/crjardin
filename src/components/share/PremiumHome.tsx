@@ -274,7 +274,7 @@ export function PremiumExchange({
           currentMessages.map((m) => (
             <article key={m.id} className="py-5">
               <p className="text-xs text-primary">
-                {m.sender === "gardener" ? "Votre jardinier" : "Vous"} · {fmtDate(m.created_at)}
+                {m.sender === "gardener" ? "Anthony" : "Vous"} · {fmtDate(m.created_at)}
               </p>
               <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{m.content}</p>
             </article>
@@ -305,7 +305,7 @@ export function PremiumExchange({
                   {conversation.messages.map((m) => (
                     <article key={m.id} className="py-4">
                       <p className="text-xs text-primary">
-                        {m.sender === "gardener" ? "Votre jardinier" : "Vous"} · {fmtDate(m.created_at)}
+                        {m.sender === "gardener" ? "Anthony" : "Vous"} · {fmtDate(m.created_at)}
                       </p>
                       <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{m.content}</p>
                     </article>

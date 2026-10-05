@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -25,7 +25,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { clientEmails } from "@/lib/clients";
 import { sendPremiumReplyNotification } from "@/lib/premium-email.functions";
-import { archiveConversation, replyToClient, resolveMessage } from "@/lib/messages";
+import {
+  archiveConversation,
+  GARDENER_AUTHOR_NAME,
+  replyToClient,
+  resolveMessage,
+} from "@/lib/messages";
 import { archiveDayLabel, archivedConversations, openMessages } from "@/lib/message-threads";
 import type { PremiumMessage, PremiumRow } from "@/components/premium-admin/data";
 import { displayClientName, fmtDateTime } from "@/components/premium-admin/shared";
@@ -48,14 +53,23 @@ function MessageBubble({ message }: { message: PremiumMessage }) {
     >
       <p className="whitespace-pre-wrap leading-6">{message.content}</p>
       <p className="mt-1 text-[11px] text-muted-foreground">
-        {mine ? "Vous" : message.kind === "question" ? "Question" : "Client"} ·{" "}
+        {mine ? GARDENER_AUTHOR_NAME : message.kind === "question" ? "Question" : "Client"} ·{" "}
         {fmtDateTime(message.created_at)}
       </p>
     </div>
   );
 }
 
-export function InboxTab({ rows, messages }: { rows: PremiumRow[]; messages: PremiumMessage[] }) {
+export function InboxTab({
+  rows,
+  messages,
+  composeFor,
+}: {
+  rows: PremiumRow[];
+  messages: PremiumMessage[];
+  /** Demande d'ouverture de la rédaction pour un client (bouton « Écrire » des cartes). */
+  composeFor?: { clientId: string; nonce: number } | null;
+}) {
   const qc = useQueryClient();
   const notify = useServerFn(sendPremiumReplyNotification);
   const [view, setView] = useState<View>("pending");
@@ -64,6 +78,13 @@ export function InboxTab({ rows, messages }: { rows: PremiumRow[]; messages: Pre
   const [composeClientId, setComposeClientId] = useState("");
   const [composeText, setComposeText] = useState("");
   const [confirm, setConfirm] = useState<Outgoing | null>(null);
+
+  useEffect(() => {
+    if (!composeFor) return;
+    setComposeClientId(composeFor.clientId);
+    setComposing(true);
+    setView("open");
+  }, [composeFor]);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["premium-admin-messages"] });
 
@@ -197,7 +218,9 @@ export function InboxTab({ rows, messages }: { rows: PremiumRow[]; messages: Pre
 
       {composing && (
         <Card className="space-y-3 p-5">
-          <p className="font-serif text-lg">Écrire à un client Premium</p>
+          <p className="font-serif text-lg">
+            Écrire à un client Premium · message signé {GARDENER_AUTHOR_NAME}
+          </p>
           <select
             value={composeClientId}
             onChange={(event) => setComposeClientId(event.target.value)}

@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-05",
+    version: "2.3.51",
+    theme: "Clients",
+    title: "Comptes Premium — écrire à un client depuis sa carte, signé Anthony",
+    details: [
+      "Chaque carte client de « Comptes Premium » a un bouton « Écrire » : il ouvre la Messagerie avec le client déjà choisi, pour lancer un message ou répondre sans passer par l'espace du client.",
+      "Vos messages sont signés « Anthony » dans la messagerie et dans l'espace Premium du client ; l'e-mail de prévenance reste proposé à chaque envoi.",
+    ],
+  },
+  {
+    date: "2026-10-05",
     version: "2.3.50",
     theme: "Général",
     title: "Détecteur d'orthographe — mot souligné et correction au clic droit",
