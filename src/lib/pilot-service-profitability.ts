@@ -6,7 +6,7 @@
 
 import { saleRateRowOf, type PilotEntry } from "@/lib/pilot";
 import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
-import { canonicalPrestation, PRESTATIONS } from "@/lib/pilot-ca-designation";
+import { buildClientPrestationMap, canonicalPrestation, PRESTATIONS, type Prestation } from "@/lib/pilot-ca-designation";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 import { getThresholds, type PilotThresholds } from "@/lib/pilot-thresholds";
 
@@ -24,14 +24,15 @@ export const SERVICE_CLASS_META: Record<ServiceClass, { label: string; badge: st
 
 /**
  * Clé prestation unique, commune au CA et au ledger d'heures.
- * Référentiel fermé : SAP, AP, CEEV, Conseil, Remise en état, Autre.
+ * Référentiel fermé : SAP, AP, CEEV, Conseil. « Autre » = à vérifier.
  */
 export function prestationKey(
   designation: string | null,
   category: string | null,
   _family?: string,
+  knownByClient?: Map<string, Prestation>,
 ): string {
-  return canonicalPrestation(designation, category);
+  return canonicalPrestation(designation, category, knownByClient);
 }
 
 /** Normalise un libellé de prestation déjà stocké (ledger d'heures, imports…). */
@@ -40,6 +41,7 @@ export function normalizePrestation(label: string | null | undefined): string {
   if (!raw) return "Autre";
   const exact = PRESTATIONS.find((p) => p.toLowerCase() === raw.toLowerCase());
   if (exact) return exact;
+  // Anciens libellés « Remise en état » : REE particulier → SAP (règle métier).
   return canonicalPrestation(raw, null);
 }
 
@@ -83,8 +85,13 @@ export function analyzeServices(params: {
       caRated: number;
     }
   >();
+  // Déduction par client : les lignes sans indice héritent de la prestation
+  // déjà classée du même client (jamais inventée, toujours déduite).
+  const knownByClient = buildClientPrestationMap(
+    entries.map((e) => ({ designation: e.client_name, category: e.nature })),
+  );
   for (const e of entries) {
-    const key = prestationKey(e.client_name, e.nature, e.family);
+    const key = prestationKey(e.client_name, e.nature, e.family, knownByClient);
     const cur = acc.get(key) ?? {
       caTotal: 0,
       caYear: 0,
