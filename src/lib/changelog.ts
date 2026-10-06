@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-06",
+    version: "2.3.54",
+    theme: "Général",
+    title: "Dashboard — les graphiques s'affichent enfin, SST au-dessus de la rentabilité",
+    details: [
+      "Les graphiques du dashboard (vues année et mois, rentabilité par prestation, SST, trafic) s'affichaient vides : ils sont de nouveau tracés.",
+      "Le bloc SST passe juste après les deux vues, avant « Rentabilité par prestation ».",
+    ],
+  },
+  {
+    date: "2026-10-06",
     version: "2.3.53",
     theme: "Général",
     title: "Dashboard — Vue année et Vue mois plus compactes, 100 % graphiques",
