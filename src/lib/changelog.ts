@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-06",
+    version: "2.3.52",
+    theme: "Général",
+    title: "Dashboard — Vue année et Vue mois, plus de graphiques",
+    details: [
+      "Le dashboard s'ouvre sur « Vue année » puis « Vue mois » : mêmes indicateurs (CA, charges, résultat, interventions, temps, marge horaire), mêmes graphiques et même Top 3 clients, pour comparer d'un coup d'œil.",
+      "Nouveaux graphiques : CA et résultat par mois, CA par jour et cumul, répartition par famille et par type de chantier, CA par prestation, coût et CA par sous-traitant.",
+      "Le bloc SST remonte, le site web et le SEO descendent, les notifications CR passent à 3 lignes, et l'évolution des charges variables est supprimée.",
+    ],
+  },
+  {
     date: "2026-10-05",
     version: "2.3.51",
     theme: "Clients",

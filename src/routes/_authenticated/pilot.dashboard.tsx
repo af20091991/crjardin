@@ -1,15 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  ComposedChart,
   Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -18,9 +20,9 @@ import {
 import {
   AlertCircle,
   Bell,
-  Clock,
+  CalendarDays,
+  CalendarRange,
   Euro,
-  Gauge,
   Globe2,
   LineChart as LineChartIcon,
   MapPin,
@@ -28,10 +30,8 @@ import {
   TrendingDown,
   TrendingUp,
   Users,
-  Wallet,
 } from "lucide-react";
 import { usePilotData } from "@/components/pilot/usePilotData";
-import { PilotCard } from "@/components/pilot/PilotCard";
 import {
   DashboardCustomizer,
   DashboardBlock,
@@ -41,14 +41,16 @@ import { DataHealthBar, DataStateNotice } from "@/components/pilot/DataStateNoti
 import { resourceState } from "@/lib/pilot-data-state";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listNotifications, type AppNotification } from "@/lib/notifications";
 import {
   clientStatsWithHours,
   computeKpis,
   formatEuro,
+  monthlySeries,
   DEFAULT_SETTINGS,
   type PilotEntry,
 } from "@/lib/pilot";
@@ -57,24 +59,18 @@ import { fetchHoursLedger, formatHours } from "@/lib/pilot-hours-ledger";
 import { useGestionMode } from "@/lib/pilot-gestion-mode";
 import { gestionHoursForYear, rateWithGestion } from "@/lib/pilot-gestion-hours";
 import { listHours } from "@/lib/pilot-hours";
-import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
+import { usePilotPeriod } from "@/lib/pilot-mode";
 import { useThresholds } from "@/lib/pilot-thresholds";
 import { entriesForMode, hoursLedgerForMode } from "@/lib/pilot-realized";
 import { resolveRealHours } from "@/lib/pilot-real-hours";
 import { countSaleInterventions } from "@/lib/pilot-intervention-count";
-import {
-  monthlyChargeTotals,
-  listChargeRows,
-  analyzeCharges,
-  priorityTrend,
-  PRIORITY_VARIABLE_CATEGORIES,
-} from "@/lib/pilot-charges";
-import { annualSummary } from "@/lib/pilot-annual";
+import { monthlyChargeTotals, listChargeRows } from "@/lib/pilot-charges";
 import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { listMissions, listSubcontractors } from "@/lib/subcontractors";
-import { sstRows, sstTotals } from "@/lib/sst-analytics";
+import { bySubcontractor, sstRows, sstTotals } from "@/lib/sst-analytics";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
-import { listCaEntries, monthTotals } from "@/lib/pilot-ca";
+import { categoryTotals, listCaEntries, monthTotals, yearTotals } from "@/lib/pilot-ca";
+import { dailyRevenue, familyBreakdown, variationPct } from "@/lib/pilot-dashboard-views";
 import type { ClientStat } from "@/lib/pilot";
 import { entityEligibility, statusOf, useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
@@ -158,18 +154,16 @@ const LOCAL_TERMS = [
 ];
 
 const DASHBOARD_BLOCKS: DashboardBlockDef[] = [
-  { id: "ca", label: "Chiffre d'affaires" },
-  { id: "site", label: "Site web" },
+  { id: "vue-annee", label: "Vue année" },
+  { id: "vue-mois", label: "Vue mois" },
   { id: "rentabilite", label: "Temps et rentabilité" },
   { id: "cr", label: "Notifications CR" },
   { id: "objectifs-sst", label: "SST" },
-  { id: "charges", label: "Charges variables" },
-  { id: "clients", label: "Clients" },
+  { id: "site", label: "Site web et SEO" },
 ];
 
 function DashboardPage() {
   const { entries, charges, settings, clients, states } = usePilotData();
-  const { mode } = usePilotMode();
   const { period } = usePilotPeriod();
   const thresholds = useThresholds();
   const now = useMemo(() => new Date(), []);
@@ -177,7 +171,7 @@ function DashboardPage() {
   const month = now.getMonth();
   const monthNumber = month + 1;
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const layout = useDashboardLayout(DASHBOARD_BLOCKS, "dashboard-home");
+  const layout = useDashboardLayout(DASHBOARD_BLOCKS, "dashboard-home-v2");
   const [showAllCommunes, setShowAllCommunes] = useState(false);
   const entityStatuses = useEntityStatuses();
 
@@ -268,6 +262,60 @@ function DashboardPage() {
     [yearRevenueEntries],
   );
 
+  const yearInterventions = useMemo(
+    () => countSaleInterventions(yearRevenueEntries),
+    [yearRevenueEntries],
+  );
+  const yearStats = useMemo(
+    () => yearTotals(caEntries.data ?? [], { period }),
+    [caEntries.data, period],
+  );
+  const monthStats = useMemo(
+    () => monthTotals(caEntries.data ?? [], monthNumber, { period }),
+    [caEntries.data, monthNumber, period],
+  );
+  const yearCharges = useMemo(
+    () => chargeTotals.reduce((sum, value) => sum + value, 0),
+    [chargeTotals],
+  );
+  const monthlyCa = useMemo(
+    () => monthlySeries(entries.data ?? [], year, { mode: "reel", now, period }),
+    [entries.data, year, now, period],
+  );
+  const yearChartRows = useMemo(
+    () =>
+      monthlyCa.map((row, index) => ({
+        month: row.month,
+        CA: index > month ? null : Math.round(row.current),
+        "CA N-1": Math.round(row.previous),
+        Résultat: index > month ? null : Math.round(yearStats.months[index]?.benefice ?? 0),
+      })),
+    [monthlyCa, month, yearStats.months],
+  );
+  const monthChartRows = useMemo(
+    () =>
+      dailyRevenue(monthRevenueEntries, new Date(year, monthNumber, 0).getDate(), now.getDate()),
+    [monthRevenueEntries, year, monthNumber, now],
+  );
+  const monthFamilies = useMemo(() => familyBreakdown(monthRevenueEntries), [monthRevenueEntries]);
+  const yearFamilies = useMemo(() => familyBreakdown(yearRevenueEntries), [yearRevenueEntries]);
+  const monthCategories = useMemo(
+    () =>
+      categoryTotals(caEntries.data ?? [], monthNumber, { period }).map((row) => ({
+        name: row.category,
+        CA: Math.round(row.ht),
+      })),
+    [caEntries.data, monthNumber, period],
+  );
+  const yearCategories = useMemo(
+    () =>
+      categoryTotals(caEntries.data ?? [], undefined, { period }).map((row) => ({
+        name: row.category,
+        CA: Math.round(row.ht),
+      })),
+    [caEntries.data, period],
+  );
+  const monthRate = monthStats.tauxHoraire > 0 ? monthStats.tauxHoraire : null;
   const gestionAnnee = useMemo(
     () => gestionHoursForYear(hoursRows.data ?? [], monthNumber),
     [hoursRows.data, monthNumber],
@@ -292,26 +340,13 @@ function DashboardPage() {
     [hoursLedger.data, realEntries, ledgerRows, year, set.target_hourly_rate, thresholds],
   );
 
-  const annualRows = useMemo(
-    () => annualSummary(entries.data ?? [], chargeRows.data ?? [], { mode: "reel", now, period }),
-    [entries.data, chargeRows.data, now, period],
-  );
-  const salesByYear = useMemo(
-    () => new Map(annualRows.map((row) => [row.year, row.caHt] as const)),
-    [annualRows],
-  );
-  const chargesAnalysis = useMemo(
+  const serviceDonut = useMemo(
     () =>
-      analyzeCharges(chargeRows.data ?? [], salesByYear, [...PRIORITY_VARIABLE_CATEGORIES], {
-        mode,
-        now,
-        period,
-      }),
-    [chargeRows.data, salesByYear, mode, now, period],
-  );
-  const variableTrend = useMemo(
-    () => priorityTrend(chargesAnalysis).filter((row) => Number(row.annee) >= 2020),
-    [chargesAnalysis],
+      services
+        .filter((service) => service.caYear > 0)
+        .slice(0, 6)
+        .map((service) => ({ name: service.prestation, value: Math.round(service.caYear) })),
+    [services],
   );
 
   const clientMonthTop = useMemo(
@@ -338,10 +373,10 @@ function DashboardPage() {
   );
 
   const crNotifications = useMemo(
-    () => (notifications.data ?? []).filter(isCrNotification).slice(0, 5),
+    () => (notifications.data ?? []).filter(isCrNotification).slice(0, 3),
     [notifications.data],
   );
-  const sst = useMemo(() => {
+  const sstData = useMemo(() => {
     const rows = sstRows({
       missions: missions.data ?? [],
       ssts: subcontractors.data ?? [],
@@ -349,8 +384,9 @@ function DashboardPage() {
       mode: "reel",
       year,
     });
-    return sstTotals(rows);
+    return { totals: sstTotals(rows), bySst: bySubcontractor(rows).slice(0, 6) };
   }, [missions.data, subcontractors.data, clients.data, year]);
+  const sst = sstData.totals;
 
   const site = siteWeb.data;
   const siteTotals = useMemo(() => buildSearchTotals(site?.searchRows ?? []), [site?.searchRows]);
@@ -409,36 +445,314 @@ function DashboardPage() {
       <DataHealthBar states={dashboardStates} />
 
       <PageBlocks>
-        <DashboardBlock id="ca" layout={layout}>
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-4">
-            <PilotCard
-              className="xl:col-span-2"
-              emphasis="priority"
-              label="Chiffre d'affaires du mois"
-              value={formatEuro(kpis.caMonth)}
-              icon={Euro}
-              to="/pilot/ca"
-              sub={`${monthInterventions} intervention${monthInterventions > 1 ? "s" : ""} · ${monthHours > 0 ? formatHours(monthHours) : "temps non renseigné"}`}
-              help="CA comptabilisé sur les lignes de vente du mois. Le nombre d'interventions et les heures utilisent les mêmes lignes."
-            />
-            <PilotCard
-              label="Charges du mois"
-              value={formatEuro(monthCharges)}
-              icon={Wallet}
-              to="/pilot/charges"
-              sub="Charges enregistrées sur le mois"
-              help="Charges du mois en cours lues dans le module Charges, sans modifier les règles de calcul."
-            />
-            <PilotCard
-              label="Résultat des saisies"
-              value={formatEuro(monthResult)}
-              icon={Gauge}
-              to="/pilot/ca"
-              tone={monthResult < 0 ? "warning" : monthResult > 0 ? "positive" : "default"}
-              sub="Bénéfice réel du mois en cours"
-              help="Valeur reprise du résultat mensuel affiché dans Chiffre d’affaires : CA HT réglé moins charges d’exploitation du mois."
-            />
+        <DashboardBlock id="vue-annee" layout={layout}>
+          <PeriodView
+            icon={CalendarRange}
+            title={`Vue année ${year}`}
+            subtitle="Exercice en cours · mêmes indicateurs que la vue mois"
+            stats={[
+              {
+                label: "Chiffre d'affaires HT",
+                value: formatEuro(kpis.caYear),
+                delta: variationPct(kpis.caYTD, kpis.caPrevYTD),
+                deltaLabel: "vs N-1 à date",
+                to: "/pilot/ca",
+              },
+              { label: "Charges", value: formatEuro(yearCharges), to: "/pilot/charges" },
+              {
+                label: "Résultat des saisies",
+                value: formatEuro(yearStats.benefice),
+                tone: yearStats.benefice < 0 ? "negative" : "positive",
+                to: "/pilot/ca",
+              },
+              {
+                label: "Interventions",
+                value: formatNumber(yearInterventions),
+                to: "/pilot/ca",
+              },
+              {
+                label: "Temps",
+                value: yearHours > 0 ? formatHours(yearHours) : "Non renseigné",
+                to: "/pilot/temps",
+              },
+              {
+                label: "Marge horaire",
+                value:
+                  displayedHourlyRate != null
+                    ? `${formatEuro(displayedHourlyRate)}/h`
+                    : "Non disponible",
+                tone:
+                  displayedHourlyRate != null &&
+                  set.target_hourly_rate > 0 &&
+                  displayedHourlyRate < set.target_hourly_rate
+                    ? "warning"
+                    : undefined,
+                hint:
+                  set.target_hourly_rate > 0
+                    ? `Cible ${formatEuro(set.target_hourly_rate)}/h`
+                    : undefined,
+                to: "/pilot/taux",
+              },
+            ]}
+            mainTitle="CA et résultat par mois"
+            mainChart={
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={yearChartRows} margin={CHART_MARGIN}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatK(Number(v))} />
+                  <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
+                  <Legend />
+                  <Bar dataKey="CA" name="CA" fill={PP_COLORS.sales} radius={[4, 4, 0, 0]} />
+                  <Line
+                    type="monotone"
+                    dataKey="Résultat"
+                    name="Résultat"
+                    stroke={PP_COLORS.primary}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="CA N-1"
+                    name="CA N-1"
+                    stroke={PP_COLORS.neutral}
+                    strokeWidth={2}
+                    strokeDasharray="4 4"
+                    dot={false}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            }
+            mainEmpty={yearChartRows.every((row) => !row.CA && !row["CA N-1"])}
+            families={yearFamilies}
+            categories={yearCategories}
+            clients={clientYearTop}
+            clientsEmpty="Aucun client classable sur l'année."
+          />
+        </DashboardBlock>
+
+        <DashboardBlock id="vue-mois" layout={layout}>
+          <PeriodView
+            icon={CalendarDays}
+            title={`Vue mois — ${formatMonthName(now)}`}
+            subtitle="Mois en cours · mêmes indicateurs que la vue année"
+            stats={[
+              {
+                label: "Chiffre d'affaires HT",
+                value: formatEuro(kpis.caMonth),
+                delta: variationPct(kpis.caMonth, monthlyCa[month]?.previous ?? 0),
+                deltaLabel: "vs même mois N-1",
+                to: "/pilot/ca",
+              },
+              { label: "Charges", value: formatEuro(monthCharges), to: "/pilot/charges" },
+              {
+                label: "Résultat des saisies",
+                value: formatEuro(monthResult),
+                tone: monthResult < 0 ? "negative" : "positive",
+                to: "/pilot/ca",
+              },
+              {
+                label: "Interventions",
+                value: formatNumber(monthInterventions),
+                to: "/pilot/ca",
+              },
+              {
+                label: "Temps",
+                value: monthHours > 0 ? formatHours(monthHours) : "Non renseigné",
+                to: "/pilot/temps",
+              },
+              {
+                label: "Marge horaire",
+                value: monthRate != null ? `${formatEuro(monthRate)}/h` : "Non disponible",
+                tone:
+                  monthRate != null &&
+                  set.target_hourly_rate > 0 &&
+                  monthRate < set.target_hourly_rate
+                    ? "warning"
+                    : undefined,
+                hint:
+                  set.target_hourly_rate > 0
+                    ? `Cible ${formatEuro(set.target_hourly_rate)}/h`
+                    : undefined,
+                to: "/pilot/taux",
+              },
+            ]}
+            mainTitle="CA par jour et cumul"
+            mainChart={
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={monthChartRows} margin={CHART_MARGIN}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="jour" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatK(Number(v))} />
+                  <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
+                  <Legend />
+                  <Bar
+                    dataKey="CA"
+                    name="CA du jour"
+                    fill={PP_COLORS.sales}
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="cumul"
+                    name="Cumul du mois"
+                    stroke={PP_COLORS.primary}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            }
+            mainEmpty={monthChartRows.every((row) => row.CA === 0)}
+            families={monthFamilies}
+            categories={monthCategories}
+            clients={clientMonthTop}
+            clientsEmpty="Aucun client classable ce mois-ci."
+          />
+        </DashboardBlock>
+
+        <DashboardBlock id="rentabilite" layout={layout}>
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.4fr_0.6fr]">
+            <Card className="p-4">
+              <SectionHeading
+                icon={LineChartIcon}
+                title="Rentabilité par prestation"
+                subtitle="Taux horaire et CA par prestation"
+              />
+              <div className="mt-4 h-72">
+                {hoursLedger.isLoading ? (
+                  <Skeleton className="h-full w-full" />
+                ) : services.length === 0 ? (
+                  <EmptyState
+                    icon={LineChartIcon}
+                    title="Données de prestation insuffisantes."
+                    compact
+                  />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={serviceChartRows(services)}
+                      margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis
+                        yAxisId="left"
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v) => `${Number(v).toFixed(0)} €/h`}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v) => formatK(Number(v))}
+                      />
+                      <Tooltip
+                        formatter={(value: number | string, name) =>
+                          name === "CA"
+                            ? formatEuro(Number(value))
+                            : `${Number(value).toFixed(0)} €/h`
+                        }
+                      />
+                      <Legend />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="taux"
+                        name="Taux horaire"
+                        fill={PP_COLORS.primary}
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="CA"
+                        name="CA"
+                        stroke={PP_COLORS.sales}
+                        strokeWidth={2}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </Card>
+            <Card className="p-4">
+              <SectionHeading
+                icon={Euro}
+                title="CA par prestation"
+                subtitle={`Part de chaque prestation · ${year}`}
+              />
+              <div className="mt-4 h-72">
+                <DonutChart rows={serviceDonut} loading={hoursLedger.isLoading} />
+              </div>
+            </Card>
           </div>
+        </DashboardBlock>
+
+        <DashboardBlock id="cr" layout={layout}>
+          <Card className="p-4">
+            <SectionHeading
+              icon={Bell}
+              title="Notifications CR Chantier"
+              subtitle="Annotations, lectures, préconisations et interactions client"
+            />
+            <div className="mt-4 space-y-2">
+              {notifications.isLoading ? (
+                <Skeleton className="h-28 w-full" />
+              ) : crNotifications.length === 0 ? (
+                <EmptyState icon={Bell} title="Aucune interaction client récente." compact />
+              ) : (
+                crNotifications.map((notification) => (
+                  <NotificationRow key={notification.id} notification={notification} />
+                ))
+              )}
+            </div>
+          </Card>
+        </DashboardBlock>
+
+        <DashboardBlock id="objectifs-sst" layout={layout}>
+          <Card className="p-4">
+            <SectionHeading icon={Users} title="SST" subtitle={`Sous-traitance ${year}`} />
+            <div className="mt-4 grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                <MiniMetric label="Total SST" value={formatEuro(sst.cost)} />
+                <MiniMetric label="Heures SST" value={formatHours(sst.hours)} />
+                <MiniMetric label="Missions" value={formatNumber(sst.missions)} />
+              </div>
+              <div className="h-56">
+                {missions.isLoading ? (
+                  <Skeleton className="h-full w-full" />
+                ) : sstData.bySst.length === 0 ? (
+                  <EmptyState icon={Users} title="Aucune mission SST sur l'année." compact />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={sstData.bySst.map((row) => ({
+                        name: row.key,
+                        Coût: Math.round(row.cost),
+                        CA: Math.round(row.revenue),
+                      }))}
+                      margin={CHART_MARGIN}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatK(Number(v))} />
+                      <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
+                      <Legend />
+                      <Bar dataKey="Coût" fill={PP_COLORS.charges} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="CA" fill={PP_COLORS.sales} radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+            {missions.isError && (
+              <DataStateNotice
+                state={resourceState("sst-missions", "Missions SST", missions)}
+                className="mt-3"
+              />
+            )}
+          </Card>
         </DashboardBlock>
 
         <DashboardBlock id="site" layout={layout}>
@@ -579,215 +893,6 @@ function DashboardPage() {
             </Card>
           </div>
         </DashboardBlock>
-
-        <DashboardBlock id="rentabilite" layout={layout}>
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-[0.8fr_1.2fr]">
-            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-              <PilotCard
-                label="Temps année"
-                value={yearHours > 0 ? formatHours(yearHours) : "Non renseigné"}
-                icon={Clock}
-                to="/pilot/temps"
-                sub="Vente → Temps"
-                help="Total des heures issues des lignes de vente comptabilisées de l'année."
-              />
-              <PilotCard
-                label="Marge horaire"
-                value={
-                  displayedHourlyRate != null
-                    ? `${formatEuro(displayedHourlyRate)}/h`
-                    : "Non disponible"
-                }
-                icon={Gauge}
-                to="/pilot/taux"
-                tone={
-                  displayedHourlyRate != null &&
-                  set.target_hourly_rate > 0 &&
-                  displayedHourlyRate < set.target_hourly_rate
-                    ? "warning"
-                    : "default"
-                }
-                sub={
-                  set.target_hourly_rate > 0
-                    ? `Cible ${formatEuro(set.target_hourly_rate)}/h`
-                    : undefined
-                }
-                help="Taux horaire calculé par les moteurs Pilot Pro à partir du CA et du Temps Vente → Temps."
-              />
-              <PilotCard
-                label="Prestations classées"
-                value={formatNumber(
-                  services.filter((service) => service.classe !== "non_classe").length,
-                )}
-                icon={LineChartIcon}
-                to="/pilot/rentabilite"
-                sub={`${services.length} prestation${services.length > 1 ? "s" : ""} analysée${services.length > 1 ? "s" : ""}`}
-                help="Nombre de prestations exploitables avec CA et temps suffisamment renseignés."
-              />
-            </div>
-            <Card className="p-4">
-              <SectionHeading
-                icon={LineChartIcon}
-                title="Rentabilité par prestation"
-                subtitle="Taux horaire et CA par prestation"
-              />
-              <div className="mt-4 h-72">
-                {hoursLedger.isLoading ? (
-                  <Skeleton className="h-full w-full" />
-                ) : services.length === 0 ? (
-                  <EmptyState
-                    icon={LineChartIcon}
-                    title="Données de prestation insuffisantes."
-                    compact
-                  />
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={serviceChartRows(services)}
-                      margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                      <YAxis
-                        yAxisId="left"
-                        tick={{ fontSize: 11 }}
-                        tickFormatter={(v) => `${Number(v).toFixed(0)} €/h`}
-                      />
-                      <YAxis
-                        yAxisId="right"
-                        orientation="right"
-                        tick={{ fontSize: 11 }}
-                        tickFormatter={(v) => formatK(Number(v))}
-                      />
-                      <Tooltip
-                        formatter={(value: number | string, name) =>
-                          name === "CA"
-                            ? formatEuro(Number(value))
-                            : `${Number(value).toFixed(0)} €/h`
-                        }
-                      />
-                      <Legend />
-                      <Bar
-                        yAxisId="left"
-                        dataKey="taux"
-                        name="Taux horaire"
-                        fill={PP_COLORS.primary}
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Line
-                        yAxisId="right"
-                        type="monotone"
-                        dataKey="CA"
-                        name="CA"
-                        stroke={PP_COLORS.sales}
-                        strokeWidth={2}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </Card>
-          </div>
-        </DashboardBlock>
-
-        <DashboardBlock id="cr" layout={layout}>
-          <Card className="p-4">
-            <SectionHeading
-              icon={Bell}
-              title="Notifications CR Chantier"
-              subtitle="Annotations, lectures, préconisations et interactions client"
-            />
-            <div className="mt-4 space-y-2">
-              {notifications.isLoading ? (
-                <Skeleton className="h-28 w-full" />
-              ) : crNotifications.length === 0 ? (
-                <EmptyState icon={Bell} title="Aucune interaction client récente." compact />
-              ) : (
-                crNotifications.map((notification) => (
-                  <NotificationRow key={notification.id} notification={notification} />
-                ))
-              )}
-            </div>
-          </Card>
-        </DashboardBlock>
-
-        <DashboardBlock id="objectifs-sst" layout={layout}>
-          <Card className="p-4">
-            <SectionHeading icon={Users} title="SST" subtitle={`Sous-traitance ${year}`} />
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <MiniMetric label="Total SST" value={formatEuro(sst.cost)} />
-              <MiniMetric label="Heures SST" value={formatHours(sst.hours)} />
-              <MiniMetric label="Missions" value={formatNumber(sst.missions)} />
-            </div>
-            {missions.isError && (
-              <DataStateNotice
-                state={resourceState("sst-missions", "Missions SST", missions)}
-                className="mt-3"
-              />
-            )}
-          </Card>
-        </DashboardBlock>
-
-        <DashboardBlock id="charges" layout={layout}>
-          <Card className="p-4">
-            <SectionHeading
-              icon={Wallet}
-              title="Évolution des charges variables"
-              subtitle="Alimentaire, carburant et déchèterie · depuis 2020"
-            />
-            <div className="mt-3 h-64">
-              {chargeRows.isLoading ? (
-                <Skeleton className="h-full w-full" />
-              ) : variableTrend.length === 0 ? (
-                <EmptyState
-                  icon={Wallet}
-                  title="Aucune charge variable prioritaire enregistrée depuis 2020."
-                  compact
-                />
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={variableTrend}
-                    margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="annee" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatK(Number(v))} />
-                    <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
-                    <Legend />
-                    {PRIORITY_VARIABLE_CATEGORIES.map((category, index) => (
-                      <Area
-                        key={category}
-                        type="monotone"
-                        dataKey={category}
-                        name={category}
-                        stroke={PP_SERIES[index % PP_SERIES.length] ?? PP_COLORS.primary}
-                        strokeWidth={2}
-                        fill={PP_SERIES[index % PP_SERIES.length] ?? PP_COLORS.primary}
-                        fillOpacity={0.08}
-                      />
-                    ))}
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </Card>
-        </DashboardBlock>
-
-        <DashboardBlock id="clients" layout={layout}>
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            <RankingCard
-              title="Top 3 clients — Rentabilité clients du mois"
-              rows={clientMonthTop}
-              empty="Aucun client classable ce mois-ci."
-            />
-            <RankingCard
-              title={`Top 3 clients — Rentabilité clients ${year}`}
-              rows={clientYearTop}
-              empty="Aucun client classable sur l'année."
-            />
-          </div>
-        </DashboardBlock>
       </PageBlocks>
     </div>
   );
@@ -838,37 +943,189 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RankingCard({ title, rows, empty }: { title: string; rows: ClientStat[]; empty: string }) {
+const CHART_MARGIN = { top: 8, right: 12, left: 0, bottom: 8 };
+
+type PeriodStat = {
+  label: string;
+  value: string;
+  to: string;
+  hint?: string;
+  tone?: "positive" | "negative" | "warning";
+  delta?: number | null;
+  deltaLabel?: string;
+};
+
+function PeriodView({
+  icon,
+  title,
+  subtitle,
+  stats,
+  mainTitle,
+  mainChart,
+  mainEmpty,
+  families,
+  categories,
+  clients,
+  clientsEmpty,
+}: {
+  icon: typeof Euro;
+  title: string;
+  subtitle: string;
+  stats: PeriodStat[];
+  mainTitle: string;
+  mainChart: ReactNode;
+  mainEmpty: boolean;
+  families: Array<{ name: string; value: number }>;
+  categories: Array<{ name: string; CA: number }>;
+  clients: ClientStat[];
+  clientsEmpty: string;
+}) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="font-serif text-lg">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {rows.length === 0 ? (
-          <EmptyState icon={Users} title={empty} compact />
-        ) : (
-          rows.map((row, index) => (
-            <div
-              key={row.key}
-              className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-border/70 px-3 py-2"
+    <Card className="p-4">
+      <SectionHeading icon={icon} title={title} subtitle={subtitle} />
+      <div className="mt-4 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+        <dl className="divide-y divide-border/70">
+          {stats.map((stat) => (
+            <Link
+              key={stat.label}
+              to={stat.to as never}
+              className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-primary"
             >
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 font-serif text-sm font-semibold text-primary">
-                {index + 1}
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{row.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  CA {formatEuro(row.ca)} ·{" "}
-                  {row.hours > 0 ? `${formatEuro(row.hourlyRate)}/h` : "taux/h non documenté"}
-                </p>
-              </div>
-              <Badge variant="outline">{row.share.toFixed(0)} % du CA</Badge>
-            </div>
-          ))
-        )}
-      </CardContent>
+              <dt className="text-muted-foreground">
+                {stat.label}
+                {stat.hint && <span className="block text-xs">{stat.hint}</span>}
+              </dt>
+              <dd className="text-right">
+                <span
+                  className={cn(
+                    "font-serif text-lg font-semibold tabular-nums",
+                    stat.tone === "negative" && "text-destructive",
+                    stat.tone === "warning" && "text-[var(--pp-warning)]",
+                  )}
+                >
+                  {stat.value}
+                </span>
+                {stat.delta != null && (
+                  <span
+                    className={cn(
+                      "block text-xs tabular-nums",
+                      stat.delta >= 0 ? "text-primary" : "text-destructive",
+                    )}
+                  >
+                    {stat.delta >= 0 ? "+" : ""}
+                    {stat.delta.toFixed(0)} % {stat.deltaLabel}
+                  </span>
+                )}
+              </dd>
+            </Link>
+          ))}
+        </dl>
+        <div>
+          <p className="text-sm font-medium">{mainTitle}</p>
+          <div className="mt-2 h-64">
+            {mainEmpty ? (
+              <EmptyState icon={LineChartIcon} title="Aucune vente sur la période." compact />
+            ) : (
+              mainChart
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="mt-6 grid gap-6 border-t border-border/70 pt-4 xl:grid-cols-3">
+        <div>
+          <p className="text-sm font-medium">Top 3 clients — rentabilité</p>
+          <TopClients rows={clients} empty={clientsEmpty} />
+        </div>
+        <div>
+          <p className="text-sm font-medium">CA par famille</p>
+          <div className="mt-2 h-44">
+            <DonutChart rows={families} />
+          </div>
+        </div>
+        <div>
+          <p className="text-sm font-medium">CA par type de chantier</p>
+          <div className="mt-2 h-44">
+            {categories.length === 0 ? (
+              <EmptyState icon={LineChartIcon} title="Aucune vente classée." compact />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={categories} layout="vertical" margin={CHART_MARGIN}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v) => formatK(Number(v))}
+                  />
+                  <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
+                  <Bar dataKey="CA" fill={PP_COLORS.primary} radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </div>
     </Card>
+  );
+}
+
+function DonutChart({
+  rows,
+  loading,
+}: {
+  rows: Array<{ name: string; value: number }>;
+  loading?: boolean;
+}) {
+  if (loading) return <Skeleton className="h-full w-full" />;
+  if (rows.length === 0) {
+    return <EmptyState icon={LineChartIcon} title="Données insuffisantes." compact />;
+  }
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        <Pie data={rows} dataKey="value" nameKey="name" innerRadius="50%" outerRadius="80%">
+          {rows.map((row, index) => (
+            <Cell key={row.name} fill={PP_SERIES[index % PP_SERIES.length] ?? PP_COLORS.primary} />
+          ))}
+        </Pie>
+        <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
+        <Legend />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+function TopClients({ rows, empty }: { rows: ClientStat[]; empty: string }) {
+  if (rows.length === 0) {
+    return (
+      <div className="mt-2">
+        <EmptyState icon={Users} title={empty} compact />
+      </div>
+    );
+  }
+  return (
+    <ol className="mt-3 space-y-3">
+      {rows.map((row, index) => (
+        <li key={row.key}>
+          <div className="flex items-baseline justify-between gap-2 text-sm">
+            <span className="min-w-0 truncate font-medium">
+              {index + 1}. {row.name}
+            </span>
+            <span className="shrink-0 tabular-nums">{formatEuro(row.ca)}</span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary"
+              style={{ width: `${Math.min(100, Math.max(2, row.share))}%` }}
+            />
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {row.share.toFixed(0)} % du CA ·{" "}
+            {row.hours > 0 ? `${formatEuro(row.hourlyRate)}/h` : "taux/h non documenté"}
+          </p>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -1115,6 +1372,10 @@ function formatDateLong(date: Date): string {
     month: "long",
     year: "numeric",
   });
+}
+
+function formatMonthName(date: Date): string {
+  return date.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 }
 
 function formatDateShort(value: string): string {
