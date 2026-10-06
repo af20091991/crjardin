@@ -6,7 +6,7 @@
 
 import { saleRateRowOf, type PilotEntry } from "@/lib/pilot";
 import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
-import { canonicalPrestation, PRESTATIONS } from "@/lib/pilot-ca-designation";
+import { buildClientPrestationMap, canonicalPrestation, PRESTATIONS, type Prestation } from "@/lib/pilot-ca-designation";
 import type { HoursLedgerEntry } from "@/lib/pilot-hours-ledger";
 import { getThresholds, type PilotThresholds } from "@/lib/pilot-thresholds";
 
@@ -85,8 +85,13 @@ export function analyzeServices(params: {
       caRated: number;
     }
   >();
+  // Déduction par client : les lignes sans indice héritent de la prestation
+  // déjà classée du même client (jamais inventée, toujours déduite).
+  const knownByClient = buildClientPrestationMap(
+    entries.map((e) => ({ designation: e.client_name, category: e.nature })),
+  );
   for (const e of entries) {
-    const key = prestationKey(e.client_name, e.nature, e.family);
+    const key = prestationKey(e.client_name, e.nature, e.family, knownByClient);
     const cur = acc.get(key) ?? {
       caTotal: 0,
       caYear: 0,
