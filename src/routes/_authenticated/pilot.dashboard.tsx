@@ -16,7 +16,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "@/components/ui/lazy-recharts";
+} from "recharts";
 import {
   AlertCircle,
   Bell,
@@ -156,9 +156,9 @@ const LOCAL_TERMS = [
 const DASHBOARD_BLOCKS: DashboardBlockDef[] = [
   { id: "vue-annee", label: "Vue année" },
   { id: "vue-mois", label: "Vue mois" },
+  { id: "objectifs-sst", label: "SST" },
   { id: "rentabilite", label: "Temps et rentabilité" },
   { id: "cr", label: "Notifications CR" },
-  { id: "objectifs-sst", label: "SST" },
   { id: "site", label: "Site web et SEO" },
 ];
 
@@ -171,7 +171,7 @@ function DashboardPage() {
   const month = now.getMonth();
   const monthNumber = month + 1;
   const set = settings.data ?? { user_id: "", ...DEFAULT_SETTINGS };
-  const layout = useDashboardLayout(DASHBOARD_BLOCKS, "dashboard-home-v2");
+  const layout = useDashboardLayout(DASHBOARD_BLOCKS, "dashboard-home-v3");
   const [showAllCommunes, setShowAllCommunes] = useState(false);
   const entityStatuses = useEntityStatuses();
 
