@@ -1,9 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { dailyRevenue, familyBreakdown, variationPct } from "@/lib/pilot-dashboard-views";
-import type { PilotEntry } from "@/lib/pilot";
+import { salesByCategory, salesByStatus, variationPct } from "@/lib/pilot-dashboard-views";
+import type { CaEntry } from "@/lib/pilot-ca";
 
-const entry = (date: string, amount: number, family: string): PilotEntry =>
-  ({ entry_date: date, amount_ht: amount, family }) as unknown as PilotEntry;
+const sale = (month: number, amount: number, status: string, category: string | null): CaEntry =>
+  ({
+    kind: "vente",
+    month,
+    amount_ht: amount,
+    sale_status: status,
+    category,
+  }) as unknown as CaEntry;
 
 describe("dashboard — vues année / mois", () => {
   it("variationPct renvoie null sans base de comparaison", () => {
@@ -12,23 +18,30 @@ describe("dashboard — vues année / mois", () => {
     expect(variationPct(50, 100)).toBeCloseTo(-50, 6);
   });
 
-  it("dailyRevenue cumule le CA jour par jour jusqu'à la date demandée", () => {
-    const rows = dailyRevenue(
+  it("salesByStatus sépare réglé, réalisé et planifié par mois", () => {
+    const rows = salesByStatus(
+      [sale(10, 100, "regle", "AP"), sale(10, 40, "planifie", "AP"), sale(11, 70, "realise", null)],
       [
-        entry("2026-10-02", 100, "sap"),
-        entry("2026-10-02", 50, "sap"),
-        entry("2026-10-04", 30, "conseil"),
+        { month: 10, label: "Oct" },
+        { month: 11, label: "Nov" },
       ],
-      31,
-      5,
     );
-    expect(rows).toHaveLength(5);
-    expect(rows[1]).toEqual({ jour: "2", CA: 150, cumul: 150 });
-    expect(rows[4]).toEqual({ jour: "5", CA: 0, cumul: 180 });
+    expect(rows[0]).toEqual({ label: "Oct", Réglé: 100, Réalisé: 0, Planifié: 40, Particulier: 0 });
+    expect(rows[1]?.Réalisé).toBe(70);
   });
 
-  it("familyBreakdown exclut les familles sans CA", () => {
-    const rows = familyBreakdown([entry("2026-10-02", 100, "sap"), entry("2026-10-03", 40, "sap")]);
-    expect(rows).toEqual([{ name: "SAP", color: "#4F8E33", value: 140 }]);
+  it("salesByCategory regroupe, classe les ventes sans catégorie et trie", () => {
+    const rows = salesByCategory([
+      sale(10, 100, "regle", "AP"),
+      sale(10, 300, "planifie", null),
+      sale(11, 50, "regle", "AP"),
+    ]);
+    expect(rows).toEqual([
+      { name: "Non classé", value: 300 },
+      { name: "AP", value: 150 },
+    ]);
+    expect(
+      salesByCategory([sale(10, 100, "regle", "AP"), sale(11, 5, "regle", "SAP")], 11),
+    ).toEqual([{ name: "SAP", value: 5 }]);
   });
 });

@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-06",
+    version: "2.3.53",
+    theme: "Général",
+    title: "Dashboard — Vue année et Vue mois plus compactes, 100 % graphiques",
+    details: [
+      "Les deux vues du haut tiennent chacune sur une bande : 6 indicateurs en tuiles, puis 3 graphiques (CA par statut avec charges, CA par catégorie, Top 3 clients).",
+      "Le planifié est visible à part du réglé : plus de graphique vide quand le mois n'a pas encore de CA réglé.",
+    ],
+  },
+  {
+    date: "2026-10-06",
     version: "2.3.52",
     theme: "Général",
     title: "Dashboard — Vue année et Vue mois, plus de graphiques",

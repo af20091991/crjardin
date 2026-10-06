@@ -1,9 +1,17 @@
 // Aides pures de présentation du dashboard (Vue année / Vue mois).
-// Aucune règle métier : regroupements et variations sur des lignes déjà
-// filtrées par les moteurs (entriesForMode, scopedRevenueEntries).
+// Aucune règle métier : regroupements par statut / catégorie et variations,
+// à partir des lignes de Chiffre d'affaires déjà chargées. Le CA « compté »
+// reste calculé par pilot-ca.ts ; ici on montre aussi le planifié, à part.
 
-import type { PilotEntry } from "@/lib/pilot";
-import { FAMILIES, FAMILY_META } from "@/lib/pilot";
+import type { CaEntry } from "@/lib/pilot-ca";
+
+export type StatusRow = {
+  label: string;
+  Réglé: number;
+  Réalisé: number;
+  Planifié: number;
+  Particulier: number;
+};
 
 /** Variation en % entre deux valeurs ; null si la base de comparaison est nulle. */
 export function variationPct(current: number, previous: number): number | null {
@@ -11,38 +19,45 @@ export function variationPct(current: number, previous: number): number | null {
   return ((current - previous) / previous) * 100;
 }
 
-/** CA HT du mois jour par jour, avec cumul. `untilDay` borne le cumul (mois en cours). */
-export function dailyRevenue(
-  entries: PilotEntry[],
-  daysInMonth: number,
-  untilDay: number,
-): Array<{ jour: string; CA: number; cumul: number }> {
-  const perDay = new Array<number>(daysInMonth).fill(0);
-  for (const entry of entries) {
-    const d = new Date(entry.entry_date);
-    if (!Number.isFinite(d.getTime())) continue;
-    const idx = d.getDate() - 1;
-    if (idx >= 0 && idx < daysInMonth) perDay[idx] += Number(entry.amount_ht) || 0;
-  }
-  const last = Math.min(Math.max(untilDay, 1), daysInMonth);
-  let cumul = 0;
-  return perDay.slice(0, last).map((value, index) => {
-    cumul += value;
-    return { jour: String(index + 1), CA: Math.round(value), cumul: Math.round(cumul) };
+/** CA HT des lignes de vente par mois et par statut (réglé / réalisé / planifié). */
+export function salesByStatus(
+  entries: CaEntry[],
+  months: Array<{ month: number; label: string }>,
+): StatusRow[] {
+  return months.map(({ month, label }) => {
+    const row: StatusRow = { label, Réglé: 0, Réalisé: 0, Planifié: 0, Particulier: 0 };
+    for (const entry of entries) {
+      if (entry.kind !== "vente" || entry.month !== month) continue;
+      const amount = Number(entry.amount_ht) || 0;
+      if (entry.sale_status === "regle") row.Réglé += amount;
+      else if (entry.sale_status === "realise") row.Réalisé += amount;
+      else if (entry.sale_status === "planifie") row.Planifié += amount;
+      else if (entry.sale_status === "particulier") row.Particulier += amount;
+    }
+    return {
+      label,
+      Réglé: Math.round(row.Réglé),
+      Réalisé: Math.round(row.Réalisé),
+      Planifié: Math.round(row.Planifié),
+      Particulier: Math.round(row.Particulier),
+    };
   });
 }
 
-/** Répartition du CA HT par famille (SAP, Aménagement, Conseil) — familles à 0 exclues. */
-export function familyBreakdown(
-  entries: PilotEntry[],
-): Array<{ name: string; value: number; color: string }> {
-  return FAMILIES.map((family) => ({
-    name: FAMILY_META[family].short,
-    color: FAMILY_META[family].color,
-    value: Math.round(
-      entries
-        .filter((entry) => entry.family === family)
-        .reduce((sum, entry) => sum + (Number(entry.amount_ht) || 0), 0),
-    ),
-  })).filter((row) => row.value > 0);
+/** CA HT des lignes de vente par catégorie (tous statuts), du plus gros au plus petit. */
+export function salesByCategory(
+  entries: CaEntry[],
+  month?: number,
+): Array<{ name: string; value: number }> {
+  const map = new Map<string, number>();
+  for (const entry of entries) {
+    if (entry.kind !== "vente") continue;
+    if (month != null && entry.month !== month) continue;
+    const name = entry.category ?? "Non classé";
+    map.set(name, (map.get(name) ?? 0) + (Number(entry.amount_ht) || 0));
+  }
+  return [...map.entries()]
+    .map(([name, value]) => ({ name, value: Math.round(value) }))
+    .filter((row) => row.value > 0)
+    .sort((a, b) => b.value - a.value);
 }

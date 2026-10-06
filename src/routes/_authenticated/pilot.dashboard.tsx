@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Bar,
@@ -69,8 +69,8 @@ import { analyzeServices } from "@/lib/pilot-service-profitability";
 import { listMissions, listSubcontractors } from "@/lib/subcontractors";
 import { bySubcontractor, sstRows, sstTotals } from "@/lib/sst-analytics";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
-import { categoryTotals, listCaEntries, monthTotals, yearTotals } from "@/lib/pilot-ca";
-import { dailyRevenue, familyBreakdown, variationPct } from "@/lib/pilot-dashboard-views";
+import { listCaEntries, monthTotals, yearTotals } from "@/lib/pilot-ca";
+import { salesByCategory, salesByStatus, variationPct } from "@/lib/pilot-dashboard-views";
 import type { ClientStat } from "@/lib/pilot";
 import { entityEligibility, statusOf, useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
@@ -282,39 +282,40 @@ function DashboardPage() {
     () => monthlySeries(entries.data ?? [], year, { mode: "reel", now, period }),
     [entries.data, year, now, period],
   );
-  const yearChartRows = useMemo(
+  const statusMonths = useMemo(() => {
+    const last = month;
+    const first = Math.max(0, last - 3);
+    return Array.from({ length: last - first + 1 }, (_, i) => ({
+      month: first + i + 1,
+      label: MONTH_LABELS[first + i] ?? "",
+    }));
+  }, [month]);
+  const yearStatusRows = useMemo(
     () =>
-      monthlyCa.map((row, index) => ({
-        month: row.month,
-        CA: index > month ? null : Math.round(row.current),
-        "CA N-1": Math.round(row.previous),
-        Résultat: index > month ? null : Math.round(yearStats.months[index]?.benefice ?? 0),
+      salesByStatus(
+        caEntries.data ?? [],
+        MONTH_LABELS.map((label, index) => ({ month: index + 1, label })),
+      ).map((row, index) => ({
+        ...row,
+        Charges: Math.round(yearStats.months[index]?.chargesHt ?? 0),
       })),
-    [monthlyCa, month, yearStats.months],
+    [caEntries.data, yearStats.months],
   );
-  const monthChartRows = useMemo(
+  const monthStatusRows = useMemo(
     () =>
-      dailyRevenue(monthRevenueEntries, new Date(year, monthNumber, 0).getDate(), now.getDate()),
-    [monthRevenueEntries, year, monthNumber, now],
+      salesByStatus(caEntries.data ?? [], statusMonths).map((row, index) => ({
+        ...row,
+        Charges: Math.round(
+          yearStats.months[(statusMonths[index]?.month ?? 1) - 1]?.chargesHt ?? 0,
+        ),
+      })),
+    [caEntries.data, statusMonths, yearStats.months],
   );
-  const monthFamilies = useMemo(() => familyBreakdown(monthRevenueEntries), [monthRevenueEntries]);
-  const yearFamilies = useMemo(() => familyBreakdown(yearRevenueEntries), [yearRevenueEntries]);
   const monthCategories = useMemo(
-    () =>
-      categoryTotals(caEntries.data ?? [], monthNumber, { period }).map((row) => ({
-        name: row.category,
-        CA: Math.round(row.ht),
-      })),
-    [caEntries.data, monthNumber, period],
+    () => salesByCategory(caEntries.data ?? [], monthNumber),
+    [caEntries.data, monthNumber],
   );
-  const yearCategories = useMemo(
-    () =>
-      categoryTotals(caEntries.data ?? [], undefined, { period }).map((row) => ({
-        name: row.category,
-        CA: Math.round(row.ht),
-      })),
-    [caEntries.data, period],
-  );
+  const yearCategories = useMemo(() => salesByCategory(caEntries.data ?? []), [caEntries.data]);
   const monthRate = monthStats.tauxHoraire > 0 ? monthStats.tauxHoraire : null;
   const gestionAnnee = useMemo(
     () => gestionHoursForYear(hoursRows.data ?? [], monthNumber),
@@ -449,31 +450,26 @@ function DashboardPage() {
           <PeriodView
             icon={CalendarRange}
             title={`Vue année ${year}`}
-            subtitle="Exercice en cours · mêmes indicateurs que la vue mois"
             stats={[
               {
                 label: "Chiffre d'affaires HT",
                 value: formatEuro(kpis.caYear),
                 delta: variationPct(kpis.caYTD, kpis.caPrevYTD),
                 deltaLabel: "vs N-1 à date",
-                to: "/pilot/ca",
               },
-              { label: "Charges", value: formatEuro(yearCharges), to: "/pilot/charges" },
+              { label: "Charges", value: formatEuro(yearCharges) },
               {
                 label: "Résultat des saisies",
                 value: formatEuro(yearStats.benefice),
                 tone: yearStats.benefice < 0 ? "negative" : "positive",
-                to: "/pilot/ca",
               },
               {
                 label: "Interventions",
                 value: formatNumber(yearInterventions),
-                to: "/pilot/ca",
               },
               {
                 label: "Temps",
                 value: yearHours > 0 ? formatHours(yearHours) : "Non renseigné",
-                to: "/pilot/temps",
               },
               {
                 label: "Marge horaire",
@@ -491,44 +487,12 @@ function DashboardPage() {
                   set.target_hourly_rate > 0
                     ? `Cible ${formatEuro(set.target_hourly_rate)}/h`
                     : undefined,
-                to: "/pilot/taux",
               },
             ]}
-            mainTitle="CA et résultat par mois"
-            mainChart={
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={yearChartRows} margin={CHART_MARGIN}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatK(Number(v))} />
-                  <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
-                  <Legend />
-                  <Bar dataKey="CA" name="CA" fill={PP_COLORS.sales} radius={[4, 4, 0, 0]} />
-                  <Line
-                    type="monotone"
-                    dataKey="Résultat"
-                    name="Résultat"
-                    stroke={PP_COLORS.primary}
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="CA N-1"
-                    name="CA N-1"
-                    stroke={PP_COLORS.neutral}
-                    strokeWidth={2}
-                    strokeDasharray="4 4"
-                    dot={false}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            }
-            mainEmpty={yearChartRows.every((row) => !row.CA && !row["CA N-1"])}
-            families={yearFamilies}
+            mainTitle="CA par mois et par statut · charges"
+            statusRows={yearStatusRows}
             categories={yearCategories}
             clients={clientYearTop}
-            clientsEmpty="Aucun client classable sur l'année."
           />
         </DashboardBlock>
 
@@ -536,31 +500,26 @@ function DashboardPage() {
           <PeriodView
             icon={CalendarDays}
             title={`Vue mois — ${formatMonthName(now)}`}
-            subtitle="Mois en cours · mêmes indicateurs que la vue année"
             stats={[
               {
                 label: "Chiffre d'affaires HT",
                 value: formatEuro(kpis.caMonth),
                 delta: variationPct(kpis.caMonth, monthlyCa[month]?.previous ?? 0),
                 deltaLabel: "vs même mois N-1",
-                to: "/pilot/ca",
               },
-              { label: "Charges", value: formatEuro(monthCharges), to: "/pilot/charges" },
+              { label: "Charges", value: formatEuro(monthCharges) },
               {
                 label: "Résultat des saisies",
                 value: formatEuro(monthResult),
                 tone: monthResult < 0 ? "negative" : "positive",
-                to: "/pilot/ca",
               },
               {
                 label: "Interventions",
                 value: formatNumber(monthInterventions),
-                to: "/pilot/ca",
               },
               {
                 label: "Temps",
                 value: monthHours > 0 ? formatHours(monthHours) : "Non renseigné",
-                to: "/pilot/temps",
               },
               {
                 label: "Marge horaire",
@@ -575,40 +534,12 @@ function DashboardPage() {
                   set.target_hourly_rate > 0
                     ? `Cible ${formatEuro(set.target_hourly_rate)}/h`
                     : undefined,
-                to: "/pilot/taux",
               },
             ]}
-            mainTitle="CA par jour et cumul"
-            mainChart={
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={monthChartRows} margin={CHART_MARGIN}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="jour" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatK(Number(v))} />
-                  <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
-                  <Legend />
-                  <Bar
-                    dataKey="CA"
-                    name="CA du jour"
-                    fill={PP_COLORS.sales}
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="cumul"
-                    name="Cumul du mois"
-                    stroke={PP_COLORS.primary}
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            }
-            mainEmpty={monthChartRows.every((row) => row.CA === 0)}
-            families={monthFamilies}
+            mainTitle="CA par statut · 4 derniers mois"
+            statusRows={monthStatusRows}
             categories={monthCategories}
             clients={clientMonthTop}
-            clientsEmpty="Aucun client classable ce mois-ci."
           />
         </DashboardBlock>
 
@@ -943,122 +874,168 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
+const MONTH_LABELS = [
+  "Jan",
+  "Fév",
+  "Mar",
+  "Avr",
+  "Mai",
+  "Juin",
+  "Juil",
+  "Aoû",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Déc",
+];
+
 const CHART_MARGIN = { top: 8, right: 12, left: 0, bottom: 8 };
 
 type PeriodStat = {
   label: string;
   value: string;
-  to: string;
   hint?: string;
   tone?: "positive" | "negative" | "warning";
   delta?: number | null;
   deltaLabel?: string;
 };
 
+type StatusChartRow = {
+  label: string;
+  Réglé: number;
+  Réalisé: number;
+  Planifié: number;
+  Particulier: number;
+  Charges: number;
+};
+
+const CLIENT_NAME_MAX = 18;
+
 function PeriodView({
   icon,
   title,
-  subtitle,
   stats,
   mainTitle,
-  mainChart,
-  mainEmpty,
-  families,
+  statusRows,
   categories,
   clients,
-  clientsEmpty,
 }: {
   icon: typeof Euro;
   title: string;
-  subtitle: string;
   stats: PeriodStat[];
   mainTitle: string;
-  mainChart: ReactNode;
-  mainEmpty: boolean;
-  families: Array<{ name: string; value: number }>;
-  categories: Array<{ name: string; CA: number }>;
+  statusRows: StatusChartRow[];
+  categories: Array<{ name: string; value: number }>;
   clients: ClientStat[];
-  clientsEmpty: string;
 }) {
+  const hasStatus = statusRows.some(
+    (row) => row.Réglé + row.Réalisé + row.Planifié + row.Particulier > 0,
+  );
+  const clientRows = clients.map((client) => ({
+    name:
+      client.name.length > CLIENT_NAME_MAX
+        ? `${client.name.slice(0, CLIENT_NAME_MAX - 1)}…`
+        : client.name,
+    CA: Math.round(client.ca),
+  }));
   return (
     <Card className="p-4">
-      <SectionHeading icon={icon} title={title} subtitle={subtitle} />
-      <div className="mt-4 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <dl className="divide-y divide-border/70">
-          {stats.map((stat) => (
-            <Link
-              key={stat.label}
-              to={stat.to as never}
-              className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-primary"
+      <div className="flex items-center gap-2">
+        <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+          {(() => {
+            const Icon = icon;
+            return <Icon className="h-4 w-4" />;
+          })()}
+        </div>
+        <h3 className="font-serif text-lg font-semibold tracking-tight">{title}</h3>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="rounded-md border border-border/70 bg-muted/20 px-3 py-2"
+          >
+            <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              {stat.label}
+            </p>
+            <p
+              className={cn(
+                "font-serif text-xl font-semibold tabular-nums",
+                stat.tone === "negative" && "text-destructive",
+                stat.tone === "warning" && "text-[var(--pp-warning)]",
+              )}
             >
-              <dt className="text-muted-foreground">
-                {stat.label}
-                {stat.hint && <span className="block text-xs">{stat.hint}</span>}
-              </dt>
-              <dd className="text-right">
-                <span
-                  className={cn(
-                    "font-serif text-lg font-semibold tabular-nums",
-                    stat.tone === "negative" && "text-destructive",
-                    stat.tone === "warning" && "text-[var(--pp-warning)]",
-                  )}
-                >
-                  {stat.value}
-                </span>
-                {stat.delta != null && (
-                  <span
-                    className={cn(
-                      "block text-xs tabular-nums",
-                      stat.delta >= 0 ? "text-primary" : "text-destructive",
-                    )}
-                  >
-                    {stat.delta >= 0 ? "+" : ""}
-                    {stat.delta.toFixed(0)} % {stat.deltaLabel}
-                  </span>
-                )}
-              </dd>
-            </Link>
-          ))}
-        </dl>
+              {stat.value}
+            </p>
+            <p
+              className={cn(
+                "truncate text-[11px] tabular-nums",
+                stat.delta == null
+                  ? "text-muted-foreground"
+                  : stat.delta >= 0
+                    ? "text-primary"
+                    : "text-destructive",
+              )}
+            >
+              {stat.delta != null
+                ? `${stat.delta >= 0 ? "+" : ""}${stat.delta.toFixed(0)} % ${stat.deltaLabel ?? ""}`
+                : (stat.hint ?? "\u00a0")}
+            </p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 grid gap-4 xl:grid-cols-[1.4fr_0.8fr_0.8fr]">
         <div>
-          <p className="text-sm font-medium">{mainTitle}</p>
-          <div className="mt-2 h-64">
-            {mainEmpty ? (
+          <p className="text-xs font-medium text-muted-foreground">{mainTitle}</p>
+          <div className="mt-1 h-48">
+            {!hasStatus ? (
               <EmptyState icon={LineChartIcon} title="Aucune vente sur la période." compact />
             ) : (
-              mainChart
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={statusRows} margin={CHART_MARGIN}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatK(Number(v))} />
+                  <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="Réglé" stackId="ca" fill={PP_COLORS.primary} />
+                  <Bar dataKey="Réalisé" stackId="ca" fill={PP_COLORS.mid} />
+                  <Bar dataKey="Planifié" stackId="ca" fill={PP_COLORS.planned} />
+                  <Line
+                    type="monotone"
+                    dataKey="Charges"
+                    stroke={PP_COLORS.charges}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
             )}
           </div>
         </div>
-      </div>
-      <div className="mt-6 grid gap-6 border-t border-border/70 pt-4 xl:grid-cols-3">
         <div>
-          <p className="text-sm font-medium">Top 3 clients — rentabilité</p>
-          <TopClients rows={clients} empty={clientsEmpty} />
-        </div>
-        <div>
-          <p className="text-sm font-medium">CA par famille</p>
-          <div className="mt-2 h-44">
-            <DonutChart rows={families} />
+          <p className="text-xs font-medium text-muted-foreground">CA par catégorie</p>
+          <div className="mt-1 h-48">
+            <DonutChart rows={categories} />
           </div>
         </div>
         <div>
-          <p className="text-sm font-medium">CA par type de chantier</p>
-          <div className="mt-2 h-44">
-            {categories.length === 0 ? (
-              <EmptyState icon={LineChartIcon} title="Aucune vente classée." compact />
+          <p className="text-xs font-medium text-muted-foreground">Top 3 clients — rentabilité</p>
+          <div className="mt-1 h-48">
+            {clientRows.length === 0 ? (
+              <EmptyState icon={Users} title="Aucun client classable." compact />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categories} layout="vertical" margin={CHART_MARGIN}>
+                <BarChart data={clientRows} layout="vertical" margin={CHART_MARGIN}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
                   <XAxis
                     type="number"
                     tick={{ fontSize: 11 }}
                     tickFormatter={(v) => formatK(Number(v))}
                   />
-                  <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
-                  <Bar dataKey="CA" fill={PP_COLORS.primary} radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="CA" fill={PP_COLORS.sales} radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -1089,43 +1066,9 @@ function DonutChart({
           ))}
         </Pie>
         <Tooltip formatter={(value: number | string) => formatEuro(Number(value))} />
-        <Legend />
+        <Legend wrapperStyle={{ fontSize: 11 }} />
       </PieChart>
     </ResponsiveContainer>
-  );
-}
-
-function TopClients({ rows, empty }: { rows: ClientStat[]; empty: string }) {
-  if (rows.length === 0) {
-    return (
-      <div className="mt-2">
-        <EmptyState icon={Users} title={empty} compact />
-      </div>
-    );
-  }
-  return (
-    <ol className="mt-3 space-y-3">
-      {rows.map((row, index) => (
-        <li key={row.key}>
-          <div className="flex items-baseline justify-between gap-2 text-sm">
-            <span className="min-w-0 truncate font-medium">
-              {index + 1}. {row.name}
-            </span>
-            <span className="shrink-0 tabular-nums">{formatEuro(row.ca)}</span>
-          </div>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary"
-              style={{ width: `${Math.min(100, Math.max(2, row.share))}%` }}
-            />
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {row.share.toFixed(0)} % du CA ·{" "}
-            {row.hours > 0 ? `${formatEuro(row.hourlyRate)}/h` : "taux/h non documenté"}
-          </p>
-        </li>
-      ))}
-    </ol>
   );
 }
 
