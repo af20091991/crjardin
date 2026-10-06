@@ -24,14 +24,15 @@ export const SERVICE_CLASS_META: Record<ServiceClass, { label: string; badge: st
 
 /**
  * Clé prestation unique, commune au CA et au ledger d'heures.
- * Référentiel fermé : SAP, AP, CEEV, Conseil, Remise en état, Autre.
+ * Référentiel fermé : SAP, AP, CEEV, Conseil. « Autre » = à vérifier.
  */
 export function prestationKey(
   designation: string | null,
   category: string | null,
   _family?: string,
+  knownByClient?: Map<string, Prestation>,
 ): string {
-  return canonicalPrestation(designation, category);
+  return canonicalPrestation(designation, category, knownByClient);
 }
 
 /** Normalise un libellé de prestation déjà stocké (ledger d'heures, imports…). */
@@ -40,6 +41,7 @@ export function normalizePrestation(label: string | null | undefined): string {
   if (!raw) return "Autre";
   const exact = PRESTATIONS.find((p) => p.toLowerCase() === raw.toLowerCase());
   if (exact) return exact;
+  // Anciens libellés « Remise en état » : REE particulier → SAP (règle métier).
   return canonicalPrestation(raw, null);
 }
 
