@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-06",
+    version: "2.3.55",
+    theme: "Général",
+    title: "Dashboard — type de graphique et éléments affichés réglables par encart",
+    details: [
+      "Chaque encart du dashboard a une roue d'options : choix du type de graphique (barres, empilées, lignes, aires, anneau, camembert) et des éléments à afficher (indicateurs, séries, listes).",
+      "Les choix sont conservés sur l'appareil, avec un bouton « Réinitialiser » par encart ; les encarts se resserrent quand un élément est masqué.",
+    ],
+  },
+  {
+    date: "2026-10-06",
     version: "2.3.54",
     theme: "Général",
     title: "Dashboard — les graphiques s'affichent enfin, SST au-dessus de la rentabilité",
