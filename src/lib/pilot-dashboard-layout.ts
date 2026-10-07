@@ -10,15 +10,37 @@ export interface DashboardBlockDef {
   label: string;
 }
 
-interface LayoutState {
+export type BlockWidth = "full" | "half" | "third";
+
+export interface LayoutState {
   order: string[];
   hidden: string[];
   pinned: string[];
+  widths: Record<string, BlockWidth>;
 }
 
 const STORAGE_PREFIX = "pp.layout.";
 const DEFAULT_SCOPE = "dashboard";
-const EMPTY: LayoutState = { order: [], hidden: [], pinned: [] };
+const EMPTY: LayoutState = { order: [], hidden: [], pinned: [], widths: {} };
+
+export function normalizeLayout(value: Partial<LayoutState>): LayoutState {
+  const strings = (v: unknown): string[] => Array.isArray(v) ? v.filter((id): id is string => typeof id === "string") : [];
+  const widths: Record<string, BlockWidth> = {};
+  for (const [id, width] of Object.entries(value.widths ?? {})) {
+    if (width === "full" || width === "half" || width === "third") widths[id] = width;
+  }
+  return { order: strings(value.order), hidden: strings(value.hidden), pinned: strings(value.pinned), widths };
+}
+
+export function reorderLayout(state: LayoutState, ordered: string[], from: number, to: number): LayoutState {
+  if (from === to || from < 0 || to < 0 || from >= ordered.length || to >= ordered.length) return state;
+  const next = [...ordered];
+  const [id] = next.splice(from, 1);
+  if (id == null) return state;
+  next.splice(to, 0, id);
+  // A deliberate manual arrangement supersedes the automatic pinned-first order.
+  return { ...state, order: next, pinned: [] };
+}
 
 /** Ancienne clé du cockpit : conservée pour ne perdre aucune préférence. */
 const LEGACY_KEYS: Record<string, string> = { dashboard: "pp.dashboard.layout" };
@@ -34,11 +56,7 @@ function read(scope: string): LayoutState {
       (LEGACY_KEYS[scope] ? window.localStorage.getItem(LEGACY_KEYS[scope]) : null);
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as Partial<LayoutState>;
-    return {
-      order: parsed.order ?? [],
-      hidden: parsed.hidden ?? [],
-      pinned: parsed.pinned ?? [],
-    };
+    return normalizeLayout(parsed);
   } catch {
     return EMPTY;
   }
@@ -50,6 +68,8 @@ function read(scope: string): LayoutState {
  */
 export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DEFAULT_SCOPE) {
   const [state, setState] = useState<LayoutState>(EMPTY);
+  const [editing, setEditing] = useState(false);
+  const [previous, setPrevious] = useState<LayoutState | null>(null);
 
   useEffect(() => {
     setState(read(scope));
@@ -57,6 +77,7 @@ export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DE
 
   const persist = useCallback(
     (next: LayoutState) => {
+      setPrevious(state);
       setState(next);
       try {
         window.localStorage.setItem(storageKey(scope), JSON.stringify(next));
@@ -64,7 +85,7 @@ export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DE
         /* stockage indisponible */
       }
     },
-    [scope],
+    [scope, state],
   );
 
   /** Ordre effectif : épinglés d'abord, puis l'ordre choisi, puis l'ordre par défaut. */
@@ -107,12 +128,10 @@ export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DE
 
   const move = useCallback(
     (id: string, direction: -1 | 1) => {
-      const next = [...ordered];
-      const from = next.indexOf(id);
+      const from = ordered.indexOf(id);
       const to = from + direction;
-      if (from < 0 || to < 0 || to >= next.length) return;
-      next.splice(to, 0, next.splice(from, 1)[0]);
-      persist({ ...state, order: next });
+      const next = reorderLayout(state, ordered, from, to);
+      if (next !== state) persist(next);
     },
     [ordered, persist, state],
   );
@@ -122,16 +141,20 @@ export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DE
   /** Réordonne par glisser-déposer : `from` et `to` sont des index d'affichage. */
   const reorder = useCallback(
     (from: number, to: number) => {
-      if (from === to || from < 0 || to < 0 || from >= ordered.length || to >= ordered.length)
-        return;
-      const next = [...ordered];
-      next.splice(to, 0, next.splice(from, 1)[0]);
-      persist({ ...state, order: next });
+      const next = reorderLayout(state, ordered, from, to);
+      if (next !== state) persist(next);
     },
     [ordered, persist, state],
   );
 
-  return { ordered, indexOf, isHidden, isPinned, toggleHidden, togglePinned, move, reorder, reset };
+  return {
+    ordered, indexOf, isHidden, isPinned, toggleHidden, togglePinned, move, reorder, reset,
+    editing, setEditing,
+    width: (id: string): BlockWidth => state.widths[id] ?? "full",
+    setWidth: (id: string, width: BlockWidth) => persist({ ...state, widths: { ...state.widths, [id]: width } }),
+    canUndo: previous !== null,
+    undo: () => { if (previous) persist(previous); },
+  };
 }
 
 export type DashboardLayout = ReturnType<typeof useDashboardLayout>;
