@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-07",
+    version: "2.3.57",
+    theme: "Général",
+    title: "Prestations — « Autre » ne garde que ce qui ne peut pas être classé",
+    details: [
+      "388 ventes sans catégorie ont été classées en SAP, CEEV, Conseil ou AP d'après votre fichier de classement.",
+      "Le chiffre d'affaires par catégorie (page Chiffre d'affaires et dashboard) déduit la catégorie de la désignation quand elle n'est pas enregistrée ; « Autre » ne contient plus que les ventes impossibles à rattacher.",
+    ],
+  },
+  {
+    date: "2026-10-07",
     version: "2.3.56",
     theme: "Général",
     title: "Prestations — le code AP écrit dans la désignation est reconnu",

@@ -146,6 +146,28 @@ const REE_HINTS = [
   "débroussaill",
 ];
 
+/** Catégories réellement en vigueur pour classer une vente. */
+export const CORE_CATEGORIES = ["SAP", "AP", "CEEV", "Conseil"] as const;
+export type CoreCategory = (typeof CORE_CATEGORIES)[number];
+
+export function isCoreCategory(value: string | null | undefined): value is CoreCategory {
+  return CORE_CATEGORIES.includes(value as CoreCategory);
+}
+
+/**
+ * Catégorie effective d'une vente : la catégorie enregistrée si elle est valide,
+ * sinon celle déduite de la désignation ; « Autre » seulement si rien ne permet
+ * de classer. Une remise en état chez un particulier relève de SAP.
+ */
+export function effectiveCategory(
+  designation: string | null | undefined,
+  category?: string | null,
+): CoreCategory | "Autre" {
+  if (isCoreCategory(category)) return category;
+  const p = canonicalPrestation(designation, category);
+  return p === "Remise en état" ? "SAP" : p;
+}
+
 /**
  * Prestation canonique d'une ligne CA. Fusionne toutes les variantes
  * historiques dans les 6 familles retenues, sans jamais inventer de donnée.
@@ -158,6 +180,8 @@ export function canonicalPrestation(
   if (parsed.codes.includes("CEEV")) return "CEEV";
   if (parsed.codes.includes("SAP")) return "SAP";
   if (parsed.codes.includes("REE")) return parsed.isPro ? "AP" : "Remise en état";
+  // Catégorie déjà enregistrée sur la ligne (SAP, AP, CEEV, Conseil) : donnée validée, elle prime.
+  if (isCoreCategory(category)) return category;
   // Code « AP » écrit seul dans la désignation (« AP Mesuré », « Thouvenin AP 2/3 ») :
   // explicite, il prime sur les mots-clés approximatifs ci-dessous.
   if (AP_CODE.test(designation ?? "")) return "AP";
