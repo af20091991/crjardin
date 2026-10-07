@@ -24,6 +24,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-07",
+    version: "2.3.58",
+    theme: "Général",
+    title: "Dashboard — page entièrement personnalisable et 15 graphiques en plus",
+    details: [
+      "Le bouton « Personnaliser » ouvre un panneau : titre et sous-titre de la page, barre d'état des données, espacement.",
+      "Chaque bloc se renomme, se déplace, s'épingle, se masque, change de largeur (un tiers, moitié, deux tiers, pleine largeur) et de hauteur de graphiques. « CA par prestation » et « SEO local » deviennent des blocs à part entière.",
+      "15 graphiques à ajouter au choix, autant de fois que voulu : CA cumulé et mensuel N / N-1, CA par trimestre, répartition du CA par statut, CA et charges, résultat par mois et cumulé, poids des charges, charges fixes/variables, charges par catégorie, heures, taux horaire, interventions, top 10 clients, classes ABC. Le type de graphique se change sur chacun.",
+      "Présentation seule : aucun chiffre ni règle de calcul ne change, et une donnée absente affiche « Données insuffisantes ».",
+    ],
+  },
+  {
+    date: "2026-10-07",
     version: "2.3.57",
     theme: "Général",
     title: "Prestations — « Autre » ne garde que ce qui ne peut pas être classé",
