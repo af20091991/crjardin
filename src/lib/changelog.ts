@@ -23,6 +23,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-07",
+    version: "2.3.56",
+    theme: "Général",
+    title: "Prestations — le code AP écrit dans la désignation est reconnu",
+    details: [
+      "Les ventes dont la désignation contient « AP » (« AP Mesuré », « Thouvenin AP »…) sont désormais classées en AP au lieu de « Autre » dans la rentabilité par prestation.",
+    ],
+  },
+  {
     date: "2026-10-06",
     version: "2.3.55",
     theme: "Général",

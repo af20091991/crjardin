@@ -19,9 +19,29 @@ export const CA_CODES: Record<CaCode, { label: string; family: string; note: str
 };
 
 const PRO_HINTS = [
-  "residence", "résidence", "syndic", "sci", "sarl", "sas", "eurl", "copropriete",
-  "copropriété", "mairie", "commune", "office", "hlm", "immobiliere", "immobilière",
-  "association", "asso", "ehpad", "hotel", "hôtel", "camping", "societe", "société",
+  "residence",
+  "résidence",
+  "syndic",
+  "sci",
+  "sarl",
+  "sas",
+  "eurl",
+  "copropriete",
+  "copropriété",
+  "mairie",
+  "commune",
+  "office",
+  "hlm",
+  "immobiliere",
+  "immobilière",
+  "association",
+  "asso",
+  "ehpad",
+  "hotel",
+  "hôtel",
+  "camping",
+  "societe",
+  "société",
 ];
 
 /** Découpe une désignation CA en { name, codes }. */
@@ -42,7 +62,10 @@ export function parseDesignation(raw: string | null | undefined): {
       rest = rest.replace(re, " ");
     }
   }
-  const name = rest.replace(/[\s\-_/]+/g, " ").replace(/^[\s.,;:]+|[\s.,;:]+$/g, "").trim();
+  const name = rest
+    .replace(/[\s\-_/]+/g, " ")
+    .replace(/^[\s.,;:]+|[\s.,;:]+$/g, "")
+    .trim();
   const lower = input.toLowerCase();
   const isPro = PRO_HINTS.some((h) => lower.includes(h));
   const primary = codes[0] ?? null;
@@ -83,14 +106,45 @@ export const PRESTATION_META: Record<Prestation, { label: string; description: s
 };
 
 const AP_HINTS = [
-  "amenagement", "aménagement", "creation", "création", "plantation", "planter",
-  "massif", "terrasse", "cloture", "clôture", "engazonnement", "gazon", "pose",
-  "terrassement", "maconnerie", "maçonnerie", "arrosage", "paysag",
+  "amenagement",
+  "aménagement",
+  "creation",
+  "création",
+  "plantation",
+  "planter",
+  "massif",
+  "terrasse",
+  "cloture",
+  "clôture",
+  "engazonnement",
+  "gazon",
+  "pose",
+  "terrassement",
+  "maconnerie",
+  "maçonnerie",
+  "arrosage",
+  "paysag",
 ];
 const CEEV_HINTS = ["ceev", "contrat", "espaces verts", "espace vert", "entretien annuel"];
 const SAP_HINTS = ["sap", "tonte", "taille", "entretien", "haie", "desherbage", "désherbage"];
-const CONSEIL_HINTS = ["conseil", "diagnostic", "expertise", "etude", "étude", "visite conseil", "audit"];
-const REE_HINTS = ["remise en etat", "remise en état", "ree", "nettoyage", "debroussaill", "débroussaill"];
+const AP_CODE = /(^|[^a-zA-ZÀ-ÿ])AP([^a-zA-ZÀ-ÿ]|$)/i;
+const CONSEIL_HINTS = [
+  "conseil",
+  "diagnostic",
+  "expertise",
+  "etude",
+  "étude",
+  "visite conseil",
+  "audit",
+];
+const REE_HINTS = [
+  "remise en etat",
+  "remise en état",
+  "ree",
+  "nettoyage",
+  "debroussaill",
+  "débroussaill",
+];
 
 /**
  * Prestation canonique d'une ligne CA. Fusionne toutes les variantes
@@ -104,6 +158,9 @@ export function canonicalPrestation(
   if (parsed.codes.includes("CEEV")) return "CEEV";
   if (parsed.codes.includes("SAP")) return "SAP";
   if (parsed.codes.includes("REE")) return parsed.isPro ? "AP" : "Remise en état";
+  // Code « AP » écrit seul dans la désignation (« AP Mesuré », « Thouvenin AP 2/3 ») :
+  // explicite, il prime sur les mots-clés approximatifs ci-dessous.
+  if (AP_CODE.test(designation ?? "")) return "AP";
 
   const hay = `${designation ?? ""} ${category ?? ""}`.toLowerCase();
   if (CONSEIL_HINTS.some((h) => hay.includes(h))) return "Conseil";
