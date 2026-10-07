@@ -30,14 +30,14 @@ describe("dashboard — vues année / mois", () => {
     expect(rows[1]?.Réalisé).toBe(70);
   });
 
-  it("salesByCategory regroupe, classe les ventes sans catégorie et trie", () => {
+  it("salesByCategory regroupe, garde « Autre » pour ce qui ne se classe pas et trie", () => {
     const rows = salesByCategory([
       sale(10, 100, "regle", "AP"),
       sale(10, 300, "planifie", null),
       sale(11, 50, "regle", "AP"),
     ]);
     expect(rows).toEqual([
-      { name: "Non classé", value: 300 },
+      { name: "Autre", value: 300 },
       { name: "AP", value: 150 },
     ]);
     expect(

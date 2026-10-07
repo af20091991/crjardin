@@ -4,6 +4,7 @@
 // reste calculé par pilot-ca.ts ; ici on montre aussi le planifié, à part.
 
 import type { CaEntry } from "@/lib/pilot-ca";
+import { effectiveCategory } from "@/lib/pilot-ca-designation";
 
 export type StatusRow = {
   label: string;
@@ -44,7 +45,7 @@ export function salesByStatus(
   });
 }
 
-/** CA HT des lignes de vente par catégorie (tous statuts), du plus gros au plus petit. */
+/** CA HT des lignes de vente par catégorie effective (tous statuts), du plus gros au plus petit. */
 export function salesByCategory(
   entries: CaEntry[],
   month?: number,
@@ -53,7 +54,7 @@ export function salesByCategory(
   for (const entry of entries) {
     if (entry.kind !== "vente") continue;
     if (month != null && entry.month !== month) continue;
-    const name = entry.category ?? "Non classé";
+    const name = effectiveCategory(entry.designation, entry.category);
     map.set(name, (map.get(name) ?? 0) + (Number(entry.amount_ht) || 0));
   }
   return [...map.entries()]

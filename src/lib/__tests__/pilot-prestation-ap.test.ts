@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { canonicalPrestation } from "@/lib/pilot-ca-designation";
+import { canonicalPrestation, effectiveCategory } from "@/lib/pilot-ca-designation";
 
 describe("prestation canonique — code AP écrit seul", () => {
   it("classe en AP les désignations portant le code AP, avant ou après le nom", () => {
@@ -17,5 +17,17 @@ describe("prestation canonique — code AP écrit seul", () => {
   it("garde la priorité aux codes CEEV et SAP explicites", () => {
     expect(canonicalPrestation("Dupont CEEV AP")).toBe("CEEV");
     expect(canonicalPrestation("SAP Martin")).toBe("SAP");
+  });
+});
+
+describe("catégorie effective", () => {
+  it("la catégorie enregistrée prime, sinon la désignation, sinon Autre", () => {
+    expect(effectiveCategory("Sandaya", "CEEV")).toBe("CEEV");
+    expect(effectiveCategory("AP Mesuré", null)).toBe("AP");
+    expect(effectiveCategory("Sandaya", null)).toBe("Autre");
+  });
+
+  it("rattache la remise en état d'un particulier à SAP", () => {
+    expect(effectiveCategory("REE Martin", null)).toBe("SAP");
   });
 });

@@ -1,10 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
+import { effectiveCategory } from "@/lib/pilot-ca-designation";
 import { fetchAllCaRows } from "@/lib/pilot-ca-fetch";
 import type { InterventionKind } from "@/lib/pilot-sale-time";
 import { hoursCounted, revenueCounted } from "@/lib/pilot-sale-accounting";
 import { keepRealizedYearMonth, type AsOfOptions } from "@/lib/pilot-realized";
 
-export { INTERVENTION_KINDS, INTERVENTION_KIND_META, interventionKind } from "@/lib/pilot-sale-time";
+export {
+  INTERVENTION_KINDS,
+  INTERVENTION_KIND_META,
+  interventionKind,
+} from "@/lib/pilot-sale-time";
 export type { InterventionKind } from "@/lib/pilot-sale-time";
 
 async function uid(): Promise<string> {
@@ -102,7 +107,6 @@ export function isRemunerationGrossed(year: number, month: number): boolean {
   return month >= REMUNERATION_GROSS_FROM.month;
 }
 
-
 export async function listCaEntries(year: number): Promise<CaEntry[]> {
   return fetchAllCaRows<CaEntry>("*", { year }, [
     { column: "month", ascending: true },
@@ -123,7 +127,10 @@ export async function createCaEntry(input: CaEntryInput): Promise<CaEntry> {
 }
 
 export async function updateCaEntry(id: string, input: Partial<CaEntryInput>): Promise<void> {
-  const { error } = await supabase.from("pilot_ca_entries").update(input as never).eq("id", id);
+  const { error } = await supabase
+    .from("pilot_ca_entries")
+    .update(input as never)
+    .eq("id", id);
   if (error) throw error;
 }
 
@@ -133,12 +140,22 @@ export async function deleteCaEntry(id: string): Promise<void> {
 }
 
 // ---------- Constantes fidèles au tableur ----------
-export const TVA_RATE = 0.2;       // Coef TVA 1.2
-export const COEF_ASAP = 1.07;     // Coef ASAP
+export const TVA_RATE = 0.2; // Coef TVA 1.2
+export const COEF_ASAP = 1.07; // Coef ASAP
 
 export const MONTH_NAMES = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+  "Janvier",
+  "Février",
+  "Mars",
+  "Avril",
+  "Mai",
+  "Juin",
+  "Juillet",
+  "Août",
+  "Septembre",
+  "Octobre",
+  "Novembre",
+  "Décembre",
 ];
 
 export const QUARTER_OF = (m: number) => Math.ceil(m / 3); // m 1-12
@@ -160,11 +177,7 @@ export type MonthTotals = {
  * (aucune ligne postérieure au jour de consultation), « exercice complet »
  * uniquement sur choix explicite de l'utilisateur.
  */
-export function monthTotals(
-  entries: CaEntry[],
-  month: number,
-  options?: AsOfOptions,
-): MonthTotals {
+export function monthTotals(entries: CaEntry[], month: number, options?: AsOfOptions): MonthTotals {
   const rows = entries.filter(
     (e) =>
       e.month === month &&
@@ -227,14 +240,15 @@ export function categoryTotals(
   month?: number,
   options?: AsOfOptions,
 ): CategoryTotal[] {
-  const ventes = entries.filter(
-    (e) => e.kind === "vente" && (month == null || e.month === month),
-  );
+  const ventes = entries.filter((e) => e.kind === "vente" && (month == null || e.month === month));
   return CA_CATEGORIES.map((category) => {
-    const rows = ventes.filter((e) => (e.category ?? "Autre") === category);
+    const rows = ventes.filter((e) => effectiveCategory(e.designation, e.category) === category);
     return {
       category,
-      ht: rows.reduce((s, e) => s + (revenueCounted(e.sale_status, options) ? e.amount_ht || 0 : 0), 0),
+      ht: rows.reduce(
+        (s, e) => s + (revenueCounted(e.sale_status, options) ? e.amount_ht || 0 : 0),
+        0,
+      ),
       hours: rows.reduce((s, e) => s + (hoursCounted(e.sale_status) ? e.hours || 0 : 0), 0),
     };
   }).filter((c) => c.ht > 0 || c.hours > 0);
