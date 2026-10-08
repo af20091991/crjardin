@@ -1,5 +1,7 @@
 # AGENTS.md — Guide pour tout assistant de code (ChatGPT, Lovable, autre)
-
+<!-- LOVABLE:BEGIN -->
+Page-block personalization uses the shared DnD Kit grid and local per-page preferences to keep accessible rearrangement separate from business data.
+<!-- LOVABLE:END -->
 Ce fichier est la référence unique pour modifier l'application **PP (Pilot Pro)** de
 « De la graine au jardin ». Tout assistant (ChatGPT en premier lieu) est autorisé à lire,
 modifier et créer du code dans ce dépôt en respectant les règles ci-dessous.
