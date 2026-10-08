@@ -106,6 +106,7 @@ export const PRESTATION_META: Record<Prestation, { label: string; description: s
 };
 
 const AP_HINTS = [
+  "abattage",
   "amenagement",
   "aménagement",
   "creation",
@@ -185,6 +186,9 @@ export function canonicalPrestation(
   // Code « AP » écrit seul dans la désignation (« AP Mesuré », « Thouvenin AP 2/3 ») :
   // explicite, il prime sur les mots-clés approximatifs ci-dessous.
   if (AP_CODE.test(designation ?? "")) return "AP";
+
+  // Agrégats mensuels 2020 (« Ventes HT Mai 2020 ») : SAP, décision validée par l'utilisateur.
+  if (/^ventes ht\b/i.test((designation ?? "").trim())) return "SAP";
 
   const hay = `${designation ?? ""} ${category ?? ""}`.toLowerCase();
   if (CONSEIL_HINTS.some((h) => hay.includes(h))) return "Conseil";

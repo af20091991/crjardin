@@ -31,3 +31,13 @@ describe("catégorie effective", () => {
     expect(effectiveCategory("REE Martin", null)).toBe("SAP");
   });
 });
+
+import { effectiveCategory as eff } from "@/lib/pilot-ca-designation";
+describe("décisions validées — agrégats 2020 et abattage", () => {
+  it("classe les agrégats mensuels 2020 en SAP", () => {
+    expect(eff("Ventes HT Novembre 2020 (agrégat mensuel)", null)).toBe("SAP");
+  });
+  it("classe l'abattage en AP", () => {
+    expect(eff("Abattage Condorcet", null)).toBe("AP");
+  });
+});

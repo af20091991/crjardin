@@ -1,5 +1,7 @@
 # AGENTS.md — Guide pour tout assistant de code (ChatGPT, Lovable, autre)
-
+<!-- LOVABLE:BEGIN -->
+Page-block personalization uses the shared DnD Kit grid and local per-page preferences to keep accessible rearrangement separate from business data.
+<!-- LOVABLE:END -->
 Ce fichier est la référence unique pour modifier l'application **PP (Pilot Pro)** de
 « De la graine au jardin ». Tout assistant (ChatGPT en premier lieu) est autorisé à lire,
 modifier et créer du code dans ce dépôt en respectant les règles ci-dessous.
@@ -90,7 +92,7 @@ bun test           # tests unitaires (src/lib/__tests__)
 - Alias `@/` → `src/`. Composants en PascalCase, modules `src/lib/*` en kebab-case.
 - Un module `src/lib/x.ts` = une responsabilité métier pure et testable ; les composants
   ne contiennent pas de calcul métier.
-- Chaque route de contenu déclare son `head()` (title, description, og:*).
+- Chaque route de contenu déclare son `head()` (title, description, og:\*).
 - Données : TanStack Query (`useQuery`/`useSuspenseQuery`), pas de `fetch` dans `useEffect`.
 - Ajouter/mettre à jour un test dans `src/lib/__tests__` pour toute règle de calcul.
 - Une entrée dans `src/lib/changelog.ts` pour toute évolution fonctionnelle visible.

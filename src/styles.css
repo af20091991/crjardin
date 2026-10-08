@@ -1161,3 +1161,22 @@ html[data-active-indicator="strong"] [data-shell="nav"] a[data-active="true"] {
 [data-personalization="preview"] {
   background-color: color-mix(in oklab, var(--secondary) 55%, var(--card));
 }
+
+/* Charts and nested summaries adapt to the chosen block width, not the screen. */
+.layout-block {
+  container-type: inline-size;
+}
+@container (max-width: 700px) {
+  .layout-block .grid[class*="xl:"] {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  .layout-block .grid[class*="md:grid-cols-3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@container (max-width: 420px) {
+  .layout-block .grid[class*="md:grid-cols-3"],
+  .layout-block .grid[class*="sm:grid-cols-3"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

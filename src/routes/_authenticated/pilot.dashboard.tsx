@@ -22,7 +22,6 @@ import {
   PageBlocks,
 } from "@/components/pilot/DashboardCustomizer";
 import { CardOptions } from "@/components/pilot/CardOptions";
-import { CatalogWidgetCard } from "@/components/pilot/CatalogWidgetCard";
 import {
   SERIES_TYPES,
   SERIES_TYPES_SIMPLE,
@@ -66,7 +65,6 @@ import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 import { listCaEntries, monthTotals, yearTotals } from "@/lib/pilot-ca";
 import { useCardPrefs, type CardPrefs } from "@/lib/pilot-dashboard-card-prefs";
 import { salesByCategory, salesByStatus, variationPct } from "@/lib/pilot-dashboard-views";
-import type { WidgetContext } from "@/lib/pilot-dashboard-widgets";
 import type { ClientStat } from "@/lib/pilot";
 import { entityEligibility, statusOf, useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
@@ -153,11 +151,9 @@ const DASHBOARD_BLOCKS: DashboardBlockDef[] = [
   { id: "vue-annee", label: "Vue année" },
   { id: "vue-mois", label: "Vue mois" },
   { id: "objectifs-sst", label: "SST" },
-  { id: "rentabilite", label: "Rentabilité par prestation", defaultSize: "twothirds" },
-  { id: "ca-prestation", label: "CA par prestation", defaultSize: "third" },
+  { id: "rentabilite", label: "Temps et rentabilité" },
   { id: "cr", label: "Notifications CR" },
-  { id: "site", label: "Trafic et recherche", defaultSize: "twothirds" },
-  { id: "seo-local", label: "SEO local", defaultSize: "third" },
+  { id: "site", label: "Site web et SEO" },
 ];
 
 function DashboardPage() {
@@ -367,40 +363,16 @@ function DashboardPage() {
         .slice(0, 3),
     [monthRevenueEntries, year, entityStatuses.data],
   );
-  const clientYearRanked = useMemo(
+  const clientYearTop = useMemo(
     () =>
-      clientStatsWithHours(yearRevenueEntries, year).filter(
-        (client) =>
-          !client.unassigned &&
-          entityEligibility(statusOf(entityStatuses.data, client.clientId)).ranking,
-      ),
+      clientStatsWithHours(yearRevenueEntries, year)
+        .filter(
+          (client) =>
+            !client.unassigned &&
+            entityEligibility(statusOf(entityStatuses.data, client.clientId)).ranking,
+        )
+        .slice(0, 3),
     [yearRevenueEntries, year, entityStatuses.data],
-  );
-  const clientYearTop = useMemo(() => clientYearRanked.slice(0, 3), [clientYearRanked]);
-
-  // Données des graphiques ajoutés depuis le catalogue (présentation seule).
-  const widgetCtx = useMemo<WidgetContext>(
-    () => ({
-      entries: caEntries.data ?? [],
-      months: yearStats.months,
-      monthlyCa,
-      clients: clientYearRanked,
-      interventionsByMonth: MONTH_LABELS.map((_, index) =>
-        countSaleInterventions(yearRevenueEntries, { year, month: index + 1 }),
-      ),
-      currentMonth: month,
-      monthLabels: MONTH_LABELS,
-      year,
-    }),
-    [
-      caEntries.data,
-      yearStats.months,
-      monthlyCa,
-      clientYearRanked,
-      yearRevenueEntries,
-      year,
-      month,
-    ],
   );
 
   const crNotifications = useMemo(
@@ -466,23 +438,21 @@ function DashboardPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {layout.page.subtitle || `Pilot Pro · ${formatDateLong(now)}`}
+            Pilot Pro · {formatDateLong(now)}
           </p>
-          <h2 className="font-serif text-3xl font-semibold tracking-tight">
-            {layout.page.title || "Dashboard"}
-          </h2>
+          <h2 className="font-serif text-3xl font-semibold tracking-tight">Dashboard</h2>
         </div>
         <DashboardCustomizer defs={DASHBOARD_BLOCKS} layout={layout} />
       </div>
 
-      {layout.page.showHealth && <DataHealthBar states={dashboardStates} />}
+      <DataHealthBar states={dashboardStates} />
 
-      <PageBlocks density={layout.page.density}>
+      <PageBlocks>
         <DashboardBlock id="vue-annee" layout={layout}>
           <PeriodView
             prefs={prefsAnnee}
             icon={CalendarRange}
-            title={layout.titleOf("vue-annee", `Vue année ${year}`)}
+            title={`Vue année ${year}`}
             stats={[
               {
                 label: "Chiffre d'affaires HT",
@@ -533,7 +503,7 @@ function DashboardPage() {
           <PeriodView
             prefs={prefsMois}
             icon={CalendarDays}
-            title={layout.titleOf("vue-mois", `Vue mois — ${formatMonthName(now)}`)}
+            title={`Vue mois — ${formatMonthName(now)}`}
             stats={[
               {
                 label: "Chiffre d'affaires HT",
@@ -581,7 +551,7 @@ function DashboardPage() {
           <Card className="p-4">
             <SectionHeading
               icon={Users}
-              title={layout.titleOf("objectifs-sst", "SST")}
+              title="SST"
               subtitle={`Sous-traitance ${year}`}
               action={
                 <CardOptions
@@ -627,7 +597,7 @@ function DashboardPage() {
                     </div>
                   )}
                   {showChart && (
-                    <div className="h-[var(--chart-h,14rem)]">
+                    <div className="h-56">
                       {missions.isLoading ? (
                         <Skeleton className="h-full w-full" />
                       ) : sstData.bySst.length === 0 ? (
@@ -661,96 +631,95 @@ function DashboardPage() {
         </DashboardBlock>
 
         <DashboardBlock id="rentabilite" layout={layout}>
-          <Card className="p-4">
-            <SectionHeading
-              icon={LineChartIcon}
-              title={layout.titleOf("rentabilite", "Rentabilité par prestation")}
-              subtitle="Taux horaire et CA par prestation"
-              action={
-                <CardOptions
-                  prefs={prefsRenta}
-                  choices={[
-                    {
-                      id: "type",
-                      label: "Type de graphique",
-                      options: SERIES_TYPES_SIMPLE,
-                      fallback: "barres",
-                    },
-                  ]}
-                  elements={RENTA_ELEMENTS}
-                />
-              }
-            />
-            <div className="mt-4 h-[var(--chart-h,18rem)]">
-              {hoursLedger.isLoading ? (
-                <Skeleton className="h-full w-full" />
-              ) : services.length === 0 ? (
-                <EmptyState
-                  icon={LineChartIcon}
-                  title="Données de prestation insuffisantes."
-                  compact
-                />
-              ) : RENTA_SERIES.every((item) => !prefsRenta.shown(item.id)) ? (
-                <NothingShown />
-              ) : (
-                <SeriesChart
-                  data={serviceChartRows(services)}
-                  xKey="name"
-                  series={RENTA_SERIES.filter((item) => prefsRenta.shown(item.id))}
-                  type={prefsRenta.choice("type", SIMPLE_VALUES, "barres")}
-                  formatLeft={(v) => `${v.toFixed(0)} €/h`}
-                  formatRight={formatK}
-                  formatTooltip={(value, name) =>
-                    name === "CA" ? formatEuro(value) : `${value.toFixed(0)} €/h`
-                  }
-                />
-              )}
-            </div>
-          </Card>
-        </DashboardBlock>
-
-        <DashboardBlock id="ca-prestation" layout={layout}>
-          <Card className="p-4">
-            <SectionHeading
-              icon={Euro}
-              title={layout.titleOf("ca-prestation", "CA par prestation")}
-              subtitle={`Part de chaque prestation · ${year}`}
-              action={
-                <CardOptions
-                  prefs={prefsRentaCa}
-                  choices={[
-                    {
-                      id: "type",
-                      label: "Type de graphique",
-                      options: SHARE_TYPES,
-                      fallback: "donut",
-                    },
-                  ]}
-                  elements={[]}
-                />
-              }
-            />
-            <div className="mt-4 h-[var(--chart-h,18rem)]">
-              {hoursLedger.isLoading ? (
-                <Skeleton className="h-full w-full" />
-              ) : serviceDonut.length === 0 ? (
-                <EmptyState icon={LineChartIcon} title="Données insuffisantes." compact />
-              ) : (
-                <ShareChart
-                  rows={serviceDonut}
-                  type={prefsRentaCa.choice("type", SHARE_VALUES, "donut")}
-                  formatValue={formatEuro}
-                />
-              )}
-            </div>
-          </Card>
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.4fr_0.6fr]">
+            <Card className="p-4">
+              <SectionHeading
+                icon={LineChartIcon}
+                title="Rentabilité par prestation"
+                subtitle="Taux horaire et CA par prestation"
+                action={
+                  <CardOptions
+                    prefs={prefsRenta}
+                    choices={[
+                      {
+                        id: "type",
+                        label: "Type de graphique",
+                        options: SERIES_TYPES_SIMPLE,
+                        fallback: "barres",
+                      },
+                    ]}
+                    elements={RENTA_ELEMENTS}
+                  />
+                }
+              />
+              <div className="mt-4 h-72">
+                {hoursLedger.isLoading ? (
+                  <Skeleton className="h-full w-full" />
+                ) : services.length === 0 ? (
+                  <EmptyState
+                    icon={LineChartIcon}
+                    title="Données de prestation insuffisantes."
+                    compact
+                  />
+                ) : RENTA_SERIES.every((item) => !prefsRenta.shown(item.id)) ? (
+                  <NothingShown />
+                ) : (
+                  <SeriesChart
+                    data={serviceChartRows(services)}
+                    xKey="name"
+                    series={RENTA_SERIES.filter((item) => prefsRenta.shown(item.id))}
+                    type={prefsRenta.choice("type", SIMPLE_VALUES, "barres")}
+                    formatLeft={(v) => `${v.toFixed(0)} €/h`}
+                    formatRight={formatK}
+                    formatTooltip={(value, name) =>
+                      name === "CA" ? formatEuro(value) : `${value.toFixed(0)} €/h`
+                    }
+                  />
+                )}
+              </div>
+            </Card>
+            <Card className="p-4">
+              <SectionHeading
+                icon={Euro}
+                title="CA par prestation"
+                subtitle={`Part de chaque prestation · ${year}`}
+                action={
+                  <CardOptions
+                    prefs={prefsRentaCa}
+                    choices={[
+                      {
+                        id: "type",
+                        label: "Type de graphique",
+                        options: SHARE_TYPES,
+                        fallback: "donut",
+                      },
+                    ]}
+                    elements={[]}
+                  />
+                }
+              />
+              <div className="mt-4 h-72">
+                {hoursLedger.isLoading ? (
+                  <Skeleton className="h-full w-full" />
+                ) : serviceDonut.length === 0 ? (
+                  <EmptyState icon={LineChartIcon} title="Données insuffisantes." compact />
+                ) : (
+                  <ShareChart
+                    rows={serviceDonut}
+                    type={prefsRentaCa.choice("type", SHARE_VALUES, "donut")}
+                    formatValue={formatEuro}
+                  />
+                )}
+              </div>
+            </Card>
+          </div>
         </DashboardBlock>
 
         <DashboardBlock id="cr" layout={layout}>
           <Card className="p-4">
             <SectionHeading
               icon={Bell}
-              title={layout.titleOf("cr", "Notifications CR Chantier")}
+              title="Notifications CR Chantier"
               subtitle="Annotations, lectures, préconisations et interactions client"
               action={
                 <CardOptions
@@ -789,177 +758,170 @@ function DashboardPage() {
         </DashboardBlock>
 
         <DashboardBlock id="site" layout={layout}>
-          <Card className="p-4">
-            <SectionHeading
-              icon={Globe2}
-              title={layout.titleOf("site", "Trafic & recherche")}
-              subtitle="Google Analytics 4 et Search Console · 30 derniers jours"
-              action={
-                <>
-                  <Button asChild size="sm" variant="outline">
-                    <Link to="/pilot/site-web">Ouvrir Site web</Link>
-                  </Button>
-                  <CardOptions
-                    prefs={prefsTrafic}
-                    choices={[
-                      {
-                        id: "type",
-                        label: "Type de graphique",
-                        options: SERIES_TYPES_SIMPLE,
-                        fallback: "lignes",
-                      },
-                    ]}
-                    elements={TRAFIC_ELEMENTS}
-                  />
-                </>
-              }
-            />
-            {(() => {
-              const tiles = [
-                { id: "m-sessions", label: "Sessions", value: formatNumber(site?.sessions ?? 0) },
-                { id: "m-clics", label: "Clics", value: formatNumber(siteTotals.clicks) },
-                {
-                  id: "m-impressions",
-                  label: "Impressions",
-                  value: formatNumber(siteTotals.impressions),
-                },
-                {
-                  id: "m-position",
-                  label: "Position",
-                  value: formatDecimal(siteTotals.position),
-                },
-              ].filter((tile) => prefsTrafic.shown(tile.id));
-              const series = TRAFIC_SERIES.filter((item) => prefsTrafic.shown(item.id));
-              const showChart = prefsTrafic.shown("chart") && series.length > 0;
-              return (
-                <>
-                  {tiles.length > 0 && (
-                    <div
-                      className="mt-4 grid gap-3 sm:[grid-template-columns:var(--cols)]"
-                      style={colsStyle(`repeat(${tiles.length}, minmax(0, 1fr))`)}
-                    >
-                      {tiles.map((tile) => (
-                        <MiniMetric
-                          key={tile.id}
-                          label={tile.label}
-                          value={siteWeb.isLoading ? "…" : tile.value}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {showChart && (
-                    <div className="mt-4 h-[var(--chart-h,16rem)]">
-                      {siteWeb.isLoading ? (
-                        <Skeleton className="h-full w-full" />
-                      ) : searchTrend.length === 0 ? (
-                        <EmptyState
-                          icon={Search}
-                          title="Aucune courbe Search Console disponible."
-                          compact
-                        />
-                      ) : (
-                        <SeriesChart
-                          data={searchTrend}
-                          xKey="date"
-                          series={series}
-                          type={prefsTrafic.choice("type", SIMPLE_VALUES, "lignes")}
-                          formatLeft={formatNumber}
-                          formatRight={formatNumber}
-                          formatTooltip={(value) => formatNumber(value)}
-                        />
-                      )}
-                    </div>
-                  )}
-                  {tiles.length === 0 && !showChart && (
-                    <div className="mt-4">
-                      <NothingShown />
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-            <SiteErrors errors={site?.errors} />
-          </Card>
-        </DashboardBlock>
-
-        <DashboardBlock id="seo-local" layout={layout}>
-          <Card className="p-4">
-            <SectionHeading
-              icon={MapPin}
-              title={layout.titleOf("seo-local", "SEO local")}
-              subtitle="Communes autour de Montpellier"
-              action={<CardOptions prefs={prefsSeo} elements={SEO_ELEMENTS} />}
-            />
-            {prefsSeo.shown("communes") && (
-              <>
-                <div className="mt-4 space-y-2">
-                  {siteWeb.isLoading ? (
-                    <Skeleton className="h-40 w-full" />
-                  ) : localRankings.length === 0 ? (
-                    <EmptyState icon={MapPin} title="Aucune requête locale disponible." compact />
-                  ) : (
-                    localRankings.slice(0, showAllCommunes ? 16 : 6).map((row) => (
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1.25fr_0.75fr]">
+            <Card className="p-4">
+              <SectionHeading
+                icon={Globe2}
+                title="Trafic & recherche"
+                subtitle="Google Analytics 4 et Search Console · 30 derniers jours"
+                action={
+                  <>
+                    <Button asChild size="sm" variant="outline">
+                      <Link to="/pilot/site-web">Ouvrir Site web</Link>
+                    </Button>
+                    <CardOptions
+                      prefs={prefsTrafic}
+                      choices={[
+                        {
+                          id: "type",
+                          label: "Type de graphique",
+                          options: SERIES_TYPES_SIMPLE,
+                          fallback: "lignes",
+                        },
+                      ]}
+                      elements={TRAFIC_ELEMENTS}
+                    />
+                  </>
+                }
+              />
+              {(() => {
+                const tiles = [
+                  { id: "m-sessions", label: "Sessions", value: formatNumber(site?.sessions ?? 0) },
+                  { id: "m-clics", label: "Clics", value: formatNumber(siteTotals.clicks) },
+                  {
+                    id: "m-impressions",
+                    label: "Impressions",
+                    value: formatNumber(siteTotals.impressions),
+                  },
+                  {
+                    id: "m-position",
+                    label: "Position",
+                    value: formatDecimal(siteTotals.position),
+                  },
+                ].filter((tile) => prefsTrafic.shown(tile.id));
+                const series = TRAFIC_SERIES.filter((item) => prefsTrafic.shown(item.id));
+                const showChart = prefsTrafic.shown("chart") && series.length > 0;
+                return (
+                  <>
+                    {tiles.length > 0 && (
                       <div
-                        key={row.commune}
-                        className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md border border-border/70 px-3 py-2 text-sm"
+                        className="mt-4 grid gap-3 sm:[grid-template-columns:var(--cols)]"
+                        style={colsStyle(`repeat(${tiles.length}, minmax(0, 1fr))`)}
                       >
-                        <span className="font-medium">{row.commune}</span>
-                        <span className="text-muted-foreground">
-                          {formatNumber(row.impressions)} imp.
-                        </span>
-                        <Badge variant="outline">pos. {formatDecimal(row.position)}</Badge>
+                        {tiles.map((tile) => (
+                          <MiniMetric
+                            key={tile.id}
+                            label={tile.label}
+                            value={siteWeb.isLoading ? "…" : tile.value}
+                          />
+                        ))}
                       </div>
-                    ))
+                    )}
+                    {showChart && (
+                      <div className="mt-4 h-64">
+                        {siteWeb.isLoading ? (
+                          <Skeleton className="h-full w-full" />
+                        ) : searchTrend.length === 0 ? (
+                          <EmptyState
+                            icon={Search}
+                            title="Aucune courbe Search Console disponible."
+                            compact
+                          />
+                        ) : (
+                          <SeriesChart
+                            data={searchTrend}
+                            xKey="date"
+                            series={series}
+                            type={prefsTrafic.choice("type", SIMPLE_VALUES, "lignes")}
+                            formatLeft={formatNumber}
+                            formatRight={formatNumber}
+                            formatTooltip={(value) => formatNumber(value)}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {tiles.length === 0 && !showChart && (
+                      <div className="mt-4">
+                        <NothingShown />
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+              <SiteErrors errors={site?.errors} />
+            </Card>
+
+            <Card className="p-4">
+              <SectionHeading
+                icon={MapPin}
+                title="SEO local"
+                subtitle="Communes autour de Montpellier"
+                action={<CardOptions prefs={prefsSeo} elements={SEO_ELEMENTS} />}
+              />
+              {prefsSeo.shown("communes") && (
+                <>
+                  <div className="mt-4 space-y-2">
+                    {siteWeb.isLoading ? (
+                      <Skeleton className="h-40 w-full" />
+                    ) : localRankings.length === 0 ? (
+                      <EmptyState icon={MapPin} title="Aucune requête locale disponible." compact />
+                    ) : (
+                      localRankings.slice(0, showAllCommunes ? 16 : 6).map((row) => (
+                        <div
+                          key={row.commune}
+                          className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md border border-border/70 px-3 py-2 text-sm"
+                        >
+                          <span className="font-medium">{row.commune}</span>
+                          <span className="text-muted-foreground">
+                            {formatNumber(row.impressions)} imp.
+                          </span>
+                          <Badge variant="outline">pos. {formatDecimal(row.position)}</Badge>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {localRankings.length > 6 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 w-full"
+                      onClick={() => setShowAllCommunes((shown) => !shown)}
+                    >
+                      {showAllCommunes
+                        ? "Voir moins"
+                        : `Voir plus (${Math.min(localRankings.length - 6, 10)})`}
+                    </Button>
+                  )}
+                </>
+              )}
+              {(prefsSeo.shown("hausse") || prefsSeo.shown("baisse")) && (
+                <div
+                  className="mt-4 grid gap-3 sm:[grid-template-columns:var(--cols)]"
+                  style={colsStyle(
+                    `repeat(${Number(prefsSeo.shown("hausse")) + Number(prefsSeo.shown("baisse"))}, minmax(0, 1fr))`,
+                  )}
+                >
+                  {prefsSeo.shown("hausse") && (
+                    <KeywordList title="En hausse" rows={keywordMovements.up} icon={TrendingUp} />
+                  )}
+                  {prefsSeo.shown("baisse") && (
+                    <KeywordList
+                      title="En baisse"
+                      rows={keywordMovements.down}
+                      icon={TrendingDown}
+                    />
                   )}
                 </div>
-                {localRankings.length > 6 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2 w-full"
-                    onClick={() => setShowAllCommunes((shown) => !shown)}
-                  >
-                    {showAllCommunes
-                      ? "Voir moins"
-                      : `Voir plus (${Math.min(localRankings.length - 6, 10)})`}
-                  </Button>
-                )}
-              </>
-            )}
-            {(prefsSeo.shown("hausse") || prefsSeo.shown("baisse")) && (
-              <div
-                className="mt-4 grid gap-3 sm:[grid-template-columns:var(--cols)]"
-                style={colsStyle(
-                  `repeat(${Number(prefsSeo.shown("hausse")) + Number(prefsSeo.shown("baisse"))}, minmax(0, 1fr))`,
-                )}
-              >
-                {prefsSeo.shown("hausse") && (
-                  <KeywordList title="En hausse" rows={keywordMovements.up} icon={TrendingUp} />
-                )}
-                {prefsSeo.shown("baisse") && (
-                  <KeywordList title="En baisse" rows={keywordMovements.down} icon={TrendingDown} />
-                )}
-              </div>
-            )}
-            {SEO_ELEMENTS.every((item) => !prefsSeo.shown(item.id)) && (
-              <div className="mt-4">
-                <NothingShown />
-              </div>
-            )}
-          </Card>
-        </DashboardBlock>
-
-        {layout.extras.map((id) => (
-          <DashboardBlock key={id} id={id} layout={layout}>
-            <CatalogWidgetCard extraId={id} layout={layout} ctx={widgetCtx} />
-          </DashboardBlock>
-        ))}
-        {layout.ordered.every((id) => layout.isHidden(id)) && (
-          <div className="col-span-12">
-            <NothingShown message="Tous les blocs sont masqués : ouvrez « Personnaliser » pour en afficher." />
+              )}
+              {SEO_ELEMENTS.every((item) => !prefsSeo.shown(item.id)) && (
+                <div className="mt-4">
+                  <NothingShown />
+                </div>
+              )}
+            </Card>
           </div>
-        )}
+        </DashboardBlock>
       </PageBlocks>
     </div>
   );
@@ -1004,14 +966,10 @@ function SectionHeading({
   );
 }
 
-function NothingShown({
-  message = "Aucun élément affiché : ouvrez les options de l'encart pour en choisir.",
-}: {
-  message?: string;
-}) {
+function NothingShown() {
   return (
     <p className="rounded-md border border-dashed border-border/70 px-3 py-6 text-center text-sm text-muted-foreground">
-      {message}
+      Aucun élément affiché : ouvrez les options de l'encart pour en choisir.
     </p>
   );
 }
@@ -1258,7 +1216,7 @@ function PeriodView({
           {showStatus && (
             <div>
               <p className="text-xs font-medium text-muted-foreground">{mainTitle}</p>
-              <div className="mt-1 h-[var(--chart-h,12rem)]">
+              <div className="mt-1 h-48">
                 {!hasStatus ? (
                   <EmptyState icon={LineChartIcon} title="Aucune vente sur la période." compact />
                 ) : series.length === 0 ? (
@@ -1279,7 +1237,7 @@ function PeriodView({
           {showCategories && (
             <div>
               <p className="text-xs font-medium text-muted-foreground">CA par catégorie</p>
-              <div className="mt-1 h-[var(--chart-h,12rem)]">
+              <div className="mt-1 h-48">
                 {categories.length === 0 ? (
                   <EmptyState icon={LineChartIcon} title="Données insuffisantes." compact />
                 ) : (
@@ -1297,7 +1255,7 @@ function PeriodView({
               <p className="text-xs font-medium text-muted-foreground">
                 Top 3 clients — rentabilité
               </p>
-              <div className="mt-1 h-[var(--chart-h,12rem)]">
+              <div className="mt-1 h-48">
                 {clientRows.length === 0 ? (
                   <EmptyState icon={Users} title="Aucun client classable." compact />
                 ) : (

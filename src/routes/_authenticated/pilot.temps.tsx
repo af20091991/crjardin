@@ -78,6 +78,13 @@ export const Route = createFileRoute("/_authenticated/pilot/temps")({
   head: () => ({
     meta: [
       { title: "Analyse Temps & Rentabilité — Pilot Pro" },
+      { property: "og:title", content: "Analyse Temps & Rentabilité — Pilot Pro" },
+      {
+        property: "og:description",
+        content: "Analyse des temps, taux horaires et rentabilité par prestation et client.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:
@@ -178,7 +185,9 @@ function TimeValueAnalysis() {
   const charges = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   const interventions = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });
 
-  const [filters, setFilters] = useState<TimeValueFilters>(() => defaultTimeValueFilters(pilotYear));
+  const [filters, setFilters] = useState<TimeValueFilters>(() =>
+    defaultTimeValueFilters(pilotYear),
+  );
   const [prestSort, setPrestSort] = useState<PrestationSort>("euro_h");
   const [clientSort, setClientSort] = useState<ClientSort>("best_euro_h");
   const [q, setQ] = useState("");
@@ -415,7 +424,11 @@ function TimeValueAnalysis() {
               Non qualifié
             </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setFilters(defaultTimeValueFilters(pilotYear))}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFilters(defaultTimeValueFilters(pilotYear))}
+          >
             Réinitialiser
           </Button>
         </CardContent>
@@ -595,7 +608,10 @@ function TimeValueAnalysis() {
                       <ReferenceLine x={target} stroke="var(--pp-charges)" strokeDasharray="4 4" />
                       <Bar dataKey="rate" radius={[0, 4, 4, 0]}>
                         {ratedPrestations.map((p, i) => (
-                          <Cell key={i} fill={p.rate >= target ? "var(--primary)" : "var(--pp-mid)"} />
+                          <Cell
+                            key={i}
+                            fill={p.rate >= target ? "var(--primary)" : "var(--pp-mid)"}
+                          />
                         ))}
                       </Bar>
                     </BarChart>
