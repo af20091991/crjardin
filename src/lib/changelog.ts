@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-08",
+    version: "2.3.58",
+    theme: "Général",
+    title: "Personnalisation — réagencement direct et nouveaux graphiques",
+    details: [
+      "Dashboard, Temps, CEEV et Rentabilité clients : déplacement direct des blocs à la souris, au doigt ou au clavier et choix de largeur entière, moitié ou tiers.",
+      "Visibilité, annulation et réinitialisation disponibles ; préférences conservées sur cet appareil sans changer les calculs.",
+      "Dashboard : 12 représentations de séries et 9 de répartition, dont lignes en escalier, aires empilées, radar et mosaïque.",
+    ],
+  },
+  {
     date: "2026-10-07",
     version: "2.3.57",
     theme: "Général",
