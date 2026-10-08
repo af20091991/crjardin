@@ -3,10 +3,20 @@ import { normalizeLayout, reorderLayout } from "@/lib/pilot-dashboard-layout";
 
 describe("personnalisation de la page", () => {
   it("conserve les anciennes préférences et complète les largeurs", () => {
-    expect(normalizeLayout({ order: ["b", "a"], hidden: ["c"], pinned: ["b"] })).toEqual({ order: ["b", "a"], hidden: ["c"], pinned: ["b"], widths: {} });
+    expect(normalizeLayout({ order: ["b", "a"], hidden: ["c"], pinned: ["b"] })).toEqual({
+      order: ["b", "a"],
+      hidden: ["c"],
+      pinned: ["b"],
+      widths: {},
+    });
   });
   it("déplace sans modifier visibilité ni largeur et libère l'ordre épinglé", () => {
-    const state = normalizeLayout({ order: ["a", "b", "c"], hidden: ["c"], pinned: ["a"], widths: { b: "half" } });
+    const state = normalizeLayout({
+      order: ["a", "b", "c"],
+      hidden: ["c"],
+      pinned: ["a"],
+      widths: { b: "half" },
+    });
     const next = reorderLayout(state, state.order, 1, 0);
     expect(next.order).toEqual(["b", "a", "c"]);
     expect(next.pinned).toEqual([]);
@@ -20,6 +30,8 @@ describe("personnalisation de la page", () => {
     expect(reorderLayout(state, state.order, 0, 2)).toBe(state);
   });
   it("filtre les préférences invalides", () => {
-    expect(normalizeLayout({ widths: { a: "half", b: "third", c: "invalid" } } as never).widths).toEqual({ a: "half", b: "third" });
+    expect(
+      normalizeLayout({ widths: { a: "half", b: "third", c: "invalid" } } as never).widths,
+    ).toEqual({ a: "half", b: "third" });
   });
 });
