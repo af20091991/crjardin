@@ -52,6 +52,10 @@ export const Route = createFileRoute("/_authenticated/pilot/ceev")({
     meta: [
       { title: "CEEV — Contrats d'entretien — Pilot Pro" },
       { name: "description", content: "Suivi des contrats d'entretien des espaces verts : CA, marge, renouvellements et rapprochement client." },
+      { property: "og:title", content: "CEEV — Contrats d'entretien — Pilot Pro" },
+      { property: "og:description", content: "Suivi des contrats d'entretien, renouvellements et rapprochement client." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: CeevPage,

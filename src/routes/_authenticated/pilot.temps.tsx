@@ -78,6 +78,10 @@ export const Route = createFileRoute("/_authenticated/pilot/temps")({
   head: () => ({
     meta: [
       { title: "Analyse Temps & Rentabilité — Pilot Pro" },
+      { property: "og:title", content: "Analyse Temps & Rentabilité — Pilot Pro" },
+      { property: "og:description", content: "Analyse des temps, taux horaires et rentabilité par prestation et client." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:
