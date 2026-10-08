@@ -123,11 +123,21 @@ export function SeriesChart({
             name: item.name ?? item.key,
             yAxisId: item.axis ?? "left",
           };
-          if (item.kind === "line" || ["lignes", "lignes_droites", "lignes_points", "escalier", "points"].includes(type) || (type === "combo" && index > 0)) {
+          if (
+            item.kind === "line" ||
+            ["lignes", "lignes_droites", "lignes_points", "escalier", "points"].includes(type) ||
+            (type === "combo" && index > 0)
+          ) {
             return (
               <Line
                 {...common}
-                type={type === "escalier" ? "stepAfter" : type === "lignes_droites" || type === "points" ? "linear" : "monotone"}
+                type={
+                  type === "escalier"
+                    ? "stepAfter"
+                    : type === "lignes_droites" || type === "points"
+                      ? "linear"
+                      : "monotone"
+                }
                 stroke={item.color}
                 strokeWidth={type === "points" && item.kind !== "line" ? 0 : 2}
                 dot={type === "lignes_points" || type === "points" ? { r: 3 } : false}
@@ -139,7 +149,13 @@ export function SeriesChart({
             return (
               <Area
                 {...common}
-                type={type === "aires_escalier" ? "stepAfter" : type === "aires_droites" ? "linear" : "monotone"}
+                type={
+                  type === "aires_escalier"
+                    ? "stepAfter"
+                    : type === "aires_droites"
+                      ? "linear"
+                      : "monotone"
+                }
                 stackId={type === "aires_empilees" ? `pile-${item.axis ?? "left"}` : undefined}
                 stroke={item.color}
                 fill={item.color}
@@ -174,21 +190,76 @@ export function ShareChart({
   formatValue: (value: number) => string;
   barColor?: string;
 }) {
-  if (type === "tableau") return <div className="h-full overflow-auto"><table className="w-full text-sm"><tbody>{rows.map((row) => <tr key={row.name} className="border-b border-border"><th className="py-2 text-left font-medium">{row.name}</th><td className="py-2 text-right tabular-nums">{formatValue(row.value)}</td></tr>)}</tbody></table></div>;
+  if (type === "tableau")
+    return (
+      <div className="h-full overflow-auto">
+        <table className="w-full text-sm">
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.name} className="border-b border-border">
+                <th className="py-2 text-left font-medium">{row.name}</th>
+                <td className="py-2 text-right tabular-nums">{formatValue(row.value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
   // Part-of-total charts cannot represent negative values faithfully.
-  const safeType = rows.some((row) => row.value < 0) && ["donut", "camembert", "anneau_fin", "demi_anneau", "radar", "treemap"].includes(type) ? "barres" : type;
-  if (safeType === "radar") return <ResponsiveContainer width="100%" height="100%"><RadarChart data={rows} outerRadius="65%"><PolarGrid /><PolarAngleAxis dataKey="name" tick={{ fontSize: 11 }} /><PolarRadiusAxis tickFormatter={formatValue} tick={{ fontSize: 10 }} /><Radar dataKey="value" name="CA" stroke={barColor} fill={barColor} fillOpacity={0.25} /><Tooltip formatter={(value: number | string) => formatValue(Number(value))} /></RadarChart></ResponsiveContainer>;
-  if (safeType === "treemap") return <ResponsiveContainer width="100%" height="100%"><Treemap data={rows} dataKey="value" nameKey="name" stroke="var(--card)" fill={barColor}><Tooltip formatter={(value: number | string) => formatValue(Number(value))} /></Treemap></ResponsiveContainer>;
+  const safeType =
+    rows.some((row) => row.value < 0) &&
+    ["donut", "camembert", "anneau_fin", "demi_anneau", "radar", "treemap"].includes(type)
+      ? "barres"
+      : type;
+  if (safeType === "radar")
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <RadarChart data={rows} outerRadius="65%">
+          <PolarGrid />
+          <PolarAngleAxis dataKey="name" tick={{ fontSize: 11 }} />
+          <PolarRadiusAxis tickFormatter={formatValue} tick={{ fontSize: 10 }} />
+          <Radar dataKey="value" name="CA" stroke={barColor} fill={barColor} fillOpacity={0.25} />
+          <Tooltip formatter={(value: number | string) => formatValue(Number(value))} />
+        </RadarChart>
+      </ResponsiveContainer>
+    );
+  if (safeType === "treemap")
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <Treemap data={rows} dataKey="value" nameKey="name" stroke="var(--card)" fill={barColor}>
+          <Tooltip formatter={(value: number | string) => formatValue(Number(value))} />
+        </Treemap>
+      </ResponsiveContainer>
+    );
   if (safeType === "barres" || safeType === "colonnes") {
     const horizontal = safeType === "barres";
     return (
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={rows} layout={horizontal ? "vertical" : "horizontal"} margin={MARGIN}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={!horizontal} vertical={horizontal} />
-          <XAxis type={horizontal ? "number" : "category"} dataKey={horizontal ? undefined : "name"} tick={{ fontSize: 11 }} />
-          <YAxis type={horizontal ? "category" : "number"} dataKey={horizontal ? "name" : undefined} width={horizontal ? 110 : 60} tick={{ fontSize: 11 }} />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="var(--border)"
+            horizontal={!horizontal}
+            vertical={horizontal}
+          />
+          <XAxis
+            type={horizontal ? "number" : "category"}
+            dataKey={horizontal ? undefined : "name"}
+            tick={{ fontSize: 11 }}
+          />
+          <YAxis
+            type={horizontal ? "category" : "number"}
+            dataKey={horizontal ? "name" : undefined}
+            width={horizontal ? 110 : 60}
+            tick={{ fontSize: 11 }}
+          />
           <Tooltip formatter={(value: number | string) => formatValue(Number(value))} />
-          <Bar dataKey="value" name="CA" fill={barColor} radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]} />
+          <Bar
+            dataKey="value"
+            name="CA"
+            fill={barColor}
+            radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
+          />
         </BarChart>
       </ResponsiveContainer>
     );

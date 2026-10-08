@@ -24,16 +24,28 @@ const DEFAULT_SCOPE = "dashboard";
 const EMPTY: LayoutState = { order: [], hidden: [], pinned: [], widths: {} };
 
 export function normalizeLayout(value: Partial<LayoutState>): LayoutState {
-  const strings = (v: unknown): string[] => Array.isArray(v) ? v.filter((id): id is string => typeof id === "string") : [];
+  const strings = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((id): id is string => typeof id === "string") : [];
   const widths: Record<string, BlockWidth> = {};
   for (const [id, width] of Object.entries(value.widths ?? {})) {
     if (width === "full" || width === "half" || width === "third") widths[id] = width;
   }
-  return { order: strings(value.order), hidden: strings(value.hidden), pinned: strings(value.pinned), widths };
+  return {
+    order: strings(value.order),
+    hidden: strings(value.hidden),
+    pinned: strings(value.pinned),
+    widths,
+  };
 }
 
-export function reorderLayout(state: LayoutState, ordered: string[], from: number, to: number): LayoutState {
-  if (from === to || from < 0 || to < 0 || from >= ordered.length || to >= ordered.length) return state;
+export function reorderLayout(
+  state: LayoutState,
+  ordered: string[],
+  from: number,
+  to: number,
+): LayoutState {
+  if (from === to || from < 0 || to < 0 || from >= ordered.length || to >= ordered.length)
+    return state;
   const next = [...ordered];
   const [id] = next.splice(from, 1);
   if (id == null) return state;
@@ -148,12 +160,24 @@ export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DE
   );
 
   return {
-    ordered, indexOf, isHidden, isPinned, toggleHidden, togglePinned, move, reorder, reset,
-    editing, setEditing,
+    ordered,
+    indexOf,
+    isHidden,
+    isPinned,
+    toggleHidden,
+    togglePinned,
+    move,
+    reorder,
+    reset,
+    editing,
+    setEditing,
     width: (id: string): BlockWidth => state.widths[id] ?? "full",
-    setWidth: (id: string, width: BlockWidth) => persist({ ...state, widths: { ...state.widths, [id]: width } }),
+    setWidth: (id: string, width: BlockWidth) =>
+      persist({ ...state, widths: { ...state.widths, [id]: width } }),
     canUndo: previous !== null,
-    undo: () => { if (previous) persist(previous); },
+    undo: () => {
+      if (previous) persist(previous);
+    },
   };
 }
 
