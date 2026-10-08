@@ -233,7 +233,7 @@ function SortableBlock({
       data-layout-block={id}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "min-w-0 space-y-2 self-start col-span-6",
+        "layout-block min-w-0 space-y-2 self-start col-span-6",
         width === "half" && "xl:col-span-3",
         width === "third" && "xl:col-span-2",
         layout.editing && "rounded-md outline outline-1 outline-primary/30",
