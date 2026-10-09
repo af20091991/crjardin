@@ -3528,6 +3528,39 @@ export type Database = {
           },
         ]
       }
+      pp_backup_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          file_path: string | null
+          id: string
+          size_bytes: number | null
+          status: string
+          trigger: string
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          file_path?: string | null
+          id?: string
+          size_bytes?: number | null
+          status: string
+          trigger: string
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          file_path?: string | null
+          id?: string
+          size_bytes?: number | null
+          status?: string
+          trigger?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       premium_email_log: {
         Row: {
           civility: string | null
@@ -6163,6 +6196,10 @@ export type Database = {
             Returns: undefined
           }
       next_intervention_reference: { Args: never; Returns: string }
+      notify_admins_backup_failure: {
+        Args: { p_message: string }
+        Returns: undefined
+      }
       pilot_classify_charges: { Args: { _user_id?: string }; Returns: number }
       pilot_clean_designation: { Args: { p: string }; Returns: string }
       pilot_normalize_designation: { Args: { t: string }; Returns: string }

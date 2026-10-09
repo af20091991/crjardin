@@ -42,7 +42,7 @@ export const Route = createFileRoute("/_authenticated/pilot/focus/$topic")({
   errorComponent: ({ error }) => (
     <Card>
       <CardContent className="py-10 text-center text-sm text-destructive">
-        {error.message}
+        {error instanceof Error ? error.message : "Une erreur est survenue."}
       </CardContent>
     </Card>
   ),
