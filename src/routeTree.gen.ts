@@ -9,90 +9,79 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as PendingRouteImport } from './routes/pending'
-import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
+import { Route as PendingRouteImport } from './routes/pending'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as PartageTokenRouteImport } from './routes/partage.$token'
-import { Route as AuthenticatedVersionsRouteImport } from './routes/_authenticated/versions'
-import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
-import { Route as AuthenticatedSstRouteImport } from './routes/_authenticated/sst'
-import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
-import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
-import { Route as AuthenticatedPilotRouteImport } from './routes/_authenticated/pilot'
-import { Route as AuthenticatedPersonnalisationRouteImport } from './routes/_authenticated/personnalisation'
-import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
-import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
-import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedPilotIndexRouteImport } from './routes/_authenticated/pilot.index'
-import { Route as AuthenticatedParcMaterielIndexRouteImport } from './routes/_authenticated/parc-materiel.index'
-import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
-import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
+import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
+import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
+import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
+import { Route as AuthenticatedPersonnalisationRouteImport } from './routes/_authenticated/personnalisation'
+import { Route as AuthenticatedPilotRouteImport } from './routes/_authenticated/pilot'
+import { Route as AuthenticatedPlanningRouteImport } from './routes/_authenticated/planning'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSstRouteImport } from './routes/_authenticated/sst'
+import { Route as AuthenticatedStatistiquesRouteImport } from './routes/_authenticated/statistiques'
+import { Route as AuthenticatedVersionsRouteImport } from './routes/_authenticated/versions'
+import { Route as PartageTokenRouteImport } from './routes/partage.$token'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
-import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
-import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
-import { Route as ApiPublicBrevoWebhookRouteImport } from './routes/api/public/brevo-webhook'
-import { Route as ApiPublicApRemindersRouteImport } from './routes/api/public/ap-reminders'
-import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_authenticated/pilot.validation'
-import { Route as AuthenticatedPilotTempsRouteImport } from './routes/_authenticated/pilot.temps'
-import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
-import { Route as AuthenticatedPilotStockRouteImport } from './routes/_authenticated/pilot.stock'
-import { Route as AuthenticatedPilotSitesRouteImport } from './routes/_authenticated/pilot.sites'
-import { Route as AuthenticatedPilotSiteWebRouteImport } from './routes/_authenticated/pilot.site-web'
-import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
-import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
-import { Route as AuthenticatedPilotRentabiliteRouteImport } from './routes/_authenticated/pilot.rentabilite'
-import { Route as AuthenticatedPilotRapprochementRouteImport } from './routes/_authenticated/pilot.rapprochement'
-import { Route as AuthenticatedPilotRapportsRouteImport } from './routes/_authenticated/pilot.rapports'
-import { Route as AuthenticatedPilotQualiteRouteImport } from './routes/_authenticated/pilot.qualite'
-import { Route as AuthenticatedPilotPrestationsRouteImport } from './routes/_authenticated/pilot.prestations'
-import { Route as AuthenticatedPilotParametresRouteImport } from './routes/_authenticated/pilot.parametres'
-import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authenticated/pilot.objectifs'
-import { Route as AuthenticatedPilotFinanceRouteImport } from './routes/_authenticated/pilot.finance'
-import { Route as AuthenticatedPilotDonneesRouteImport } from './routes/_authenticated/pilot.donnees'
-import { Route as AuthenticatedPilotDirectionRouteImport } from './routes/_authenticated/pilot.direction'
-import { Route as AuthenticatedPilotDashboardRouteImport } from './routes/_authenticated/pilot.dashboard'
-import { Route as AuthenticatedPilotCorrectionsRouteImport } from './routes/_authenticated/pilot.corrections'
-import { Route as AuthenticatedPilotControleRouteImport } from './routes/_authenticated/pilot.controle'
-import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
-import { Route as AuthenticatedPilotChargesRouteImport } from './routes/_authenticated/pilot.charges'
-import { Route as AuthenticatedPilotCeevLiveRouteImport } from './routes/_authenticated/pilot.ceev-live'
-import { Route as AuthenticatedPilotCeevRouteImport } from './routes/_authenticated/pilot.ceev'
-import { Route as AuthenticatedPilotCalendrierRouteImport } from './routes/_authenticated/pilot.calendrier'
-import { Route as AuthenticatedPilotCaRouteImport } from './routes/_authenticated/pilot.ca'
-import { Route as AuthenticatedPilotBenchmarkRouteImport } from './routes/_authenticated/pilot.benchmark'
-import { Route as AuthenticatedPilotAssistantApRouteImport } from './routes/_authenticated/pilot.assistant-ap'
-import { Route as AuthenticatedParcMaterielEquipmentIdRouteImport } from './routes/_authenticated/parc-materiel.$equipmentId'
-import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
-import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './routes/_authenticated/interventions.$interventionId'
-import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
-import { Route as AuthenticatedFichesFicheIdRouteImport } from './routes/_authenticated/fiches.$ficheId'
-import { Route as AuthenticatedClientsPremiumRouteImport } from './routes/_authenticated/clients/premium'
 import { Route as AuthenticatedClientsClientIdRouteImport } from './routes/_authenticated/clients.$clientId'
-import { Route as AuthenticatedPilotClientsIndexRouteImport } from './routes/_authenticated/pilot.clients.index'
+import { Route as AuthenticatedClientsPremiumRouteImport } from './routes/_authenticated/clients/premium'
+import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
+import { Route as AuthenticatedFichesFicheIdRouteImport } from './routes/_authenticated/fiches.$ficheId'
+import { Route as AuthenticatedFichesNewRouteImport } from './routes/_authenticated/fiches.new'
+import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_authenticated/interventions.index'
+import { Route as AuthenticatedInterventionsInterventionIdRouteImport } from './routes/_authenticated/interventions.$interventionId'
+import { Route as AuthenticatedInterventionsNewRouteImport } from './routes/_authenticated/interventions.new'
+import { Route as AuthenticatedParcMaterielIndexRouteImport } from './routes/_authenticated/parc-materiel.index'
+import { Route as AuthenticatedParcMaterielEquipmentIdRouteImport } from './routes/_authenticated/parc-materiel.$equipmentId'
+import { Route as AuthenticatedPilotIndexRouteImport } from './routes/_authenticated/pilot.index'
+import { Route as AuthenticatedPilotAssistantApRouteImport } from './routes/_authenticated/pilot.assistant-ap'
+import { Route as AuthenticatedPilotBenchmarkRouteImport } from './routes/_authenticated/pilot.benchmark'
+import { Route as AuthenticatedPilotCaRouteImport } from './routes/_authenticated/pilot.ca'
+import { Route as AuthenticatedPilotCalendrierRouteImport } from './routes/_authenticated/pilot.calendrier'
+import { Route as AuthenticatedPilotCeevRouteImport } from './routes/_authenticated/pilot.ceev'
+import { Route as AuthenticatedPilotCeevLiveRouteImport } from './routes/_authenticated/pilot.ceev-live'
+import { Route as AuthenticatedPilotChargesRouteImport } from './routes/_authenticated/pilot.charges'
+import { Route as AuthenticatedPilotClientsRouteImport } from './routes/_authenticated/pilot.clients'
+import { Route as AuthenticatedPilotControleRouteImport } from './routes/_authenticated/pilot.controle'
+import { Route as AuthenticatedPilotCorrectionsRouteImport } from './routes/_authenticated/pilot.corrections'
+import { Route as AuthenticatedPilotDashboardRouteImport } from './routes/_authenticated/pilot.dashboard'
+import { Route as AuthenticatedPilotDirectionRouteImport } from './routes/_authenticated/pilot.direction'
+import { Route as AuthenticatedPilotDonneesRouteImport } from './routes/_authenticated/pilot.donnees'
+import { Route as AuthenticatedPilotFinanceRouteImport } from './routes/_authenticated/pilot.finance'
+import { Route as AuthenticatedPilotObjectifsRouteImport } from './routes/_authenticated/pilot.objectifs'
+import { Route as AuthenticatedPilotParametresRouteImport } from './routes/_authenticated/pilot.parametres'
+import { Route as AuthenticatedPilotPrestationsRouteImport } from './routes/_authenticated/pilot.prestations'
+import { Route as AuthenticatedPilotQualiteRouteImport } from './routes/_authenticated/pilot.qualite'
+import { Route as AuthenticatedPilotRapportsRouteImport } from './routes/_authenticated/pilot.rapports'
+import { Route as AuthenticatedPilotRapprochementRouteImport } from './routes/_authenticated/pilot.rapprochement'
+import { Route as AuthenticatedPilotRentabiliteRouteImport } from './routes/_authenticated/pilot.rentabilite'
+import { Route as AuthenticatedPilotSaisonRouteImport } from './routes/_authenticated/pilot.saison'
+import { Route as AuthenticatedPilotSanteRouteImport } from './routes/_authenticated/pilot.sante'
+import { Route as AuthenticatedPilotSiteWebRouteImport } from './routes/_authenticated/pilot.site-web'
+import { Route as AuthenticatedPilotSitesRouteImport } from './routes/_authenticated/pilot.sites'
+import { Route as AuthenticatedPilotStockRouteImport } from './routes/_authenticated/pilot.stock'
+import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
+import { Route as AuthenticatedPilotTempsRouteImport } from './routes/_authenticated/pilot.temps'
+import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_authenticated/pilot.validation'
+import { Route as ApiPublicApRemindersRouteImport } from './routes/api/public/ap-reminders'
+import { Route as ApiPublicBrevoWebhookRouteImport } from './routes/api/public/brevo-webhook'
+import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
+import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as AuthenticatedPilotCeevContratsIndexRouteImport } from './routes/_authenticated/pilot.ceev-contrats.index'
-import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
-import { Route as AuthenticatedPilotFocusTopicRouteImport } from './routes/_authenticated/pilot.focus.$topic'
-import { Route as AuthenticatedPilotFicheClientIdRouteImport } from './routes/_authenticated/pilot.fiche.$clientId'
-import { Route as AuthenticatedPilotClientsClientKeyRouteImport } from './routes/_authenticated/pilot.clients.$clientKey'
 import { Route as AuthenticatedPilotCeevContratsAgreementIdRouteImport } from './routes/_authenticated/pilot.ceev-contrats.$agreementId'
+import { Route as AuthenticatedPilotClientsIndexRouteImport } from './routes/_authenticated/pilot.clients.index'
+import { Route as AuthenticatedPilotClientsClientKeyRouteImport } from './routes/_authenticated/pilot.clients.$clientKey'
+import { Route as AuthenticatedPilotFicheClientIdRouteImport } from './routes/_authenticated/pilot.fiche.$clientId'
+import { Route as AuthenticatedPilotFocusTopicRouteImport } from './routes/_authenticated/pilot.focus.$topic'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PendingRoute = PendingRouteImport.update({
-  id: '/pending',
-  path: '/pending',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConfidentialiteRoute = ConfidentialiteRouteImport.update({
-  id: '/confidentialite',
-  path: '/confidentialite',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -100,8 +89,19 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const ConfidentialiteRoute = ConfidentialiteRouteImport.update({
+  id: '/confidentialite',
+  path: '/confidentialite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PendingRoute = PendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -109,40 +109,24 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const PartageTokenRoute = PartageTokenRouteImport.update({
-  id: '/partage/$token',
-  path: '/partage/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedVersionsRoute = AuthenticatedVersionsRouteImport.update({
-  id: '/versions',
-  path: '/versions',
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedStatistiquesRoute =
-  AuthenticatedStatistiquesRouteImport.update({
-    id: '/statistiques',
-    path: '/statistiques',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedSstRoute = AuthenticatedSstRouteImport.update({
-  id: '/sst',
-  path: '/sst',
+const AuthenticatedBackendRoute = AuthenticatedBackendRouteImport.update({
+  id: '/backend',
+  path: '/backend',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const AuthenticatedEmailsRoute = AuthenticatedEmailsRouteImport.update({
+  id: '/emails',
+  path: '/emails',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedPlanningRoute = AuthenticatedPlanningRouteImport.update({
-  id: '/planning',
-  path: '/planning',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPilotRoute = AuthenticatedPilotRouteImport.update({
-  id: '/pilot',
-  path: '/pilot',
+const AuthenticatedModelesRoute = AuthenticatedModelesRouteImport.update({
+  id: '/modeles',
+  path: '/modeles',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPersonnalisationRoute =
@@ -151,275 +135,46 @@ const AuthenticatedPersonnalisationRoute =
     path: '/personnalisation',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedModelesRoute = AuthenticatedModelesRouteImport.update({
-  id: '/modeles',
-  path: '/modeles',
+const AuthenticatedPilotRoute = AuthenticatedPilotRouteImport.update({
+  id: '/pilot',
+  path: '/pilot',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedEmailsRoute = AuthenticatedEmailsRouteImport.update({
-  id: '/emails',
-  path: '/emails',
+const AuthenticatedPlanningRoute = AuthenticatedPlanningRouteImport.update({
+  id: '/planning',
+  path: '/planning',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedBackendRoute = AuthenticatedBackendRouteImport.update({
-  id: '/backend',
-  path: '/backend',
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const AuthenticatedSstRoute = AuthenticatedSstRouteImport.update({
+  id: '/sst',
+  path: '/sst',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedPilotIndexRoute = AuthenticatedPilotIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedPilotRoute,
-} as any)
-const AuthenticatedParcMaterielIndexRoute =
-  AuthenticatedParcMaterielIndexRouteImport.update({
-    id: '/parc-materiel/',
-    path: '/parc-materiel/',
+const AuthenticatedStatistiquesRoute =
+  AuthenticatedStatistiquesRouteImport.update({
+    id: '/statistiques',
+    path: '/statistiques',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedInterventionsIndexRoute =
-  AuthenticatedInterventionsIndexRouteImport.update({
-    id: '/interventions/',
-    path: '/interventions/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedFichesIndexRoute =
-  AuthenticatedFichesIndexRouteImport.update({
-    id: '/fiches/',
-    path: '/fiches/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
+const AuthenticatedVersionsRoute = AuthenticatedVersionsRouteImport.update({
+  id: '/versions',
+  path: '/versions',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const PartageTokenRoute = PartageTokenRouteImport.update({
+  id: '/partage/$token',
+  path: '/partage/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedClientsIndexRoute =
   AuthenticatedClientsIndexRouteImport.update({
     id: '/clients/',
     path: '/clients/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
-  id: '/lovable/email/events',
-  path: '/lovable/email/events',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
-  id: '/api/public/email-open',
-  path: '/api/public/email-open',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicBrevoWebhookRoute = ApiPublicBrevoWebhookRouteImport.update({
-  id: '/api/public/brevo-webhook',
-  path: '/api/public/brevo-webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicApRemindersRoute = ApiPublicApRemindersRouteImport.update({
-  id: '/api/public/ap-reminders',
-  path: '/api/public/ap-reminders',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedPilotValidationRoute =
-  AuthenticatedPilotValidationRouteImport.update({
-    id: '/validation',
-    path: '/validation',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotTempsRoute = AuthenticatedPilotTempsRouteImport.update({
-  id: '/temps',
-  path: '/temps',
-  getParentRoute: () => AuthenticatedPilotRoute,
-} as any)
-const AuthenticatedPilotTauxRoute = AuthenticatedPilotTauxRouteImport.update({
-  id: '/taux',
-  path: '/taux',
-  getParentRoute: () => AuthenticatedPilotRoute,
-} as any)
-const AuthenticatedPilotStockRoute = AuthenticatedPilotStockRouteImport.update({
-  id: '/stock',
-  path: '/stock',
-  getParentRoute: () => AuthenticatedPilotRoute,
-} as any)
-const AuthenticatedPilotSitesRoute = AuthenticatedPilotSitesRouteImport.update({
-  id: '/sites',
-  path: '/sites',
-  getParentRoute: () => AuthenticatedPilotRoute,
-} as any)
-const AuthenticatedPilotSiteWebRoute =
-  AuthenticatedPilotSiteWebRouteImport.update({
-    id: '/site-web',
-    path: '/site-web',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotSanteRoute = AuthenticatedPilotSanteRouteImport.update({
-  id: '/sante',
-  path: '/sante',
-  getParentRoute: () => AuthenticatedPilotRoute,
-} as any)
-const AuthenticatedPilotSaisonRoute =
-  AuthenticatedPilotSaisonRouteImport.update({
-    id: '/saison',
-    path: '/saison',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotRentabiliteRoute =
-  AuthenticatedPilotRentabiliteRouteImport.update({
-    id: '/rentabilite',
-    path: '/rentabilite',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotRapprochementRoute =
-  AuthenticatedPilotRapprochementRouteImport.update({
-    id: '/rapprochement',
-    path: '/rapprochement',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotRapportsRoute =
-  AuthenticatedPilotRapportsRouteImport.update({
-    id: '/rapports',
-    path: '/rapports',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotQualiteRoute =
-  AuthenticatedPilotQualiteRouteImport.update({
-    id: '/qualite',
-    path: '/qualite',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotPrestationsRoute =
-  AuthenticatedPilotPrestationsRouteImport.update({
-    id: '/prestations',
-    path: '/prestations',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotParametresRoute =
-  AuthenticatedPilotParametresRouteImport.update({
-    id: '/parametres',
-    path: '/parametres',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotObjectifsRoute =
-  AuthenticatedPilotObjectifsRouteImport.update({
-    id: '/objectifs',
-    path: '/objectifs',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotFinanceRoute =
-  AuthenticatedPilotFinanceRouteImport.update({
-    id: '/finance',
-    path: '/finance',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotDonneesRoute =
-  AuthenticatedPilotDonneesRouteImport.update({
-    id: '/donnees',
-    path: '/donnees',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotDirectionRoute =
-  AuthenticatedPilotDirectionRouteImport.update({
-    id: '/direction',
-    path: '/direction',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotDashboardRoute =
-  AuthenticatedPilotDashboardRouteImport.update({
-    id: '/dashboard',
-    path: '/dashboard',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotCorrectionsRoute =
-  AuthenticatedPilotCorrectionsRouteImport.update({
-    id: '/corrections',
-    path: '/corrections',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotControleRoute =
-  AuthenticatedPilotControleRouteImport.update({
-    id: '/controle',
-    path: '/controle',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotClientsRoute =
-  AuthenticatedPilotClientsRouteImport.update({
-    id: '/clients',
-    path: '/clients',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotChargesRoute =
-  AuthenticatedPilotChargesRouteImport.update({
-    id: '/charges',
-    path: '/charges',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotCeevLiveRoute =
-  AuthenticatedPilotCeevLiveRouteImport.update({
-    id: '/ceev-live',
-    path: '/ceev-live',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotCeevRoute = AuthenticatedPilotCeevRouteImport.update({
-  id: '/ceev',
-  path: '/ceev',
-  getParentRoute: () => AuthenticatedPilotRoute,
-} as any)
-const AuthenticatedPilotCalendrierRoute =
-  AuthenticatedPilotCalendrierRouteImport.update({
-    id: '/calendrier',
-    path: '/calendrier',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotCaRoute = AuthenticatedPilotCaRouteImport.update({
-  id: '/ca',
-  path: '/ca',
-  getParentRoute: () => AuthenticatedPilotRoute,
-} as any)
-const AuthenticatedPilotBenchmarkRoute =
-  AuthenticatedPilotBenchmarkRouteImport.update({
-    id: '/benchmark',
-    path: '/benchmark',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedPilotAssistantApRoute =
-  AuthenticatedPilotAssistantApRouteImport.update({
-    id: '/assistant-ap',
-    path: '/assistant-ap',
-    getParentRoute: () => AuthenticatedPilotRoute,
-  } as any)
-const AuthenticatedParcMaterielEquipmentIdRoute =
-  AuthenticatedParcMaterielEquipmentIdRouteImport.update({
-    id: '/parc-materiel/$equipmentId',
-    path: '/parc-materiel/$equipmentId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedInterventionsNewRoute =
-  AuthenticatedInterventionsNewRouteImport.update({
-    id: '/interventions/new',
-    path: '/interventions/new',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedInterventionsInterventionIdRoute =
-  AuthenticatedInterventionsInterventionIdRouteImport.update({
-    id: '/interventions/$interventionId',
-    path: '/interventions/$interventionId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedFichesNewRoute = AuthenticatedFichesNewRouteImport.update({
-  id: '/fiches/new',
-  path: '/fiches/new',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedFichesFicheIdRoute =
-  AuthenticatedFichesFicheIdRouteImport.update({
-    id: '/fiches/$ficheId',
-    path: '/fiches/$ficheId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedClientsPremiumRoute =
-  AuthenticatedClientsPremiumRouteImport.update({
-    id: '/clients/premium',
-    path: '/clients/premium',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedClientsClientIdRoute =
@@ -428,35 +183,268 @@ const AuthenticatedClientsClientIdRoute =
     path: '/clients/$clientId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedPilotClientsIndexRoute =
-  AuthenticatedPilotClientsIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedPilotClientsRoute,
+const AuthenticatedClientsPremiumRoute =
+  AuthenticatedClientsPremiumRouteImport.update({
+    id: '/clients/premium',
+    path: '/clients/premium',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFichesIndexRoute =
+  AuthenticatedFichesIndexRouteImport.update({
+    id: '/fiches/',
+    path: '/fiches/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFichesFicheIdRoute =
+  AuthenticatedFichesFicheIdRouteImport.update({
+    id: '/fiches/$ficheId',
+    path: '/fiches/$ficheId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFichesNewRoute = AuthenticatedFichesNewRouteImport.update({
+  id: '/fiches/new',
+  path: '/fiches/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInterventionsIndexRoute =
+  AuthenticatedInterventionsIndexRouteImport.update({
+    id: '/interventions/',
+    path: '/interventions/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedInterventionsInterventionIdRoute =
+  AuthenticatedInterventionsInterventionIdRouteImport.update({
+    id: '/interventions/$interventionId',
+    path: '/interventions/$interventionId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedInterventionsNewRoute =
+  AuthenticatedInterventionsNewRouteImport.update({
+    id: '/interventions/new',
+    path: '/interventions/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedParcMaterielIndexRoute =
+  AuthenticatedParcMaterielIndexRouteImport.update({
+    id: '/parc-materiel/',
+    path: '/parc-materiel/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedParcMaterielEquipmentIdRoute =
+  AuthenticatedParcMaterielEquipmentIdRouteImport.update({
+    id: '/parc-materiel/$equipmentId',
+    path: '/parc-materiel/$equipmentId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPilotIndexRoute = AuthenticatedPilotIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
+const AuthenticatedPilotAssistantApRoute =
+  AuthenticatedPilotAssistantApRouteImport.update({
+    id: '/assistant-ap',
+    path: '/assistant-ap',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotBenchmarkRoute =
+  AuthenticatedPilotBenchmarkRouteImport.update({
+    id: '/benchmark',
+    path: '/benchmark',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotCaRoute = AuthenticatedPilotCaRouteImport.update({
+  id: '/ca',
+  path: '/ca',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
+const AuthenticatedPilotCalendrierRoute =
+  AuthenticatedPilotCalendrierRouteImport.update({
+    id: '/calendrier',
+    path: '/calendrier',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotCeevRoute = AuthenticatedPilotCeevRouteImport.update({
+  id: '/ceev',
+  path: '/ceev',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
+const AuthenticatedPilotCeevLiveRoute =
+  AuthenticatedPilotCeevLiveRouteImport.update({
+    id: '/ceev-live',
+    path: '/ceev-live',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotChargesRoute =
+  AuthenticatedPilotChargesRouteImport.update({
+    id: '/charges',
+    path: '/charges',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotClientsRoute =
+  AuthenticatedPilotClientsRouteImport.update({
+    id: '/clients',
+    path: '/clients',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotControleRoute =
+  AuthenticatedPilotControleRouteImport.update({
+    id: '/controle',
+    path: '/controle',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotCorrectionsRoute =
+  AuthenticatedPilotCorrectionsRouteImport.update({
+    id: '/corrections',
+    path: '/corrections',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotDashboardRoute =
+  AuthenticatedPilotDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotDirectionRoute =
+  AuthenticatedPilotDirectionRouteImport.update({
+    id: '/direction',
+    path: '/direction',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotDonneesRoute =
+  AuthenticatedPilotDonneesRouteImport.update({
+    id: '/donnees',
+    path: '/donnees',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotFinanceRoute =
+  AuthenticatedPilotFinanceRouteImport.update({
+    id: '/finance',
+    path: '/finance',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotObjectifsRoute =
+  AuthenticatedPilotObjectifsRouteImport.update({
+    id: '/objectifs',
+    path: '/objectifs',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotParametresRoute =
+  AuthenticatedPilotParametresRouteImport.update({
+    id: '/parametres',
+    path: '/parametres',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotPrestationsRoute =
+  AuthenticatedPilotPrestationsRouteImport.update({
+    id: '/prestations',
+    path: '/prestations',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotQualiteRoute =
+  AuthenticatedPilotQualiteRouteImport.update({
+    id: '/qualite',
+    path: '/qualite',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotRapportsRoute =
+  AuthenticatedPilotRapportsRouteImport.update({
+    id: '/rapports',
+    path: '/rapports',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotRapprochementRoute =
+  AuthenticatedPilotRapprochementRouteImport.update({
+    id: '/rapprochement',
+    path: '/rapprochement',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotRentabiliteRoute =
+  AuthenticatedPilotRentabiliteRouteImport.update({
+    id: '/rentabilite',
+    path: '/rentabilite',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotSaisonRoute =
+  AuthenticatedPilotSaisonRouteImport.update({
+    id: '/saison',
+    path: '/saison',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotSanteRoute = AuthenticatedPilotSanteRouteImport.update({
+  id: '/sante',
+  path: '/sante',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
+const AuthenticatedPilotSiteWebRoute =
+  AuthenticatedPilotSiteWebRouteImport.update({
+    id: '/site-web',
+    path: '/site-web',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotSitesRoute = AuthenticatedPilotSitesRouteImport.update({
+  id: '/sites',
+  path: '/sites',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
+const AuthenticatedPilotStockRoute = AuthenticatedPilotStockRouteImport.update({
+  id: '/stock',
+  path: '/stock',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
+const AuthenticatedPilotTauxRoute = AuthenticatedPilotTauxRouteImport.update({
+  id: '/taux',
+  path: '/taux',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
+const AuthenticatedPilotTempsRoute = AuthenticatedPilotTempsRouteImport.update({
+  id: '/temps',
+  path: '/temps',
+  getParentRoute: () => AuthenticatedPilotRoute,
+} as any)
+const AuthenticatedPilotValidationRoute =
+  AuthenticatedPilotValidationRouteImport.update({
+    id: '/validation',
+    path: '/validation',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const ApiPublicApRemindersRoute = ApiPublicApRemindersRouteImport.update({
+  id: '/api/public/ap-reminders',
+  path: '/api/public/ap-reminders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBrevoWebhookRoute = ApiPublicBrevoWebhookRouteImport.update({
+  id: '/api/public/brevo-webhook',
+  path: '/api/public/brevo-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
+  id: '/api/public/email-open',
+  path: '/api/public/email-open',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
+  id: '/lovable/email/events',
+  path: '/lovable/email/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedPilotCeevContratsIndexRoute =
   AuthenticatedPilotCeevContratsIndexRouteImport.update({
     id: '/ceev-contrats/',
     path: '/ceev-contrats/',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
-const LovableEmailTransactionalPreviewRoute =
-  LovableEmailTransactionalPreviewRouteImport.update({
-    id: '/lovable/email/transactional/preview',
-    path: '/lovable/email/transactional/preview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AuthenticatedPilotFocusTopicRoute =
-  AuthenticatedPilotFocusTopicRouteImport.update({
-    id: '/focus/$topic',
-    path: '/focus/$topic',
+const AuthenticatedPilotCeevContratsAgreementIdRoute =
+  AuthenticatedPilotCeevContratsAgreementIdRouteImport.update({
+    id: '/ceev-contrats/$agreementId',
+    path: '/ceev-contrats/$agreementId',
     getParentRoute: () => AuthenticatedPilotRoute,
   } as any)
-const AuthenticatedPilotFicheClientIdRoute =
-  AuthenticatedPilotFicheClientIdRouteImport.update({
-    id: '/fiche/$clientId',
-    path: '/fiche/$clientId',
-    getParentRoute: () => AuthenticatedPilotRoute,
+const AuthenticatedPilotClientsIndexRoute =
+  AuthenticatedPilotClientsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedPilotClientsRoute,
   } as any)
 const AuthenticatedPilotClientsClientKeyRoute =
   AuthenticatedPilotClientsClientKeyRouteImport.update({
@@ -464,11 +452,23 @@ const AuthenticatedPilotClientsClientKeyRoute =
     path: '/$clientKey',
     getParentRoute: () => AuthenticatedPilotClientsRoute,
   } as any)
-const AuthenticatedPilotCeevContratsAgreementIdRoute =
-  AuthenticatedPilotCeevContratsAgreementIdRouteImport.update({
-    id: '/ceev-contrats/$agreementId',
-    path: '/ceev-contrats/$agreementId',
+const AuthenticatedPilotFicheClientIdRoute =
+  AuthenticatedPilotFicheClientIdRouteImport.update({
+    id: '/fiche/$clientId',
+    path: '/fiche/$clientId',
     getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const AuthenticatedPilotFocusTopicRoute =
+  AuthenticatedPilotFocusTopicRouteImport.update({
+    id: '/focus/$topic',
+    path: '/focus/$topic',
+    getParentRoute: () => AuthenticatedPilotRoute,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -915,25 +915,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pending': {
-      id: '/pending'
-      path: '/pending'
-      fullPath: '/pending'
-      preLoaderRoute: typeof PendingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/confidentialite': {
-      id: '/confidentialite'
-      path: '/confidentialite'
-      fullPath: '/confidentialite'
-      preLoaderRoute: typeof ConfidentialiteRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -943,11 +929,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+    '/confidentialite': {
+      id: '/confidentialite'
+      path: '/confidentialite'
+      fullPath: '/confidentialite'
+      preLoaderRoute: typeof ConfidentialiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pending': {
+      id: '/pending'
+      path: '/pending'
+      fullPath: '/pending'
+      preLoaderRoute: typeof PendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -957,74 +957,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/partage/$token': {
-      id: '/partage/$token'
-      path: '/partage/$token'
-      fullPath: '/partage/$token'
-      preLoaderRoute: typeof PartageTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/versions': {
-      id: '/_authenticated/versions'
-      path: '/versions'
-      fullPath: '/versions'
-      preLoaderRoute: typeof AuthenticatedVersionsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/statistiques': {
-      id: '/_authenticated/statistiques'
-      path: '/statistiques'
-      fullPath: '/statistiques'
-      preLoaderRoute: typeof AuthenticatedStatistiquesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/sst': {
-      id: '/_authenticated/sst'
-      path: '/sst'
-      fullPath: '/sst'
-      preLoaderRoute: typeof AuthenticatedSstRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/settings': {
-      id: '/_authenticated/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/planning': {
-      id: '/_authenticated/planning'
-      path: '/planning'
-      fullPath: '/planning'
-      preLoaderRoute: typeof AuthenticatedPlanningRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/pilot': {
-      id: '/_authenticated/pilot'
-      path: '/pilot'
-      fullPath: '/pilot'
-      preLoaderRoute: typeof AuthenticatedPilotRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/personnalisation': {
-      id: '/_authenticated/personnalisation'
-      path: '/personnalisation'
-      fullPath: '/personnalisation'
-      preLoaderRoute: typeof AuthenticatedPersonnalisationRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/modeles': {
-      id: '/_authenticated/modeles'
-      path: '/modeles'
-      fullPath: '/modeles'
-      preLoaderRoute: typeof AuthenticatedModelesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/emails': {
-      id: '/_authenticated/emails'
-      path: '/emails'
-      fullPath: '/emails'
-      preLoaderRoute: typeof AuthenticatedEmailsRouteImport
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/backend': {
@@ -1034,319 +971,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBackendRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+    '/_authenticated/emails': {
+      id: '/_authenticated/emails'
+      path: '/emails'
+      fullPath: '/emails'
+      preLoaderRoute: typeof AuthenticatedEmailsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/pilot/': {
-      id: '/_authenticated/pilot/'
-      path: '/'
-      fullPath: '/pilot/'
-      preLoaderRoute: typeof AuthenticatedPilotIndexRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/parc-materiel/': {
-      id: '/_authenticated/parc-materiel/'
-      path: '/parc-materiel'
-      fullPath: '/parc-materiel/'
-      preLoaderRoute: typeof AuthenticatedParcMaterielIndexRouteImport
+    '/_authenticated/modeles': {
+      id: '/_authenticated/modeles'
+      path: '/modeles'
+      fullPath: '/modeles'
+      preLoaderRoute: typeof AuthenticatedModelesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/interventions/': {
-      id: '/_authenticated/interventions/'
-      path: '/interventions'
-      fullPath: '/interventions/'
-      preLoaderRoute: typeof AuthenticatedInterventionsIndexRouteImport
+    '/_authenticated/personnalisation': {
+      id: '/_authenticated/personnalisation'
+      path: '/personnalisation'
+      fullPath: '/personnalisation'
+      preLoaderRoute: typeof AuthenticatedPersonnalisationRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/fiches/': {
-      id: '/_authenticated/fiches/'
-      path: '/fiches'
-      fullPath: '/fiches/'
-      preLoaderRoute: typeof AuthenticatedFichesIndexRouteImport
+    '/_authenticated/pilot': {
+      id: '/_authenticated/pilot'
+      path: '/pilot'
+      fullPath: '/pilot'
+      preLoaderRoute: typeof AuthenticatedPilotRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/planning': {
+      id: '/_authenticated/planning'
+      path: '/planning'
+      fullPath: '/planning'
+      preLoaderRoute: typeof AuthenticatedPlanningRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sst': {
+      id: '/_authenticated/sst'
+      path: '/sst'
+      fullPath: '/sst'
+      preLoaderRoute: typeof AuthenticatedSstRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/statistiques': {
+      id: '/_authenticated/statistiques'
+      path: '/statistiques'
+      fullPath: '/statistiques'
+      preLoaderRoute: typeof AuthenticatedStatistiquesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/versions': {
+      id: '/_authenticated/versions'
+      path: '/versions'
+      fullPath: '/versions'
+      preLoaderRoute: typeof AuthenticatedVersionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/partage/$token': {
+      id: '/partage/$token'
+      path: '/partage/$token'
+      fullPath: '/partage/$token'
+      preLoaderRoute: typeof PartageTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/clients/': {
       id: '/_authenticated/clients/'
       path: '/clients'
       fullPath: '/clients/'
       preLoaderRoute: typeof AuthenticatedClientsIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/lovable/email/events': {
-      id: '/lovable/email/events'
-      path: '/lovable/email/events'
-      fullPath: '/lovable/email/events'
-      preLoaderRoute: typeof LovableEmailEventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/email-open': {
-      id: '/api/public/email-open'
-      path: '/api/public/email-open'
-      fullPath: '/api/public/email-open'
-      preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/brevo-webhook': {
-      id: '/api/public/brevo-webhook'
-      path: '/api/public/brevo-webhook'
-      fullPath: '/api/public/brevo-webhook'
-      preLoaderRoute: typeof ApiPublicBrevoWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/ap-reminders': {
-      id: '/api/public/ap-reminders'
-      path: '/api/public/ap-reminders'
-      fullPath: '/api/public/ap-reminders'
-      preLoaderRoute: typeof ApiPublicApRemindersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/pilot/validation': {
-      id: '/_authenticated/pilot/validation'
-      path: '/validation'
-      fullPath: '/pilot/validation'
-      preLoaderRoute: typeof AuthenticatedPilotValidationRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/temps': {
-      id: '/_authenticated/pilot/temps'
-      path: '/temps'
-      fullPath: '/pilot/temps'
-      preLoaderRoute: typeof AuthenticatedPilotTempsRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/taux': {
-      id: '/_authenticated/pilot/taux'
-      path: '/taux'
-      fullPath: '/pilot/taux'
-      preLoaderRoute: typeof AuthenticatedPilotTauxRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/stock': {
-      id: '/_authenticated/pilot/stock'
-      path: '/stock'
-      fullPath: '/pilot/stock'
-      preLoaderRoute: typeof AuthenticatedPilotStockRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/sites': {
-      id: '/_authenticated/pilot/sites'
-      path: '/sites'
-      fullPath: '/pilot/sites'
-      preLoaderRoute: typeof AuthenticatedPilotSitesRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/site-web': {
-      id: '/_authenticated/pilot/site-web'
-      path: '/site-web'
-      fullPath: '/pilot/site-web'
-      preLoaderRoute: typeof AuthenticatedPilotSiteWebRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/sante': {
-      id: '/_authenticated/pilot/sante'
-      path: '/sante'
-      fullPath: '/pilot/sante'
-      preLoaderRoute: typeof AuthenticatedPilotSanteRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/saison': {
-      id: '/_authenticated/pilot/saison'
-      path: '/saison'
-      fullPath: '/pilot/saison'
-      preLoaderRoute: typeof AuthenticatedPilotSaisonRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/rentabilite': {
-      id: '/_authenticated/pilot/rentabilite'
-      path: '/rentabilite'
-      fullPath: '/pilot/rentabilite'
-      preLoaderRoute: typeof AuthenticatedPilotRentabiliteRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/rapprochement': {
-      id: '/_authenticated/pilot/rapprochement'
-      path: '/rapprochement'
-      fullPath: '/pilot/rapprochement'
-      preLoaderRoute: typeof AuthenticatedPilotRapprochementRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/rapports': {
-      id: '/_authenticated/pilot/rapports'
-      path: '/rapports'
-      fullPath: '/pilot/rapports'
-      preLoaderRoute: typeof AuthenticatedPilotRapportsRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/qualite': {
-      id: '/_authenticated/pilot/qualite'
-      path: '/qualite'
-      fullPath: '/pilot/qualite'
-      preLoaderRoute: typeof AuthenticatedPilotQualiteRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/prestations': {
-      id: '/_authenticated/pilot/prestations'
-      path: '/prestations'
-      fullPath: '/pilot/prestations'
-      preLoaderRoute: typeof AuthenticatedPilotPrestationsRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/parametres': {
-      id: '/_authenticated/pilot/parametres'
-      path: '/parametres'
-      fullPath: '/pilot/parametres'
-      preLoaderRoute: typeof AuthenticatedPilotParametresRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/objectifs': {
-      id: '/_authenticated/pilot/objectifs'
-      path: '/objectifs'
-      fullPath: '/pilot/objectifs'
-      preLoaderRoute: typeof AuthenticatedPilotObjectifsRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/finance': {
-      id: '/_authenticated/pilot/finance'
-      path: '/finance'
-      fullPath: '/pilot/finance'
-      preLoaderRoute: typeof AuthenticatedPilotFinanceRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/donnees': {
-      id: '/_authenticated/pilot/donnees'
-      path: '/donnees'
-      fullPath: '/pilot/donnees'
-      preLoaderRoute: typeof AuthenticatedPilotDonneesRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/direction': {
-      id: '/_authenticated/pilot/direction'
-      path: '/direction'
-      fullPath: '/pilot/direction'
-      preLoaderRoute: typeof AuthenticatedPilotDirectionRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/dashboard': {
-      id: '/_authenticated/pilot/dashboard'
-      path: '/dashboard'
-      fullPath: '/pilot/dashboard'
-      preLoaderRoute: typeof AuthenticatedPilotDashboardRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/corrections': {
-      id: '/_authenticated/pilot/corrections'
-      path: '/corrections'
-      fullPath: '/pilot/corrections'
-      preLoaderRoute: typeof AuthenticatedPilotCorrectionsRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/controle': {
-      id: '/_authenticated/pilot/controle'
-      path: '/controle'
-      fullPath: '/pilot/controle'
-      preLoaderRoute: typeof AuthenticatedPilotControleRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/clients': {
-      id: '/_authenticated/pilot/clients'
-      path: '/clients'
-      fullPath: '/pilot/clients'
-      preLoaderRoute: typeof AuthenticatedPilotClientsRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/charges': {
-      id: '/_authenticated/pilot/charges'
-      path: '/charges'
-      fullPath: '/pilot/charges'
-      preLoaderRoute: typeof AuthenticatedPilotChargesRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/ceev-live': {
-      id: '/_authenticated/pilot/ceev-live'
-      path: '/ceev-live'
-      fullPath: '/pilot/ceev-live'
-      preLoaderRoute: typeof AuthenticatedPilotCeevLiveRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/ceev': {
-      id: '/_authenticated/pilot/ceev'
-      path: '/ceev'
-      fullPath: '/pilot/ceev'
-      preLoaderRoute: typeof AuthenticatedPilotCeevRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/calendrier': {
-      id: '/_authenticated/pilot/calendrier'
-      path: '/calendrier'
-      fullPath: '/pilot/calendrier'
-      preLoaderRoute: typeof AuthenticatedPilotCalendrierRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/ca': {
-      id: '/_authenticated/pilot/ca'
-      path: '/ca'
-      fullPath: '/pilot/ca'
-      preLoaderRoute: typeof AuthenticatedPilotCaRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/benchmark': {
-      id: '/_authenticated/pilot/benchmark'
-      path: '/benchmark'
-      fullPath: '/pilot/benchmark'
-      preLoaderRoute: typeof AuthenticatedPilotBenchmarkRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/pilot/assistant-ap': {
-      id: '/_authenticated/pilot/assistant-ap'
-      path: '/assistant-ap'
-      fullPath: '/pilot/assistant-ap'
-      preLoaderRoute: typeof AuthenticatedPilotAssistantApRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
-    }
-    '/_authenticated/parc-materiel/$equipmentId': {
-      id: '/_authenticated/parc-materiel/$equipmentId'
-      path: '/parc-materiel/$equipmentId'
-      fullPath: '/parc-materiel/$equipmentId'
-      preLoaderRoute: typeof AuthenticatedParcMaterielEquipmentIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/interventions/new': {
-      id: '/_authenticated/interventions/new'
-      path: '/interventions/new'
-      fullPath: '/interventions/new'
-      preLoaderRoute: typeof AuthenticatedInterventionsNewRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/interventions/$interventionId': {
-      id: '/_authenticated/interventions/$interventionId'
-      path: '/interventions/$interventionId'
-      fullPath: '/interventions/$interventionId'
-      preLoaderRoute: typeof AuthenticatedInterventionsInterventionIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/fiches/new': {
-      id: '/_authenticated/fiches/new'
-      path: '/fiches/new'
-      fullPath: '/fiches/new'
-      preLoaderRoute: typeof AuthenticatedFichesNewRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/fiches/$ficheId': {
-      id: '/_authenticated/fiches/$ficheId'
-      path: '/fiches/$ficheId'
-      fullPath: '/fiches/$ficheId'
-      preLoaderRoute: typeof AuthenticatedFichesFicheIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/clients/premium': {
-      id: '/_authenticated/clients/premium'
-      path: '/clients/premium'
-      fullPath: '/clients/premium'
-      preLoaderRoute: typeof AuthenticatedClientsPremiumRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clients/$clientId': {
@@ -1356,12 +1055,306 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsClientIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/pilot/clients/': {
-      id: '/_authenticated/pilot/clients/'
+    '/_authenticated/clients/premium': {
+      id: '/_authenticated/clients/premium'
+      path: '/clients/premium'
+      fullPath: '/clients/premium'
+      preLoaderRoute: typeof AuthenticatedClientsPremiumRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fiches/': {
+      id: '/_authenticated/fiches/'
+      path: '/fiches'
+      fullPath: '/fiches/'
+      preLoaderRoute: typeof AuthenticatedFichesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fiches/$ficheId': {
+      id: '/_authenticated/fiches/$ficheId'
+      path: '/fiches/$ficheId'
+      fullPath: '/fiches/$ficheId'
+      preLoaderRoute: typeof AuthenticatedFichesFicheIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fiches/new': {
+      id: '/_authenticated/fiches/new'
+      path: '/fiches/new'
+      fullPath: '/fiches/new'
+      preLoaderRoute: typeof AuthenticatedFichesNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/interventions/': {
+      id: '/_authenticated/interventions/'
+      path: '/interventions'
+      fullPath: '/interventions/'
+      preLoaderRoute: typeof AuthenticatedInterventionsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/interventions/$interventionId': {
+      id: '/_authenticated/interventions/$interventionId'
+      path: '/interventions/$interventionId'
+      fullPath: '/interventions/$interventionId'
+      preLoaderRoute: typeof AuthenticatedInterventionsInterventionIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/interventions/new': {
+      id: '/_authenticated/interventions/new'
+      path: '/interventions/new'
+      fullPath: '/interventions/new'
+      preLoaderRoute: typeof AuthenticatedInterventionsNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/parc-materiel/': {
+      id: '/_authenticated/parc-materiel/'
+      path: '/parc-materiel'
+      fullPath: '/parc-materiel/'
+      preLoaderRoute: typeof AuthenticatedParcMaterielIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/parc-materiel/$equipmentId': {
+      id: '/_authenticated/parc-materiel/$equipmentId'
+      path: '/parc-materiel/$equipmentId'
+      fullPath: '/parc-materiel/$equipmentId'
+      preLoaderRoute: typeof AuthenticatedParcMaterielEquipmentIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pilot/': {
+      id: '/_authenticated/pilot/'
       path: '/'
-      fullPath: '/pilot/clients/'
-      preLoaderRoute: typeof AuthenticatedPilotClientsIndexRouteImport
-      parentRoute: typeof AuthenticatedPilotClientsRoute
+      fullPath: '/pilot/'
+      preLoaderRoute: typeof AuthenticatedPilotIndexRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/assistant-ap': {
+      id: '/_authenticated/pilot/assistant-ap'
+      path: '/assistant-ap'
+      fullPath: '/pilot/assistant-ap'
+      preLoaderRoute: typeof AuthenticatedPilotAssistantApRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/benchmark': {
+      id: '/_authenticated/pilot/benchmark'
+      path: '/benchmark'
+      fullPath: '/pilot/benchmark'
+      preLoaderRoute: typeof AuthenticatedPilotBenchmarkRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/ca': {
+      id: '/_authenticated/pilot/ca'
+      path: '/ca'
+      fullPath: '/pilot/ca'
+      preLoaderRoute: typeof AuthenticatedPilotCaRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/calendrier': {
+      id: '/_authenticated/pilot/calendrier'
+      path: '/calendrier'
+      fullPath: '/pilot/calendrier'
+      preLoaderRoute: typeof AuthenticatedPilotCalendrierRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/ceev': {
+      id: '/_authenticated/pilot/ceev'
+      path: '/ceev'
+      fullPath: '/pilot/ceev'
+      preLoaderRoute: typeof AuthenticatedPilotCeevRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/ceev-live': {
+      id: '/_authenticated/pilot/ceev-live'
+      path: '/ceev-live'
+      fullPath: '/pilot/ceev-live'
+      preLoaderRoute: typeof AuthenticatedPilotCeevLiveRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/charges': {
+      id: '/_authenticated/pilot/charges'
+      path: '/charges'
+      fullPath: '/pilot/charges'
+      preLoaderRoute: typeof AuthenticatedPilotChargesRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/clients': {
+      id: '/_authenticated/pilot/clients'
+      path: '/clients'
+      fullPath: '/pilot/clients'
+      preLoaderRoute: typeof AuthenticatedPilotClientsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/controle': {
+      id: '/_authenticated/pilot/controle'
+      path: '/controle'
+      fullPath: '/pilot/controle'
+      preLoaderRoute: typeof AuthenticatedPilotControleRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/corrections': {
+      id: '/_authenticated/pilot/corrections'
+      path: '/corrections'
+      fullPath: '/pilot/corrections'
+      preLoaderRoute: typeof AuthenticatedPilotCorrectionsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/dashboard': {
+      id: '/_authenticated/pilot/dashboard'
+      path: '/dashboard'
+      fullPath: '/pilot/dashboard'
+      preLoaderRoute: typeof AuthenticatedPilotDashboardRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/direction': {
+      id: '/_authenticated/pilot/direction'
+      path: '/direction'
+      fullPath: '/pilot/direction'
+      preLoaderRoute: typeof AuthenticatedPilotDirectionRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/donnees': {
+      id: '/_authenticated/pilot/donnees'
+      path: '/donnees'
+      fullPath: '/pilot/donnees'
+      preLoaderRoute: typeof AuthenticatedPilotDonneesRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/finance': {
+      id: '/_authenticated/pilot/finance'
+      path: '/finance'
+      fullPath: '/pilot/finance'
+      preLoaderRoute: typeof AuthenticatedPilotFinanceRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/objectifs': {
+      id: '/_authenticated/pilot/objectifs'
+      path: '/objectifs'
+      fullPath: '/pilot/objectifs'
+      preLoaderRoute: typeof AuthenticatedPilotObjectifsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/parametres': {
+      id: '/_authenticated/pilot/parametres'
+      path: '/parametres'
+      fullPath: '/pilot/parametres'
+      preLoaderRoute: typeof AuthenticatedPilotParametresRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/prestations': {
+      id: '/_authenticated/pilot/prestations'
+      path: '/prestations'
+      fullPath: '/pilot/prestations'
+      preLoaderRoute: typeof AuthenticatedPilotPrestationsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/qualite': {
+      id: '/_authenticated/pilot/qualite'
+      path: '/qualite'
+      fullPath: '/pilot/qualite'
+      preLoaderRoute: typeof AuthenticatedPilotQualiteRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/rapports': {
+      id: '/_authenticated/pilot/rapports'
+      path: '/rapports'
+      fullPath: '/pilot/rapports'
+      preLoaderRoute: typeof AuthenticatedPilotRapportsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/rapprochement': {
+      id: '/_authenticated/pilot/rapprochement'
+      path: '/rapprochement'
+      fullPath: '/pilot/rapprochement'
+      preLoaderRoute: typeof AuthenticatedPilotRapprochementRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/rentabilite': {
+      id: '/_authenticated/pilot/rentabilite'
+      path: '/rentabilite'
+      fullPath: '/pilot/rentabilite'
+      preLoaderRoute: typeof AuthenticatedPilotRentabiliteRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/saison': {
+      id: '/_authenticated/pilot/saison'
+      path: '/saison'
+      fullPath: '/pilot/saison'
+      preLoaderRoute: typeof AuthenticatedPilotSaisonRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/sante': {
+      id: '/_authenticated/pilot/sante'
+      path: '/sante'
+      fullPath: '/pilot/sante'
+      preLoaderRoute: typeof AuthenticatedPilotSanteRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/site-web': {
+      id: '/_authenticated/pilot/site-web'
+      path: '/site-web'
+      fullPath: '/pilot/site-web'
+      preLoaderRoute: typeof AuthenticatedPilotSiteWebRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/sites': {
+      id: '/_authenticated/pilot/sites'
+      path: '/sites'
+      fullPath: '/pilot/sites'
+      preLoaderRoute: typeof AuthenticatedPilotSitesRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/stock': {
+      id: '/_authenticated/pilot/stock'
+      path: '/stock'
+      fullPath: '/pilot/stock'
+      preLoaderRoute: typeof AuthenticatedPilotStockRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/taux': {
+      id: '/_authenticated/pilot/taux'
+      path: '/taux'
+      fullPath: '/pilot/taux'
+      preLoaderRoute: typeof AuthenticatedPilotTauxRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/temps': {
+      id: '/_authenticated/pilot/temps'
+      path: '/temps'
+      fullPath: '/pilot/temps'
+      preLoaderRoute: typeof AuthenticatedPilotTempsRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/validation': {
+      id: '/_authenticated/pilot/validation'
+      path: '/validation'
+      fullPath: '/pilot/validation'
+      preLoaderRoute: typeof AuthenticatedPilotValidationRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/api/public/ap-reminders': {
+      id: '/api/public/ap-reminders'
+      path: '/api/public/ap-reminders'
+      fullPath: '/api/public/ap-reminders'
+      preLoaderRoute: typeof ApiPublicApRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/brevo-webhook': {
+      id: '/api/public/brevo-webhook'
+      path: '/api/public/brevo-webhook'
+      fullPath: '/api/public/brevo-webhook'
+      preLoaderRoute: typeof ApiPublicBrevoWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/email-open': {
+      id: '/api/public/email-open'
+      path: '/api/public/email-open'
+      fullPath: '/api/public/email-open'
+      preLoaderRoute: typeof ApiPublicEmailOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/events': {
+      id: '/lovable/email/events'
+      path: '/lovable/email/events'
+      fullPath: '/lovable/email/events'
+      preLoaderRoute: typeof LovableEmailEventsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/pilot/ceev-contrats/': {
       id: '/_authenticated/pilot/ceev-contrats/'
@@ -1370,26 +1363,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotCeevContratsIndexRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
-    '/lovable/email/transactional/preview': {
-      id: '/lovable/email/transactional/preview'
-      path: '/lovable/email/transactional/preview'
-      fullPath: '/lovable/email/transactional/preview'
-      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/pilot/focus/$topic': {
-      id: '/_authenticated/pilot/focus/$topic'
-      path: '/focus/$topic'
-      fullPath: '/pilot/focus/$topic'
-      preLoaderRoute: typeof AuthenticatedPilotFocusTopicRouteImport
+    '/_authenticated/pilot/ceev-contrats/$agreementId': {
+      id: '/_authenticated/pilot/ceev-contrats/$agreementId'
+      path: '/ceev-contrats/$agreementId'
+      fullPath: '/pilot/ceev-contrats/$agreementId'
+      preLoaderRoute: typeof AuthenticatedPilotCeevContratsAgreementIdRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
     }
-    '/_authenticated/pilot/fiche/$clientId': {
-      id: '/_authenticated/pilot/fiche/$clientId'
-      path: '/fiche/$clientId'
-      fullPath: '/pilot/fiche/$clientId'
-      preLoaderRoute: typeof AuthenticatedPilotFicheClientIdRouteImport
-      parentRoute: typeof AuthenticatedPilotRoute
+    '/_authenticated/pilot/clients/': {
+      id: '/_authenticated/pilot/clients/'
+      path: '/'
+      fullPath: '/pilot/clients/'
+      preLoaderRoute: typeof AuthenticatedPilotClientsIndexRouteImport
+      parentRoute: typeof AuthenticatedPilotClientsRoute
     }
     '/_authenticated/pilot/clients/$clientKey': {
       id: '/_authenticated/pilot/clients/$clientKey'
@@ -1398,12 +1384,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPilotClientsClientKeyRouteImport
       parentRoute: typeof AuthenticatedPilotClientsRoute
     }
-    '/_authenticated/pilot/ceev-contrats/$agreementId': {
-      id: '/_authenticated/pilot/ceev-contrats/$agreementId'
-      path: '/ceev-contrats/$agreementId'
-      fullPath: '/pilot/ceev-contrats/$agreementId'
-      preLoaderRoute: typeof AuthenticatedPilotCeevContratsAgreementIdRouteImport
+    '/_authenticated/pilot/fiche/$clientId': {
+      id: '/_authenticated/pilot/fiche/$clientId'
+      path: '/fiche/$clientId'
+      fullPath: '/pilot/fiche/$clientId'
+      preLoaderRoute: typeof AuthenticatedPilotFicheClientIdRouteImport
       parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/_authenticated/pilot/focus/$topic': {
+      id: '/_authenticated/pilot/focus/$topic'
+      path: '/focus/$topic'
+      fullPath: '/pilot/focus/$topic'
+      preLoaderRoute: typeof AuthenticatedPilotFocusTopicRouteImport
+      parentRoute: typeof AuthenticatedPilotRoute
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
