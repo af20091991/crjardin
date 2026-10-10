@@ -45,6 +45,8 @@ export function SiteWebStatistics() {
     const load = async () => {
       setLoading(true);
       setError(null);
+      setComparisonReport(null);
+      setComparisonError(null);
 
       const propertiesResult = await listAnalyticsProperties();
       if (!active) return;
@@ -83,7 +85,7 @@ export function SiteWebStatistics() {
       setReport((result.data ?? null) as Report | null);
       setError(result.error);
 
-      const comparison = comparisonPeriod(startDate, endDate, activePeriod.days == null);
+      const comparison = comparisonPeriod(startDate, endDate, period === "annee");
       const comparisonResult = await runAnalyticsReport({
         propertyId,
         startDate: comparison.start,
@@ -101,7 +103,7 @@ export function SiteWebStatistics() {
     return () => {
       active = false;
     };
-  }, [startDate]);
+  }, [startDate, period]);
 
   const rows = useMemo(() => report?.rows ?? [], [report]);
   const totals = useMemo(
@@ -198,17 +200,23 @@ export function SiteWebStatistics() {
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="font-serif text-base font-semibold">Évolution par rapport à la période précédente</h3>
           <p className="text-xs text-muted-foreground">
-            {activePeriod.days == null ? "Même période de l’année précédente" : "Période de durée équivalente"}
+            {activePeriod.days == null
+              ? "Même période de l’année précédente"
+              : "Période de durée équivalente"}
           </p>
         </div>
-        {comparisonError ? (
-          <p className="mt-3 text-sm text-muted-foreground">Comparaison indisponible : {comparisonError}</p>
+        {error || comparisonError ? (
+          <p className="mt-3 text-sm text-muted-foreground">Comparaison indisponible : {error ?? comparisonError}</p>
         ) : (
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             {(["Sessions", "Pages vues", "Utilisateurs actifs"] as const).map((label, index) => {
               const current = [totals.sessions, totals.views, totals.users][index];
               const previousTotals = sumReport(comparisonReport);
-              const previous = [previousTotals.sessions, previousTotals.views, previousTotals.users][index];
+              const previous = [
+                previousTotals.sessions,
+                previousTotals.views,
+                previousTotals.users,
+              ][index];
               return (
                 <div key={label}>
                   <p className="text-xs text-muted-foreground">{label}</p>
@@ -284,7 +292,10 @@ function formatChange(current: number, previous: number) {
   if (previous === 0) return current === 0 ? "0 % (stable)" : "Nouvelle activité";
   const change = ((current - previous) / previous) * 100;
   const sign = change > 0 ? "+" : "";
-  return `${sign}${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(change)} % · ${current - previous > 0 ? "+" : ""}${formatNumber(current - previous)}`;
+  const formattedChange = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(change);
+  const absoluteDifference = current - previous;
+  const absoluteSign = absoluteDifference > 0 ? "+" : "";
+  return `${sign}${formattedChange} % · ${absoluteSign}${formatNumber(absoluteDifference)}`;
 }
 
 function comparisonPeriod(start: string, end: string, yearToDate: boolean) {
@@ -301,7 +312,10 @@ function comparisonPeriod(start: string, end: string, yearToDate: boolean) {
     startDate.setTime(previousEnd.getTime());
     startDate.setUTCDate(startDate.getUTCDate() - days + 1);
   }
-  return { start: startDate.toISOString().slice(0, 10), end: endDate.toISOString().slice(0, 10) };
+  return {
+    start: startDate.toISOString().slice(0, 10),
+    end: endDate.toISOString().slice(0, 10),
+  };
 }
 
 function yearStart() {
