@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  AlertTriangle,
   ChevronDown,
   ChevronUp,
   Loader2,
@@ -147,7 +148,10 @@ export function SiteWebCompetitorWatch() {
               {c.lastCheck ? (
                 <>
                   {c.lastCheck.error && (
-                    <p className="mt-2 text-xs text-amber-600">{c.lastCheck.error}</p>
+                    <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-600">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>{friendlyCheckError(c.lastCheck.error)}</span>
+                    </p>
                   )}
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                     <ScoreBadge
@@ -185,9 +189,19 @@ export function SiteWebCompetitorWatch() {
                     )}
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-2">
-                    <p className="text-xs text-muted-foreground">
-                      Analysé le {new Date(c.lastCheck.checked_at).toLocaleString("fr-FR")}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        Analysé le {new Date(c.lastCheck.checked_at).toLocaleString("fr-FR")}
+                      </p>
+                      {isCheckStale(c.lastCheck.checked_at) && (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-500/40 font-normal text-amber-700"
+                        >
+                          À actualiser
+                        </Badge>
+                      )}
+                    </div>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -215,6 +229,21 @@ export function SiteWebCompetitorWatch() {
       )}
     </div>
   );
+}
+
+function isCheckStale(checkedAt: string) {
+  const timestamp = new Date(checkedAt).getTime();
+  return Number.isFinite(timestamp) && Date.now() - timestamp > 7 * 24 * 60 * 60 * 1000;
+}
+
+function friendlyCheckError(error: string) {
+  if (/quota/i.test(error) && /pagespeed/i.test(error)) {
+    return "Quota PageSpeed atteint : les scores de performance, SEO et accessibilité n’ont pas pu être actualisés. Réessaie après le renouvellement du quota.";
+  }
+  if (/HTTP 524|timeout|timed out/i.test(error)) {
+    return "Le service d’analyse a mis trop de temps à répondre. Réessaie plus tard ; cette tentative n’a pas actualisé les scores PageSpeed.";
+  }
+  return error;
 }
 
 function ScoreBadge({
