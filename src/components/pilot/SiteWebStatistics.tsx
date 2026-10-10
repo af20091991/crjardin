@@ -121,6 +121,12 @@ export function SiteWebStatistics() {
   );
 
   const propertyId = property?.name?.replace(/^properties\//, "") ?? "—";
+  const comparisonTotals = sumReport(comparisonReport);
+  const comparisonMetrics = [
+    { label: "Sessions", current: totals.sessions, previous: comparisonTotals.sessions },
+    { label: "Pages vues", current: totals.views, previous: comparisonTotals.views },
+    { label: "Utilisateurs actifs", current: totals.users, previous: comparisonTotals.users },
+  ];
 
   const trafficDatasets = useMemo<FlexDataset[]>(
     () => [
@@ -213,26 +219,17 @@ export function SiteWebStatistics() {
           </p>
         ) : (
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            {(["Sessions", "Pages vues", "Utilisateurs actifs"] as const).map((label, index) => {
-                const current = [totals.sessions, totals.views, totals.users][index];
-                const previousTotals = sumReport(comparisonReport);
-                const previous = [
-                  previousTotals.sessions,
-                  previousTotals.views,
-                  previousTotals.users,
-                ][index];
-                return (
-                  <div key={label}>
-                    <p className="text-xs text-muted-foreground">{label}</p>
-                    <p className="mt-1 text-sm font-medium">
-                      {loading ? "…" : formatChange(current, previous)}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {loading ? "Chargement…" : `Période précédente : ${formatNumber(previous)}`}
-                    </p>
-                  </div>
-                );
-            })}
+            {comparisonMetrics.map((item) => (
+              <div key={item.label}>
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <p className="mt-1 text-sm font-medium">
+                  {loading ? "…" : formatChange(item.current, item.previous)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {loading ? "Chargement…" : `Période précédente : ${formatNumber(item.previous)}`}
+                </p>
+              </div>
+            ))}
           </div>
         )}
         <p className="mt-3 text-xs text-muted-foreground">
@@ -297,9 +294,8 @@ function formatChange(current: number, previous: number) {
   if (previous === 0) return current === 0 ? "0 % (stable)" : "Nouvelle activité";
   const change = ((current - previous) / previous) * 100;
   const sign = change > 0 ? "+" : "";
-  const formattedChange = new Intl.NumberFormat("fr-FR", {
-    maximumFractionDigits: 1,
-  }).format(change);
+  const formatter = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 });
+  const formattedChange = formatter.format(change);
   const absoluteDifference = current - previous;
   const absoluteSign = absoluteDifference > 0 ? "+" : "";
   return `${sign}${formattedChange} % · ${absoluteSign}${formatNumber(absoluteDifference)}`;
