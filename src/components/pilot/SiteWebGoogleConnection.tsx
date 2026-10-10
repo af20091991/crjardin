@@ -164,7 +164,7 @@ export function SiteWebGoogleConnection() {
                 }
               >
                 {connected
-                  ? "Source vérifiée"
+                  ? "Connexion enregistrée"
                   : hasConnectionError
                     ? "Connexion en erreur"
                     : "À connecter"}
@@ -200,26 +200,26 @@ export function SiteWebGoogleConnection() {
       <div className="mt-3 flex flex-wrap gap-2">
         {providers.map(({ id, label }) => {
           const providerStatus = status[id];
-          const verified = providerStatus === "connected";
+          const isConnected = providerStatus === "connected";
           const errored = providerStatus === "error";
           return (
             <span
               key={id}
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${
-                verified
+                isConnected
                   ? "bg-emerald-500/10 text-emerald-700"
                   : errored
                     ? "bg-destructive/10 text-destructive"
                     : "bg-muted/40 text-muted-foreground"
               }`}
             >
-              {verified ? (
+              {isConnected ? (
                 <CheckCircle2 className="h-3.5 w-3.5" />
               ) : (
                 <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
               )}
               {label}
-              {verified ? " · vérifiée" : errored ? " · erreur" : " · non connectée"}
+              {isConnected ? " · connectée" : errored ? " · erreur" : " · non connectée"}
             </span>
           );
         })}
