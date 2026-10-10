@@ -213,8 +213,7 @@ export function SiteWebStatistics() {
           </p>
         ) : (
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            {(["Sessions", "Pages vues", "Utilisateurs actifs"] as const).map(
-              (label, index) => {
+            {(["Sessions", "Pages vues", "Utilisateurs actifs"] as const).map((label, index) => {
                 const current = [totals.sessions, totals.views, totals.users][index];
                 const previousTotals = sumReport(comparisonReport);
                 const previous = [
@@ -233,8 +232,7 @@ export function SiteWebStatistics() {
                     </p>
                   </div>
                 );
-              },
-            )}
+            })}
           </div>
         )}
         <p className="mt-3 text-xs text-muted-foreground">
@@ -299,9 +297,7 @@ function formatChange(current: number, previous: number) {
   if (previous === 0) return current === 0 ? "0 % (stable)" : "Nouvelle activité";
   const change = ((current - previous) / previous) * 100;
   const sign = change > 0 ? "+" : "";
-  const formattedChange = new Intl.NumberFormat("fr-FR", {
-    maximumFractionDigits: 1,
-  }).format(change);
+  const formattedChange = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(change);
   const absoluteDifference = current - previous;
   const absoluteSign = absoluteDifference > 0 ? "+" : "";
   return `${sign}${formattedChange} % · ${absoluteSign}${formatNumber(absoluteDifference)}`;
