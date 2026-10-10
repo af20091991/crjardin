@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-10",
+    version: "2.3.59",
+    theme: "Général",
+    title: "Site web — comparaison des statistiques Analytics",
+    details: [
+      "Les sessions, pages vues et utilisateurs actifs sont comparés à la période précédente de même durée ; la vue annuelle compare avec les mêmes dates de l’année précédente.",
+      "Les écarts sont affichés en pourcentage et en volume, à partir des rapports Google Analytics 4 réels.",
+      "La comparaison reste explicitement indisponible si Google ne fournit pas les données ; aucune valeur fictive n’est utilisée.",
+    ],
+  },
+  {
     date: "2026-10-07",
     version: "2.3.58",
     theme: "Général",
