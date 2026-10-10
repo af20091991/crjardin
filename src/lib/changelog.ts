@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-10",
+    version: "2.3.59",
+    theme: "Général",
+    title: "Backup PP CA — sauvegarde Excel hebdomadaire",
+    details: [
+      "Chaque dimanche à 03:00, la page Chiffre d'affaires est sauvegardée en Excel (formules incluses).",
+      "Les 2 copies les plus récentes sont conservées et téléchargeables dans Administration.",
+      "Lancement manuel possible ; les administrateurs sont alertés en cas d'échec.",
+    ],
+  },
+  {
     date: "2026-10-08",
     version: "2.3.58",
     theme: "Général",
