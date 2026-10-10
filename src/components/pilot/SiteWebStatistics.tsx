@@ -163,17 +163,17 @@ export function SiteWebStatistics() {
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           <Metric
             label="Sessions"
-            value={loading ? "…" : formatNumber(totals.sessions)}
+            value={loading ? "…" : error ? "—" : formatNumber(totals.sessions)}
             description="Nombre de visites sur le site sur la période. Une même personne qui revient plusieurs fois génère plusieurs sessions."
           />
           <Metric
             label="Pages vues"
-            value={loading ? "…" : formatNumber(totals.views)}
+            value={loading ? "…" : error ? "—" : formatNumber(totals.views)}
             description="Nombre total de pages consultées, toutes sessions confondues. Une seule session peut compter plusieurs pages vues."
           />
           <Metric
             label="Utilisateurs actifs"
-            value={loading ? "…" : formatNumber(totals.users)}
+            value={loading ? "…" : error ? "—" : formatNumber(totals.users)}
             description="Nombre de personnes différentes ayant visité le site sur la période (chaque personne n'est comptée qu'une fois, même si elle revient plusieurs fois)."
           />
         </div>
