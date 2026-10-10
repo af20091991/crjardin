@@ -30,6 +30,8 @@ const PERIODS: Array<{ id: PeriodId; label: string; days: number | null }> = [
 export function SiteWebStatistics() {
   const [period, setPeriod] = useState<PeriodId>("30j");
   const [report, setReport] = useState<Report | null>(null);
+  const [comparisonReport, setComparisonReport] = useState<Report | null>(null);
+  const [comparisonError, setComparisonError] = useState<string | null>(null);
   const [property, setProperty] = useState<AnalyticsProperty | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,8 @@ export function SiteWebStatistics() {
     const load = async () => {
       setLoading(true);
       setError(null);
+      setComparisonReport(null);
+      setComparisonError(null);
 
       const propertiesResult = await listAnalyticsProperties();
       if (!active) return;
@@ -68,10 +72,11 @@ export function SiteWebStatistics() {
       const propertyId = selected.name.replace(/^properties\//, "");
       setProperty(selected);
 
+      const endDate = yesterday();
       const result = await runAnalyticsReport({
         propertyId,
         startDate,
-        endDate: yesterday(),
+        endDate,
         dimensions: ["date"],
         metrics: ["sessions", "screenPageViews", "activeUsers"],
       });
@@ -79,6 +84,18 @@ export function SiteWebStatistics() {
       if (!active) return;
       setReport((result.data ?? null) as Report | null);
       setError(result.error);
+
+      const comparison = comparisonPeriod(startDate, endDate, period === "annee");
+      const comparisonResult = await runAnalyticsReport({
+        propertyId,
+        startDate: comparison.start,
+        endDate: comparison.end,
+        dimensions: ["date"],
+        metrics: ["sessions", "screenPageViews", "activeUsers"],
+      });
+      if (!active) return;
+      setComparisonReport((comparisonResult.data ?? null) as Report | null);
+      setComparisonError(comparisonResult.error);
       setLoading(false);
     };
 
@@ -86,7 +103,7 @@ export function SiteWebStatistics() {
     return () => {
       active = false;
     };
-  }, [startDate]);
+  }, [startDate, period]);
 
   const rows = useMemo(() => report?.rows ?? [], [report]);
   const totals = useMemo(
@@ -104,6 +121,12 @@ export function SiteWebStatistics() {
   );
 
   const propertyId = property?.name?.replace(/^properties\//, "") ?? "—";
+  const comparisonTotals = sumReport(comparisonReport);
+  const comparisonMetrics = [
+    { label: "Sessions", current: totals.sessions, previous: comparisonTotals.sessions },
+    { label: "Pages vues", current: totals.views, previous: comparisonTotals.views },
+    { label: "Utilisateurs actifs", current: totals.users, previous: comparisonTotals.users },
+  ];
 
   const trafficDatasets = useMemo<FlexDataset[]>(
     () => [
@@ -179,6 +202,42 @@ export function SiteWebStatistics() {
         </div>
       </Card>
 
+      <Card className="p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="font-serif text-base font-semibold">
+            Évolution par rapport à la période précédente
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {activePeriod.days == null
+              ? "Même période de l’année précédente"
+              : "Période de durée équivalente"}
+          </p>
+        </div>
+        {error || comparisonError ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Comparaison indisponible : {error ?? comparisonError}
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            {comparisonMetrics.map((item) => (
+              <div key={item.label}>
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <p className="mt-1 text-sm font-medium">
+                  {loading ? "…" : formatChange(item.current, item.previous)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {loading ? "Chargement…" : `Période précédente : ${formatNumber(item.previous)}`}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="mt-3 text-xs text-muted-foreground">
+          Une hausse ou une baisse décrit l’évolution mesurée ; elle ne prouve pas à elle seule
+          l’effet d’une action SEO.
+        </p>
+      </Card>
+
       <PilotFlexChart
         title="Évolution du trafic"
         subtitle="Choisissez le type de graphique le plus lisible pour vous"
@@ -217,6 +276,49 @@ function PeriodSelector({
       ))}
     </div>
   );
+}
+
+function sumReport(report: Report | null) {
+  return (report?.rows ?? []).reduce(
+    (acc, row) => {
+      acc.sessions += Number(row.metricValues?.[0]?.value ?? 0);
+      acc.views += Number(row.metricValues?.[1]?.value ?? 0);
+      acc.users += Number(row.metricValues?.[2]?.value ?? 0);
+      return acc;
+    },
+    { sessions: 0, views: 0, users: 0 },
+  );
+}
+
+function formatChange(current: number, previous: number) {
+  if (previous === 0) return current === 0 ? "0 % (stable)" : "Nouvelle activité";
+  const change = ((current - previous) / previous) * 100;
+  const sign = change > 0 ? "+" : "";
+  const formatter = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 });
+  const formattedChange = formatter.format(change);
+  const absoluteDifference = current - previous;
+  const absoluteSign = absoluteDifference > 0 ? "+" : "";
+  return `${sign}${formattedChange} % · ${absoluteSign}${formatNumber(absoluteDifference)}`;
+}
+
+function comparisonPeriod(start: string, end: string, yearToDate: boolean) {
+  const startDate = new Date(`${start}T12:00:00Z`);
+  const endDate = new Date(`${end}T12:00:00Z`);
+  if (yearToDate) {
+    startDate.setUTCFullYear(startDate.getUTCFullYear() - 1);
+    endDate.setUTCFullYear(endDate.getUTCFullYear() - 1);
+  } else {
+    const days = Math.round((endDate.getTime() - startDate.getTime()) / 86400000) + 1;
+    const previousEnd = new Date(startDate);
+    previousEnd.setUTCDate(previousEnd.getUTCDate() - 1);
+    endDate.setTime(previousEnd.getTime());
+    startDate.setTime(previousEnd.getTime());
+    startDate.setUTCDate(startDate.getUTCDate() - days + 1);
+  }
+  return {
+    start: startDate.toISOString().slice(0, 10),
+    end: endDate.toISOString().slice(0, 10),
+  };
 }
 
 function yearStart() {
