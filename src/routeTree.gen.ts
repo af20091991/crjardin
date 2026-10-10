@@ -33,6 +33,7 @@ import { Route as AuthenticatedInterventionsIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedFichesIndexRouteImport } from './routes/_authenticated/fiches.index'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
+import { Route as ApiPublicPpCaBackupRouteImport } from './routes/api/public/pp-ca-backup'
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
 import { Route as ApiPublicBrevoWebhookRouteImport } from './routes/api/public/brevo-webhook'
 import { Route as ApiPublicApRemindersRouteImport } from './routes/api/public/ap-reminders'
@@ -203,6 +204,11 @@ const AuthenticatedClientsIndexRoute =
 const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
   id: '/lovable/email/events',
   path: '/lovable/email/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPpCaBackupRoute = ApiPublicPpCaBackupRouteImport.update({
+  id: '/api/public/pp-ca-backup',
+  path: '/api/public/pp-ca-backup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicEmailOpenRoute = ApiPublicEmailOpenRouteImport.update({
@@ -528,6 +534,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
+  '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/fiches/': typeof AuthenticatedFichesIndexRoute
@@ -597,6 +604,7 @@ export interface FileRoutesByTo {
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
+  '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/fiches': typeof AuthenticatedFichesIndexRoute
@@ -670,6 +678,7 @@ export interface FileRoutesById {
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
+  '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/fiches/': typeof AuthenticatedFichesIndexRoute
@@ -743,6 +752,7 @@ export interface FileRouteTypes {
     | '/api/public/ap-reminders'
     | '/api/public/brevo-webhook'
     | '/api/public/email-open'
+    | '/api/public/pp-ca-backup'
     | '/lovable/email/events'
     | '/clients/'
     | '/fiches/'
@@ -812,6 +822,7 @@ export interface FileRouteTypes {
     | '/api/public/ap-reminders'
     | '/api/public/brevo-webhook'
     | '/api/public/email-open'
+    | '/api/public/pp-ca-backup'
     | '/lovable/email/events'
     | '/clients'
     | '/fiches'
@@ -884,6 +895,7 @@ export interface FileRouteTypes {
     | '/api/public/ap-reminders'
     | '/api/public/brevo-webhook'
     | '/api/public/email-open'
+    | '/api/public/pp-ca-backup'
     | '/lovable/email/events'
     | '/_authenticated/clients/'
     | '/_authenticated/fiches/'
@@ -909,6 +921,7 @@ export interface RootRouteChildren {
   ApiPublicApRemindersRoute: typeof ApiPublicApRemindersRoute
   ApiPublicBrevoWebhookRoute: typeof ApiPublicBrevoWebhookRoute
   ApiPublicEmailOpenRoute: typeof ApiPublicEmailOpenRoute
+  ApiPublicPpCaBackupRoute: typeof ApiPublicPpCaBackupRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
@@ -1081,6 +1094,13 @@ declare module '@tanstack/react-router' {
       path: '/lovable/email/events'
       fullPath: '/lovable/email/events'
       preLoaderRoute: typeof LovableEmailEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/pp-ca-backup': {
+      id: '/api/public/pp-ca-backup'
+      path: '/api/public/pp-ca-backup'
+      fullPath: '/api/public/pp-ca-backup'
+      preLoaderRoute: typeof ApiPublicPpCaBackupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/email-open': {
@@ -1571,6 +1591,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicApRemindersRoute: ApiPublicApRemindersRoute,
   ApiPublicBrevoWebhookRoute: ApiPublicBrevoWebhookRoute,
   ApiPublicEmailOpenRoute: ApiPublicEmailOpenRoute,
+  ApiPublicPpCaBackupRoute: ApiPublicPpCaBackupRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }

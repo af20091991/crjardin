@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-10",
+    version: "2.3.60",
+    theme: "Général",
+    title: "Backup PP CA — sauvegarde Excel hebdomadaire de la page Chiffre d'affaires",
+    details: [
+      "Chaque dimanche à 03:00 (Europe/Paris), la page Chiffre d'affaires est sauvegardée dans un classeur Excel (formules incluses) à la mise en page du suivi mensuel.",
+      "Les 2 copies les plus récentes sont conservées et téléchargeables dans Administration → Backup PP CA ; les plus anciennes sont supprimées automatiquement.",
+      "Lancement manuel possible ; les administrateurs sont alertés dans la cloche en cas d'échec.",
+    ],
+  },
+  {
+    date: "2026-10-10",
     version: "2.3.59",
     theme: "Général",
     title: "Site web — comparaison des statistiques Analytics",

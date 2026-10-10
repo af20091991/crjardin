@@ -15,6 +15,8 @@ export interface CaFetchFilters {
   kind?: "vente" | "charge";
   year?: number;
   clientId?: string;
+  /** Propriétaire des lignes (lecture serveur avec service_role). */
+  userId?: string;
 }
 
 export interface CaFetchOrder {
@@ -27,14 +29,16 @@ export async function fetchAllCaRows<T>(
   columns: string,
   filters: CaFetchFilters = {},
   orderBy?: CaFetchOrder[],
+  client: Pick<typeof supabase, "from"> = supabase,
 ): Promise<T[]> {
   const out: T[] = [];
   let from = 0;
   for (;;) {
-    let q = supabase.from("pilot_ca_entries").select(columns);
+    let q = client.from("pilot_ca_entries").select(columns);
     if (filters.kind) q = q.eq("kind", filters.kind);
     if (filters.year != null) q = q.eq("year", filters.year);
     if (filters.clientId) q = q.eq("client_id", filters.clientId);
+    if (filters.userId) q = q.eq("user_id", filters.userId);
     if (orderBy) {
       for (const o of orderBy) {
         q = q.order(o.column, {
