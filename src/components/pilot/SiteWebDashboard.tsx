@@ -15,6 +15,7 @@ type ModuleView =
   | "diagnostic"
   | "today"
   | "traffic"
+  | "statistics"
   | "local"
   | "content"
   | "opportunities"
@@ -25,6 +26,7 @@ const moduleViews: Array<{ id: ModuleView; label: string }> = [
   { id: "diagnostic", label: "Diagnostic SEO" },
   { id: "today", label: "Aujourd'hui" },
   { id: "traffic", label: "Trafic & Recherche" },
+  { id: "statistics", label: "Statistiques" },
   { id: "local", label: "Présence locale" },
   { id: "content", label: "Contenus" },
   { id: "opportunities", label: "Opportunités" },
@@ -95,6 +97,24 @@ export function SiteWebDashboard() {
           </Card>
           <SiteWebStatistics />
           <SiteWebViewContent showConnection={false} />
+        </div>
+      )}
+
+      {activeView === "statistics" && (
+        <div className="space-y-5">
+          <Card className="p-5">
+            <div className="flex items-start gap-3">
+              <BarChart3 className="mt-0.5 h-4 w-4 text-primary" />
+              <div>
+                <h2 className="font-serif text-xl font-semibold">Statistiques & évolution</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Compare les sessions, pages vues et utilisateurs actifs à la période précédente.
+                  Les écarts ne s'affichent que lorsque les données de comparaison sont disponibles.
+                </p>
+              </div>
+            </div>
+          </Card>
+          <SiteWebStatistics />
         </div>
       )}
 
