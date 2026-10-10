@@ -297,7 +297,9 @@ function formatChange(current: number, previous: number) {
   if (previous === 0) return current === 0 ? "0 % (stable)" : "Nouvelle activité";
   const change = ((current - previous) / previous) * 100;
   const sign = change > 0 ? "+" : "";
-  const formattedChange = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(change);
+  const formattedChange = new Intl.NumberFormat("fr-FR", {
+    maximumFractionDigits: 1,
+  }).format(change);
   const absoluteDifference = current - previous;
   const absoluteSign = absoluteDifference > 0 ? "+" : "";
   return `${sign}${formattedChange} % · ${absoluteSign}${formatNumber(absoluteDifference)}`;
