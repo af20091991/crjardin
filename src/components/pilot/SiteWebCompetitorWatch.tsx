@@ -194,7 +194,10 @@ export function SiteWebCompetitorWatch() {
                         Analysé le {new Date(c.lastCheck.checked_at).toLocaleString("fr-FR")}
                       </p>
                       {isCheckStale(c.lastCheck.checked_at) && (
-                        <Badge variant="outline" className="border-amber-500/40 font-normal text-amber-700">
+                        <Badge
+                          variant="outline"
+                          className="border-amber-500/40 font-normal text-amber-700"
+                        >
                           À actualiser
                         </Badge>
                       )}
