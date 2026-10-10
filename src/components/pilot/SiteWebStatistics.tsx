@@ -215,24 +215,24 @@ export function SiteWebStatistics() {
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             {(["Sessions", "Pages vues", "Utilisateurs actifs"] as const).map(
               (label, index) => {
-              const current = [totals.sessions, totals.views, totals.users][index];
-              const previousTotals = sumReport(comparisonReport);
-              const previous = [
-                previousTotals.sessions,
-                previousTotals.views,
-                previousTotals.users,
-              ][index];
-              return (
-                <div key={label}>
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                  <p className="mt-1 text-sm font-medium">
-                    {loading ? "…" : formatChange(current, previous)}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {loading ? "Chargement…" : `Période précédente : ${formatNumber(previous)}`}
-                  </p>
-                </div>
-              );
+                const current = [totals.sessions, totals.views, totals.users][index];
+                const previousTotals = sumReport(comparisonReport);
+                const previous = [
+                  previousTotals.sessions,
+                  previousTotals.views,
+                  previousTotals.users,
+                ][index];
+                return (
+                  <div key={label}>
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {loading ? "…" : formatChange(current, previous)}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {loading ? "Chargement…" : `Période précédente : ${formatNumber(previous)}`}
+                    </p>
+                  </div>
+                );
               },
             )}
           </div>
