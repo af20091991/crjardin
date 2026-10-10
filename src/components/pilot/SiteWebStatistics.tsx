@@ -198,7 +198,9 @@ export function SiteWebStatistics() {
 
       <Card className="p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="font-serif text-base font-semibold">Évolution par rapport à la période précédente</h3>
+          <h3 className="font-serif text-base font-semibold">
+            Évolution par rapport à la période précédente
+          </h3>
           <p className="text-xs text-muted-foreground">
             {activePeriod.days == null
               ? "Même période de l’année précédente"
@@ -206,7 +208,9 @@ export function SiteWebStatistics() {
           </p>
         </div>
         {error || comparisonError ? (
-          <p className="mt-3 text-sm text-muted-foreground">Comparaison indisponible : {error ?? comparisonError}</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Comparaison indisponible : {error ?? comparisonError}
+          </p>
         ) : (
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             {(["Sessions", "Pages vues", "Utilisateurs actifs"] as const).map((label, index) => {
@@ -232,7 +236,8 @@ export function SiteWebStatistics() {
           </div>
         )}
         <p className="mt-3 text-xs text-muted-foreground">
-          Une hausse ou une baisse décrit l’évolution mesurée ; elle ne prouve pas à elle seule l’effet d’une action SEO.
+          Une hausse ou une baisse décrit l’évolution mesurée ; elle ne prouve pas à elle seule
+          l’effet d’une action SEO.
         </p>
       </Card>
 
