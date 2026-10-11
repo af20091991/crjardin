@@ -35,7 +35,8 @@ export function SiteWebDashboard() {
         <div>
           <h1 className="font-serif text-2xl font-semibold tracking-tight">Site web</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Un centre de pilotage pour comprendre la visibilité, l’audience et les prochaines actions utiles à l’activité.
+            Un centre de pilotage pour comprendre la visibilité, l’audience et les prochaines
+            actions utiles à l’activité.
           </p>
         </div>
       </header>
@@ -88,7 +89,8 @@ export function SiteWebDashboard() {
           <Card className="p-4">
             <h2 className="font-serif text-lg font-semibold">Audience & résultats</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Sessions, utilisateurs, pages vues et comparaisons issus de Google Analytics 4. Les sessions ne sont pas assimilées à des demandes commerciales.
+              Sessions, utilisateurs, pages vues et comparaisons issus de Google Analytics 4. Les
+              sessions ne sont pas assimilées à des demandes commerciales.
             </p>
           </Card>
           <SiteWebStatistics />
@@ -101,7 +103,8 @@ export function SiteWebDashboard() {
           <Card className="p-4">
             <h2 className="font-serif text-lg font-semibold">SEO local</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Requêtes locales détectées par Search Console et interactions de la fiche Google Business Profile lorsque l’API les rend accessibles.
+              Requêtes locales détectées par Search Console et interactions de la fiche Google
+              Business Profile lorsque l’API les rend accessibles.
             </p>
           </Card>
           <SiteWebLocalView />
@@ -113,7 +116,8 @@ export function SiteWebDashboard() {
           <Card className="p-4">
             <h2 className="font-serif text-lg font-semibold">Concurrence & marché</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Veille des concurrents que vous avez ajoutés : performances publiques, SEO technique et évolutions mesurées. Ces observations ne donnent pas accès à leurs données privées.
+              Veille des concurrents que vous avez ajoutés : performances publiques, SEO technique
+              et évolutions mesurées. Ces observations ne donnent pas accès à leurs données privées.
             </p>
           </Card>
           <SiteWebCompetitorWatch />
