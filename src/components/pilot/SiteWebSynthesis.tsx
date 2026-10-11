@@ -54,12 +54,15 @@ export function SiteWebSynthesis() {
     const end = yesterday();
     setPeriodLabel(`${formatDate(start)} → ${formatDate(end)}`);
 
-    const searchResult = await querySearchConsole({
-      siteUrl: SITE_URL,
-      startDate: start,
-      endDate: end,
-      dimensions: ["query"],
-    });
+    const [searchResult, queriesResult] = await Promise.all([
+      querySearchConsole({ siteUrl: SITE_URL, startDate: start, endDate: end }),
+      querySearchConsole({
+        siteUrl: SITE_URL,
+        startDate: start,
+        endDate: end,
+        dimensions: ["query"],
+      }),
+    ]);
     const nextPriorities: Priority[] = [];
     const errors: string[] = [];
 
@@ -76,8 +79,13 @@ export function SiteWebSynthesis() {
       setClicks(totalClicks);
       setImpressions(totalImpressions);
       setPosition(totalImpressions > 0 ? weightedPosition / totalImpressions : null);
+    }
 
-      const opportunity = [...rows]
+    if (queriesResult.error) {
+      errors.push("Requêtes Search Console");
+    } else {
+      const queryRows = queriesResult.data?.rows ?? [];
+      const opportunity = [...queryRows]
         .filter((row) =>
           Number(row.impressions ?? 0) >= 30 &&
           Number(row.position ?? 99) <= 20 &&
@@ -140,7 +148,9 @@ export function SiteWebSynthesis() {
             row.dimensionValues?.[0]?.value ?? "",
           ),
         );
-        if (!eventsResult.error && leadEvents.length === 0) {
+        if (eventsResult.error) {
+          errors.push("Événements GA4 de contact");
+        } else if (leadEvents.length === 0) {
           nextPriorities.push({
             title: "Vérifier le suivi des demandes de contact",
             detail: "Aucun événement GA4 reconnu comme formulaire, appel, e-mail ou prise de rendez-vous n’a été identifié dans ce relevé. Les sessions ne représentent pas des prospects.",
@@ -173,7 +183,7 @@ export function SiteWebSynthesis() {
     }
 
     setSourceErrors([...new Set(errors)]);
-    setPriorities(nextPriorities.slice(0, 3));
+    setPriorities(nextPriorities.sort((a, b) => Number(b.level === "high") - Number(a.level === "high")).slice(0, 3));
     setLoading(false);
   }, []);
 
