@@ -37,6 +37,7 @@ export function SiteWebSynthesis() {
   const [impressions, setImpressions] = useState<number | null>(null);
   const [position, setPosition] = useState<number | null>(null);
   const [periodLabel, setPeriodLabel] = useState("");
+  const [checkedAt, setCheckedAt] = useState<string | null>(null);
   const [priorities, setPriorities] = useState<Priority[]>([]);
   const [sourceErrors, setSourceErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,6 +200,7 @@ export function SiteWebSynthesis() {
         .sort((a, b) => Number(b.level === "high") - Number(a.level === "high"))
         .slice(0, 3),
     );
+    setCheckedAt(new Date().toISOString());
     setLoading(false);
   }, []);
 
@@ -221,6 +223,11 @@ export function SiteWebSynthesis() {
             <p className="mt-2 text-xs text-muted-foreground">
               {periodLabel || "Période de 30 jours, jusqu’à hier"}
             </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {checkedAt
+                ? `Dernière interrogation des sources : ${formatDateTime(checkedAt)}`
+                : "Date de contrôle disponible après la première lecture"}
+            </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -232,21 +239,33 @@ export function SiteWebSynthesis() {
             label="Sessions du site"
             value={loading ? "…" : sessions == null ? "—" : formatNumber(sessions)}
             source="Google Analytics 4"
+            definition="Nombre de sessions enregistrées par GA4 sur la période."
+            calculation="Somme de la métrique sessions sur les jours interrogés."
+            freshness="Interrogation à l’actualisation ; période arrêtée à hier. Le délai de traitement GA4 peut s’appliquer."
           />
           <Metric
             label="Clics Google"
             value={loading ? "…" : clicks == null ? "—" : formatNumber(clicks)}
             source="Search Console"
+            definition="Clics depuis les résultats de recherche Google vers le site."
+            calculation="Somme des clics renvoyés par Search Console sur la période et la propriété configurée."
+            freshness="Interrogation à l’actualisation ; Search Console peut publier les données avec retard."
           />
           <Metric
             label="Impressions Google"
             value={loading ? "…" : impressions == null ? "—" : formatNumber(impressions)}
             source="Search Console"
+            definition="Nombre d’affichages des résultats du site dans Google, qu’ils aient été cliqués ou non."
+            calculation="Somme des impressions renvoyées par Search Console sur la période et la propriété configurée."
+            freshness="Interrogation à l’actualisation ; Search Console peut publier les données avec retard."
           />
           <Metric
             label="Position moyenne"
             value={loading ? "…" : position == null ? "—" : position.toFixed(1).replace(".", ",")}
             source="Search Console"
+            definition="Position moyenne des résultats du site dans Google, selon la méthode Search Console."
+            calculation="Moyenne pondérée par les impressions : somme(position × impressions) ÷ somme(impressions)."
+            freshness="Interrogation à l’actualisation ; Search Console peut publier les données avec retard."
           />
         </div>
         {sourceErrors.length > 0 && (
@@ -319,12 +338,45 @@ export function SiteWebSynthesis() {
   );
 }
 
-function Metric({ label, value, source }: { label: string; value: string; source: string }) {
+function Metric({
+  label,
+  value,
+  source,
+  definition,
+  calculation,
+  freshness,
+}: {
+  label: string;
+  value: string;
+  source: string;
+  definition: string;
+  calculation: string;
+  freshness: string;
+}) {
   return (
     <div className="rounded-lg border border-border/70 p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
       <p className="mt-2 text-xs text-muted-foreground">{source}</p>
+      <details className="mt-3 border-t border-border/60 pt-2 text-xs text-muted-foreground">
+        <summary className="cursor-pointer font-medium text-foreground">
+          Définition et fiabilité
+        </summary>
+        <dl className="mt-2 space-y-2">
+          <div>
+            <dt className="font-medium text-foreground">Ce que mesure l’indicateur</dt>
+            <dd className="mt-0.5">{definition}</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-foreground">Calcul</dt>
+            <dd className="mt-0.5">{calculation}</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-foreground">Période et fraîcheur</dt>
+            <dd className="mt-0.5">{freshness}</dd>
+          </div>
+        </dl>
+      </details>
     </div>
   );
 }
@@ -339,6 +391,12 @@ function yesterday() {
   const date = new Date();
   date.setUTCDate(date.getUTCDate() - 1);
   return date.toISOString().slice(0, 10);
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(date);
 }
 
 function formatDate(value: string) {
