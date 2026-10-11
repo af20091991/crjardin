@@ -203,7 +203,7 @@ export function SiteWebSynthesis() {
             </p>
             <p className="mt-2 text-xs text-muted-foreground">{periodLabel || "Période de 30 jours, jusqu’à hier"}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Données jusqu’à hier, avec retard possible selon la plateforme. Actualisation à la demande.
+              Données jusqu’à hier, retard possible. Actualisation manuelle.
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
