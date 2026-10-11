@@ -36,7 +36,8 @@ type AnalyticsRow = {
 };
 
 const GEO_STORAGE_KEY = "site-web:geo-observations:v1";
-const AI_SOURCE_PATTERN = /chatgpt|openai|perplexity|gemini|copilot|claude|you\.com|poe\.com|phind|mistral|meta\.ai/i;
+const AI_SOURCE_PATTERN =
+  /chatgpt|openai|perplexity|gemini|copilot|claude|you\.com|poe\.com|phind|mistral|meta\.ai/i;
 const SITE_DOMAIN = "www.delagraineaujardin.com";
 
 export function SiteWebTechnicalGeo() {
@@ -44,11 +45,15 @@ export function SiteWebTechnicalGeo() {
   const [auditLoading, setAuditLoading] = useState(true);
   const [auditError, setAuditError] = useState<string | null>(null);
   const [aiSessions, setAiSessions] = useState<number | null>(null);
-  const [aiSources, setAiSources] = useState<Array<{ source: string; sessions: number }> | null>(null);
+  const [aiSources, setAiSources] = useState<Array<{ source: string; sessions: number }> | null>(
+    null,
+  );
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [observations, setObservations] = useState<GeoObservation[]>([]);
   const [platform, setPlatform] = useState("ChatGPT");
-  const [prompt, setPrompt] = useState("Quel paysagiste peut créer un jardin méditerranéen avec peu d’arrosage à Montpellier ?");
+  const [prompt, setPrompt] = useState(
+    "Quel paysagiste peut créer un jardin méditerranéen avec peu d’arrosage à Montpellier ?",
+  );
   const [mentioned, setMentioned] = useState(false);
   const [citedUrl, setCitedUrl] = useState("");
   const [notes, setNotes] = useState("");
@@ -148,7 +153,9 @@ export function SiteWebTechnicalGeo() {
       setNotes("");
       setObservationError(null);
     } catch {
-      setObservationError("Impossible d’enregistrer cette observation dans le stockage local du navigateur.");
+      setObservationError(
+        "Impossible d’enregistrer cette observation dans le stockage local du navigateur.",
+      );
     }
   };
 
@@ -177,7 +184,8 @@ export function SiteWebTechnicalGeo() {
             <div>
               <h2 className="font-serif text-xl font-semibold">Technique, performance & GEO</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Contrôles observés du site, données de performance Google et suivi documenté de visibilité dans les IA.
+                Contrôles observés du site, données de performance Google et suivi documenté de
+                visibilité dans les IA.
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
                 Site audité : {SITE_DOMAIN}
@@ -185,7 +193,15 @@ export function SiteWebTechnicalGeo() {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => { void loadAudit(); void loadAiReferrals(); }} disabled={auditLoading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void loadAudit();
+              void loadAiReferrals();
+            }}
+            disabled={auditLoading}
+          >
             <RefreshCw className={`mr-2 h-4 w-4 ${auditLoading ? "animate-spin" : ""}`} />
             Actualiser l’audit
           </Button>
@@ -207,7 +223,8 @@ export function SiteWebTechnicalGeo() {
           <div>
             <h3 className="font-serif text-lg font-semibold">Performance mobile</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Les scores Lighthouse sont des mesures de laboratoire ; les Core Web Vitals terrain ne sont affichés que si Google fournit des données réelles.
+              Les scores Lighthouse sont des mesures de laboratoire ; les Core Web Vitals terrain ne
+              sont affichés que si Google fournit des données réelles.
             </p>
           </div>
           <Badge variant="outline">PageSpeed Insights</Badge>
@@ -230,9 +247,28 @@ export function SiteWebTechnicalGeo() {
                   : "Aucune donnée terrain disponible pour cette URL ; les résultats de laboratoire ci-dessous ne les remplacent pas."}
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                <Vital label="LCP terrain" value={field.fieldLcpMs} unit="ms" good={2500} poor={4000} />
-                <Vital label="INP terrain" value={field.fieldInpMs} unit="ms" good={200} poor={500} />
-                <Vital label="CLS terrain" value={field.fieldCls} unit="" good={0.1} poor={0.25} decimals={3} />
+                <Vital
+                  label="LCP terrain"
+                  value={field.fieldLcpMs}
+                  unit="ms"
+                  good={2500}
+                  poor={4000}
+                />
+                <Vital
+                  label="INP terrain"
+                  value={field.fieldInpMs}
+                  unit="ms"
+                  good={200}
+                  poor={500}
+                />
+                <Vital
+                  label="CLS terrain"
+                  value={field.fieldCls}
+                  unit=""
+                  good={0.1}
+                  poor={0.25}
+                  decimals={3}
+                />
               </div>
             </div>
             <div className="mt-5 rounded-lg border border-border/70 p-4">
@@ -254,29 +290,93 @@ export function SiteWebTechnicalGeo() {
       <Card className="p-5">
         <h3 className="font-serif text-lg font-semibold">Contrôles techniques et SEO de base</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Vérifications publiques de la page d’accueil, de robots.txt et du sitemap. Ce contrôle ne remplace pas un scan de sécurité authentifié de WordPress.
+          Vérifications publiques de la page d’accueil, de robots.txt et du sitemap. Ce contrôle ne
+          remplace pas un scan de sécurité authentifié de WordPress.
         </p>
         {auditLoading && !audit ? (
           <p className="py-6 text-sm text-muted-foreground">Vérifications en cours…</p>
         ) : audit ? (
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <CheckRow label="Réponse HTTP" value={audit.http ? `${audit.http.status} · ${audit.http.final_url}` : null} good={audit.http?.status === 200} />
-            <CheckRow label="Redirection HTTP → HTTPS" value={audit.http?.https_redirect == null ? null : audit.http.https_redirect ? "Détectée" : "Non détectée"} good={audit.http?.https_redirect === true} />
-            <CheckRow label="HSTS" value={audit.http ? audit.http.hsts ? "Présent" : "Absent" : null} good={audit.http?.hsts === true} />
-            <CheckRow label="robots.txt" value={audit.files?.robots_txt == null ? null : audit.files.robots_txt ? "Accessible et reconnu" : "Non reconnu"} good={audit.files?.robots_txt === true} />
-            <CheckRow label="Sitemap XML" value={audit.files?.sitemap_url ?? null} good={Boolean(audit.files?.sitemap_url)} />
-            <CheckRow label="Balise title" value={audit.page?.title ?? null} good={Boolean(audit.page?.title)} />
-            <CheckRow label="Meta description" value={audit.page?.meta_description ?? null} good={Boolean(audit.page?.meta_description)} />
-            <CheckRow label="Balises H1" value={audit.page ? String(audit.page.h1_count) : null} good={audit.page?.h1_count === 1} />
-            <CheckRow label="Images sans attribut alt" value={audit.page ? String(audit.page.images_without_alt) : null} good={audit.page?.images_without_alt === 0} />
-            <CheckRow label="Données structurées JSON-LD" value={audit.page ? audit.page.json_ld_types.length ? audit.page.json_ld_types.join(", ") : "Aucun type détecté" : null} good={Boolean(audit.page?.json_ld_types.length)} />
-            <CheckRow label="Liens internes détectés" value={audit.page ? String(audit.page.internal_links) : null} good={Boolean(audit.page && audit.page.internal_links > 0)} />
+            <CheckRow
+              label="Réponse HTTP"
+              value={audit.http ? `${audit.http.status} · ${audit.http.final_url}` : null}
+              good={audit.http?.status === 200}
+            />
+            <CheckRow
+              label="Redirection HTTP → HTTPS"
+              value={
+                audit.http?.https_redirect == null
+                  ? null
+                  : audit.http.https_redirect
+                    ? "Détectée"
+                    : "Non détectée"
+              }
+              good={audit.http?.https_redirect === true}
+            />
+            <CheckRow
+              label="HSTS"
+              value={audit.http ? (audit.http.hsts ? "Présent" : "Absent") : null}
+              good={audit.http?.hsts === true}
+            />
+            <CheckRow
+              label="robots.txt"
+              value={
+                audit.files?.robots_txt == null
+                  ? null
+                  : audit.files.robots_txt
+                    ? "Accessible et reconnu"
+                    : "Non reconnu"
+              }
+              good={audit.files?.robots_txt === true}
+            />
+            <CheckRow
+              label="Sitemap XML"
+              value={audit.files?.sitemap_url ?? null}
+              good={Boolean(audit.files?.sitemap_url)}
+            />
+            <CheckRow
+              label="Balise title"
+              value={audit.page?.title ?? null}
+              good={Boolean(audit.page?.title)}
+            />
+            <CheckRow
+              label="Meta description"
+              value={audit.page?.meta_description ?? null}
+              good={Boolean(audit.page?.meta_description)}
+            />
+            <CheckRow
+              label="Balises H1"
+              value={audit.page ? String(audit.page.h1_count) : null}
+              good={audit.page?.h1_count === 1}
+            />
+            <CheckRow
+              label="Images sans attribut alt"
+              value={audit.page ? String(audit.page.images_without_alt) : null}
+              good={audit.page?.images_without_alt === 0}
+            />
+            <CheckRow
+              label="Données structurées JSON-LD"
+              value={
+                audit.page
+                  ? audit.page.json_ld_types.length
+                    ? audit.page.json_ld_types.join(", ")
+                    : "Aucun type détecté"
+                  : null
+              }
+              good={Boolean(audit.page?.json_ld_types.length)}
+            />
+            <CheckRow
+              label="Liens internes détectés"
+              value={audit.page ? String(audit.page.internal_links) : null}
+              good={Boolean(audit.page && audit.page.internal_links > 0)}
+            />
           </div>
         ) : (
           <EmptyMessage message="Les contrôles techniques n’ont pas pu être récupérés." />
         )}
         <p className="mt-4 text-xs text-muted-foreground">
-          Une valeur « indisponible » signifie que le contrôle n’a pas pu être établi ; elle n’est pas assimilée à un échec.
+          Une valeur « indisponible » signifie que le contrôle n’a pas pu être établi ; elle n’est
+          pas assimilée à un échec.
         </p>
       </Card>
 
@@ -285,13 +385,17 @@ export function SiteWebTechnicalGeo() {
           <div>
             <h3 className="font-serif text-lg font-semibold">Trafic référé par les IA</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Sessions que GA4 attribue à des sources connues comme ChatGPT, Perplexity ou Gemini, sur les 30 derniers jours. Ce relevé est partiel : les visites sans référent identifiable n’y figurent pas.
+              Sessions que GA4 attribue à des sources connues comme ChatGPT, Perplexity ou Gemini,
+              sur les 30 derniers jours. Ce relevé est partiel : les visites sans référent
+              identifiable n’y figurent pas.
             </p>
           </div>
           <Badge variant="outline">Google Analytics 4</Badge>
         </div>
         {analyticsError ? (
-          <p className="mt-4 text-sm text-muted-foreground">Donnée indisponible : {analyticsError}</p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Donnée indisponible : {analyticsError}
+          </p>
         ) : aiSessions == null ? (
           <p className="mt-4 text-sm text-muted-foreground">Chargement des sources de trafic IA…</p>
         ) : (
@@ -302,14 +406,22 @@ export function SiteWebTechnicalGeo() {
               <p className="mt-1 text-xs text-muted-foreground">30 derniers jours · GA4</p>
             </div>
             <div className="space-y-2">
-              {aiSources?.length ? aiSources.map((item) => (
-                <div key={item.source} className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2 text-sm">
-                  <span className="break-all">{item.source}</span>
-                  <span className="shrink-0 font-medium tabular-nums">{formatNumber(item.sessions)}</span>
-                </div>
-              )) : (
+              {aiSources?.length ? (
+                aiSources.map((item) => (
+                  <div
+                    key={item.source}
+                    className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2 text-sm"
+                  >
+                    <span className="break-all">{item.source}</span>
+                    <span className="shrink-0 font-medium tabular-nums">
+                      {formatNumber(item.sessions)}
+                    </span>
+                  </div>
+                ))
+              ) : (
                 <p className="rounded-md border border-border/60 p-3 text-sm text-muted-foreground">
-                  Aucune session attribuée aux sources IA reconnues sur cette période. Cela ne prouve pas l’absence de citations par les IA.
+                  Aucune session attribuée aux sources IA reconnues sur cette période. Cela ne
+                  prouve pas l’absence de citations par les IA.
                 </p>
               )}
             </div>
@@ -322,22 +434,53 @@ export function SiteWebTechnicalGeo() {
           <div>
             <h3 className="font-serif text-lg font-semibold">Journal de tests de visibilité IA</h3>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Répétez les mêmes questions dans différentes IA, puis notez la mention de l’entreprise et l’URL éventuellement citée. Ce journal est enregistré uniquement dans le stockage local de ce navigateur ; il n’est pas synchronisé avec les autres appareils.
+              Répétez les mêmes questions dans différentes IA, puis notez la mention de l’entreprise
+              et l’URL éventuellement citée. Ce journal est enregistré uniquement dans le stockage
+              local de ce navigateur ; il n’est pas synchronisé avec les autres appareils.
             </p>
           </div>
-          <Badge variant="outline">{observations.length} observation{observations.length > 1 ? "s" : ""}</Badge>
+          <Badge variant="outline">
+            {observations.length} observation{observations.length > 1 ? "s" : ""}
+          </Badge>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <Input aria-label="Plateforme IA testée" value={platform} onChange={(event) => setPlatform(event.target.value)} placeholder="Plateforme (ChatGPT, Gemini…)" />
-          <Input aria-label="URL citée par l’IA" value={citedUrl} onChange={(event) => setCitedUrl(event.target.value)} placeholder="URL citée (facultatif)" />
+          <Input
+            aria-label="Plateforme IA testée"
+            value={platform}
+            onChange={(event) => setPlatform(event.target.value)}
+            placeholder="Plateforme (ChatGPT, Gemini…)"
+          />
+          <Input
+            aria-label="URL citée par l’IA"
+            value={citedUrl}
+            onChange={(event) => setCitedUrl(event.target.value)}
+            placeholder="URL citée (facultatif)"
+          />
           <div className="md:col-span-2">
-            <Textarea aria-label="Question testée" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Question exacte posée à l’IA" rows={2} />
+            <Textarea
+              aria-label="Question testée"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              placeholder="Question exacte posée à l’IA"
+              rows={2}
+            />
           </div>
           <div className="md:col-span-2">
-            <Textarea aria-label="Notes de test" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Contexte, position de la mention, concurrents cités… (facultatif)" rows={2} />
+            <Textarea
+              aria-label="Notes de test"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Contexte, position de la mention, concurrents cités… (facultatif)"
+              rows={2}
+            />
           </div>
           <label className="flex items-center gap-2 text-sm md:col-span-2">
-            <input type="checkbox" checked={mentioned} onChange={(event) => setMentioned(event.target.checked)} className="h-4 w-4 accent-primary" />
+            <input
+              type="checkbox"
+              checked={mentioned}
+              onChange={(event) => setMentioned(event.target.checked)}
+              className="h-4 w-4 accent-primary"
+            />
             L’entreprise a été mentionnée dans la réponse
           </label>
           <div className="md:col-span-2">
@@ -356,18 +499,37 @@ export function SiteWebTechnicalGeo() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-medium">{item.platform}</p>
-                      <Badge variant={item.mentioned ? "default" : "outline"}>{item.mentioned ? "Mention trouvée" : "Pas de mention"}</Badge>
-                      <span className="text-xs text-muted-foreground">{formatDateTime(item.testedAt)}</span>
+                      <Badge variant={item.mentioned ? "default" : "outline"}>
+                        {item.mentioned ? "Mention trouvée" : "Pas de mention"}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDateTime(item.testedAt)}
+                      </span>
                     </div>
                     <p className="mt-2 text-sm">{item.prompt}</p>
                     {safeHttpUrl(item.citedUrl) && (
-                      <a className="mt-2 inline-flex items-center gap-1 break-all text-sm text-primary underline" href={safeHttpUrl(item.citedUrl) ?? undefined} target="_blank" rel="noreferrer">
-                        {item.citedUrl}<ExternalLink className="h-3 w-3 shrink-0" />
+                      <a
+                        className="mt-2 inline-flex items-center gap-1 break-all text-sm text-primary underline"
+                        href={safeHttpUrl(item.citedUrl) ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {item.citedUrl}
+                        <ExternalLink className="h-3 w-3 shrink-0" />
                       </a>
                     )}
-                    {item.notes && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{item.notes}</p>}
+                    {item.notes && (
+                      <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+                        {item.notes}
+                      </p>
+                    )}
                   </div>
-                  <Button variant="ghost" size="icon" aria-label="Supprimer cette observation" onClick={() => deleteObservation(item.id)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Supprimer cette observation"
+                    onClick={() => deleteObservation(item.id)}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -384,7 +546,9 @@ function Score({ label, value }: { label: string; value: number | null }) {
   return (
     <div className="rounded-lg border border-border/70 p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums">{value == null ? "—" : `${value}/100`}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums">
+        {value == null ? "—" : `${value}/100`}
+      </p>
     </div>
   );
 }
@@ -404,30 +568,79 @@ function Vital({
   poor: number;
   decimals?: number;
 }) {
-  const state = value == null ? "unavailable" : value <= good ? "good" : value <= poor ? "needs-work" : "poor";
-  const statusLabel = state === "good" ? "Bon" : state === "needs-work" ? "À améliorer" : state === "poor" ? "Insuffisant" : "Indisponible";
-  const formatted = value == null ? "—" : decimals ? value.toFixed(decimals).replace(".", ",") : formatNumber(Math.round(value));
+  const state =
+    value == null ? "unavailable" : value <= good ? "good" : value <= poor ? "needs-work" : "poor";
+  const statusLabel =
+    state === "good"
+      ? "Bon"
+      : state === "needs-work"
+        ? "À améliorer"
+        : state === "poor"
+          ? "Insuffisant"
+          : "Indisponible";
+  const formatted =
+    value == null
+      ? "—"
+      : decimals
+        ? value.toFixed(decimals).replace(".", ",")
+        : formatNumber(Math.round(value));
   return (
     <div className="rounded-lg border border-border/70 p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-lg font-semibold tabular-nums">{formatted}{value == null || unit === "" ? "" : ` ${unit}`}</p>
+      <p className="mt-1 text-lg font-semibold tabular-nums">
+        {formatted}
+        {value == null || unit === "" ? "" : ` ${unit}`}
+      </p>
       <p className="mt-1 text-xs text-muted-foreground">{statusLabel}</p>
     </div>
   );
 }
 
-function LabValue({ label, value, unit, decimals = 0 }: { label: string; value: number | null; unit: string; decimals?: number }) {
-  const formatted = value == null ? "—" : decimals ? value.toFixed(decimals).replace(".", ",") : formatNumber(Math.round(value));
+function LabValue({
+  label,
+  value,
+  unit,
+  decimals = 0,
+}: {
+  label: string;
+  value: number | null;
+  unit: string;
+  decimals?: number;
+}) {
+  const formatted =
+    value == null
+      ? "—"
+      : decimals
+        ? value.toFixed(decimals).replace(".", ",")
+        : formatNumber(Math.round(value));
   return (
     <div>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-medium tabular-nums">{formatted}{value == null || unit === "" ? "" : ` ${unit}`}</p>
+      <p className="mt-1 text-sm font-medium tabular-nums">
+        {formatted}
+        {value == null || unit === "" ? "" : ` ${unit}`}
+      </p>
     </div>
   );
 }
 
-function CheckRow({ label, value, good }: { label: string; value: string | null; good: boolean | null }) {
-  const icon = value == null ? <Info className="h-4 w-4 text-muted-foreground" /> : good ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <AlertTriangle className="h-4 w-4 text-muted-foreground" />;
+function CheckRow({
+  label,
+  value,
+  good,
+}: {
+  label: string;
+  value: string | null;
+  good: boolean | null;
+}) {
+  const icon =
+    value == null ? (
+      <Info className="h-4 w-4 text-muted-foreground" />
+    ) : good ? (
+      <CheckCircle2 className="h-4 w-4 text-primary" />
+    ) : (
+      <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+    );
   return (
     <div className="flex min-w-0 items-start gap-2 rounded-lg border border-border/60 p-3">
       <span className="mt-0.5 shrink-0">{icon}</span>

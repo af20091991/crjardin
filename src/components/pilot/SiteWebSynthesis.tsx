@@ -86,17 +86,25 @@ export function SiteWebSynthesis() {
     } else {
       const queryRows = queriesResult.data?.rows ?? [];
       const opportunity = [...queryRows]
-        .filter((row) =>
-          Number(row.impressions ?? 0) >= 30 &&
-          Number(row.position ?? 99) <= 20 &&
-          Number(row.ctr ?? 0) < 0.08,
+        .filter(
+          (row) =>
+            Number(row.impressions ?? 0) >= 30 &&
+            Number(row.position ?? 99) <= 20 &&
+            Number(row.ctr ?? 0) < 0.08,
         )
         .sort((a, b) => Number(b.impressions ?? 0) - Number(a.impressions ?? 0))[0];
       if (opportunity) {
         const query = opportunity.keys?.[0] ?? "une requête stratégique";
         nextPriorities.push({
           title: `Améliorer le résultat sur « ${query} »`,
-          detail: `${formatNumber(Number(opportunity.impressions ?? 0))} impressions, position ${Number(opportunity.position ?? 0).toFixed(1).replace(".", ",")} et CTR ${formatPercent(Number(opportunity.ctr ?? 0))} sur la période.`,
+          detail: `${formatNumber(Number(opportunity.impressions ?? 0))} impressions, position ${Number(
+            opportunity.position ?? 0,
+          )
+            .toFixed(1)
+            .replace(
+              ".",
+              ",",
+            )} et CTR ${formatPercent(Number(opportunity.ctr ?? 0))} sur la période.`,
           source: "Search Console · opportunité détectée",
           level: "high",
         });
@@ -136,10 +144,12 @@ export function SiteWebSynthesis() {
           errors.push("Google Analytics 4");
         } else {
           const report = sessionsResult.data as { rows?: AnalyticsRow[] } | null;
-          setSessions((report?.rows ?? []).reduce(
-            (sum, row) => sum + Number(row.metricValues?.[0]?.value ?? 0),
-            0,
-          ));
+          setSessions(
+            (report?.rows ?? []).reduce(
+              (sum, row) => sum + Number(row.metricValues?.[0]?.value ?? 0),
+              0,
+            ),
+          );
         }
 
         const eventsReport = eventsResult.data as { rows?: AnalyticsRow[] } | null;
@@ -153,7 +163,8 @@ export function SiteWebSynthesis() {
         } else if (leadEvents.length === 0) {
           nextPriorities.push({
             title: "Vérifier le suivi des demandes de contact",
-            detail: "Aucun événement GA4 reconnu comme formulaire, appel, e-mail ou prise de rendez-vous n’a été identifié dans ce relevé. Les sessions ne représentent pas des prospects.",
+            detail:
+              "Aucun événement GA4 reconnu comme formulaire, appel, e-mail ou prise de rendez-vous n’a été identifié dans ce relevé. Les sessions ne représentent pas des prospects.",
             source: "Mesure commerciale · vérification à faire",
             level: "medium",
           });
@@ -183,7 +194,11 @@ export function SiteWebSynthesis() {
     }
 
     setSourceErrors([...new Set(errors)]);
-    setPriorities(nextPriorities.sort((a, b) => Number(b.level === "high") - Number(a.level === "high")).slice(0, 3));
+    setPriorities(
+      nextPriorities
+        .sort((a, b) => Number(b.level === "high") - Number(a.level === "high"))
+        .slice(0, 3),
+    );
     setLoading(false);
   }, []);
 
@@ -196,12 +211,16 @@ export function SiteWebSynthesis() {
       <Card className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vue de décision</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Vue de décision
+            </p>
             <h2 className="mt-1 font-serif text-xl font-semibold">Les indicateurs à retenir</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Données réelles, période commune et indicateurs non disponibles clairement signalés.
             </p>
-            <p className="mt-2 text-xs text-muted-foreground">{periodLabel || "Période de 30 jours, jusqu’à hier"}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {periodLabel || "Période de 30 jours, jusqu’à hier"}
+            </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -209,14 +228,31 @@ export function SiteWebSynthesis() {
           </Button>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label="Sessions du site" value={loading ? "…" : sessions == null ? "—" : formatNumber(sessions)} source="Google Analytics 4" />
-          <Metric label="Clics Google" value={loading ? "…" : clicks == null ? "—" : formatNumber(clicks)} source="Search Console" />
-          <Metric label="Impressions Google" value={loading ? "…" : impressions == null ? "—" : formatNumber(impressions)} source="Search Console" />
-          <Metric label="Position moyenne" value={loading ? "…" : position == null ? "—" : position.toFixed(1).replace(".", ",")} source="Search Console" />
+          <Metric
+            label="Sessions du site"
+            value={loading ? "…" : sessions == null ? "—" : formatNumber(sessions)}
+            source="Google Analytics 4"
+          />
+          <Metric
+            label="Clics Google"
+            value={loading ? "…" : clicks == null ? "—" : formatNumber(clicks)}
+            source="Search Console"
+          />
+          <Metric
+            label="Impressions Google"
+            value={loading ? "…" : impressions == null ? "—" : formatNumber(impressions)}
+            source="Search Console"
+          />
+          <Metric
+            label="Position moyenne"
+            value={loading ? "…" : position == null ? "—" : position.toFixed(1).replace(".", ",")}
+            source="Search Console"
+          />
         </div>
         {sourceErrors.length > 0 && (
           <p className="mt-4 text-sm text-muted-foreground">
-            Sources indisponibles : {sourceErrors.join(", ")}. Les tirets indiquent une donnée non récupérée, pas une valeur nulle.
+            Sources indisponibles : {sourceErrors.join(", ")}. Les tirets indiquent une donnée non
+            récupérée, pas une valeur nulle.
           </p>
         )}
       </Card>
@@ -226,24 +262,38 @@ export function SiteWebSynthesis() {
           <div>
             <h3 className="font-serif text-lg font-semibold">Jusqu’à 3 priorités</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Issues de signaux mesurés ou de lacunes de mesure identifiées ; aucune modification du site n’est déclenchée automatiquement.
+              Issues de signaux mesurés ou de lacunes de mesure identifiées ; aucune modification du
+              site n’est déclenchée automatiquement.
             </p>
           </div>
-          <Badge variant="outline">{loading ? "Analyse…" : `${priorities.length} priorité${priorities.length > 1 ? "s" : ""}`}</Badge>
+          <Badge variant="outline">
+            {loading
+              ? "Analyse…"
+              : `${priorities.length} priorité${priorities.length > 1 ? "s" : ""}`}
+          </Badge>
         </div>
         {loading ? (
           <p className="py-6 text-sm text-muted-foreground">Lecture des sources…</p>
         ) : priorities.length ? (
           <div className="mt-4 space-y-3">
             {priorities.map((item, index) => (
-              <div key={`${item.title}-${index}`} className="flex items-start gap-3 rounded-lg border border-border/70 p-4">
+              <div
+                key={`${item.title}-${index}`}
+                className="flex items-start gap-3 rounded-lg border border-border/70 p-4"
+              >
                 <div className="mt-0.5 rounded-lg bg-primary/10 p-2 text-primary">
-                  {item.level === "high" ? <AlertTriangle className="h-4 w-4" /> : <Lightbulb className="h-4 w-4" />}
+                  {item.level === "high" ? (
+                    <AlertTriangle className="h-4 w-4" />
+                  ) : (
+                    <Lightbulb className="h-4 w-4" />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-medium">{item.title}</p>
-                    <Badge variant={item.level === "high" ? "default" : "outline"}>{item.level === "high" ? "À traiter" : "À vérifier"}</Badge>
+                    <Badge variant={item.level === "high" ? "default" : "outline"}>
+                      {item.level === "high" ? "À traiter" : "À vérifier"}
+                    </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
                   <p className="mt-2 text-xs text-muted-foreground">{item.source}</p>
@@ -254,8 +304,14 @@ export function SiteWebSynthesis() {
           </div>
         ) : (
           <div className="mt-4 rounded-lg border border-border/70 p-4">
-            <p className="flex items-center gap-2 text-sm font-medium"><CheckCircle2 className="h-4 w-4 text-primary" />Aucune priorité forte détectée dans les contrôles exécutés.</p>
-            <p className="mt-1 text-sm text-muted-foreground">Cela ne signifie pas que tout est parfait : consultez les onglets détaillés et vérifiez la couverture des sources ci-dessus.</p>
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              Aucune priorité forte détectée dans les contrôles exécutés.
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Cela ne signifie pas que tout est parfait : consultez les onglets détaillés et
+              vérifiez la couverture des sources ci-dessus.
+            </p>
           </div>
         )}
       </Card>
@@ -295,5 +351,7 @@ function formatNumber(value: number) {
 }
 
 function formatPercent(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(
+    value,
+  );
 }

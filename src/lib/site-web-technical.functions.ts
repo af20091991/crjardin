@@ -1,10 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type {
-  FilesInfo,
-  HttpInfo,
-  PageInfo,
-} from "@/lib/site-web-competitor-types";
+import type { FilesInfo, HttpInfo, PageInfo } from "@/lib/site-web-competitor-types";
 
 const SITE_DOMAIN = "www.delagraineaujardin.com";
 const PAGESPEED_ENDPOINT = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
@@ -116,7 +112,8 @@ async function loadPageSpeed() {
 export const getSiteWebTechnicalAudit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async (): Promise<SiteWebTechnicalAudit> => {
-    const { analyzeFiles, analyzeHomepage } = await import("@/lib/site-web-competitor-analysis.server");
+    const { analyzeFiles, analyzeHomepage } =
+      await import("@/lib/site-web-competitor-analysis.server");
     const [homepage, files, speed] = await Promise.all([
       analyzeHomepage(SITE_DOMAIN).catch(() => ({
         page: null,
