@@ -321,6 +321,16 @@ export function SiteWebSynthesis() {
               </div>
             ))}
           </div>
+        ) : sourceErrors.length > 0 && sessions == null && clicks == null && impressions == null && position == null ? (
+          <div className="mt-4 rounded-lg border border-border/70 p-4">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              Priorités indisponibles : reconnectez les sources de données.
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Aucune donnée de mesure n’a pu être récupérée ; il est impossible de conclure qu’aucune priorité n’existe.
+            </p>
+          </div>
         ) : (
           <div className="mt-4 rounded-lg border border-border/70 p-4">
             <p className="flex items-center gap-2 text-sm font-medium">
