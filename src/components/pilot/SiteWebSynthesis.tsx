@@ -225,7 +225,7 @@ export function SiteWebSynthesis() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {checkedAt
-                ? `Dernière interrogation des sources : ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(new Date(checkedAt))}`
+                ? `Dernière interrogation des sources : ${formatDateTime(checkedAt)}`
                 : "Date de contrôle disponible après la première lecture"}
             </p>
           </div>
@@ -389,6 +389,12 @@ function yesterday() {
   const date = new Date();
   date.setUTCDate(date.getUTCDate() - 1);
   return date.toISOString().slice(0, 10);
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(
+    new Date(value),
+  );
 }
 
 function formatDate(value: string) {
