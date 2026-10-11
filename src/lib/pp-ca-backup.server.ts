@@ -1,7 +1,7 @@
 // Exécution d'un backup PP CA (serveur uniquement, service_role).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { yearTotals, type CaEntry } from "@/lib/pilot-ca";
+import type { CaEntry } from "@/lib/pilot-ca";
 import { fetchAllCaRows } from "@/lib/pilot-ca-fetch";
 import type { AsOfOptions } from "@/lib/pilot-realized";
 import { backupFileName, filesToDelete, newestBackupFiles } from "@/lib/pp-ca-backup";
@@ -9,8 +9,6 @@ import { buildCaBackupWorkbook } from "@/lib/pp-ca-backup-excel.server";
 
 export const BUCKET = "pp-backups";
 export const FOLDER = "ca";
-/** Première année de l'historique PP. */
-const FIRST_YEAR = 2020;
 
 // pp_backup_runs et notify_admins_backup_failure sont absents des types générés
 // tant qu'ils ne sont pas régénérés : client volontairement non typé ici.
@@ -59,6 +57,23 @@ export async function resolveDataOwner(): Promise<string> {
   return best.id;
 }
 
+/** Années présentes dans pilot_ca_entries pour ce compte. */
+async function listCaYears(owner: string): Promise<number[]> {
+  const found = new Set<number>();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db
+      .from("pilot_ca_entries")
+      .select("year")
+      .eq("user_id", owner)
+      .order("year", { ascending: true })
+      .range(from, from + 999);
+    if (error) throw error;
+    for (const r of (data ?? []) as { year: number }[]) found.add(Number(r.year));
+    if (!data || data.length < 1000) break;
+  }
+  return [...found];
+}
+
 export async function listBackupFiles() {
   const { data, error } = await db.storage.from(BUCKET).list(FOLDER, { limit: 100 });
   if (error) throw error;
@@ -90,25 +105,17 @@ export async function runCaBackup(trigger: "auto" | "manual", triggeredBy: strin
       fetchAllCaRows<CaEntry>("*", { year: y, userId: owner }, ORDER, db as never);
     // Même périmètre que la page /pilot/ca : « à date ».
     const options: AsOfOptions = { period: "a_date", now };
-    const years: number[] = [];
-    for (let y = FIRST_YEAR; y < year; y++) years.push(y);
-    const [entries, ...past] = await Promise.all([read(year), ...years.map(read)]);
-    const previousEntries = past[past.length - 1] ?? [];
-    const history = years
-      .map((y, i) => ({ y, rows: past[i] }))
-      .filter((h) => h.rows.length > 0)
-      .map((h) => {
-        const t = yearTotals(h.rows, options);
-        return { year: h.y, ventesHt: t.ventesHt, benefice: t.benefice };
-      });
+    // Toutes les années qui existent (un onglet par année), exercice courant inclus.
+    const existing = await listCaYears(owner);
+    const yearsToSave = Array.from(new Set([...existing, year])).sort((a, b) => a - b);
+    const years = await Promise.all(
+      yearsToSave.map(async (y) => ({ year: y, entries: await read(y) })),
+    );
 
     const buffer = await buildCaBackupWorkbook({
-      year,
-      monthsElapsed: month,
-      entries,
-      previousEntries,
-      history,
+      years: years.filter((y) => y.entries.length > 0 || y.year === year),
       options,
+      today: { year, month },
     });
     const name = backupFileName(now, year);
     const path = `${FOLDER}/${name}`;

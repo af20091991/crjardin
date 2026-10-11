@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-11",
+    version: "2.3.62",
+    theme: "Général",
+    title: "Backup PP CA — toutes les années, un onglet par année",
+    details: [
+      "Le classeur de sauvegarde contient désormais un onglet « CA <année> » pour chaque année existante (de la plus récente à la plus ancienne).",
+      "Mise en page reprise fidèlement de l'onglet « CA 2026 » du suivi mensuel : couleurs, bordures, fusions, formats, mises en forme conditionnelles et panneau Calculateurs.",
+    ],
+  },
+  {
+    date: "2026-10-11",
     version: "2.3.61",
     theme: "Général",
     title: "Site web — refonte du module de pilotage",
