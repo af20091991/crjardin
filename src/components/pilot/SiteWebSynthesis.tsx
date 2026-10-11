@@ -359,7 +359,9 @@ function Metric({
       <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
       <p className="mt-2 text-xs text-muted-foreground">{source}</p>
       <details className="mt-3 border-t border-border/60 pt-2 text-xs text-muted-foreground">
-        <summary className="cursor-pointer font-medium text-foreground">Définition et fiabilité</summary>
+        <summary className="cursor-pointer font-medium text-foreground">
+          Définition et fiabilité
+        </summary>
         <dl className="mt-2 space-y-2">
           <div>
             <dt className="font-medium text-foreground">Ce que mesure l’indicateur</dt>
