@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -54,7 +54,7 @@ export function SiteWebTechnicalGeo() {
   const [notes, setNotes] = useState("");
   const [observationError, setObservationError] = useState<string | null>(null);
 
-  const loadAudit = async () => {
+  const loadAudit = useCallback(async () => {
     setAuditLoading(true);
     setAuditError(null);
     try {
@@ -65,9 +65,9 @@ export function SiteWebTechnicalGeo() {
     } finally {
       setAuditLoading(false);
     }
-  };
+  }, []);
 
-  const loadAiReferrals = async () => {
+  const loadAiReferrals = useCallback(async () => {
     setAnalyticsError(null);
     setAiSessions(null);
     setAiSources(null);
@@ -106,7 +106,7 @@ export function SiteWebTechnicalGeo() {
       .sort((a, b) => b.sessions - a.sessions);
     setAiSources(matches);
     setAiSessions(matches.reduce((sum, row) => sum + row.sessions, 0));
-  };
+  }, []);
 
   useEffect(() => {
     void loadAudit();
@@ -120,17 +120,22 @@ export function SiteWebTechnicalGeo() {
     } catch {
       setObservationError("Le journal local n’a pas pu être lu sur ce navigateur.");
     }
-  }, []);
+  }, [loadAudit, loadAiReferrals]);
 
   const addObservation = () => {
     if (!platform.trim() || !prompt.trim()) return;
+    const safeCitation = citedUrl.trim() ? safeHttpUrl(citedUrl.trim()) : "";
+    if (citedUrl.trim() && !safeCitation) {
+      setObservationError("L’URL citée doit commencer par https:// ou http://.");
+      return;
+    }
     const item: GeoObservation = {
       id: `geo-${Date.now()}`,
       testedAt: new Date().toISOString(),
       platform: platform.trim(),
       prompt: prompt.trim(),
       mentioned,
-      citedUrl: citedUrl.trim(),
+      citedUrl: safeCitation,
       notes: notes.trim(),
     };
     const next = [item, ...observations].slice(0, 100);
@@ -355,8 +360,8 @@ export function SiteWebTechnicalGeo() {
                       <span className="text-xs text-muted-foreground">{formatDateTime(item.testedAt)}</span>
                     </div>
                     <p className="mt-2 text-sm">{item.prompt}</p>
-                    {item.citedUrl && (
-                      <a className="mt-2 inline-flex items-center gap-1 break-all text-sm text-primary underline" href={item.citedUrl} target="_blank" rel="noreferrer">
+                    {safeHttpUrl(item.citedUrl) && (
+                      <a className="mt-2 inline-flex items-center gap-1 break-all text-sm text-primary underline" href={safeHttpUrl(item.citedUrl) ?? undefined} target="_blank" rel="noreferrer">
                         {item.citedUrl}<ExternalLink className="h-3 w-3 shrink-0" />
                       </a>
                     )}
@@ -440,6 +445,15 @@ function ErrorNotice({ message }: { message: string }) {
 
 function EmptyMessage({ message }: { message: string }) {
   return <p className="py-5 text-sm text-muted-foreground">{message}</p>;
+}
+
+function safeHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function translateFieldCategory(value: string | null) {
