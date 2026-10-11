@@ -1,9 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import {
-  analyzeFiles,
-  analyzeHomepage,
-} from "@/lib/site-web-competitor-analysis.server";
 import type {
   FilesInfo,
   HttpInfo,
@@ -120,6 +116,7 @@ async function loadPageSpeed() {
 export const getSiteWebTechnicalAudit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async (): Promise<SiteWebTechnicalAudit> => {
+    const { analyzeFiles, analyzeHomepage } = await import("@/lib/site-web-competitor-analysis.server");
     const [homepage, files, speed] = await Promise.all([
       analyzeHomepage(SITE_DOMAIN).catch(() => ({
         page: null,
