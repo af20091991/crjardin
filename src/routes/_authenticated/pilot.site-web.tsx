@@ -8,7 +8,7 @@ export const Route = createFileRoute("/_authenticated/pilot/site-web")({
       {
         name: "description",
         content:
-          "Vue de pilotage du site web : visibilité, SEO local, contenus, opportunités et actions.",
+          "Centre de pilotage du site web : SEO, audience, présence locale, concurrence, performance technique et GEO.",
       },
     ],
   }),
