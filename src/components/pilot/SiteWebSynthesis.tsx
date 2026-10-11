@@ -213,29 +213,29 @@ export function SiteWebSynthesis() {
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Metric
-              label="Sessions du site"
-              value={loading ? "…" : sessions == null ? "—" : formatNumber(sessions)}
-              source="Google Analytics 4"
-              definition="Nombre de sessions enregistrées par GA4 sur la période."
-            />
+            label="Sessions du site"
+            value={loading ? "…" : sessions == null ? "—" : formatNumber(sessions)}
+            source="Google Analytics 4"
+            definition="Nombre de sessions enregistrées par GA4 sur la période."
+          />
           <Metric
-              label="Clics Google"
-              value={loading ? "…" : clicks == null ? "—" : formatNumber(clicks)}
-              source="Search Console"
-              definition="Somme des clics sur les jours de la période, sans filtre par requête."
-            />
+            label="Clics Google"
+            value={loading ? "…" : clicks == null ? "—" : formatNumber(clicks)}
+            source="Search Console"
+            definition="Somme des clics sur les jours de la période, sans filtre par requête."
+          />
           <Metric
-              label="Impressions Google"
-              value={loading ? "…" : impressions == null ? "—" : formatNumber(impressions)}
-              source="Search Console"
-              definition="Somme des impressions sur les jours de la période, sans filtre par requête."
-            />
+            label="Impressions Google"
+            value={loading ? "…" : impressions == null ? "—" : formatNumber(impressions)}
+            source="Search Console"
+            definition="Somme des impressions sur les jours de la période, sans filtre par requête."
+          />
           <Metric
-              label="Position moyenne"
-              value={loading ? "…" : position == null ? "—" : position.toFixed(1).replace(".", ",")}
-              source="Search Console"
-              definition="Position moyenne pondérée par les impressions à partir des lignes quotidiennes."
-            />
+            label="Position moyenne"
+            value={loading ? "…" : position == null ? "—" : position.toFixed(1).replace(".", ",")}
+            source="Search Console"
+            definition="Position moyenne pondérée par les impressions à partir des lignes quotidiennes."
+          />
         </div>
         {sourceErrors.length > 0 && (
           <p className="mt-4 text-sm text-muted-foreground">
