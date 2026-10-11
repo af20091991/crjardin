@@ -3,13 +3,13 @@ import { AlertTriangle, ArrowUpRight, CheckCircle2, Lightbulb, RefreshCw } from 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { SiteWebKpiDefinitions } from "@/components/pilot/SiteWebKpiDefinitions";
 import { getWordPressOverview } from "@/lib/site-web-wordpress.functions";
 import {
   listAnalyticsProperties,
   querySearchConsole,
   runAnalyticsReport,
 } from "@/lib/site-web-api";
+import { SiteWebKpiDefinitions } from "@/components/pilot/SiteWebKpiDefinitions";
 
 const SITE_URL = "https://www.delagraineaujardin.com/";
 const PREFERRED_GA4_PROPERTY_ID = "159443253";
@@ -215,6 +215,7 @@ export function SiteWebSynthesis() {
           <Metric label="Impressions Google" value={loading ? "…" : impressions == null ? "—" : formatNumber(impressions)} source="Search Console" />
           <Metric label="Position moyenne" value={loading ? "…" : position == null ? "—" : position.toFixed(1).replace(".", ",")} source="Search Console" />
         </div>
+        <SiteWebKpiDefinitions />
         {sourceErrors.length > 0 && (
           <p className="mt-4 text-sm text-muted-foreground">
             Sources indisponibles : {sourceErrors.join(", ")}. Les tirets indiquent une donnée non récupérée, pas une valeur nulle.
