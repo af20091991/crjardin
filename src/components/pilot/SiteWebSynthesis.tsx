@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, ArrowUpRight, CheckCircle2, Lightbulb, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ export function SiteWebSynthesis() {
   const [sourceErrors, setSourceErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setSourceErrors([]);
     setPriorities([]);
@@ -175,11 +175,11 @@ export function SiteWebSynthesis() {
     setSourceErrors([...new Set(errors)]);
     setPriorities(nextPriorities.slice(0, 3));
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   return (
     <div className="space-y-5">
