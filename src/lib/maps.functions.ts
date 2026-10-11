@@ -351,6 +351,7 @@ export function buildStaticGardenMapParams(
     format: "png",
     maptype: "satellite",
     language: "fr",
+    region: "FR",
     center: `${viewport.centerLat},${viewport.centerLng}`,
     zoom: String(viewport.zoom),
     style: "feature:poi|visibility:off",
