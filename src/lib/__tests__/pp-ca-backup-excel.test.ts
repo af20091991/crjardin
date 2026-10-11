@@ -43,11 +43,12 @@ describe("classeur Backup PP CA", () => {
 
   test("mise en page, formules et totaux identiques à la page CA", async () => {
     const buf = await buildCaBackupWorkbook({
-      year: 2026,
-      monthsElapsed: 2,
-      entries,
-      previousEntries: previous,
-      history: [{ year: 2025, ventesHt: 800, benefice: 800 }],
+      currentYear: 2026,
+      currentMonth: 2,
+      years: [
+        { year: 2026, entries },
+        { year: 2025, entries: previous },
+      ],
       options,
     });
     // Le chargement ExcelJS sous bun échoue (flux) : on inspecte le XML du zip.
@@ -55,7 +56,10 @@ describe("classeur Backup PP CA", () => {
     const sheet = await zip.file("xl/worksheets/sheet1.xml")!.async("string");
     const styles = await zip.file("xl/styles.xml")!.async("string");
     const shared = await zip.file("xl/sharedStrings.xml")!.async("string");
-    expect(zip.file("xl/workbook.xml")).not.toBeNull();
+    const wbXml = await zip.file("xl/workbook.xml")!.async("string");
+    // un onglet par année, le plus récent d'abord
+    expect(wbXml.indexOf('name="CA 2026"')).toBeGreaterThan(-1);
+    expect(wbXml.indexOf('name="CA 2025"')).toBeGreaterThan(wbXml.indexOf('name="CA 2026"'));
     // Couleurs du modèle
     for (const argb of ["FF0F9DE8", "FF92D050", "FFFFC000"])
       expect(styles.includes(argb)).toBe(true);
@@ -69,6 +73,7 @@ describe("classeur Backup PP CA", () => {
       expect(shared.includes(label)).toBe(true);
     // Formules
     expect(sheet.includes("<f>C4-B4</f>")).toBe(true);
+    expect(sheet.includes("CA 2025&apos;!C4")).toBe(true); // N-1 relié à l'onglet de l'année précédente
     expect(/<f>G\d+<\/f>/.test(sheet)).toBe(true);
     // Totaux (résultats mis en cache) = totaux de la page
     const t = yearTotals(entries, options);

@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-11",
+    version: "2.3.61",
+    theme: "Général",
+    title: "Backup PP CA — tous les exercices et mise en page fidèle au modèle",
+    details: [
+      "Le fichier Excel contient un onglet par année existante (CA 2026 … CA 2020), le plus récent en premier.",
+      "Mise en page reprise à l'identique de l'onglet CA 2026 du modèle (couleurs, fusions, formats, mises en forme conditionnelles, calculateurs).",
+    ],
+  },
+  {
     date: "2026-10-10",
     version: "2.3.60",
     theme: "Général",
