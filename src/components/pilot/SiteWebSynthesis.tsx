@@ -215,7 +215,6 @@ export function SiteWebSynthesis() {
           <Metric label="Impressions Google" value={loading ? "…" : impressions == null ? "—" : formatNumber(impressions)} source="Search Console" />
           <Metric label="Position moyenne" value={loading ? "…" : position == null ? "—" : position.toFixed(1).replace(".", ",")} source="Search Console" />
         </div>
-        <SiteWebKpiDefinitions />
         {sourceErrors.length > 0 && (
           <p className="mt-4 text-sm text-muted-foreground">
             Sources indisponibles : {sourceErrors.join(", ")}. Les tirets indiquent une donnée non récupérée, pas une valeur nulle.
