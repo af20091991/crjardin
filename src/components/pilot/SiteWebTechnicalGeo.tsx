@@ -135,7 +135,7 @@ export function SiteWebTechnicalGeo() {
       platform: platform.trim(),
       prompt: prompt.trim(),
       mentioned,
-      citedUrl: safeCitation,
+      citedUrl: safeCitation ?? "",
       notes: notes.trim(),
     };
     const next = [item, ...observations].slice(0, 100);
