@@ -266,7 +266,6 @@ export function SiteWebTechnicalGeo() {
             <CheckRow label="Images sans attribut alt" value={audit.page ? String(audit.page.images_without_alt) : null} good={audit.page?.images_without_alt === 0} />
             <CheckRow label="Données structurées JSON-LD" value={audit.page ? audit.page.json_ld_types.length ? audit.page.json_ld_types.join(", ") : "Aucun type détecté" : null} good={Boolean(audit.page?.json_ld_types.length)} />
             <CheckRow label="Liens internes détectés" value={audit.page ? String(audit.page.internal_links) : null} good={Boolean(audit.page && audit.page.internal_links > 0)} />
-            <CheckRow label="Temps de réponse WordPress" value={null} good={null} />
           </div>
         ) : (
           <EmptyMessage message="Les contrôles techniques n’ont pas pu être récupérés." />
