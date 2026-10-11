@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Activity, BarChart3, Globe2, MapPin, Search, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { SiteWebCommercialEvents } from "@/components/pilot/SiteWebCommercialEvents";
 import { SiteWebCompetitorWatch } from "@/components/pilot/SiteWebCompetitorWatch";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
@@ -91,6 +92,7 @@ export function SiteWebDashboard() {
             </p>
           </Card>
           <SiteWebStatistics />
+          <SiteWebCommercialEvents />
         </div>
       )}
 
