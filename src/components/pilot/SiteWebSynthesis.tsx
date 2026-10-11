@@ -208,6 +208,13 @@ export function SiteWebSynthesis() {
     void load();
   }, [load]);
 
+  const metricsUnavailable =
+    sourceErrors.length > 0 &&
+    sessions == null &&
+    clicks == null &&
+    impressions == null &&
+    position == null;
+
   return (
     <div className="space-y-5">
       <Card className="p-5">
@@ -320,6 +327,17 @@ export function SiteWebSynthesis() {
                 <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
               </div>
             ))}
+          </div>
+        ) : metricsUnavailable ? (
+          <div className="mt-4 rounded-lg border border-border/70 p-4">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              Priorités indisponibles : reconnectez les sources de données.
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Aucune donnée de mesure n’a pu être récupérée ; il est impossible de conclure
+              qu’aucune priorité n’existe.
+            </p>
           </div>
         ) : (
           <div className="mt-4 rounded-lg border border-border/70 p-4">
