@@ -1,7 +1,7 @@
 // Exécution d'un backup PP CA (serveur uniquement, service_role).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { yearTotals, type CaEntry } from "@/lib/pilot-ca";
+import type { CaEntry } from "@/lib/pilot-ca";
 import { fetchAllCaRows } from "@/lib/pilot-ca-fetch";
 import type { AsOfOptions } from "@/lib/pilot-realized";
 import { backupFileName, filesToDelete, newestBackupFiles } from "@/lib/pp-ca-backup";
@@ -90,24 +90,19 @@ export async function runCaBackup(trigger: "auto" | "manual", triggeredBy: strin
       fetchAllCaRows<CaEntry>("*", { year: y, userId: owner }, ORDER, db as never);
     // Même périmètre que la page /pilot/ca : « à date ».
     const options: AsOfOptions = { period: "a_date", now };
-    const years: number[] = [];
-    for (let y = FIRST_YEAR; y < year; y++) years.push(y);
-    const [entries, ...past] = await Promise.all([read(year), ...years.map(read)]);
-    const previousEntries = past[past.length - 1] ?? [];
-    const history = years
-      .map((y, i) => ({ y, rows: past[i] }))
-      .filter((h) => h.rows.length > 0)
-      .map((h) => {
-        const t = yearTotals(h.rows, options);
-        return { year: h.y, ventesHt: t.ventesHt, benefice: t.benefice };
-      });
+    // Tous les exercices existants (un onglet par année, du plus ancien à l'exercice en cours).
+    const span: number[] = [];
+    for (let y = FIRST_YEAR; y <= year; y++) span.push(y);
+    const rowsByYear = await Promise.all(span.map(read));
+    const years = span
+      .map((y, i) => ({ year: y, entries: rowsByYear[i] }))
+      .filter((y) => y.entries.length > 0);
+    if (!years.some((y) => y.year === year)) years.push({ year, entries: [] });
 
     const buffer = await buildCaBackupWorkbook({
-      year,
-      monthsElapsed: month,
-      entries,
-      previousEntries,
-      history,
+      currentYear: year,
+      currentMonth: month,
+      years,
       options,
     });
     const name = backupFileName(now, year);

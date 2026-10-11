@@ -8,3 +8,4 @@ bun.lock
 routeTree.gen.ts
 src/routes/partage.$token.tsx
 public/spellcheck
+src/lib/pp-ca-template.json
