@@ -335,7 +335,8 @@ export function SiteWebSynthesis() {
               Priorités indisponibles : reconnectez les sources de données.
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Aucune donnée de mesure n’a pu être récupérée ; il est impossible de conclure qu’aucune priorité n’existe.
+              Aucune donnée de mesure n’a pu être récupérée ; il est impossible de conclure
+              qu’aucune priorité n’existe.
             </p>
           </div>
         ) : (
