@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Activity, BarChart3, Globe2, MapPin, Search, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { SiteWebCommercialEvents } from "@/components/pilot/SiteWebCommercialEvents";
 import { SiteWebCompetitorWatch } from "@/components/pilot/SiteWebCompetitorWatch";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
 import { SiteWebSeoDiagnostic } from "@/components/pilot/SiteWebSeoDiagnostic";
-import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
 import { SiteWebSynthesis } from "@/components/pilot/SiteWebSynthesis";
 import { SiteWebTechnicalGeo } from "@/components/pilot/SiteWebTechnicalGeo";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
@@ -15,7 +13,7 @@ import { SiteWebWordPress } from "@/components/pilot/SiteWebWordPress";
 const moduleViews = [
   { id: "synthesis", label: "Synthèse", icon: Globe2 },
   { id: "seo", label: "SEO & mots-clés", icon: Search },
-  { id: "audience", label: "Audience & résultats", icon: BarChart3 },
+  { id: "audience", label: "Statistiques", icon: BarChart3 },
   { id: "local", label: "SEO local", icon: MapPin },
   { id: "competitors", label: "Concurrence & marché", icon: Users },
   { id: "technical", label: "Technique & GEO", icon: Activity },
@@ -81,20 +79,6 @@ export function SiteWebDashboard() {
           </Card>
           <SiteWebSeoDiagnostic />
           <SiteWebViewContent showConnection={false} />
-        </div>
-      )}
-
-      {activeView === "audience" && (
-        <div className="space-y-5">
-          <Card className="p-4">
-            <h2 className="font-serif text-lg font-semibold">Audience & résultats</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Sessions, utilisateurs, pages vues et comparaisons issus de Google Analytics 4. Les
-              sessions ne sont pas assimilées à des demandes commerciales.
-            </p>
-          </Card>
-          <SiteWebStatistics />
-          <SiteWebCommercialEvents />
         </div>
       )}
 
