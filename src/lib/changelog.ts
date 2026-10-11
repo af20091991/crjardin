@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-11",
+    version: "2.3.61",
+    theme: "Général",
+    title: "Site web — refonte du module de pilotage",
+    details: [
+      "Remplacement des neuf anciennes vues par six onglets complémentaires : Synthèse, SEO & mots-clés, Audience & résultats, SEO local, Concurrence & marché, Technique & GEO.",
+      "La Synthèse rassemble les indicateurs disponibles et limite les priorités à trois ; les données absentes restent explicitement indisponibles.",
+      "Ajout d’un audit technique public et d’un journal de tests de visibilité IA enregistré localement dans le navigateur, sans prétendre mesurer exhaustivement les citations IA.",
+    ],
+  },
+  {
     date: "2026-10-10",
     version: "2.3.60",
     theme: "Général",
