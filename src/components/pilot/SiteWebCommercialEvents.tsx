@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Activity, Info, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export function SiteWebCommercialEvents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     setEvents(null);
@@ -68,11 +68,11 @@ export function SiteWebCommercialEvents() {
       .sort((a, b) => b.count - a.count);
     setEvents(rows);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   const contactEvents = (events ?? []).filter((event) => CONTACT_EVENT_PATTERN.test(event.name));
   const contactEventCount = contactEvents.reduce((sum, event) => sum + event.count, 0);
