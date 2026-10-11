@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getWordPressOverview } from "@/lib/site-web-wordpress.functions";
+import { SiteWebKpiDefinitions } from "@/components/pilot/SiteWebKpiDefinitions";
 import {
   listAnalyticsProperties,
   querySearchConsole,
@@ -202,9 +203,6 @@ export function SiteWebSynthesis() {
               Données réelles, période commune et indicateurs non disponibles clairement signalés.
             </p>
             <p className="mt-2 text-xs text-muted-foreground">{periodLabel || "Période de 30 jours, jusqu’à hier"}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Données jusqu’à hier, retard possible. Actualisation manuelle.
-            </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -212,31 +210,12 @@ export function SiteWebSynthesis() {
           </Button>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric
-            label="Sessions du site"
-            value={loading ? "…" : sessions == null ? "—" : formatNumber(sessions)}
-            source="Google Analytics 4"
-            definition="Nombre de sessions enregistrées par GA4 sur la période."
-          />
-          <Metric
-            label="Clics Google"
-            value={loading ? "…" : clicks == null ? "—" : formatNumber(clicks)}
-            source="Search Console"
-            definition="Somme des clics sur les jours de la période, sans filtre par requête."
-          />
-          <Metric
-            label="Impressions Google"
-            value={loading ? "…" : impressions == null ? "—" : formatNumber(impressions)}
-            source="Search Console"
-            definition="Somme des impressions sur les jours de la période, sans filtre par requête."
-          />
-          <Metric
-            label="Position moyenne"
-            value={loading ? "…" : position == null ? "—" : position.toFixed(1).replace(".", ",")}
-            source="Search Console"
-            definition="Position moyenne pondérée par les impressions à partir des lignes quotidiennes."
-          />
+          <Metric label="Sessions du site" value={loading ? "…" : sessions == null ? "—" : formatNumber(sessions)} source="Google Analytics 4" />
+          <Metric label="Clics Google" value={loading ? "…" : clicks == null ? "—" : formatNumber(clicks)} source="Search Console" />
+          <Metric label="Impressions Google" value={loading ? "…" : impressions == null ? "—" : formatNumber(impressions)} source="Search Console" />
+          <Metric label="Position moyenne" value={loading ? "…" : position == null ? "—" : position.toFixed(1).replace(".", ",")} source="Search Console" />
         </div>
+        <SiteWebKpiDefinitions />
         {sourceErrors.length > 0 && (
           <p className="mt-4 text-sm text-muted-foreground">
             Sources indisponibles : {sourceErrors.join(", ")}. Les tirets indiquent une donnée non récupérée, pas une valeur nulle.
@@ -286,23 +265,12 @@ export function SiteWebSynthesis() {
   );
 }
 
-function Metric({
-  label,
-  value,
-  source,
-  definition,
-}: {
-  label: string;
-  value: string;
-  source: string;
-  definition: string;
-}) {
+function Metric({ label, value, source }: { label: string; value: string; source: string }) {
   return (
     <div className="rounded-lg border border-border/70 p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
       <p className="mt-2 text-xs text-muted-foreground">{source}</p>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{definition}</p>
     </div>
   );
 }
