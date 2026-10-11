@@ -3,8 +3,8 @@ import { AlertTriangle, ArrowUpRight, CheckCircle2, Lightbulb, RefreshCw } from 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getWordPressOverview } from "@/lib/site-web-wordpress.functions";
 import { SiteWebKpiDefinitions } from "@/components/pilot/SiteWebKpiDefinitions";
+import { getWordPressOverview } from "@/lib/site-web-wordpress.functions";
 import {
   listAnalyticsProperties,
   querySearchConsole,
