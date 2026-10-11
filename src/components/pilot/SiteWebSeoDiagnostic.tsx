@@ -12,7 +12,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/pilot/EmptyState";
-import { SiteWebCompetitorWatch } from "@/components/pilot/SiteWebCompetitorWatch";
 import {
   listAnalyticsProperties,
   querySearchConsole,
@@ -198,9 +197,6 @@ export function SiteWebSeoDiagnostic() {
           ) : (
             <EmptyState icon={Lightbulb} title="Aucune opportunité nette détectée" compact />
           )}
-        </SwotCard>
-        <SwotCard icon={Users} title="Concurrence" tone="neutral">
-          <SiteWebCompetitorWatch />
         </SwotCard>
       </div>
 
