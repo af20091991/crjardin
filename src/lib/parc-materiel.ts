@@ -51,9 +51,7 @@ export interface EquipmentMaintenance {
 }
 
 /** Libellé de catégorie à afficher (gère la catégorie personnalisée). */
-export function categoryLabel(
-  equipment: Pick<Equipment, "category" | "custom_category">,
-): string {
+export function categoryLabel(equipment: Pick<Equipment, "category" | "custom_category">): string {
   if (equipment.category === "autre" && equipment.custom_category) return equipment.custom_category;
   return EQUIPMENT_CATEGORY_LABELS[equipment.category];
 }
