@@ -1,17 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type EquipmentCategory =
-  | "vehicule"
-  | "engin"
-  | "batterie"
-  | "smartphone"
-  | "autre";
-export type EquipmentStatus =
-  | "en_service"
-  | "en_panne"
-  | "en_reparation"
-  | "hors_service"
-  | "vendu";
+export type EquipmentCategory = "vehicule" | "engin" | "batterie" | "smartphone" | "autre";
+export type EquipmentStatus = "en_service" | "en_panne" | "en_reparation" | "hors_service" | "vendu";
 
 export const EQUIPMENT_CATEGORY_LABELS: Record<EquipmentCategory, string> = {
   vehicule: "Véhicule",
@@ -56,34 +46,20 @@ export interface EquipmentMaintenance {
 }
 
 /** Libellé de catégorie à afficher (gère la catégorie personnalisée). */
-export function categoryLabel(
-  equipment: Pick<Equipment, "category" | "custom_category">,
-): string {
-  if (equipment.category === "autre" && equipment.custom_category)
-    return equipment.custom_category;
+export function categoryLabel(equipment: Pick<Equipment, "category" | "custom_category">): string {
+  if (equipment.category === "autre" && equipment.custom_category) return equipment.custom_category;
   return EQUIPMENT_CATEGORY_LABELS[equipment.category];
 }
 
 /** Valeur actuelle d'un équipement (amortissement linéaire). Jamais négative. */
 export function currentValue(
-  equipment: Pick<
-    Equipment,
-    "purchase_cost" | "purchase_date" | "amortization_years"
-  >,
+  equipment: Pick<Equipment, "purchase_cost" | "purchase_date" | "amortization_years">,
 ): number | null {
   const { purchase_cost, purchase_date, amortization_years } = equipment;
-  if (
-    !purchase_cost ||
-    !purchase_date ||
-    !amortization_years ||
-    amortization_years <= 0
-  )
+  if (!purchase_cost || !purchase_date || !amortization_years || amortization_years <= 0)
     return null;
-  const years =
-    (Date.now() - new Date(purchase_date).getTime()) /
-    (1000 * 60 * 60 * 24 * 365.25);
-  const remaining =
-    1 - Math.min(Math.max(years, 0), amortization_years) / amortization_years;
+  const years = (Date.now() - new Date(purchase_date).getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  const remaining = 1 - Math.min(Math.max(years, 0), amortization_years) / amortization_years;
   return Math.round(purchase_cost * remaining * 100) / 100;
 }
 
@@ -95,8 +71,7 @@ export function maintenanceUrgency(
   withinDays = 30,
 ): MaintenanceUrgency {
   if (!nextDueDate) return "none";
-  const days =
-    (new Date(nextDueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+  const days = (new Date(nextDueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
   if (days < 0) return "overdue";
   if (days <= withinDays) return "soon";
   return "ok";
@@ -112,11 +87,7 @@ export async function listEquipment(): Promise<Equipment[]> {
 }
 
 export async function getEquipment(id: string): Promise<Equipment> {
-  const { data, error } = await supabase
-    .from("equipment")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const { data, error } = await supabase.from("equipment").select("*").eq("id", id).single();
   if (error) throw error;
   return data as Equipment;
 }
@@ -133,9 +104,7 @@ export interface EquipmentInput {
   notes?: string | null;
 }
 
-export async function createEquipment(
-  input: EquipmentInput,
-): Promise<Equipment> {
+export async function createEquipment(input: EquipmentInput): Promise<Equipment> {
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id;
   if (!userId) throw new Error("Utilisateur non authentifié");
@@ -171,9 +140,7 @@ export async function deleteEquipment(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function listMaintenanceFor(
-  equipmentId: string,
-): Promise<EquipmentMaintenance[]> {
+export async function listMaintenanceFor(equipmentId: string): Promise<EquipmentMaintenance[]> {
   const { data, error } = await supabase
     .from("equipment_maintenance")
     .select("*")
@@ -189,9 +156,7 @@ export async function listUpcomingMaintenance(): Promise<
 > {
   const { data, error } = await supabase
     .from("equipment_maintenance_schedules")
-    .select(
-      "*, equipment:equipment_id(name), maintenance_type:maintenance_type_id(name, reminder_days)",
-    )
+    .select("*, equipment:equipment_id(name), maintenance_type:maintenance_type_id(name, reminder_days)")
     .order("next_due_date", { ascending: true });
   if (error) throw error;
   return (data ?? []).map((row: any) => ({
@@ -210,17 +175,12 @@ export interface MaintenanceInput {
   next_due_date?: string | null;
 }
 
-export async function createMaintenance(
-  input: MaintenanceInput,
-): Promise<EquipmentMaintenance> {
+
+export async function createMaintenance(input: MaintenanceInput): Promise<EquipmentMaintenance> {
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id;
   if (!userId) throw new Error("Utilisateur non authentifié");
-  const { data, error } = await supabase
-    .from("equipment_maintenance")
-    .insert({ ...input, user_id: userId })
-    .select("*")
-    .single();
+  const { data, error } = await supabase.from("equipment_maintenance").insert({ ...input, user_id: userId }).select("*").single();
   if (error) throw error;
   return data as EquipmentMaintenance;
 }
@@ -255,33 +215,21 @@ export interface MaintenanceSchedule {
 }
 
 export async function listEquipmentTypes(): Promise<EquipmentType[]> {
-  const { data, error } = await supabase
-    .from("equipment_types")
-    .select("*")
-    .order("name");
+  const { data, error } = await supabase.from("equipment_types").select("*").order("name");
   if (error) throw error;
   return (data ?? []) as EquipmentType[];
 }
 
-export async function createEquipmentType(
-  name: string,
-): Promise<EquipmentType> {
+export async function createEquipmentType(name: string): Promise<EquipmentType> {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error("Utilisateur non authentifié");
-  const { data, error } = await supabase
-    .from("equipment_types")
-    .insert({ name: name.trim(), user_id: userData.user.id })
-    .select("*")
-    .single();
+  const { data, error } = await supabase.from("equipment_types").insert({ name: name.trim(), user_id: userData.user.id }).select("*").single();
   if (error) throw error;
   return data as EquipmentType;
 }
 
 export async function listMaintenanceTypes(): Promise<MaintenanceType[]> {
-  const { data, error } = await supabase
-    .from("maintenance_types")
-    .select("*")
-    .order("name");
+  const { data, error } = await supabase.from("maintenance_types").select("*").order("name");
   if (error) throw error;
   return (data ?? []) as MaintenanceType[];
 }
@@ -317,30 +265,22 @@ export async function updateMaintenanceType(
 }
 
 export async function deleteMaintenanceType(id: string): Promise<void> {
-  const { error } = await supabase
-    .from("maintenance_types")
-    .delete()
-    .eq("id", id);
+  const { error } = await supabase.from("maintenance_types").delete().eq("id", id);
   if (error) throw error;
 }
 
-export async function listMaintenanceUsageCounts(): Promise<
-  Record<string, number>
-> {
+export async function listMaintenanceUsageCounts(): Promise<Record<string, number>> {
   const { data, error } = await supabase
     .from("equipment_type_maintenance_types")
     .select("maintenance_type_id");
   if (error) throw error;
   return (data ?? []).reduce<Record<string, number>>((counts, row) => {
-    counts[row.maintenance_type_id] =
-      (counts[row.maintenance_type_id] ?? 0) + 1;
+    counts[row.maintenance_type_id] = (counts[row.maintenance_type_id] ?? 0) + 1;
     return counts;
   }, {});
 }
 
-export async function listMaintenanceRuleIds(
-  equipmentTypeId: string,
-): Promise<string[]> {
+export async function listMaintenanceRuleIds(equipmentTypeId: string): Promise<string[]> {
   const { data, error } = await supabase
     .from("equipment_type_maintenance_types")
     .select("maintenance_type_id")
@@ -387,18 +327,12 @@ export async function setEquipmentTypeMaintenanceTypes(
   }
 }
 
-export async function syncEquipmentMaintenanceSchedules(
-  equipmentId: string,
-): Promise<void> {
-  const { error } = await supabase.rpc("sync_equipment_maintenance_schedules", {
-    p_equipment_id: equipmentId,
-  });
+export async function syncEquipmentMaintenanceSchedules(equipmentId: string): Promise<void> {
+  const { error } = await supabase.rpc("sync_equipment_maintenance_schedules", { p_equipment_id: equipmentId });
   if (error) throw error;
 }
 
-export async function listMaintenanceSchedules(
-  equipmentId?: string,
-): Promise<MaintenanceSchedule[]> {
+export async function listMaintenanceSchedules(equipmentId?: string): Promise<MaintenanceSchedule[]> {
   let query = supabase
     .from("equipment_maintenance_schedules")
     .select("*, maintenance_type:maintenance_type_id(name, reminder_days)")
