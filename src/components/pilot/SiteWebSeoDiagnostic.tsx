@@ -47,12 +47,16 @@ export function SiteWebSeoDiagnostic() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchUnavailable, setSearchUnavailable] = useState(false);
+  const [analyticsUnavailable, setAnalyticsUnavailable] = useState(false);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       setLoading(true);
       setError(null);
+      setSearchUnavailable(false);
+      setAnalyticsUnavailable(false);
       const searchResult = await querySearchConsole({
         siteUrl: SITE_URL,
         startDate: yearStart(),
@@ -61,6 +65,8 @@ export function SiteWebSeoDiagnostic() {
       });
       if (!active) return;
       if (searchResult.error) {
+        setSearchUnavailable(true);
+        setAnalyticsUnavailable(true);
         setError(searchResult.error);
         setLoading(false);
         return;
@@ -69,6 +75,12 @@ export function SiteWebSeoDiagnostic() {
 
       const propertiesResult = await listAnalyticsProperties();
       if (!active) return;
+      if (propertiesResult.error) {
+        setAnalyticsUnavailable(true);
+        setError(`Google Analytics 4 : ${propertiesResult.error}`);
+        setLoading(false);
+        return;
+      }
       const properties = propertiesResult.data?.properties ?? [];
       const selected =
         properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
@@ -83,7 +95,11 @@ export function SiteWebSeoDiagnostic() {
           dimensions: ["sessionDefaultChannelGroup"],
           metrics: ["sessions"],
         });
-        if (active && reportResult.data) {
+        if (active && reportResult.error) {
+          setAnalyticsUnavailable(true);
+          setError(`Google Analytics 4 : ${reportResult.error}`);
+        }
+        if (active && reportResult.data && !reportResult.error) {
           const report = reportResult.data as AnalyticsReport;
           setChannels(
             (report.rows ?? []).map((row) => ({
@@ -147,25 +163,25 @@ export function SiteWebSeoDiagnostic() {
         <Metric
           icon={Eye}
           label="Clics Google"
-          value={loading ? "…" : formatNumber(summary.totalClicks)}
+          value={loading ? "…" : searchUnavailable ? "—" : formatNumber(summary.totalClicks)}
           detail="trafic organique généré par les recherches"
         />
         <Metric
           icon={Crosshair}
           label="Requêtes visibles"
-          value={loading ? "…" : formatNumber(summary.queryCount)}
+          value={loading ? "…" : searchUnavailable ? "—" : formatNumber(summary.queryCount)}
           detail="requêtes ayant généré au moins une ligne Search Console"
         />
         <Metric
           icon={ShieldCheck}
           label="Clics depuis le top 10"
-          value={loading ? "…" : formatPercent(summary.top10ClickShare)}
+          value={loading ? "…" : searchUnavailable ? "—" : formatPercent(summary.top10ClickShare)}
           detail="part des clics provenant de positions 1 à 10"
         />
         <Metric
           icon={Users}
           label="Sessions SEO"
-          value={loading ? "…" : formatNumber(organicSessions)}
+          value={loading ? "…" : analyticsUnavailable ? "—" : formatNumber(organicSessions)}
           detail="sessions Analytics 4 attribuées à la recherche organique"
         />
       </div>
@@ -228,7 +244,7 @@ export function SiteWebSeoDiagnostic() {
             </p>
           </div>
           <Badge variant="outline" className="font-normal">
-            {formatNumber(summary.totalImpressions)} impressions
+            {loading || searchUnavailable ? "—" : `${formatNumber(summary.totalImpressions)} impressions`}
           </Badge>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
