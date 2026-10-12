@@ -85,7 +85,7 @@ export function SiteWebStatistics() {
       const [dailyResult, channelResult, landingResult, eventResult] = await Promise.all([
         runAnalyticsReport({
           propertyId, startDate, endDate, dimensions: ["date"],
-          metrics: ["sessions", "totalUsers", "screenPageViews", "engagementRate"],
+          metrics: ["sessions", "activeUsers", "screenPageViews", "engagementRate"],
         }),
         runAnalyticsReport({
           propertyId, startDate: shortStart, endDate, dimensions: ["sessionDefaultChannelGroup"],
