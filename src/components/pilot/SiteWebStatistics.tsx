@@ -21,13 +21,14 @@ export function SiteWebStatistics() {
   const [totals, setTotals] = useState({ users: 0, pageViews: 0, engagedSessions: 0, engagementRate: 0 });
   const [period, setPeriod] = useState("");
   const [checkedAt, setCheckedAt] = useState<string | null>(null);
+  const [summaryAvailable, setSummaryAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
-      setLoading(true); setError(null); setDaily([]); setPages([]); setCheckedAt(null);
+      setLoading(true); setError(null); setSummaryAvailable(false); setDaily([]); setPages([]); setCheckedAt(null);
       const end = new Date(Date.now() - 86400000);
       const start = new Date(end.getTime() - 29 * 86400000);
       const startDate = iso(start), endDate = iso(end);
@@ -46,6 +47,7 @@ export function SiteWebStatistics() {
       ]);
       if (!active) return;
       if (summary.error) { setError(`Google Analytics 4 : ${summary.error}`); setLoading(false); return; }
+      setSummaryAvailable(true);
       const metrics = ((summary.data as Report | null)?.rows ?? [])[0]?.metricValues ?? [];
       setTotals({ users: n(metrics[0]?.value), pageViews: n(metrics[1]?.value), engagedSessions: n(metrics[2]?.value), engagementRate: n(metrics[3]?.value) });
       if (!trend.error) setDaily(((trend.data as Report | null)?.rows ?? []).map(r => ({
@@ -73,10 +75,10 @@ export function SiteWebStatistics() {
     </Card>
     {error && <div role="status" className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span>{error}</span></div>}
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <Metric icon={Users} label="Utilisateurs" value={loading ? "…" : number(totals.users)} />
-      <Metric icon={Eye} label="Pages vues" value={loading ? "…" : number(totals.pageViews)} />
-      <Metric icon={Zap} label="Sessions avec engagement" value={loading ? "…" : number(totals.engagedSessions)} />
-      <Metric icon={BarChart3} label="Taux d’engagement" value={loading ? "…" : percent(totals.engagementRate)} />
+      <Metric icon={Users} label="Utilisateurs" value={loading ? "…" : !summaryAvailable ? "—" : number(totals.users)} />
+      <Metric icon={Eye} label="Pages vues" value={loading ? "…" : !summaryAvailable ? "—" : number(totals.pageViews)} />
+      <Metric icon={Zap} label="Sessions avec engagement" value={loading ? "…" : !summaryAvailable ? "—" : number(totals.engagedSessions)} />
+      <Metric icon={BarChart3} label="Taux d’engagement" value={loading ? "…" : !summaryAvailable ? "—" : percent(totals.engagementRate)} />
     </div>
     <Card className="p-5"><h3 className="font-serif text-base font-semibold">Évolution quotidienne</h3><p className="mt-1 text-sm text-muted-foreground">Utilisateurs et pages vues par jour, selon GA4.</p>
       <div className="mt-4 h-72">{loading ? <Empty>Lecture des données GA4…</Empty> : !chart.length ? <Empty>Aucune série quotidienne disponible pour cette période.</Empty> :
