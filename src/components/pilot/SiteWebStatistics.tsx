@@ -19,10 +19,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { friendlyConnectionError } from "@/components/pilot/SiteWebGoogleConnection";
-import {
-  listAnalyticsProperties,
-  runAnalyticsReport,
-} from "@/lib/site-web-api";
+import { listAnalyticsProperties, runAnalyticsReport } from "@/lib/site-web-api";
 
 type Property = {
   name: string;
