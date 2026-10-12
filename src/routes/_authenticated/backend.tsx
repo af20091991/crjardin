@@ -11,6 +11,7 @@ import {
   History,
   LayoutTemplate,
   Database,
+  Archive,
   ChevronRight,
 } from "lucide-react";
 import { APP_NAME, APP_VERSION } from "@/lib/app-meta";
@@ -33,6 +34,12 @@ const SECTIONS: Section[] = [
     label: "Utilisateurs & accès",
     description: "Comptes, rôles, approbations et journaux de connexion.",
     icon: Users,
+  },
+  {
+    to: "/backup-pp-ca",
+    label: "Backup PP CA",
+    description: "Sauvegarde Excel hebdomadaire de la page Chiffre d'affaires (toutes les années).",
+    icon: Archive,
   },
   {
     to: "/modeles",

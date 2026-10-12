@@ -26,7 +26,6 @@ import { toCsv, downloadCsv } from "@/lib/csv";
 import { AdminStatsDashboard } from "@/components/admin/AdminStatsDashboard";
 import { UserDetailDialog } from "@/components/admin/UserDetailDialog";
 import { EmailTemplateEditor } from "@/components/EmailTemplateEditor";
-import { CaBackupCard } from "@/components/admin/CaBackupCard";
 import {
   Select,
   SelectContent,
@@ -341,8 +340,6 @@ function AdminPage() {
             </Button>
           </CardContent>
         </Card>
-
-        <CaBackupCard />
 
         <EmailTemplateEditor />
 

@@ -23,6 +23,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-12",
+    version: "2.3.63",
+    theme: "Général",
+    title: "Backup PP CA — page dédiée dans Configuration → Administration",
+    details: [
+      "Le Backup PP CA a sa propre page, accessible depuis Configuration → Administration → Backup PP CA.",
+    ],
+  },
+  {
     date: "2026-10-11",
     version: "2.3.62",
     theme: "Général",
