@@ -6,6 +6,7 @@ import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnect
 import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
 import { SiteWebSeoDiagnostic } from "@/components/pilot/SiteWebSeoDiagnostic";
 import { SiteWebSynthesis } from "@/components/pilot/SiteWebSynthesis";
+import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
 import { SiteWebTechnicalGeo } from "@/components/pilot/SiteWebTechnicalGeo";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
 import { SiteWebWordPress } from "@/components/pilot/SiteWebWordPress";
@@ -68,6 +69,8 @@ export function SiteWebDashboard() {
       </nav>
 
       {activeView === "synthesis" && <SiteWebSynthesis />}
+
+      {activeView === "audience" && <SiteWebStatistics />}
 
       {activeView === "seo" && (
         <div className="space-y-5">
