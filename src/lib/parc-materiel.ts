@@ -1,7 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type EquipmentCategory = "vehicule" | "engin" | "batterie" | "smartphone" | "autre";
-export type EquipmentStatus = "en_service" | "en_panne" | "en_reparation" | "hors_service" | "vendu";
+export type EquipmentStatus =
+  | "en_service"
+  | "en_panne"
+  | "en_reparation"
+  | "hors_service"
+  | "vendu";
 
 export const EQUIPMENT_CATEGORY_LABELS: Record<EquipmentCategory, string> = {
   vehicule: "Véhicule",
@@ -153,7 +158,10 @@ export async function listMaintenanceFor(equipmentId: string): Promise<Equipment
   return (data ?? []) as EquipmentMaintenance[];
 }
 
-/** Toutes les échéances d'entretien à venir/en retard, tous équipements confondus (pour la vue d'ensemble). */
+/**
+ * Toutes les échéances d'entretien à venir/en retard, tous équipements confondus
+ * (pour la vue d'ensemble).
+ */
 export async function listUpcomingMaintenance(): Promise<
   (MaintenanceSchedule & { equipment_name: string })[]
 > {
@@ -179,7 +187,6 @@ export interface MaintenanceInput {
   cost?: number | null;
   next_due_date?: string | null;
 }
-
 
 export async function createMaintenance(input: MaintenanceInput): Promise<EquipmentMaintenance> {
   const { data: userData } = await supabase.auth.getUser();
