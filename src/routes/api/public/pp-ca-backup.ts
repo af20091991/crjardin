@@ -37,6 +37,14 @@ export const Route = createFileRoute("/api/public/pp-ca-backup")({
         if (keyErr) return Response.json({ error: "not configured" }, { status: 503 });
         if (allowed !== true) return Response.json({ error: "unauthorized" }, { status: 401 });
 
+        // Lancement à la demande (clé valide requise) : ignore le créneau et l'idempotence.
+        const force = request.headers.get("x-pp-backup-force") === "1";
+        if (force) {
+          const { runCaBackup } = await import("@/lib/pp-ca-backup.server");
+          const forced = await runCaBackup("manual", null);
+          return Response.json(forced, { status: forced.ok ? 200 : 500 });
+        }
+
         const now = new Date();
         const { weekday, hour } = parisNow(now);
         if (weekday !== "Sun" || hour !== "03") {

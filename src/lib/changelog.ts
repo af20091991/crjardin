@@ -24,6 +24,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-12",
+    version: "2.3.66",
+    theme: "Général",
+    title: "Backup PP CA — lancement à la demande sécurisé",
+    details: [
+      "Le point d'appel du backup accepte un lancement immédiat, protégé par la même clé secrète que la planification.",
+    ],
+  },
+  {
+    date: "2026-10-12",
     version: "2.3.65",
     theme: "Général",
     title: "Site web — données indisponibles sans faux zéros",
