@@ -76,6 +76,7 @@ const asNumber = (value?: string) => {
 };
 const errorMessage = (error: string) => friendlyConnectionError(error) ?? error;
 
+// prettier-ignore
 export function SiteWebStatistics() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [propertyId, setPropertyId] = useState("");
@@ -494,6 +495,7 @@ export function SiteWebStatistics() {
   );
 }
 
+// prettier-ignore
 function Kpi({
   icon: Icon,
   label,
@@ -525,6 +527,7 @@ function Kpi({
   );
 }
 
+// prettier-ignore
 function RankedCard({
   title,
   description,
@@ -565,6 +568,7 @@ function RankedCard({
   );
 }
 
+// prettier-ignore
 function SourceError({ title, code }: { title: string; code: string }) {
   return (
     <Card className="border-destructive/30 bg-destructive/5 p-4">
