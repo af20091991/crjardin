@@ -132,7 +132,7 @@ export function SiteWebStatistics() {
       const [dailyResult, channelResult, landingResult, eventResult] =
         await Promise.all([
           runAnalyticsReport({
-            propertyId,
+            propertyId: reportPropertyId,
             startDate,
             endDate,
             dimensions: ["date"],
@@ -144,21 +144,21 @@ export function SiteWebStatistics() {
             ],
           }),
           runAnalyticsReport({
-            propertyId,
+            propertyId: reportPropertyId,
             startDate: shortStart,
             endDate,
             dimensions: ["sessionDefaultChannelGroup"],
             metrics: ["sessions"],
           }),
           runAnalyticsReport({
-            propertyId,
+            propertyId: reportPropertyId,
             startDate: shortStart,
             endDate,
             dimensions: ["landingPagePlusQueryString"],
             metrics: ["sessions"],
           }),
           runAnalyticsReport({
-            propertyId,
+            propertyId: reportPropertyId,
             startDate: shortStart,
             endDate,
             dimensions: ["eventName"],
