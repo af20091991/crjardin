@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-12",
+    version: "2.3.65",
+    theme: "Général",
+    title: "Site web — données indisponibles sans faux zéros",
+    details: [
+      "Les onglets Statistiques et SEO & mots-clés affichent un tiret lorsque la source échoue, au lieu de présenter un zéro comme une mesure réelle.",
+      "Les indisponibilités Search Console et Analytics 4 sont distinguées ; les données réellement mesurées à zéro restent affichées comme zéro.",
+    ],
+  },
+  {
+    date: "2026-10-12",
     version: "2.3.64",
     theme: "Général",
     title: "Site web — statistiques d’audience GA4",
