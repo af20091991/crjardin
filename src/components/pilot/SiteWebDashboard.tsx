@@ -5,6 +5,7 @@ import { SiteWebCompetitorWatch } from "@/components/pilot/SiteWebCompetitorWatc
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
 import { SiteWebSeoDiagnostic } from "@/components/pilot/SiteWebSeoDiagnostic";
+import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
 import { SiteWebSynthesis } from "@/components/pilot/SiteWebSynthesis";
 import { SiteWebTechnicalGeo } from "@/components/pilot/SiteWebTechnicalGeo";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
@@ -41,10 +42,7 @@ export function SiteWebDashboard() {
 
       <SiteWebGoogleConnection />
 
-      <nav
-        aria-label="Navigation Site web"
-        className="flex gap-1 overflow-x-auto border-b border-border pb-1"
-      >
+      <nav aria-label="Navigation Site web" className="flex gap-1 overflow-x-auto border-b border-border pb-1">
         {moduleViews.map((view) => {
           const Icon = view.icon;
           const active = activeView === view.id;
@@ -55,9 +53,7 @@ export function SiteWebDashboard() {
               aria-current={active ? "page" : undefined}
               onClick={() => setActiveView(view.id)}
               className={`inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-medium transition-colors ${
-                active
-                  ? "border-b-2 border-primary text-foreground"
-                  : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                active ? "border-b-2 border-primary text-foreground" : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -81,6 +77,8 @@ export function SiteWebDashboard() {
           <SiteWebViewContent showConnection={false} />
         </div>
       )}
+
+      {activeView === "audience" && <SiteWebStatistics />}
 
       {activeView === "local" && (
         <div className="space-y-5">

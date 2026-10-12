@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-12",
+    version: "2.3.64",
+    theme: "Général",
+    title: "Site web — statistiques d’audience GA4",
+    details: [
+      "L’onglet Statistiques présente les utilisateurs, pages vues, sessions avec engagement, taux d’engagement, l’évolution quotidienne et les pages les plus consultées à partir de Google Analytics 4.",
+      "Les données indisponibles restent signalées comme telles ; les statistiques d’audience sont distinguées des clics SEO et des demandes commerciales.",
+    ],
+  },
+  {
+    date: "2026-10-12",
     version: "2.3.63",
     theme: "Général",
     title: "Backup PP CA — page dédiée dans Configuration → Administration",
