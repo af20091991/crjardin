@@ -1,7 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type EquipmentCategory = "vehicule" | "engin" | "batterie" | "smartphone" | "autre";
-export type EquipmentStatus = "en_service" | "en_panne" | "en_reparation" | "hors_service" | "vendu";
+export type EquipmentStatus =
+  | "en_service"
+  | "en_panne"
+  | "en_reparation"
+  | "hors_service"
+  | "vendu";
 
 export const EQUIPMENT_CATEGORY_LABELS: Record<EquipmentCategory, string> = {
   vehicule: "Véhicule",
@@ -156,7 +161,9 @@ export async function listUpcomingMaintenance(): Promise<
 > {
   const { data, error } = await supabase
     .from("equipment_maintenance_schedules")
-    .select("*, equipment:equipment_id(name), maintenance_type:maintenance_type_id(name, reminder_days)")
+    .select(
+      "*, equipment:equipment_id(name), maintenance_type:maintenance_type_id(name, reminder_days)",
+    )
     .order("next_due_date", { ascending: true });
   if (error) throw error;
   return (data ?? []).map((row: any) => ({
@@ -175,12 +182,15 @@ export interface MaintenanceInput {
   next_due_date?: string | null;
 }
 
-
 export async function createMaintenance(input: MaintenanceInput): Promise<EquipmentMaintenance> {
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id;
   if (!userId) throw new Error("Utilisateur non authentifié");
-  const { data, error } = await supabase.from("equipment_maintenance").insert({ ...input, user_id: userId }).select("*").single();
+  const { data, error } = await supabase
+    .from("equipment_maintenance")
+    .insert({ ...input, user_id: userId })
+    .select("*")
+    .single();
   if (error) throw error;
   return data as EquipmentMaintenance;
 }
@@ -223,7 +233,11 @@ export async function listEquipmentTypes(): Promise<EquipmentType[]> {
 export async function createEquipmentType(name: string): Promise<EquipmentType> {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) throw new Error("Utilisateur non authentifié");
-  const { data, error } = await supabase.from("equipment_types").insert({ name: name.trim(), user_id: userData.user.id }).select("*").single();
+  const { data, error } = await supabase
+    .from("equipment_types")
+    .insert({ name: name.trim(), user_id: userData.user.id })
+    .select("*")
+    .single();
   if (error) throw error;
   return data as EquipmentType;
 }
@@ -328,11 +342,15 @@ export async function setEquipmentTypeMaintenanceTypes(
 }
 
 export async function syncEquipmentMaintenanceSchedules(equipmentId: string): Promise<void> {
-  const { error } = await supabase.rpc("sync_equipment_maintenance_schedules", { p_equipment_id: equipmentId });
+  const { error } = await supabase.rpc("sync_equipment_maintenance_schedules", {
+    p_equipment_id: equipmentId,
+  });
   if (error) throw error;
 }
 
-export async function listMaintenanceSchedules(equipmentId?: string): Promise<MaintenanceSchedule[]> {
+export async function listMaintenanceSchedules(
+  equipmentId?: string,
+): Promise<MaintenanceSchedule[]> {
   let query = supabase
     .from("equipment_maintenance_schedules")
     .select("*, maintenance_type:maintenance_type_id(name, reminder_days)")
