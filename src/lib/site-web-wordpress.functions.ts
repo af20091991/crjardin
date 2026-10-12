@@ -198,28 +198,19 @@ export const getWordPressOverview = createServerFn({ method: "POST" })
       root.body && typeof root.body === "object"
         ? (root.body as { name?: string; description?: string })
         : null;
-    const reachable = Boolean(root.response?.ok && rootBody);
-
+    // Certains hébergeurs/WAF bloquent l'index /wp-json/ tout en laissant
+    // accessibles les endpoints publics des articles et des pages. On vérifie
+    // donc les collections même si la racine REST ne renvoie pas un index JSON.
     const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-    const notDetected: WordPressCollection = {
-      total: null,
-      items: [],
-      error: root.error ?? "API REST WordPress non détectée sur ce site.",
-    };
-    let posts: WordPressCollection = notDetected;
-    let pages: WordPressCollection = notDetected;
-    let core: WordPressCoreInfo = {
-      installedVersion: null,
-      latestVersion: null,
-      updateAvailable: null,
-    };
-    if (reachable) {
-      posts = await loadCollection("posts");
+    const [posts, pages] = await (async () => {
+      const postsResult = await loadCollection("posts");
       await delay(250);
-      pages = await loadCollection("pages");
-      await delay(250);
-      core = await loadCoreInfo(reachable);
-    }
+      const pagesResult = await loadCollection("pages");
+      return [postsResult, pagesResult] as const;
+    })();
+    const collectionsReachable = !posts.error || !pages.error;
+    const reachable = Boolean(root.response?.ok && rootBody) || collectionsReachable;
+    const core = await loadCoreInfo(reachable);
 
     return {
       siteUrl: WORDPRESS_SITE_URL,
