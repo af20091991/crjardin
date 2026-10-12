@@ -76,7 +76,6 @@ const asNumber = (value?: string) => {
 };
 const errorMessage = (error: string) => friendlyConnectionError(error) ?? error;
 
-// prettier-ignore
 export function SiteWebStatistics() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [propertyId, setPropertyId] = useState("");
@@ -252,6 +251,7 @@ export function SiteWebStatistics() {
     properties.find((item) => item.name === propertyId)?.displayName ??
     propertyId;
 
+  // prettier-ignore
   return (
     <div className="space-y-5">
       <Card className="p-5">
@@ -495,7 +495,6 @@ export function SiteWebStatistics() {
   );
 }
 
-// prettier-ignore
 function Kpi({
   icon: Icon,
   label,
@@ -507,6 +506,7 @@ function Kpi({
   value: string;
   detail: string;
 }) {
+  // prettier-ignore
   return (
     <Card className="p-4">
       <div className="flex items-start gap-3">
@@ -527,7 +527,6 @@ function Kpi({
   );
 }
 
-// prettier-ignore
 function RankedCard({
   title,
   description,
@@ -541,6 +540,7 @@ function RankedCard({
   loading: boolean;
   empty: string;
 }) {
+  // prettier-ignore
   return (
     <Card className="p-5">
       <h3 className="font-serif text-base font-semibold">{title}</h3>
@@ -568,8 +568,8 @@ function RankedCard({
   );
 }
 
-// prettier-ignore
 function SourceError({ title, code }: { title: string; code: string }) {
+  // prettier-ignore
   return (
     <Card className="border-destructive/30 bg-destructive/5 p-4">
       <div className="flex items-start gap-3">
