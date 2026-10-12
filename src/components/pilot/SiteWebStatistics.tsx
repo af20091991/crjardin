@@ -125,7 +125,7 @@ export function SiteWebStatistics() {
     void (async () => {
       setLoadingReport(true);
       setReportError(null);
-      const reportPropertyId = propertyId.replace(/^properties\\//, "");
+      const reportPropertyId = propertyId.replace(/^properties\//, "");
       const startDate = daysAgo(90);
       const endDate = daysAgo(1);
       const shortStart = daysAgo(30);
