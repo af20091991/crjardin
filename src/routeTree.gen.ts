@@ -25,6 +25,7 @@ import { Route as AuthenticatedPilotRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedPersonnalisationRouteImport } from './routes/_authenticated/personnalisation'
 import { Route as AuthenticatedModelesRouteImport } from './routes/_authenticated/modeles'
 import { Route as AuthenticatedEmailsRouteImport } from './routes/_authenticated/emails'
+import { Route as AuthenticatedBackupPpCaRouteImport } from './routes/_authenticated/backup-pp-ca'
 import { Route as AuthenticatedBackendRouteImport } from './routes/_authenticated/backend'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedPilotIndexRouteImport } from './routes/_authenticated/pilot.index'
@@ -160,6 +161,11 @@ const AuthenticatedModelesRoute = AuthenticatedModelesRouteImport.update({
 const AuthenticatedEmailsRoute = AuthenticatedEmailsRouteImport.update({
   id: '/emails',
   path: '/emails',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBackupPpCaRoute = AuthenticatedBackupPpCaRouteImport.update({
+  id: '/backup-pp-ca',
+  path: '/backup-pp-ca',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBackendRoute = AuthenticatedBackendRouteImport.update({
@@ -485,6 +491,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/backend': typeof AuthenticatedBackendRoute
+  '/backup-pp-ca': typeof AuthenticatedBackupPpCaRoute
   '/emails': typeof AuthenticatedEmailsRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
@@ -556,6 +563,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/backend': typeof AuthenticatedBackendRoute
+  '/backup-pp-ca': typeof AuthenticatedBackupPpCaRoute
   '/emails': typeof AuthenticatedEmailsRoute
   '/modeles': typeof AuthenticatedModelesRoute
   '/personnalisation': typeof AuthenticatedPersonnalisationRoute
@@ -628,6 +636,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/backend': typeof AuthenticatedBackendRoute
+  '/_authenticated/backup-pp-ca': typeof AuthenticatedBackupPpCaRoute
   '/_authenticated/emails': typeof AuthenticatedEmailsRoute
   '/_authenticated/modeles': typeof AuthenticatedModelesRoute
   '/_authenticated/personnalisation': typeof AuthenticatedPersonnalisationRoute
@@ -703,6 +712,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/admin'
     | '/backend'
+    | '/backup-pp-ca'
     | '/emails'
     | '/modeles'
     | '/personnalisation'
@@ -774,6 +784,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/admin'
     | '/backend'
+    | '/backup-pp-ca'
     | '/emails'
     | '/modeles'
     | '/personnalisation'
@@ -845,6 +856,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/_authenticated/admin'
     | '/_authenticated/backend'
+    | '/_authenticated/backup-pp-ca'
     | '/_authenticated/emails'
     | '/_authenticated/modeles'
     | '/_authenticated/personnalisation'
@@ -1038,6 +1050,13 @@ declare module '@tanstack/react-router' {
       path: '/emails'
       fullPath: '/emails'
       preLoaderRoute: typeof AuthenticatedEmailsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/backup-pp-ca': {
+      id: '/_authenticated/backup-pp-ca'
+      path: '/backup-pp-ca'
+      fullPath: '/backup-pp-ca'
+      preLoaderRoute: typeof AuthenticatedBackupPpCaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/backend': {
@@ -1527,6 +1546,7 @@ const AuthenticatedPilotRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBackendRoute: typeof AuthenticatedBackendRoute
+  AuthenticatedBackupPpCaRoute: typeof AuthenticatedBackupPpCaRoute
   AuthenticatedEmailsRoute: typeof AuthenticatedEmailsRoute
   AuthenticatedModelesRoute: typeof AuthenticatedModelesRoute
   AuthenticatedPersonnalisationRoute: typeof AuthenticatedPersonnalisationRoute
@@ -1553,6 +1573,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedBackendRoute: AuthenticatedBackendRoute,
+  AuthenticatedBackupPpCaRoute: AuthenticatedBackupPpCaRoute,
   AuthenticatedEmailsRoute: AuthenticatedEmailsRoute,
   AuthenticatedModelesRoute: AuthenticatedModelesRoute,
   AuthenticatedPersonnalisationRoute: AuthenticatedPersonnalisationRoute,
