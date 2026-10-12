@@ -108,6 +108,9 @@ export function SiteWebSeoDiagnostic() {
             })),
           );
         }
+      } else {
+        setAnalyticsUnavailable(true);
+        setError("Aucune propriété Google Analytics 4 accessible avec la connexion actuelle.");
       }
       setLoading(false);
     };
