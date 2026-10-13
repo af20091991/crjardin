@@ -14,8 +14,8 @@ export type SortableColumn<Row> = {
 };
 
 const toneClasses: Record<ColumnTone, string> = {
-  positive: "text-emerald-700",
-  warning: "text-amber-700",
+  positive: "text-primary",
+  warning: "text-pp-mid",
   negative: "text-destructive",
   neutral: "",
 };
