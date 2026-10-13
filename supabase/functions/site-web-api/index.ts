@@ -163,7 +163,17 @@ const googleFetch = async (
   const headers = new Headers(init?.headers);
   headers.set("authorization", `Bearer ${accessToken}`);
   if (!headers.has("content-type") && init?.body) headers.set("content-type", "application/json");
-  return fetch(input, { ...init, headers });
+  const response = await fetch(input, { ...init, headers });
+  // Date et résultat de la dernière lecture Google (jamais de jeton ni de contenu).
+  await supabaseAdmin
+    .from("site_web_connections")
+    .update({
+      last_sync_at: new Date().toISOString(),
+      last_sync_status: response.ok ? "ok" : `http_${response.status}`,
+    })
+    .eq("user_id", userId)
+    .eq("provider", provider);
+  return response;
 };
 
 const googleError = async (response: Response) => {

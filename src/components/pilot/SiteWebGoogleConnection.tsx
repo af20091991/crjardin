@@ -66,6 +66,7 @@ export function SiteWebGoogleConnection() {
     google_analytics_4: "disconnected",
     google_business_profile: "disconnected",
   });
+  const [lastSync, setLastSync] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,6 +79,7 @@ export function SiteWebGoogleConnection() {
           id,
           status: result.error ? "error" : (result.data?.status ?? "disconnected"),
           error: result.error,
+          lastSyncAt: result.data?.last_sync_at ?? null,
         };
       }),
     );
@@ -91,6 +93,11 @@ export function SiteWebGoogleConnection() {
       };
     });
 
+    setLastSync(
+      Object.fromEntries(
+        results.map((r) => [r.id, "lastSyncAt" in r ? (r.lastSyncAt as string | null) : null]),
+      ),
+    );
     setStatus(
       Object.fromEntries(
         results.map(({ id, status: providerStatus }) => [id, providerStatus]),
@@ -220,6 +227,11 @@ export function SiteWebGoogleConnection() {
               )}
               {label}
               {isConnected ? " · connectée" : errored ? " · erreur" : " · non connectée"}
+              {lastSync[id]
+                ? ` · dernière lecture ${new Date(lastSync[id] as string).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}`
+                : isConnected
+                  ? " · aucune lecture enregistrée"
+                  : ""}
             </span>
           );
         })}
