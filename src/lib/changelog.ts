@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-13",
+    version: "2.3.68",
+    theme: "Général",
+    title: "Site web — sécurité des connexions Google",
+    details: [
+      "Les jetons Google ne sont plus accessibles qu’à la fonction serveur ; les accès directs depuis le navigateur sont retirés.",
+      "Le site et la propriété GA4 par défaut sont définis en un seul endroit.",
+    ],
+  },
+  {
+    date: "2026-10-13",
     version: "2.3.67",
     theme: "Général",
     title: "Site web — statistiques comparées et module assaini",

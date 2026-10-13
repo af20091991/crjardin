@@ -76,6 +76,12 @@ import {
   runAnalyticsReport,
   type SiteWebProvider,
 } from "@/lib/site-web-api";
+import {
+  readSavedGa4Property,
+  SITE_WEB_DEFAULT_GA4_PROPERTY_ID,
+  SITE_WEB_SITE_URL as SITE_URL,
+} from "@/lib/site-web-config";
+import { pickProperty } from "@/lib/site-web-statistics";
 
 export const Route = createFileRoute("/_authenticated/pilot/dashboard")({
   head: () => ({
@@ -116,8 +122,6 @@ type SiteSnapshot = {
   errors: Partial<Record<SiteWebProvider | "analytics", string>>;
 };
 
-const SITE_URL = "https://www.delagraineaujardin.com/";
-const PREFERRED_GA4_PROPERTY_ID = "159443253";
 const LOCAL_TERMS = [
   "montpellier",
   "castelnau",
@@ -1431,10 +1435,11 @@ async function loadAnalyticsSessions(
   const propertiesResult = await listAnalyticsProperties();
   if (propertiesResult.error) return { sessions: null, error: propertiesResult.error };
   const properties = propertiesResult.data?.properties ?? [];
-  const selected =
-    properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
-    properties.find((item) => item.name === PREFERRED_GA4_PROPERTY_ID) ??
-    properties[0];
+  const selected = pickProperty(
+    properties,
+    readSavedGa4Property(),
+    SITE_WEB_DEFAULT_GA4_PROPERTY_ID,
+  );
   if (!selected)
     return { sessions: null, error: "Aucune propriété Google Analytics 4 accessible." };
   const reportResult = await runAnalyticsReport({

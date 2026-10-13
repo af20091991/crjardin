@@ -4,8 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { listAnalyticsProperties, runAnalyticsReport } from "@/lib/site-web-api";
+import { readSavedGa4Property, SITE_WEB_DEFAULT_GA4_PROPERTY_ID } from "@/lib/site-web-config";
+import { pickProperty } from "@/lib/site-web-statistics";
 
-const PREFERRED_GA4_PROPERTY_ID = "159443253";
 const CONTACT_EVENT_PATTERN =
   /generate_lead|form_submit|contact_form|contact_submit|click_to_call|phone_click|email_click|appointment|book_appointment|request_quote|quote_request/i;
 
@@ -37,10 +38,11 @@ export function SiteWebCommercialEvents() {
     }
 
     const properties = propertiesResult.data?.properties ?? [];
-    const selected =
-      properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
-      properties.find((item) => item.name === PREFERRED_GA4_PROPERTY_ID) ??
-      properties[0];
+    const selected = pickProperty(
+      properties,
+      readSavedGa4Property(),
+      SITE_WEB_DEFAULT_GA4_PROPERTY_ID,
+    );
     if (!selected) {
       setError("Aucune propriété Google Analytics 4 accessible.");
       setLoading(false);

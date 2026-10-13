@@ -9,9 +9,12 @@ import {
   querySearchConsole,
   runAnalyticsReport,
 } from "@/lib/site-web-api";
-
-const SITE_URL = "https://www.delagraineaujardin.com/";
-const PREFERRED_GA4_PROPERTY_ID = "159443253";
+import {
+  readSavedGa4Property,
+  SITE_WEB_DEFAULT_GA4_PROPERTY_ID,
+  SITE_WEB_SITE_URL as SITE_URL,
+} from "@/lib/site-web-config";
+import { pickProperty } from "@/lib/site-web-statistics";
 
 type SearchRow = {
   keys?: string[];
@@ -117,10 +120,11 @@ export function SiteWebSynthesis() {
       errors.push("Google Analytics 4");
     } else {
       const properties = propertiesResult.data?.properties ?? [];
-      const selected =
-        properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
-        properties.find((item) => item.name === PREFERRED_GA4_PROPERTY_ID) ??
-        properties[0];
+      const selected = pickProperty(
+        properties,
+        readSavedGa4Property(),
+        SITE_WEB_DEFAULT_GA4_PROPERTY_ID,
+      );
       if (!selected) {
         errors.push("Google Analytics 4");
       } else {

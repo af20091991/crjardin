@@ -48,11 +48,11 @@ describe("site-web-statistics", () => {
     expect(previous).toEqual({ startDate: "2026-08-14", endDate: "2026-09-12" });
   });
 
-  test("pickProperty ne devine pas entre plusieurs propriétés", () => {
+  test("pickProperty : choix mémorisé, puis défaut, puis première propriété", () => {
     const props = [{ name: "properties/1" }, { name: "properties/2" }];
-    expect(pickProperty(props, null)).toBeNull();
-    expect(pickProperty(props, "2")?.name).toBe("properties/2");
-    expect(pickProperty([props[0]], null)?.name).toBe("properties/1");
-    expect(pickProperty([], null)).toBeNull();
+    expect(pickProperty(props, "2", "1")?.name).toBe("properties/2");
+    expect(pickProperty(props, null, "2")?.name).toBe("properties/2");
+    expect(pickProperty(props, "9", "8")?.name).toBe("properties/1");
+    expect(pickProperty([], null, "1")).toBeNull();
   });
 });

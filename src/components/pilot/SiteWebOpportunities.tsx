@@ -5,8 +5,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { Lightbulb } from "lucide-react";
 import { querySearchConsole } from "@/lib/site-web-api";
-
-const SITE_URL = "https://www.delagraineaujardin.com/";
+import { SITE_WEB_SITE_URL as SITE_URL } from "@/lib/site-web-config";
 
 type QueryRow = {
   keys?: string[];

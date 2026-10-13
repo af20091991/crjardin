@@ -7,9 +7,12 @@ import {
   querySearchConsole,
   runAnalyticsReport,
 } from "@/lib/site-web-api";
-
-const SITE_URL = "https://www.delagraineaujardin.com/";
-const PREFERRED_GA4_PROPERTY_ID = "159443253";
+import {
+  readSavedGa4Property,
+  SITE_WEB_DEFAULT_GA4_PROPERTY_ID,
+  SITE_WEB_SITE_URL as SITE_URL,
+} from "@/lib/site-web-config";
+import { pickProperty } from "@/lib/site-web-statistics";
 
 type SearchTotals = { clicks: number; impressions: number; position: number };
 type Ga4Totals = { sessions: number };
@@ -81,9 +84,11 @@ export function SiteWebTodaySummary({ onOpenOpportunities }: { onOpenOpportuniti
       if (!active) return;
       if (!propertiesResult.error) {
         const properties = propertiesResult.data?.properties ?? [];
-        const selected =
-          properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
-          properties[0];
+        const selected = pickProperty(
+          properties,
+          readSavedGa4Property(),
+          SITE_WEB_DEFAULT_GA4_PROPERTY_ID,
+        );
         if (selected) {
           const propertyId = selected.name.replace(/^properties\//, "");
           const reportResult = await runAnalyticsReport({

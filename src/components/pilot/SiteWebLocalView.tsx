@@ -14,6 +14,7 @@ import {
   listBusinessProfileLocations,
   querySearchConsole,
 } from "@/lib/site-web-api";
+import { SITE_WEB_SITE_HOST, SITE_WEB_SITE_URL as SITE_URL } from "@/lib/site-web-config";
 
 type SearchRow = {
   keys?: string[];
@@ -39,7 +40,6 @@ type BusinessPerformance = {
 
 type BusinessSeriesRow = Record<string, number>;
 
-const SITE_URL = "https://www.delagraineaujardin.com/";
 const FAVORITES_STORAGE_KEY = "site-web:local-favoris";
 const TOP_QUERIES_LIMIT = 15;
 const FAVORITES_PICKER_LIMIT = 40;
@@ -162,7 +162,7 @@ export function SiteWebLocalView() {
 
       const location =
         locationsResult.data?.locations?.find((item) =>
-          item.websiteUri?.includes("delagraineaujardin.com"),
+          item.websiteUri?.includes(SITE_WEB_SITE_HOST),
         ) ?? locationsResult.data?.locations?.[0];
 
       if (!location?.name) {
