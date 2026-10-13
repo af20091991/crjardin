@@ -63,8 +63,7 @@ export function currentValue(
   const { purchase_cost, purchase_date, amortization_years } = equipment;
   if (!purchase_cost || !purchase_date || !amortization_years || amortization_years <= 0)
     return null;
-  const years =
-    (Date.now() - new Date(purchase_date).getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  const years = (Date.now() - new Date(purchase_date).getTime()) / (1000 * 60 * 60 * 24 * 365.25);
   const remaining = 1 - Math.min(Math.max(years, 0), amortization_years) / amortization_years;
   return Math.round(purchase_cost * remaining * 100) / 100;
 }
@@ -156,10 +155,7 @@ export async function listMaintenanceFor(equipmentId: string): Promise<Equipment
   return (data ?? []) as EquipmentMaintenance[];
 }
 
-/**
- * Toutes les échéances d'entretien à venir/en retard, tous équipements confondus
- * (pour la vue d'ensemble).
- */
+/** Toutes les échéances d'entretien à venir/en retard, tous équipements confondus (pour la vue d'ensemble). */
 export async function listUpcomingMaintenance(): Promise<
   (MaintenanceSchedule & { equipment_name: string })[]
 > {
@@ -229,10 +225,7 @@ export interface MaintenanceSchedule {
 }
 
 export async function listEquipmentTypes(): Promise<EquipmentType[]> {
-  const { data, error } = await supabase
-    .from("equipment_types")
-    .select("*")
-    .order("name");
+  const { data, error } = await supabase.from("equipment_types").select("*").order("name");
   if (error) throw error;
   return (data ?? []) as EquipmentType[];
 }
@@ -250,10 +243,7 @@ export async function createEquipmentType(name: string): Promise<EquipmentType> 
 }
 
 export async function listMaintenanceTypes(): Promise<MaintenanceType[]> {
-  const { data, error } = await supabase
-    .from("maintenance_types")
-    .select("*")
-    .order("name");
+  const { data, error } = await supabase.from("maintenance_types").select("*").order("name");
   if (error) throw error;
   return (data ?? []) as MaintenanceType[];
 }
@@ -327,15 +317,13 @@ export async function setEquipmentTypeMaintenanceTypes(
     .eq("user_id", userId);
   if (deleteError) throw deleteError;
   if (maintenanceTypeIds.length) {
-    const { error } = await supabase
-      .from("equipment_type_maintenance_types")
-      .insert(
-        maintenanceTypeIds.map((maintenanceTypeId) => ({
-          equipment_type_id: equipmentTypeId,
-          maintenance_type_id: maintenanceTypeId,
-          user_id: userId,
-        })),
-      );
+    const { error } = await supabase.from("equipment_type_maintenance_types").insert(
+      maintenanceTypeIds.map((maintenanceTypeId) => ({
+        equipment_type_id: equipmentTypeId,
+        maintenance_type_id: maintenanceTypeId,
+        user_id: userId,
+      })),
+    );
     if (error) throw error;
   }
 
