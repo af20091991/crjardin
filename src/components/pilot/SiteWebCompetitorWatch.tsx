@@ -148,7 +148,7 @@ export function SiteWebCompetitorWatch() {
               {c.lastCheck ? (
                 <>
                   {c.lastCheck.error && (
-                    <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-600">
+                    <p className="mt-2 flex items-start gap-1.5 text-xs text-pp-mid">
                       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                       <span>{friendlyCheckError(c.lastCheck.error)}</span>
                     </p>
@@ -176,7 +176,7 @@ export function SiteWebCompetitorWatch() {
                     />
                     <Badge variant="outline" className="font-normal">
                       {c.lastCheck.ssl_ok ? (
-                        <ShieldCheck className="mr-1 h-3 w-3 text-emerald-600" />
+                        <ShieldCheck className="mr-1 h-3 w-3 text-primary" />
                       ) : (
                         <ShieldX className="mr-1 h-3 w-3 text-destructive" />
                       )}
@@ -196,7 +196,7 @@ export function SiteWebCompetitorWatch() {
                       {isCheckStale(c.lastCheck.checked_at) && (
                         <Badge
                           variant="outline"
-                          className="border-amber-500/40 font-normal text-amber-700"
+                          className="border-pp-mid/40 font-normal text-pp-mid"
                         >
                           À actualiser
                         </Badge>
@@ -256,15 +256,14 @@ function ScoreBadge({
   previous: number | null;
 }) {
   if (value == null) return null;
-  const tone =
-    value >= 90 ? "text-emerald-600" : value >= 50 ? "text-amber-600" : "text-destructive";
+  const tone = value >= 90 ? "text-primary" : value >= 50 ? "text-pp-mid" : "text-destructive";
   const delta = previous == null ? 0 : value - previous;
   return (
     <Badge variant="outline" className="font-normal">
       {label} <span className={`ml-1 font-semibold ${tone}`}>{value}</span>
       {delta !== 0 && (
         <span
-          className={`ml-1 ${delta > 0 ? "text-emerald-600" : "text-destructive"}`}
+          className={`ml-1 ${delta > 0 ? "text-primary" : "text-destructive"}`}
           title="Évolution depuis l'analyse précédente"
         >
           {delta > 0 ? `▲${delta}` : `▼${Math.abs(delta)}`}

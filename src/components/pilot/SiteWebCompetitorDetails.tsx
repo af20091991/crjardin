@@ -4,9 +4,9 @@ import type { CompetitorCheck } from "@/lib/site-web-competitors.functions";
 type Rating = "good" | "average" | "poor" | "neutral";
 
 const RATING_STYLE: Record<Rating, string> = {
-  good: "bg-emerald-500",
-  average: "bg-amber-500",
-  poor: "bg-red-500",
+  good: "bg-primary",
+  average: "bg-pp-mid",
+  poor: "bg-destructive",
   neutral: "bg-muted-foreground/40",
 };
 
@@ -127,10 +127,10 @@ export function SiteWebCompetitorDetails({ check }: { check: CompetitorCheck }) 
   return (
     <div className="mt-3 space-y-5 border-t border-border/60 pt-3">
       <p className="text-xs text-muted-foreground">
-        Pastille : <span className="text-emerald-600">verte = bon</span>,{" "}
-        <span className="text-amber-600">orange = à améliorer</span>,{" "}
-        <span className="text-red-600">rouge = faible</span>. Scores sur 100 : 90 et plus = bon, 50
-        à 89 = à améliorer, moins de 50 = faible. Mesures effectuées sur mobile.
+        Pastille : <span className="text-primary">verte = bon</span>,{" "}
+        <span className="text-pp-mid">orange = à améliorer</span>,{" "}
+        <span className="text-destructive">rouge = faible</span>. Scores sur 100 : 90 et plus = bon,
+        50 à 89 = à améliorer, moins de 50 = faible. Mesures effectuées sur mobile.
       </p>
 
       {metrics && (

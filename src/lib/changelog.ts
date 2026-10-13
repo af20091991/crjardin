@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-13",
+    version: "2.3.67",
+    theme: "Général",
+    title: "Site web — statistiques comparées et module assaini",
+    details: [
+      "L’onglet Statistiques compare chaque indicateur GA4 aux 30 jours précédents, uniquement lorsque la comparaison est possible.",
+      "La propriété GA4 n’est plus codée en dur : choix proposé si plusieurs propriétés sont accessibles.",
+      "Suppression des données de démonstration inutilisées et passage des couleurs du module aux jetons de la charte.",
+    ],
+  },
+  {
+    date: "2026-10-13",
     version: "2.3.66",
     theme: "Général",
     title: "Site web — date de dernière lecture Google",

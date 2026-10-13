@@ -164,7 +164,7 @@ export function SiteWebGoogleConnection() {
                 variant="outline"
                 className={
                   connected
-                    ? "border-emerald-500/40 bg-emerald-500/10 font-normal text-emerald-700"
+                    ? "border-primary/40 bg-primary/10 font-normal text-primary"
                     : hasConnectionError
                       ? "border-destructive/40 bg-destructive/10 font-normal text-destructive"
                       : "font-normal text-muted-foreground"
@@ -214,7 +214,7 @@ export function SiteWebGoogleConnection() {
               key={id}
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${
                 isConnected
-                  ? "bg-emerald-500/10 text-emerald-700"
+                  ? "bg-primary/10 text-primary"
                   : errored
                     ? "bg-destructive/10 text-destructive"
                     : "bg-muted/40 text-muted-foreground"
