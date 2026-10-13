@@ -23,6 +23,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-13",
+    version: "2.3.66",
+    theme: "Général",
+    title: "Site web — date de dernière lecture Google",
+    details: [
+      "La carte Sources Google indique la date de la dernière lecture réussie ou en échec de chaque source (Search Console, Analytics 4, Business Profile).",
+    ],
+  },
+  {
     date: "2026-10-12",
     version: "2.3.65",
     theme: "Général",
