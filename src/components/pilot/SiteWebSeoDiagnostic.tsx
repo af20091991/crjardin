@@ -30,9 +30,9 @@ import {
   type SeoQuery,
   type SeoQueryRow,
 } from "@/lib/site-web-seo-diagnostic";
-
-const SITE_URL = "https://www.delagraineaujardin.com/";
-const PREFERRED_GA4_PROPERTY_ID = "159443253";
+import { SITE_WEB_SITE_URL as SITE_URL } from "@/lib/site-web-config";
+import { readSavedGa4Property, SITE_WEB_DEFAULT_GA4_PROPERTY_ID } from "@/lib/site-web-config";
+import { pickProperty } from "@/lib/site-web-statistics";
 
 type AnalyticsRow = {
   dimensionValues?: Array<{ value?: string }>;
@@ -82,10 +82,11 @@ export function SiteWebSeoDiagnostic() {
         return;
       }
       const properties = propertiesResult.data?.properties ?? [];
-      const selected =
-        properties.find((item) => item.name === `properties/${PREFERRED_GA4_PROPERTY_ID}`) ??
-        properties.find((item) => item.name === PREFERRED_GA4_PROPERTY_ID) ??
-        properties[0];
+      const selected = pickProperty(
+        properties,
+        readSavedGa4Property(),
+        SITE_WEB_DEFAULT_GA4_PROPERTY_ID,
+      );
 
       if (selected) {
         const reportResult = await runAnalyticsReport({
@@ -247,7 +248,9 @@ export function SiteWebSeoDiagnostic() {
             </p>
           </div>
           <Badge variant="outline" className="font-normal">
-            {loading || searchUnavailable ? "—" : `${formatNumber(summary.totalImpressions)} impressions`}
+            {loading || searchUnavailable
+              ? "—"
+              : `${formatNumber(summary.totalImpressions)} impressions`}
           </Badge>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">

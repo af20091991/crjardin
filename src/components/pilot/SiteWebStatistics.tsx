@@ -10,6 +10,11 @@ import {
   YAxis,
 } from "@/components/ui/lazy-recharts";
 import { Card } from "@/components/ui/card";
+import {
+  readSavedGa4Property,
+  saveGa4Property,
+  SITE_WEB_DEFAULT_GA4_PROPERTY_ID,
+} from "@/lib/site-web-config";
 import { listAnalyticsProperties, runAnalyticsReport } from "@/lib/site-web-api";
 import {
   formatChange,
@@ -23,14 +28,6 @@ import {
   type GaReport,
 } from "@/lib/site-web-statistics";
 
-const PROPERTY_STORAGE_KEY = "pp-site-web-ga4-property";
-const readSavedProperty = () => {
-  try {
-    return window.localStorage.getItem(PROPERTY_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-};
 type Point = { date: string; users: number; pageViews: number };
 type Page = { path: string; pageViews: number; users: number };
 const n = (v?: string) => {
@@ -49,7 +46,7 @@ export function SiteWebStatistics() {
   const [totals, setTotals] = useState<AudienceTotals | null>(null);
   const [previousTotals, setPreviousTotals] = useState<AudienceTotals | null>(null);
   const [properties, setProperties] = useState<GaProperty[]>([]);
-  const [propertyId, setPropertyId] = useState<string | null>(readSavedProperty);
+  const [propertyId, setPropertyId] = useState<string | null>(readSavedGa4Property);
   const [period, setPeriod] = useState("");
   const [checkedAt, setCheckedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +78,7 @@ export function SiteWebStatistics() {
         setLoading(false);
         return;
       }
-      const property = pickProperty(available, propertyId);
+      const property = pickProperty(available, propertyId, SITE_WEB_DEFAULT_GA4_PROPERTY_ID);
       if (!property) {
         setError(
           "Plusieurs propriétés Google Analytics 4 sont accessibles : choisissez celle du site.",
@@ -155,11 +152,7 @@ export function SiteWebStatistics() {
   }, [propertyId]);
 
   const chooseProperty = (value: string) => {
-    try {
-      window.localStorage.setItem(PROPERTY_STORAGE_KEY, value);
-    } catch {
-      /* préférence facultative */
-    }
+    saveGa4Property(value);
     setPropertyId(value);
   };
   const summaryAvailable = totals !== null;
@@ -199,7 +192,7 @@ export function SiteWebStatistics() {
                 Propriété GA4{" "}
                 <select
                   className="ml-1 rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
-                  value={propertyId ?? ""}
+                  value={propertyId ?? SITE_WEB_DEFAULT_GA4_PROPERTY_ID}
                   onChange={(e) => chooseProperty(e.target.value)}
                 >
                   <option value="" disabled>

@@ -17,6 +17,7 @@ import {
   SiteWebGoogleConnection,
 } from "@/components/pilot/SiteWebGoogleConnection";
 import { querySearchConsole } from "@/lib/site-web-api";
+import { SITE_WEB_SITE_URL as SITE_URL } from "@/lib/site-web-config";
 
 type MetricKey = "clicks" | "impressions" | "position" | "ctr";
 
@@ -64,8 +65,6 @@ type SearchRow = {
   ctr?: number;
   position?: number;
 };
-
-const SITE_URL = "https://www.delagraineaujardin.com/";
 
 /**
  * Vue "Visibilité" (Search Console, sitewide). Anciennement un tableau brut
@@ -155,12 +154,21 @@ function VisibilityView() {
       <Card className="p-5">
         <div className="grid gap-5 sm:grid-cols-4">
           <Metric label="Clics" value={loading ? "…" : error ? "—" : formatNumber(totals.clicks)} />
-          <Metric label="Impressions" value={loading ? "…" : error ? "—" : formatNumber(totals.impressions)} />
+          <Metric
+            label="Impressions"
+            value={loading ? "…" : error ? "—" : formatNumber(totals.impressions)}
+          />
           <Metric label="CTR" value={loading ? "…" : error ? "—" : formatPercent(totals.ctr)} />
           <Metric
             label="Position moyenne"
             value={
-              loading ? "…" : error ? "—" : totals.position ? totals.position.toFixed(1).replace(".", ",") : "—"
+              loading
+                ? "…"
+                : error
+                  ? "—"
+                  : totals.position
+                    ? totals.position.toFixed(1).replace(".", ",")
+                    : "—"
             }
           />
         </div>
@@ -201,7 +209,11 @@ function VisibilityView() {
           {loading ? (
             <LoadingState />
           ) : error ? (
-            <EmptyState icon={Search} title="Données indisponibles après l’échec de la lecture Search Console." compact />
+            <EmptyState
+              icon={Search}
+              title="Données indisponibles après l’échec de la lecture Search Console."
+              compact
+            />
           ) : chartData.length === 0 ? (
             <EmptyState
               icon={Search}

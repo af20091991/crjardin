@@ -78,14 +78,15 @@ export function statisticsPeriods(now: Date = new Date()) {
 }
 
 /**
- * Choix de la propriété GA4 : la propriété mémorisée si elle est accessible, sinon la seule
- * propriété disponible. Avec plusieurs propriétés et aucun choix, `null` (l'utilisateur choisit).
+ * Choix de la propriété GA4 : choix mémorisé, sinon propriété par défaut du site si elle est
+ * accessible, sinon la première propriété accessible. `null` seulement si aucune n'est accessible.
  */
-export function pickProperty(properties: GaProperty[], savedId: string | null): GaProperty | null {
-  const normalize = (name: string) => name.replace(/^properties\//, "");
-  if (savedId) {
-    const saved = properties.find((p) => normalize(p.name) === savedId);
-    if (saved) return saved;
-  }
-  return properties.length === 1 ? properties[0] : null;
+export function pickProperty(
+  properties: GaProperty[],
+  savedId: string | null,
+  defaultId: string | null = null,
+): GaProperty | null {
+  const find = (id: string | null) =>
+    id ? properties.find((p) => p.name.replace(/^properties\//, "") === id) : undefined;
+  return find(savedId) ?? find(defaultId) ?? properties[0] ?? null;
 }
