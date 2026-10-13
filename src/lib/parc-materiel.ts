@@ -155,6 +155,12 @@ export async function listMaintenanceFor(equipmentId: string): Promise<Equipment
   return (data ?? []) as EquipmentMaintenance[];
 }
 
+/** Ligne brute de equipment_maintenance_schedules avec les jointures embarquées (avant aplatissement). */
+type ScheduleRow = Omit<MaintenanceSchedule, "maintenance_type_name" | "reminder_days"> & {
+  equipment?: { name: string | null } | null;
+  maintenance_type?: { name: string | null; reminder_days: number | null } | null;
+};
+
 /** Toutes les échéances d'entretien à venir/en retard, tous équipements confondus (pour la vue d'ensemble). */
 export async function listUpcomingMaintenance(): Promise<
   (MaintenanceSchedule & { equipment_name: string })[]
@@ -166,7 +172,7 @@ export async function listUpcomingMaintenance(): Promise<
     )
     .order("next_due_date", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((row: any) => ({
+  return ((data ?? []) as unknown as ScheduleRow[]).map((row) => ({
     ...row,
     equipment_name: row.equipment?.name ?? "—",
     maintenance_type_name: row.maintenance_type?.name ?? "Entretien",
@@ -356,7 +362,7 @@ export async function listMaintenanceSchedules(
   if (equipmentId) query = query.eq("equipment_id", equipmentId);
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).map((row: any) => ({
+  return ((data ?? []) as unknown as ScheduleRow[]).map((row) => ({
     ...row,
     maintenance_type_name: row.maintenance_type?.name ?? "Entretien",
     reminder_days: row.maintenance_type?.reminder_days ?? 14,
