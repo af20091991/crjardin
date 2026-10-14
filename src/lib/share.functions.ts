@@ -4,6 +4,16 @@ import { createClient } from "@supabase/supabase-js";
 import type { PremiumPlanningDb } from "@/lib/premium-planning-import.server";
 import type { Database } from "@/integrations/supabase/types";
 import { formatPremiumClientName } from "@/lib/premium-client-name";
+import {
+  CHAT_ATTACHMENTS_BUCKET,
+  CHAT_ATTACHMENT_MAX_BYTES,
+  CHAT_ATTACHMENT_MAX_FILES,
+  CHAT_ATTACHMENT_URL_TTL,
+  chatAttachmentPath,
+  resolveChatMime,
+  validateChatAttachment,
+  type ChatAttachmentMeta,
+} from "@/lib/message-attachments";
 
 export interface SharedTask {
   id: string;
