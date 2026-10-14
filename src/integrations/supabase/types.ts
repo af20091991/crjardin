@@ -797,11 +797,77 @@ export type Database = {
         }
         Relationships: []
       }
+      client_message_attachments: {
+        Row: {
+          client_id: string
+          created_at: string
+          filename: string
+          id: string
+          message_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          filename: string
+          id?: string
+          message_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          filename?: string
+          id?: string
+          message_id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_message_attachments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_message_attachments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_ca_orphans_report"
+            referencedColumns: ["best_candidate_id"]
+          },
+          {
+            foreignKeyName: "client_message_attachments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_service_gaps"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "client_message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "client_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_messages: {
         Row: {
           archived_at: string | null
           author_name: string | null
           client_id: string
+          client_request_id: string | null
           content: string
           created_at: string
           id: string
@@ -814,6 +880,7 @@ export type Database = {
           archived_at?: string | null
           author_name?: string | null
           client_id: string
+          client_request_id?: string | null
           content: string
           created_at?: string
           id?: string
@@ -826,6 +893,7 @@ export type Database = {
           archived_at?: string | null
           author_name?: string | null
           client_id?: string
+          client_request_id?: string | null
           content?: string
           created_at?: string
           id?: string
@@ -6057,6 +6125,18 @@ export type Database = {
         }
         Returns: string
       }
+      add_client_message_with_attachments: {
+        Args: {
+          p_attachments: Json
+          p_author_name: string
+          p_content: string
+          p_intervention_id: string
+          p_kind: string
+          p_request_id: string
+          p_token: string
+        }
+        Returns: string
+      }
       add_client_premium_document: {
         Args: {
           p_filename: string
@@ -6119,6 +6199,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_allowed_chat_attachment_mime: {
+        Args: { p_mime: string }
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
