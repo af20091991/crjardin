@@ -398,7 +398,8 @@ Deno.serve(async (req) => {
       const endDate = String(url.searchParams.get("endDate") ?? body.endDate ?? "");
       const dimensions = Array.isArray(body.dimensions) ? body.dimensions : [];
       const metrics = Array.isArray(body.metrics) ? body.metrics : [];
-      if (!propertyId || !startDate || !endDate || !dimensions.length || !metrics.length)
+      // Les totaux GA4 n'ont aucune dimension : seules les métriques sont obligatoires.
+      if (!propertyId || !startDate || !endDate || !metrics.length)
         return json({ error: "missing_analytics_report_parameters" }, 400);
       const response = await googleFetch(
         userId,

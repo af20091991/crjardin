@@ -23,6 +23,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-14",
+    version: "2.3.69",
+    theme: "Général",
+    title: "Site web — statistiques GA4 à nouveau lisibles",
+    details: [
+      "Correction de l’erreur « missing_analytics_report_parameters » : les totaux Analytics 4, sans dimension, sont de nouveau acceptés par la fonction serveur.",
+    ],
+  },
+  {
     date: "2026-10-13",
     version: "2.3.68",
     theme: "Général",
