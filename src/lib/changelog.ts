@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-14",
+    version: "2.3.70",
+    theme: "Général",
+    title: "Assistant AP — export des fournitures pour le fournisseur",
+    details: [
+      "Nouveau bouton « Exporter » dans la liste des fournitures d'un chantier.",
+      "Texte prêt à copier ou PDF : date du chantier, fournisseur, articles, quantités, livraison oui/non et date de livraison souhaitée.",
+      "Les articles pris en stock ou déjà OK sont décochés par défaut ; la sélection reste modifiable.",
+    ],
+  },
+  {
+    date: "2026-10-14",
     version: "2.3.69",
     theme: "Général",
     title: "Site web — statistiques GA4 à nouveau lisibles",

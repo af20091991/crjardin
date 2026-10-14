@@ -44,6 +44,8 @@ import {
   CalendarDays,
   CircleAlert,
   Clock3,
+  Copy,
+  FileText,
   LayoutGrid,
   List,
   Plus,
@@ -52,6 +54,12 @@ import {
   Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  buildOrderText,
+  exportOrderPdf,
+  groupSuppliesBySupplier,
+  isOrderable,
+} from "@/lib/assistant-ap-export";
 import {
   AP_MODES,
   AP_MODE_LABELS,
@@ -657,6 +665,7 @@ function WorksiteDetail({
   onChanged: () => void;
 }) {
   const [adding, setAdding] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [openSupplyId, setOpenSupplyId] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
   const state = worksiteGlobalState(worksite.supplies);
@@ -741,10 +750,27 @@ function WorksiteDetail({
             <h3 className="text-xs font-semibold uppercase text-muted-foreground">
               Fournitures ({worksite.supplies.length})
             </h3>
-            <Button variant="outline" size="sm" onClick={() => setAdding((value) => !value)}>
-              <Plus className="mr-1 h-4 w-4" /> Ajouter
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={worksite.supplies.length === 0}
+                onClick={() => setExporting(true)}
+              >
+                <FileText className="mr-1 h-4 w-4" /> Exporter
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setAdding((value) => !value)}>
+                <Plus className="mr-1 h-4 w-4" /> Ajouter
+              </Button>
+            </div>
           </div>
+          {exporting && (
+            <ExportSuppliesDialog
+              worksite={worksite}
+              open={exporting}
+              onOpenChange={setExporting}
+            />
+          )}
           {worksite.supplies.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucun approvisionnement enregistré.</p>
           ) : (
@@ -1483,6 +1509,140 @@ function NewWorksiteDialog({
           >
             Créer
           </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ExportSuppliesDialog({
+  worksite,
+  open,
+  onOpenChange,
+}: {
+  worksite: ApWorksite;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const [supplierFilter, setSupplierFilter] = useState("all");
+  const supplierNames = useMemo(
+    () => groupSuppliesBySupplier(worksite.supplies).map((order) => order.supplier),
+    [worksite.supplies],
+  );
+  const candidates = useMemo(
+    () =>
+      worksite.supplies.filter((supply) => {
+        if (supplierFilter === "all") return true;
+        return (supply.supplier.trim() || "Fournisseur non renseigné") === supplierFilter;
+      }),
+    [worksite.supplies, supplierFilter],
+  );
+  const isChecked = (supply: ApSupply) =>
+    excluded.has(supply.id) ? false : isOrderable(supply) || excluded.has(`+${supply.id}`);
+  const selected = candidates.filter(isChecked);
+  const orders = useMemo(() => groupSuppliesBySupplier(selected), [selected]);
+  const text = useMemo(() => buildOrderText(worksite, orders), [worksite, orders]);
+
+  const toggle = (supply: ApSupply) =>
+    setExcluded((current) => {
+      const next = new Set(current);
+      if (isChecked(supply)) {
+        next.delete(`+${supply.id}`);
+        next.add(supply.id);
+      } else {
+        next.delete(supply.id);
+        next.add(`+${supply.id}`);
+      }
+      return next;
+    });
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Texte copié");
+    } catch {
+      toast.error("Copie impossible — sélectionnez le texte manuellement");
+    }
+  };
+  const pdf = async () => {
+    try {
+      await exportOrderPdf(worksite, orders);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Export PDF impossible");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-4 w-4" /> Exporter pour un fournisseur
+          </DialogTitle>
+          <DialogDescription>
+            Cochez les articles à inclure, puis copiez le texte ou téléchargez le PDF.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          {supplierNames.length > 1 && (
+            <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+              <SelectTrigger aria-label="Fournisseur">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les fournisseurs</SelectItem>
+                {supplierNames.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <div className="space-y-1">
+            {candidates.map((supply) => (
+              <label
+                key={supply.id}
+                className="flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked(supply)}
+                  onChange={() => toggle(supply)}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="min-w-0 flex-1 truncate">
+                  {supply.item}
+                  <span className="text-muted-foreground">
+                    {" "}
+                    — {supply.supplier || "Fournisseur non renseigné"}
+                    {supply.quantity ? ` · ${supply.quantity}` : ""}
+                  </span>
+                </span>
+                {supply.mode === "stock" && (
+                  <Badge variant="outline" className="text-[11px]">
+                    Stock
+                  </Badge>
+                )}
+              </label>
+            ))}
+          </div>
+          <Textarea
+            readOnly
+            value={selected.length === 0 ? "Aucun article sélectionné." : text}
+            rows={10}
+            className="font-mono text-xs"
+            onFocus={(event) => event.target.select()}
+          />
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" disabled={selected.length === 0} onClick={copy}>
+              <Copy className="mr-1 h-4 w-4" /> Copier le texte
+            </Button>
+            <Button disabled={selected.length === 0} onClick={pdf}>
+              <FileText className="mr-1 h-4 w-4" /> Télécharger le PDF
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
