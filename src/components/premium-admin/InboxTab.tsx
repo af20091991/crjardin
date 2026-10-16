@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Archive,
@@ -28,9 +28,12 @@ import { sendPremiumReplyNotification } from "@/lib/premium-email.functions";
 import {
   archiveConversation,
   GARDENER_AUTHOR_NAME,
-  replyToClient,
+  listMessageAttachments,
+  replyToClientWithAttachments,
   resolveMessage,
 } from "@/lib/messages";
+import { ChatAttachmentList, ChatAttachmentPicker } from "@/components/ChatAttachments";
+import type { ChatAttachmentMeta } from "@/lib/message-attachments";
 import { archiveDayLabel, archivedConversations, openMessages } from "@/lib/message-threads";
 import type { PremiumMessage, PremiumRow } from "@/components/premium-admin/data";
 import { displayClientName, fmtDateTime } from "@/components/premium-admin/shared";
@@ -43,15 +46,23 @@ type Outgoing = {
   pendingIds: string[];
   emails: string[];
   spontaneous: boolean;
+  files: File[];
 };
 
-function MessageBubble({ message }: { message: PremiumMessage }) {
+function MessageBubble({
+  message,
+  attachments,
+}: {
+  message: PremiumMessage;
+  attachments?: ChatAttachmentMeta[];
+}) {
   const mine = message.sender === "gardener";
   return (
     <div
       className={`rounded-xl px-3 py-2 text-sm ${mine ? "ml-8 bg-primary/10" : "mr-8 bg-muted/40"}`}
     >
-      <p className="whitespace-pre-wrap leading-6">{message.content}</p>
+      {message.content && <p className="whitespace-pre-wrap leading-6">{message.content}</p>}
+      <ChatAttachmentList attachments={attachments} />
       <p className="mt-1 text-[11px] text-muted-foreground">
         {mine ? GARDENER_AUTHOR_NAME : message.kind === "question" ? "Question" : "Client"} ·{" "}
         {fmtDateTime(message.created_at)}
@@ -77,6 +88,8 @@ export function InboxTab({
   const [composing, setComposing] = useState(false);
   const [composeClientId, setComposeClientId] = useState("");
   const [composeText, setComposeText] = useState("");
+  const [composeFiles, setComposeFiles] = useState<File[]>([]);
+  const [draftFiles, setDraftFiles] = useState<Record<string, File[]>>({});
   const [confirm, setConfirm] = useState<Outgoing | null>(null);
 
   useEffect(() => {
@@ -86,7 +99,17 @@ export function InboxTab({
     setView("open");
   }, [composeFor]);
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["premium-admin-messages"] });
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["premium-admin-messages"] });
+    void qc.invalidateQueries({ queryKey: ["premium-admin-attachments"] });
+  };
+  const messageIds = useMemo(() => messages.map((m) => m.id).sort(), [messages]);
+  const attachmentsQuery = useQuery({
+    queryKey: ["premium-admin-attachments", messageIds],
+    queryFn: () => listMessageAttachments(messageIds),
+    staleTime: 30 * 60 * 1000,
+  });
+  const attachmentsOf = (id: string) => attachmentsQuery.data?.[id];
 
   const threads = useMemo(
     () =>
@@ -124,11 +147,10 @@ export function InboxTab({
 
   const send = useMutation({
     mutationFn: async (input: Outgoing & { withEmail: boolean }) => {
-      await replyToClient({
+      await replyToClientWithAttachments({
         client_id: input.clientId,
-        intervention_id: null,
         content: input.content,
-        authorName: null,
+        files: input.files,
       });
       await Promise.all(input.pendingIds.map((id) => resolveMessage(id, true)));
       if (input.withEmail) {
@@ -151,10 +173,12 @@ export function InboxTab({
       setConfirm(null);
       if (input.spontaneous) {
         setComposeText("");
+        setComposeFiles([]);
         setComposing(false);
         setView("open");
       } else {
         setDrafts((prev) => ({ ...prev, [input.clientId]: "" }));
+        setDraftFiles((prev) => ({ ...prev, [input.clientId]: [] }));
       }
       refresh();
     },
@@ -241,13 +265,20 @@ export function InboxTab({
             placeholder="Votre message…"
             onChange={(event) => setComposeText(event.target.value)}
           />
+          <ChatAttachmentPicker
+            files={composeFiles}
+            onChange={setComposeFiles}
+            disabled={send.isPending}
+          />
           <div className="flex justify-end gap-2">
             <Button size="sm" variant="ghost" onClick={() => setComposing(false)}>
               Annuler
             </Button>
             <Button
               size="sm"
-              disabled={!composeRow || !composeText.trim() || send.isPending}
+              disabled={
+                !composeRow || (!composeText.trim() && composeFiles.length === 0) || send.isPending
+              }
               onClick={() =>
                 composeRow &&
                 setConfirm({
@@ -256,6 +287,7 @@ export function InboxTab({
                   pendingIds: [],
                   emails: clientEmails(composeRow.client),
                   spontaneous: true,
+                  files: composeFiles,
                 })
               }
             >
@@ -293,14 +325,18 @@ export function InboxTab({
                           </p>
                           <p className="mt-0.5 truncate text-xs text-muted-foreground">
                             {items.length} message{items.length > 1 ? "s" : ""} ·{" "}
-                            {items[0].content.slice(0, 70)}
+                            {items[0].content.slice(0, 70) || "Pièce jointe"}
                           </p>
                         </div>
                         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
                       </summary>
                       <div className="max-h-72 space-y-2 overflow-y-auto border-t p-4">
                         {items.map((message) => (
-                          <MessageBubble key={message.id} message={message} />
+                          <MessageBubble
+                            key={message.id}
+                            message={message}
+                            attachments={attachmentsOf(message.id)}
+                          />
                         ))}
                       </div>
                     </details>
@@ -324,6 +360,7 @@ export function InboxTab({
             {threads.map(({ row, items, pending }) => {
               const clientId = row.client.id;
               const draft = drafts[clientId] ?? "";
+              const files = draftFiles[clientId] ?? [];
               return (
                 <Card key={clientId} className="flex flex-col gap-4 p-5">
                   <div className="flex items-center justify-between gap-3">
@@ -334,7 +371,11 @@ export function InboxTab({
                   </div>
                   <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                     {items.slice(-8).map((message) => (
-                      <MessageBubble key={message.id} message={message} />
+                      <MessageBubble
+                            key={message.id}
+                            message={message}
+                            attachments={attachmentsOf(message.id)}
+                          />
                     ))}
                   </div>
                   <div className="space-y-2">
@@ -346,6 +387,11 @@ export function InboxTab({
                       onChange={(event) =>
                         setDrafts((prev) => ({ ...prev, [clientId]: event.target.value }))
                       }
+                    />
+                    <ChatAttachmentPicker
+                      files={files}
+                      onChange={(next) => setDraftFiles((prev) => ({ ...prev, [clientId]: next }))}
+                      disabled={send.isPending}
                     />
                     <div className="flex flex-wrap justify-end gap-2">
                       <Button
@@ -378,7 +424,7 @@ export function InboxTab({
                       )}
                       <Button
                         size="sm"
-                        disabled={!draft.trim() || send.isPending}
+                        disabled={(!draft.trim() && files.length === 0) || send.isPending}
                         onClick={() =>
                           setConfirm({
                             clientId,
@@ -386,6 +432,7 @@ export function InboxTab({
                             pendingIds: pending.map((m) => m.id),
                             emails: clientEmails(row.client),
                             spontaneous: false,
+                            files,
                           })
                         }
                       >
