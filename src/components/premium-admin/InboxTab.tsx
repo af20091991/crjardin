@@ -372,10 +372,10 @@ export function InboxTab({
                   <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                     {items.slice(-8).map((message) => (
                       <MessageBubble
-                            key={message.id}
-                            message={message}
-                            attachments={attachmentsOf(message.id)}
-                          />
+                        key={message.id}
+                        message={message}
+                        attachments={attachmentsOf(message.id)}
+                      />
                     ))}
                   </div>
                   <div className="space-y-2">

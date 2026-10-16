@@ -133,12 +133,10 @@ export async function listMessageAttachments(
     .order("created_at", { ascending: true });
   if (error) throw error;
   if (!data || data.length === 0) return {};
-  const { data: signed } = await supabase.storage
-    .from(CHAT_ATTACHMENTS_BUCKET)
-    .createSignedUrls(
-      data.map((a) => a.storage_path),
-      CHAT_ATTACHMENT_URL_TTL,
-    );
+  const { data: signed } = await supabase.storage.from(CHAT_ATTACHMENTS_BUCKET).createSignedUrls(
+    data.map((a) => a.storage_path),
+    CHAT_ATTACHMENT_URL_TTL,
+  );
   const urls = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
   const out: Record<string, ChatAttachmentMeta[]> = {};
   for (const a of data) {

@@ -11,7 +11,6 @@ import {
   Images,
   Leaf,
   MessageCircle,
-  Paperclip,
   Send,
   Sprout,
 } from "lucide-react";
@@ -247,7 +246,11 @@ export function PremiumExchange({
           data: {
             token,
             requestId,
-            files: files.map((f) => ({ name: f.name, size: f.size, type: resolveChatMime(f.name, f.type) })),
+            files: files.map((f) => ({
+              name: f.name,
+              size: f.size,
+              type: resolveChatMime(f.name, f.type),
+            })),
           },
         });
         for (const [index, file] of files.entries()) {
@@ -256,7 +259,12 @@ export function PremiumExchange({
             .from(CHAT_ATTACHMENTS_BUCKET)
             .uploadToSignedUrl(target.path, target.token, file, { contentType: target.mime });
           if (error) throw new Error(`Envoi de « ${file.name} » impossible : ${error.message}`);
-          attachments.push({ path: target.path, filename: file.name, size: file.size, mime: target.mime });
+          attachments.push({
+            path: target.path,
+            filename: file.name,
+            size: file.size,
+            mime: target.mime,
+          });
         }
       }
       await addClientMessageWithAttachments({

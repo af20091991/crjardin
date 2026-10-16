@@ -229,11 +229,16 @@ async function clientForToken(token: string) {
 /** Étape 1 — URL d'envoi signées pour les pièces jointes d'un message client. */
 export const createSharedChatAttachmentUploads = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: { token: string; requestId: string; files: { name: string; size: number; type: string }[] }) => {
+    (data: {
+      token: string;
+      requestId: string;
+      files: { name: string; size: number; type: string }[];
+    }) => {
       if (!data?.token) throw new Error("Lien invalide");
       if (!UUID_RE.test(data.requestId ?? "")) throw new Error("Identifiant d'envoi invalide");
       if (!Array.isArray(data.files) || data.files.length === 0) throw new Error("Aucun fichier");
-      if (data.files.length > CHAT_ATTACHMENT_MAX_FILES) throw new Error("5 pièces jointes maximum");
+      if (data.files.length > CHAT_ATTACHMENT_MAX_FILES)
+        throw new Error("5 pièces jointes maximum");
       for (const f of data.files) {
         const problem = validateChatAttachment(f);
         if (problem) throw new Error(problem);
@@ -250,7 +255,9 @@ export const createSharedChatAttachmentUploads = createServerFn({ method: "POST"
           .from(CHAT_ATTACHMENTS_BUCKET)
           .createSignedUploadUrl(path, { upsert: true });
         if (error || !signed?.token) {
-          throw new Error(`Préparation de l'envoi impossible : ${error?.message ?? "lien indisponible"}`);
+          throw new Error(
+            `Préparation de l'envoi impossible : ${error?.message ?? "lien indisponible"}`,
+          );
         }
         return { path, token: signed.token, mime: resolveChatMime(f.name, f.type) };
       }),
@@ -272,7 +279,8 @@ export const addClientMessageWithAttachments = createServerFn({ method: "POST" }
       if (!data?.token) throw new Error("Lien invalide");
       if (!UUID_RE.test(data.requestId ?? "")) throw new Error("Identifiant d'envoi invalide");
       const attachments = Array.isArray(data.attachments) ? data.attachments : [];
-      if (attachments.length > CHAT_ATTACHMENT_MAX_FILES) throw new Error("5 pièces jointes maximum");
+      if (attachments.length > CHAT_ATTACHMENT_MAX_FILES)
+        throw new Error("5 pièces jointes maximum");
       const content = (data.content ?? "").trim().slice(0, 2000);
       if (!content && attachments.length === 0) throw new Error("Message vide");
       for (const a of attachments) {
@@ -303,7 +311,8 @@ export const addClientMessageWithAttachments = createServerFn({ method: "POST" }
         const obj = listed?.find((o) => o.name === name);
         if (!obj) throw new Error(`« ${a.filename} » n'a pas été reçu, réessayez.`);
         const realSize = Number((obj.metadata as { size?: number } | null)?.size ?? a.size);
-        if (realSize > CHAT_ATTACHMENT_MAX_BYTES) throw new Error(`« ${a.filename} » dépasse 10 Mo.`);
+        if (realSize > CHAT_ATTACHMENT_MAX_BYTES)
+          throw new Error(`« ${a.filename} » dépasse 10 Mo.`);
         metas.push({
           storage_path: a.path,
           filename: a.filename.slice(0, 200),
@@ -318,7 +327,7 @@ export const addClientMessageWithAttachments = createServerFn({ method: "POST" }
       p_intervention_id: data.interventionId as string,
       p_kind: data.kind,
       p_content: data.content,
-      p_author_name: data.authorName ?? undefined,
+      p_author_name: (data.authorName ?? null) as string,
       p_request_id: data.requestId,
       p_attachments: metas,
     });
@@ -332,9 +341,11 @@ export const addClientMessageWithAttachments = createServerFn({ method: "POST" }
         await sendTemplateEmail("client-activity", email, {
           templateData: {
             clientName: client.name,
-            actionText: data.kind === "question" ? "a posé une question" : "a ajouté une annotation",
+            actionText:
+              data.kind === "question" ? "a posé une question" : "a ajouté une annotation",
             contentPreview:
-              data.content || `${metas.length} pièce${metas.length > 1 ? "s" : ""} jointe${metas.length > 1 ? "s" : ""}`,
+              data.content ||
+              `${metas.length} pièce${metas.length > 1 ? "s" : ""} jointe${metas.length > 1 ? "s" : ""}`,
             clientUrl: `https://crjardin.lovable.app/clients/${client.id}`,
           },
           idempotencyKey: `client-message-${msgId as string}`,
@@ -372,7 +383,7 @@ export const addClientMessage = createServerFn({ method: "POST" })
       p_intervention_id: data.interventionId as string,
       p_kind: data.kind,
       p_content: data.content,
-      p_author_name: data.authorName ?? undefined,
+      p_author_name: (data.authorName ?? null) as string,
     });
     if (error) throw error;
 
