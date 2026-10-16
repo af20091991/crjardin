@@ -101,6 +101,7 @@ export function safeStorageName(filename: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^A-Za-z0-9._-]+/g, "_")
+    .replace(/\.{2,}/g, ".")
     .replace(/^\.+/, "")
     .slice(-100);
   return cleaned || "fichier";
