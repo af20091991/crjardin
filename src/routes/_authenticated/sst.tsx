@@ -38,13 +38,22 @@ function SstPage() {
           </TabsList>
 
           <TabsContent value="sous-traitance" className="mt-5 space-y-6">
+            <section className="space-y-1 rounded-xl border bg-muted/20 p-4 sm:p-6">
+              <p className="text-xs text-muted-foreground">
+                Chiffres et graphiques calculés sur l'exercice et le périmètre sélectionnés en haut
+                de l'application.
+              </p>
+              <SstDashboard />
+            </section>
+
             <section className="space-y-4 rounded-xl border bg-muted/10 p-4 sm:p-6">
               <div className="flex items-center gap-3">
                 <BookText className="h-6 w-6 text-primary" />
                 <div>
                   <h2 className="font-serif text-xl font-semibold">Journal SST</h2>
                   <p className="text-sm text-muted-foreground">
-                    Suivi détaillé de chaque mission de sous-traitance : coût, prix de vente et marge nette.
+                    Suivi détaillé de chaque mission de sous-traitance : coût, prix de vente et
+                    marge nette.
                   </p>
                 </div>
               </div>
@@ -53,14 +62,6 @@ function SstPage() {
                 sous-traitant, recherche).
               </p>
               <SstProfitabilityTab />
-            </section>
-
-            <section className="space-y-1 rounded-xl border bg-muted/20 p-4 sm:p-6">
-              <p className="text-xs text-muted-foreground">
-                Chiffres et graphiques calculés sur l'exercice et le périmètre sélectionnés en haut de
-                l'application.
-              </p>
-              <SstDashboard />
             </section>
           </TabsContent>
 

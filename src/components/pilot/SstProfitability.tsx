@@ -489,7 +489,7 @@ export function SstProfitabilityTab() {
         </div>
       </div>
 
-      {/* A — Synthèse */}
+      {/* A — Synthèse des missions filtrées */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <PilotCard
           storageId="sst-ca"
@@ -546,70 +546,6 @@ export function SstProfitabilityTab() {
           help="Heures que vous n'avez pas eu à réaliser vous-même grâce à la sous-traitance."
         />
       </div>
-
-      {/* B — Tableau détaillé */}
-      {/* A bis — Sous-traitance repérée dans les charges existantes (lecture seule) */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Sous-traitance repérée dans les charges</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Lignes déjà enregistrées dans le suivi CA (charges). Lecture seule : aucune ressaisie
-            n'est nécessaire. Une ligne couverte par une mission SST du même mois et du même montant
-            est exclue des totaux pour éviter tout double comptage.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {chargeLines.length === 0 ? (
-            <EmptyState
-              icon={ReceiptText}
-              title="Aucune charge de sous-traitance sur cette période."
-              compact
-            />
-          ) : (
-            <>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <PilotCard
-                  storageId="sst-charges-total"
-                  label="Coût sous-traitance (charges)"
-                  value={formatEuro(chargeTotals.amount)}
-                  sub={`${chargeTotals.lines} ligne(s)`}
-                  tone="negative"
-                  help="Somme des charges dont le libellé mentionne la sous-traitance."
-                />
-                <PilotCard
-                  storageId="sst-charges-part"
-                  label="Part du CA"
-                  value={chargeTotals.shareOfCaPct != null ? pct(chargeTotals.shareOfCaPct) : "—"}
-                  sub={
-                    caPeriod != null
-                      ? `CA de référence ${formatEuro(caPeriod)}`
-                      : "CA non disponible"
-                  }
-                  help="Poids de la sous-traitance dans le chiffre d'affaires de la période."
-                />
-                <PilotCard
-                  storageId="sst-charges-dup"
-                  label="Lignes déjà en mission"
-                  value={String(chargeTotals.duplicates)}
-                  sub={formatEuro(chargeTotals.duplicatesAmount)}
-                  help="Charges neutralisées car déjà suivies via une mission SST (protection anti double comptage)."
-                />
-                {rows.length > visibleMissionRows && (
-                  <div className="flex justify-center pt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setVisibleMissionRows((count) => count + 5)}
-                    >
-                      Voir plus
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader className="pb-2">
@@ -862,6 +798,18 @@ export function SstProfitabilityTab() {
                   </div>
                 ))}
 
+                {rows.length > visibleMissionRows && (
+                  <div className="flex justify-center pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setVisibleMissionRows((count) => count + 5)}
+                    >
+                      Voir plus
+                    </Button>
+                  </div>
+                )}
+
                 <div className="rounded-lg border-2 p-4 text-sm">
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
@@ -947,7 +895,59 @@ export function SstProfitabilityTab() {
         </CardContent>
       </Card>
 
-      {/* E — Historique */}
+      {/* F — Sous-traitance repérée dans les charges existantes (lecture seule) */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Sous-traitance repérée dans les charges</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Lignes déjà enregistrées dans le suivi CA (charges). Lecture seule : aucune ressaisie
+            n'est nécessaire. Une ligne couverte par une mission SST du même mois et du même montant
+            est exclue des totaux pour éviter tout double comptage.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {chargeLines.length === 0 ? (
+            <EmptyState
+              icon={ReceiptText}
+              title="Aucune charge de sous-traitance sur cette période."
+              compact
+            />
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <PilotCard
+                  storageId="sst-charges-total"
+                  label="Coût sous-traitance (charges)"
+                  value={formatEuro(chargeTotals.amount)}
+                  sub={`${chargeTotals.lines} ligne(s)`}
+                  tone="negative"
+                  help="Somme des charges dont le libellé mentionne la sous-traitance."
+                />
+                <PilotCard
+                  storageId="sst-charges-part"
+                  label="Part du CA"
+                  value={chargeTotals.shareOfCaPct != null ? pct(chargeTotals.shareOfCaPct) : "—"}
+                  sub={
+                    caPeriod != null
+                      ? `CA de référence ${formatEuro(caPeriod)}`
+                      : "CA non disponible"
+                  }
+                  help="Poids de la sous-traitance dans le chiffre d'affaires de la période."
+                />
+                <PilotCard
+                  storageId="sst-charges-dup"
+                  label="Lignes déjà en mission"
+                  value={String(chargeTotals.duplicates)}
+                  sub={formatEuro(chargeTotals.duplicatesAmount)}
+                  help="Charges neutralisées car déjà suivies via une mission SST (protection anti double comptage)."
+                />
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* G — Historique */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">

@@ -99,13 +99,13 @@ export function SstDashboard() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">SST</h1>
+            <h2 className="font-serif text-xl font-semibold">Vue d'ensemble</h2>
             <Badge variant="secondary">
               {period === "exercice_complet" ? "Exercice complet" : "À date"}
             </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Pilotage économique de la sous-traitance · {year}
+            Pilotage économique de la sous-traitance · exercice {year}
           </p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>
