@@ -7,8 +7,10 @@ import {
   ChevronDown,
   Loader2,
   MessageSquare,
+  Paperclip,
   PenSquare,
   Send,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -24,10 +26,17 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { clientEmails } from "@/lib/clients";
+import { MessageAttachmentLink } from "@/components/share/MessageAttachmentLink";
+import {
+  MESSAGE_ATTACHMENT_ACCEPT,
+  attachmentError,
+  hasAttachment,
+} from "@/lib/message-attachments";
 import { sendPremiumReplyNotification } from "@/lib/premium-email.functions";
 import {
   archiveConversation,
   GARDENER_AUTHOR_NAME,
+  messageAttachmentUrl,
   replyToClient,
   resolveMessage,
 } from "@/lib/messages";
@@ -43,6 +52,7 @@ type Outgoing = {
   pendingIds: string[];
   emails: string[];
   spontaneous: boolean;
+  file: File | null;
 };
 
 function MessageBubble({ message }: { message: PremiumMessage }) {
@@ -52,10 +62,60 @@ function MessageBubble({ message }: { message: PremiumMessage }) {
       className={`rounded-xl px-3 py-2 text-sm ${mine ? "ml-8 bg-primary/10" : "mr-8 bg-muted/40"}`}
     >
       <p className="whitespace-pre-wrap leading-6">{message.content}</p>
+      {hasAttachment(message) && message.attachment_path && (
+        <MessageAttachmentLink
+          name={message.attachment_name}
+          size={message.attachment_size}
+          getUrl={() => messageAttachmentUrl(message.attachment_path!)}
+        />
+      )}
       <p className="mt-1 text-[11px] text-muted-foreground">
         {mine ? GARDENER_AUTHOR_NAME : message.kind === "question" ? "Question" : "Client"} ·{" "}
         {fmtDateTime(message.created_at)}
       </p>
+    </div>
+  );
+}
+
+function AttachmentPicker({
+  file,
+  onChange,
+  disabled,
+}: {
+  file: File | null;
+  onChange: (file: File | null) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <label className="flex cursor-pointer items-center gap-1.5 hover:text-foreground">
+        <Paperclip className="h-4 w-4" />
+        <span className="truncate">{file ? file.name : "Joindre une photo ou un PDF"}</span>
+        <input
+          type="file"
+          accept={MESSAGE_ATTACHMENT_ACCEPT}
+          className="sr-only"
+          disabled={disabled}
+          onChange={(event) => {
+            const picked = event.target.files?.[0] ?? null;
+            event.target.value = "";
+            if (!picked) return;
+            const problem = attachmentError(picked);
+            if (problem) toast.error(problem);
+            else onChange(picked);
+          }}
+        />
+      </label>
+      {file && (
+        <button
+          type="button"
+          aria-label="Retirer la pièce jointe"
+          className="rounded p-0.5 hover:bg-muted"
+          onClick={() => onChange(null)}
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }
@@ -77,6 +137,8 @@ export function InboxTab({
   const [composing, setComposing] = useState(false);
   const [composeClientId, setComposeClientId] = useState("");
   const [composeText, setComposeText] = useState("");
+  const [composeFile, setComposeFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<Record<string, File | null>>({});
   const [confirm, setConfirm] = useState<Outgoing | null>(null);
 
   useEffect(() => {
@@ -86,7 +148,10 @@ export function InboxTab({
     setView("open");
   }, [composeFor]);
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["premium-admin-messages"] });
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["premium-admin-messages"] });
+    qc.invalidateQueries({ queryKey: ["premium-admin-documents"] });
+  };
 
   const threads = useMemo(
     () =>
@@ -129,6 +194,7 @@ export function InboxTab({
         intervention_id: null,
         content: input.content,
         authorName: null,
+        file: input.file,
       });
       await Promise.all(input.pendingIds.map((id) => resolveMessage(id, true)));
       if (input.withEmail) {
@@ -151,10 +217,12 @@ export function InboxTab({
       setConfirm(null);
       if (input.spontaneous) {
         setComposeText("");
+        setComposeFile(null);
         setComposing(false);
         setView("open");
       } else {
         setDrafts((prev) => ({ ...prev, [input.clientId]: "" }));
+        setFiles((prev) => ({ ...prev, [input.clientId]: null }));
       }
       refresh();
     },
@@ -241,13 +309,18 @@ export function InboxTab({
             placeholder="Votre message…"
             onChange={(event) => setComposeText(event.target.value)}
           />
+          <AttachmentPicker
+            file={composeFile}
+            onChange={setComposeFile}
+            disabled={send.isPending}
+          />
           <div className="flex justify-end gap-2">
             <Button size="sm" variant="ghost" onClick={() => setComposing(false)}>
               Annuler
             </Button>
             <Button
               size="sm"
-              disabled={!composeRow || !composeText.trim() || send.isPending}
+              disabled={!composeRow || (!composeText.trim() && !composeFile) || send.isPending}
               onClick={() =>
                 composeRow &&
                 setConfirm({
@@ -256,6 +329,7 @@ export function InboxTab({
                   pendingIds: [],
                   emails: clientEmails(composeRow.client),
                   spontaneous: true,
+                  file: composeFile,
                 })
               }
             >
@@ -347,6 +421,11 @@ export function InboxTab({
                         setDrafts((prev) => ({ ...prev, [clientId]: event.target.value }))
                       }
                     />
+                    <AttachmentPicker
+                      file={files[clientId] ?? null}
+                      onChange={(file) => setFiles((prev) => ({ ...prev, [clientId]: file }))}
+                      disabled={send.isPending}
+                    />
                     <div className="flex flex-wrap justify-end gap-2">
                       <Button
                         size="sm"
@@ -378,7 +457,7 @@ export function InboxTab({
                       )}
                       <Button
                         size="sm"
-                        disabled={!draft.trim() || send.isPending}
+                        disabled={(!draft.trim() && !files[clientId]) || send.isPending}
                         onClick={() =>
                           setConfirm({
                             clientId,
@@ -386,6 +465,7 @@ export function InboxTab({
                             pendingIds: pending.map((m) => m.id),
                             emails: clientEmails(row.client),
                             spontaneous: false,
+                            file: files[clientId] ?? null,
                           })
                         }
                       >
