@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { PremiumPlanningDb } from "@/lib/premium-planning-import.server";
 import type { Database } from "@/integrations/supabase/types";
 import { formatPremiumClientName } from "@/lib/premium-client-name";
+import { attachmentError, attachmentOnlyContent } from "@/lib/message-attachments";
 
 export interface SharedTask {
   id: string;
@@ -134,6 +135,16 @@ export interface ClientMessage {
   sender: string;
   created_at: string;
   archived_at?: string | null;
+  attachment_name?: string | null;
+  attachment_size?: number | null;
+  has_attachment?: boolean;
+}
+
+export interface SharedMessageAttachmentInput {
+  path: string;
+  filename: string;
+  size: number;
+  type: string;
 }
 
 export const markSharedRead = createServerFn({ method: "POST" })
@@ -193,27 +204,96 @@ export const addClientMessage = createServerFn({ method: "POST" })
       kind: string;
       content: string;
       authorName?: string | null;
+      attachment?: SharedMessageAttachmentInput | null;
     }) => {
       if (!data?.token) throw new Error("Lien invalide");
-      if (!data.content || data.content.trim().length === 0) throw new Error("Message vide");
+      const attachment = data.attachment ?? null;
+      if (attachment) {
+        const problem = attachmentError({
+          name: attachment.filename,
+          type: attachment.type,
+          size: attachment.size,
+        });
+        if (problem) throw new Error(problem);
+        if (!attachment.path) throw new Error("Chemin invalide");
+      }
+      if (!attachment && (!data.content || data.content.trim().length === 0)) {
+        throw new Error("Message vide");
+      }
       return {
         token: data.token,
         interventionId: data.interventionId ?? null,
         kind: data.kind === "question" ? "question" : "annotation",
-        content: data.content.trim().slice(0, 2000),
+        content: (data.content ?? "").trim().slice(0, 2000),
         authorName: data.authorName ?? null,
+        attachment,
       };
     },
   )
   .handler(async ({ data }) => {
+    const attachment = data.attachment;
+    const content =
+      data.content || (attachment ? attachmentOnlyContent(attachment.filename) : data.content);
+
+    // Pièce jointe : contrôle du client Premium et du fichier déjà déposé dans le stockage.
+    let premium: Awaited<ReturnType<typeof requireEnabledPremiumClient>> | null = null;
+    if (attachment) {
+      premium = await requireEnabledPremiumClient(data.token);
+      if (!attachment.path.startsWith(`${premium.client.id}/`)) {
+        throw new Error("Chemin de fichier invalide");
+      }
+      const stored = attachment.path.split("/").pop()!;
+      const { data: listed, error: listError } = await premium.supabaseAdmin.storage
+        .from(PREMIUM_BUCKET)
+        .list(premium.client.id, { search: stored, limit: 1 });
+      if (listError || !listed?.some((f) => f.name === stored)) {
+        throw new Error("Le fichier n'a pas été reçu par le stockage");
+      }
+    }
+    const discardFile = async () => {
+      if (premium && attachment) {
+        await premium.supabaseAdmin.storage.from(PREMIUM_BUCKET).remove([attachment.path]);
+      }
+    };
+
     const { data: msgId, error } = await publicClient().rpc("add_client_message", {
       p_token: data.token,
       p_intervention_id: data.interventionId as string,
       p_kind: data.kind,
-      p_content: data.content,
+      p_content: content,
       p_author_name: data.authorName ?? undefined,
     });
-    if (error) throw error;
+    if (error) {
+      await discardFile();
+      throw error;
+    }
+
+    if (premium && attachment) {
+      const { error: linkError } = await premium.supabaseAdmin
+        .from("client_messages")
+        .update({
+          attachment_path: attachment.path,
+          attachment_name: attachment.filename,
+          attachment_size: attachment.size,
+        } as never)
+        .eq("id", msgId as string);
+      if (linkError) {
+        await discardFile();
+        throw new Error(
+          linkError.message.includes("attachment_")
+            ? "Les pièces jointes ne sont pas encore activées sur la base de données."
+            : linkError.message,
+        );
+      }
+      // Classé aussi dans « Photos et Documents » ; un échec ici ne bloque pas le message.
+      await publicClient().rpc("add_client_premium_document", {
+        p_token: data.token,
+        p_title: `Pièce jointe — ${attachment.filename}`.slice(0, 200),
+        p_filename: attachment.filename,
+        p_storage_path: attachment.path,
+        p_size_bytes: attachment.size,
+      });
+    }
 
     // Email au jardinier — best-effort, ne doit jamais faire échouer l'envoi
     // du message côté client. La notification PP (table notifications) est
@@ -235,7 +315,9 @@ export const addClientMessage = createServerFn({ method: "POST" })
               clientName: client.name,
               actionText:
                 data.kind === "question" ? "a posé une question" : "a ajouté une annotation",
-              contentPreview: data.content,
+              contentPreview: attachment
+                ? `${content}\n\n📎 ${attachment.filename}`.slice(0, 2300)
+                : content,
               clientUrl: `https://crjardin.lovable.app/clients/${client.id}`,
             },
             idempotencyKey: `client-message-${msgId as string}`,
@@ -247,6 +329,39 @@ export const addClientMessage = createServerFn({ method: "POST" })
     }
 
     return { ok: true };
+  });
+
+/** Lien temporaire (1 h) vers la pièce jointe d'un message du fil du client. */
+export const getSharedMessageAttachmentUrl = createServerFn({ method: "POST" })
+  .inputValidator((data: { token: string; messageId: string }) => {
+    if (!data?.token) throw new Error("Lien invalide");
+    if (!data.messageId) throw new Error("Message invalide");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: client } = await supabaseAdmin
+      .from("clients")
+      .select("id")
+      .eq("share_token", data.token)
+      .maybeSingle();
+    if (!client) throw new Error("Lien invalide");
+    const { data: row } = await supabaseAdmin
+      .from("client_messages")
+      .select("attachment_path, attachment_name" as never)
+      .eq("id", data.messageId)
+      .eq("client_id", client.id)
+      .maybeSingle();
+    const found = row as unknown as {
+      attachment_path: string | null;
+      attachment_name: string | null;
+    } | null;
+    if (!found?.attachment_path) throw new Error("Aucune pièce jointe");
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from(PREMIUM_BUCKET)
+      .createSignedUrl(found.attachment_path, 60 * 60);
+    if (error) throw error;
+    return { url: signed.signedUrl };
   });
 
 export const setRecommendationInterest = createServerFn({ method: "POST" })

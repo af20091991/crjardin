@@ -29,6 +29,9 @@ export type PremiumMessage = {
   resolved: boolean;
   created_at: string;
   archived_at?: string | null;
+  attachment_path?: string | null;
+  attachment_name?: string | null;
+  attachment_size?: number | null;
 };
 
 export type PremiumDocumentRow = {

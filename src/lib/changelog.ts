@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-17",
+    version: "2.3.71",
+    theme: "Clients",
+    title: "Messagerie Premium — pièces jointes",
+    details: [
+      "Le client comme vous pouvez joindre une photo ou un PDF (10 Mo maximum) à un message.",
+      "La pièce jointe s'ouvre d'un clic dans le message et se classe aussi dans « Photos et Documents ».",
+      "Un message peut ne contenir que la pièce jointe ; l'e-mail et la notification la mentionnent.",
+    ],
+  },
+  {
     date: "2026-10-14",
     version: "2.3.70",
     theme: "Général",

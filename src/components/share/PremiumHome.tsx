@@ -18,9 +18,15 @@ import { toast } from "sonner";
 import {
   addClientMessage,
   createSharedPremiumDocumentUpload,
-  finalizeSharedPremiumDocumentUpload,
+  getSharedMessageAttachmentUrl,
 } from "@/lib/share.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { MessageAttachmentLink } from "@/components/share/MessageAttachmentLink";
+import {
+  MESSAGE_ATTACHMENT_ACCEPT,
+  attachmentError,
+  hasAttachment,
+} from "@/lib/message-attachments";
 import type {
   ClientMessage,
   SharedClientData,
@@ -235,20 +241,19 @@ export function PremiumExchange({
   const [sending, setSending] = useState(false);
   // prettier-ignore
   async function sendRequest() {
-    if (!message.trim()) return;
+    if (!message.trim() && !attachment) return;
     setSending(true);
     try {
-      let attachmentLabel = "";
+      let uploaded: { path: string; filename: string; size: number; type: string } | null = null;
       if (attachment) {
-        if (!attachment.type.startsWith("image/")) throw new Error("La pièce jointe doit être une image.");
-        if (attachment.size > 10 * 1024 * 1024) throw new Error("La photo ne doit pas dépasser 10 Mo.");
+        const problem = attachmentError(attachment);
+        if (problem) throw new Error(problem);
         const target = await createSharedPremiumDocumentUpload({ data: { token, filename: attachment.name, size: attachment.size } });
         const { error } = await supabase.storage.from("client-premium").uploadToSignedUrl(target.path, target.token, attachment);
-        if (error) throw new Error(`Envoi de la photo impossible : ${error.message}`);
-        attachmentLabel = attachment.name;
-        await finalizeSharedPremiumDocumentUpload({ data: { token, path: target.path, filename: attachment.name, size: attachment.size, title: `Photo jointe — ${requestType}` } });
+        if (error) throw new Error(`Envoi de la pièce jointe impossible : ${error.message}`);
+        uploaded = { path: target.path, filename: attachment.name, size: attachment.size, type: attachment.type };
       }
-      await addClientMessage({ data: { token, interventionId: null, kind: "question", content: `Demande : ${requestType}\n\n${message.trim()}${attachmentLabel ? `\n\nPhoto jointe : ${attachmentLabel}` : ""}`, authorName: client.name } });
+      await addClientMessage({ data: { token, interventionId: null, kind: "question", content: `Demande : ${requestType}${message.trim() ? `\n\n${message.trim()}` : ""}`, authorName: client.name, attachment: uploaded } });
       await Promise.all([qc.invalidateQueries({ queryKey: ["shared-messages", token] }), qc.invalidateQueries({ queryKey: ["shared-premium", token] })]);
       toast.success("Votre demande a bien été envoyée.");
       setMessage(""); setAttachment(null);
@@ -263,8 +268,8 @@ export function PremiumExchange({
     <section className="space-y-6"><div><p className={dateLabel}>Une question, une demande</p><h2 className={`mt-3 text-4xl ${heading}`}>Écrivons-nous</h2></div>
       <label className="block space-y-2 text-sm"><span>Votre demande</span><select value={requestType} onChange={(e) => setRequestType(e.target.value as (typeof REQUESTS)[number])} className="w-full rounded-md border border-input bg-background px-3 py-2">{REQUESTS.map((r) => <option key={r}>{r}</option>)}</select></label>
       <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Écrivez votre message…" rows={6} aria-label="Votre message" />
-      <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"><Paperclip className="size-4" />{attachment ? attachment.name : "Joindre une photo (10 Mo maximum)"}<input type="file" accept="image/*" className="sr-only" onChange={(e) => setAttachment(e.target.files?.[0] ?? null)} disabled={sending} /></label>
-      <Button onClick={sendRequest} disabled={!message.trim() || sending}><Send className="mr-2 size-4" />Envoyer</Button>
+      <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"><Paperclip className="size-4" />{attachment ? attachment.name : "Joindre une photo ou un PDF (10 Mo maximum)"}<input type="file" accept={MESSAGE_ATTACHMENT_ACCEPT} className="sr-only" onChange={(e) => setAttachment(e.target.files?.[0] ?? null)} disabled={sending} /></label>
+      <Button onClick={sendRequest} disabled={(!message.trim() && !attachment) || sending}><Send className="mr-2 size-4" />Envoyer</Button>
     </section>
     <section>
       <p className={dateLabel}>Conversation</p>
@@ -277,6 +282,7 @@ export function PremiumExchange({
                 {m.sender === "gardener" ? "Anthony" : "Vous"} · {fmtDate(m.created_at)}
               </p>
               <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{m.content}</p>
+              {hasAttachment(m) && <MessageAttachmentLink name={m.attachment_name} size={m.attachment_size} getUrl={async () => (await getSharedMessageAttachmentUrl({ data: { token, messageId: m.id } })).url} />}
             </article>
           ))
         ) : (
@@ -308,6 +314,7 @@ export function PremiumExchange({
                         {m.sender === "gardener" ? "Anthony" : "Vous"} · {fmtDate(m.created_at)}
                       </p>
                       <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{m.content}</p>
+                      {hasAttachment(m) && <MessageAttachmentLink name={m.attachment_name} size={m.attachment_size} getUrl={async () => (await getSharedMessageAttachmentUrl({ data: { token, messageId: m.id } })).url} />}
                     </article>
                   ))}
                 </div>
