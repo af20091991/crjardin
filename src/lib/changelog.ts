@@ -23,6 +23,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-18",
+    version: "2.3.72",
+    theme: "Général",
+    title: "Calendrier SST — prévisions météo",
+    details: [
+      "Nouveau bouton « Météo » sur le planning, pour tous les utilisateurs : il affiche ou masque les prévisions sur 16 jours.",
+      "Dans chaque journée : soleil, nuageux ou pluie, températures max. et min., humidité et pluviométrie annoncée.",
+      "Un clic sur la météo d'un jour ouvre le détail heure par heure.",
+      "Les champs affichés se choisissent dans le menu de personnalisation du calendrier (réglage enregistré sur l'appareil).",
+    ],
+  },
+  {
     date: "2026-10-17",
     version: "2.3.71",
     theme: "Clients",
