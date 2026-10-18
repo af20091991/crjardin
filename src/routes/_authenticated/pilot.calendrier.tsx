@@ -105,7 +105,12 @@ import {
 } from "@/lib/worksite";
 import { listClients } from "@/lib/clients";
 import { getSstForecast } from "@/lib/meteo-sst.functions";
-import { referencePoint, type WeatherFields } from "@/lib/meteo-sst";
+import {
+  buildOpenMeteoUrl,
+  parseOpenMeteo,
+  referencePoint,
+  type WeatherFields,
+} from "@/lib/meteo-sst";
 import { exportCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
 import { cn } from "@/lib/utils";
@@ -240,10 +245,30 @@ function CalendrierSstPage() {
   );
   const weatherQuery = useQuery({
     queryKey: ["sst-weather", weatherPoint?.latitude, weatherPoint?.longitude],
-    queryFn: () =>
-      getSstForecast({
-        data: { latitude: weatherPoint!.latitude, longitude: weatherPoint!.longitude },
-      }),
+    queryFn: async () => {
+      const { latitude, longitude } = weatherPoint!;
+      // 1) Serveur (clé commerciale éventuelle, cache) ; 2) à défaut, appel direct du navigateur.
+      let serverReason = "";
+      try {
+        const result = await getSstForecast({ data: { latitude, longitude } });
+        if (result.ok) return result.forecast;
+        serverReason = result.reason;
+      } catch (error) {
+        serverReason = error instanceof Error ? error.message : String(error);
+      }
+      try {
+        const response = await fetch(buildOpenMeteoUrl(latitude, longitude), {
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!response.ok) throw new Error(`Open-Meteo HTTP ${response.status}`);
+        const forecast = parseOpenMeteo(await response.json());
+        if (!forecast) throw new Error("réponse Open-Meteo inattendue");
+        return forecast;
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        throw new Error(`serveur : ${serverReason || "?"} · navigateur : ${detail}`);
+      }
+    },
     enabled: preferences.weatherEnabled && weatherPoint != null,
     staleTime: 30 * 60 * 1000,
     retry: 1,
@@ -638,7 +663,7 @@ function CalendrierSstPage() {
                   : weatherQuery.isLoading
                     ? "Chargement de la météo…"
                     : weatherQuery.isError
-                      ? "Prévisions indisponibles."
+                      ? `Prévisions indisponibles (${weatherQuery.error instanceof Error ? weatherQuery.error.message : "erreur inconnue"}).`
                       : null}
                 {weatherPoint != null && weatherQuery.isError ? (
                   <button
