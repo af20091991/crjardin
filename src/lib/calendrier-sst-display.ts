@@ -31,6 +31,18 @@ export type CalendarPreferences = {
   showWeekNumbers: boolean;
   /** Nombre de noms affichés avant le « + N autres ». */
   entriesPerDay: 2 | 3 | 5 | 8;
+  /** Prévisions météo sur le planning (bouton on/off, par appareil). */
+  weatherEnabled: boolean;
+  /** Champs météo affichés : conditions (soleil / nuageux / pluie). */
+  weatherCondition: boolean;
+  /** Détail heure par heure, ouvert au clic sur la météo d'un jour. */
+  weatherHourly: boolean;
+  /** Températures maximale et minimale. */
+  weatherTemperature: boolean;
+  /** Niveau d'humidité. */
+  weatherHumidity: boolean;
+  /** Pluviométrie annoncée (mm). */
+  weatherRain: boolean;
 };
 
 export const DEFAULT_CALENDAR_PREFERENCES: CalendarPreferences = {
@@ -46,6 +58,12 @@ export const DEFAULT_CALENDAR_PREFERENCES: CalendarPreferences = {
   showCounters: true,
   showWeekNumbers: false,
   entriesPerDay: 3,
+  weatherEnabled: false,
+  weatherCondition: true,
+  weatherHourly: true,
+  weatherTemperature: true,
+  weatherHumidity: true,
+  weatherRain: true,
 };
 
 export const CALENDAR_STORAGE_KEY = "cr-sst-calendar-appearance";

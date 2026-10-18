@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Cloud,
   Eye,
   FileDown,
   Flower2,
@@ -51,6 +52,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import { useRole } from "@/hooks/use-role";
 import { WorksiteSheetForm } from "@/components/WorksiteSheetForm";
+import { SstWeatherStrip } from "@/components/pilot/SstWeatherStrip";
 import logo from "@/assets/logo.png";
 import {
   declareAvailability,
@@ -102,6 +104,8 @@ import {
   type WorksiteSheet,
 } from "@/lib/worksite";
 import { listClients } from "@/lib/clients";
+import { getSstForecast } from "@/lib/meteo-sst.functions";
+import { referencePoint, type WeatherFields } from "@/lib/meteo-sst";
 import { exportCompleteWorksiteSheetPdf } from "@/lib/worksite-pdf-complete";
 import { parseWorksiteIntervenants } from "@/lib/worksite-sst";
 import { cn } from "@/lib/utils";
@@ -222,6 +226,29 @@ function CalendrierSstPage() {
     queryKey: ["sst-calendar-worksite-sheets"],
     queryFn: listWorksiteSheets,
   });
+  // Prévisions météo : bouton on/off sur le planning, ouvert à tous les utilisateurs.
+  const weatherPoint = useMemo(() => referencePoint(worksiteSheets), [worksiteSheets]);
+  const weatherFields = useMemo<WeatherFields>(
+    () => ({
+      condition: preferences.weatherCondition,
+      hourly: preferences.weatherHourly,
+      temperature: preferences.weatherTemperature,
+      humidity: preferences.weatherHumidity,
+      rain: preferences.weatherRain,
+    }),
+    [preferences],
+  );
+  const weatherQuery = useQuery({
+    queryKey: ["sst-weather", weatherPoint?.latitude, weatherPoint?.longitude],
+    queryFn: () =>
+      getSstForecast({
+        data: { latitude: weatherPoint!.latitude, longitude: weatherPoint!.longitude },
+      }),
+    enabled: preferences.weatherEnabled && weatherPoint != null,
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+  const weatherDays = preferences.weatherEnabled ? weatherQuery.data?.days : undefined;
   const [selectedSstPlanning, setSelectedSstPlanning] = useState("all");
   const [filters, setFilters] = useState<CalendarFilters>(DEFAULT_CALENDAR_FILTERS);
 
@@ -592,6 +619,38 @@ function CalendrierSstPage() {
             >
               Chantiers
             </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={preferences.weatherEnabled ? "secondary" : "outline"}
+              aria-pressed={preferences.weatherEnabled}
+              className="h-7 px-2.5 text-xs"
+              title="Afficher ou masquer les prévisions météo sur le planning"
+              onClick={() => updatePreferences({ weatherEnabled: !preferences.weatherEnabled })}
+            >
+              <Cloud className="mr-1 h-3.5 w-3.5" />
+              Météo {preferences.weatherEnabled ? "activée" : "désactivée"}
+            </Button>
+            {preferences.weatherEnabled ? (
+              <span className="text-xs text-muted-foreground" role="status">
+                {weatherPoint == null
+                  ? "Aucun chantier géolocalisé : prévisions indisponibles."
+                  : weatherQuery.isLoading
+                    ? "Chargement de la météo…"
+                    : weatherQuery.isError
+                      ? "Prévisions indisponibles."
+                      : null}
+                {weatherPoint != null && weatherQuery.isError ? (
+                  <button
+                    type="button"
+                    className="ml-1 underline underline-offset-2 hover:text-foreground"
+                    onClick={() => weatherQuery.refetch()}
+                  >
+                    Réessayer
+                  </button>
+                ) : null}
+              </span>
+            ) : null}
             <Select
               value={filters.worksiteStatus}
               onValueChange={(value) =>
@@ -692,6 +751,13 @@ function CalendrierSstPage() {
                     ) : null}
                   </div>
                   <div className="flex min-w-0 flex-col gap-1">
+                    {weatherDays?.[iso] ? (
+                      <SstWeatherStrip
+                        day={weatherDays[iso]}
+                        fields={weatherFields}
+                        dateLabel={fullDateLabel(iso)}
+                      />
+                    ) : null}
                     {(shownByDate.get(iso) ?? []).map((entry) => (
                       <CommentChip
                         key={entry.id}
@@ -822,6 +888,13 @@ function CalendrierSstPage() {
                                 </span>
                               ) : null}
                             </span>
+                            {weatherDays?.[iso] ? (
+                              <SstWeatherStrip
+                                day={weatherDays[iso]}
+                                fields={weatherFields}
+                                dateLabel={fullDateLabel(iso)}
+                              />
+                            ) : null}
                             {(() => {
                               const dayPlannings = shownByPlanningDate.get(iso) ?? [];
                               const items = [
@@ -922,6 +995,22 @@ function CalendrierSstPage() {
             {isLoading ? <p className="mt-3 text-sm text-muted-foreground">Chargement…</p> : null}
           </div>
         )}
+        {weatherDays && weatherPoint ? (
+          <p className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground sm:px-4">
+            Prévisions météo sur 16 jours (
+            <a
+              href="https://open-meteo.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              Open-Meteo.com
+            </a>
+            ) pour la zone des {weatherPoint.count} chantier{weatherPoint.count > 1 ? "s" : ""}{" "}
+            géolocalisé{weatherPoint.count > 1 ? "s" : ""}. Les jours passés ou au-delà de 16 jours
+            n'affichent pas de météo.
+          </p>
+        ) : null}
       </section>
 
       <DayDialog
@@ -1758,6 +1847,40 @@ function CalendarAppearanceMenu({
               checked={preferences.showWeekNumbers}
               onChange={(checked) => onChange({ showWeekNumbers: checked })}
             />
+            <div className="space-y-3 border-t border-border pt-4">
+              <div>
+                <p className="text-sm font-semibold">Prévisions météo</p>
+                <p className="text-xs text-muted-foreground">
+                  Choisissez les champs affichés dans chaque journée. L'activation se fait avec le
+                  bouton « Météo » du planning.
+                </p>
+              </div>
+              <ToggleRow
+                label="Conditions (soleil, nuageux, pluie)"
+                checked={preferences.weatherCondition}
+                onChange={(checked) => onChange({ weatherCondition: checked })}
+              />
+              <ToggleRow
+                label="Températures max. et min."
+                checked={preferences.weatherTemperature}
+                onChange={(checked) => onChange({ weatherTemperature: checked })}
+              />
+              <ToggleRow
+                label="Niveau d'humidité"
+                checked={preferences.weatherHumidity}
+                onChange={(checked) => onChange({ weatherHumidity: checked })}
+              />
+              <ToggleRow
+                label="Pluviométrie annoncée"
+                checked={preferences.weatherRain}
+                onChange={(checked) => onChange({ weatherRain: checked })}
+              />
+              <ToggleRow
+                label="Détail heure par heure (au clic)"
+                checked={preferences.weatherHourly}
+                onChange={(checked) => onChange({ weatherHourly: checked })}
+              />
+            </div>
             <Button variant="ghost" size="sm" className="w-full" onClick={onReset}>
               <RotateCcw className="h-4 w-4" /> Réinitialiser
             </Button>
