@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-19",
+    version: "2.3.76",
+    theme: "Général",
+    title: "Un seul écran Paramètres",
+    details: [
+      "« Paramètres généraux » devient « Paramètres », avec deux onglets : « Profil & signature » et « Pilotage » (objectifs, TJM, seuils, import Excel, rapports).",
+      "L'ancienne page « Paramètres du pilotage » et ses liens renvoient vers l'onglet Pilotage ; aucun réglage n'est supprimé.",
+    ],
+  },
+  {
+    date: "2026-10-19",
     version: "2.3.75",
     theme: "Général",
     title: "SST — exercice unique entre « Vue d'ensemble » et « Journal SST »",

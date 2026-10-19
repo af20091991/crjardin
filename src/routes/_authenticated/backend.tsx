@@ -55,8 +55,8 @@ const SECTIONS: Section[] = [
   },
   {
     to: "/settings",
-    label: "Réglage & signature",
-    description: "Profil de l'entreprise, cachet et signature.",
+    label: "Paramètres",
+    description: "Profil, cachet, signature et paramètres du pilotage.",
     icon: Settings,
   },
   {

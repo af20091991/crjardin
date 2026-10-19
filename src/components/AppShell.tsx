@@ -377,7 +377,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           : []),
         {
           to: "/settings",
-          label: "Paramètres généraux",
+          label: "Paramètres",
           short: "Réglages",
           icon: Settings,
           exact: false,
