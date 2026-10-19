@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -268,6 +268,12 @@ function CeevPage() {
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
           Suivi des contrats d'entretien des espaces verts : chiffre d'affaires, marge, taux horaire et renouvellements,
           à partir des données importées.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Voir aussi :{" "}
+          <Link to="/pilot/ceev-live" className="underline underline-offset-2 hover:text-foreground">
+            CEEV temps réel (bêta)
+          </Link>
         </p>
       </header>
 
