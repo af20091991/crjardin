@@ -38,7 +38,7 @@ import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
 import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
 import { formatEuro, formatHours } from "@/lib/format-utils";
-import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
+import { usePilotMode, usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import {
   listMissionPnl,
@@ -94,7 +94,10 @@ export function SstProfitabilityTab() {
   const qc = useQueryClient();
   const { mode } = usePilotMode();
   const { period } = usePilotPeriod();
-  const [year, setYear] = useState<number | "all">(new Date().getFullYear());
+  // Exercice global de l'application ; « Toutes années » reste disponible ici.
+  const { year: pilotYear } = usePilotYear();
+  const [allYears, setAllYears] = useState(false);
+  const year: number | "all" = allYears ? "all" : pilotYear;
   const [search, setSearch] = useState("");
   const [sstFilter, setSstFilter] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
@@ -140,12 +143,6 @@ export function SstProfitabilityTab() {
     qc.invalidateQueries({ queryKey: ["sst-pnl"] });
     qc.invalidateQueries({ queryKey: ["sst-audit"] });
   };
-
-  const years = useMemo(() => {
-    const set = new Set(missions.map((m) => new Date(m.mission_date).getFullYear()));
-    set.add(new Date().getFullYear());
-    return [...set].sort((a, b) => b - a);
-  }, [missions]);
 
   const rows = useMemo(
     () =>
@@ -434,20 +431,13 @@ export function SstProfitabilityTab() {
       )}
       {/* Barre d'outils */}
       <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={String(year)}
-          onValueChange={(v) => setYear(v === "all" ? "all" : Number(v))}
-        >
-          <SelectTrigger className="w-36">
+        <Select value={allYears ? "all" : "year"} onValueChange={(v) => setAllYears(v === "all")}>
+          <SelectTrigger className="w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="year">Exercice {pilotYear}</SelectItem>
             <SelectItem value="all">Toutes années</SelectItem>
-            {years.map((y) => (
-              <SelectItem key={y} value={String(y)}>
-                {y}
-              </SelectItem>
-            ))}
           </SelectContent>
         </Select>
         <Select value={sstFilter} onValueChange={setSstFilter}>
