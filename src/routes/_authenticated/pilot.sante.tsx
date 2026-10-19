@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -132,7 +132,10 @@ function SantePage() {
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           Réalisé au {now.toLocaleDateString("fr-FR")} · les exercices passés servent de repères
-          personnels.
+          personnels.{" "}
+          <Link to="/statistiques" className="underline underline-offset-2 hover:text-foreground">
+            Statistiques d'activité
+          </Link>
         </p>
       </header>
 

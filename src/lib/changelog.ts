@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-19",
+    version: "2.3.73",
+    theme: "Général",
+    title: "Pages accessibles depuis leur module",
+    details: [
+      "CEEV : lien vers « CEEV temps réel (bêta) », auparavant sans accès.",
+      "Santé de l'activité : lien vers « Statistiques d'activité », auparavant sans accès.",
+      "Aucune information supprimée ; les anciens liens continuent de fonctionner.",
+    ],
+  },
+  {
     date: "2026-10-18",
     version: "2.3.72",
     theme: "Général",
