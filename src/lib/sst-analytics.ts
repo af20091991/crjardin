@@ -123,7 +123,15 @@ function group(rows: SstRow[], keyOf: (r: SstRow) => string): SstGroup[] {
   const map = new Map<string, SstGroup>();
   for (const r of rows) {
     const key = keyOf(r);
-    const g = map.get(key) ?? { key, revenue: 0, cost: 0, margin: 0, marginPct: null, missions: 0, hours: 0 };
+    const g = map.get(key) ?? {
+      key,
+      revenue: 0,
+      cost: 0,
+      margin: 0,
+      marginPct: null,
+      missions: 0,
+      hours: 0,
+    };
     g.revenue += r.revenue;
     g.cost += r.cost;
     g.margin += r.margin;
@@ -142,7 +150,9 @@ export const byPrestation = (rows: SstRow[]) =>
 export const byClient = (rows: SstRow[]) => group(rows, (r) => r.clientName);
 
 export function byMonth(rows: SstRow[]): SstGroup[] {
-  return group(rows, (r) => r.mission.mission_date.slice(0, 7)).sort((a, b) => a.key.localeCompare(b.key));
+  return group(rows, (r) => r.mission.mission_date.slice(0, 7)).sort((a, b) =>
+    a.key.localeCompare(b.key),
+  );
 }
 
 export interface SstInsight {
@@ -201,7 +211,7 @@ export function sstInsights(rows: SstRow[], totals: SstTotals, marginTarget = 25
   if (totals.hoursSaved > 0) {
     out.push({
       tone: "positive",
-      title: "Temps dégagé par la sous-traitance",
+      title: "Temps économisé par la sous-traitance",
       detail: `${totals.hoursSaved.toFixed(1)} h libérées sur la période, soit autant de capacité pour vos propres chantiers.`,
     });
   }

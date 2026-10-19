@@ -59,7 +59,7 @@ export function SstDashboard() {
         categoryLabel: "Mois",
         series: [
           { key: "revenue", label: "CA client", color: PP_COLORS.sales },
-          { key: "cost", label: "Charge SST", color: PP_COLORS.charges },
+          { key: "cost", label: "Coût SST", color: PP_COLORS.charges },
           { key: "margin", label: "Marge", color: PP_COLORS.primary },
         ],
         rows: months.map((m) => ({
@@ -132,11 +132,11 @@ export function SstDashboard() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Charge SST</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Coût SST</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">{eur(totals.cost)}</div>
-            <p className="text-xs text-muted-foreground">Charge SST enregistrée sur les missions</p>
+            <p className="text-xs text-muted-foreground">Coût SST enregistrée sur les missions</p>
           </CardContent>
         </Card>
         <Card>
@@ -175,7 +175,7 @@ export function SstDashboard() {
                 <tr>
                   <th className="px-5 py-3 text-left">Sous-traitant</th>
                   <th className="px-3 py-3 text-right">Missions</th>
-                  <th className="px-3 py-3 text-right">Charge SST</th>
+                  <th className="px-3 py-3 text-right">Coût SST</th>
                   <th className="px-3 py-3 text-right">CA client</th>
                   <th className="px-3 py-3 text-right">Marge</th>
                   <th className="px-5 py-3 text-right">Marge %</th>
@@ -206,7 +206,7 @@ export function SstDashboard() {
                 </div>
                 <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
                   <div>
-                    <p className="text-xs text-muted-foreground">Charge SST</p>
+                    <p className="text-xs text-muted-foreground">Coût SST</p>
                     <p>{eur(p.cost)}</p>
                   </div>
                   <div>
@@ -285,8 +285,8 @@ export function SstDashboard() {
         }}
       />
       <p className="text-xs text-muted-foreground">
-        Règle économique : CA client − Charge SST = marge SST. Les données futures du mode «
-        Exercice complet » sont incluses dans les agrégats mais signalées comme prévisionnelles.
+        Règle économique : CA client − Coût SST = marge SST. Les données futures du mode « Exercice
+        complet » sont incluses dans les agrégats mais signalées comme prévisionnelles.
       </p>
     </div>
   );

@@ -53,7 +53,7 @@ export function SstWorksiteEmailDialog({ sheet }: { sheet: WorksiteSheet }) {
   async function handleSend() {
     if (!validRecipients.length) {
       toast.error(
-        "Aucune adresse email de compte prestataire valide n'est disponible pour les SST sélectionnés.",
+        "Aucune adresse e-mail de compte prestataire valide n'est disponible pour les SST sélectionnés.",
       );
       return;
     }

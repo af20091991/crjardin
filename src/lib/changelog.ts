@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-19",
+    version: "2.3.74",
+    theme: "Général",
+    title: "Vocabulaire unifié (SST, e-mails)",
+    details: [
+      "SST : « CA SST », « Coût SST », « Heures SST » et « Temps économisé » sont désormais employés partout (fin de « Charge SST », « CA sous-traitance », « Temps dégagé »).",
+      "« e-mail » s'écrit désormais de la même façon dans le menu, la page de suivi, la connexion et l'envoi aux SST.",
+      "Aucun chiffre ni calcul modifié.",
+    ],
+  },
+  {
+    date: "2026-10-19",
     version: "2.3.73",
     theme: "Général",
     title: "Pages accessibles depuis leur module",
