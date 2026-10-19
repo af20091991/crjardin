@@ -21,14 +21,10 @@ import {
   PanelLeftOpen,
   HardHat,
   Euro,
-  Target,
-  Calculator,
-  CalendarRange,
   CalendarDays,
   Receipt,
   LineChart,
   Clock,
-  HeartPulse,
   Globe2,
   FileBarChart,
   Wrench,
@@ -211,18 +207,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       items: canView
         ? [
             {
-              to: "/pilot/direction",
-              label: "Direction",
-              short: "Direction",
+              to: "/pilot/pilotage",
+              label: "Pilotage",
+              short: "Pilotage",
               icon: FileBarChart,
-              exact: false,
-              primary: false,
-            },
-            {
-              to: "/pilot/finance",
-              label: "Finance",
-              short: "Finance",
-              icon: Calculator,
               exact: false,
               primary: false,
             },
@@ -294,34 +282,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     {
       label: "Activité",
       items: [
-        ...(canView
-          ? [
-              {
-                to: "/pilot/sante",
-                label: "Santé de l'activité",
-                short: "Santé",
-                icon: HeartPulse,
-                exact: false,
-                primary: false,
-              },
-              {
-                to: "/pilot/objectifs",
-                label: "Objectifs",
-                short: "Objectifs",
-                icon: Target,
-                exact: false,
-                primary: false,
-              },
-              {
-                to: "/pilot/benchmark",
-                label: "Comparatifs et prévisions",
-                short: "Compar.",
-                icon: CalendarRange,
-                exact: false,
-                primary: false,
-              },
-            ]
-          : []),
+        ...(canView ? [] : []),
         {
           to: "/interventions",
           label: "CR Chantier",
