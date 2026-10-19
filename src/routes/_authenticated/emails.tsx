@@ -31,7 +31,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/emails")({
   head: () => ({
-    meta: [{ title: "Gestion et suivi des emails clients — De la graine au jardin" }],
+    meta: [{ title: "Gestion et suivi des e-mails clients — De la graine au jardin" }],
   }),
   component: EmailsPage,
 });
@@ -47,7 +47,6 @@ function fmtDate(iso: string): string {
 }
 
 function EmailsPage() {
-
   const { isAdmin, isLoading } = useIsAdmin();
   const navigate = useNavigate();
 
@@ -57,7 +56,7 @@ function EmailsPage() {
 
   if (isLoading || !isAdmin) {
     return (
-      <AppShell title="Gestion et suivi des emails clients">
+      <AppShell title="Gestion et suivi des e-mails clients">
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
@@ -66,7 +65,7 @@ function EmailsPage() {
   }
 
   return (
-    <AppShell title="Gestion et suivi des emails clients">
+    <AppShell title="Gestion et suivi des e-mails clients">
       <EmailManagement />
     </AppShell>
   );
@@ -80,16 +79,10 @@ function EmailManagement() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap gap-2 border-b">
-        <Button
-          variant={tab === "reports" ? "default" : "ghost"}
-          onClick={() => setTab("reports")}
-        >
+        <Button variant={tab === "reports" ? "default" : "ghost"} onClick={() => setTab("reports")}>
           Comptes rendus
         </Button>
-        <Button
-          variant={tab === "premium" ? "default" : "ghost"}
-          onClick={() => setTab("premium")}
-        >
+        <Button variant={tab === "premium" ? "default" : "ghost"} onClick={() => setTab("premium")}>
           <MailCheck className="mr-2 h-4 w-4" />
           Mailing Premium
         </Button>
@@ -114,7 +107,8 @@ function PremiumMailingTab() {
         <div>
           <h2 className="font-serif text-2xl">Mailing Premium</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Historique des invitations au Compte Premium, identité du destinataire, contenu exact envoyé et suivi des ouvertures.
+            Historique des invitations au Compte Premium, identité du destinataire, contenu exact
+            envoyé et suivi des ouvertures.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
@@ -123,7 +117,11 @@ function PremiumMailingTab() {
         </Button>
       </div>
 
-      {error && <p className="text-sm text-destructive">Impossible de charger le suivi du mailing Premium.</p>}
+      {error && (
+        <p className="text-sm text-destructive">
+          Impossible de charger le suivi du mailing Premium.
+        </p>
+      )}
 
       <Card>
         <CardContent className="p-0">
@@ -156,7 +154,9 @@ function PremiumMailingTab() {
                           {[row.civility, row.first_name, row.last_name].filter(Boolean).join(" ")}
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm">{row.recipient_email}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {row.recipient_email}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                         {fmtDate(row.sent_at ?? row.created_at)}
                       </TableCell>
@@ -199,10 +199,15 @@ function PremiumMailingTab() {
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Mail envoyé</p>
                 <h3 className="mt-1 font-serif text-xl">{selected.subject}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {[selected.civility, selected.first_name, selected.last_name].filter(Boolean).join(" ")} · {selected.recipient_email}
+                  {[selected.civility, selected.first_name, selected.last_name]
+                    .filter(Boolean)
+                    .join(" ")}{" "}
+                  · {selected.recipient_email}
                 </p>
               </div>
-              <Button variant="ghost" onClick={() => setSelected(null)}>Fermer</Button>
+              <Button variant="ghost" onClick={() => setSelected(null)}>
+                Fermer
+              </Button>
             </div>
             <div className="min-h-0 flex-1 bg-muted/20 p-4">
               <iframe
@@ -401,4 +406,3 @@ function PpReportEmails() {
     </div>
   );
 }
-

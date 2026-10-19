@@ -256,7 +256,7 @@ export function SstProfitabilityTab() {
     () => [
       {
         id: "ca-presta",
-        label: "CA sous-traité",
+        label: "CA SST",
         unit: "euro",
         categoryLabel: "Prestation",
         series: [{ key: "revenue", label: "CA client", color: PP_COLORS.sales }],
@@ -493,14 +493,14 @@ export function SstProfitabilityTab() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <PilotCard
           storageId="sst-ca"
-          label="CA sous-traitance"
+          label="CA SST"
           value={formatEuro(totals.revenue)}
           sub={`${totals.missions} mission(s)`}
           help="Somme des prix facturés au client pour les missions confiées à un sous-traitant."
         />
         <PilotCard
           storageId="sst-cout"
-          label="Coût sous-traitance"
+          label="Coût SST"
           value={formatEuro(totals.cost)}
           sub={
             totals.avgHourlyCost != null
@@ -540,7 +540,7 @@ export function SstProfitabilityTab() {
         />
         <PilotCard
           storageId="sst-temps"
-          label="Temps dégagé"
+          label="Temps économisé"
           value={formatHours(totals.hoursSaved)}
           sub={`${formatHours(totals.hours)} réalisées par les SST`}
           help="Heures que vous n'avez pas eu à réaliser vous-même grâce à la sous-traitance."

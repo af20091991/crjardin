@@ -144,7 +144,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     if (to === "/clients") {
       // /clients/premium is a distinct menu entry: it must not also activate
       // the parent "Fiches client" item.
-      return pathname === "/clients" || (pathname.startsWith("/clients/") && !pathname.startsWith("/clients/premium"));
+      return (
+        pathname === "/clients" ||
+        (pathname.startsWith("/clients/") && !pathname.startsWith("/clients/premium"))
+      );
     }
     return pathname.startsWith(to);
   };
@@ -384,7 +387,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           ? [
               {
                 to: "/emails",
-                label: "Gestion et suivi des emails clients",
+                label: "Gestion et suivi des e-mails clients",
                 short: "E-mails",
                 icon: FileText,
                 exact: false,
