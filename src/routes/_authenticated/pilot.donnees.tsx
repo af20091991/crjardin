@@ -3,6 +3,11 @@
 // avec annulation, et contrôle anti-régression des grands indicateurs.
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
+import { ValidationAutoRunner } from "@/components/pilot/ValidationAutoRunner";
+import { QualityPage } from "@/components/pilot/panels/QualityPanel";
+import { CorrectionsPage } from "@/components/pilot/panels/CorrectionsPanel";
+import { RapprochementCenter, type Section } from "@/components/pilot/panels/RapprochementCenter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { History, RotateCcw, ShieldCheck, Table2 } from "lucide-react";
@@ -11,7 +16,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { PilotDataGrid } from "@/components/pilot/PilotDataGrid";
 import { DATASETS, displayCell, listEditLog, undoEdit, type EditLogEntry } from "@/lib/pilot-edit";
 import {
@@ -30,7 +42,7 @@ import { APP_VERSION } from "@/lib/app-meta";
 export const Route = createFileRoute("/_authenticated/pilot/donnees")({
   head: () => ({
     meta: [
-      { title: "Classeur Pilot Pro — correction des données" },
+      { title: "Centre de données — Pilot Pro" },
       {
         name: "description",
         content:
@@ -45,8 +57,78 @@ export const Route = createFileRoute("/_authenticated/pilot/donnees")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: DonneesPage,
+  validateSearch: (search: Record<string, unknown>): { vue?: Vue; section?: Section } => ({
+    vue: VUES.includes(search.vue as Vue) ? (search.vue as Vue) : undefined,
+    section: ["lignes", "doublons", "regles", "journal"].includes(search.section as string)
+      ? (search.section as Section)
+      : undefined,
+  }),
+  component: CentreDonneesPage,
 });
+
+const VUES = [
+  "a-traiter",
+  "rapprochement",
+  "corrections",
+  "qualite",
+  "validation",
+  "classeur",
+] as const;
+type Vue = (typeof VUES)[number];
+const VUE_LABELS: Record<Vue, string> = {
+  "a-traiter": "Données à traiter",
+  rapprochement: "Rapprochement",
+  corrections: "Corrections assistées",
+  qualite: "Qualité des données",
+  validation: "Validation analytique",
+  classeur: "Classeur des données",
+};
+
+function CentreDonneesPage() {
+  const { vue = "a-traiter", section } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  return (
+    <div className="space-y-5">
+      <header className="space-y-1">
+        <h1 className="font-display text-2xl">Centre de données</h1>
+        <p className="text-sm text-muted-foreground">
+          Tout ce qui sert à vérifier, rapprocher, corriger et valider vos données de base.
+        </p>
+      </header>
+      <Tabs
+        value={vue}
+        onValueChange={(v) => navigate({ search: { vue: v as Vue }, replace: true })}
+      >
+        <TabsList className="flex h-auto flex-wrap justify-start">
+          {VUES.map((v) => (
+            <TabsTrigger key={v} value={v}>
+              {VUE_LABELS[v]}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        <TabsContent value="a-traiter" className="mt-4">
+          <ValidationPage />
+        </TabsContent>
+        <TabsContent value="rapprochement" className="mt-4">
+          <RapprochementCenter section={section} />
+        </TabsContent>
+        <TabsContent value="corrections" className="mt-4">
+          <CorrectionsPage />
+        </TabsContent>
+        <TabsContent value="qualite" className="mt-4">
+          <QualityPage />
+        </TabsContent>
+        <TabsContent value="validation" className="mt-4">
+          <ValidationAutoRunner />
+          <ValidationPage />
+        </TabsContent>
+        <TabsContent value="classeur" className="mt-4">
+          <DonneesPage />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(Number.isFinite(n) ? n : 0);
@@ -59,8 +141,8 @@ function DonneesPage() {
       <header className="space-y-1">
         <h1 className="font-display text-2xl">Classeur des données</h1>
         <p className="text-sm text-muted-foreground">
-          Mes données de base sont-elles justes ? Corrigez directement les valeurs : chaque modification
-          est datée, motivée et annulable.
+          Mes données de base sont-elles justes ? Corrigez directement les valeurs : chaque
+          modification est datée, motivée et annulable.
         </p>
       </header>
 
@@ -69,23 +151,24 @@ function DonneesPage() {
         <CardContent className="space-y-1.5 pt-5 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">À quoi sert cette page ?</p>
           <p>
-            Le classeur est la copie de travail de vos données de base : chiffre d'affaires, clients,
-            contrats CEEV et sous-traitance. Vous y corrigez une valeur fausse ou manquante, exactement
-            comme dans un tableur, sans passer par un import.
+            Le classeur est la copie de travail de vos données de base : chiffre d'affaires,
+            clients, contrats CEEV et sous-traitance. Vous y corrigez une valeur fausse ou
+            manquante, exactement comme dans un tableur, sans passer par un import.
           </p>
           <p>
-            Chaque correction est enregistrée dans le journal avec sa date, son ancienne valeur et son
-            motif : elle est annulable à tout moment, et le contrôle anti-régression vérifie que les
-            grands indicateurs n'ont pas bougé de façon anormale.
+            Chaque correction est enregistrée dans le journal avec sa date, son ancienne valeur et
+            son motif : elle est annulable à tout moment, et le contrôle anti-régression vérifie que
+            les grands indicateurs n'ont pas bougé de façon anormale.
           </p>
           <p>
-            Ce que le classeur ne fait pas : il ne calcule rien et n'invente aucune donnée. Les analyses
-            (rentabilité, heures, décisions) sont recalculées ailleurs à partir des valeurs corrigées ici.
+            Ce que le classeur ne fait pas : il ne calcule rien et n'invente aucune donnée. Les
+            analyses (rentabilité, heures, décisions) sont recalculées ailleurs à partir des valeurs
+            corrigées ici.
           </p>
           <p>
-            Heures : les trois sources restent séparées et ne sont jamais additionnées — heures vendues
-            (lignes CA), heures réalisées (interventions, source officielle) et heures historiques
-            importées d'Excel.
+            Heures : les trois sources restent séparées et ne sont jamais additionnées — heures
+            vendues (lignes CA), heures réalisées (interventions, source officielle) et heures
+            historiques importées d'Excel.
           </p>
         </CardContent>
       </Card>
@@ -200,7 +283,9 @@ function EditJournal() {
                   <TableCell className="max-w-[16rem] truncate text-sm">{e.label ?? "—"}</TableCell>
                   <TableCell className="text-xs">{e.field}</TableCell>
                   <TableCell className="text-xs">{displayCell(e.before_value) || "—"}</TableCell>
-                  <TableCell className="text-xs font-medium">{displayCell(e.after_value) || "—"}</TableCell>
+                  <TableCell className="text-xs font-medium">
+                    {displayCell(e.after_value) || "—"}
+                  </TableCell>
                   <TableCell className="max-w-[14rem] truncate text-xs text-muted-foreground">
                     {e.reason ?? "—"}
                   </TableCell>
@@ -305,7 +390,9 @@ function RegressionPanel() {
               {deltas.map((d) => (
                 <TableRow key={d.key}>
                   <TableCell className="text-sm">{d.label}</TableCell>
-                  <TableCell className="text-right text-sm">{d.before === null ? "—" : fmt(d.before)}</TableCell>
+                  <TableCell className="text-right text-sm">
+                    {d.before === null ? "—" : fmt(d.before)}
+                  </TableCell>
                   <TableCell className="text-right text-sm font-medium">{fmt(d.after)}</TableCell>
                   <TableCell
                     className={`text-right text-sm ${d.alert ? "font-semibold text-[var(--pp-charges)]" : "text-muted-foreground"}`}
@@ -334,8 +421,8 @@ function RegressionPanel() {
           <ul className="space-y-1 text-xs text-muted-foreground">
             {(snapshots.data ?? []).slice(0, 5).map((s) => (
               <li key={s.id}>
-                {new Date(s.created_at).toLocaleString("fr-FR")} — CA {fmt(Number(s.metrics.ca ?? 0))} €
-                {s.note ? ` — ${s.note}` : ""}
+                {new Date(s.created_at).toLocaleString("fr-FR")} — CA{" "}
+                {fmt(Number(s.metrics.ca ?? 0))} €{s.note ? ` — ${s.note}` : ""}
               </li>
             ))}
           </ul>

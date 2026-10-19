@@ -1,28 +1,9 @@
-// Centre de contrôle des données — interface simplifiée.
-// Les outils techniques restent conservés dans le code, mais ne sont plus
-// exposés ici. Cette page sert uniquement à traiter les données qui demandent
-// réellement une action.
-import { createFileRoute } from "@tanstack/react-router";
-import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+// Regroupé dans le Centre de données.
 export const Route = createFileRoute("/_authenticated/pilot/controle")({
   validateSearch: () => ({}),
-  head: () => ({
-    meta: [
-      { title: "Données à traiter — Pilot Pro" },
-      {
-        name: "description",
-        content: "Les données que Pilot Pro ne peut pas régler seul.",
-      },
-    ],
-  }),
-  component: ControlCenterPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/pilot/donnees", search: { vue: "a-traiter" } });
+  },
 });
-
-function ControlCenterPage() {
-  return (
-    <div className="w-full">
-      <ValidationPage />
-    </div>
-  );
-}

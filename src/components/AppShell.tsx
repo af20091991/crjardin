@@ -367,7 +367,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           ? [
               {
                 to: "/pilot/donnees",
-                label: "Classeur des données & contrôle",
+                label: "Centre de données",
                 short: "Données",
                 icon: Database,
                 exact: false,
