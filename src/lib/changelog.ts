@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-19",
+    version: "2.3.78",
+    theme: "Général",
+    title: "Page Pilotage unique",
+    details: [
+      "Direction, Finance, Santé de l'activité, Objectifs et Comparatifs et prévisions sont réunis dans « Pilotage », un onglet par vue.",
+      "Contenu inchangé ; les anciens liens ouvrent l'onglet correspondant.",
+    ],
+  },
+  {
+    date: "2026-10-19",
     version: "2.3.77",
     theme: "Général",
     title: "Centre de données unique",
