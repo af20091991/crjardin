@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-19",
+    version: "2.3.77",
+    theme: "Général",
+    title: "Centre de données unique",
+    details: [
+      "Données à traiter, Rapprochement, Corrections assistées, Qualité, Validation analytique et Classeur sont réunis dans « Centre de données » (menu Configuration), un onglet par outil.",
+      "Les anciens liens continuent d'ouvrir le bon onglet ; aucun outil ni donnée n'est supprimé.",
+    ],
+  },
+  {
+    date: "2026-10-19",
     version: "2.3.76",
     theme: "Général",
     title: "Un seul écran Paramètres",
