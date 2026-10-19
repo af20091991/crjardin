@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, PenLine, Upload, Stamp, Trash2, MailCheck } from "lucide-react";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PilotSettingsPanel } from "@/components/pilot/PilotSettingsPanel";
 
 /** Lit un fichier image et renvoie un dataURL redimensionné (max 600px). */
 function fileToDataUrl(file: File, maxSize = 600): Promise<string> {
@@ -37,13 +39,21 @@ function fileToDataUrl(file: File, maxSize = 600): Promise<string> {
 }
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Profil & signature — De la graine au jardin" }] }),
+  head: () => ({ meta: [{ title: "Paramètres — De la graine au jardin" }] }),
+  validateSearch: (search: Record<string, unknown>): { tab?: "profil" | "pilotage" } => ({
+    tab: search.tab === "pilotage" ? "pilotage" : undefined,
+  }),
   component: SettingsPage,
 });
 
 function SettingsPage() {
+  const { tab } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const qc = useQueryClient();
-  const { data: profile, isLoading } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["my-profile"],
+    queryFn: getMyProfile,
+  });
 
   const [displayName, setDisplayName] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -60,24 +70,34 @@ function SettingsPage() {
   const inv = () => qc.invalidateQueries({ queryKey: ["my-profile"] });
 
   const saveInfo = useMutation({
-    mutationFn: () => updateMyProfile({
-      display_name: displayName.trim() || null,
-      company_name: companyName.trim() || null,
-      hourly_rate: Number(rate) || 70,
-    }),
-    onSuccess: () => { inv(); toast.success("Profil enregistré"); },
+    mutationFn: () =>
+      updateMyProfile({
+        display_name: displayName.trim() || null,
+        company_name: companyName.trim() || null,
+        hourly_rate: Number(rate) || 70,
+      }),
+    onSuccess: () => {
+      inv();
+      toast.success("Profil enregistré");
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
   const saveSig = useMutation({
     mutationFn: (data: string | null) => updateMyProfile({ signature_data: data }),
-    onSuccess: () => { inv(); toast.success("Signature enregistrée"); },
+    onSuccess: () => {
+      inv();
+      toast.success("Signature enregistrée");
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
   const saveStamp = useMutation({
     mutationFn: (data: string | null) => updateMyProfile({ stamp_data: data }),
-    onSuccess: () => { inv(); toast.success("Cachet enregistré"); },
+    onSuccess: () => {
+      inv();
+      toast.success("Cachet enregistré");
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
@@ -86,7 +106,10 @@ function SettingsPage() {
 
   const onUpload = async (file: File | undefined, save: (d: string) => void) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) { toast.error("Veuillez choisir une image"); return; }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez choisir une image");
+      return;
+    }
     try {
       const dataUrl = await fileToDataUrl(file);
       save(dataUrl);
@@ -96,114 +119,188 @@ function SettingsPage() {
   };
 
   return (
-    <AppShell title="Profil & signature">
-      <div className="mx-auto max-w-2xl space-y-4">
-        {isLoading ? (
-          <Skeleton className="h-64 w-full rounded-xl" />
-        ) : (
-          <>
-            <Card>
-              <CardContent className="space-y-3 pt-6">
-                <div className="flex items-center gap-2">
-                  <MailCheck className="h-5 w-5 text-primary" />
-                  <h3 className="font-serif text-lg font-semibold">Mailing Premium</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Préparez et suivez les e-mails de mise à disposition des Comptes Premium clients,
-                  avec historique des destinataires, contenu exact envoyé et suivi des ouvertures.
-                </p>
-                <Button variant="outline" asChild>
-                  <Link to="/emails">Gestion et suivi des emails clients</Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="space-y-4 pt-6">
-                <h3 className="font-serif text-lg font-semibold">Informations</h3>
-                <div className="space-y-1.5">
-                  <Label>Votre nom (auteur des fiches)</Label>
-                  <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Jean Dupont" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Nom de l'entreprise</Label>
-                  <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="De la graine au jardin" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Tarif horaire de main-d'œuvre (€ TTC/h)</Label>
-                  <Input type="number" min="0" value={rate} onChange={(e) => setRate(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">Utilisé pour estimer le prix des préconisations.</p>
-                </div>
-                <Button disabled={saveInfo.isPending} onClick={() => saveInfo.mutate()}>
-                  {saveInfo.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Enregistrer
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="space-y-3 pt-6">
-                <div className="flex items-center gap-2">
-                  <PenLine className="h-5 w-5 text-primary" />
-                  <h3 className="font-serif text-lg font-semibold">Votre signature</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Dessinez votre signature une seule fois. Elle sera automatiquement ajoutée à chacun de vos comptes-rendus PDF.
-                </p>
-                <SignaturePad value={profile?.signature_data} saving={saveSig.isPending} onSave={(d) => saveSig.mutate(d)} />
-                <div className="flex items-center gap-2 pt-1">
-                  <input
-                    ref={sigFileRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => { onUpload(e.target.files?.[0], (d) => saveSig.mutate(d)); e.target.value = ""; }}
-                  />
-                  <Button type="button" size="sm" variant="outline" disabled={saveSig.isPending} onClick={() => sigFileRef.current?.click()}>
-                    <Upload className="mr-1.5 h-4 w-4" /> Importer une image
-                  </Button>
-                  <p className="text-xs text-muted-foreground">PNG/JPG, fond transparent recommandé.</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="space-y-3 pt-6">
-                <div className="flex items-center gap-2">
-                  <Stamp className="h-5 w-5 text-primary" />
-                  <h3 className="font-serif text-lg font-semibold">Cachet de l'entreprise</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Importez le cachet (tampon) de votre entreprise. Il sera ajouté à côté de votre signature sur chaque compte-rendu PDF.
-                </p>
-                {profile?.stamp_data && (
-                  <div className="inline-flex rounded-lg border border-border bg-card p-2">
-                    <img src={profile.stamp_data} alt="Cachet de l'entreprise" className="h-28 w-auto object-contain" />
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={stampFileRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => { onUpload(e.target.files?.[0], (d) => saveStamp.mutate(d)); e.target.value = ""; }}
-                  />
-                  <Button type="button" size="sm" variant="outline" disabled={saveStamp.isPending} onClick={() => stampFileRef.current?.click()}>
-                    {saveStamp.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Upload className="mr-1.5 h-4 w-4" />}
-                    {profile?.stamp_data ? "Remplacer le cachet" : "Importer le cachet"}
-                  </Button>
-                  {profile?.stamp_data && (
-                    <Button type="button" size="sm" variant="ghost" className="text-destructive" disabled={saveStamp.isPending} onClick={() => saveStamp.mutate(null)}>
-                      <Trash2 className="mr-1.5 h-4 w-4" /> Retirer
+    <AppShell title="Paramètres">
+      <Tabs
+        value={tab ?? "profil"}
+        onValueChange={(v) =>
+          navigate({ search: { tab: v === "pilotage" ? "pilotage" : undefined }, replace: true })
+        }
+        className="mx-auto max-w-3xl space-y-4"
+      >
+        <TabsList>
+          <TabsTrigger value="profil">Profil & signature</TabsTrigger>
+          <TabsTrigger value="pilotage">Pilotage</TabsTrigger>
+        </TabsList>
+        <TabsContent value="pilotage">
+          <PilotSettingsPanel />
+        </TabsContent>
+        <TabsContent value="profil">
+          <div className="mx-auto max-w-2xl space-y-4">
+            {isLoading ? (
+              <Skeleton className="h-64 w-full rounded-xl" />
+            ) : (
+              <>
+                <Card>
+                  <CardContent className="space-y-3 pt-6">
+                    <div className="flex items-center gap-2">
+                      <MailCheck className="h-5 w-5 text-primary" />
+                      <h3 className="font-serif text-lg font-semibold">Mailing Premium</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Préparez et suivez les e-mails de mise à disposition des Comptes Premium
+                      clients, avec historique des destinataires, contenu exact envoyé et suivi des
+                      ouvertures.
+                    </p>
+                    <Button variant="outline" asChild>
+                      <Link to="/emails">Gestion et suivi des emails clients</Link>
                     </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="space-y-4 pt-6">
+                    <h3 className="font-serif text-lg font-semibold">Informations</h3>
+                    <div className="space-y-1.5">
+                      <Label>Votre nom (auteur des fiches)</Label>
+                      <Input
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="Jean Dupont"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Nom de l'entreprise</Label>
+                      <Input
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="De la graine au jardin"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Tarif horaire de main-d'œuvre (€ TTC/h)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={rate}
+                        onChange={(e) => setRate(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Utilisé pour estimer le prix des préconisations.
+                      </p>
+                    </div>
+                    <Button disabled={saveInfo.isPending} onClick={() => saveInfo.mutate()}>
+                      {saveInfo.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Enregistrer
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="space-y-3 pt-6">
+                    <div className="flex items-center gap-2">
+                      <PenLine className="h-5 w-5 text-primary" />
+                      <h3 className="font-serif text-lg font-semibold">Votre signature</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Dessinez votre signature une seule fois. Elle sera automatiquement ajoutée à
+                      chacun de vos comptes-rendus PDF.
+                    </p>
+                    <SignaturePad
+                      value={profile?.signature_data}
+                      saving={saveSig.isPending}
+                      onSave={(d) => saveSig.mutate(d)}
+                    />
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        ref={sigFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          onUpload(e.target.files?.[0], (d) => saveSig.mutate(d));
+                          e.target.value = "";
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={saveSig.isPending}
+                        onClick={() => sigFileRef.current?.click()}
+                      >
+                        <Upload className="mr-1.5 h-4 w-4" /> Importer une image
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        PNG/JPG, fond transparent recommandé.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="space-y-3 pt-6">
+                    <div className="flex items-center gap-2">
+                      <Stamp className="h-5 w-5 text-primary" />
+                      <h3 className="font-serif text-lg font-semibold">Cachet de l'entreprise</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Importez le cachet (tampon) de votre entreprise. Il sera ajouté à côté de
+                      votre signature sur chaque compte-rendu PDF.
+                    </p>
+                    {profile?.stamp_data && (
+                      <div className="inline-flex rounded-lg border border-border bg-card p-2">
+                        <img
+                          src={profile.stamp_data}
+                          alt="Cachet de l'entreprise"
+                          className="h-28 w-auto object-contain"
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={stampFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          onUpload(e.target.files?.[0], (d) => saveStamp.mutate(d));
+                          e.target.value = "";
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={saveStamp.isPending}
+                        onClick={() => stampFileRef.current?.click()}
+                      >
+                        {saveStamp.isPending ? (
+                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Upload className="mr-1.5 h-4 w-4" />
+                        )}
+                        {profile?.stamp_data ? "Remplacer le cachet" : "Importer le cachet"}
+                      </Button>
+                      {profile?.stamp_data && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          disabled={saveStamp.isPending}
+                          onClick={() => saveStamp.mutate(null)}
+                        >
+                          <Trash2 className="mr-1.5 h-4 w-4" /> Retirer
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </AppShell>
   );
 }

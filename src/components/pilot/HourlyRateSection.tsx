@@ -441,10 +441,11 @@ export function HourlyRateSection() {
           <Settings2 className="h-3.5 w-3.5" />
           Les paramètres TJM se règlent dans{" "}
           <Link
-            to="/pilot/parametres"
+            to="/settings"
+            search={{ tab: "pilotage" }}
             className="font-medium text-primary underline-offset-2 hover:underline"
           >
-            Paramètres &gt; Pilot Pro
+            Paramètres &gt; Pilotage
           </Link>
           .
         </p>
