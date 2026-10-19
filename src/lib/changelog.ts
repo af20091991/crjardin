@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-19",
+    version: "2.3.75",
+    theme: "Général",
+    title: "SST — exercice unique entre « Vue d'ensemble » et « Journal SST »",
+    details: [
+      "Le Journal SST suit désormais l'exercice choisi en haut de l'application, comme la vue d'ensemble : les chiffres des deux sections sont cohérents.",
+      "Le choix « Toutes années » reste disponible dans le Journal SST.",
+    ],
+  },
+  {
+    date: "2026-10-19",
     version: "2.3.74",
     theme: "Général",
     title: "Vocabulaire unifié (SST, e-mails)",
