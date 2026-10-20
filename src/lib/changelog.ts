@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-20",
+    version: "2.3.86",
+    theme: "Général",
+    title: "Charges SST — la mention SST fait foi",
+    details: [
+      "Toute charge dont la désignation mentionne SST (ou « sous-traitance ») est classée « SST », même si elle était classée « Charge chantier » ou « À classer ». Charges fixes, rémunérations et investissements ne sont jamais modifiés.",
+      "Les charges 2026 ont été revues : 16 lignes reclassées en SST (montants et dates inchangés).",
+    ],
+  },
+  {
+    date: "2026-10-20",
     version: "2.3.85",
     theme: "Général",
     title: "Charges SST — détection du mot « SST » dans tout le libellé",
