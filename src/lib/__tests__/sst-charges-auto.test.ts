@@ -22,15 +22,18 @@ describe("préfixe SST", () => {
     expect(hasSstPrefix(null)).toBe(false);
   });
 
-  it("ne remplace jamais un classement explicite", () => {
+  it("la mention SST fait foi, sauf charge fixe, rémunération ou investissement", () => {
     const base = { designation: "SST Dupont" };
     expect(shouldAutoClassifySst({ ...base, charge_category: null })).toBe(true);
     expect(shouldAutoClassifySst({ ...base, charge_category: "À classer" })).toBe(true);
-    expect(shouldAutoClassifySst({ ...base, charge_category: "Charge variable" })).toBe(true);
+    expect(shouldAutoClassifySst({ ...base, charge_category: "Charge chantier" })).toBe(true);
     expect(shouldAutoClassifySst({ ...base, charge_category: "SST" })).toBe(false);
     expect(shouldAutoClassifySst({ ...base, charge_category: "Charge fixe" })).toBe(false);
+    expect(shouldAutoClassifySst({ ...base, charge_category: "Rémunération" })).toBe(false);
     expect(shouldAutoClassifySst({ ...base, is_investment: true })).toBe(false);
     expect(shouldAutoClassifySst({ designation: "Carburant", charge_category: null })).toBe(false);
+    expect(shouldAutoClassifySst({ designation: "Sous-traitance Lozza" })).toBe(true);
+    expect(shouldAutoClassifySst({ designation: "Ss-traitance d'Aboville" })).toBe(true);
   });
 });
 

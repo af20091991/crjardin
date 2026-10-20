@@ -21,22 +21,29 @@ export function hasSstPrefix(label: string | null | undefined): boolean {
   return /(^|[^a-z0-9À-ÿ])sst(?![a-z0-9À-ÿ])/i.test(label ?? "");
 }
 
-/** Catégories qu'un classement automatique peut remplacer : jamais un choix explicite. */
-const AUTO_CLASSIFIABLE = new Set(["", "À classer", "a_classer", "Charge variable"]);
+/** « SST » ou formulations équivalentes (« Sous-traitance X », « Ss-traitance X »). */
+export function mentionsSst(label: string | null | undefined): boolean {
+  return hasSstPrefix(label) || /sous[-\s]?trait|\bss[-\s]?trait/i.test(label ?? "");
+}
+
+/** Classements explicites qu'un classement automatique ne remplace jamais. */
+const PROTECTED_CATEGORIES = new Set(["SST", "Charge fixe", "Rémunération", "Investissement"]);
 
 /**
- * Une charge doit-elle être classée automatiquement « SST » ? Vrai si son libellé commence
- * par « SST » et qu'elle n'a pas déjà un classement explicite (fixe, investissement, SST…).
+ * Une charge doit-elle être classée « SST » ? Vrai si son libellé mentionne SST, sauf charge
+ * fixe, rémunération ou investissement. Un classement générique (Charge chantier, Charge
+ * variable, À classer…) est remplacé : la mention SST fait foi.
  */
 export function shouldAutoClassifySst(row: {
   designation: string | null | undefined;
   charge_category?: string | null;
+  charge_class?: string | null;
   is_fixed?: boolean | null;
   is_investment?: boolean | null;
 }): boolean {
-  if (row.is_fixed || row.is_investment) return false;
-  if (!hasSstPrefix(row.designation)) return false;
-  return AUTO_CLASSIFIABLE.has((row.charge_category ?? "").trim());
+  if (row.is_fixed || row.is_investment || row.charge_class === "fixe") return false;
+  if (!mentionsSst(row.designation)) return false;
+  return !PROTECTED_CATEGORIES.has((row.charge_category ?? "").trim());
 }
 
 export interface SstChargeMissionLink {
