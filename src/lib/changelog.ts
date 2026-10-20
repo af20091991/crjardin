@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-20",
+    version: "2.3.84",
+    theme: "Général",
+    title: "Chiffre d'affaires — charges SST classées automatiquement",
+    details: [
+      "Une charge dont la désignation commence par « SST » est classée « SST » automatiquement (nouveau choix dans « Type de charge »). Un classement explicite (charge fixe, investissement…) n'est jamais écrasé.",
+      "Chaque charge SST est reliée à la mission SST correspondante (même mois, même montant) : « Mission SST liée », ou « Doublon possible » si une autre charge identique existe. Une dépense déjà suivie en mission n'est comptée qu'une fois.",
+      "Les montants, dates et totaux des charges ne sont pas modifiés.",
+    ],
+  },
+  {
+    date: "2026-10-20",
     version: "2.3.83",
     theme: "Général",
     title: "Pages allégées sans perte d'information",

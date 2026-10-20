@@ -9,18 +9,74 @@ import type { SubcontractorMission } from "@/lib/subcontractors";
 // « ss-trait » / « ss trait » sont ajoutés sur cause démontrée : la charge
 // « Ss-traitance d'Aboville » (278,55 € — 02/2026) échappait à la détection et
 // n'apparaissait donc ni dans le Journal SST ni dans le rapprochement.
-const SST_MARKERS = [
-  "sous-trait",
-  "sous trait",
-  "soustrait",
-  "ss-trait",
-  "ss trait",
-  "sst",
-];
+const SST_MARKERS = ["sous-trait", "sous trait", "soustrait", "ss-trait", "ss trait", "sst"];
 
 export function isSubcontractingLabel(label: string | null): boolean {
   const l = (label ?? "").toLowerCase();
   return SST_MARKERS.some((m) => l.includes(m));
+}
+
+/** Libellé commençant par « SST » (préfixe de classement automatique des charges). */
+export function hasSstPrefix(label: string | null | undefined): boolean {
+  return /^\s*sst(?![a-z0-9À-ÿ])/i.test(label ?? "");
+}
+
+/** Catégories qu'un classement automatique peut remplacer : jamais un choix explicite. */
+const AUTO_CLASSIFIABLE = new Set(["", "À classer", "a_classer", "Charge variable"]);
+
+/**
+ * Une charge doit-elle être classée automatiquement « SST » ? Vrai si son libellé commence
+ * par « SST » et qu'elle n'a pas déjà un classement explicite (fixe, investissement, SST…).
+ */
+export function shouldAutoClassifySst(row: {
+  designation: string | null | undefined;
+  charge_category?: string | null;
+  is_fixed?: boolean | null;
+  is_investment?: boolean | null;
+}): boolean {
+  if (row.is_fixed || row.is_investment) return false;
+  if (!hasSstPrefix(row.designation)) return false;
+  return AUTO_CLASSIFIABLE.has((row.charge_category ?? "").trim());
+}
+
+export interface SstChargeMissionLink {
+  missionId: string | null;
+  /** true si une autre charge a déjà été rapprochée de la même mission (ou même dépense). */
+  duplicate: boolean;
+}
+
+/**
+ * Rapproche les charges SST des missions déjà saisies (même mois, même montant, à 0,01 €).
+ * Une mission n'est rattachée qu'à UNE charge ; toute autre charge identique est signalée
+ * comme doublon. Lecture seule : rien n'est modifié.
+ */
+export function linkChargesToMissions(
+  charges: Array<{ id: string; year: number; month: number; amount: number }>,
+  missions: SubcontractorMission[],
+): Map<string, SstChargeMissionLink> {
+  const result = new Map<string, SstChargeMissionLink>();
+  const usedMissions = new Set<string>();
+  const seenCharges = new Map<string, string>();
+  for (const c of charges) {
+    const mission = missions.find((m) => {
+      if (m.archived_at || usedMissions.has(m.id)) return false;
+      const d = new Date(m.mission_date);
+      if (d.getFullYear() !== c.year || d.getMonth() + 1 !== c.month) return false;
+      const cost = Number(m.invoiced_amount ?? m.agreed_price ?? 0);
+      return cost > 0 && Math.abs(cost - c.amount) < 0.01;
+    });
+    const key = `${c.year}-${c.month}-${c.amount.toFixed(2)}`;
+    if (mission) {
+      usedMissions.add(mission.id);
+      if (!seenCharges.has(key)) seenCharges.set(key, c.id);
+      result.set(c.id, { missionId: mission.id, duplicate: false });
+      continue;
+    }
+    // Même mois et même montant qu'une autre charge SST : doublon probable.
+    result.set(c.id, { missionId: null, duplicate: seenCharges.has(key) });
+    if (!seenCharges.has(key)) seenCharges.set(key, c.id);
+  }
+  return result;
 }
 
 export interface SstChargeLine {
@@ -80,7 +136,10 @@ export function sstChargeLines(params: {
     .filter((c) => c.key.length >= 4);
 
   return chargeRows
-    .filter((r) => !r.is_investment && isSubcontractingLabel(r.designation))
+    .filter(
+      (r) =>
+        !r.is_investment && (isSubcontractingLabel(r.designation) || r.charge_category === "SST"),
+    )
     .filter((r) => (year === "all" ? true : r.year === year))
     .map((r) => {
       const designation = r.designation ?? "";
