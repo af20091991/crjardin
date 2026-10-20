@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useRole } from "@/hooks/use-role";
+import { listMissions, listSubcontractors } from "@/lib/subcontractors";
+import { linkChargesToMissions, shouldAutoClassifySst } from "@/lib/sst-charges";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listCaEntries,
@@ -290,6 +293,10 @@ function CaPage() {
     [clientsQ.data],
   );
 
+  // Missions SST déjà saisies : sert à relier les charges « SST » sans double comptage.
+  const sstMissionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
+  const sstListQ = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
+
   // Largeurs de colonnes du tableau des ventes (ajustables à la souris).
   const salesCols = useColumnWidths("pilot-ca-ventes", {
     statut: 36,
@@ -427,6 +434,7 @@ function CaPage() {
     | "Achats"
     | "Charge chantier"
     | "Rémunération"
+    | "SST"
     | "Investissement";
 
   const CHARGE_TYPE_META: Record<
@@ -438,6 +446,7 @@ function CaPage() {
     Achats: { charge_class: "variable", is_investment: false },
     "Charge chantier": { charge_class: "variable", is_investment: false },
     Rémunération: { charge_class: "variable", is_investment: false },
+    SST: { charge_class: "variable", is_investment: false },
     Investissement: { charge_class: "a_classer", is_investment: true },
   };
 
@@ -447,6 +456,7 @@ function CaPage() {
     if (row.is_fixed) return "Charge fixe" as const;
     if (row.is_investment) return "Investissement" as const;
     const current = row.charge_category;
+    if (current === "SST" || shouldAutoClassifySst(row)) return "SST" as const;
     if (current === "Charge fixe" || row.charge_class === "fixe") return "Charge fixe" as const;
     if (current === "Achats" || current === "Charge de fonctionnement") return "Achats" as const;
     if (current === "Charge chantier" || current === "Charges chantier")
@@ -475,6 +485,37 @@ function CaPage() {
       charge_class: meta.charge_class,
       is_investment: meta.is_investment,
     });
+  };
+
+  // Classement automatique : toute charge dont la désignation commence par « SST » est classée
+  // « SST » (jamais par-dessus un choix explicite : fixe, investissement…).
+  const { canEdit: canEditCa } = useRole();
+  const autoSstTried = useRef(new Set<string>());
+  useEffect(() => {
+    if (!canEditCa) return;
+    for (const row of entries) {
+      if (row.kind !== "charge" || autoSstTried.current.has(row.id)) continue;
+      if (!shouldAutoClassifySst(row)) continue;
+      autoSstTried.current.add(row.id);
+      save(row.id, { charge_category: "SST", charge_class: "variable", is_investment: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, canEditCa]);
+
+  // Liaison charges SST ↔ missions SST (même mois, même montant) avec détection des doublons.
+  const sstChargeLinks = useMemo(() => {
+    const sstCharges = entries
+      .filter(
+        (e) => e.kind === "charge" && (e.charge_category === "SST" || shouldAutoClassifySst(e)),
+      )
+      .map((e) => ({ id: e.id, year: e.year, month: e.month, amount: Number(e.amount_ht) || 0 }));
+    return linkChargesToMissions(sstCharges, sstMissionsQ.data ?? []);
+  }, [entries, sstMissionsQ.data]);
+  const sstMissionLabel = (missionId: string) => {
+    const m = (sstMissionsQ.data ?? []).find((x) => x.id === missionId);
+    if (!m) return "";
+    const sst = (sstListQ.data ?? []).find((x) => x.id === m.subcontractor_id)?.name;
+    return [sst, clients.find((c) => c.id === m.client_id)?.name].filter(Boolean).join(" · ");
   };
 
   /**
@@ -1245,8 +1286,27 @@ function CaPage() {
                                 title={row.designation ?? undefined}
                                 className="h-8 w-full border-transparent bg-transparent hover:border-input focus:border-input"
                                 onBlur={(e) => {
-                                  if (e.target.value !== (row.designation ?? ""))
-                                    save(row.id, { designation: e.target.value });
+                                  if (e.target.value === (row.designation ?? "")) return;
+                                  const typed = row as CaEntry & {
+                                    charge_category?: string | null;
+                                  };
+                                  const sst = shouldAutoClassifySst({
+                                    designation: e.target.value,
+                                    charge_category: typed.charge_category,
+                                    is_fixed: row.is_fixed,
+                                    is_investment: row.is_investment,
+                                  });
+                                  save(
+                                    row.id,
+                                    sst
+                                      ? {
+                                          designation: e.target.value,
+                                          charge_category: "SST",
+                                          charge_class: "variable",
+                                          is_investment: false,
+                                        }
+                                      : { designation: e.target.value },
+                                  );
                                 }}
                               />
                             )}
@@ -1263,71 +1323,104 @@ function CaPage() {
                                   charge_class?: string | null;
                                 };
                                 const selectedType = chargeTypeForRow(typedRow);
+                                const sstLink =
+                                  selectedType === "SST" ? sstChargeLinks.get(row.id) : undefined;
                                 return (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <button
-                                        type="button"
-                                        className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 text-left text-sm hover:bg-muted/40"
-                                      >
-                                        <span
-                                          className={selectedType ? "" : "text-muted-foreground"}
+                                  <div className="space-y-1">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <button
+                                          type="button"
+                                          className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 text-left text-sm hover:bg-muted/40"
                                         >
-                                          {selectedType ?? "Choisir…"}
-                                        </span>
-                                        <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-                                      </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="start" className="w-64">
-                                      <DropdownMenuItem
-                                        title="Charges récurrentes de structure : le détail est saisi dans la ligne « Charges fixes »."
-                                        onSelect={() => saveChargeType(typedRow, "Charge fixe")}
-                                      >
-                                        Charge fixe
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        title="Charges variables : le classement détaillé peut être précisé par Achats, Charge chantier ou Rémunération."
-                                        onSelect={() => saveChargeType(typedRow, "Charge variable")}
-                                      >
-                                        Charge variable
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSub>
-                                        <DropdownMenuSubTrigger>
-                                          Préciser la charge variable
-                                        </DropdownMenuSubTrigger>
-                                        <DropdownMenuSubContent className="w-72">
-                                          <DropdownMenuItem
-                                            title="Toutes les charges nécessaires au fonctionnement de l'entreprise, autre que les charges de chantier"
-                                            onSelect={() => saveChargeType(typedRow, "Achats")}
+                                          <span
+                                            className={selectedType ? "" : "text-muted-foreground"}
                                           >
-                                            Achats
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            title="Charges directement liées à la réalisation d'un chantier."
-                                            onSelect={() =>
-                                              saveChargeType(typedRow, "Charge chantier")
-                                            }
-                                          >
-                                            Charge chantier
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            title="Rémunération versée, suivie comme charge variable."
-                                            onSelect={() =>
-                                              saveChargeType(typedRow, "Rémunération")
-                                            }
-                                          >
-                                            Rémunération
-                                          </DropdownMenuItem>
-                                        </DropdownMenuSubContent>
-                                      </DropdownMenuSub>
-                                      <DropdownMenuItem
-                                        title="Apparaît dans le mois en cours mais n'impacte pas le résultat du mois. L'investissement est rapporté à l'exercice, pas au mois auquel il a été affecté."
-                                        onSelect={() => saveChargeType(typedRow, "Investissement")}
+                                            {selectedType ?? "Choisir…"}
+                                          </span>
+                                          <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                                        </button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="start" className="w-64">
+                                        <DropdownMenuItem
+                                          title="Charges récurrentes de structure : le détail est saisi dans la ligne « Charges fixes »."
+                                          onSelect={() => saveChargeType(typedRow, "Charge fixe")}
+                                        >
+                                          Charge fixe
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          title="Charges variables : le classement détaillé peut être précisé par Achats, Charge chantier ou Rémunération."
+                                          onSelect={() =>
+                                            saveChargeType(typedRow, "Charge variable")
+                                          }
+                                        >
+                                          Charge variable
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSub>
+                                          <DropdownMenuSubTrigger>
+                                            Préciser la charge variable
+                                          </DropdownMenuSubTrigger>
+                                          <DropdownMenuSubContent className="w-72">
+                                            <DropdownMenuItem
+                                              title="Toutes les charges nécessaires au fonctionnement de l'entreprise, autre que les charges de chantier"
+                                              onSelect={() => saveChargeType(typedRow, "Achats")}
+                                            >
+                                              Achats
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              title="Charges directement liées à la réalisation d'un chantier."
+                                              onSelect={() =>
+                                                saveChargeType(typedRow, "Charge chantier")
+                                              }
+                                            >
+                                              Charge chantier
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              title="Rémunération versée, suivie comme charge variable."
+                                              onSelect={() =>
+                                                saveChargeType(typedRow, "Rémunération")
+                                              }
+                                            >
+                                              Rémunération
+                                            </DropdownMenuItem>
+                                          </DropdownMenuSubContent>
+                                        </DropdownMenuSub>
+                                        <DropdownMenuItem
+                                          title="Sous-traitance : classée automatiquement quand la désignation commence par « SST »."
+                                          onSelect={() => saveChargeType(typedRow, "SST")}
+                                        >
+                                          SST
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          title="Apparaît dans le mois en cours mais n'impacte pas le résultat du mois. L'investissement est rapporté à l'exercice, pas au mois auquel il a été affecté."
+                                          onSelect={() =>
+                                            saveChargeType(typedRow, "Investissement")
+                                          }
+                                        >
+                                          Investissement
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    {sstLink?.missionId ? (
+                                      <p
+                                        className="text-xs text-muted-foreground"
+                                        title="Cette charge correspond à une mission SST déjà saisie : elle n'est comptée qu'une fois dans le suivi SST."
                                       >
-                                        Investissement
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
+                                        ✓ Mission SST liée · {sstMissionLabel(sstLink.missionId)}
+                                      </p>
+                                    ) : sstLink?.duplicate ? (
+                                      <p
+                                        className="text-xs text-destructive"
+                                        title="Même mois et même montant qu'une autre charge SST : vérifiez qu'il ne s'agit pas d'un doublon."
+                                      >
+                                        ⚠ Doublon possible
+                                      </p>
+                                    ) : sstLink ? (
+                                      <p className="text-xs text-muted-foreground">
+                                        Aucune mission SST correspondante
+                                      </p>
+                                    ) : null}
+                                  </div>
                                 );
                               })()
                             )}
