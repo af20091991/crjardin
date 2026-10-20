@@ -647,18 +647,18 @@ function CalendrierSstPage() {
             >
               Chantiers
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={preferences.weatherEnabled ? "secondary" : "outline"}
-              aria-pressed={preferences.weatherEnabled}
-              className="h-7 px-2.5 text-xs"
+            <label
+              className="flex h-7 cursor-pointer items-center gap-2 rounded-md border border-border px-2.5 text-xs"
               title="Afficher ou masquer les prévisions météo sur le planning"
-              onClick={() => updatePreferences({ weatherEnabled: !preferences.weatherEnabled })}
             >
-              <Cloud className="mr-1 h-3.5 w-3.5" />
-              Météo {preferences.weatherEnabled ? "activée" : "désactivée"}
-            </Button>
+              <Cloud className="h-3.5 w-3.5" />
+              Météo
+              <Switch
+                checked={preferences.weatherEnabled}
+                onCheckedChange={(checked) => updatePreferences({ weatherEnabled: checked })}
+                aria-label="Afficher les prévisions météo"
+              />
+            </label>
             {preferences.weatherEnabled ? (
               <span className="text-xs text-muted-foreground" role="status">
                 {weatherPoint == null

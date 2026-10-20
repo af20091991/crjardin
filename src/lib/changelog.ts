@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-20",
+    version: "2.3.83",
+    theme: "Général",
+    title: "Pages allégées sans perte d'information",
+    details: [
+      "Dashboard : « Notifications CR », « Trafic et recherche » et « SEO local » sont repliés par défaut (bouton Déplier) ; ils restent sur le Dashboard, aucune information n'est déplacée.",
+      "Assistant AP : au-delà de 6 fournitures, la fiche chantier affiche les 5 premières avec « Voir les autres fournitures ».",
+      "Calendrier SST : la météo s'active avec un interrupteur on/off, à côté des filtres Disponibilités et Chantiers.",
+    ],
+  },
+  {
+    date: "2026-10-20",
     version: "2.3.82",
     theme: "Général",
     title: "Menu adapté au profil",
