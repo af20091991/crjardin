@@ -9,7 +9,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import "../nav-group-colors.css";
@@ -20,6 +20,8 @@ import { PilotModeProvider } from "@/lib/pilot-mode";
 import { Toaster } from "@/components/ui/sonner";
 import { registerPwa } from "@/lib/pwa";
 import { APP_VERSION } from "@/lib/app-meta";
+import { hydrateAccountPrefs, setPrefsUser } from "@/lib/account-prefs";
+import { useAuth } from "@/hooks/use-auth";
 
 function NotFoundComponent() {
   return (
@@ -148,6 +150,36 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+/** Charge la personnalisation du compte avant d'afficher les pages (3 s maximum d'attente). */
+function AccountPrefsGate({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const [readyFor, setReadyFor] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userId) {
+      setPrefsUser(null);
+      return;
+    }
+    let cancelled = false;
+    const done = () => {
+      if (!cancelled) setReadyFor(userId);
+    };
+    const timer = window.setTimeout(done, 3000);
+    void hydrateAccountPrefs(userId).finally(() => {
+      window.clearTimeout(timer);
+      done();
+    });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [userId]);
+
+  if (userId && readyFor !== userId) return null;
+  return <>{children}</>;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -162,7 +194,9 @@ function RootComponent() {
       <AuthProvider>
         <AppearanceProvider>
           <PilotModeProvider>
-            <Outlet />
+            <AccountPrefsGate>
+              <Outlet />
+            </AccountPrefsGate>
           </PilotModeProvider>
           <Toaster richColors position="top-center" />
         </AppearanceProvider>
