@@ -77,6 +77,20 @@ export const NAV_GROUP_LABELS = [
   "Configuration",
 ] as const;
 
+/**
+ * Ordre des rubriques selon le profil. Aucune page n'est retirée : l'administrateur (direction)
+ * voit toutes les pages ; le prestataire retrouve en premier l'activité terrain.
+ */
+export function orderGroupsForRole<T extends { label: string }>(groups: T[], role: string): T[] {
+  if (role !== "prestataire") return groups;
+  const order: string[] = ["Activité", "Client", "Entreprise", "Financier", "Configuration"];
+  const rank = (label: string) => {
+    const i = order.indexOf(label);
+    return i === -1 ? order.length : i;
+  };
+  return [...groups].sort((a, b) => rank(a.label) - rank(b.label));
+}
+
 export function filterNavItems<T extends { label: string; short: string; to: string }>(
   items: T[],
   query: string,
@@ -95,7 +109,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
-  const { canEdit, canView } = useRole();
+  const { canEdit, canView, role } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { appearance, setAppearance } = useAppearance();
   const isPilot =
@@ -380,7 +394,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     },
   ];
 
-  const visibleGroups = groups
+  const visibleGroups = orderGroupsForRole(groups, role)
     .filter((g) => !appearance.hiddenGroups.includes(g.label))
     .filter((g) => g.items.length > 0 || g.emptyLabel);
   const navItems = visibleGroups.flatMap((g) => g.items);
@@ -398,7 +412,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     setOpenGroups(navGroupState);
   }, [activeGroup]);
 
-  const defaultOpenGroup = appearance.defaultOpenGroup;
+  const defaultOpenGroup = role === "prestataire" ? "Activité" : appearance.defaultOpenGroup;
   useEffect(() => {
     if (!defaultOpenGroup) return;
     if (typeof navGroupState[defaultOpenGroup] === "boolean") return;
