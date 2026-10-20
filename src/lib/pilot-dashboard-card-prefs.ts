@@ -3,6 +3,7 @@
 // conservée dans le navigateur comme l'organisation des blocs.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { mirrorPrefToAccount } from "@/lib/account-prefs";
 
 export interface CardPrefsState {
   /** id d'élément → affiché (true) ou masqué (false). Absent = valeur par défaut. */
@@ -65,6 +66,7 @@ export function useCardPrefs(cardId: string) {
       setState(next);
       try {
         window.localStorage.setItem(STORAGE_PREFIX + cardId, JSON.stringify(next));
+        mirrorPrefToAccount(STORAGE_PREFIX + cardId, next);
       } catch {
         /* stockage indisponible */
       }

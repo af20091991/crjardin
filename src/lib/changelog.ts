@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-20",
+    version: "2.3.80",
+    theme: "Général",
+    title: "Personnalisation enregistrée sur votre compte",
+    details: [
+      "Les réglages du calendrier SST (dont l'interrupteur météo) et l'organisation du dashboard (blocs, encarts) sont désormais enregistrés sur votre compte et suivent sur tous vos appareils.",
+      "Vos réglages actuels sont repris automatiquement au premier chargement ; aucun n'est perdu.",
+    ],
+  },
+  {
     date: "2026-10-19",
     version: "2.3.78",
     theme: "Général",

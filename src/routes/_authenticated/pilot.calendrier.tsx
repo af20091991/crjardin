@@ -68,6 +68,7 @@ import {
   updateAvailabilityComment,
   type SstAvailabilityWithUser,
 } from "@/lib/calendrier-sst";
+import { mirrorPrefToAccount, removePrefFromAccount } from "@/lib/account-prefs";
 import {
   CALENDAR_STORAGE_KEY,
   DEFAULT_CALENDAR_FILTERS,
@@ -203,6 +204,7 @@ function CalendrierSstPage() {
       const next = { ...current, ...patch };
       try {
         window.localStorage.setItem(CALENDAR_STORAGE_KEY, JSON.stringify(next));
+        mirrorPrefToAccount(CALENDAR_STORAGE_KEY, next);
       } catch {
         // La personnalisation reste active pour la session courante.
       }
@@ -584,6 +586,7 @@ function CalendrierSstPage() {
                 onReset={() => {
                   try {
                     window.localStorage.removeItem(CALENDAR_STORAGE_KEY);
+                    removePrefFromAccount(CALENDAR_STORAGE_KEY);
                   } catch {
                     // Rien à nettoyer si le stockage local est indisponible.
                   }

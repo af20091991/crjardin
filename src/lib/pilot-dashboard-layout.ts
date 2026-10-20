@@ -5,6 +5,7 @@
 // Aucune donnée métier, aucun calcul. Stockée dans le navigateur du dirigeant.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { mirrorPrefToAccount } from "@/lib/account-prefs";
 
 export type BlockSize = "third" | "half" | "twothirds" | "full";
 
@@ -226,6 +227,7 @@ export function useDashboardLayout(defs: DashboardBlockDef[], scope: string = DE
       setState(next);
       try {
         window.localStorage.setItem(storageKey(scope), JSON.stringify(next));
+        mirrorPrefToAccount(storageKey(scope), next);
       } catch {
         /* stockage indisponible */
       }
