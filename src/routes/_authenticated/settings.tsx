@@ -152,7 +152,7 @@ function SettingsPage() {
                       ouvertures.
                     </p>
                     <Button variant="outline" asChild>
-                      <Link to="/emails">Gestion et suivi des emails clients</Link>
+                      <Link to="/emails">Gestion et suivi des e-mails clients</Link>
                     </Button>
                   </CardContent>
                 </Card>

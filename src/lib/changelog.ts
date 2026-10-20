@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-20",
+    version: "2.3.81",
+    theme: "Général",
+    title: "Centre e-mails",
+    details: [
+      "La page « Gestion et suivi des e-mails clients » regroupe désormais les comptes rendus, le mailing Premium et la messagerie Premium, avec un accès aux modèles de comptes-rendus.",
+      "La messagerie reste aussi disponible dans Comptes Premium : rien n'est retiré.",
+    ],
+  },
+  {
+    date: "2026-10-20",
     version: "2.3.80",
     theme: "Général",
     title: "Personnalisation enregistrée sur votre compte",
