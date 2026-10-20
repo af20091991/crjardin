@@ -668,6 +668,7 @@ function WorksiteDetail({
   const [exporting, setExporting] = useState(false);
   const [openSupplyId, setOpenSupplyId] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [allSupplies, setAllSupplies] = useState(false);
   const state = worksiteGlobalState(worksite.supplies);
   const counts = worksiteCounts(worksite.supplies);
   const stateView = STATE_VIEW[state];
@@ -775,7 +776,10 @@ function WorksiteDetail({
             <p className="text-sm text-muted-foreground">Aucun approvisionnement enregistré.</p>
           ) : (
             <div className="space-y-1.5">
-              {worksite.supplies.map((supply) => (
+              {(allSupplies || worksite.supplies.length <= 6
+                ? worksite.supplies
+                : worksite.supplies.slice(0, 5)
+              ).map((supply) => (
                 <SupplyRow
                   key={supply.id}
                   supply={supply}
@@ -787,6 +791,18 @@ function WorksiteDetail({
                   onChanged={onChanged}
                 />
               ))}
+              {worksite.supplies.length > 6 ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="px-0 text-muted-foreground"
+                  onClick={() => setAllSupplies((value) => !value)}
+                >
+                  {allSupplies
+                    ? "Réduire la liste"
+                    : `Voir les ${worksite.supplies.length - 5} autres fournitures`}
+                </Button>
+              ) : null}
             </div>
           )}
 

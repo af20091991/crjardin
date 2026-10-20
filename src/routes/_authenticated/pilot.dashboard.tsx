@@ -750,7 +750,7 @@ function DashboardPage() {
           </Card>
         </DashboardBlock>
 
-        <DashboardBlock id="cr" layout={layout}>
+        <DashboardBlock id="cr" layout={layout} collapsible="Notifications CR">
           <Card className="p-4">
             <SectionHeading
               icon={Bell}
@@ -792,7 +792,7 @@ function DashboardPage() {
           </Card>
         </DashboardBlock>
 
-        <DashboardBlock id="site" layout={layout}>
+        <DashboardBlock id="site" layout={layout} collapsible="Trafic et recherche">
           <Card className="p-4">
             <SectionHeading
               icon={Globe2}
@@ -886,7 +886,7 @@ function DashboardPage() {
           </Card>
         </DashboardBlock>
 
-        <DashboardBlock id="seo-local" layout={layout}>
+        <DashboardBlock id="seo-local" layout={layout} collapsible="SEO local">
           <Card className="p-4">
             <SectionHeading
               icon={MapPin}

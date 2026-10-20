@@ -3,6 +3,7 @@
 // chaque bloc, ajout de graphiques du catalogue. Aucune incidence sur les
 // calculs ni sur les données.
 import { useState, type CSSProperties, type ReactNode } from "react";
+import { useCardPrefs } from "@/lib/pilot-dashboard-card-prefs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ import {
   ArrowUp,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Eye,
   EyeOff,
   GripVertical,
@@ -406,12 +408,19 @@ export function DashboardBlock({
   id,
   layout,
   children,
+  collapsible,
 }: {
   id: string;
   layout: DashboardLayout;
   children: ReactNode;
+  /** Titre affiché quand le bloc est replié (replié par défaut ; le choix est mémorisé). */
+  collapsible?: string;
 }) {
+  const prefs = useCardPrefs(`collapse-${id}`);
   if (layout.isHidden(id)) return null;
+  const folded = collapsible
+    ? prefs.choice("state", ["open", "closed"], "closed") === "closed"
+    : false;
   const height = chartHeight(layout.heightOf(id));
   const style = {
     order: layout.indexOf(id),
@@ -419,7 +428,23 @@ export function DashboardBlock({
   } as CSSProperties;
   return (
     <div style={style} className={cn("min-w-0 space-y-2", sizeClass(layout.sizeOf(id)))}>
-      {children}
+      {collapsible ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full justify-between"
+          aria-expanded={!folded}
+          onClick={() => prefs.setChoice("state", folded ? "open" : "closed")}
+        >
+          <span>{collapsible}</span>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            {folded ? "Déplier" : "Replier"}
+            {folded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </span>
+        </Button>
+      ) : null}
+      {folded ? null : children}
     </div>
   );
 }
