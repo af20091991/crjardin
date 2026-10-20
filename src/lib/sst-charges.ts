@@ -16,9 +16,9 @@ export function isSubcontractingLabel(label: string | null): boolean {
   return SST_MARKERS.some((m) => l.includes(m));
 }
 
-/** Libellé commençant par « SST » (préfixe de classement automatique des charges). */
+/** Libellé contenant « SST » comme mot (« SST Dupont », « Facture SST Dupont », « Dupont-SST »). */
 export function hasSstPrefix(label: string | null | undefined): boolean {
-  return /^\s*sst(?![a-z0-9À-ÿ])/i.test(label ?? "");
+  return /(^|[^a-z0-9À-ÿ])sst(?![a-z0-9À-ÿ])/i.test(label ?? "");
 }
 
 /** Catégories qu'un classement automatique peut remplacer : jamais un choix explicite. */

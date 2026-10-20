@@ -12,11 +12,12 @@ const mission = (id: string, date: string, cost: number, archived = false) =>
   }) as unknown as SubcontractorMission;
 
 describe("préfixe SST", () => {
-  it("reconnaît « SST » en début de libellé uniquement", () => {
+  it("reconnaît « SST » comme mot, où qu'il soit dans le libellé", () => {
     expect(hasSstPrefix("SST Dupont")).toBe(true);
     expect(hasSstPrefix("  sst - Martin 03/2026")).toBe(true);
     expect(hasSstPrefix("SST")).toBe(true);
-    expect(hasSstPrefix("Facture SST Dupont")).toBe(false);
+    expect(hasSstPrefix("Facture SST Dupont")).toBe(true);
+    expect(hasSstPrefix("Dupont-SST 03/2026")).toBe(true);
     expect(hasSstPrefix("SSTAR carburant")).toBe(false);
     expect(hasSstPrefix(null)).toBe(false);
   });
