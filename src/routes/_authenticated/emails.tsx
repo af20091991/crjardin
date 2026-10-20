@@ -1,9 +1,11 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { useIsAdmin } from "@/hooks/use-admin";
+import { usePremiumAdminData } from "@/components/premium-admin/data";
+import { InboxTab } from "@/components/premium-admin/InboxTab";
 import { listEmailLog } from "@/lib/email-log.functions";
 import { listPremiumEmailLog, type PremiumEmailLogEntry } from "@/lib/premium-email.functions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -71,7 +73,29 @@ function EmailsPage() {
   );
 }
 
-type EmailTab = "reports" | "premium";
+type EmailTab = "reports" | "premium" | "inbox";
+
+/** Messagerie des comptes Premium : même contenu que l'onglet Messagerie de Comptes Premium. */
+function PremiumInbox() {
+  const data = usePremiumAdminData(true);
+  if (data.isLoading) {
+    return (
+      <p className="py-10 text-center text-sm text-muted-foreground">
+        Chargement de la messagerie Premium…
+      </p>
+    );
+  }
+  if (data.error) {
+    return (
+      <p className="py-10 text-center text-sm text-destructive">
+        {data.error instanceof Error
+          ? data.error.message
+          : "Erreur de chargement de la messagerie."}
+      </p>
+    );
+  }
+  return <InboxTab rows={data.rows} messages={data.messages} composeFor={null} />;
+}
 
 function EmailManagement() {
   const [tab, setTab] = useState<EmailTab>("reports");
@@ -86,8 +110,20 @@ function EmailManagement() {
           <MailCheck className="mr-2 h-4 w-4" />
           Mailing Premium
         </Button>
+        <Button variant={tab === "inbox" ? "default" : "ghost"} onClick={() => setTab("inbox")}>
+          Messagerie Premium
+        </Button>
+        <Button variant="ghost" asChild className="ml-auto">
+          <Link to="/modeles">Modèles de comptes-rendus</Link>
+        </Button>
       </div>
-      {tab === "reports" ? <PpReportEmails /> : <PremiumMailingTab />}
+      {tab === "reports" ? (
+        <PpReportEmails />
+      ) : tab === "premium" ? (
+        <PremiumMailingTab />
+      ) : (
+        <PremiumInbox />
+      )}
     </div>
   );
 }
