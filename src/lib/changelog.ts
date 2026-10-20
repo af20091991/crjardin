@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-20",
+    version: "2.3.82",
+    theme: "Général",
+    title: "Menu adapté au profil",
+    details: [
+      "Le profil prestataire retrouve la rubrique Activité en premier et ouverte ; l'administrateur (direction) conserve toutes les pages de l'application.",
+      "Aucune page n'est retirée du menu.",
+    ],
+  },
+  {
+    date: "2026-10-20",
     version: "2.3.81",
     theme: "Général",
     title: "Centre e-mails",
