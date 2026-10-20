@@ -24,6 +24,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-20",
+    version: "2.3.85",
+    theme: "Général",
+    title: "Charges SST — détection du mot « SST » dans tout le libellé",
+    details: [
+      "Une charge dont la désignation contient « SST » (début, milieu ou fin) est classée « SST » automatiquement. Un classement explicite n'est jamais écrasé.",
+    ],
+  },
+  {
+    date: "2026-10-20",
     version: "2.3.84",
     theme: "Général",
     title: "Chiffre d'affaires — charges SST classées automatiquement",
