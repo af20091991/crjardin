@@ -8,6 +8,8 @@ import { formatEuro, formatPercent } from "@/lib/format-utils";
 import { usePilotScope } from "@/lib/pilot-mode";
 import { listClients } from "@/lib/clients";
 import { listMissions, listSubcontractors } from "@/lib/subcontractors";
+import { listChargeRows } from "@/lib/pilot-charges";
+import { sstChargeLines } from "@/lib/sst-charges";
 import { sstRows, sstTotals, bySubcontractor, byMonth, byClient } from "@/lib/sst-analytics";
 import { SstCreateMissionDialog } from "@/components/pilot/SstCreateMissionDialog";
 import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
@@ -24,6 +26,7 @@ export function SstDashboard() {
   const missionsQ = useQuery({ queryKey: ["sst-missions"], queryFn: listMissions });
   const sstsQ = useQuery({ queryKey: ["sst-list"], queryFn: listSubcontractors });
   const clientsQ = useQuery({ queryKey: ["clients"], queryFn: listClients });
+  const chargeRowsQ = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   const missions = missionsQ.data ?? [];
   const ssts = sstsQ.data ?? [];
   const clients = clientsQ.data ?? [];
@@ -38,6 +41,32 @@ export function SstDashboard() {
     return rows.filter((r) => r.mission.mission_date <= today);
   }, [rows, period]);
   const totals = useMemo(() => sstTotals(scopedRows), [scopedRows]);
+  // Charges SST déjà saisies dans le Chiffre d'affaires mais sans fiche mission : elles restent
+  // comptées en volume et en coût, sans jamais peser sur la marge (calculée sur les fiches).
+  const orphanLines = useMemo(() => {
+    const now = new Date();
+    return sstChargeLines({
+      chargeRows: chargeRowsQ.data ?? [],
+      missions,
+      clients,
+      year,
+    }).filter(
+      (l) =>
+        !l.duplicateOfMission &&
+        (period === "exercice_complet" ||
+          year !== now.getFullYear() ||
+          l.month <= now.getMonth() + 1),
+    );
+  }, [chargeRowsQ.data, missions, clients, year, period]);
+  const orphanTotal = useMemo(
+    () => orphanLines.reduce((sum, l) => sum + l.amount, 0),
+    [orphanLines],
+  );
+  const orphanProviders = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const l of orphanLines) map.set(l.provider, (map.get(l.provider) ?? 0) + l.amount);
+    return [...map.entries()].map(([key, cost]) => ({ key: `${key} (sans fiche)`, cost }));
+  }, [orphanLines]);
   const providers = useMemo(() => bySubcontractor(scopedRows), [scopedRows]);
   const months = useMemo(() => byMonth(scopedRows), [scopedRows]);
   const clientsTop = useMemo(
@@ -48,7 +77,11 @@ export function SstDashboard() {
     [scopedRows],
   );
   const topClient = clientsTop[0];
-  const maxCharge = Math.max(1, ...providers.map((p) => p.cost));
+  const maxCharge = Math.max(
+    1,
+    ...providers.map((p) => p.cost),
+    ...orphanProviders.map((p) => p.cost),
+  );
   const isCurrentYear = year === new Date().getFullYear();
 
   const monthlyDatasets = useMemo<FlexDataset[]>(
@@ -132,7 +165,13 @@ export function SstDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold">{eur(totals.cost)}</div>
-            <p className="text-xs text-muted-foreground">Coût SST enregistrée sur les missions</p>
+            <p className="text-xs text-muted-foreground">Coût SST enregistré sur les missions</p>
+            {orphanLines.length > 0 && (
+              <p className="mt-1 text-xs text-amber-700">
+                + {eur(orphanTotal)} de charges sans fiche = {eur(totals.cost + orphanTotal)} de
+                coût SST total
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -160,6 +199,43 @@ export function SstDashboard() {
           </CardContent>
         </Card>
       </div>
+      {orphanLines.length > 0 && (
+        <Card className="border-amber-300/70 bg-amber-50/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">
+              Charges SST sans fiche mission ({orphanLines.length} · {eur(orphanTotal)})
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Ces charges viennent du Chiffre d'affaires. Elles sont comptées dans le volume et le
+              coût SST, mais n'affectent pas la marge, calculée uniquement sur les missions
+              renseignées. Créez la fiche pour obtenir le CA client et la marge réelle.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            {orphanLines.slice(0, 8).map((l) => (
+              <div key={l.id} className="flex justify-between gap-3 text-sm">
+                <span className="truncate">
+                  {String(l.month).padStart(2, "0")}/{l.year} · {l.designation}
+                </span>
+                <span className="tabular-nums">{eur(l.amount)}</span>
+              </div>
+            ))}
+            {orphanLines.length > 8 && (
+              <p className="text-xs text-muted-foreground">
+                … et {orphanLines.length - 8} autre(s) ligne(s).
+              </p>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="mr-1 h-4 w-4" /> Créer une fiche mission
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>Performance des sous-traitants</CardTitle>
@@ -235,23 +311,25 @@ export function SstDashboard() {
             <CardTitle>Répartition des charges</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {providers.length === 0 ? (
+            {providers.length + orphanProviders.length === 0 ? (
               <EmptyState icon={ReceiptText} title="Aucune charge SST." compact />
             ) : (
-              providers.map((p) => (
-                <div key={p.key} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>{p.key}</span>
-                    <span>{eur(p.cost)}</span>
+              [...providers.map((p) => ({ key: p.key, cost: p.cost })), ...orphanProviders].map(
+                (p) => (
+                  <div key={p.key} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span>{p.key}</span>
+                      <span>{eur(p.cost)}</span>
+                    </div>
+                    <div className="h-2 rounded bg-muted">
+                      <div
+                        className="h-2 rounded bg-primary"
+                        style={{ width: `${(p.cost / maxCharge) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 rounded bg-muted">
-                    <div
-                      className="h-2 rounded bg-primary"
-                      style={{ width: `${(p.cost / maxCharge) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))
+                ),
+              )
             )}
           </CardContent>
         </Card>
