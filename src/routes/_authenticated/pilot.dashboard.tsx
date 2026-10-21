@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { KpiSourceInfo } from "@/components/pilot/KpiSourceInfo";
+import type { KpiContractId } from "@/lib/pilot-kpi-contract";
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -491,11 +493,12 @@ function DashboardPage() {
             stats={[
               {
                 label: "Chiffre d'affaires HT",
+                kpiId: "ca_annuel",
                 value: formatEuro(kpis.caYear),
                 delta: variationPct(kpis.caYTD, kpis.caPrevYTD),
                 deltaLabel: "vs N-1 à date",
               },
-              { label: "Charges", value: formatEuro(yearCharges) },
+              { label: "Charges", kpiId: "charges", value: formatEuro(yearCharges) },
               {
                 label: "Résultat des saisies",
                 value: formatEuro(yearStats.benefice),
@@ -542,11 +545,12 @@ function DashboardPage() {
             stats={[
               {
                 label: "Chiffre d'affaires HT",
+                kpiId: "ca_mois",
                 value: formatEuro(kpis.caMonth),
                 delta: variationPct(kpis.caMonth, monthlyCa[month]?.previous ?? 0),
                 deltaLabel: "vs même mois N-1",
               },
-              { label: "Charges", value: formatEuro(monthCharges) },
+              { label: "Charges", kpiId: "charges", value: formatEuro(monthCharges) },
               {
                 label: "Résultat des saisies",
                 value: formatEuro(monthResult),
@@ -1047,6 +1051,7 @@ const MONTH_LABELS = [
 
 type PeriodStat = {
   label: string;
+  kpiId?: KpiContractId;
   value: string;
   hint?: string;
   tone?: "positive" | "negative" | "warning";
@@ -1225,9 +1230,12 @@ function PeriodView({
               key={stat.label}
               className="rounded-md border border-border/70 bg-muted/20 px-3 py-2"
             >
-              <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                {stat.label}
-              </p>
+              <div className="flex items-start justify-between gap-1">
+                <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {stat.label}
+                </p>
+                <KpiSourceInfo kpiId={stat.kpiId} className="-mt-1 h-5 w-5 shrink-0" />
+              </div>
               <p
                 className={cn(
                   "font-serif text-xl font-semibold tabular-nums",

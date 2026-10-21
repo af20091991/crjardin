@@ -483,6 +483,12 @@ export function SstProfitabilityTab() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <PilotCard
           storageId="sst-ca"
+          audit={{
+            sources: ["subcontractor_missions"],
+            calcul: "Somme des prix de vente HT au client (client_price) des missions filtrées.",
+            periode:
+              "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+          }}
           label="CA SST"
           value={formatEuro(totals.revenue)}
           sub={`${totals.missions} mission(s)`}
@@ -490,6 +496,13 @@ export function SstProfitabilityTab() {
         />
         <PilotCard
           storageId="sst-cout"
+          audit={{
+            sources: ["subcontractor_missions"],
+            calcul:
+              "Somme du montant facturé par le sous-traitant (invoiced_amount), à défaut du prix convenu (agreed_price).",
+            periode:
+              "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+          }}
           label="Coût SST"
           value={formatEuro(totals.cost)}
           sub={
@@ -502,6 +515,13 @@ export function SstProfitabilityTab() {
         />
         <PilotCard
           storageId="sst-marge"
+          audit={{
+            sources: ["subcontractor_missions"],
+            calcul:
+              "CA SST − Coût SST, mission par mission puis additionné ; le pourcentage est rapporté au CA SST.",
+            periode:
+              "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+          }}
           label="Marge brute"
           value={formatEuro(totals.margin)}
           sub={`${pct(totals.marginPct)} de marge`}
@@ -530,6 +550,13 @@ export function SstProfitabilityTab() {
         />
         <PilotCard
           storageId="sst-temps"
+          audit={{
+            sources: ["subcontractor_missions"],
+            calcul:
+              "Somme des heures économisées saisies (hours_saved), à défaut des heures SST réalisées (hours_spent).",
+            periode:
+              "Exercice sélectionné (ou toutes années) ; missions non archivées dont la date est ≤ aujourd'hui en mode réel.",
+          }}
           label="Temps économisé"
           value={formatHours(totals.hoursSaved)}
           sub={`${formatHours(totals.hours)} réalisées par les SST`}
