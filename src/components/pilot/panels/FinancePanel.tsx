@@ -1,4 +1,6 @@
 import { Link } from "@tanstack/react-router";
+import { KpiSourceInfo } from "@/components/pilot/KpiSourceInfo";
+import type { KpiContractId } from "@/lib/pilot-kpi-contract";
 import { formatEuro } from "@/lib/pilot";
 import { useAnalytics } from "@/lib/pilot-analytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,12 +76,14 @@ export function FinancePanel() {
       {/* Synthèse */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi
+          kpiId="ca_annuel"
           label={`CA HT ${YEAR}`}
           value={formatEuro(caYear)}
           sub={prevYearRow ? `${YEAR - 1} : ${formatEuro(prevYearRow.caHt)}` : undefined}
           accent
         />
         <Kpi
+          kpiId="charges"
           label="Charges"
           value={formatEuro(chargesYear)}
           sub={
@@ -87,12 +91,14 @@ export function FinancePanel() {
           }
         />
         <Kpi
+          kpiId="benefice_brut"
           label="Bénéfice brut"
           value={formatEuro(benefice)}
           sub={`Marge ${formatPercent(marge)}`}
           tone={benefice >= 0 ? "text-emerald-600" : "text-rose-600"}
         />
         <Kpi
+          kpiId="resultat_apres_investissements"
           label="Résultat après investissements"
           value={formatEuro(apresInvest)}
           sub={`Investissements ${formatEuro(investYear)}`}
@@ -102,11 +108,13 @@ export function FinancePanel() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi
+          kpiId="taux_horaire_vendu"
           label="Taux horaire vendu"
           value={tauxVendu && tauxVendu > 0 ? `${formatHourlyRate(tauxVendu)}` : "—"}
           sub="CA des lignes de vente avec temps ÷ ce temps"
         />
         <Kpi
+          kpiId="taux_horaire_reel"
           label="Taux horaire réel"
           value={tauxReel && tauxReel > 0 ? `${formatHourlyRate(tauxReel)}` : "—"}
           sub="CA des lignes de vente avec temps ÷ ce temps"
@@ -449,7 +457,9 @@ function Kpi({
   sub,
   tone,
   accent,
+  kpiId,
 }: {
+  kpiId?: KpiContractId;
   label: string;
   value: string;
   sub?: string;
@@ -459,7 +469,10 @@ function Kpi({
   return (
     <Card className={accent ? "border-primary/30 bg-primary/5" : ""}>
       <CardContent className="p-4">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <div className="flex items-start justify-between gap-1">
+          <p className="text-xs font-medium text-muted-foreground">{label}</p>
+          <KpiSourceInfo kpiId={kpiId} />
+        </div>
         <p className={`mt-1 font-serif text-2xl font-semibold ${tone ?? "text-foreground"}`}>
           {value}
         </p>

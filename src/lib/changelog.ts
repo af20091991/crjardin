@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-21",
+    version: "2.3.89",
+    theme: "Général",
+    title: "Lisibilité — « D'où vient ce chiffre ? »",
+    details: [
+      "Une icône d'information (sources, calcul, période, fiabilité) accompagne désormais les chiffres clés des pages Finance et Dashboard (CA, charges, bénéfice, résultat, taux horaires) et les 4 indicateurs de la page SST.",
+      "Le contenu vient du contrat de vérité des KPI existant : aucun calcul n'est modifié.",
+    ],
+  },
+  {
+    date: "2026-10-21",
     version: "2.3.88",
     theme: "Général",
     title: "Lisibilité — états de chargement et états vides communs",

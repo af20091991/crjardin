@@ -19,6 +19,8 @@ import type { LucideIcon } from "lucide-react";
 import { BarChart3, Eye, EyeOff, HelpCircle, ScanSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { KpiAudit } from "@/lib/pilot-kpi-audit";
+import { KpiSourceInfo } from "@/components/pilot/KpiSourceInfo";
+import type { KpiContractId } from "@/lib/pilot-kpi-contract";
 import { useAppearance, effectiveValueAlign } from "@/lib/appearance";
 import {
   CARD_SIGNAL_META,
@@ -66,6 +68,8 @@ export type PilotCardProps = {
   description?: string;
   /** Mode audit : source, calcul et période de l'indicateur. */
   audit?: KpiAudit;
+  /** Indicateur du contrat de vérité : affiche « D'où vient ce chiffre ? » automatiquement. */
+  kpiId?: KpiContractId;
   views?: PilotCardView[];
   content?: ReactNode;
   action?: ReactNode;
@@ -108,6 +112,7 @@ export function PilotCard({
   help,
   description,
   audit,
+  kpiId,
   views,
   content,
   action,
@@ -193,7 +198,13 @@ export function PilotCard({
     return (
       <Card className="kpi-card flex h-full min-h-20 items-center justify-between gap-3 border-dashed p-4 text-sm text-muted-foreground">
         <span className="truncate">{shownLabel} masqué</span>
-        <Button type="button" variant="ghost" size="icon" onClick={toggleHidden} title="Réafficher cette carte">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={toggleHidden}
+          title="Réafficher cette carte"
+        >
           <Eye className="h-4 w-4" />
         </Button>
       </Card>
@@ -215,7 +226,10 @@ export function PilotCard({
         <div className="pp-card-signal mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <span
             aria-hidden
-            className={cn("h-1.5 w-1.5 shrink-0 rounded-full", CARD_SIGNAL_META[shownSignal].className)}
+            className={cn(
+              "h-1.5 w-1.5 shrink-0 rounded-full",
+              CARD_SIGNAL_META[shownSignal].className,
+            )}
           />
           <span>{CARD_SIGNAL_META[shownSignal].label}</span>
         </div>
@@ -257,7 +271,13 @@ export function PilotCard({
       <div className="kpi-card-actions absolute right-2 top-2 z-10 flex items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Affichage de la carte">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              title="Affichage de la carte"
+            >
               <BarChart3 className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
@@ -294,45 +314,24 @@ export function PilotCard({
             </PopoverContent>
           </Popover>
         )}
-        {audit && (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Mode audit : d'où vient ce chiffre ?">
-                <ScanSearch className="h-3.5 w-3.5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 space-y-2 text-xs leading-relaxed">
-              <p className="font-medium text-foreground">D'où vient ce chiffre ?</p>
-              <p>
-                <span className="font-medium">Sources : </span>
-                {audit.sources.join(" · ")}
-              </p>
-              <p>
-                <span className="font-medium">Calcul : </span>
-                {audit.calcul}
-              </p>
-              {audit.periode && (
-                <p>
-                  <span className="font-medium">Période : </span>
-                  {audit.periode}
-                </p>
-              )}
-              {audit.fiabilite && (
-                <p>
-                  <span className="font-medium">Fiabilité : </span>
-                  {audit.fiabilite}
-                </p>
-              )}
-            </PopoverContent>
-          </Popover>
-        )}
-        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={toggleHidden} title="Masquer">
+        <KpiSourceInfo kpiId={kpiId} audit={audit} className="h-7 w-7" />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={toggleHidden}
+          title="Masquer"
+        >
           <EyeOff className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <div className={cn(helpText || audit ? "pr-20" : "pr-8")}>
+      <div className={cn(helpText || audit || kpiId ? "pr-20" : "pr-8")}>
         {to ? (
-          <Link to={to} className="block focus:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+          <Link
+            to={to}
+            className="block focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
             {body}
           </Link>
         ) : (
