@@ -403,6 +403,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const activeGroup = visibleGroups.find((g) =>
     g.items.some((i) => isActive(i.to, i.exact)),
   )?.label;
+  const activeNavItem = navItems.find((i) => isActive(i.to, i.exact));
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => navGroupState);
 
   useEffect(() => {
@@ -610,7 +611,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             data-shell="page-header"
             className="hidden px-6 pt-6 md:flex md:items-start md:justify-between md:gap-4"
           >
-            <h1 className="font-serif text-2xl font-semibold">{title}</h1>
+            <div className="min-w-0">
+              {activeGroup && activeNavItem ? (
+                <nav aria-label="Fil d'Ariane" className="mb-1 text-xs text-muted-foreground">
+                  {activeGroup} <span aria-hidden>›</span> {activeNavItem.label}
+                </nav>
+              ) : null}
+              <h1 className="font-serif text-2xl font-semibold">{title}</h1>
+            </div>
             {showPilotPeriod && (
               <div className="flex items-center gap-2">
                 <PilotPeriodSwitcher />

@@ -24,6 +24,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-21",
+    version: "2.3.90",
+    theme: "Général",
+    title: "Fil d'Ariane (rubrique › page)",
+    details: [
+      "Chaque page affiche sous son titre la rubrique du menu et le nom de la page (ex. « Activité › Calendrier SST »), avec les mêmes noms que le menu.",
+    ],
+  },
+  {
+    date: "2026-10-21",
     version: "2.3.89",
     theme: "Général",
     title: "Lisibilité — « D'où vient ce chiffre ? »",
