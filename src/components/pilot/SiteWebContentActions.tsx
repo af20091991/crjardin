@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { LoadingState } from "@/components/pilot/LoadingState";
+import { LoadingState as SharedLoadingState } from "@/components/pilot/LoadingState";
 import { formatCount as formatNumber, formatShare as formatPercent } from "@/lib/format-utils";
 import { FileText, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -263,7 +263,7 @@ function GoogleDataError({ code }: { code: string }) {
 }
 
 function LoadingState() {
-  return <LoadingState label="Chargement des données Google…" />;
+  return <SharedLoadingState label="Chargement des données Google…" />;
 }
 
 function EmptyState({ text }: { text: string }) {

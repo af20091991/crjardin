@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { LoadingState } from "@/components/pilot/LoadingState";
+import { LoadingState as SharedLoadingState } from "@/components/pilot/LoadingState";
 import { formatCount as formatNumber, formatShare as formatPercent } from "@/lib/format-utils";
 import { AlertCircle, BarChart3, MapPin, Search, Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -705,7 +705,7 @@ function SourceError({
 }
 
 function LoadingState() {
-  return <LoadingState label="Chargement des données Google…" />;
+  return <SharedLoadingState label="Chargement des données Google…" />;
 }
 
 function truncateLabel(value: string, maxLength = 28) {
