@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -234,7 +235,7 @@ function EquipmentDetailPage() {
           </CardHeader>
           <CardContent className="p-0">
             {schedulesQuery.isLoading ? (
-              <div className="p-4 text-sm text-muted-foreground">Chargement des échéances…</div>
+              <LoadingState compact label="Chargement des échéances…" />
             ) : (schedulesQuery.data ?? []).length === 0 ? (
               <div className="p-4 text-sm text-muted-foreground">
                 Aucun entretien récurrent configuré pour ce matériel.
@@ -242,25 +243,33 @@ function EquipmentDetailPage() {
             ) : (
               <div className="divide-y divide-border">
                 {(schedulesQuery.data ?? []).map((schedule) => {
-                  const urgency = maintenanceUrgency(schedule.next_due_date, schedule.reminder_days);
+                  const urgency = maintenanceUrgency(
+                    schedule.next_due_date,
+                    schedule.reminder_days,
+                  );
                   const badge = URGENCY_BADGE[urgency];
                   return (
-                    <div key={schedule.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                    <div
+                      key={schedule.id}
+                      className="flex flex-wrap items-center justify-between gap-3 p-4"
+                    >
                       <div>
                         <p className="font-medium">{schedule.maintenance_type_name}</p>
                         <p className="text-xs text-muted-foreground">
                           {schedule.last_completed_date
                             ? `Dernier entretien : ${new Date(schedule.last_completed_date).toLocaleDateString("fr-FR")}`
                             : "Aucun entretien enregistré"}
-                          {" · "}Échéance : {new Date(schedule.next_due_date).toLocaleDateString("fr-FR")}
+                          {" · "}Échéance :{" "}
+                          {new Date(schedule.next_due_date).toLocaleDateString("fr-FR")}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {badge && <Badge variant="outline" className={badge.className}>{badge.label}</Badge>}
-                        <CompleteMaintenanceDialog
-                          scheduleId={schedule.id}
-                          onCompleted={refresh}
-                        />
+                        {badge && (
+                          <Badge variant="outline" className={badge.className}>
+                            {badge.label}
+                          </Badge>
+                        )}
+                        <CompleteMaintenanceDialog scheduleId={schedule.id} onCompleted={refresh} />
                       </div>
                     </div>
                   );

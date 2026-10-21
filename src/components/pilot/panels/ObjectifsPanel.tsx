@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listGoals,
@@ -258,7 +259,7 @@ export function ObjectifsPanel({
 
       {/* Cartes par thématique */}
       {goalsQ.isLoading ? (
-        <p className="text-sm text-muted-foreground">Chargement…</p>
+        <LoadingState label="Chargement…" />
       ) : (
         <div className="space-y-6">
           {THEMES.map((theme) => {

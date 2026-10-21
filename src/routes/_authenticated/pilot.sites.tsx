@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -603,7 +604,7 @@ function ContextBlock({
         <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
           Appellations & adresses connues
         </p>
-        {loading && <p className="text-xs text-muted-foreground">Chargement du contexte…</p>}
+        {loading && <LoadingState compact label="Chargement du contexte…" />}
         <ul className="space-y-1">
           {(details?.labels ?? []).map((l) => (
             <li key={l.client_id} className="text-xs">

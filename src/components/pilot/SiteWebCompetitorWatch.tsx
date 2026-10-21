@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import {
   AlertTriangle,
   ChevronDown,
@@ -114,7 +115,7 @@ export function SiteWebCompetitorWatch() {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Chargement…</p>
+        <LoadingState label="Chargement…" />
       ) : competitors.length === 0 ? (
         <p className="text-sm text-muted-foreground">Aucun concurrent suivi pour l'instant.</p>
       ) : (

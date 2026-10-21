@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -813,9 +814,7 @@ function CalendrierSstPage() {
                 </div>
               ))
             )}
-            {isLoading ? (
-              <p className="px-4 py-3 text-sm text-muted-foreground">Chargement…</p>
-            ) : null}
+            {isLoading ? <LoadingState compact label="Chargement…" /> : null}
           </div>
         ) : (
           <div className="overflow-x-auto p-1.5 sm:p-2">
@@ -1020,7 +1019,7 @@ function CalendrierSstPage() {
                 })}
               </div>
             </div>
-            {isLoading ? <p className="mt-3 text-sm text-muted-foreground">Chargement…</p> : null}
+            {isLoading ? <LoadingState label="Chargement…" /> : null}
           </div>
         )}
         {weatherDays && weatherPoint ? (
@@ -1304,9 +1303,7 @@ function SstPlanningByPerson({
 
           <div className="mt-2">
             {loading ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">
-                Chargement des chantiers…
-              </p>
+              <LoadingState compact label="Chargement des chantiers…" />
             ) : upcoming.length === 0 ? (
               <div className="rounded-lg border border-dashed p-4 text-center">
                 <ClipboardCheck className="mx-auto h-5 w-5 text-muted-foreground" />

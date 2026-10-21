@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { LoadingState as SharedLoadingState } from "@/components/pilot/LoadingState";
 import { formatCount as formatNumber, formatShare as formatPercent } from "@/lib/format-utils";
 import { AlertCircle, Search } from "lucide-react";
 import {
@@ -315,9 +316,7 @@ function GoogleDataError({ code }: { code: string }) {
 }
 
 function LoadingState() {
-  return (
-    <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
-  );
+  return <SharedLoadingState label="Chargement des données Google…" />;
 }
 function yearStart() {
   return `${new Date().getFullYear()}-01-01`;

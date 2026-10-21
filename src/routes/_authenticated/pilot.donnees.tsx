@@ -1,6 +1,8 @@
 // Classeur Pilot Pro — une page, une question : « mes données de base
 // sont-elles justes ? ». Édition manuelle tracée, journal des modifications
 // avec annulation, et contrôle anti-régression des grands indicateurs.
+import { EmptyState } from "@/components/pilot/EmptyState";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ValidationPage } from "@/components/pilot/panels/ValidationPanel";
@@ -264,14 +266,14 @@ function EditJournal() {
               {isLoading && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-sm text-muted-foreground">
-                    Chargement…
+                    <LoadingState compact label="Chargement…" />
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && log.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-sm text-muted-foreground">
-                    Aucune modification manuelle enregistrée.
+                  <TableCell colSpan={7}>
+                    <EmptyState compact title="Aucune modification manuelle enregistrée" />
                   </TableCell>
                 </TableRow>
               )}

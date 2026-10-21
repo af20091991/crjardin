@@ -1,6 +1,7 @@
 // Classeur Pilot Pro : lecture, filtre, tri et édition manuelle cellule par
 // cellule. Chaque modification est écrite dans la table d'origine et tracée
 // dans le journal des modifications (annulable).
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -154,7 +155,7 @@ export function PilotDataGrid({ def }: { def: DatasetDef }) {
             {isLoading && (
               <TableRow>
                 <TableCell colSpan={def.columns.length} className="text-sm text-muted-foreground">
-                  Chargement…
+                  <LoadingState compact label="Chargement…" />
                 </TableCell>
               </TableRow>
             )}
@@ -242,7 +243,7 @@ export function PilotDataGrid({ def }: { def: DatasetDef }) {
       {/* Version mobile : chaque ligne devient une carte avec ses champs en
           liste, plutôt qu'un tableau générique illisible en dessous de 768px. */}
       <div className="space-y-2 md:hidden">
-        {isLoading && <p className="text-sm text-muted-foreground">Chargement…</p>}
+        {isLoading && <LoadingState label="Chargement…" />}
         {!isLoading && filtered.length === 0 && (
           <EmptyState icon={Table2} title="Aucune ligne." compact />
         )}

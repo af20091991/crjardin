@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -79,11 +80,7 @@ type EmailTab = "reports" | "premium" | "inbox";
 function PremiumInbox() {
   const data = usePremiumAdminData(true);
   if (data.isLoading) {
-    return (
-      <p className="py-10 text-center text-sm text-muted-foreground">
-        Chargement de la messagerie Premium…
-      </p>
-    );
+    return <LoadingState label="Chargement de la messagerie Premium…" />;
   }
   if (data.error) {
     return (

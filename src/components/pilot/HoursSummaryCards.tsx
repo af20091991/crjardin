@@ -1,4 +1,5 @@
 import { Clock, Gauge, Scale, Timer, History } from "lucide-react";
+import { EmptyState } from "@/components/pilot/EmptyState";
 import { PilotCard } from "@/components/pilot/PilotCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell } from "@/components/ui/lazy-recharts";
@@ -26,8 +27,18 @@ export function HoursSummaryCards({
   const ecart = d ? d.ecart : 0;
   const pie = d
     ? [
-        { key: "vendues", label: "Heures d'intervention", value: Math.max(0, d.vendues), color: PP_COLORS.sales },
-        { key: "realisees", label: "Heures retenues", value: Math.max(0, d.hours), color: PP_COLORS.mid },
+        {
+          key: "vendues",
+          label: "Heures d'intervention",
+          value: Math.max(0, d.vendues),
+          color: PP_COLORS.sales,
+        },
+        {
+          key: "realisees",
+          label: "Heures retenues",
+          value: Math.max(0, d.hours),
+          color: PP_COLORS.mid,
+        },
       ].filter((s) => s.value > 0)
     : [];
 
@@ -61,7 +72,11 @@ export function HoursSummaryCards({
           value={d && d.hours > 0 ? `${ecart >= 0 ? "+" : ""}${formatHours(ecart)}` : "—"}
           icon={Scale}
           to="/pilot/direction"
-          help={d ? `Heures réelles retenues : ${d.sourceLabel} (${d.sourceDetail}). Un écart négatif signale un temps réel supérieur au vendu : décision de revoir le devis ou le taux horaire.` : "Nécessite des heures réelles confirmées."}
+          help={
+            d
+              ? `Heures réelles retenues : ${d.sourceLabel} (${d.sourceDetail}). Un écart négatif signale un temps réel supérieur au vendu : décision de revoir le devis ou le taux horaire.`
+              : "Nécessite des heures réelles confirmées."
+          }
           sub={d && d.hours > 0 ? d.sourceLabel : "Aucune heure réelle disponible"}
           tone={d && d.hours > 0 && ecart < 0 ? "warning" : "default"}
         />
@@ -82,13 +97,27 @@ export function HoursSummaryCards({
         help="Comparaison des heures vendues (CA) et des heures réalisées (ledger consolidé) sur l'année. Un déséquilibre visuel indique où prioriser la vérification des heures."
         content={
           pie.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Aucune heure exploitable</p>
+            <EmptyState
+              title="Aucune heure exploitable"
+              description="Les heures apparaîtront dès qu'elles seront saisies ou importées."
+            />
           ) : (
             <>
               <ChartContainer config={{}} className="mx-auto h-[170px]">
                 <PieChart>
-                  <Pie data={pie} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={42} outerRadius={68} paddingAngle={2}>
-                    {pie.map((s) => <Cell key={s.key} fill={s.color} />)}
+                  <Pie
+                    data={pie}
+                    dataKey="value"
+                    nameKey="label"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={42}
+                    outerRadius={68}
+                    paddingAngle={2}
+                  >
+                    {pie.map((s) => (
+                      <Cell key={s.key} fill={s.color} />
+                    ))}
                   </Pie>
                   <ChartTooltip content={<ChartTooltipContent />} />
                 </PieChart>

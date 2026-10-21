@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useRole } from "@/hooks/use-role";
@@ -1712,7 +1713,7 @@ function OriginDialog({
             <div>
               <label className="text-sm font-medium">Recommandation planifiée</label>
               {recosQ.isLoading ? (
-                <p className="mt-2 text-sm text-muted-foreground">Chargement…</p>
+                <LoadingState label="Chargement…" />
               ) : (recosQ.data?.length ?? 0) === 0 ? (
                 <p className="mt-2 text-sm text-muted-foreground">
                   Aucune recommandation planifiée en attente de facturation.

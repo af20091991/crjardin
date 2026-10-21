@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { formatCount as formatNumber, formatShare as formatPercent } from "@/lib/format-utils";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -100,9 +101,7 @@ export function SiteWebOpportunities() {
 
         <div className="mt-5 space-y-3">
           {loading ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Chargement des données…
-            </p>
+            <LoadingState compact label="Chargement des données…" />
           ) : opportunities.length === 0 ? (
             <EmptyState
               icon={Lightbulb}
