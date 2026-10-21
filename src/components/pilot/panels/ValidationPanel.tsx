@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, CheckCircle2, Wand2, X } from "lucide-react";
 import { EmptyState } from "@/components/pilot/EmptyState";
@@ -192,9 +193,7 @@ export function ValidationPage() {
       <Card>
         <CardContent className="pt-5">
           {isLoading ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              Chargement des données…
-            </p>
+            <LoadingState label="Chargement des données…" />
           ) : lines.length === 0 ? (
             <EmptyState
               icon={CheckCircle2}

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { Link } from "@tanstack/react-router";
 import { Scale } from "lucide-react";
 import { PilotCard } from "@/components/pilot/PilotCard";
@@ -34,7 +35,7 @@ export function HoursGapCard({ year }: { year: number }) {
       help="Comparaison par prestation et par client des heures vendues (CA) et des heures réellement réalisées (ledger consolidé). Permet de décider où renégocier un devis ou un taux horaire."
       content={
         <div className="mt-3 space-y-4">
-          {q.isLoading && <p className="text-sm text-muted-foreground">Chargement…</p>}
+          {q.isLoading && <LoadingState label="Chargement…" />}
           {q.data && (
             <>
               <div className="space-y-1.5">

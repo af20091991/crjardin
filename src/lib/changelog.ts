@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-21",
+    version: "2.3.88",
+    theme: "Général",
+    title: "Lisibilité — états de chargement et états vides communs",
+    details: [
+      "Tous les messages « Chargement… » utilisent le même composant (icône animée, même texte, même espacement).",
+      "Les derniers états vides en simple texte gris (heures, rappels, modèles, fiches filtrées, modifications manuelles) adoptent l'état vide standard avec une phrase d'aide.",
+      "Aucune donnée affichée n'est modifiée.",
+    ],
+  },
+  {
+    date: "2026-10-21",
     version: "2.3.87",
     theme: "Général",
     title: "Lisibilité — format unique des nombres",

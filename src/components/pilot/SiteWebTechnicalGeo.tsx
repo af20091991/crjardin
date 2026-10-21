@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { formatCount as formatNumber } from "@/lib/format-utils";
 import {
   Activity,
@@ -398,7 +399,7 @@ export function SiteWebTechnicalGeo() {
             Donnée indisponible : {analyticsError}
           </p>
         ) : aiSessions == null ? (
-          <p className="mt-4 text-sm text-muted-foreground">Chargement des sources de trafic IA…</p>
+          <LoadingState label="Chargement des sources de trafic IA…" />
         ) : (
           <div className="mt-4 grid gap-4 md:grid-cols-[180px_1fr]">
             <div className="rounded-lg border border-border/70 p-4">

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, CalendarRange, TrendingUp, TrendingDown } from "lucide-react";
@@ -52,7 +53,7 @@ function ComparatifsSection({
     return (
       <Card>
         <CardContent className="py-6 text-sm text-muted-foreground">
-          Chargement des données réelles…
+          <LoadingState compact label="Chargement des données réelles…" />
         </CardContent>
       </Card>
     );

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -87,12 +88,7 @@ export function SstDashboard() {
   );
 
   const loading = missionsQ.isLoading || sstsQ.isLoading || clientsQ.isLoading;
-  if (loading)
-    return (
-      <div className="py-12 text-center text-sm text-muted-foreground">
-        Chargement des données SST…
-      </div>
-    );
+  if (loading) return <LoadingState label="Chargement des données SST…" />;
 
   return (
     <div className="space-y-5">

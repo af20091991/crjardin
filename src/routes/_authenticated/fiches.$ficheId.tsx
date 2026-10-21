@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
@@ -140,7 +141,7 @@ function EditFiche() {
           </div>
         </div>
         {isLoading || !sheet ? (
-          <p className="text-sm text-muted-foreground">Chargement…</p>
+          <LoadingState label="Chargement…" />
         ) : (
           <fieldset disabled={!canEdit} className="min-w-0">
             <WorksiteSheetForm

@@ -1,6 +1,7 @@
 // Rapprochement SST — panneau de LECTURE SEULE.
 // Affiche le résultat ligne par ligne du moteur `src/lib/sst-reconciliation.ts` :
 // aucune valeur n'est corrigée, aucun écart n'est absorbé.
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeftRight } from "lucide-react";
@@ -32,7 +33,7 @@ export function SstReconciliationPanel({ year }: { year?: number }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {isLoading && <p className="text-xs text-muted-foreground">Chargement des deux sources…</p>}
+        {isLoading && <LoadingState compact label="Chargement des deux sources…" />}
         {error && <p className="text-xs text-destructive">{error}</p>}
         {report && (
           <>

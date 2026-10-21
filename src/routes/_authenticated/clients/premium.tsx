@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { useState } from "react";
 import { Crown } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -76,9 +77,7 @@ function PremiumClientsPage() {
         </header>
 
         {adminLoading || data.isLoading ? (
-          <div className="rounded-xl border bg-background p-8 text-center text-sm text-muted-foreground">
-            Chargement de l'administration Premium…
-          </div>
+          <LoadingState label="Chargement de l'administration Premium…" />
         ) : data.error ? (
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive">
             {data.error instanceof Error ? data.error.message : "Erreur de chargement de Premium."}

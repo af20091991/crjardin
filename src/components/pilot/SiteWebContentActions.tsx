@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { LoadingState } from "@/components/pilot/LoadingState";
 import { formatCount as formatNumber, formatShare as formatPercent } from "@/lib/format-utils";
 import { FileText, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -262,9 +263,7 @@ function GoogleDataError({ code }: { code: string }) {
 }
 
 function LoadingState() {
-  return (
-    <p className="py-8 text-center text-sm text-muted-foreground">Chargement des données Google…</p>
-  );
+  return <LoadingState label="Chargement des données Google…" />;
 }
 
 function EmptyState({ text }: { text: string }) {
