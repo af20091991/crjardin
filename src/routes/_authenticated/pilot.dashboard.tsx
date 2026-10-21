@@ -82,6 +82,7 @@ import {
   SITE_WEB_SITE_URL as SITE_URL,
 } from "@/lib/site-web-config";
 import { pickProperty } from "@/lib/site-web-statistics";
+import { formatHourlyRate, formatPercent } from "@/lib/format-utils";
 
 export const Route = createFileRoute("/_authenticated/pilot/dashboard")({
   head: () => ({
@@ -702,10 +703,10 @@ function DashboardPage() {
                   xKey="name"
                   series={RENTA_SERIES.filter((item) => prefsRenta.shown(item.id))}
                   type={prefsRenta.choice("type", SIMPLE_VALUES, "barres")}
-                  formatLeft={(v) => `${v.toFixed(0)} €/h`}
+                  formatLeft={(v) => `${formatHourlyRate(v)}`}
                   formatRight={formatK}
                   formatTooltip={(value, name) =>
-                    name === "CA" ? formatEuro(value) : `${value.toFixed(0)} €/h`
+                    name === "CA" ? formatEuro(value) : `${formatHourlyRate(value)}`
                   }
                 />
               )}
@@ -1247,7 +1248,7 @@ function PeriodView({
                 )}
               >
                 {stat.delta != null
-                  ? `${stat.delta >= 0 ? "+" : ""}${stat.delta.toFixed(0)} % ${stat.deltaLabel ?? ""}`
+                  ? `${stat.delta >= 0 ? "+" : ""}${formatPercent(stat.delta)} ${stat.deltaLabel ?? ""}`
                   : (stat.hint ?? " ")}
               </p>
             </div>

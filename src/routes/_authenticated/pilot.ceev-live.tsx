@@ -22,6 +22,7 @@ import {
 import { Sparkles, TrendingUp, Wallet, Clock, Users, FileClock, CalendarClock } from "lucide-react";
 import { formatEuro } from "@/lib/pilot";
 import { getCeevLiveYear, CEEV_LIVE_CLASS_META, type CeevLiveClient } from "@/lib/ceev-live";
+import { formatHourlyRate } from "@/lib/format-utils";
 
 export const Route = createFileRoute("/_authenticated/pilot/ceev-live")({
   head: () => ({
@@ -151,7 +152,7 @@ function CeevLivePage() {
             <div>
               <p className="text-xs text-muted-foreground">Taux horaire moyen</p>
               <p className="text-lg font-semibold tabular-nums">
-                {q.isLoading ? "…" : avgTaux != null ? `${avgTaux.toFixed(0)} €/h` : "—"}
+                {q.isLoading ? "…" : avgTaux != null ? `${formatHourlyRate(avgTaux)}` : "—"}
               </p>
               {data && (
                 <p className="text-xs text-muted-foreground">Cible : {data.targetHourlyRate} €/h</p>
@@ -251,7 +252,7 @@ function ClientRow({ client }: { client: CeevLiveClient }) {
       <TableCell className="text-right tabular-nums">{formatEuro(client.margin)}</TableCell>
       <TableCell className="text-right tabular-nums">{client.hours.toFixed(1)} h</TableCell>
       <TableCell className="text-right tabular-nums">
-        {client.tauxHoraire != null ? `${client.tauxHoraire.toFixed(0)} €/h` : "—"}
+        {client.tauxHoraire != null ? `${formatHourlyRate(client.tauxHoraire)}` : "—"}
       </TableCell>
       <TableCell>
         <Badge variant="outline" className={meta.badge} title={client.why}>
@@ -281,7 +282,7 @@ function ClientCard({ client }: { client: CeevLiveClient }) {
         <span>Marge : {formatEuro(client.margin)}</span>
         <span>Heures : {client.hours.toFixed(1)} h</span>
         <span>
-          Taux : {client.tauxHoraire != null ? `${client.tauxHoraire.toFixed(0)} €/h` : "—"}
+          Taux : {client.tauxHoraire != null ? `${formatHourlyRate(client.tauxHoraire)}` : "—"}
         </span>
         {client.caFactureNonRegle > 0 && (
           <span>Facturé non réglé : {formatEuro(client.caFactureNonRegle)}</span>

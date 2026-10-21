@@ -20,6 +20,7 @@ import { entriesForMode, hoursLedgerForMode } from "@/lib/pilot-realized";
 import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { ProfitSignal } from "@/components/pilot/ProfitSignal";
 import { signalFromServiceClass } from "@/lib/pilot-profit-signal";
+import { formatPercent } from "@/lib/format-utils";
 
 const FILTERS: { key: ServiceClass | "all"; label: string }[] = [
   { key: "all", label: "Toutes" },
@@ -155,7 +156,7 @@ export function ProfitabilityServicesView() {
                               <TrendingDown className="h-3 w-3" />
                             )}
                             {r.evolutionPct >= 0 ? "+" : ""}
-                            {r.evolutionPct.toFixed(0)} %
+                            {formatPercent(r.evolutionPct)}
                           </span>
                         )}
                       </td>
@@ -236,7 +237,7 @@ export function ProfitabilityServicesView() {
                               <TrendingDown className="h-3 w-3" />
                             )}
                             {r.evolutionPct >= 0 ? "+" : ""}
-                            {r.evolutionPct.toFixed(0)} %
+                            {formatPercent(r.evolutionPct)}
                           </span>
                         )}
                       </p>

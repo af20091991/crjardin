@@ -53,6 +53,7 @@ import {
   DashboardCustomizer,
   PageBlocks,
 } from "@/components/pilot/DashboardCustomizer";
+import { formatHours, formatPercent } from "@/lib/format-utils";
 
 /** Blocs de la page — présentation uniquement, aucun impact sur les calculs. */
 const BLOCKS: DashboardBlockDef[] = [
@@ -260,7 +261,7 @@ export function ProfitabilityClientsView() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {c.share.toFixed(0)} % du CA ·{" "}
+                      {formatPercent(c.share)} du CA ·{" "}
                       {t.hourlyRate == null
                         ? "taux/h non documenté"
                         : `${formatEuro(t.hourlyRate)}/h`}
@@ -379,7 +380,7 @@ export function ProfitabilityClientsView() {
                         </TableCell>
                         <TableCell className="text-right text-sm">{formatEuro(c.ca)}</TableCell>
                         <TableCell className="text-right text-sm text-muted-foreground">
-                          {c.share.toFixed(0)} %
+                          {formatPercent(c.share)}
                         </TableCell>
                         <TableCell className="text-right text-sm text-muted-foreground">
                           {c.count}
@@ -388,7 +389,7 @@ export function ProfitabilityClientsView() {
                           {formatEuro(c.avgCa)}
                         </TableCell>
                         <TableCell className="text-right text-sm text-muted-foreground">
-                          {c.avgTime.toFixed(1)} h
+                          {formatHours(c.avgTime)}
                         </TableCell>
                         <TableCell className="text-right text-sm text-muted-foreground">
                           {formatEuro(c.hourlyRate)}
@@ -453,7 +454,7 @@ export function ProfitabilityClientsView() {
                         <div>
                           <p className="text-xs text-muted-foreground">CA</p>
                           <p className="tabular-nums">{formatEuro(c.ca)}</p>
-                          <p className="text-xs text-muted-foreground">{c.share.toFixed(0)} %</p>
+                          <p className="text-xs text-muted-foreground">{formatPercent(c.share)}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Lignes</p>
@@ -465,7 +466,7 @@ export function ProfitabilityClientsView() {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Temps moy.</p>
-                          <p className="tabular-nums">{c.avgTime.toFixed(1)} h</p>
+                          <p className="tabular-nums">{formatHours(c.avgTime)}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Taux/h</p>

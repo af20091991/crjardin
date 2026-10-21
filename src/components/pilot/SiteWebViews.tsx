@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatCount as formatNumber, formatShare as formatPercent } from "@/lib/format-utils";
 import { AlertCircle, Search } from "lucide-react";
 import {
   CartesianGrid,
@@ -339,12 +340,4 @@ function formatShortDate(value: string) {
   if (!value) return "—";
   const date = new Date(`${value}T00:00:00`);
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit" }).format(date);
-}
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("fr-FR").format(value);
-}
-function formatPercent(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(
-    value,
-  );
 }

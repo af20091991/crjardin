@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-21",
+    version: "2.3.87",
+    theme: "Général",
+    title: "Lisibilité — format unique des nombres",
+    details: [
+      "Heures, pourcentages et taux horaires s'affichent partout au même format français (virgule décimale, espace avant « % » et « € », « — » sans donnée) : plus de « 7.5 h » ou « 50% » selon la page.",
+      "Les formateurs dupliqués du module Site web sont remplacés par le formateur commun ; aucune valeur n'est modifiée, seule la présentation est harmonisée.",
+    ],
+  },
+  {
     date: "2026-10-20",
     version: "2.3.86",
     theme: "Général",

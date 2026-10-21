@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Trash2, Pencil, Target, CheckCircle2, Clock, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { formatPercent } from "@/lib/format-utils";
 
 type Draft = {
   id?: string;
@@ -211,7 +212,7 @@ export function ObjectifsPanel({
         <KpiTile
           icon={<TrendingUp className="h-4 w-4" />}
           label="Taux d'avancement"
-          value={`${stats.completionRate.toFixed(0)} %`}
+          value={`${formatPercent(stats.completionRate)}`}
           sub={`${stats.done}/${Math.max(stats.total - stats.abandoned, 0)} atteints`}
           accent
         >
@@ -248,7 +249,7 @@ export function ObjectifsPanel({
               </div>
               <Progress value={t.rate} className="h-1.5" />
               <p className="text-xs text-muted-foreground">
-                {t.done}/{t.total} · {t.rate.toFixed(0)} %
+                {t.done}/{t.total} · {formatPercent(t.rate)}
               </p>
             </div>
           ))}

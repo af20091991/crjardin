@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatEuro } from "@/lib/format-utils";
+import { formatEuro, formatPercent } from "@/lib/format-utils";
 import { usePilotScope } from "@/lib/pilot-mode";
 import { listClients } from "@/lib/clients";
 import { listMissions, listSubcontractors } from "@/lib/subcontractors";
@@ -146,7 +146,7 @@ export function SstDashboard() {
           <CardContent>
             <div className="text-2xl font-semibold">{eur(totals.margin)}</div>
             <p className="text-xs text-muted-foreground">
-              {totals.marginPct == null ? "—" : `${totals.marginPct.toFixed(1)} % de marge`}
+              {totals.marginPct == null ? "—" : `${formatPercent(totals.marginPct)} de marge`}
             </p>
           </CardContent>
         </Card>
@@ -190,7 +190,7 @@ export function SstDashboard() {
                     <td className="px-3 py-3 text-right">{eur(p.revenue)}</td>
                     <td className="px-3 py-3 text-right font-medium">{eur(p.margin)}</td>
                     <td className="px-5 py-3 text-right">
-                      {p.marginPct == null ? "—" : `${p.marginPct.toFixed(1)} %`}
+                      {p.marginPct == null ? "—" : `${formatPercent(p.marginPct)}`}
                     </td>
                   </tr>
                 ))}
@@ -217,7 +217,7 @@ export function SstDashboard() {
                     <p className="text-xs text-muted-foreground">Marge</p>
                     <p className="font-medium">
                       {eur(p.margin)}
-                      {p.marginPct != null && ` (${p.marginPct.toFixed(1)} %)`}
+                      {p.marginPct != null && ` (${formatPercent(p.marginPct)})`}
                     </p>
                   </div>
                 </div>

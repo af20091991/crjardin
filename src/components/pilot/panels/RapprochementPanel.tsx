@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatRatio } from "@/lib/format-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,21 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Link2, Sparkles, Search, X, Undo2, UserPlus, AlertTriangle, CheckCircle2,
+  Link2,
+  Sparkles,
+  Search,
+  X,
+  Undo2,
+  UserPlus,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { listClients } from "@/lib/clients";
@@ -52,14 +64,19 @@ import {
 import { MatchRulesPanel } from "@/components/pilot/panels/MatchRulesPanel";
 import { ignoreEntry } from "@/lib/pilot-ca-matching";
 
-
 export function RapprochementPage() {
   const qc = useQueryClient();
   const orphans = useQuery({ queryKey: ["pilot-ca-orphans"], queryFn: listOrphanEntries });
   const linked = useQuery({ queryKey: ["pilot-ca-linked-desig"], queryFn: listLinkedEntries });
   const clients = useQuery({ queryKey: ["clients"], queryFn: listClients });
-  const decisions = useQuery({ queryKey: ["pilot-ca-decisions"], queryFn: () => listRecentDecisions(20) });
-  const nonApplicable = useQuery({ queryKey: ["pilot-ca-non-applicable"], queryFn: getNonApplicableSummary });
+  const decisions = useQuery({
+    queryKey: ["pilot-ca-decisions"],
+    queryFn: () => listRecentDecisions(20),
+  });
+  const nonApplicable = useQuery({
+    queryKey: ["pilot-ca-non-applicable"],
+    queryFn: getNonApplicableSummary,
+  });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<string>("all");
@@ -68,7 +85,9 @@ export function RapprochementPage() {
   const [manualClientId, setManualClientId] = useState<string>("");
   const [impact, setImpact] = useState<QualificationImpact | null>(null);
   /** Score global de qualité avant / après la dernière qualification. */
-  const [qualityShift, setQualityShift] = useState<{ before: number | null; after: number } | null>(null);
+  const [qualityShift, setQualityShift] = useState<{ before: number | null; after: number } | null>(
+    null,
+  );
 
   // Mémoire des correspondances déjà validées à la main.
   const memory = useQuery({ queryKey: ["pilot-match-memory"], queryFn: loadValidationMemory });
@@ -92,19 +111,16 @@ export function RapprochementPage() {
     qc.invalidateQueries({ queryKey: ["pilot-match-rules"] });
   };
 
-  const designationIndex = useMemo(
-    () => {
-      // L'historique validé (lignes rattachées) est complété par la mémoire des
-      // validations manuelles : une correspondance validée n'est plus redemandée.
-      const idx = buildDesignationIndex(linked.data ?? []);
-      memory.data?.forEach((m, key) => {
-        const cur = idx.get(key);
-        if (!cur) idx.set(key, { clientId: m.clientId, count: m.count });
-      });
-      return idx;
-    },
-    [linked.data, memory.data],
-  );
+  const designationIndex = useMemo(() => {
+    // L'historique validé (lignes rattachées) est complété par la mémoire des
+    // validations manuelles : une correspondance validée n'est plus redemandée.
+    const idx = buildDesignationIndex(linked.data ?? []);
+    memory.data?.forEach((m, key) => {
+      const cur = idx.get(key);
+      if (!cur) idx.set(key, { clientId: m.clientId, count: m.count });
+    });
+    return idx;
+  }, [linked.data, memory.data]);
 
   const years = useMemo(() => {
     const set = new Set<number>();
@@ -129,12 +145,13 @@ export function RapprochementPage() {
     () =>
       (orphans.data ?? [])
         .map((entry) => ({ entry, suggestion: evalByEntry.get(entry.id)?.[0] }))
-        .filter((r): r is { entry: CaEntry; suggestion: Suggestion } =>
-          // Preuve formelle uniquement (nom identique ou alias déjà validé) :
-          // aucune ressemblance ne déclenche un rattachement automatique.
-          !!r.suggestion &&
-          r.suggestion.confidence === "haute" &&
-          (r.suggestion.reason === "exact" || r.suggestion.reason === "historique"),
+        .filter(
+          (r): r is { entry: CaEntry; suggestion: Suggestion } =>
+            // Preuve formelle uniquement (nom identique ou alias déjà validé) :
+            // aucune ressemblance ne déclenche un rattachement automatique.
+            !!r.suggestion &&
+            r.suggestion.confidence === "haute" &&
+            (r.suggestion.reason === "exact" || r.suggestion.reason === "historique"),
         ),
     [orphans.data, evalByEntry],
   );
@@ -307,8 +324,8 @@ export function RapprochementPage() {
               </p>
             )}
             <p className="pt-1 text-xs text-muted-foreground">
-              Cette correspondance est mémorisée : elle sera proposée automatiquement
-              lors des prochains rapprochements et ne sera plus redemandée.
+              Cette correspondance est mémorisée : elle sera proposée automatiquement lors des
+              prochains rapprochements et ne sera plus redemandée.
             </p>
           </CardContent>
         </Card>
@@ -320,9 +337,7 @@ export function RapprochementPage() {
         <CardContent className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <CheckCircle2 className="h-4 w-4 text-primary/60" />
-            <span>
-              Hors rapprochement (agrégats mensuels 2020, remise commerciale)
-            </span>
+            <span>Hors rapprochement (agrégats mensuels 2020, remise commerciale)</span>
           </div>
           <Badge variant="outline" className="gap-1">
             {nonApplicable.isLoading
@@ -347,16 +362,22 @@ export function RapprochementPage() {
                 />
               </div>
               <Select value={yearFilter} onValueChange={setYearFilter}>
-                <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Toutes années</SelectItem>
                   {years.map((y) => (
-                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={confFilter} onValueChange={setConfFilter}>
-                <SelectTrigger className="w-[165px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-[165px]">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Toutes confiances</SelectItem>
                   <SelectItem value="haute">Confiance haute</SelectItem>
@@ -366,16 +387,18 @@ export function RapprochementPage() {
               </Select>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Le rattachement automatique n'est autorisé qu'en confiance haute
-              (correspondance exacte ou désignation déjà validée). Une orthographe
-              proche reste une simple suggestion.
+              Le rattachement automatique n'est autorisé qu'en confiance haute (correspondance
+              exacte ou désignation déjà validée). Une orthographe proche reste une simple
+              suggestion.
             </p>
           </CardHeader>
           <CardContent className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-[520px]">
               {orphans.isLoading ? (
                 <div className="space-y-2 p-4">
-                  {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full rounded-md" />)}
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} className="h-14 w-full rounded-md" />
+                  ))}
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 p-10 text-center text-sm text-muted-foreground">
@@ -423,24 +446,36 @@ export function RapprochementPage() {
                     return (
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
                         <span className="text-muted-foreground">Désignation nettoyée :</span>
-                        <Badge variant="outline" className="text-[10px]">{p.name || "—"}</Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {p.name || "—"}
+                        </Badge>
                         {p.codes.map((c) => (
                           <Badge key={c} variant="outline" className="text-[10px]">
                             {c} — {CA_CODES[c].label}
                           </Badge>
                         ))}
-                        {p.isPro && <Badge variant="outline" className="text-[10px]">Professionnel / résidence</Badge>}
+                        {p.isPro && (
+                          <Badge variant="outline" className="text-[10px]">
+                            Professionnel / résidence
+                          </Badge>
+                        )}
                       </div>
                     );
                   })()}
                   <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    <span>{MONTH_NAMES[selected.month - 1]} {selected.year}</span>
+                    <span>
+                      {MONTH_NAMES[selected.month - 1]} {selected.year}
+                    </span>
                     <span>{formatEuro(selected.amount_ht)} HT</span>
                     {selected.hours ? <span>{selected.hours} h</span> : null}
-                    {selected.category ? <span>Cat. {CATEGORY_LABELS[selected.category]}</span> : null}
+                    {selected.category ? (
+                      <span>Cat. {CATEGORY_LABELS[selected.category]}</span>
+                    ) : null}
                   </div>
                   {selected.note ? (
-                    <div className="mt-2 text-xs italic text-muted-foreground">« {selected.note} »</div>
+                    <div className="mt-2 text-xs italic text-muted-foreground">
+                      « {selected.note} »
+                    </div>
                   ) : null}
                 </div>
 
@@ -451,7 +486,8 @@ export function RapprochementPage() {
                   </Label>
                   {suggestions.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      Aucune correspondance trouvée. Utilisez la recherche manuelle ou créez un client.
+                      Aucune correspondance trouvée. Utilisez la recherche manuelle ou créez un
+                      client.
                     </p>
                   ) : (
                     <ul className="space-y-1.5">
@@ -462,7 +498,8 @@ export function RapprochementPage() {
                         >
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-sm font-medium">
-                              {s.client.civility ? `${s.client.civility} ` : ""}{s.client.name}
+                              {s.client.civility ? `${s.client.civility} ` : ""}
+                              {s.client.name}
                             </div>
                             <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                               <Badge variant="outline" className="text-[10px]">
@@ -474,14 +511,19 @@ export function RapprochementPage() {
                                       ? "Nom + données"
                                       : "Similarité"}
                               </Badge>
-                              <Badge variant="outline" className={`text-[10px] ${CONFIDENCE_META[s.confidence].badge}`}>
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] ${CONFIDENCE_META[s.confidence].badge}`}
+                              >
                                 {CONFIDENCE_META[s.confidence].label}
                               </Badge>
-                              <span>Score {(s.score * 100).toFixed(0)}%</span>
+                              <span>Score {formatRatio(s.score, 0)}</span>
                             </div>
                             {s.evidence.length > 0 ? (
                               <ul className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
-                                {s.evidence.map((ev) => <li key={ev}>· {ev}</li>)}
+                                {s.evidence.map((ev) => (
+                                  <li key={ev}>· {ev}</li>
+                                ))}
                               </ul>
                             ) : null}
                           </div>
@@ -519,7 +561,8 @@ export function RapprochementPage() {
                       <SelectContent>
                         {(clients.data ?? []).map((c) => (
                           <SelectItem key={c.id} value={c.id}>
-                            {c.civility ? `${c.civility} ` : ""}{c.name}
+                            {c.civility ? `${c.civility} ` : ""}
+                            {c.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -592,7 +635,9 @@ export function RapprochementPage() {
         </CardHeader>
         <CardContent className="p-0">
           {(decisions.data ?? []).length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">Aucune décision enregistrée pour le moment.</p>
+            <p className="p-4 text-sm text-muted-foreground">
+              Aucune décision enregistrée pour le moment.
+            </p>
           ) : (
             <ul className="divide-y text-sm">
               {(decisions.data ?? []).map((d) => {
@@ -602,7 +647,9 @@ export function RapprochementPage() {
                   <li key={d.id} className="flex items-center justify-between gap-3 px-4 py-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px] uppercase">{d.method}</Badge>
+                        <Badge variant="outline" className="text-[10px] uppercase">
+                          {d.method}
+                        </Badge>
                         <span className="truncate">
                           {d.method === "refused"
                             ? "Ligne ignorée"
@@ -614,7 +661,7 @@ export function RapprochementPage() {
                       </div>
                       <div className="text-[11px] text-muted-foreground">
                         {new Date(d.decided_at).toLocaleString("fr-FR")}
-                        {d.score != null ? ` · score ${(d.score * 100).toFixed(0)}%` : ""}
+                        {d.score != null ? ` · score ${formatRatio(d.score, 0)}` : ""}
                       </div>
                     </div>
                     <Button
@@ -637,8 +684,16 @@ export function RapprochementPage() {
 }
 
 function OrphanRow({
-  entry, selected, onSelect, confidence,
-}: { entry: CaEntry; selected: boolean; onSelect: () => void; confidence: ConfidenceLevel }) {
+  entry,
+  selected,
+  onSelect,
+  confidence,
+}: {
+  entry: CaEntry;
+  selected: boolean;
+  onSelect: () => void;
+  confidence: ConfidenceLevel;
+}) {
   return (
     <li>
       <button
@@ -653,7 +708,9 @@ function OrphanRow({
             {entry.designation || "(sans désignation)"}
           </div>
           <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-            <span>{MONTH_NAMES[entry.month - 1]} {entry.year}</span>
+            <span>
+              {MONTH_NAMES[entry.month - 1]} {entry.year}
+            </span>
             {entry.category ? <span>{CATEGORY_LABELS[entry.category]}</span> : null}
             <Badge variant="outline" className={`text-[10px] ${CONFIDENCE_META[confidence].badge}`}>
               {confidence === "faible" ? "Aucune suggestion" : CONFIDENCE_META[confidence].label}

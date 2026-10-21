@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatCount as formatNumber, formatShare as formatPercent } from "@/lib/format-utils";
 import { AlertCircle, BarChart3, MapPin, Search, Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -710,16 +711,6 @@ function LoadingState() {
 
 function truncateLabel(value: string, maxLength = 28) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("fr-FR").format(value);
-}
-
-function formatPercent(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(
-    value,
-  );
 }
 
 function formatPosition(value: number | undefined) {

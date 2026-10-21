@@ -9,6 +9,7 @@ import { formatEuro, formatPct, MONTHS, sum } from "@/lib/pilot";
 import { isRealizedAccountingDate, todayIso } from "@/lib/pilot-realized";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "@/components/ui/lazy-recharts";
+import { formatPercent } from "@/lib/format-utils";
 
 const DATA_INSUFFISANTE = "Données insuffisantes";
 
@@ -107,9 +108,9 @@ function ComparatifsSection({
     },
     {
       label: "Marge nette",
-      current: current?.margePct != null ? `${current.margePct.toFixed(1)} %` : DATA_INSUFFISANTE,
+      current: current?.margePct != null ? `${formatPercent(current.margePct)}` : DATA_INSUFFISANTE,
       reference:
-        previous?.margePct != null ? `${previous.margePct.toFixed(1)} %` : DATA_INSUFFISANTE,
+        previous?.margePct != null ? `${formatPercent(previous.margePct)}` : DATA_INSUFFISANTE,
       delta:
         current?.margePct != null && previous?.margePct != null
           ? `${(current.margePct - previous.margePct).toFixed(1)} pts`

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatCount as formatNumber, formatShare as formatPercent } from "@/lib/format-utils";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -153,14 +154,4 @@ function formatDateLabel(value: string) {
   const parsed = new Date(`${value}T12:00:00`);
   if (Number.isNaN(parsed.getTime())) return value;
   return new Intl.DateTimeFormat("fr-FR").format(parsed);
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("fr-FR").format(value);
-}
-
-function formatPercent(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(
-    value,
-  );
 }

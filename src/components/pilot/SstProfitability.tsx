@@ -37,7 +37,7 @@ import { PilotCard } from "@/components/pilot/PilotCard";
 import { PilotFlexChart } from "@/components/pilot/PilotFlexChart";
 import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
-import { formatEuro, formatHours } from "@/lib/format-utils";
+import { formatEuro, formatHourlyRate, formatHours, formatPercent } from "@/lib/format-utils";
 import { usePilotMode, usePilotPeriod, usePilotYear } from "@/lib/pilot-mode";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import {
@@ -88,7 +88,7 @@ import {
 import { toast } from "sonner";
 import { EmptyState } from "@/components/pilot/EmptyState";
 
-const pct = (n: number | null | undefined) => (n == null ? "—" : `${n.toFixed(1)} %`);
+const pct = (n: number | null | undefined) => (n == null ? "—" : `${formatPercent(n)}`);
 
 export function SstProfitabilityTab() {
   const qc = useQueryClient();
@@ -494,7 +494,7 @@ export function SstProfitabilityTab() {
           value={formatEuro(totals.cost)}
           sub={
             totals.avgHourlyCost != null
-              ? `${totals.avgHourlyCost.toFixed(0)} €/h en moyenne`
+              ? `${formatHourlyRate(totals.avgHourlyCost)} en moyenne`
               : "Heures non saisies"
           }
           tone="negative"
@@ -708,7 +708,7 @@ export function SstProfitabilityTab() {
                     <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
                       <div>
                         <p className="text-xs text-muted-foreground">Temps</p>
-                        <p>{r.hours != null ? `${r.hours.toFixed(1)} h` : "—"}</p>
+                        <p>{r.hours != null ? `${formatHours(r.hours)}` : "—"}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Prix SST</p>
@@ -807,7 +807,7 @@ export function SstProfitabilityTab() {
                   </div>
                   <div className="mt-1 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span>
-                      Temps {totals.hours.toFixed(1)} h · Coût {formatEuro(totals.cost)}
+                      Temps {formatHours(totals.hours)} · Coût {formatEuro(totals.cost)}
                     </span>
                     <span>
                       Marge {formatEuro(totals.margin)} ({pct(totals.marginPct)})

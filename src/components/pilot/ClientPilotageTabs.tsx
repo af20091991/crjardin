@@ -57,6 +57,7 @@ import {
   CalendarClock,
   Link2,
 } from "lucide-react";
+import { formatHours } from "@/lib/format-utils";
 
 const CONFIDENCE_META: Record<
   "HIGH" | "MEDIUM" | "LOW",
@@ -481,7 +482,7 @@ export function ClientPilotageTabs({ clientId }: { clientId: string }) {
                 <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
                   <li>CA cumulé : {formatEuro(caCumule)}</li>
                   <li>
-                    Heures confirmées : {(score?.hoursConfirmed ?? 0).toFixed(1)} h (source :
+                    Heures confirmées : {formatHours(score?.hoursConfirmed ?? 0)} (source :
                     interventions confirmées)
                   </li>
                   <li>
@@ -787,7 +788,7 @@ export function ClientPilotageTabs({ clientId }: { clientId: string }) {
                 <MiniStat
                   icon={Clock}
                   label="Heures confirmées"
-                  value={`${(score?.hoursConfirmed ?? 0).toFixed(1)} h`}
+                  value={formatHours(score?.hoursConfirmed ?? 0)}
                 />
                 <MiniStat
                   icon={Clock}
@@ -927,7 +928,7 @@ export function ClientPilotageTabs({ clientId }: { clientId: string }) {
                   <MiniStat
                     icon={Clock}
                     label="Heures cumulées"
-                    value={`${totalHours.toFixed(1)} h`}
+                    value={`${formatHours(totalHours)}`}
                   />
                   <MiniStat
                     icon={AlertCircle}
@@ -942,7 +943,7 @@ export function ClientPilotageTabs({ clientId }: { clientId: string }) {
                   <div className="flex flex-wrap items-center gap-2">
                     <Clock className="h-4 w-4 text-amber-600" />
                     <span className="text-sm font-medium">
-                      {HOURS_SOURCE_META.historiques.label} : {historicHours.toFixed(2)} h
+                      {HOURS_SOURCE_META.historiques.label} : {formatHours(historicHours, 2)}
                     </span>
                     <Badge
                       variant="outline"
@@ -954,7 +955,7 @@ export function ClientPilotageTabs({ clientId }: { clientId: string }) {
                   <p className="mt-1 text-xs text-muted-foreground">
                     Source distincte des heures réelles d'intervention :{" "}
                     {historicRows
-                      .map((r) => `${r.year} — ${Number(r.hours).toFixed(2)} h`)
+                      .map((r) => `${r.year} — ${formatHours(Number(r.hours))}`)
                       .join(" · ")}
                   </p>
                 </div>
@@ -978,7 +979,7 @@ export function ClientPilotageTabs({ clientId }: { clientId: string }) {
                             {iv.hours_spent != null && (
                               <span className="text-xs text-muted-foreground">
                                 <Clock className="mr-1 inline h-3 w-3" />
-                                {iv.hours_spent.toFixed(1)} h
+                                {formatHours(iv.hours_spent)}
                               </span>
                             )}
                             <Badge

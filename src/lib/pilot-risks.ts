@@ -12,6 +12,7 @@ import type { ServiceProfitability } from "@/lib/pilot-service-profitability";
 import type { CeevContract } from "@/lib/ceev";
 import { renewalAnalysis } from "@/lib/ceev";
 import { getThresholds } from "@/lib/pilot-thresholds";
+import { formatHourlyRate, formatHours, formatPercent } from "@/lib/format-utils";
 
 export type RiskSeverity = "critique" | "eleve" | "modere";
 
@@ -77,9 +78,9 @@ export function buildRisks(input: RiskInput): PilotRisk[] {
     if (share >= 20 || share3 >= 50) {
       out.push({
         key: `risk:dependance`,
-        title: `Dépendance commerciale : ${top.name} représente ${share.toFixed(0)} % du chiffre d'affaires`,
+        title: `Dépendance commerciale : ${top.name} représente ${formatPercent(share)} du chiffre d'affaires`,
         severity: share >= 30 ? "critique" : "eleve",
-        why: `La perte de ce client amputerait directement le chiffre d'affaires de l'exercice. Les 3 premiers clients pèsent ${share3.toFixed(0)} %.`,
+        why: `La perte de ce client amputerait directement le chiffre d'affaires de l'exercice. Les 3 premiers clients pèsent ${formatPercent(share3)}.`,
         calc: `CA ${top.name} ÷ CA total clients identifiés de l'exercice`,
         sources: ["Lignes CA rattachées aux clients (exercice en cours)"],
         limits: "Les lignes CA sans client rattaché ne sont pas comptées dans ce poids.",
@@ -100,11 +101,13 @@ export function buildRisks(input: RiskInput): PilotRisk[] {
         key: "risk:marge",
         title: `Marge en recul de ${Math.abs(delta).toFixed(1)} points par rapport à ${prev.year}`,
         severity: cur.margePct < t.margeMin ? "critique" : "eleve",
-        why: `La marge brute passe de ${prev.margePct.toFixed(1)} % à ${cur.margePct.toFixed(1)} % : les charges progressent plus vite que le chiffre d'affaires.`,
+        why: `La marge brute passe de ${formatPercent(prev.margePct)} à ${formatPercent(cur.margePct)} : les charges progressent plus vite que le chiffre d'affaires.`,
         calc: "(CA HT − charges d'exploitation) ÷ CA HT, comparé à l'exercice précédent",
         sources: ["Lignes CA (ventes)", "Charges enregistrées hors investissements"],
-        limits: "Les charges non encore saisies sur l'exercice en cours abaissent artificiellement l'écart.",
-        action: "Identifier les postes de charges en hausse et réviser les prix des prestations concernées.",
+        limits:
+          "Les charges non encore saisies sur l'exercice en cours abaissent artificiellement l'écart.",
+        action:
+          "Identifier les postes de charges en hausse et réviser les prix des prestations concernées.",
         impactEuro: (Math.abs(delta) / 100) * cur.caHt,
         impactLabel: "marge perdue à chiffre d'affaires constant",
         to: "/pilot/charges",
@@ -120,7 +123,7 @@ export function buildRisks(input: RiskInput): PilotRisk[] {
     if (evoCharges != null && evoCa != null && evoCharges - evoCa >= 10) {
       out.push({
         key: "risk:charges",
-        title: `Charges +${evoCharges.toFixed(0)} % contre ${evoCa >= 0 ? "+" : ""}${evoCa.toFixed(0)} % de chiffre d'affaires`,
+        title: `Charges +${formatPercent(evoCharges)} contre ${evoCa >= 0 ? "+" : ""}${formatPercent(evoCa)} de chiffre d'affaires`,
         severity: "eleve",
         why: "La structure de coûts progresse plus vite que l'activité : le bénéfice se contracte même si le chiffre d'affaires augmente.",
         calc: "Évolution des charges de l'exercice vs N-1, comparée à l'évolution du CA",
@@ -145,7 +148,8 @@ export function buildRisks(input: RiskInput): PilotRisk[] {
       why: "Le chiffre d'affaires constaté est inférieur à celui de l'exercice précédent sur le même périmètre.",
       calc: "CA de l'exercice ÷ CA de l'exercice précédent − 1 (mode d'affichage en cours)",
       sources: ["Lignes CA (ventes)"],
-      limits: "En mode réel, seules les périodes échues sont comparées : un retard de saisie accentue le repli.",
+      limits:
+        "En mode réel, seules les périodes échues sont comparées : un retard de saisie accentue le repli.",
       action: "Relancer les clients sans activité récente et sécuriser les contrats d'entretien.",
       impactEuro: input.caPrevYear - input.caYear,
       impactLabel: "chiffre d'affaires manquant par rapport à N-1",
@@ -175,16 +179,24 @@ export function buildRisks(input: RiskInput): PilotRisk[] {
   }
 
   // 6 — Taux horaire réel sous la cible (rentabilité structurelle).
-  if (input.tauxHoraireReel > 0 && input.targetHourlyRate > 0 && input.tauxHoraireReel < input.targetHourlyRate) {
+  if (
+    input.tauxHoraireReel > 0 &&
+    input.targetHourlyRate > 0 &&
+    input.tauxHoraireReel < input.targetHourlyRate
+  ) {
     const ecart = input.targetHourlyRate - input.tauxHoraireReel;
     out.push({
       key: "risk:taux",
-      title: `Taux horaire réel inférieur de ${ecart.toFixed(0)} €/h à la cible`,
-      severity: input.tauxHoraireReel < input.targetHourlyRate * t.clientSurveillerRatio ? "critique" : "eleve",
-      why: `Le taux horaire réellement obtenu (${input.tauxHoraireReel.toFixed(0)} €/h) est en dessous du seuil de rentabilité paramétré (${input.targetHourlyRate.toFixed(0)} €/h).`,
+      title: `Taux horaire réel inférieur de ${formatHourlyRate(ecart)} à la cible`,
+      severity:
+        input.tauxHoraireReel < input.targetHourlyRate * t.clientSurveillerRatio
+          ? "critique"
+          : "eleve",
+      why: `Le taux horaire réellement obtenu (${formatHourlyRate(input.tauxHoraireReel)}) est en dessous du seuil de rentabilité paramétré (${formatHourlyRate(input.targetHourlyRate)}).`,
       calc: "CA de l'exercice ÷ heures réelles retenues, comparé au taux horaire cible",
       sources: ["Lignes CA (ventes)", "Heures confirmées et heures historiques"],
-      limits: "Les interventions sans heures renseignées ne sont pas prises en compte : le taux réel peut être surévalué.",
+      limits:
+        "Les interventions sans heures renseignées ne sont pas prises en compte : le taux réel peut être surévalué.",
       action: "Réviser les prix des prestations les moins rentables ou réduire le temps passé.",
       impactEuro: null,
       impactLabel: "rentabilité horaire sous la cible",
@@ -195,7 +207,8 @@ export function buildRisks(input: RiskInput): PilotRisk[] {
 
   // 7 — Prestations déficitaires : temps réel supérieur au temps vendu.
   const derive = input.services.filter(
-    (s) => s.hoursBasis === "reelles" && s.heuresVendues > 0 && s.heuresReelles > s.heuresVendues * 1.15,
+    (s) =>
+      s.hoursBasis === "reelles" && s.heuresVendues > 0 && s.heuresReelles > s.heuresVendues * 1.15,
   );
   if (derive.length > 0) {
     const worst = [...derive].sort(
@@ -205,7 +218,7 @@ export function buildRisks(input: RiskInput): PilotRisk[] {
       key: "risk:derive-temps",
       title: `Temps passé supérieur au temps vendu sur ${derive.length} prestation(s)`,
       severity: "modere",
-      why: `Sur « ${worst.prestation} », ${worst.heuresReelles.toFixed(0)} h ont été réalisées pour ${worst.heuresVendues.toFixed(0)} h vendues.`,
+      why: `Sur « ${worst.prestation} », ${formatHours(worst.heuresReelles)} ont été réalisées pour ${formatHours(worst.heuresVendues)} vendues.`,
       calc: "Heures réelles du ledger ÷ heures vendues des lignes CA, par prestation",
       sources: ["Heures réelles consolidées", "Heures vendues des lignes CA"],
       limits: "Seules les prestations dont les heures réelles sont connues sont comparées.",
@@ -228,7 +241,7 @@ export function buildRisks(input: RiskInput): PilotRisk[] {
       key: "risk:chronophages",
       title: `${chronophages.length} client(s) chronophage(s) sur l'exercice`,
       severity: "modere",
-      why: `« ${worst.name} » ressort à ${worst.tauxHoraire ? `${worst.tauxHoraire.toFixed(0)} €/h` : "un taux horaire inconnu"} : le temps consommé n'est pas couvert par le prix pratiqué.`,
+      why: `« ${worst.name} » ressort à ${worst.tauxHoraire ? `${formatHourlyRate(worst.tauxHoraire)}` : "un taux horaire inconnu"} : le temps consommé n'est pas couvert par le prix pratiqué.`,
       calc: "CA du client ÷ heures réelles retenues, comparé au taux horaire cible",
       sources: ["Lignes CA rattachées au client", "Heures réelles consolidées"],
       limits: "Un client dont les heures sont partiellement saisies peut être classé à tort.",

@@ -6,8 +6,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DatabaseZap } from "lucide-react";
 import { formatEuro } from "@/lib/pilot";
 import { getReconstructionSummary, MATCH_STATUS_META } from "@/lib/pilot-reconstruction";
+import { formatPercent } from "@/lib/format-utils";
 
-const pct = (n: number) => `${n.toFixed(1)} %`;
+const pct = (n: number) => `${formatPercent(n)}`;
 
 /** Tableau de contrôle de la reconstruction du référentiel client. */
 export function ReconstructionPanel() {
@@ -26,15 +27,28 @@ export function ReconstructionPanel() {
         {q.data && (
           <>
             <div className="grid gap-3 sm:grid-cols-3">
-              <Stat label="Lignes CA analysées" value={String(q.data.totalLines)} sub={`${pct(q.data.processedPct)} traitées`} />
-              <Stat label="Lignes rattachées" value={pct(q.data.coveredLinesPct)} sub={`${q.data.coveredLines} lignes`} />
-              <Stat label="Montant CA couvert" value={pct(q.data.coveredAmountPct)} sub={`${formatEuro(q.data.coveredAmount)} / ${formatEuro(q.data.totalAmount)}`} />
+              <Stat
+                label="Lignes CA analysées"
+                value={String(q.data.totalLines)}
+                sub={`${pct(q.data.processedPct)} traitées`}
+              />
+              <Stat
+                label="Lignes rattachées"
+                value={pct(q.data.coveredLinesPct)}
+                sub={`${q.data.coveredLines} lignes`}
+              />
+              <Stat
+                label="Montant CA couvert"
+                value={pct(q.data.coveredAmountPct)}
+                sub={`${formatEuro(q.data.coveredAmount)} / ${formatEuro(q.data.totalAmount)}`}
+              />
             </div>
 
             <div className="space-y-1">
               <Progress value={q.data.coveredAmountPct} />
               <p className="text-xs text-muted-foreground">
-                {q.data.createdClients} fiche(s) client créée(s) depuis l'historique CA — à compléter manuellement.
+                {q.data.createdClients} fiche(s) client créée(s) depuis l'historique CA — à
+                compléter manuellement.
               </p>
             </div>
 
@@ -42,9 +56,14 @@ export function ReconstructionPanel() {
               {q.data.buckets.map((b) => {
                 const meta = MATCH_STATUS_META[b.status];
                 return (
-                  <div key={b.status} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 p-2.5">
+                  <div
+                    key={b.status}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 p-2.5"
+                  >
                     <div className="min-w-0">
-                      <Badge variant="outline" className={meta.badge}>{meta.label}</Badge>
+                      <Badge variant="outline" className={meta.badge}>
+                        {meta.label}
+                      </Badge>
                       <p className="mt-1 text-xs text-muted-foreground">{meta.hint}</p>
                     </div>
                     <div className="text-right text-sm">

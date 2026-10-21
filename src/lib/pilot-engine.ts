@@ -90,6 +90,7 @@ import {
 import type { KpiAudit } from "@/lib/pilot-kpi-audit";
 import { employerCost } from "@/lib/pilot-remuneration";
 import { saleRateScope } from "@/lib/pilot-sale-time";
+import { formatPercent } from "@/lib/format-utils";
 
 export type EngineMode = RealProjectionMode;
 
@@ -528,14 +529,14 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
   if (margePct != null && margePct < 15 && yearHt > 0)
     financeAlerts.push({
       tone: "danger",
-      text: `Marge de ${margePct.toFixed(0)} % : en dessous du seuil de sécurité de 15 %.`,
+      text: `Marge de ${formatPercent(margePct)} : en dessous du seuil de sécurité de 15 %.`,
     });
   if (prevYearRow && prevYearRow.charges > 0) {
     const evo = ((chargesTotal - prevYearRow.charges) / prevYearRow.charges) * 100;
     if (evo > 15)
       financeAlerts.push({
         tone: "warn",
-        text: `Charges en hausse de ${evo.toFixed(0)} % vs ${year - 1}.`,
+        text: `Charges en hausse de ${formatPercent(evo)} vs ${year - 1}.`,
       });
   }
   const negMonths = financeMonths.filter((m) => m.CA > 0 && m.Bénéfice < 0);
@@ -611,7 +612,7 @@ export function buildAnalytics(inputs: EngineInputs, now = new Date()): Analytic
       periode,
       fiabilite:
         certification.caCoveragePct != null
-          ? `${certification.caCoveragePct.toFixed(1)} % du CA certifié`
+          ? `${formatPercent(certification.caCoveragePct)} du CA certifié`
           : undefined,
     }),
     heures_vendues: kpi(
@@ -859,7 +860,7 @@ export function formatKpi(k: Kpi): string {
     case "heures":
       return `${k.value.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} h`;
     case "pct":
-      return `${k.value.toFixed(1)} %`;
+      return `${formatPercent(k.value)}`;
     default:
       return k.value.toLocaleString("fr-FR");
   }
