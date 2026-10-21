@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { formatCount as formatNumber, formatShare as formatPercent } from "@/lib/format-utils";
 import { AlertTriangle, ArrowUpRight, CheckCircle2, Lightbulb, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -424,14 +425,4 @@ function formatDateTime(value: string) {
 function formatDate(value: string) {
   const date = new Date(`${value}T12:00:00`);
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("fr-FR").format(date);
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("fr-FR").format(value);
-}
-
-function formatPercent(value: number) {
-  return new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(
-    value,
-  );
 }

@@ -3,6 +3,7 @@ import { listClients } from "@/lib/clients";
 import { hoursCounted, revenueCounted } from "@/lib/pilot-sale-accounting";
 import { getThresholds } from "@/lib/pilot-thresholds";
 import { getSettings, DEFAULT_SETTINGS } from "@/lib/pilot";
+import { formatHourlyRate, formatHours } from "@/lib/format-utils";
 
 export type CeevLiveClass =
   | "tres_rentable"
@@ -123,16 +124,16 @@ export async function getCeevLiveYear(year: number): Promise<CeevLiveYear> {
     if (a.hours >= CEEV_MIN_HOURS && a.ca > 0 && targetHourlyRate > 0 && tauxHoraire != null) {
       if (tauxHoraire >= targetHourlyRate * thresholds.clientTresRentableRatio) {
         classe = "tres_rentable";
-        why = `Taux horaire ${tauxHoraire.toFixed(0)} €/h ≥ ${(thresholds.clientTresRentableRatio * 100).toFixed(0)} % de la cible (${targetHourlyRate} €/h).`;
+        why = `Taux horaire ${formatHourlyRate(tauxHoraire)} ≥ ${(thresholds.clientTresRentableRatio * 100).toFixed(0)} % de la cible (${targetHourlyRate} €/h).`;
       } else if (tauxHoraire >= targetHourlyRate) {
         classe = "rentable";
-        why = `Taux horaire ${tauxHoraire.toFixed(0)} €/h au-dessus de la cible (${targetHourlyRate} €/h).`;
+        why = `Taux horaire ${formatHourlyRate(tauxHoraire)} au-dessus de la cible (${targetHourlyRate} €/h).`;
       } else if (tauxHoraire >= targetHourlyRate * thresholds.clientSurveillerRatio) {
         classe = "a_surveiller";
-        why = `Taux horaire ${tauxHoraire.toFixed(0)} €/h légèrement sous la cible (${targetHourlyRate} €/h).`;
+        why = `Taux horaire ${formatHourlyRate(tauxHoraire)} légèrement sous la cible (${targetHourlyRate} €/h).`;
       } else {
         classe = "chronophage";
-        why = `Taux horaire ${tauxHoraire.toFixed(0)} €/h très en dessous de la cible sur ${a.hours.toFixed(1)} h.`;
+        why = `Taux horaire ${formatHourlyRate(tauxHoraire)} très en dessous de la cible sur ${formatHours(a.hours)}.`;
       }
     } else if (a.ca === 0 && (a.caFactureNonRegle > 0 || a.caPlanifie > 0)) {
       why =

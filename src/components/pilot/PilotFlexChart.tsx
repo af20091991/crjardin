@@ -59,6 +59,7 @@ import {
   type FlexChartType,
   type FlexDataset,
 } from "@/lib/pilot-flex-chart";
+import { formatPercent } from "@/lib/format-utils";
 
 interface Props {
   title: string;
@@ -369,7 +370,7 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
               />
               <Tooltip
                 formatter={(v: number | string, name) => [
-                  `${Number(v).toFixed(1)} %`,
+                  `${formatPercent(Number(v))}`,
                   String(name),
                 ]}
                 labelFormatter={(l) => `${dataset.categoryLabel} : ${l}`}
@@ -764,7 +765,7 @@ function FlexRender({ dataset, type }: { dataset: FlexDataset; type: FlexChartTy
                 contentStyle={{ fontSize: 12 }}
                 formatter={(v: number | string, name) =>
                   name === "Cumul"
-                    ? [`${Number(v).toFixed(1)} %`, "Cumul"]
+                    ? [`${formatPercent(Number(v))}`, "Cumul"]
                     : [fmt(v), series[0].label]
                 }
               />

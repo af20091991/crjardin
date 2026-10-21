@@ -14,6 +14,7 @@ import { currentYear } from "@/lib/date-utils";
 import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { useEntityStatuses } from "@/lib/pilot-entity-rules";
 import { AnalysisTraceability, EntityStatusBadge } from "@/components/pilot/ReliabilityBadge";
+import { formatPercent } from "@/lib/format-utils";
 
 /**
  * Analyse 360° d'un client : rentabilité classée + ventes additionnelles
@@ -115,7 +116,7 @@ export function ClientProfitabilityCard({
                   value={
                     row.evolutionPct == null
                       ? "—"
-                      : `${row.evolutionPct >= 0 ? "+" : ""}${row.evolutionPct.toFixed(0)} %`
+                      : `${row.evolutionPct >= 0 ? "+" : ""}${formatPercent(row.evolutionPct)}`
                   }
                   icon={
                     row.evolutionPct == null ? undefined : row.evolutionPct >= 0 ? "up" : "down"

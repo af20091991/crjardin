@@ -42,6 +42,7 @@ import { usePilotMode, usePilotYear, usePilotPeriod } from "@/lib/pilot-mode";
 import { useAnalytics } from "@/lib/pilot-analytics";
 import { ANALYTICS_QUERY_ROOT } from "@/lib/pilot-engine";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
+import { formatPercent } from "@/lib/format-utils";
 
 export const Route = createFileRoute("/_authenticated/pilot/charges")({
   head: () => ({
@@ -57,7 +58,7 @@ export const Route = createFileRoute("/_authenticated/pilot/charges")({
 });
 
 function pct(v: number | null) {
-  return v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1)} %`;
+  return v == null ? "—" : `${v > 0 ? "+" : ""}${formatPercent(v)}`;
 }
 
 function ChargesPage() {
@@ -147,7 +148,7 @@ function ChargesPage() {
         <Kpi label="Investissements" value={formatEuro(analysis.investmentsTotal)} />
         <Kpi
           label="Poids des charges dans le CA"
-          value={weight == null ? "—" : `${weight.toFixed(1)} %`}
+          value={weight == null ? "—" : `${formatPercent(weight)}`}
         />
       </div>
       {analysis.unclassifiedCount > 0 && (
@@ -206,8 +207,21 @@ function ChargesPage() {
                   margin={{ top: 8, right: 12, left: -8, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="label" fontSize={12} label={{ value: "Période", position: "insideBottom", offset: -4 }} />
-                  <YAxis fontSize={12} unit="€" label={{ value: "Montant (€ HT)", angle: -90, position: "insideLeft", offset: 8 }} />
+                  <XAxis
+                    dataKey="label"
+                    fontSize={12}
+                    label={{ value: "Période", position: "insideBottom", offset: -4 }}
+                  />
+                  <YAxis
+                    fontSize={12}
+                    unit="€"
+                    label={{
+                      value: "Montant (€ HT)",
+                      angle: -90,
+                      position: "insideLeft",
+                      offset: 8,
+                    }}
+                  />
                   <Tooltip formatter={(v: number) => formatEuro(v)} />
                   <Legend />
                   <Line
@@ -247,9 +261,29 @@ function ChargesPage() {
                   margin={{ top: 8, right: 12, left: -8, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="label" fontSize={12} label={{ value: "Période", position: "insideBottom", offset: -4 }} />
-                  <YAxis yAxisId="left" fontSize={12} unit="%" label={{ value: "Marge (%)", angle: -90, position: "insideLeft", offset: 8 }} />
-                  <YAxis yAxisId="right" orientation="right" fontSize={12} unit="€" label={{ value: "Investissements (€ HT)", angle: 90, position: "insideRight", offset: 8 }} />
+                  <XAxis
+                    dataKey="label"
+                    fontSize={12}
+                    label={{ value: "Période", position: "insideBottom", offset: -4 }}
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    fontSize={12}
+                    unit="%"
+                    label={{ value: "Marge (%)", angle: -90, position: "insideLeft", offset: 8 }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    fontSize={12}
+                    unit="€"
+                    label={{
+                      value: "Investissements (€ HT)",
+                      angle: 90,
+                      position: "insideRight",
+                      offset: 8,
+                    }}
+                  />
                   <Tooltip
                     formatter={(v: number, name: string) =>
                       name === "Marge" ? `${v} %` : formatEuro(v)
@@ -291,8 +325,21 @@ function ChargesPage() {
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={evolutionData} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="annee" fontSize={12} label={{ value: "Année", position: "insideBottom", offset: -4 }} />
-                  <YAxis fontSize={12} unit="€" label={{ value: "Montant (€ HT)", angle: -90, position: "insideLeft", offset: 8 }} />
+                  <XAxis
+                    dataKey="annee"
+                    fontSize={12}
+                    label={{ value: "Année", position: "insideBottom", offset: -4 }}
+                  />
+                  <YAxis
+                    fontSize={12}
+                    unit="€"
+                    label={{
+                      value: "Montant (€ HT)",
+                      angle: -90,
+                      position: "insideLeft",
+                      offset: 8,
+                    }}
+                  />
                   <Tooltip formatter={(v: number) => formatEuro(v)} />
                   <Legend />
                   <Bar dataKey="Fixes" stackId="c" fill={PP_COLORS.primary} />
@@ -350,8 +397,16 @@ function ChargesPage() {
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={priorityTrend} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="annee" fontSize={12} label={{ value: "Année", position: "insideBottom", offset: -4 }} />
-                <YAxis fontSize={12} unit="€" label={{ value: "Montant (€ HT)", angle: -90, position: "insideLeft", offset: 8 }} />
+                <XAxis
+                  dataKey="annee"
+                  fontSize={12}
+                  label={{ value: "Année", position: "insideBottom", offset: -4 }}
+                />
+                <YAxis
+                  fontSize={12}
+                  unit="€"
+                  label={{ value: "Montant (€ HT)", angle: -90, position: "insideLeft", offset: 8 }}
+                />
                 <Tooltip formatter={(v: number) => formatEuro(v)} />
                 <Legend />
                 {priority.map((c, i) => (
@@ -451,7 +506,7 @@ function ChargesPage() {
                     {formatEuro(y.monthlyAverage)}
                   </td>
                   <td className="py-1.5 text-right">
-                    {y.weightPct == null ? "—" : `${y.weightPct.toFixed(0)} %`}
+                    {y.weightPct == null ? "—" : `${formatPercent(y.weightPct)}`}
                   </td>
                 </tr>
               ))}

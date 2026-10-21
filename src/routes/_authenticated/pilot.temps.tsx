@@ -50,7 +50,7 @@ import { usePilotData } from "@/components/pilot/usePilotData";
 import { PilotCard } from "@/components/pilot/PilotCard";
 import { usePilotMode, usePilotYear, usePilotPeriod } from "@/lib/pilot-mode";
 import { DEFAULT_SETTINGS, formatEuro } from "@/lib/pilot";
-import { formatHours } from "@/lib/format-utils";
+import { formatHours, formatPercent } from "@/lib/format-utils";
 import { fetchHoursLedger } from "@/lib/pilot-hours-ledger";
 import { listChargeRows } from "@/lib/pilot-charges";
 import { listAllInterventions } from "@/lib/interventions";
@@ -178,7 +178,9 @@ function TimeValueAnalysis() {
   const charges = useQuery({ queryKey: ["pilot-charge-rows"], queryFn: listChargeRows });
   const interventions = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });
 
-  const [filters, setFilters] = useState<TimeValueFilters>(() => defaultTimeValueFilters(pilotYear));
+  const [filters, setFilters] = useState<TimeValueFilters>(() =>
+    defaultTimeValueFilters(pilotYear),
+  );
   const [prestSort, setPrestSort] = useState<PrestationSort>("euro_h");
   const [clientSort, setClientSort] = useState<ClientSort>("best_euro_h");
   const [q, setQ] = useState("");
@@ -415,7 +417,11 @@ function TimeValueAnalysis() {
               Non qualifié
             </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setFilters(defaultTimeValueFilters(pilotYear))}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFilters(defaultTimeValueFilters(pilotYear))}
+          >
             Réinitialiser
           </Button>
         </CardContent>
@@ -532,7 +538,7 @@ function TimeValueAnalysis() {
                         <tr key={p.prestation} className="border-b last:border-0">
                           <td className="py-2 pr-3 font-medium">{p.prestation}</td>
                           <td className="py-2 pr-3 text-right">{formatHours(p.hours)}</td>
-                          <td className="py-2 pr-3 text-right">{p.hoursPct.toFixed(1)} %</td>
+                          <td className="py-2 pr-3 text-right">{formatPercent(p.hoursPct)}</td>
                           <td className="py-2 pr-3 text-right">{formatEuro(p.caHt)}</td>
                           <td className="py-2 pr-3 text-right text-muted-foreground">
                             {p.charges == null ? "—" : formatEuro(p.charges)}
@@ -595,7 +601,10 @@ function TimeValueAnalysis() {
                       <ReferenceLine x={target} stroke="var(--pp-charges)" strokeDasharray="4 4" />
                       <Bar dataKey="rate" radius={[0, 4, 4, 0]}>
                         {ratedPrestations.map((p, i) => (
-                          <Cell key={i} fill={p.rate >= target ? "var(--primary)" : "var(--pp-mid)"} />
+                          <Cell
+                            key={i}
+                            fill={p.rate >= target ? "var(--primary)" : "var(--pp-mid)"}
+                          />
                         ))}
                       </Bar>
                     </BarChart>

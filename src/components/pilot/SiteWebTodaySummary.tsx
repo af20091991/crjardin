@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatCount as formatNumber } from "@/lib/format-utils";
 import { ArrowRight, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Metric } from "@/components/pilot/SiteWebMetric";
@@ -179,8 +180,4 @@ export function SiteWebTodaySummary({ onOpenOpportunities }: { onOpenOpportuniti
       )}
     </div>
   );
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("fr-FR").format(value);
 }

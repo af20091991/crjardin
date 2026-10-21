@@ -363,6 +363,4 @@ export async function countInterventionsToConfirm(year?: number): Promise<number
   }).length;
 }
 
-export function formatHours(n: number): string {
-  return `${n.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} h`;
-}
+export { formatHours } from "@/lib/format-utils";

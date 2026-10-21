@@ -14,6 +14,7 @@ import { projectYear, type ProjectionResult } from "@/lib/pilot-projection";
 import { annualSummary, type AnnualRow } from "@/lib/pilot-annual";
 import { getThresholds } from "@/lib/pilot-thresholds";
 import type { EntityStatusMap } from "@/lib/pilot-entity-rules";
+import { formatPercent } from "@/lib/format-utils";
 
 export interface DecisionBrief {
   year: number;
@@ -54,7 +55,13 @@ export function buildDecisionBrief(params: {
   const t = getThresholds();
   const { entries, charges, ledger, year, targetHourlyRate } = params;
 
-  const clients = classifyClients({ entries, ledger, year, targetHourlyRate, statuses: params.statuses });
+  const clients = classifyClients({
+    entries,
+    ledger,
+    year,
+    targetHourlyRate,
+    statuses: params.statuses,
+  });
   const prestations = analyzeServices({ entries, ledger, year, targetHourlyRate });
   const projection = projectYear({
     entries,
@@ -128,8 +135,8 @@ export function buildDecisionBrief(params: {
       margePct == null
         ? "Aucun CA enregistré sur l'exercice : capacité d'investissement non évaluable."
         : margePct >= t.margeMin
-          ? `Marge de ${margePct.toFixed(0)} % au-dessus du seuil de ${t.margeMin} % : capacité d'investissement constatée de ${Math.round(margeDisponible)} €.`
-          : `Marge de ${margePct.toFixed(0)} % sous le seuil de ${t.margeMin} % : prudence avant tout investissement.`,
+          ? `Marge de ${formatPercent(margePct)} au-dessus du seuil de ${t.margeMin} % : capacité d'investissement constatée de ${Math.round(margeDisponible)} €.`
+          : `Marge de ${formatPercent(margePct)} sous le seuil de ${t.margeMin} % : prudence avant tout investissement.`,
   };
 
   // 5) Objectif annuel.

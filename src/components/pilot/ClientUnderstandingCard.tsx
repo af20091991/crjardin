@@ -7,6 +7,7 @@ import { Brain, CheckCircle2, HelpCircle } from "lucide-react";
 import { formatEuro } from "@/lib/pilot";
 import type { ClientScore } from "@/lib/client-score";
 import type { ClientActivityStatus } from "@/lib/client-activity";
+import { formatHours, formatPercent } from "@/lib/format-utils";
 
 const ACTIVITY_TEXT: Record<ClientActivityStatus, string> = {
   actif: "la relation est active",
@@ -38,12 +39,12 @@ export function ClientUnderstandingCard({
       `Ce client représente ${formatEuro(score.revenueTotalHt)} de chiffre d'affaires cumulé, dont ${formatEuro(score.revenueYearHt)} sur l'exercice en cours.`,
     );
     understood.push(
-      `${score.interventionsCount} intervention${score.interventionsCount > 1 ? "s" : ""} enregistrée${score.interventionsCount > 1 ? "s" : ""}, ${score.hoursConfirmed.toFixed(0)} h confirmées.`,
+      `${score.interventionsCount} intervention${score.interventionsCount > 1 ? "s" : ""} enregistrée${score.interventionsCount > 1 ? "s" : ""}, ${formatHours(score.hoursConfirmed)} confirmées.`,
     );
     if (score.realHourlyRate != null && score.targetHourlyRate > 0) {
       const pct = (score.realHourlyRate / score.targetHourlyRate) * 100;
       understood.push(
-        `Taux horaire réel de ${formatEuro(score.realHourlyRate)}/h, soit ${pct.toFixed(0)} % de la cible (${formatEuro(score.targetHourlyRate)}/h).`,
+        `Taux horaire réel de ${formatEuro(score.realHourlyRate)}/h, soit ${formatPercent(pct)} de la cible (${formatEuro(score.targetHourlyRate)}/h).`,
       );
     } else {
       missing.push("Heures réelles insuffisantes pour calculer un taux horaire fiable.");
@@ -85,7 +86,12 @@ export function ClientUnderstandingCard({
           Ce que Pilot Pro comprend
           {score && (
             <Badge variant="outline" className="ml-auto text-[10px]">
-              Confiance {score.confidenceLevel === "HIGH" ? "élevée" : score.confidenceLevel === "MEDIUM" ? "moyenne" : "faible"}
+              Confiance{" "}
+              {score.confidenceLevel === "HIGH"
+                ? "élevée"
+                : score.confidenceLevel === "MEDIUM"
+                  ? "moyenne"
+                  : "faible"}
             </Badge>
           )}
         </CardTitle>

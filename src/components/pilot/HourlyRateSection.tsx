@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { currentYear } from "@/lib/date-utils";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { EmptyState } from "@/components/pilot/EmptyState";
+import { formatHourlyRate, formatRatio } from "@/lib/format-utils";
 
 const YEAR = currentYear();
 
@@ -207,14 +208,14 @@ export function HourlyRateSection() {
         <Kpi
           icon={<Timer className="h-4 w-4" />}
           label="Taux horaire brut"
-          value={`${(totals?.avgBrut ?? 0).toFixed(0)} €/h`}
+          value={formatHourlyRate(totals?.avgBrut ?? 0)}
           sub="CA ÷ heures terrain"
           accent
         />
         <Kpi
           icon={<Clock className="h-4 w-4" />}
           label="Taux horaire net"
-          value={`${(totals?.avgNet ?? 0).toFixed(0)} €/h`}
+          value={formatHourlyRate(totals?.avgNet ?? 0)}
           sub="CA ÷ (terrain + gestion)"
         />
         <Kpi
@@ -402,12 +403,12 @@ export function HourlyRateSection() {
                     )}
                     {show("brut") && (
                       <td className="px-3 py-1.5 text-right font-medium tabular-nums text-primary">
-                        {m.brut != null ? `${m.brut.toFixed(0)} €/h` : "—"}
+                        {m.brut != null ? `${formatHourlyRate(m.brut)}` : "—"}
                       </td>
                     )}
                     {show("net") && (
                       <td className="px-3 py-1.5 text-right tabular-nums text-accent-foreground">
-                        {m.net != null ? `${m.net.toFixed(0)} €/h` : "—"}
+                        {m.net != null ? `${formatHourlyRate(m.net)}` : "—"}
                       </td>
                     )}
                     {show("caJour") && (
@@ -417,7 +418,7 @@ export function HourlyRateSection() {
                     )}
                     {show("part") && (
                       <td className="px-3 py-1.5 text-right tabular-nums">
-                        {m.partTerrain != null ? `${(m.partTerrain * 100).toFixed(0)} %` : "—"}
+                        {formatRatio(m.partTerrain, 0)}
                       </td>
                     )}
                   </tr>

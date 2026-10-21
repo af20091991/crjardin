@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { formatCount as formatNumber } from "@/lib/format-utils";
 import {
   Activity,
   AlertTriangle,
@@ -692,8 +693,4 @@ function formatDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(date);
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("fr-FR").format(value);
 }

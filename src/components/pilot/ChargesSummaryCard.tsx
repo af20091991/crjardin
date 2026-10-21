@@ -4,8 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Receipt } from "lucide-react";
 import { formatEuro } from "@/lib/pilot";
-import { listChargeRows, listSalesByYear, projectionBase, analyzeCharges } from "@/lib/pilot-charges";
+import {
+  listChargeRows,
+  listSalesByYear,
+  projectionBase,
+  analyzeCharges,
+} from "@/lib/pilot-charges";
 import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
+import { formatPercent } from "@/lib/format-utils";
 
 /** Synthèse charges fixes / variables de l'année, avec lien vers l'analyse détaillée. */
 export function ChargesSummaryCard({ year }: { year: number }) {
@@ -14,7 +20,10 @@ export function ChargesSummaryCard({ year }: { year: number }) {
   const q = useQuery({
     queryKey: ["pilot-charges-summary", year, mode, period],
     queryFn: async () => {
-      const [rows, sales] = await Promise.all([listChargeRows(), listSalesByYear({ mode, period })]);
+      const [rows, sales] = await Promise.all([
+        listChargeRows(),
+        listSalesByYear({ mode, period }),
+      ]);
       const analysis = analyzeCharges(rows, sales, [], { mode, period });
       return {
         year: analysis.years.find((y) => y.year === year) ?? null,
@@ -41,7 +50,9 @@ export function ChargesSummaryCard({ year }: { year: number }) {
               <Cell label="Total" value={formatEuro(q.data.year?.total ?? 0)} />
               <Cell
                 label="Poids CA"
-                value={q.data.year?.weightPct == null ? "—" : `${q.data.year.weightPct.toFixed(0)} %`}
+                value={
+                  q.data.year?.weightPct == null ? "—" : `${formatPercent(q.data.year.weightPct)}`
+                }
               />
             </div>
             <p className="text-xs text-muted-foreground">

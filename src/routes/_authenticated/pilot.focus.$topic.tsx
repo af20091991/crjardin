@@ -23,6 +23,7 @@ import { interventionsNeedingHours } from "@/lib/pilot-real-hours";
 import { entriesForMode, hoursLedgerForMode, todayIso } from "@/lib/pilot-realized";
 import { usePilotMode, usePilotPeriod } from "@/lib/pilot-mode";
 import { ArrowLeft, ArrowRight, BellOff } from "lucide-react";
+import { formatHours } from "@/lib/format-utils";
 
 export const Route = createFileRoute("/_authenticated/pilot/focus/$topic")({
   head: ({ params }) => ({
@@ -160,7 +161,7 @@ function FocusPage() {
             { label: "Type", value: i.intervention_type ?? "—" },
             {
               label: "Heures",
-              value: i.hours_spent != null ? `${i.hours_spent.toFixed(1)} h` : "—",
+              value: i.hours_spent != null ? `${formatHours(i.hours_spent)}` : "—",
             },
           ],
           reason: "Intervention terminée, aucun CR envoyé au client.",
@@ -180,7 +181,7 @@ function FocusPage() {
             { label: "Date", value: new Date(i.intervention_date).toLocaleDateString("fr-FR") },
             {
               label: "Heures",
-              value: i.hours_spent != null ? `${i.hours_spent.toFixed(1)} h (estimé)` : "—",
+              value: i.hours_spent != null ? `${formatHours(i.hours_spent)} (estimé)` : "—",
             },
           ],
           reason:
@@ -222,7 +223,7 @@ function FocusPage() {
           clientId: c.clientId,
           columns: [
             { label: "CA", value: formatEuro(c.ca) },
-            { label: "Heures réelles", value: `${c.hours.toFixed(1)} h` },
+            { label: "Heures réelles", value: `${formatHours(c.hours)}` },
             { label: "€/h réel", value: `${formatEuro(c.hourlyRate)}/h` },
             { label: "Cible", value: `${formatEuro(targetHR)}/h` },
           ],
@@ -364,8 +365,8 @@ function FocusPage() {
             columns: [
               { label: "Date", value: new Date(e.entry_date).toLocaleDateString("fr-FR") },
               { label: "Prestation", value: key },
-              { label: "Temps vendu", value: `${Number(e.hours).toFixed(1)} h` },
-              { label: "Moyenne prestation", value: `${a.toFixed(1)} h` },
+              { label: "Temps vendu", value: `${formatHours(Number(e.hours))}` },
+              { label: "Moyenne prestation", value: `${formatHours(a)}` },
             ],
             reason: `Temps vendu à ${Math.round((Number(e.hours) / a) * 100)} % de la moyenne de la prestation.`,
           };
@@ -398,7 +399,7 @@ function FocusPage() {
             { label: "Date", value: new Date(e.entry_date).toLocaleDateString("fr-FR") },
             { label: "Prestation", value: e.nature ?? "—" },
             { label: "CA", value: formatEuro(e.amount_ht) },
-            { label: "Heures", value: `${e.hours.toFixed(1)} h` },
+            { label: "Heures", value: `${formatHours(e.hours)}` },
             { label: "€/h", value: e.hours > 0 ? `${formatEuro(e.amount_ht / e.hours)}/h` : "—" },
           ],
           reason: `Sous la cible ${formatEuro(targetHR)}/h.`,

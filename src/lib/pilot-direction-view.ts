@@ -18,6 +18,7 @@ import { formatKpi, type AnalyticsSnapshot, type Kpi, type KpiKey } from "@/lib/
 import type { FlexDataset } from "@/lib/pilot-flex-chart";
 import type { KpiReadiness } from "@/lib/pilot-kpi-reliability";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
+import { formatPercent } from "@/lib/format-utils";
 
 /** Nombre maximum d'éléments affichés dans chaque bloc de la page Direction. */
 export const DIRECTION_MAX_KPIS = 6;
@@ -90,7 +91,7 @@ function variationOf(
     const p = snapshot.ca.progressionPct;
     if (p == null || snapshot.ca.prevYtdHt <= 0) return null;
     return {
-      text: `${p >= 0 ? "+" : ""}${p.toFixed(1)} % vs N-1`,
+      text: `${p >= 0 ? "+" : ""}${formatPercent(p)} vs N-1`,
       tone: p >= 0 ? "positive" : "negative",
     };
   }
@@ -100,7 +101,7 @@ function variationOf(
     if (prev == null || prev <= 0 || cur == null || cur <= 0) return null;
     const p = ((cur - prev) / prev) * 100;
     return {
-      text: `${p >= 0 ? "+" : ""}${p.toFixed(1)} % vs N-1`,
+      text: `${p >= 0 ? "+" : ""}${formatPercent(p)} vs N-1`,
       tone: p >= 0 ? "positive" : "negative",
     };
   }
@@ -202,7 +203,7 @@ export function buildDirectionDecisions(snapshot: AnalyticsSnapshot | null): Dir
   if (certification.caCoveragePct != null && certification.caCoveragePct < 100) {
     out.push({
       id: "certification",
-      text: `Certifier le référentiel client : ${certification.caCoveragePct.toFixed(0)} % du CA seulement est exploitable analytiquement.`,
+      text: `Certifier le référentiel client : ${formatPercent(certification.caCoveragePct)} du CA seulement est exploitable analytiquement.`,
       to: "/pilot/controle",
     });
   }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatHours, formatRatio } from "@/lib/format-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,9 +44,7 @@ export function HistoricHoursPanel() {
   const pending = all.filter((r) => r.status === "a_valider");
   const linked = all.filter((r) => r.status === "valide");
   const selected = all.find((r) => r.id === selectedId) ?? null;
-  const suggestions = selected
-    ? suggestClientsForHours(selected, clients.data ?? [])
-    : [];
+  const suggestions = selected ? suggestClientsForHours(selected, clients.data ?? []) : [];
 
   return (
     <Card>
@@ -61,9 +60,9 @@ export function HistoricHoursPanel() {
           </span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Ces heures proviennent des tableaux Excel (2023-2025). Elles ne sont jamais confondues avec
-          les heures vendues (CA) ni avec les heures réelles d'intervention, et aucun rattachement
-          n'est forcé sans validation.
+          Ces heures proviennent des tableaux Excel (2023-2025). Elles ne sont jamais confondues
+          avec les heures vendues (CA) ni avec les heures réelles d'intervention, et aucun
+          rattachement n'est forcé sans validation.
         </p>
       </CardHeader>
       <CardContent className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
@@ -84,9 +83,12 @@ export function HistoricHoursPanel() {
                     <div className="truncate text-sm font-medium">{r.raw_client_text}</div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
                       <span>{r.year}</span>
-                      <span>{Number(r.hours).toFixed(2)} h</span>
+                      <span>{formatHours(Number(r.hours), 2)}</span>
                       {r.amount_ht != null && <span>{formatEuro(Number(r.amount_ht))}</span>}
-                      <Badge variant="outline" className={`text-[10px] ${HISTORIC_STATUS_META[r.status].badge}`}>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] ${HISTORIC_STATUS_META[r.status].badge}`}
+                      >
                         {HISTORIC_STATUS_META[r.status].label}
                       </Badge>
                       {r.client_id && (
@@ -94,7 +96,10 @@ export function HistoricHoursPanel() {
                       )}
                     </div>
                   </div>
-                  <Badge variant="outline" className={`shrink-0 text-[10px] ${CONFIDENCE_META[r.confidence].badge}`}>
+                  <Badge
+                    variant="outline"
+                    className={`shrink-0 text-[10px] ${CONFIDENCE_META[r.confidence].badge}`}
+                  >
                     {CONFIDENCE_META[r.confidence].label}
                   </Badge>
                 </button>
@@ -113,7 +118,7 @@ export function HistoricHoursPanel() {
               <div>
                 <div className="text-sm font-medium">{selected.raw_client_text}</div>
                 <div className="text-xs text-muted-foreground">
-                  {selected.year} · {Number(selected.hours).toFixed(2)} h
+                  {selected.year} · {formatHours(Number(selected.hours), 2)}
                   {selected.source_sheet ? ` · onglet ${selected.source_sheet}` : ""}
                   {selected.source_row ? ` · ligne ${selected.source_row}` : ""}
                 </div>
@@ -133,8 +138,11 @@ export function HistoricHoursPanel() {
                     <div key={s.client.id} className="rounded-md border p-2">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{s.client.name}</span>
-                        <Badge variant="outline" className={`text-[10px] ${CONFIDENCE_META[s.confidence].badge}`}>
-                          {CONFIDENCE_META[s.confidence].label} · {(s.score * 100).toFixed(0)}%
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ${CONFIDENCE_META[s.confidence].badge}`}
+                        >
+                          {CONFIDENCE_META[s.confidence].label} · {formatRatio(s.score, 0)}
                         </Badge>
                         <Button
                           size="sm"
@@ -156,7 +164,9 @@ export function HistoricHoursPanel() {
                         </Button>
                       </div>
                       <ul className="mt-1 list-inside list-disc text-[11px] text-muted-foreground">
-                        {s.evidence.map((e, i) => <li key={i}>{e}</li>)}
+                        {s.evidence.map((e, i) => (
+                          <li key={i}>{e}</li>
+                        ))}
                       </ul>
                     </div>
                   ))
@@ -165,7 +175,9 @@ export function HistoricHoursPanel() {
 
               <div className="flex flex-wrap gap-2 pt-1">
                 <ClientForm
-                  initial={{ name: selected.raw_client_text.replace(/\b(x\d|20\d\d)\b/gi, "").trim() }}
+                  initial={{
+                    name: selected.raw_client_text.replace(/\b(x\d|20\d\d)\b/gi, "").trim(),
+                  }}
                   trigger={
                     <Button variant="outline" size="sm">
                       <UserPlus className="mr-1.5 h-4 w-4" /> Nouveau client

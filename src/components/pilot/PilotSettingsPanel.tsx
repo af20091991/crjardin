@@ -31,6 +31,7 @@ import { listOrphanEntries } from "@/lib/pilot-ca-matching";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { useRef } from "react";
+import { formatHourlyRate } from "@/lib/format-utils";
 
 export function PilotSettingsPanel() {
   const qc = useQueryClient();
@@ -291,7 +292,7 @@ function TjmSettingsCard() {
         <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-muted/30 p-3 sm:grid-cols-4">
           <Result label="Jours facturables" value={`${live.joursFacturables.toFixed(0)} j`} />
           <Result label="Taux journalier" value={formatEuro(live.tauxJournalier)} />
-          <Result label="Taux horaire moyen" value={`${live.tauxHoraire.toFixed(0)} €/h`} />
+          <Result label="Taux horaire moyen" value={`${formatHourlyRate(live.tauxHoraire)}`} />
           <Result label="TJM avec objectif" value={formatEuro(live.tjmObjectif)} />
         </div>
 

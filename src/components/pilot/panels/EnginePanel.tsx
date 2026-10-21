@@ -6,12 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { AlertTriangle, CheckCircle2, Cpu, ShieldCheck } from "lucide-react";
 import { usePilotStrict } from "@/lib/pilot-mode";
 import { useAnalytics } from "@/lib/pilot-analytics";
 import { formatKpi } from "@/lib/pilot-engine";
 import { useCoherenceAudit } from "@/lib/pilot-engine-audit";
+import { formatPercent } from "@/lib/format-utils";
 
 const CHAIN = [
   "Données sources",
@@ -77,7 +85,7 @@ export function EnginePanel() {
               {snapshot.certification.toValidate} à valider, {snapshot.certification.excluded}{" "}
               exclue(s) ·{" "}
               {snapshot.certification.caCoveragePct != null
-                ? `${snapshot.certification.caCoveragePct.toFixed(1)} % du CA certifié`
+                ? `${formatPercent(snapshot.certification.caCoveragePct)} du CA certifié`
                 : "couverture CA inconnue"}
               .
             </p>
@@ -95,7 +103,10 @@ export function EnginePanel() {
             <>
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 {audit.data.ok ? (
-                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                  <Badge
+                    variant="outline"
+                    className="border-emerald-200 bg-emerald-50 text-emerald-700"
+                  >
                     <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Aucune divergence
                   </Badge>
                 ) : (
@@ -124,8 +135,12 @@ export function EnginePanel() {
                       <TableRow key={`${c.key}-${c.comparedTo}`}>
                         <TableCell className="text-sm font-medium">{c.label}</TableCell>
                         <TableCell className="font-mono text-xs">{c.comparedTo}</TableCell>
-                        <TableCell className="text-right text-sm tabular-nums">{fmt(c.engine)}</TableCell>
-                        <TableCell className="text-right text-sm tabular-nums">{fmt(c.other)}</TableCell>
+                        <TableCell className="text-right text-sm tabular-nums">
+                          {fmt(c.engine)}
+                        </TableCell>
+                        <TableCell className="text-right text-sm tabular-nums">
+                          {fmt(c.other)}
+                        </TableCell>
                         <TableCell className="text-xs">
                           {c.ok ? (
                             <span className="text-emerald-700">Identique</span>

@@ -1,4 +1,5 @@
 import type { ClientScore } from "@/lib/client-score";
+import { formatHourlyRate } from "@/lib/format-utils";
 
 export interface ScoreBreakdown {
   rentabilite: { value: number; max: number; note: string };
@@ -31,7 +32,7 @@ export function computeScoreBreakdown(s: ClientScore): ScoreBreakdown {
     rentabilite = {
       value: Math.round(v),
       max: 30,
-      note: `Taux réel ${pct} % de la cible (${s.realHourlyRate?.toFixed(0) ?? "—"} €/h vs ${s.targetHourlyRate.toFixed(0)} €/h).`,
+      note: `Taux réel ${pct} % de la cible (${s.realHourlyRate?.toFixed(0) ?? "—"} €/h vs ${formatHourlyRate(s.targetHourlyRate)}).`,
     };
   }
 
@@ -77,9 +78,11 @@ export function computeScoreBreakdown(s: ClientScore): ScoreBreakdown {
   const strengths: string[] = [];
   const weaknesses: string[] = [];
   if (rentabilite.value >= 22) strengths.push("Rentabilité horaire au-dessus de la cible.");
-  else if (s.rateRatio !== null && rentabilite.value < 10) weaknesses.push("Rentabilité horaire nettement sous la cible.");
+  else if (s.rateRatio !== null && rentabilite.value < 10)
+    weaknesses.push("Rentabilité horaire nettement sous la cible.");
   if (relation.value >= 18) strengths.push("Fréquence d'interventions élevée.");
-  else if (relation.value < 8) weaknesses.push("Peu d'interventions confirmées — relation à consolider.");
+  else if (relation.value < 8)
+    weaknesses.push("Peu d'interventions confirmées — relation à consolider.");
   if (potentiel.value >= 15) strengths.push("Potentiel commercial significatif à activer.");
   else if (potentiel.value === 0) weaknesses.push("Aucune opportunité commerciale détectée.");
   if (recence.value >= 15) strengths.push("Client récent, relation active.");

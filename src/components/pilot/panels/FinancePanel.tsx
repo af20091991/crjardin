@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/lazy-recharts";
 import { currentYear } from "@/lib/date-utils";
 import { PP_COLORS, PP_SERIES } from "@/lib/pilot-colors";
+import { formatHourlyRate, formatHours, formatPercent, formatRatio } from "@/lib/format-utils";
 
 const YEAR = currentYear();
 
@@ -88,7 +89,7 @@ export function FinancePanel() {
         <Kpi
           label="Bénéfice brut"
           value={formatEuro(benefice)}
-          sub={`Marge ${marge.toFixed(0)} %`}
+          sub={`Marge ${formatPercent(marge)}`}
           tone={benefice >= 0 ? "text-emerald-600" : "text-rose-600"}
         />
         <Kpi
@@ -102,12 +103,12 @@ export function FinancePanel() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi
           label="Taux horaire vendu"
-          value={tauxVendu && tauxVendu > 0 ? `${tauxVendu.toFixed(0)} €/h` : "—"}
+          value={tauxVendu && tauxVendu > 0 ? `${formatHourlyRate(tauxVendu)}` : "—"}
           sub="CA des lignes de vente avec temps ÷ ce temps"
         />
         <Kpi
           label="Taux horaire réel"
-          value={tauxReel && tauxReel > 0 ? `${tauxReel.toFixed(0)} €/h` : "—"}
+          value={tauxReel && tauxReel > 0 ? `${formatHourlyRate(tauxReel)}` : "—"}
           sub="CA des lignes de vente avec temps ÷ ce temps"
         />
         <Kpi
@@ -117,8 +118,8 @@ export function FinancePanel() {
         />
         <Kpi
           label="Coût horaire de structure"
-          value={coutHoraire && coutHoraire > 0 ? `${coutHoraire.toFixed(0)} €/h` : "—"}
-          sub={totalHeures > 0 ? `${totalHeures.toFixed(0)} h travaillées` : "Heures inconnues"}
+          value={coutHoraire && coutHoraire > 0 ? `${formatHourlyRate(coutHoraire)}` : "—"}
+          sub={totalHeures > 0 ? `${formatHours(totalHeures)} travaillées` : "Heures inconnues"}
         />
       </div>
 
@@ -240,7 +241,7 @@ export function FinancePanel() {
                     unit="%"
                     label={{ value: "Marge (%)", angle: -90, position: "insideLeft", offset: 8 }}
                   />
-                  <Tooltip formatter={(v: number) => `${v.toFixed(1)} %`} />
+                  <Tooltip formatter={(v: number) => `${formatPercent(v)}`} />
                   <Line
                     type="monotone"
                     dataKey="Marge"
@@ -361,10 +362,10 @@ export function FinancePanel() {
                     {formatEuro(m.Bénéfice)}
                   </td>
                   <td className="px-3 py-1.5 text-right tabular-nums">
-                    {m.CA > 0 ? `${((m.Bénéfice / m.CA) * 100).toFixed(0)} %` : "—"}
+                    {m.CA > 0 ? formatRatio(m.Bénéfice / m.CA, 0) : "—"}
                   </td>
                   <td className="px-3 py-1.5 text-right tabular-nums">
-                    {m.tauxNet != null ? `${m.tauxNet.toFixed(0)} €/h` : "—"}
+                    {m.tauxNet != null ? `${formatHourlyRate(m.tauxNet)}` : "—"}
                   </td>
                 </tr>
               ))}
@@ -412,10 +413,10 @@ export function FinancePanel() {
                     {formatEuro(a.resultatApresInvestissements)}
                   </td>
                   <td className="px-3 py-1.5 text-right tabular-nums">
-                    {a.margePct != null ? `${a.margePct.toFixed(0)} %` : "—"}
+                    {a.margePct != null ? `${formatPercent(a.margePct)}` : "—"}
                   </td>
                   <td className="px-3 py-1.5 text-right tabular-nums">
-                    {a.tauxHoraireVendu != null ? `${a.tauxHoraireVendu.toFixed(0)} €/h` : "—"}
+                    {a.tauxHoraireVendu != null ? `${formatHourlyRate(a.tauxHoraireVendu)}` : "—"}
                   </td>
                 </tr>
               ))}

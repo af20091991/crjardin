@@ -26,6 +26,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatHours, formatPercent } from "@/lib/format-utils";
 
 export const Route = createFileRoute("/_authenticated/pilot/clients/$clientKey")({
   head: () => ({ meta: [{ title: "Fiche client — Pilot Pro" }] }),
@@ -225,7 +226,7 @@ function PilotClientDetail() {
           icon={TrendingUp}
           label="CA total"
           value={formatEuro(stat.ca)}
-          sub={`${stat.share.toFixed(1)} % du portefeuille`}
+          sub={`${formatPercent(stat.share)} du portefeuille`}
         />
         <MiniStat
           icon={Users}
@@ -241,7 +242,7 @@ function PilotClientDetail() {
         <MiniStat
           icon={Clock}
           label="Temps moyen / interv."
-          value={`${stat.avgTime.toFixed(1)} h`}
+          value={`${formatHours(stat.avgTime)}`}
           sub={`Taux ${formatEuro(stat.hourlyRate)}/h`}
         />
       </div>
@@ -266,7 +267,7 @@ function PilotClientDetail() {
                   <div className="flex justify-between text-sm">
                     <span className="font-medium">{nature}</span>
                     <span className="text-muted-foreground">
-                      {formatEuro(amount)} · {pct.toFixed(0)} %
+                      {formatEuro(amount)} · {formatPercent(pct)}
                     </span>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">

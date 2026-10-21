@@ -1,4 +1,5 @@
 // Comparatifs temporels Pilot Pro (V2.2).
+import { formatPercent } from "@/lib/format-utils";
 //
 // Deux seules lectures autorisées pour le pilotage quotidien :
 //  · mois en cours N  vs  même mois N-1
@@ -27,8 +28,18 @@ export interface Comparison {
 }
 
 const MONTHS = [
-  "janvier", "février", "mars", "avril", "mai", "juin",
-  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+  "janvier",
+  "février",
+  "mars",
+  "avril",
+  "mai",
+  "juin",
+  "juillet",
+  "août",
+  "septembre",
+  "octobre",
+  "novembre",
+  "décembre",
 ];
 
 function sum(rows: DatedAmount[], keep: (d: Date) => boolean): number {
@@ -50,7 +61,7 @@ function build(current: number, previous: number, label: string, periodName: str
   } else if (previous <= 0) {
     comment = `Aucune référence l'an dernier sur ${periodName} : la comparaison n'est pas calculable, seul le montant de cette année est fiable.`;
   } else if (deltaPct != null && deltaPct >= 5) {
-    comment = `${periodName} progresse de ${deltaPct.toFixed(0)} % par rapport à l'an dernier : rythme d'activité supérieur.`;
+    comment = `${periodName} progresse de ${formatPercent(deltaPct)} par rapport à l'an dernier : rythme d'activité supérieur.`;
   } else if (deltaPct != null && deltaPct <= -5) {
     comment = `${periodName} recule de ${Math.abs(deltaPct).toFixed(0)} % par rapport à l'an dernier : à surveiller côté commercial.`;
   } else {

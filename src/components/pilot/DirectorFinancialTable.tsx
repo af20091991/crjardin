@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/pilot/EmptyState";
 import { formatEuro } from "@/lib/pilot";
 import { listCaEntries } from "@/lib/pilot-ca";
 import { buildDirectorTable } from "@/lib/pilot-director-table";
+import { formatPercent } from "@/lib/format-utils";
 
 export function DirectorFinancialTable({ year }: { year: number }) {
   const currentQ = useQuery({
@@ -55,7 +56,7 @@ export function DirectorFinancialTable({ year }: { year: number }) {
                 label={`Évolution vs ${year - 1} à date équivalente`}
                 value={
                   table.synthese.evolutionPct != null
-                    ? `${table.synthese.evolutionPct >= 0 ? "+" : ""}${table.synthese.evolutionPct.toFixed(1)} %`
+                    ? `${table.synthese.evolutionPct >= 0 ? "+" : ""}${formatPercent(table.synthese.evolutionPct)}`
                     : "—"
                 }
                 tone={
@@ -117,7 +118,7 @@ export function DirectorFinancialTable({ year }: { year: number }) {
                         className={`px-3 py-2 text-right tabular-nums ${r.evolutionPct == null ? "text-muted-foreground" : r.evolutionPct >= 0 ? "text-emerald-700" : "text-rose-700"}`}
                       >
                         {r.evolutionPct != null
-                          ? `${r.evolutionPct >= 0 ? "+" : ""}${r.evolutionPct.toFixed(1)} %`
+                          ? `${r.evolutionPct >= 0 ? "+" : ""}${formatPercent(r.evolutionPct)}`
                           : "—"}
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">{r.remarques || ""}</td>
@@ -188,7 +189,7 @@ export function DirectorFinancialTable({ year }: { year: number }) {
                         className={`tabular-nums ${r.evolutionPct == null ? "text-muted-foreground" : r.evolutionPct >= 0 ? "text-emerald-700" : "text-rose-700"}`}
                       >
                         {r.evolutionPct != null
-                          ? `${r.evolutionPct >= 0 ? "+" : ""}${r.evolutionPct.toFixed(1)} %`
+                          ? `${r.evolutionPct >= 0 ? "+" : ""}${formatPercent(r.evolutionPct)}`
                           : "—"}
                       </p>
                     </div>

@@ -12,6 +12,7 @@ import {
   coverageScopeNote,
   isOutOfCertificationScope,
 } from "@/lib/pilot-history-scope";
+import { formatPercent } from "@/lib/format-utils";
 
 /**
  * Indicateur transverse "Couverture des données" : quelle part du CA est
@@ -80,7 +81,7 @@ export function CoverageBanner({
                 Couverture des données{year != null ? ` ${year}` : " (toutes années)"}
               </span>
               <span className={`text-sm font-semibold tabular-nums ${tone}`}>
-                {pct.toFixed(0)} %
+                {formatPercent(pct)}
               </span>
               <Badge variant="outline" className="text-[10px] font-normal">
                 {linesLinked}/{linesTotal} lignes
@@ -171,7 +172,7 @@ export function CoverageHistoryCard() {
                       {y.chargesHt > 0 ? formatEuro(y.chargesHt) : "—"}
                     </td>
                     <td className={`px-3 py-2 text-right font-medium tabular-nums ${tone}`}>
-                      {y.coverageAmountPct.toFixed(0)} %
+                      {formatPercent(y.coverageAmountPct)}
                     </td>
                   </tr>
                 );

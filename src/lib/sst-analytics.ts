@@ -3,6 +3,7 @@
 import type { MissionPnl, Subcontractor, SubcontractorMission } from "@/lib/subcontractors";
 import type { RealProjectionMode } from "@/lib/pilot-realized";
 import { todayIso } from "@/lib/pilot-realized";
+import { formatHours, formatPercent } from "@/lib/format-utils";
 
 export interface SstRow {
   mission: SubcontractorMission;
@@ -187,7 +188,7 @@ export function sstInsights(rows: SstRow[], totals: SstTotals, marginTarget = 25
     out.push({
       tone: "warning",
       title: "Marge globale sous l'objectif",
-      detail: `Marge sous-traitance ${totals.marginPct.toFixed(1)} % pour un objectif de ${marginTarget} %. Revoir les prix client ou renégocier les coûts.`,
+      detail: `Marge sous-traitance ${formatPercent(totals.marginPct)} pour un objectif de ${marginTarget} %. Revoir les prix client ou renégocier les coûts.`,
     });
   }
   const negatives = rows.filter((r) => r.revenue > 0 && r.margin < 0);
@@ -212,7 +213,7 @@ export function sstInsights(rows: SstRow[], totals: SstTotals, marginTarget = 25
     out.push({
       tone: "positive",
       title: "Temps économisé par la sous-traitance",
-      detail: `${totals.hoursSaved.toFixed(1)} h libérées sur la période, soit autant de capacité pour vos propres chantiers.`,
+      detail: `${formatHours(totals.hoursSaved)} libérées sur la période, soit autant de capacité pour vos propres chantiers.`,
     });
   }
   return out;

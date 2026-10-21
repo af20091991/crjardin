@@ -18,6 +18,7 @@ import {
 import type { EntityStatus } from "@/lib/pilot-referential";
 import { hourlyRate, saleRateEligible } from "@/lib/pilot-sale-time";
 import { saleRateRowOf } from "@/lib/pilot";
+import { formatHourlyRate, formatHours } from "@/lib/format-utils";
 
 export type ClientProfitClass =
   | "tres_rentable"
@@ -148,7 +149,8 @@ export function classifyClients(params: {
     // Chiffre d'affaires → Ventes → Temps). Le registre d'heures ne sert plus
     // qu'à qualifier la source affichée.
     const heures = a?.timedHours ?? 0;
-    const source: ClientProfitability["hoursSource"] = heures > 0 ? "vente_temps" : (h?.reellesSource ?? "aucune");
+    const source: ClientProfitability["hoursSource"] =
+      heures > 0 ? "vente_temps" : (h?.reellesSource ?? "aucune");
     // Taux horaire = CA des lignes retenues ÷ Temps de ces mêmes lignes.
     const taux = hourlyRate(a?.rated ?? 0, heures);
 
@@ -172,16 +174,16 @@ export function classifyClients(params: {
     } else if (enough && taux != null) {
       if (taux >= targetHourlyRate * t.clientTresRentableRatio) {
         classe = "tres_rentable";
-        why = `Taux horaire généré ${taux.toFixed(0)} €/h ≥ ${(t.clientTresRentableRatio * 100).toFixed(0)} % de la cible (${targetHourlyRate} €/h) sur ${heures.toFixed(1)} h.`;
+        why = `Taux horaire généré ${formatHourlyRate(taux)} ≥ ${(t.clientTresRentableRatio * 100).toFixed(0)} % de la cible (${targetHourlyRate} €/h) sur ${formatHours(heures)}.`;
       } else if (taux >= targetHourlyRate) {
         classe = "rentable";
-        why = `Taux horaire généré ${taux.toFixed(0)} €/h au-dessus de la cible (${targetHourlyRate} €/h).`;
+        why = `Taux horaire généré ${formatHourlyRate(taux)} au-dessus de la cible (${targetHourlyRate} €/h).`;
       } else if (taux >= targetHourlyRate * t.clientSurveillerRatio) {
         classe = "a_surveiller";
-        why = `Taux horaire généré ${taux.toFixed(0)} €/h légèrement sous la cible (${targetHourlyRate} €/h).`;
+        why = `Taux horaire généré ${formatHourlyRate(taux)} légèrement sous la cible (${targetHourlyRate} €/h).`;
       } else {
         classe = "chronophage";
-        why = `Taux horaire généré ${taux.toFixed(0)} €/h très en dessous de la cible sur ${heures.toFixed(1)} h consacrées.`;
+        why = `Taux horaire généré ${formatHourlyRate(taux)} très en dessous de la cible sur ${formatHours(heures)} consacrées.`;
       }
     }
 
