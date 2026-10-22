@@ -17,6 +17,7 @@ const change = (id: string, date: string | null): SstCalendarChange => ({
   summary: "x",
   details: [],
   acknowledged_at: null,
+  notify_decision: "sent",
 });
 
 describe("modifications du calendrier SST", () => {

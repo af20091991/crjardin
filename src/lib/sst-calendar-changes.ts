@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
-import { flushSstCalendarChangeEmails } from "@/lib/sst-calendar-alerts.functions";
+import {
+  notifySstCalendarChanges,
+  skipSstCalendarChanges,
+} from "@/lib/sst-calendar-alerts.functions";
 
 // Table créée par migration, absente des types générés : accès volontairement non typé.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,6 +26,7 @@ export interface SstCalendarChange {
   summary: string;
   details: SstChangeLine[];
   acknowledged_at: string | null;
+  notify_decision: "sent" | "skipped" | null;
 }
 
 export const SST_ACTION_META: Record<SstCalendarChange["action"], { label: string; tone: string }> =
@@ -37,6 +41,7 @@ export async function listUnseenSstChanges(): Promise<SstCalendarChange[]> {
   const { data, error } = await changesFrom()
     .select("*")
     .is("acknowledged_at", null)
+    .eq("notify_decision", "sent")
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) return [];
@@ -68,11 +73,35 @@ export function describeChangeLine(line: SstChangeLine): string {
     : `${line.label} : ${line.from ?? "—"} → ${line.to ?? "—"}`;
 }
 
+export const SST_PENDING_EVENT = "sst-calendar-pending-changed";
+
 /**
- * À appeler après toute écriture sur le calendrier SST : déclenche l'e-mail aux administrateurs.
- * Silencieux par conception : une panne d'e-mail ne doit jamais bloquer ou faire échouer l'action de l'utilisateur
- * (le journal et l'alerte dans l'appli restent en base, l'e-mail repart au passage suivant).
+ * À appeler après toute écriture sur le calendrier SST : la modification est journalisée en base,
+ * mais RIEN n'est envoyé. On prévient simplement la page de proposer à l'auteur de notifier (ou non).
  */
-export function requestSstChangeEmails(): void {
-  void flushSstCalendarChangeEmails().catch(() => undefined);
+export function signalSstCalendarWrite(): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(SST_PENDING_EVENT));
+}
+
+/** Modifications de l'utilisateur courant en attente de décision (notifier ou non). */
+export async function listPendingSstDecisions(): Promise<SstCalendarChange[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) return [];
+  const { data, error } = await changesFrom()
+    .select("*")
+    .eq("actor_id", uid)
+    .is("notify_decision", null)
+    .order("created_at", { ascending: true })
+    .limit(100);
+  if (error) return [];
+  return (data ?? []) as SstCalendarChange[];
+}
+
+export async function notifySstChanges(ids: string[]) {
+  return notifySstCalendarChanges({ data: { ids } });
+}
+
+export async function skipSstChanges(ids: string[]) {
+  return skipSstCalendarChanges({ data: { ids } });
 }
