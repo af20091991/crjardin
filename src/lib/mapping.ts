@@ -14,6 +14,9 @@ export interface MappingClient {
   address: string | null;
   phone: string | null;
   email: string | null;
+  lifecycle_status: string | null;
+  contract_type: string | null;
+  frequency: string | null;
 }
 
 export interface GeoPoint {
@@ -34,7 +37,7 @@ export function clientKey(id: string): string {
 export async function listMappingClients(): Promise<MappingClient[]> {
   const { data, error } = await supabase
     .from("clients")
-    .select("id, name, address, phone, email")
+    .select("id, name, address, phone, email, lifecycle_status, contract_type, frequency")
     .is("merged_into_client_id", null)
     .order("name", { ascending: true });
   if (error) throw error;
@@ -201,3 +204,69 @@ export async function routeFromOrigin(origin: GeoPoint, dest: GeoPoint): Promise
   const meters = straightLineMeters(origin, dest) * 1.3;
   return { distanceMeters: meters, durationSeconds: (meters / 1000 / 50) * 3600, kind: "estimate" };
 }
+
+export const LIFECYCLE_LABELS: Record<string, string> = { actif: "Actif", perdu: "Perdu" };
+
+export function lifecycleLabel(value: string | null | undefined): string {
+  const key = (value ?? "").trim().toLowerCase();
+  return (
+    LIFECYCLE_LABELS[key] ?? (key ? key.charAt(0).toUpperCase() + key.slice(1) : "Non renseigné")
+  );
+}
+
+export interface MappingFilters {
+  lifecycle: ReadonlySet<string>;
+  contract: ReadonlySet<string>;
+  frequency: ReadonlySet<string>;
+}
+
+export const EMPTY_FILTERS: MappingFilters = {
+  lifecycle: new Set(),
+  contract: new Set(),
+  frequency: new Set(),
+};
+
+export const NOT_SET = "__none__";
+
+const valueOf = (v: string | null | undefined) => (v ?? "").trim() || NOT_SET;
+const lifecycleOf = (v: string | null | undefined) => (v ?? "").trim().toLowerCase() || NOT_SET;
+
+/** Un ensemble vide = pas de filtre sur ce critère ; sinon le client doit correspondre à l'une des valeurs. */
+export function matchesFilters(client: MappingClient, filters: MappingFilters): boolean {
+  return (
+    (filters.lifecycle.size === 0 || filters.lifecycle.has(lifecycleOf(client.lifecycle_status))) &&
+    (filters.contract.size === 0 || filters.contract.has(valueOf(client.contract_type))) &&
+    (filters.frequency.size === 0 || filters.frequency.has(valueOf(client.frequency)))
+  );
+}
+
+export interface FilterOption {
+  value: string;
+  label: string;
+  count: number;
+}
+
+/** Valeurs réellement présentes (avec effectifs) pour proposer des filtres à jour. */
+export function filterOptions(
+  clients: MappingClient[],
+  pick: (c: MappingClient) => string,
+  label: (value: string) => string,
+): FilterOption[] {
+  const counts = new Map<string, number>();
+  for (const c of clients) counts.set(pick(c), (counts.get(pick(c)) ?? 0) + 1);
+  return Array.from(counts, ([value, count]) => ({
+    value,
+    label: value === NOT_SET ? "Non renseigné" : label(value),
+    count,
+  })).sort((a, b) =>
+    a.value === NOT_SET
+      ? 1
+      : b.value === NOT_SET
+        ? -1
+        : b.count - a.count || a.label.localeCompare(b.label, "fr"),
+  );
+}
+
+export const pickLifecycle = lifecycleOf;
+export const pickContract = (c: MappingClient) => valueOf(c.contract_type);
+export const pickFrequency = (c: MappingClient) => valueOf(c.frequency);
