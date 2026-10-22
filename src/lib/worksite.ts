@@ -1,4 +1,4 @@
-import { requestSstChangeEmails } from "@/lib/sst-calendar-changes";
+import { signalSstCalendarWrite } from "@/lib/sst-calendar-changes";
 import { supabase } from "@/integrations/supabase/client";
 
 /** Listes de référence reprises de l'outil « Fiche chantier » SST. */
@@ -326,7 +326,7 @@ export async function createWorksiteSheet(input: WorksiteSheetInput): Promise<Wo
   if (!data) {
     throw new Error("Impossible de créer la fiche SST : aucune fiche retournée.");
   }
-  requestSstChangeEmails();
+  signalSstCalendarWrite();
   return normalize(data as Record<string, unknown>);
 }
 
@@ -341,7 +341,7 @@ export async function updateWorksiteSheet(
     .select()
     .single();
   if (error) throw error;
-  requestSstChangeEmails();
+  signalSstCalendarWrite();
   return normalize(data as Record<string, unknown>);
 }
 
@@ -354,13 +354,13 @@ export async function updateWorksitePlanning(
     .update(patch as never)
     .eq("id", id);
   if (error) throw error;
-  requestSstChangeEmails();
+  signalSstCalendarWrite();
 }
 
 export async function deleteWorksiteSheet(id: string): Promise<void> {
   const { error } = await supabase.from("worksite_sheets").delete().eq("id", id);
   if (error) throw error;
-  requestSstChangeEmails();
+  signalSstCalendarWrite();
 }
 
 /** Upload d'une photo de chantier de fiche, renvoie le chemin de stockage. */

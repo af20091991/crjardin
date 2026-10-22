@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { SstChangesPanel, useUnseenSstChanges } from "@/components/pilot/SstChangesPanel";
+import { SstNotifyBar } from "@/components/pilot/SstNotifyBar";
 import { unseenCountByDate } from "@/lib/sst-calendar-changes";
 import { Button } from "@/components/ui/button";
 import {
@@ -502,6 +503,7 @@ function CalendrierSstPage() {
 
   return (
     <>
+      <SstNotifyBar />
       <SstChangesPanel changes={unseenChanges} onShowDay={showChangedDay} />
       <SstPlanningByPerson
         sheets={worksiteSheets}
