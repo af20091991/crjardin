@@ -208,14 +208,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             ]
           : []),
         {
-          to: "/pilot/mapping",
-          label: "Mapping",
-          short: "Mapping",
-          icon: MapPin,
-          exact: false,
-          primary: false,
-        },
-        {
           to: "/parc-materiel",
           label: "Parc matériel",
           short: "Parc",
@@ -275,6 +267,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           icon: Users,
           exact: true,
           primary: true,
+        },
+        {
+          to: "/pilot/mapping",
+          label: "Mapping",
+          short: "Mapping",
+          icon: MapPin,
+          exact: false,
+          primary: false,
         },
         ...(isAdmin
           ? [
