@@ -28,6 +28,7 @@ import {
   Globe2,
   FileBarChart,
   Wrench,
+  MapPin,
   PackageSearch,
   Truck,
   Crown,
@@ -266,6 +267,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           icon: Users,
           exact: true,
           primary: true,
+        },
+        {
+          to: "/pilot/mapping",
+          label: "Mapping",
+          short: "Mapping",
+          icon: MapPin,
+          exact: false,
+          primary: false,
         },
         ...(isAdmin
           ? [
