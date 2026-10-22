@@ -10,6 +10,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, ExternalLink, Home, Mail, MapPin, Phone, Route as RouteIcon } from "lucide-react";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
 import {
+  clientPinIcon,
+  clusterIcon,
+  clusterPixelPoints,
+  originIcon,
+  type MarkerIcon,
+} from "@/lib/mapping-markers";
+import {
   MAPPING_ORIGIN_ADDRESS,
   formatDistanceKm,
   formatDuration,
@@ -38,7 +45,6 @@ function MappingPage() {
   const [mapError, setMapError] = useState<string | null>(null);
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
 
   const selected = useMemo(
     () => data?.located.find((c) => c.id === selectedId) ?? null,
@@ -52,9 +58,21 @@ function MappingPage() {
     staleTime: 60 * 60 * 1000,
   });
 
+  const [group, setGroup] = useState<string[] | null>(null);
+  const fittedFor = useRef<unknown>(null);
+
   useEffect(() => {
     if (!data || !mapEl.current) return;
     let cancelled = false;
+    const listeners: google.maps.MapsEventListener[] = [];
+    const markers: google.maps.Marker[] = [];
+
+    const toIcon = (g: typeof google, icon: MarkerIcon): google.maps.Icon => ({
+      url: icon.url,
+      scaledSize: new g.maps.Size(icon.width, icon.height),
+      anchor: new g.maps.Point(icon.anchorX, icon.anchorY),
+    });
+
     loadGoogleMaps()
       .then((g) => {
         if (cancelled || !mapEl.current) return;
@@ -63,58 +81,112 @@ function MappingPage() {
           new g.maps.Map(mapEl.current, {
             center: data.origin ?? { lat: 43.65, lng: 3.95 },
             zoom: 10,
+            maxZoom: 19,
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: true,
           });
         mapRef.current = map;
-        markersRef.current.forEach((m) => m.setMap(null));
-        markersRef.current.clear();
-        const bounds = new g.maps.LatLngBounds();
-        if (data.origin) {
-          new g.maps.Marker({
-            map,
-            position: data.origin,
-            title: `Point de départ — ${MAPPING_ORIGIN_ADDRESS}`,
-            zIndex: 1000,
-            icon: {
-              path: g.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-              scale: 6,
-              fillColor: "royalblue",
-              fillOpacity: 1,
-              strokeColor: "white",
-              strokeWeight: 2,
-            },
-          });
-          bounds.extend(data.origin);
+
+        if (fittedFor.current !== data) {
+          fittedFor.current = data;
+          const bounds = new g.maps.LatLngBounds();
+          if (data.origin) bounds.extend(data.origin);
+          data.located.forEach((c) => bounds.extend({ lat: c.lat, lng: c.lng }));
+          if (!bounds.isEmpty()) map.fitBounds(bounds, 48);
         }
-        for (const client of data.located) {
-          const marker = new g.maps.Marker({
-            map,
-            position: { lat: client.lat, lng: client.lng },
-            title: client.name,
+
+        const byId = new Map(data.located.map((c) => [c.id, c]));
+
+        const draw = () => {
+          markers.forEach((m) => m.setMap(null));
+          markers.length = 0;
+          const projection = map.getProjection();
+          if (!projection) return;
+          const scale = 2 ** (map.getZoom() ?? 10);
+          const points = data.located.map((c) => {
+            const p = projection.fromLatLngToPoint(new g.maps.LatLng(c.lat, c.lng))!;
+            return { id: c.id, x: p.x * scale, y: p.y * scale };
           });
-          marker.addListener("click", () => setSelectedId(client.id));
-          markersRef.current.set(client.id, marker);
-          bounds.extend({ lat: client.lat, lng: client.lng });
-        }
-        if (!bounds.isEmpty()) map.fitBounds(bounds, 48);
+          const clusters = clusterPixelPoints(points);
+
+          if (data.origin) {
+            markers.push(
+              new g.maps.Marker({
+                map,
+                position: data.origin,
+                title: `Point de départ — ${MAPPING_ORIGIN_ADDRESS}`,
+                zIndex: 5000,
+                icon: toIcon(g, originIcon()),
+              }),
+            );
+          }
+
+          for (const cluster of clusters) {
+            const members = cluster.ids.map((id) => byId.get(id)!).filter(Boolean);
+            if (members.length === 0) continue;
+            if (members.length === 1) {
+              const client = members[0]!;
+              const isSelected = client.id === selectedId;
+              const marker = new g.maps.Marker({
+                map,
+                position: { lat: client.lat, lng: client.lng },
+                title: client.name,
+                zIndex: isSelected ? 4000 : 100,
+                icon: toIcon(g, clientPinIcon(client.name, isSelected)),
+              });
+              marker.addListener("click", () => {
+                setGroup(null);
+                setSelectedId(client.id);
+              });
+              markers.push(marker);
+              continue;
+            }
+            const center = {
+              lat: members.reduce((sum, c) => sum + c.lat, 0) / members.length,
+              lng: members.reduce((sum, c) => sum + c.lng, 0) / members.length,
+            };
+            const marker = new g.maps.Marker({
+              map,
+              position: center,
+              title: `${members.length} clients`,
+              zIndex: 200 + members.length,
+              icon: toIcon(g, clusterIcon(members.length)),
+            });
+            marker.addListener("click", () => {
+              const bounds = new g.maps.LatLngBounds();
+              members.forEach((c) => bounds.extend({ lat: c.lat, lng: c.lng }));
+              const sameSpot = members.every(
+                (c) => c.lat === members[0]!.lat && c.lng === members[0]!.lng,
+              );
+              if (sameSpot || (map.getZoom() ?? 0) >= 18) {
+                // Clients à la même adresse : on les liste pour choisir.
+                setGroup(members.map((c) => c.id));
+              } else {
+                map.fitBounds(bounds, 64);
+              }
+            });
+            markers.push(marker);
+          }
+        };
+
+        listeners.push(g.maps.event.addListener(map, "idle", draw));
+        draw();
       })
       .catch((error: unknown) =>
         setMapError(error instanceof Error ? error.message : "Carte indisponible"),
       );
+
     return () => {
       cancelled = true;
+      listeners.forEach((l) => l.remove());
+      markers.forEach((m) => m.setMap(null));
     };
-  }, [data]);
+  }, [data, selectedId]);
 
   useEffect(() => {
     if (!selected || !mapRef.current) return;
     mapRef.current.panTo({ lat: selected.lat, lng: selected.lng });
-    markersRef.current.forEach((marker, id) => {
-      marker.setAnimation(id === selected.id ? google.maps.Animation.BOUNCE : null);
-      if (id === selected.id) window.setTimeout(() => marker.setAnimation(null), 1400);
-    });
   }, [selected]);
 
   const filtered = useMemo(() => {
@@ -170,6 +242,30 @@ function MappingPage() {
           </Card>
 
           <div className="space-y-4">
+            {group && data && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">{group.length} clients à cet endroit</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  {data.located
+                    .filter((c) => group.includes(c.id))
+                    .map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedId(c.id);
+                          setGroup(null);
+                        }}
+                        className="w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                </CardContent>
+              </Card>
+            )}
             {selected ? (
               <SelectedCard client={selected} route={routeQuery} />
             ) : (
