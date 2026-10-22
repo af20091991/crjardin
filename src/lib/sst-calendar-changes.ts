@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
+  listSstNotifyCandidates,
   notifySstCalendarChanges,
   skipSstCalendarChanges,
 } from "@/lib/sst-calendar-alerts.functions";
@@ -98,8 +99,12 @@ export async function listPendingSstDecisions(): Promise<SstCalendarChange[]> {
   return (data ?? []) as SstCalendarChange[];
 }
 
-export async function notifySstChanges(ids: string[]) {
-  return notifySstCalendarChanges({ data: { ids } });
+export async function notifySstChanges(ids: string[], recipientIds: string[]) {
+  return notifySstCalendarChanges({ data: { ids, recipientIds } });
+}
+
+export async function listSstRecipients(ids: string[]) {
+  return listSstNotifyCandidates({ data: { ids } });
 }
 
 export async function skipSstChanges(ids: string[]) {

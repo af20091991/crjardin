@@ -46,9 +46,12 @@ function cleanIds(ids: unknown): string[] {
  */
 export const notifySstCalendarChanges = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { ids: string[] }) => ({ ids: cleanIds(d?.ids) }))
+  .inputValidator((d: { ids: string[]; recipientIds: string[] }) => ({
+    ids: cleanIds(d?.ids),
+    recipientIds: cleanIds(d?.recipientIds),
+  }))
   .handler(async ({ data, context }) => {
-    if (data.ids.length === 0) return { sent: 0, changes: 0 };
+    if (data.ids.length === 0 || data.recipientIds.length === 0) return { sent: 0, changes: 0 };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { sendReportEmail } = await import("@/lib/email/report-send.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,21 +67,20 @@ export const notifySstCalendarChanges = createServerFn({ method: "POST" })
     if (error || !claimed || claimed.length === 0) return { sent: 0, changes: 0 };
     const changes = claimed as ChangeRow[];
 
-    const { data: roles } = await db.from("user_roles").select("user_id, role");
-    const roleRows = (roles ?? []) as Array<{ user_id: string; role: string }>;
-    const adminIds = new Set(
-      roleRows.filter((row) => row.role === "admin").map((row) => row.user_id),
+    // Seuls les membres (rôle) et propriétaires de fiches peuvent être choisis ; jamais l'auteur.
+    const { data: roles } = await db.from("user_roles").select("user_id");
+    const eligible = new Set<string>([
+      ...((roles ?? []) as Array<{ user_id: string }>).map((row) => row.user_id),
+      ...changes.map((change) => change.owner_id).filter((id): id is string => !!id),
+    ]);
+    const recipients = Array.from(new Set(data.recipientIds)).filter(
+      (id) => eligible.has(id) && id !== context.userId,
     );
-    const owners = changes.map((change) => change.owner_id).filter((id): id is string => !!id);
-    const recipients = Array.from(new Set([...roleRows.map((row) => row.user_id), ...owners]));
 
     let sent = 0;
     let failures = 0;
     for (const recipientId of recipients) {
-      const mine = changes
-        .filter((change) => isConcernedBySstChange(change, recipientId, adminIds))
-        .sort((a, b) => a.created_at.localeCompare(b.created_at));
-      if (mine.length === 0) continue;
+      const mine = [...changes].sort((a, b) => a.created_at.localeCompare(b.created_at));
 
       // Alerte dans l'appli (cloche).
       const { error: notifError } = await db.from("notifications").insert(
@@ -118,7 +120,67 @@ export const notifySstCalendarChanges = createServerFn({ method: "POST" })
       }
     }
 
-    return { sent, changes: changes.length, failures };
+    return { sent, changes: changes.length, failures, recipients: recipients.length };
+  });
+
+export interface SstNotifyCandidate {
+  id: string;
+  label: string;
+  /** Coché par défaut : la personne est directement concernée par au moins une des modifications. */
+  concerned: boolean;
+}
+
+/** Destinataires proposables à l'auteur pour ses modifications en attente (auteur exclu). */
+export const listSstNotifyCandidates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { ids: string[] }) => ({ ids: cleanIds(d?.ids) }))
+  .handler(async ({ data, context }): Promise<SstNotifyCandidate[]> => {
+    if (data.ids.length === 0) return [];
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabaseAdmin as any;
+    const { data: rows } = await db
+      .from("sst_calendar_changes")
+      .select("id, created_at, actor_id, entity, owner_id, summary, details")
+      .in("id", data.ids)
+      .eq("actor_id", context.userId)
+      .is("notify_decision", null);
+    const changes = (rows ?? []) as ChangeRow[];
+    if (changes.length === 0) return [];
+
+    const { data: roles } = await db.from("user_roles").select("user_id, role");
+    const roleRows = (roles ?? []) as Array<{ user_id: string; role: string }>;
+    const adminIds = new Set(
+      roleRows.filter((row) => row.role === "admin").map((row) => row.user_id),
+    );
+    const ids = Array.from(
+      new Set([
+        ...roleRows.map((row) => row.user_id),
+        ...changes.map((change) => change.owner_id).filter((id): id is string => !!id),
+      ]),
+    ).filter((id) => id !== context.userId);
+    if (ids.length === 0) return [];
+
+    const { data: profiles } = await db
+      .from("profiles")
+      .select("id, display_name, company_name")
+      .in("id", ids);
+    const labels = new Map<string, string>();
+    for (const p of (profiles ?? []) as Array<{
+      id: string;
+      display_name: string | null;
+      company_name: string | null;
+    }>) {
+      const label = p.display_name?.trim() || p.company_name?.trim();
+      if (label) labels.set(p.id, label);
+    }
+    return ids
+      .map((id) => ({
+        id,
+        label: labels.get(id) ?? "Utilisateur PP",
+        concerned: changes.some((change) => isConcernedBySstChange(change, id, adminIds)),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, "fr"));
   });
 
 /** L'auteur choisit de ne pas notifier : les modifications ne sont plus proposées. */
