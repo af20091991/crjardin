@@ -61,14 +61,21 @@ export interface MarkerIcon {
 
 const CLIENT_COLOR = "#15803d";
 const CLUSTER_COLOR = "#14532d";
+const LOST_COLOR = "#6b7280";
 const SELECTED_COLOR = "#ea580c";
 const ORIGIN_COLOR = "#1d4ed8";
 
 /** Épingle d'un client, avec ses initiales ; plus grande et orange quand elle est sélectionnée. */
-export function clientPinIcon(name: string, selected: boolean): MarkerIcon {
+export type PinTone = "active" | "lost";
+
+export function clientPinIcon(
+  name: string,
+  selected: boolean,
+  tone: PinTone = "active",
+): MarkerIcon {
   const w = selected ? 46 : 36;
   const h = selected ? 58 : 46;
-  const fill = selected ? SELECTED_COLOR : CLIENT_COLOR;
+  const fill = selected ? SELECTED_COLOR : tone === "lost" ? LOST_COLOR : CLIENT_COLOR;
   const text = escapeXml(initials(name));
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 36 46"><path d="M18 45C18 45 3 28 3 17A15 15 0 0 1 33 17C33 28 18 45 18 45Z" fill="${fill}" stroke="white" stroke-width="2.5"/><circle cx="18" cy="17" r="10.5" fill="white" fill-opacity="0.18"/><text x="18" y="22" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="700" fill="white">${text}</text></svg>`;
   return { url: svgUrl(svg), width: w, height: h, anchorX: w / 2, anchorY: h };
