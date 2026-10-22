@@ -80,9 +80,9 @@ function MappingPage() {
             icon: {
               path: g.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
               scale: 6,
-              fillColor: "#1d4ed8",
+              fillColor: "royalblue",
               fillOpacity: 1,
-              strokeColor: "#fff",
+              strokeColor: "white",
               strokeWeight: 2,
             },
           });
