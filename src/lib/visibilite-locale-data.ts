@@ -6,6 +6,9 @@ import { loadCommuneTravel } from "@/lib/visibilite-locale-geo";
 import {
   DEFAULT_PROMOTED,
   PRESTATIONS_SCORED,
+  computeCapacity,
+  monthlyHours,
+  type Capacity,
   groupQueries,
   monthlyCaByPrestation,
   scoreOpportunities,
@@ -50,6 +53,7 @@ export interface VisibilityRadar {
   hourlyRates: Record<string, number | null>;
   travelEstimated: boolean;
   hasSeasonality: boolean;
+  capacity: Capacity;
 }
 
 const isoDate = (d: Date) =>
@@ -112,10 +116,14 @@ export async function loadVisibilityRadar(
     }),
   );
 
+  const capacity = computeCapacity(monthlyHours(sales, new Date().getFullYear()));
+
   const opportunities = scoreOpportunities({
     opportunities: grouped.opportunities,
     hourlyRates,
     travelMinutes: travel.minutes,
+    travelKm: travel.km,
+    capacity,
     monthly,
     promoted,
   });
@@ -130,6 +138,7 @@ export async function loadVisibilityRadar(
     totalQueries: queryRows.length,
     hourlyRates,
     travelEstimated: travel.estimated,
+    capacity,
     hasSeasonality: opportunities.some((o) => !o.neutral.includes("saisonnalite")),
   };
 }

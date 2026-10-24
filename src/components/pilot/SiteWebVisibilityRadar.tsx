@@ -12,6 +12,7 @@ import { formatCount, formatHourlyRate } from "@/lib/format-utils";
 import { loadVisibilityRadar } from "@/lib/visibilite-locale-data";
 import {
   CRITERION_LABEL,
+  ENTRETIEN_MAX_KM,
   EXCLUDED_ALIASES,
   MAX_TRAVEL_MINUTES,
   PRESTATION_LABEL,
@@ -141,7 +142,7 @@ export function SiteWebVisibilityRadar() {
                   checked={showAll}
                   onChange={(e) => setShowAll(e.target.checked)}
                 />
-                Inclure les prestations non promues (entretien, remise en état)
+                Inclure les prestations non promues (entretien éloigné, remise en état)
               </label>
             </div>
             {top.length === 0 ? (
@@ -315,9 +316,18 @@ export function SiteWebVisibilityRadar() {
                 : " Saisonnalité neutre : historique de ventes encore trop court."}
             </p>
             <p>
-              Non pris en compte à ce stade : ta capacité disponible (à préciser) et la structure
-              GEO des pages.
+              Entretien promu seulement à moins de {ENTRETIEN_MAX_KM} km de Vendargues. Capacité :
+              moyenne de{" "}
+              {data.capacity.averageHours != null
+                ? `${data.capacity.averageHours.toFixed(0)} h/mois`
+                : "n/d"}{" "}
+              sur les 3 derniers mois pour un seuil de saturation de {data.capacity.threshold}{" "}
+              h/mois
+              {data.capacity.saturated
+                ? " : saturée, le score des prestations gourmandes en heures est réduit de 15 %."
+                : " : non saturée, aucun frein appliqué."}
             </p>
+            <p>La structure GEO des pages sera prise en compte à l’étape suivante.</p>
           </Card>
         </>
       ) : null}
