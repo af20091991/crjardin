@@ -20,7 +20,15 @@ import {
   SITE_WEB_SITE_URL,
 } from "@/lib/site-web-config";
 
-type SortKey = "views" | "users" | "sessions" | "engagementRate" | "clicks" | "impressions" | "ctr" | "position";
+type SortKey =
+  | "views"
+  | "users"
+  | "sessions"
+  | "engagementRate"
+  | "clicks"
+  | "impressions"
+  | "ctr"
+  | "position";
 
 type PageMetrics = {
   path: string;
@@ -70,6 +78,7 @@ function pageUrl(path: string): string {
   }
 }
 
+// prettier-ignore
 export function SiteWebPages() {
   const [rows, setRows] = useState<PageMetrics[]>([]);
   const [search, setSearch] = useState("");
