@@ -183,7 +183,6 @@ export function SiteWebPages() {
 
   const visibleRows = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("fr-FR");
-    if (!query) return rows;
     const filtered = query
       ? rows.filter((row) => row.path.toLocaleLowerCase("fr-FR").includes(query) || row.url.toLocaleLowerCase("fr-FR").includes(query))
       : rows;
