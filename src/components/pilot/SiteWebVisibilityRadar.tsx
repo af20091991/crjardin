@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { SeriesChart } from "@/components/pilot/DashboardCharts";
+import { LocalPageDialog } from "@/components/pilot/LocalPageDialog";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { formatCount, formatHourlyRate } from "@/lib/format-utils";
 import { loadVisibilityRadar } from "@/lib/visibilite-locale-data";
@@ -218,6 +219,7 @@ export function SiteWebVisibilityRadar() {
                           <tr className="border-b bg-muted/20">
                             <td colSpan={9} className="px-4 py-3">
                               <ScoreDetail o={o} />
+                              <LocalPageDialog o={o} />
                             </td>
                           </tr>
                         )}
