@@ -71,7 +71,8 @@ const seconds = (value: number | null) => {
     ? `${Math.floor(rounded / 60)} min ${rounded % 60} s`
     : `${rounded} s`;
 };
-const dateLabel = (s: string) => new Date(`${s}T12:00:00`).toLocaleDateString("fr-FR");
+const dateLabel = (s: string) =>
+  new Date(`${s}T12:00:00`).toLocaleDateString("fr-FR");
 
 function normalizedPath(value: string): string {
   try {
@@ -368,8 +369,11 @@ export function SiteWebPages() {
               </thead>
               <tbody>
                 {visibleRows.map((row) => (
-                <tr key={row.path} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="max-w-[320px] py-3 pr-3">
+                  <tr
+                    key={row.path}
+                    className="border-b last:border-0 hover:bg-muted/30"
+                  >
+                    <td className="max-w-[320px] py-3 pr-3">
                     <button
                       type="button"
                       onClick={() => setSelected(row)}
@@ -387,16 +391,32 @@ export function SiteWebPages() {
                       <span className="truncate">{row.url}</span>
                       <ExternalLink className="h-3 w-3 shrink-0" />
                     </a>
-                  </td>
-                  <td className="px-3 py-3 text-right tabular-nums">{count(row.views)}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">{count(row.users)}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">{count(row.sessions)}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">{pct(row.engagementRate)}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">{count(row.clicks)}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">{count(row.impressions)}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">{pct(row.ctr)}</td>
-                  <td className="py-3 pl-3 text-right tabular-nums">{decimal(row.position)}</td>
-                </tr>
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {count(row.views)}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {count(row.users)}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {count(row.sessions)}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {pct(row.engagementRate)}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {count(row.clicks)}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {count(row.impressions)}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {pct(row.ctr)}
+                    </td>
+                    <td className="py-3 pl-3 text-right tabular-nums">
+                      {decimal(row.position)}
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -407,20 +427,22 @@ export function SiteWebPages() {
       {selected && (
         <Card className="p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="font-serif text-base font-semibold">Détail de la page</h3>
-            <p className="mt-1 break-all text-sm text-muted-foreground">{selected.url}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSelected(null)}
-            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted"
-          >
-            Fermer
-          </button>
+            <div>
+              <h3 className="font-serif text-base font-semibold">Détail de la page</h3>
+              <p className="mt-1 break-all text-sm text-muted-foreground">
+                {selected.url}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted"
+            >
+              Fermer
+            </button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[
+            [
             ["Vues (GA4)", count(selected.views)],
             ["Utilisateurs (GA4)", count(selected.users)],
             ["Sessions (GA4)", count(selected.sessions)],
@@ -430,12 +452,12 @@ export function SiteWebPages() {
             ["Impressions (Search Console)", count(selected.impressions)],
             ["CTR (Search Console)", pct(selected.ctr)],
             ["Position moyenne (Search Console)", decimal(selected.position)],
-          ].map(([label, value]) => (
-            <div key={label} className="rounded-lg border border-border p-3">
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="mt-1 text-lg font-semibold tabular-nums">{value}</p>
-            </div>
-          ))}
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg border border-border p-3">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums">{value}</p>
+              </div>
+            ))}
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             Sources : {ga4Source} et {gscSource}. Période : {period}. Les valeurs « — »
@@ -444,9 +466,9 @@ export function SiteWebPages() {
         </Card>
       )}
       <p className="text-xs text-muted-foreground">
-        Sources : Google Analytics 4 et Google Search Console. Les données de chaque source sont
-        affichées séparément et ne sont pas additionnées. Les pages présentes dans une seule source
-        restent visibles.
+        Sources : Google Analytics 4 et Google Search Console. Les données de chaque source
+        sont affichées séparément et ne sont pas additionnées. Les pages présentes dans une
+        seule source restent visibles.
       </p>
     </div>
   );
