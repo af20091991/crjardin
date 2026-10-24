@@ -233,6 +233,7 @@ const COPY: Record<ScoredPrestation, Copy> = {
         "Désherbage et entretien des massifs.",
         "Paillage et suivi de l'arrosage.",
         "Conseils pour accompagner le jardin au fil des saisons.",
+        "Selon votre situation, ces travaux d'entretien peuvent ouvrir droit à une avance immédiate de crédit d'impôt, sous conditions : nous vous expliquons comment cela fonctionne.",
       ],
     },
     faq: (c) => [
