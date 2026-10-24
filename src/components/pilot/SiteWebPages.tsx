@@ -416,7 +416,8 @@ export function SiteWebPages() {
           Sources : {ga4Source} et {gscSource}. Période : {period}. Les valeurs « — »
           correspondent à des métriques non disponibles pour cette page ou cette source.
         </p>
-      </Card>}
+        </Card>
+      )}
       <p className="text-xs text-muted-foreground">
         Sources : Google Analytics 4 et Google Search Console. Les données de chaque source sont
         affichées séparément et ne sont pas additionnées. Les pages présentes dans une seule source
