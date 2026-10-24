@@ -50,11 +50,20 @@ const num = (value?: string): number | null => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 const count = (value: number | null) =>
-  value === null ? "—" : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(value);
+  value === null
+    ? "—"
+    : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(value);
 const pct = (value: number | null) =>
-  value === null ? "—" : new Intl.NumberFormat("fr-FR", { style: "percent", maximumFractionDigits: 1 }).format(value);
+  value === null
+    ? "—"
+    : new Intl.NumberFormat("fr-FR", {
+        style: "percent",
+        maximumFractionDigits: 1,
+      }).format(value);
 const decimal = (value: number | null) =>
-  value === null ? "—" : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value);
+  value === null
+    ? "—"
+    : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value);
 const seconds = (value: number | null) => {
   if (value === null) return "—";
   const rounded = Math.round(value);
@@ -78,7 +87,6 @@ function pageUrl(path: string): string {
   }
 }
 
-// prettier-ignore
 export function SiteWebPages() {
   const [rows, setRows] = useState<PageMetrics[]>([]);
   const [search, setSearch] = useState("");
@@ -108,12 +116,21 @@ export function SiteWebPages() {
       if (!active) return;
 
       const gaProperty = propertyList.data?.properties
-        ? pickProperty(propertyList.data.properties, readSavedGa4Property(), SITE_WEB_DEFAULT_GA4_PROPERTY_ID)
+        ? pickProperty(
+            propertyList.data.properties,
+            readSavedGa4Property(),
+            SITE_WEB_DEFAULT_GA4_PROPERTY_ID,
+          )
         : null;
       const sites = sitesList.data?.siteEntry ?? [];
-      const site = sites.find((item) => item.siteUrl.replace(/\/$/, "") === SITE_WEB_SITE_URL.replace(/\/$/, ""))
-        ?? sites.find((item) => item.siteUrl.includes("delagraineaujardin.com"))
-        ?? null;
+      const site =
+        sites.find(
+          (item) =>
+            item.siteUrl.replace(/\/$/, "") ===
+            SITE_WEB_SITE_URL.replace(/\/$/, ""),
+        ) ??
+        sites.find((item) => item.siteUrl.includes("delagraineaujardin.com")) ??
+        null;
       if (propertyList.error) setGa4Source(`GA4 indisponible : ${propertyList.error}`);
       if (sitesList.error) setGscSource(`Search Console indisponible : ${sitesList.error}`);
 
@@ -187,7 +204,9 @@ export function SiteWebPages() {
       setLoading(false);
     };
     void load();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   const visibleRows = useMemo(() => {
@@ -204,7 +223,10 @@ export function SiteWebPages() {
 
   const sortBy = (key: SortKey) => {
     if (sortKey === key) setSortDescending((current) => !current);
-    else { setSortKey(key); setSortDescending(true); }
+    else {
+      setSortKey(key);
+      setSortDescending(true);
+    }
   };
   const sortLabel = (label: string, key: SortKey) => (
     <button type="button" onClick={() => sortBy(key)} className="font-medium hover:text-foreground">
