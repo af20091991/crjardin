@@ -442,7 +442,7 @@ export function SiteWebPages() {
             </button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            [
+            {[
             ["Vues (GA4)", count(selected.views)],
             ["Utilisateurs (GA4)", count(selected.users)],
             ["Sessions (GA4)", count(selected.sessions)],
