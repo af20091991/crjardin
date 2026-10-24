@@ -9,11 +9,7 @@ import {
   querySearchConsole,
   runAnalyticsReport,
 } from "@/lib/site-web-api";
-import {
-  pickProperty,
-  statisticsPeriods,
-  type GaReport,
-} from "@/lib/site-web-statistics";
+import { pickProperty, statisticsPeriods, type GaReport } from "@/lib/site-web-statistics";
 import {
   readSavedGa4Property,
   SITE_WEB_DEFAULT_GA4_PROPERTY_ID,
@@ -50,9 +46,7 @@ const num = (value?: string): number | null => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 const count = (value: number | null) =>
-  value === null
-    ? "—"
-    : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(value);
+  value === null ? "—" : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(value);
 const pct = (value: number | null) =>
   value === null
     ? "—"
@@ -61,18 +55,13 @@ const pct = (value: number | null) =>
         maximumFractionDigits: 1,
       }).format(value);
 const decimal = (value: number | null) =>
-  value === null
-    ? "—"
-    : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value);
+  value === null ? "—" : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value);
 const seconds = (value: number | null) => {
   if (value === null) return "—";
   const rounded = Math.round(value);
-  return rounded >= 60
-    ? `${Math.floor(rounded / 60)} min ${rounded % 60} s`
-    : `${rounded} s`;
+  return rounded >= 60 ? `${Math.floor(rounded / 60)} min ${rounded % 60} s` : `${rounded} s`;
 };
-const dateLabel = (s: string) =>
-  new Date(`${s}T12:00:00`).toLocaleDateString("fr-FR");
+const dateLabel = (s: string) => new Date(`${s}T12:00:00`).toLocaleDateString("fr-FR");
 
 function normalizedPath(value: string): string {
   try {
@@ -128,9 +117,7 @@ export function SiteWebPages() {
       const sites = sitesList.data?.siteEntry ?? [];
       const site =
         sites.find(
-          (item) =>
-            item.siteUrl.replace(/\/$/, "") ===
-            SITE_WEB_SITE_URL.replace(/\/$/, ""),
+          (item) => item.siteUrl.replace(/\/$/, "") === SITE_WEB_SITE_URL.replace(/\/$/, ""),
         ) ??
         sites.find((item) => item.siteUrl.includes("delagraineaujardin.com")) ??
         null;
@@ -167,9 +154,7 @@ export function SiteWebPages() {
             })
           : Promise.resolve({
               data: null,
-              error:
-                sitesList.error ??
-                "Aucune propriété Search Console accessible pour le site.",
+              error: sitesList.error ?? "Aucune propriété Search Console accessible pour le site.",
             }),
       ]);
       if (!active) return;
@@ -223,9 +208,7 @@ export function SiteWebPages() {
           position: num(String(row.position)),
         });
       }
-      setRows(
-        [...merged.values()].sort((a, b) => (b.views ?? -1) - (a.views ?? -1)),
-      );
+      setRows([...merged.values()].sort((a, b) => (b.views ?? -1) - (a.views ?? -1)));
       const sourceErrors = [
         tasks[0].error ? `GA4 : ${tasks[0].error}` : null,
         tasks[1].error ? `Search Console : ${tasks[1].error}` : null,
@@ -264,11 +247,7 @@ export function SiteWebPages() {
     }
   };
   const sortLabel = (label: string, key: SortKey) => (
-    <button
-      type="button"
-      onClick={() => sortBy(key)}
-      className="font-medium hover:text-foreground"
-    >
+    <button type="button" onClick={() => sortBy(key)} className="font-medium hover:text-foreground">
       {label}
       {sortKey === key ? (sortDescending ? " ↓" : " ↑") : ""}
     </button>
@@ -282,13 +261,11 @@ export function SiteWebPages() {
             <FileSearch className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="font-serif text-lg font-semibold">
-              Analyse détaillée des pages
-            </h2>
+            <h2 className="font-serif text-lg font-semibold">Analyse détaillée des pages</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Chaque URL renvoyée par GA4 ou Search Console, y compris les articles de
-              blog, sans liste éditoriale codée en dur. Les métriques GA4 décrivent
-              l’audience ; Search Console décrit la visibilité dans Google.
+              Chaque URL renvoyée par GA4 ou Search Console, y compris les articles de blog, sans
+              liste éditoriale codée en dur. Les métriques GA4 décrivent l’audience ; Search Console
+              décrit la visibilité dans Google.
             </p>
             {period && (
               <p className="mt-2 text-xs text-muted-foreground">
@@ -345,38 +322,23 @@ export function SiteWebPages() {
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="py-2 pr-3 font-medium">Page / URL</th>
-                  <th className="px-3 py-2 text-right">
-                    {sortLabel("Vues GA4", "views")}
-                  </th>
-                  <th className="px-3 py-2 text-right">
-                    {sortLabel("Utilisateurs", "users")}
-                  </th>
-                  <th className="px-3 py-2 text-right">
-                    {sortLabel("Sessions", "sessions")}
-                  </th>
+                  <th className="px-3 py-2 text-right">{sortLabel("Vues GA4", "views")}</th>
+                  <th className="px-3 py-2 text-right">{sortLabel("Utilisateurs", "users")}</th>
+                  <th className="px-3 py-2 text-right">{sortLabel("Sessions", "sessions")}</th>
                   <th className="px-3 py-2 text-right">
                     {sortLabel("Engagement", "engagementRate")}
                   </th>
-                  <th className="px-3 py-2 text-right">
-                    {sortLabel("Clics Google", "clicks")}
-                  </th>
+                  <th className="px-3 py-2 text-right">{sortLabel("Clics Google", "clicks")}</th>
                   <th className="px-3 py-2 text-right">
                     {sortLabel("Impressions", "impressions")}
                   </th>
-                  <th className="px-3 py-2 text-right">
-                    {sortLabel("CTR", "ctr")}
-                  </th>
-                  <th className="py-2 pl-3 text-right">
-                    {sortLabel("Position", "position")}
-                  </th>
+                  <th className="px-3 py-2 text-right">{sortLabel("CTR", "ctr")}</th>
+                  <th className="py-2 pl-3 text-right">{sortLabel("Position", "position")}</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleRows.map((row) => (
-                  <tr
-                    key={row.path}
-                    className="border-b last:border-0 hover:bg-muted/30"
-                  >
+                  <tr key={row.path} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="max-w-[320px] py-3 pr-3">
                       <button
                         type="button"
@@ -396,30 +358,14 @@ export function SiteWebPages() {
                         <ExternalLink className="h-3 w-3 shrink-0" />
                       </a>
                     </td>
-                    <td className="px-3 py-3 text-right tabular-nums">
-                      {count(row.views)}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums">
-                      {count(row.users)}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums">
-                      {count(row.sessions)}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums">
-                      {pct(row.engagementRate)}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums">
-                      {count(row.clicks)}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums">
-                      {count(row.impressions)}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums">
-                      {pct(row.ctr)}
-                    </td>
-                    <td className="py-3 pl-3 text-right tabular-nums">
-                      {decimal(row.position)}
-                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">{count(row.views)}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{count(row.users)}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{count(row.sessions)}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{pct(row.engagementRate)}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{count(row.clicks)}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{count(row.impressions)}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{pct(row.ctr)}</td>
+                    <td className="py-3 pl-3 text-right tabular-nums">{decimal(row.position)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -433,9 +379,7 @@ export function SiteWebPages() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h3 className="font-serif text-base font-semibold">Détail de la page</h3>
-              <p className="mt-1 break-all text-sm text-muted-foreground">
-                {selected.url}
-              </p>
+              <p className="mt-1 break-all text-sm text-muted-foreground">{selected.url}</p>
             </div>
             <button
               type="button"
@@ -451,10 +395,7 @@ export function SiteWebPages() {
               ["Utilisateurs (GA4)", count(selected.users)],
               ["Sessions (GA4)", count(selected.sessions)],
               ["Taux d’engagement (GA4)", pct(selected.engagementRate)],
-              [
-                "Temps d’engagement moyen (GA4)",
-                seconds(selected.avgEngagementSeconds),
-              ],
+              ["Temps d’engagement moyen (GA4)", seconds(selected.avgEngagementSeconds)],
               ["Clics (Search Console)", count(selected.clicks)],
               ["Impressions (Search Console)", count(selected.impressions)],
               ["CTR (Search Console)", pct(selected.ctr)],
@@ -473,9 +414,9 @@ export function SiteWebPages() {
         </Card>
       )}
       <p className="text-xs text-muted-foreground">
-        Sources : Google Analytics 4 et Google Search Console. Les données de chaque
-        source sont affichées séparément et ne sont pas additionnées. Les pages présentes
-        dans une seule source restent visibles.
+        Sources : Google Analytics 4 et Google Search Console. Les données de chaque source sont
+        affichées séparément et ne sont pas additionnées. Les pages présentes dans une seule source
+        restent visibles.
       </p>
     </div>
   );
