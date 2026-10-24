@@ -23,6 +23,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-24",
+    version: "2.3.91",
+    theme: "Général",
+    title: "Site web — analyse détaillée par page",
+    details: [
+      "Nouvel onglet « Pages » regroupant les URLs remontées par Google Analytics 4 et Search Console, articles de blog compris.",
+      "Vue par URL avec vues, utilisateurs, sessions et engagement GA4, clics, impressions, CTR et position Search Console, ainsi qu’un détail des métriques et leurs sources.",
+      "Les métriques indisponibles restent affichées comme telles ; aucune donnée fictive n’est créée.",
+    ],
+  },
+  {
     date: "2026-10-21",
     version: "2.3.90",
     theme: "Général",
