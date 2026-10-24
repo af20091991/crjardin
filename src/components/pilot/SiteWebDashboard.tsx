@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, BarChart3, Globe2, MapPin, Search, Users } from "lucide-react";
+import { Activity, BarChart3, Globe2, MapPin, Search, Target, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { SiteWebCompetitorWatch } from "@/components/pilot/SiteWebCompetitorWatch";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
@@ -7,6 +7,8 @@ import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
 import { SiteWebSeoDiagnostic } from "@/components/pilot/SiteWebSeoDiagnostic";
 import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
 import { SiteWebSynthesis } from "@/components/pilot/SiteWebSynthesis";
+import { SiteWebVisibilityRadar } from "@/components/pilot/SiteWebVisibilityRadar";
+import { useIsAdmin } from "@/hooks/use-admin";
 import { SiteWebTechnicalGeo } from "@/components/pilot/SiteWebTechnicalGeo";
 import { SiteWebViewContent } from "@/components/pilot/SiteWebViews";
 import { SiteWebWordPress } from "@/components/pilot/SiteWebWordPress";
@@ -18,12 +20,15 @@ const moduleViews = [
   { id: "local", label: "SEO local", icon: MapPin },
   { id: "competitors", label: "Concurrence & marché", icon: Users },
   { id: "technical", label: "Technique & GEO", icon: Activity },
+  { id: "radar", label: "Visibilité locale", icon: Target },
 ] as const;
 
 type ModuleView = (typeof moduleViews)[number]["id"];
 
 export function SiteWebDashboard() {
   const [activeView, setActiveView] = useState<ModuleView>("synthesis");
+  const { isAdmin } = useIsAdmin();
+  const views = moduleViews.filter((view) => view.id !== "radar" || isAdmin);
 
   return (
     <div className="space-y-5">
@@ -42,8 +47,11 @@ export function SiteWebDashboard() {
 
       <SiteWebGoogleConnection />
 
-      <nav aria-label="Navigation Site web" className="flex gap-1 overflow-x-auto border-b border-border pb-1">
-        {moduleViews.map((view) => {
+      <nav
+        aria-label="Navigation Site web"
+        className="flex gap-1 overflow-x-auto border-b border-border pb-1"
+      >
+        {views.map((view) => {
           const Icon = view.icon;
           const active = activeView === view.id;
           return (
@@ -53,7 +61,9 @@ export function SiteWebDashboard() {
               aria-current={active ? "page" : undefined}
               onClick={() => setActiveView(view.id)}
               className={`inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-2 text-sm font-medium transition-colors ${
-                active ? "border-b-2 border-primary text-foreground" : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                active
+                  ? "border-b-2 border-primary text-foreground"
+                  : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -64,6 +74,8 @@ export function SiteWebDashboard() {
       </nav>
 
       {activeView === "synthesis" && <SiteWebSynthesis />}
+
+      {activeView === "radar" && isAdmin && <SiteWebVisibilityRadar />}
 
       {activeView === "seo" && (
         <div className="space-y-5">
