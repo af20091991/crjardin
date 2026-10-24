@@ -223,7 +223,9 @@ export function SiteWebPages() {
           position: num(String(row.position)),
         });
       }
-      setRows([...merged.values()].sort((a, b) => (b.views ?? -1) - (a.views ?? -1)));
+      setRows(
+        [...merged.values()].sort((a, b) => (b.views ?? -1) - (a.views ?? -1)),
+      );
       const sourceErrors = [
         tasks[0].error ? `GA4 : ${tasks[0].error}` : null,
         tasks[1].error ? `Search Console : ${tasks[1].error}` : null,
@@ -280,9 +282,12 @@ export function SiteWebPages() {
             <FileSearch className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="font-serif text-lg font-semibold">Analyse détaillée des pages</h2>
+            <h2 className="font-serif text-lg font-semibold">
+              Analyse détaillée des pages
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Chaque URL renvoyée par GA4 ou Search Console, y compris les articles de blog,
+              Chaque URL renvoyée par GA4 ou Search Console, y compris les articles de
+              blog,
               sans liste éditoriale codée en dur. Les métriques GA4 décrivent l’audience ;
               Search Console décrit la visibilité dans Google.
             </p>
@@ -374,23 +379,23 @@ export function SiteWebPages() {
                     className="border-b last:border-0 hover:bg-muted/30"
                   >
                     <td className="max-w-[320px] py-3 pr-3">
-                    <button
-                      type="button"
-                      onClick={() => setSelected(row)}
-                      className="block max-w-full truncate text-left font-medium text-primary hover:underline"
-                      title={row.path}
-                    >
-                      {row.path}
-                    </button>
-                    <a
-                      href={row.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex max-w-full items-center gap-1 truncate text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      <span className="truncate">{row.url}</span>
-                      <ExternalLink className="h-3 w-3 shrink-0" />
-                    </a>
+                      <button
+                        type="button"
+                        onClick={() => setSelected(row)}
+                        className="block max-w-full truncate text-left font-medium text-primary hover:underline"
+                        title={row.path}
+                      >
+                        {row.path}
+                      </button>
+                      <a
+                        href={row.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex max-w-full items-center gap-1 truncate text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <span className="truncate">{row.url}</span>
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums">
                       {count(row.views)}
@@ -447,7 +452,10 @@ export function SiteWebPages() {
               ["Utilisateurs (GA4)", count(selected.users)],
               ["Sessions (GA4)", count(selected.sessions)],
               ["Taux d’engagement (GA4)", pct(selected.engagementRate)],
-              ["Temps d’engagement moyen (GA4)", seconds(selected.avgEngagementSeconds)],
+              [
+                "Temps d’engagement moyen (GA4)",
+                seconds(selected.avgEngagementSeconds),
+              ],
               ["Clics (Search Console)", count(selected.clicks)],
               ["Impressions (Search Console)", count(selected.impressions)],
               ["CTR (Search Console)", pct(selected.ctr)],
@@ -466,7 +474,7 @@ export function SiteWebPages() {
         </Card>
       )}
       <p className="text-xs text-muted-foreground">
-        Sources : Google Analytics 4 et Google Search Console. Les données de chaque source
+        Sources : Google Analytics 4 et Google Search Console. Les données de chaque
         sont affichées séparément et ne sont pas additionnées. Les pages présentes dans une
         seule source restent visibles.
       </p>
