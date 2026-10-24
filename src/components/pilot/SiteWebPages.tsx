@@ -270,8 +270,9 @@ export function SiteWebPages() {
           <div className="min-w-0 flex-1">
             <h2 className="font-serif text-lg font-semibold">Analyse détaillée des pages</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Chaque URL renvoyée par GA4 ou Search Console, y compris les articles de blog, sans liste éditoriale codée en dur.
-              Les métriques GA4 décrivent l’audience ; Search Console décrit la visibilité dans Google.
+              Chaque URL renvoyée par GA4 ou Search Console, y compris les articles de blog,
+              sans liste éditoriale codée en dur. Les métriques GA4 décrivent l’audience ;
+              Search Console décrit la visibilité dans Google.
             </p>
             {period && (
               <p className="mt-2 text-xs text-muted-foreground">
@@ -299,16 +300,31 @@ export function SiteWebPages() {
 
       <Card className="p-4">
         <label className="relative block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher une URL ou un article…" className="pl-9" />
+          <Search
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Rechercher une URL ou un article…"
+            className="pl-9"
+          />
         </label>
         <p className="mt-3 text-xs text-muted-foreground">
           {loading
             ? "Chargement des pages…"
             : `${visibleRows.length} page(s) affichée(s) sur ${rows.length}`}
         </p>
-        {loading ? <EmptyState title="Chargement des pages" description="Lecture des données Google Analytics 4 et Search Console." /> : visibleRows.length === 0 ? (
-          <EmptyState title="Aucune page disponible" description="Vérifiez les connexions Google ou modifiez votre recherche. Aucune donnée manquante n’est remplacée par zéro." />
+        {loading ? (
+          <EmptyState
+            title="Chargement des pages"
+            description="Lecture des données Google Analytics 4 et Search Console."
+          />
+        ) : visibleRows.length === 0 ? (
+          <EmptyState
+            title="Aucune page disponible"
+            description="Vérifiez les connexions Google ou modifiez votre recherche. Aucune donnée manquante n’est remplacée par zéro."
+          />
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[900px] text-sm">
@@ -318,7 +334,9 @@ export function SiteWebPages() {
                 <th className="py-2 px-3 text-right">{sortLabel("Vues GA4", "views")}</th>
                 <th className="py-2 px-3 text-right">{sortLabel("Utilisateurs", "users")}</th>
                 <th className="py-2 px-3 text-right">{sortLabel("Sessions", "sessions")}</th>
-                <th className="py-2 px-3 text-right">{sortLabel("Engagement", "engagementRate")}</th>
+                <th className="px-3 py-2 text-right">
+                  {sortLabel("Engagement", "engagementRate")}
+                </th>
                 <th className="py-2 px-3 text-right">{sortLabel("Clics Google", "clicks")}</th>
                 <th className="py-2 px-3 text-right">{sortLabel("Impressions", "impressions")}</th>
                 <th className="py-2 px-3 text-right">{sortLabel("CTR", "ctr")}</th>
@@ -379,18 +397,30 @@ export function SiteWebPages() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
             ["Vues (GA4)", count(selected.views)], ["Utilisateurs (GA4)", count(selected.users)],
-            ["Sessions (GA4)", count(selected.sessions)], ["Taux d’engagement (GA4)", pct(selected.engagementRate)],
+            ["Sessions (GA4)", count(selected.sessions)],
+            ["Taux d’engagement (GA4)", pct(selected.engagementRate)],
             ["Temps d’engagement moyen (GA4)", seconds(selected.avgEngagementSeconds)],
-            ["Clics (Search Console)", count(selected.clicks)], ["Impressions (Search Console)", count(selected.impressions)],
-            ["CTR (Search Console)", pct(selected.ctr)], ["Position moyenne (Search Console)", decimal(selected.position)],
-          ].map(([label, value]) => <div key={label} className="rounded-lg border border-border p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-lg font-semibold tabular-nums">{value}</p></div>)}
+            ["Clics (Search Console)", count(selected.clicks)],
+            ["Impressions (Search Console)", count(selected.impressions)],
+            ["CTR (Search Console)", pct(selected.ctr)],
+            ["Position moyenne (Search Console)", decimal(selected.position)],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-lg border border-border p-3">
+              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="mt-1 text-lg font-semibold tabular-nums">{value}</p>
+            </div>
+          ))}
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
           Sources : {ga4Source} et {gscSource}. Période : {period}. Les valeurs « — »
           correspondent à des métriques non disponibles pour cette page ou cette source.
         </p>
       </Card>}
-      <p className="text-xs text-muted-foreground">Sources : Google Analytics 4 et Google Search Console. Les données de chaque source sont affichées séparément et ne sont pas additionnées. Les pages présentes dans une seule source restent visibles.</p>
+      <p className="text-xs text-muted-foreground">
+        Sources : Google Analytics 4 et Google Search Console. Les données de chaque source sont
+        affichées séparément et ne sont pas additionnées. Les pages présentes dans une seule source
+        restent visibles.
+      </p>
     </div>
   );
 }
