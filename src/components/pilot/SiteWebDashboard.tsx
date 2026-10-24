@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Activity, BarChart3, Globe2, MapPin, Search, Target, Users } from "lucide-react";
+import { Activity, BarChart3, FileSearch, Globe2, MapPin, Search, Target, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { SiteWebCompetitorWatch } from "@/components/pilot/SiteWebCompetitorWatch";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
 import { SiteWebLocalView } from "@/components/pilot/SiteWebLocalView";
 import { SiteWebSeoDiagnostic } from "@/components/pilot/SiteWebSeoDiagnostic";
 import { SiteWebStatistics } from "@/components/pilot/SiteWebStatistics";
+import { SiteWebPages } from "@/components/pilot/SiteWebPages";
 import { SiteWebSynthesis } from "@/components/pilot/SiteWebSynthesis";
 import { SiteWebVisibilityRadar } from "@/components/pilot/SiteWebVisibilityRadar";
 import { useIsAdmin } from "@/hooks/use-admin";
@@ -17,6 +18,7 @@ const moduleViews = [
   { id: "synthesis", label: "Synthèse", icon: Globe2 },
   { id: "seo", label: "SEO & mots-clés", icon: Search },
   { id: "audience", label: "Statistiques", icon: BarChart3 },
+  { id: "pages", label: "Pages", icon: FileSearch },
   { id: "local", label: "SEO local", icon: MapPin },
   { id: "competitors", label: "Concurrence & marché", icon: Users },
   { id: "technical", label: "Technique & GEO", icon: Activity },
@@ -91,6 +93,8 @@ export function SiteWebDashboard() {
       )}
 
       {activeView === "audience" && <SiteWebStatistics />}
+
+      {activeView === "pages" && <SiteWebPages />}
 
       {activeView === "local" && (
         <div className="space-y-5">
