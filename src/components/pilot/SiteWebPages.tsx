@@ -67,7 +67,9 @@ const decimal = (value: number | null) =>
 const seconds = (value: number | null) => {
   if (value === null) return "—";
   const rounded = Math.round(value);
-  return rounded >= 60 ? `${Math.floor(rounded / 60)} min ${rounded % 60} s` : `${rounded} s`;
+  return rounded >= 60
+    ? `${Math.floor(rounded / 60)} min ${rounded % 60} s`
+    : `${rounded} s`;
 };
 const dateLabel = (s: string) => new Date(`${s}T12:00:00`).toLocaleDateString("fr-FR");
 
@@ -131,8 +133,12 @@ export function SiteWebPages() {
         ) ??
         sites.find((item) => item.siteUrl.includes("delagraineaujardin.com")) ??
         null;
-      if (propertyList.error) setGa4Source(`GA4 indisponible : ${propertyList.error}`);
-      if (sitesList.error) setGscSource(`Search Console indisponible : ${sitesList.error}`);
+      if (propertyList.error) {
+        setGa4Source(`GA4 indisponible : ${propertyList.error}`);
+      }
+      if (sitesList.error) {
+        setGscSource(`Search Console indisponible : ${sitesList.error}`);
+      }
 
       const tasks = await Promise.all([
         gaProperty
@@ -255,8 +261,13 @@ export function SiteWebPages() {
     }
   };
   const sortLabel = (label: string, key: SortKey) => (
-    <button type="button" onClick={() => sortBy(key)} className="font-medium hover:text-foreground">
-      {label}{sortKey === key ? (sortDescending ? " ↓" : " ↑") : ""}
+    <button
+      type="button"
+      onClick={() => sortBy(key)}
+      className="font-medium hover:text-foreground"
+    >
+      {label}
+      {sortKey === key ? (sortDescending ? " ↓" : " ↑") : ""}
     </button>
   );
 
@@ -300,9 +311,7 @@ export function SiteWebPages() {
 
       <Card className="p-4">
         <label className="relative block">
-          <Search
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-          />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -330,19 +339,35 @@ export function SiteWebPages() {
             <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                <th className="py-2 pr-3 font-medium">Page / URL</th>
-                <th className="py-2 px-3 text-right">{sortLabel("Vues GA4", "views")}</th>
-                <th className="py-2 px-3 text-right">{sortLabel("Utilisateurs", "users")}</th>
-                <th className="py-2 px-3 text-right">{sortLabel("Sessions", "sessions")}</th>
-                <th className="px-3 py-2 text-right">
-                  {sortLabel("Engagement", "engagementRate")}
-                </th>
-                <th className="py-2 px-3 text-right">{sortLabel("Clics Google", "clicks")}</th>
-                <th className="py-2 px-3 text-right">{sortLabel("Impressions", "impressions")}</th>
-                <th className="py-2 px-3 text-right">{sortLabel("CTR", "ctr")}</th>
-                <th className="py-2 pl-3 text-right">{sortLabel("Position", "position")}</th>
-              </tr></thead>
-              <tbody>{visibleRows.map((row) => (
+                  <th className="py-2 pr-3 font-medium">Page / URL</th>
+                  <th className="px-3 py-2 text-right">
+                    {sortLabel("Vues GA4", "views")}
+                  </th>
+                  <th className="px-3 py-2 text-right">
+                    {sortLabel("Utilisateurs", "users")}
+                  </th>
+                  <th className="px-3 py-2 text-right">
+                    {sortLabel("Sessions", "sessions")}
+                  </th>
+                  <th className="px-3 py-2 text-right">
+                    {sortLabel("Engagement", "engagementRate")}
+                  </th>
+                  <th className="px-3 py-2 text-right">
+                    {sortLabel("Clics Google", "clicks")}
+                  </th>
+                  <th className="px-3 py-2 text-right">
+                    {sortLabel("Impressions", "impressions")}
+                  </th>
+                  <th className="px-3 py-2 text-right">
+                    {sortLabel("CTR", "ctr")}
+                  </th>
+                  <th className="py-2 pl-3 text-right">
+                    {sortLabel("Position", "position")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleRows.map((row) => (
                 <tr key={row.path} className="border-b last:border-0 hover:bg-muted/30">
                   <td className="max-w-[320px] py-3 pr-3">
                     <button
@@ -381,7 +406,7 @@ export function SiteWebPages() {
 
       {selected && (
         <Card className="p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="font-serif text-base font-semibold">Détail de la page</h3>
             <p className="mt-1 break-all text-sm text-muted-foreground">{selected.url}</p>
@@ -393,8 +418,8 @@ export function SiteWebPages() {
           >
             Fermer
           </button>
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
             ["Vues (GA4)", count(selected.views)],
             ["Utilisateurs (GA4)", count(selected.users)],
@@ -411,11 +436,11 @@ export function SiteWebPages() {
               <p className="mt-1 text-lg font-semibold tabular-nums">{value}</p>
             </div>
           ))}
-        </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Sources : {ga4Source} et {gscSource}. Période : {period}. Les valeurs « — »
-          correspondent à des métriques non disponibles pour cette page ou cette source.
-        </p>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Sources : {ga4Source} et {gscSource}. Période : {period}. Les valeurs « — »
+            correspondent à des métriques non disponibles pour cette page ou cette source.
+          </p>
         </Card>
       )}
       <p className="text-xs text-muted-foreground">
