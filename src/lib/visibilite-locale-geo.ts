@@ -40,6 +40,8 @@ async function cachedPoint(key: string, address: string): Promise<GeoPoint | nul
 export interface CommuneTravel {
   /** Minutes de trajet en voiture depuis Vendargues, par nom de commune (null si inconnu). */
   minutes: Record<string, number | null>;
+  /** Distance routière en km depuis Vendargues, par nom de commune (null si inconnue). */
+  km: Record<string, number | null>;
   /** Vrai si au moins un temps est une estimation à vol d'oiseau. */
   estimated: boolean;
 }
@@ -48,10 +50,14 @@ export interface CommuneTravel {
 export async function loadCommuneTravel(): Promise<CommuneTravel> {
   const origin = await cachedPoint(ORIGIN_KEY, MAPPING_ORIGIN_ADDRESS);
   const minutes: Record<string, number | null> = {};
+  const km: Record<string, number | null> = {};
   let estimated = false;
   if (!origin) {
-    for (const c of TARGET_COMMUNES) minutes[c.name] = null;
-    return { minutes, estimated };
+    for (const c of TARGET_COMMUNES) {
+      minutes[c.name] = null;
+      km[c.name] = null;
+    }
+    return { minutes, km, estimated };
   }
   await Promise.all(
     TARGET_COMMUNES.map(async (commune) => {
@@ -62,16 +68,19 @@ export async function loadCommuneTravel(): Promise<CommuneTravel> {
         );
         if (!point) {
           minutes[commune.name] = null;
+          km[commune.name] = null;
           return;
         }
         const route = await routeFromOrigin(origin, point);
         if (route.kind === "estimate") estimated = true;
         minutes[commune.name] = Math.round(route.durationSeconds / 60);
+        km[commune.name] = Math.round(route.distanceMeters / 100) / 10;
       } catch (error) {
         console.error("[visibilite] trajet commune", commune.name, error);
         minutes[commune.name] = null;
+        km[commune.name] = null;
       }
     }),
   );
-  return { minutes, estimated };
+  return { minutes, km, estimated };
 }

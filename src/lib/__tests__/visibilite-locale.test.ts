@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
+  CAPACITY_FACTOR,
   WEIGHTS,
+  computeCapacity,
+  monthlyHours,
   detectCommune,
   detectPrestation,
   groupQueries,
@@ -105,5 +108,67 @@ describe("Radar Visibilité locale", () => {
     const gaps = visibilityGaps(opportunities, ["AP"]);
     expect(gaps).toHaveLength(7);
     expect(gaps.some((g) => g.commune === "Castries")).toBe(false);
+  });
+
+  const opp = (prestation: "AP" | "Conseil" | "SAP", commune: string) => ({
+    key: `${prestation}|${commune}`,
+    prestation,
+    commune,
+    impressions: 100,
+    clicks: 5,
+    position: 8,
+    topQueries: [],
+    potentialClicks: 0,
+  });
+
+  test("entretien promu seulement à moins de 10 km", () => {
+    const out = scoreOpportunities({
+      opportunities: [opp("SAP", "Castries"), opp("SAP", "Jacou"), opp("AP", "Jacou")],
+      hourlyRates: {},
+      travelMinutes: { Castries: 8, Jacou: 12 },
+      travelKm: { Castries: 6.5, Jacou: 11.2 },
+      monthly: {},
+      promoted: ["AP", "Conseil"],
+    });
+    const get = (k: string) => out.find((o) => o.key === k)!;
+    expect(get("SAP|Castries").promoted).toBe(true);
+    expect(get("SAP|Jacou").promoted).toBe(false);
+    expect(get("AP|Jacou").promoted).toBe(true);
+  });
+
+  test("capacité : moyenne des 3 derniers mois et seuil de saturation", () => {
+    const hours = monthlyHours(
+      [
+        { year: 2026, month: 8, hours: 90 },
+        { year: 2026, month: 9, hours: 80 },
+        { year: 2026, month: 10, hours: 100 },
+        { year: 2025, month: 10, hours: 500 },
+      ],
+      2026,
+    );
+    const cap = computeCapacity(hours, new Date(2026, 9, 24));
+    expect(cap.averageHours).toBe(90);
+    expect(cap.saturated).toBe(true);
+    expect(computeCapacity(hours, new Date(2026, 0, 5)).saturated).toBe(false);
+  });
+
+  test("saturation : freine les prestations gourmandes en heures, pas la visite conseil", () => {
+    const params = {
+      opportunities: [opp("AP", "Castries"), opp("Conseil", "Castries")],
+      hourlyRates: {},
+      travelMinutes: { Castries: 8 },
+      monthly: {},
+      promoted: ["AP", "Conseil"] as Array<"AP" | "Conseil">,
+    };
+    const free = scoreOpportunities(params);
+    const sat = scoreOpportunities({
+      ...params,
+      capacity: { averageHours: 95, threshold: 80, saturated: true },
+    });
+    const ap = (list: typeof free) => list.find((o) => o.prestation === "AP")!;
+    const conseil = (list: typeof free) => list.find((o) => o.prestation === "Conseil")!;
+    expect(ap(sat).capacityFactor).toBe(CAPACITY_FACTOR);
+    expect(ap(sat).score).toBeLessThan(ap(free).score);
+    expect(conseil(sat).score).toBe(conseil(free).score);
   });
 });

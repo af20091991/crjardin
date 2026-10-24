@@ -46,6 +46,14 @@ export const EXCLUDED_ALIASES = [
   "saint georges d orques",
 ];
 
+/** Entretien : promu seulement chez les particuliers proches (distance routière depuis Vendargues, en km). */
+export const ENTRETIEN_MAX_KM = 10;
+
+/** Seuil de saturation : heures travaillées par mois (Vente → Temps) au-delà desquelles on freine la promotion. */
+export const CAPACITY_THRESHOLD_HOURS = 80;
+/** Coefficient appliqué au score des prestations gourmandes en heures quand la capacité est saturée (la visite conseil, courte, n'est pas freinée). */
+export const CAPACITY_FACTOR = 0.85;
+
 /** Zone de chalandise : temps de trajet maximum depuis Vendargues. */
 export const MAX_TRAVEL_MINUTES = 15;
 
@@ -273,8 +281,45 @@ export function seasonalityScore(monthly: number[] | undefined, window: number[]
   return clamp((ahead / mean) * 50);
 }
 
+export interface Capacity {
+  /** Moyenne mensuelle d'heures travaillées sur les 3 derniers mois (mois en cours inclus). */
+  averageHours: number | null;
+  threshold: number;
+  saturated: boolean;
+}
+
+/** Heures par mois (1–12) d'une année à partir des lignes de vente (colonne Temps). */
+export function monthlyHours(
+  rows: Array<{ year: number; month: number; hours: number | null }>,
+  year: number,
+): number[] {
+  const out = Array.from({ length: 12 }, () => 0);
+  for (const row of rows) {
+    if (row.year !== year || !(row.month >= 1 && row.month <= 12)) continue;
+    out[row.month - 1] = (out[row.month - 1] ?? 0) + (Number(row.hours) || 0);
+  }
+  return out;
+}
+
+export function computeCapacity(hoursByMonth: number[], today: Date = new Date()): Capacity {
+  const current = today.getMonth();
+  const recent = [current, current - 1, current - 2]
+    .filter((m) => m >= 0)
+    .map((m) => hoursByMonth[m] ?? 0);
+  const total = recent.reduce((s, v) => s + v, 0);
+  const averageHours = total > 0 ? total / recent.length : null;
+  return {
+    averageHours,
+    threshold: CAPACITY_THRESHOLD_HOURS,
+    saturated: averageHours != null && averageHours >= CAPACITY_THRESHOLD_HOURS,
+  };
+}
+
 export interface ScoredOpportunity extends Opportunity {
   travelMinutes: number | null;
+  travelKm: number | null;
+  /** Coefficient de saturation appliqué (1 = aucun). */
+  capacityFactor: number;
   hourlyRate: number | null;
   criteria: Record<CriterionKey, number>;
   /** Critères remplacés par une valeur neutre faute de données. */
@@ -288,11 +333,14 @@ export function scoreOpportunities(params: {
   opportunities: Opportunity[];
   hourlyRates: Record<string, number | null | undefined>;
   travelMinutes: Record<string, number | null | undefined>;
+  travelKm?: Record<string, number | null | undefined>;
+  capacity?: Capacity | null;
   monthly: MonthlyCa;
   promoted: ScoredPrestation[];
   today?: Date;
 }): ScoredOpportunity[] {
   const { opportunities, hourlyRates, travelMinutes, monthly, promoted } = params;
+  const travelKm = params.travelKm ?? {};
   const window = monthsAhead(params.today ?? new Date());
   const maxImp = Math.max(1, ...opportunities.map((o) => o.impressions));
   const rates = Object.values(hourlyRates).filter(
@@ -305,6 +353,7 @@ export function scoreOpportunities(params: {
       const neutral: CriterionKey[] = [];
       const rate = hourlyRates[o.prestation] ?? null;
       const minutes = travelMinutes[o.commune] ?? null;
+      const km = travelKm[o.commune] ?? null;
       const season = seasonalityScore(monthly[o.prestation], window);
       if (!rate || maxRate <= 0) neutral.push("marge");
       if (minutes == null) neutral.push("proximite");
@@ -316,18 +365,25 @@ export function scoreOpportunities(params: {
         proximite: proximityScore(minutes),
         saisonnalite: season ?? 50,
       };
-      const score = (Object.keys(WEIGHTS) as CriterionKey[]).reduce(
+      const base = (Object.keys(WEIGHTS) as CriterionKey[]).reduce(
         (sum, key) => sum + criteria[key] * WEIGHTS[key],
         0,
       );
+      const capacityFactor =
+        params.capacity?.saturated && o.prestation !== "Conseil" ? CAPACITY_FACTOR : 1;
+      const score = base * capacityFactor;
       return {
         ...o,
         travelMinutes: minutes,
+        travelKm: km,
+        capacityFactor,
         hourlyRate: rate,
         criteria,
         neutral,
         score: Math.round(score * 10) / 10,
-        promoted: promoted.includes(o.prestation),
+        promoted:
+          promoted.includes(o.prestation) ||
+          (o.prestation === "SAP" && km != null && km <= ENTRETIEN_MAX_KM),
         outOfZone: minutes != null && minutes > MAX_TRAVEL_MINUTES,
       };
     })
