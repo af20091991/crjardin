@@ -140,16 +140,30 @@ export function SiteWebPages() {
               propertyId: gaProperty.name.replace(/^properties\//, ""),
               ...current,
               dimensions: ["pagePath"],
-              metrics: ["screenPageViews", "totalUsers", "sessions", "engagementRate", "averageEngagementTime"],
+              metrics: [
+                "screenPageViews",
+                "totalUsers",
+                "sessions",
+                "engagementRate",
+                "averageEngagementTime",
+              ],
             })
-          : Promise.resolve({ data: null, error: propertyList.error ?? "Aucune propriété GA4 accessible." }),
+          : Promise.resolve({
+              data: null,
+              error: propertyList.error ?? "Aucune propriété GA4 accessible.",
+            }),
         site
           ? querySearchConsole({
               siteUrl: site.siteUrl,
               ...current,
               dimensions: ["page"],
             })
-          : Promise.resolve({ data: null, error: sitesList.error ?? "Aucune propriété Search Console accessible pour le site." }),
+          : Promise.resolve({
+              data: null,
+              error:
+                sitesList.error ??
+                "Aucune propriété Search Console accessible pour le site.",
+            }),
       ]);
       if (!active) return;
 
@@ -181,9 +195,17 @@ export function SiteWebPages() {
         if (!url) continue;
         const key = normalizedPath(url);
         const existing = merged.get(key) ?? {
-          path: key, url: pageUrl(url), views: null, users: null, sessions: null,
-          engagementRate: null, avgEngagementSeconds: null, clicks: null,
-          impressions: null, ctr: null, position: null,
+          path: key,
+          url: pageUrl(url),
+          views: null,
+          users: null,
+          sessions: null,
+          engagementRate: null,
+          avgEngagementSeconds: null,
+          clicks: null,
+          impressions: null,
+          ctr: null,
+          position: null,
         };
         merged.set(key, {
           ...existing,
@@ -212,7 +234,11 @@ export function SiteWebPages() {
   const visibleRows = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("fr-FR");
     const filtered = query
-      ? rows.filter((row) => row.path.toLocaleLowerCase("fr-FR").includes(query) || row.url.toLocaleLowerCase("fr-FR").includes(query))
+      ? rows.filter(
+          (row) =>
+            row.path.toLocaleLowerCase("fr-FR").includes(query) ||
+            row.url.toLocaleLowerCase("fr-FR").includes(query),
+        )
       : rows;
     return [...filtered].sort((a, b) => {
       const left = a[sortKey] ?? (sortDescending ? -Infinity : Infinity);
@@ -238,35 +264,35 @@ export function SiteWebPages() {
     <div className="space-y-5">
       <Card className="p-5">
         <div className="flex items-start gap-3">
-          <div className="rounded-lg bg-primary/10 p-2 text-primary"><FileSearch className="h-5 w-5" /></div>
+          <div className="rounded-lg bg-primary/10 p-2 text-primary">\n            <FileSearch className="h-5 w-5" />\n          </div>
           <div className="min-w-0 flex-1">
             <h2 className="font-serif text-lg font-semibold">Analyse détaillée des pages</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Chaque URL renvoyée par GA4 ou Search Console, y compris les articles de blog, sans liste éditoriale codée en dur.
               Les métriques GA4 décrivent l’audience ; Search Console décrit la visibilité dans Google.
             </p>
-            {period && <p className="mt-2 text-xs text-muted-foreground">Période : {period}{checkedAt ? ` · Lecture du ${checkedAt}` : ""}</p>}
+            {period && (\n              <p className="mt-2 text-xs text-muted-foreground">\n                Période : {period}\n                {checkedAt ? ` · Lecture du ${checkedAt}` : ""}\n              </p>\n            )}
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span>Audience : {ga4Source}</span><span>Recherche : {gscSource}</span>
+              <span>Audience : {ga4Source}</span>\n              <span>Recherche : {gscSource}</span>
             </div>
           </div>
         </div>
       </Card>
 
-      {error && <div role="status" className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span></div>}
+      {error && (\n        <div\n          role="status"\n          className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm"\n        >\n          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />\n          <span>{error}</span>\n        </div>\n      )}
 
       <Card className="p-4">
         <label className="relative block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher une URL ou un article…" className="pl-9" />
         </label>
-        <p className="mt-3 text-xs text-muted-foreground">{loading ? "Chargement des pages…" : `${visibleRows.length} page(s) affichée(s) sur ${rows.length}`}</p>
+        <p className="mt-3 text-xs text-muted-foreground">\n          {loading\n            ? "Chargement des pages…"\n            : `${visibleRows.length} page(s) affichée(s) sur ${rows.length}`}\n        </p>
         {loading ? <EmptyState title="Chargement des pages" description="Lecture des données Google Analytics 4 et Search Console." /> : visibleRows.length === 0 ? (
           <EmptyState title="Aucune page disponible" description="Vérifiez les connexions Google ou modifiez votre recherche. Aucune donnée manquante n’est remplacée par zéro." />
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[900px] text-sm">
-              <thead><tr className="border-b text-left text-muted-foreground">
+              <thead>\n                <tr className="border-b text-left text-muted-foreground">
                 <th className="py-2 pr-3 font-medium">Page / URL</th>
                 <th className="py-2 px-3 text-right">{sortLabel("Vues GA4", "views")}</th>
                 <th className="py-2 px-3 text-right">{sortLabel("Utilisateurs", "users")}</th>
@@ -280,8 +306,8 @@ export function SiteWebPages() {
               <tbody>{visibleRows.map((row) => (
                 <tr key={row.path} className="border-b last:border-0 hover:bg-muted/30">
                   <td className="max-w-[320px] py-3 pr-3">
-                    <button type="button" onClick={() => setSelected(row)} className="block max-w-full truncate text-left font-medium text-primary hover:underline" title={row.path}>{row.path}</button>
-                    <a href={row.url} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 truncate text-xs text-muted-foreground hover:text-foreground"><span className="truncate">{row.url}</span><ExternalLink className="h-3 w-3 shrink-0" /></a>
+                    <button\n                      type="button"\n                      onClick={() => setSelected(row)}\n                      className="block max-w-full truncate text-left font-medium text-primary hover:underline"\n                      title={row.path}\n                    >\n                      {row.path}\n                    </button>
+                    <a\n                      href={row.url}\n                      target="_blank"\n                      rel="noreferrer"\n                      className="inline-flex max-w-full items-center gap-1 truncate text-xs text-muted-foreground hover:text-foreground"\n                    >\n                      <span className="truncate">{row.url}</span>\n                      <ExternalLink className="h-3 w-3 shrink-0" />\n                    </a>
                   </td>
                   <td className="px-3 py-3 text-right tabular-nums">{count(row.views)}</td>
                   <td className="px-3 py-3 text-right tabular-nums">{count(row.users)}</td>
@@ -292,16 +318,16 @@ export function SiteWebPages() {
                   <td className="px-3 py-3 text-right tabular-nums">{pct(row.ctr)}</td>
                   <td className="py-3 pl-3 text-right tabular-nums">{decimal(row.position)}</td>
                 </tr>
-              ))}</tbody>
+                ))}\n              </tbody>
             </table>
           </div>
         )}
       </Card>
 
-      {selected && <Card className="p-5">
+      {selected && (\n        <Card className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div><h3 className="font-serif text-base font-semibold">Détail de la page</h3><p className="mt-1 break-all text-sm text-muted-foreground">{selected.url}</p></div>
-          <button type="button" onClick={() => setSelected(null)} className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted">Fermer</button>
+          <div>\n            <h3 className="font-serif text-base font-semibold">Détail de la page</h3>\n            <p className="mt-1 break-all text-sm text-muted-foreground">{selected.url}</p>\n          </div>
+          <button\n            type="button"\n            onClick={() => setSelected(null)}\n            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted"\n          >\n            Fermer\n          </button>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
@@ -312,7 +338,7 @@ export function SiteWebPages() {
             ["CTR (Search Console)", pct(selected.ctr)], ["Position moyenne (Search Console)", decimal(selected.position)],
           ].map(([label, value]) => <div key={label} className="rounded-lg border border-border p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-lg font-semibold tabular-nums">{value}</p></div>)}
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">Sources : {ga4Source} et {gscSource}. Période : {period}. Les valeurs « — » correspondent à des métriques non disponibles pour cette page ou cette source.</p>
+        <p className="mt-3 text-xs text-muted-foreground">\n          Sources : {ga4Source} et {gscSource}. Période : {period}. Les valeurs « — »\n          correspondent à des métriques non disponibles pour cette page ou cette source.\n        </p>
       </Card>}
       <p className="text-xs text-muted-foreground">Sources : Google Analytics 4 et Google Search Console. Les données de chaque source sont affichées séparément et ne sont pas additionnées. Les pages présentes dans une seule source restent visibles.</p>
     </div>
