@@ -138,15 +138,31 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
         slug: draft.slug,
         status: "draft",
         content: draft.html,
-        meta: {
-          rank_math_title: draft.metaTitle,
-          rank_math_description: draft.metaDescription,
-          rank_math_focus_keyword: draft.focusKeyword,
-        },
       }),
     });
     if (!res.ok) throw new Error(`WordPress a refusé la création (${res.status}).`);
     const page = (await res.json()) as { id: number };
+
+    // Rank Math : meta non exposées par l'API standard ; appel best-effort sur sa propre route.
+    let seoApplied = false;
+    try {
+      const seo = await fetch(`${BUSINESS.url}/wp-json/rankmath/v1/updateMeta`, {
+        method: "POST",
+        headers: { Authorization: auth, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          objectID: page.id,
+          objectType: "post",
+          meta: {
+            rank_math_title: draft.metaTitle,
+            rank_math_description: draft.metaDescription,
+            rank_math_focus_keyword: draft.focusKeyword,
+          },
+        }),
+      });
+      seoApplied = seo.ok;
+    } catch {
+      seoApplied = false;
+    }
     const editUrl = `${BUSINESS.url}/wp-admin/post.php?post=${page.id}&action=edit`;
 
     const { error } = await registry(context.supabase).from("local_pages").insert({
@@ -158,5 +174,5 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
       created_by: context.userId,
     });
     if (error) throw new Error("Page créée mais non enregistrée au registre.");
-    return { editUrl, slug: draft.slug };
+    return { editUrl, slug: draft.slug, seoApplied };
   });

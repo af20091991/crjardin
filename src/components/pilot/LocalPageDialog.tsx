@@ -28,7 +28,12 @@ export function LocalPageDialog({ o }: { o: ScoredOpportunity }) {
   const preview = useMutation({ mutationFn: () => previewLocalPage({ data: input }) });
   const create = useMutation({
     mutationFn: () => createLocalPageDraft({ data: input }),
-    onSuccess: (r) => toast.success("Brouillon créé dans WordPress", { description: r.editUrl }),
+    onSuccess: (r) =>
+      toast.success("Brouillon créé dans WordPress", {
+        description: r.seoApplied
+          ? r.editUrl
+          : "Titre SEO, description et mot-clé Rank Math à saisir à la main.",
+      }),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Création impossible"),
   });
 
