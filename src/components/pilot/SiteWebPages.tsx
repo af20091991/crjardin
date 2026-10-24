@@ -287,9 +287,8 @@ export function SiteWebPages() {
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Chaque URL renvoyée par GA4 ou Search Console, y compris les articles de
-              blog,
-              sans liste éditoriale codée en dur. Les métriques GA4 décrivent l’audience ;
-              Search Console décrit la visibilité dans Google.
+              blog, sans liste éditoriale codée en dur. Les métriques GA4 décrivent
+              l’audience ; Search Console décrit la visibilité dans Google.
             </p>
             {period && (
               <p className="mt-2 text-xs text-muted-foreground">
@@ -475,8 +474,8 @@ export function SiteWebPages() {
       )}
       <p className="text-xs text-muted-foreground">
         Sources : Google Analytics 4 et Google Search Console. Les données de chaque
-        sont affichées séparément et ne sont pas additionnées. Les pages présentes dans une
-        seule source restent visibles.
+        source sont affichées séparément et ne sont pas additionnées. Les pages présentes
+        dans une seule source restent visibles.
       </p>
     </div>
   );
