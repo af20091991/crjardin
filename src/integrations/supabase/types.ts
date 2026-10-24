@@ -982,6 +982,7 @@ export type Database = {
       };
       clients: {
         Row: {
+          acquisition_source: string | null;
           address: string | null;
           ceev_enabled: boolean;
           ceev_planning_filename: string | null;
@@ -1020,6 +1021,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          acquisition_source?: string | null;
           address?: string | null;
           ceev_enabled?: boolean;
           ceev_planning_filename?: string | null;
@@ -1058,6 +1060,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          acquisition_source?: string | null;
           address?: string | null;
           ceev_enabled?: boolean;
           ceev_planning_filename?: string | null;

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/pilot/EmptyState";
 import { SeriesChart } from "@/components/pilot/DashboardCharts";
+import { RadarFollowUp } from "@/components/pilot/RadarFollowUp";
 import { LocalPageDialog } from "@/components/pilot/LocalPageDialog";
 import { PP_COLORS } from "@/lib/pilot-colors";
 import { formatCount, formatHourlyRate } from "@/lib/format-utils";
@@ -329,8 +330,12 @@ export function SiteWebVisibilityRadar() {
                 ? " : saturée, le score des prestations gourmandes en heures est réduit de 15 %."
                 : " : non saturée, aucun frein appliqué."}
             </p>
-            <p>La structure GEO des pages sera prise en compte à l’étape suivante.</p>
+            <p>
+              Les pages préparées suivent une structure GEO : réponse en tête, FAQ, données
+              structurées.
+            </p>
           </Card>
+          <RadarFollowUp opportunities={data.opportunities} generatedAt={data.generatedAt} />
         </>
       ) : null}
     </div>
