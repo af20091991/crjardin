@@ -1,0 +1,18 @@
+name: Temporary SiteWebPages Prettier diagnostic
+on:
+  push:
+    branches:
+      - feat/site-web-pages-tab
+permissions:
+  contents: read
+jobs:
+  prettier-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Show exact Prettier diff
+        run: |
+          bunx prettier src/components/pilot/SiteWebPages.tsx > /tmp/SiteWebPages.formatted.tsx
+          diff -u src/components/pilot/SiteWebPages.tsx /tmp/SiteWebPages.formatted.tsx || true
