@@ -443,15 +443,15 @@ export function SiteWebPages() {
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-            ["Vues (GA4)", count(selected.views)],
-            ["Utilisateurs (GA4)", count(selected.users)],
-            ["Sessions (GA4)", count(selected.sessions)],
-            ["Taux d’engagement (GA4)", pct(selected.engagementRate)],
-            ["Temps d’engagement moyen (GA4)", seconds(selected.avgEngagementSeconds)],
-            ["Clics (Search Console)", count(selected.clicks)],
-            ["Impressions (Search Console)", count(selected.impressions)],
-            ["CTR (Search Console)", pct(selected.ctr)],
-            ["Position moyenne (Search Console)", decimal(selected.position)],
+              ["Vues (GA4)", count(selected.views)],
+              ["Utilisateurs (GA4)", count(selected.users)],
+              ["Sessions (GA4)", count(selected.sessions)],
+              ["Taux d’engagement (GA4)", pct(selected.engagementRate)],
+              ["Temps d’engagement moyen (GA4)", seconds(selected.avgEngagementSeconds)],
+              ["Clics (Search Console)", count(selected.clicks)],
+              ["Impressions (Search Console)", count(selected.impressions)],
+              ["CTR (Search Console)", pct(selected.ctr)],
+              ["Position moyenne (Search Console)", decimal(selected.position)],
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg border border-border p-3">
                 <p className="text-xs text-muted-foreground">{label}</p>
