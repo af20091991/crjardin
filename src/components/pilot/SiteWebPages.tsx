@@ -20,6 +20,8 @@ import {
   SITE_WEB_SITE_URL,
 } from "@/lib/site-web-config";
 
+type SortKey = "views" | "users" | "sessions" | "engagementRate" | "clicks" | "impressions" | "ctr" | "position";
+
 type PageMetrics = {
   path: string;
   url: string;
@@ -71,6 +73,8 @@ function pageUrl(path: string): string {
 export function SiteWebPages() {
   const [rows, setRows] = useState<PageMetrics[]>([]);
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("views");
+  const [sortDescending, setSortDescending] = useState(true);
   const [selected, setSelected] = useState<PageMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +113,7 @@ export function SiteWebPages() {
           ? runAnalyticsReport({
               propertyId: gaProperty.name.replace(/^properties\//, ""),
               ...current,
-              dimensions: ["pagePathPlusQueryString"],
+              dimensions: ["pagePath"],
               metrics: ["screenPageViews", "totalUsers", "sessions", "engagementRate", "averageEngagementTime"],
             })
           : Promise.resolve({ data: null, error: propertyList.error ?? "Aucune propriété GA4 accessible." }),
@@ -180,8 +184,25 @@ export function SiteWebPages() {
   const visibleRows = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("fr-FR");
     if (!query) return rows;
-    return rows.filter((row) => row.path.toLocaleLowerCase("fr-FR").includes(query) || row.url.toLocaleLowerCase("fr-FR").includes(query));
-  }, [rows, search]);
+    const filtered = query
+      ? rows.filter((row) => row.path.toLocaleLowerCase("fr-FR").includes(query) || row.url.toLocaleLowerCase("fr-FR").includes(query))
+      : rows;
+    return [...filtered].sort((a, b) => {
+      const left = a[sortKey] ?? (sortDescending ? -Infinity : Infinity);
+      const right = b[sortKey] ?? (sortDescending ? -Infinity : Infinity);
+      return (Number(left) - Number(right)) * (sortDescending ? -1 : 1);
+    });
+  }, [rows, search, sortKey, sortDescending]);
+
+  const sortBy = (key: SortKey) => {
+    if (sortKey === key) setSortDescending((current) => !current);
+    else { setSortKey(key); setSortDescending(true); }
+  };
+  const sortLabel = (label: string, key: SortKey) => (
+    <button type="button" onClick={() => sortBy(key)} className="font-medium hover:text-foreground">
+      {label}{sortKey === key ? (sortDescending ? " ↓" : " ↑") : ""}
+    </button>
+  );
 
   return (
     <div className="space-y-5">
@@ -217,14 +238,14 @@ export function SiteWebPages() {
             <table className="w-full min-w-[900px] text-sm">
               <thead><tr className="border-b text-left text-muted-foreground">
                 <th className="py-2 pr-3 font-medium">Page / URL</th>
-                <th className="py-2 px-3 text-right font-medium">Vues GA4</th>
-                <th className="py-2 px-3 text-right font-medium">Utilisateurs</th>
-                <th className="py-2 px-3 text-right font-medium">Sessions</th>
-                <th className="py-2 px-3 text-right font-medium">Engagement</th>
-                <th className="py-2 px-3 text-right font-medium">Clics Google</th>
-                <th className="py-2 px-3 text-right font-medium">Impressions</th>
-                <th className="py-2 px-3 text-right font-medium">CTR</th>
-                <th className="py-2 pl-3 text-right font-medium">Position</th>
+                <th className="py-2 px-3 text-right">{sortLabel("Vues GA4", "views")}</th>
+                <th className="py-2 px-3 text-right">{sortLabel("Utilisateurs", "users")}</th>
+                <th className="py-2 px-3 text-right">{sortLabel("Sessions", "sessions")}</th>
+                <th className="py-2 px-3 text-right">{sortLabel("Engagement", "engagementRate")}</th>
+                <th className="py-2 px-3 text-right">{sortLabel("Clics Google", "clicks")}</th>
+                <th className="py-2 px-3 text-right">{sortLabel("Impressions", "impressions")}</th>
+                <th className="py-2 px-3 text-right">{sortLabel("CTR", "ctr")}</th>
+                <th className="py-2 pl-3 text-right">{sortLabel("Position", "position")}</th>
               </tr></thead>
               <tbody>{visibleRows.map((row) => (
                 <tr key={row.path} className="border-b last:border-0 hover:bg-muted/30">
