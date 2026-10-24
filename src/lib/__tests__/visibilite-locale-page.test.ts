@@ -22,7 +22,7 @@ describe("générateur de page locale", () => {
         expect(failing).toEqual([]);
         expect(d.title).toContain(commune.name);
         expect(d.placeholders).toBe(1);
-        expect(d.slug).toMatch(/^[a-z0-9-]+$/);
+        expect(/^[a-z0-9-]+$/.test(d.slug)).toBe(true);
         expect(d.faq.length).toBeGreaterThanOrEqual(2);
       }
     }

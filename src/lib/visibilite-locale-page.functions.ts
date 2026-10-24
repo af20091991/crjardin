@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -43,15 +45,7 @@ interface RegistryClient {
 }
 const registry = (c: unknown) => c as RegistryClient;
 
-async function assertAdmin(context: {
-  supabase: {
-    rpc: (
-      fn: string,
-      args: Record<string, unknown>,
-    ) => PromiseLike<{ data: unknown; error: unknown }>;
-  };
-  userId: string;
-}) {
+async function assertAdmin(context: { supabase: SupabaseClient<Database>; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
