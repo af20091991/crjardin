@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { Activity, BarChart3, FileSearch, Globe2, MapPin, Search, Target, Users } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  FileSearch,
+  Globe2,
+  MapPin,
+  Search,
+  Target,
+  Users,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { SiteWebCompetitorWatch } from "@/components/pilot/SiteWebCompetitorWatch";
 import { SiteWebGoogleConnection } from "@/components/pilot/SiteWebGoogleConnection";
