@@ -32,7 +32,7 @@ export function LocalPageDialog({ o }: { o: ScoredOpportunity }) {
       toast.success("Brouillon créé dans WordPress", {
         description: r.seoApplied
           ? r.editUrl
-          : "Titre SEO, description et mot-clé Rank Math à saisir à la main.",
+          : `Rank Math à renseigner à la main (${r.seoDetail}).`,
       }),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Création impossible"),
   });
