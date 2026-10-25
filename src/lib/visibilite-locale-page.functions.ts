@@ -172,25 +172,43 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
     if (!res.ok) throw await wpError(res, "la création");
     const page = (await res.json()) as { id: number };
 
-    // Rank Math : meta non exposées par l'API standard ; appel best-effort sur sa propre route.
+    // Rank Math : deux voies successives, la première qui aboutit l'emporte.
+    const seoMeta = {
+      rank_math_title: draft.metaTitle,
+      rank_math_description: draft.metaDescription,
+      rank_math_focus_keyword: draft.focusKeyword,
+    };
+    const jsonHeaders = { Authorization: auth, "Content-Type": "application/json" };
+    const details: string[] = [];
     let seoApplied = false;
     try {
-      const seo = await wpFetch(`${BUSINESS.url}/wp-json/rankmath/v1/updateMeta`, {
+      const viaRankMath = await wpFetch(`${BUSINESS.url}/wp-json/rankmath/v1/updateMeta`, {
         method: "POST",
-        headers: { Authorization: auth, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          objectID: page.id,
-          objectType: "post",
-          meta: {
-            rank_math_title: draft.metaTitle,
-            rank_math_description: draft.metaDescription,
-            rank_math_focus_keyword: draft.focusKeyword,
-          },
-        }),
+        headers: jsonHeaders,
+        body: JSON.stringify({ objectID: page.id, objectType: "post", meta: seoMeta }),
       });
-      seoApplied = seo.ok;
+      seoApplied = viaRankMath.ok;
+      if (!viaRankMath.ok) details.push(`route Rank Math ${viaRankMath.status}`);
     } catch {
-      seoApplied = false;
+      details.push("route Rank Math injoignable");
+    }
+    if (!seoApplied) {
+      try {
+        const viaCore = await wpFetch(`${BUSINESS.url}/wp-json/wp/v2/pages/${page.id}`, {
+          method: "POST",
+          headers: jsonHeaders,
+          body: JSON.stringify({ meta: seoMeta }),
+        });
+        if (viaCore.ok) {
+          const updated = (await viaCore.json()) as { meta?: Record<string, unknown> };
+          seoApplied = updated.meta?.rank_math_title === seoMeta.rank_math_title;
+          if (!seoApplied) details.push("meta non exposées par l'API WordPress");
+        } else {
+          details.push(`API WordPress ${viaCore.status}`);
+        }
+      } catch {
+        details.push("API WordPress injoignable");
+      }
     }
     const editUrl = `${BUSINESS.url}/wp-admin/post.php?post=${page.id}&action=edit`;
 
@@ -203,5 +221,5 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
       created_by: context.userId,
     });
     if (error) throw new Error("Page créée mais non enregistrée au registre.");
-    return { editUrl, slug: draft.slug, seoApplied };
+    return { editUrl, slug: draft.slug, seoApplied, seoDetail: details.join(" ; ") };
   });
