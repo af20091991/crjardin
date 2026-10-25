@@ -66,11 +66,30 @@ const WP_HEADERS = {
   Accept: "application/json",
 };
 
-/** Appel WordPress avec identification et 2 nouvelles tentatives en cas de limitation (429/503). */
+/**
+ * Un envoi (POST) suivi automatiquement par fetch après une redirection 301/302 devient une lecture (GET) :
+ * on suit donc les redirections à la main, en conservant méthode et corps, et sans jamais transmettre
+ * les identifiants vers un autre domaine.
+ */
+async function sendFollowingRedirects(url: string, init: RequestInit): Promise<Response> {
+  let target = url;
+  const origin = new URL(url).host;
+  for (let hop = 0; hop < 4; hop += 1) {
+    const headers = new Headers(init.headers);
+    if (new URL(target).host !== origin) headers.delete("Authorization");
+    const response = await fetch(target, { ...init, headers, redirect: "manual" });
+    const location = response.headers.get("location");
+    if (response.status < 300 || response.status >= 400 || !location) return response;
+    target = new URL(location, target).toString();
+  }
+  throw new Error("Trop de redirections côté WordPress.");
+}
+
+/** Appel WordPress avec identification, redirections maîtrisées et 2 nouvelles tentatives sur 429/503. */
 async function wpFetch(url: string, init: RequestInit = {}): Promise<Response> {
   let response: Response | null = null;
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    response = await fetch(url, {
+    response = await sendFollowingRedirects(url, {
       ...init,
       headers: { ...WP_HEADERS, ...(init.headers as Record<string, string> | undefined) },
     });
