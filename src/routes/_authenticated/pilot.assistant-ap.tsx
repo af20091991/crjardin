@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,10 +51,22 @@ import {
   List,
   Plus,
   Search,
+  Mail,
   Trash2,
+  TriangleAlert,
   Truck,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { importApQuote } from "@/lib/assistant-ap-quote.functions";
+import { AP_SUPPLIER_EMAIL_ENABLED, buildSupplierEmail } from "@/lib/assistant-ap-mail";
+import {
+  ISSUE_TEXT_CLASS,
+  isReadyForExport,
+  supplyIssues,
+  worksiteBlockers,
+} from "@/lib/assistant-ap-checks";
+import { supplierByName } from "@/lib/assistant-ap-catalogue";
 import {
   buildOrderText,
   exportOrderPdf,
@@ -75,6 +88,7 @@ import {
   groupApEventsByDate,
   listApSuppliers,
   listApWorksites,
+  rememberSupplierChoice,
   suppliesOfSupplier,
   updateApSupply,
   updateApWorksite,
@@ -765,6 +779,7 @@ function WorksiteDetail({
               </Button>
             </div>
           </div>
+          <SupplyReadinessPanel worksite={worksite} suppliers={suppliers} />
           {exporting && (
             <ExportSuppliesDialog
               worksite={worksite}
@@ -972,6 +987,12 @@ function SupplyRow({
   });
   const statusView = STATUS_VIEW[supply.status];
   const listId = `ap-suppliers-${supply.id}`;
+  const issues = supplyIssues(supply, suppliers);
+  const blocking = issues.some((issue) => issue.level === "blocking");
+  const supplierBlocking = issues.some(
+    (issue) => issue.level === "blocking" && issue.code !== "item",
+  );
+  const quantityWarning = issues.some((issue) => issue.code === "quantity");
 
   return (
     <div className="min-w-0 overflow-hidden rounded-md border bg-background">
@@ -981,15 +1002,32 @@ function SupplyRow({
         onClick={onToggle}
         aria-expanded={open}
       >
-        <span className="truncate text-sm font-medium">{supply.item}</span>
+        <span
+          className={cn("truncate text-sm font-medium", blocking && ISSUE_TEXT_CLASS.blocking)}
+          title={issues.map((issue) => issue.label).join(" · ") || undefined}
+        >
+          {supply.item}
+        </span>
         <span className="text-xs font-normal text-muted-foreground sm:hidden">
           {statusView.label}
         </span>
-        <span className="hidden truncate text-xs font-normal text-muted-foreground sm:block">
+        <span
+          className={cn(
+            "hidden truncate text-xs font-normal sm:block",
+            quantityWarning ? ISSUE_TEXT_CLASS.warning : "text-muted-foreground",
+          )}
+        >
           {supply.quantity || "—"}
         </span>
-        <span className="hidden truncate text-xs font-normal text-muted-foreground sm:block">
-          {supply.supplier}
+        <span
+          className={cn(
+            "hidden truncate text-xs sm:block",
+            supplierBlocking
+              ? cn("font-medium", ISSUE_TEXT_CLASS.blocking)
+              : "font-normal text-muted-foreground",
+          )}
+        >
+          {supply.supplier || (supply.mode === "stock" ? "Stock" : "Fournisseur ?")}
         </span>
         <span className="hidden text-xs font-normal text-muted-foreground sm:block">
           {AP_MODE_LABELS[supply.mode]}
@@ -1011,6 +1049,15 @@ function SupplyRow({
       </Button>
       {open && (
         <div className="border-t p-2">
+          {issues.length > 0 && (
+            <p className="mb-2 flex flex-wrap gap-x-3 text-xs">
+              {issues.map((issue) => (
+                <span key={issue.code} className={ISSUE_TEXT_CLASS[issue.level]}>
+                  {issue.label}
+                </span>
+              ))}
+            </p>
+          )}
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(7rem,1.2fr)_5rem_minmax(7rem,1fr)_7.5rem_8rem_7rem_2rem] lg:items-center">
             <LabeledField label="Fourniture">
               <Input
@@ -1053,6 +1100,8 @@ function SupplyRow({
                         value.trim().toLocaleLowerCase("fr-FR"),
                     );
                     updateSupply.mutate({ supplier: value, supplier_id: known?.id ?? null });
+                    // PP mémorise l'association pour les prochains devis.
+                    if (known) void rememberSupplierChoice(supply.item, known.id);
                   }}
                 />
                 <datalist id={listId}>
@@ -1364,6 +1413,7 @@ function AddSupplyForm({
           entry.name.trim().toLocaleLowerCase("fr-FR") ===
           supplier.trim().toLocaleLowerCase("fr-FR"),
       );
+      if (known) void rememberSupplierChoice(item.trim(), known.id);
       return createApSupply({
         worksite_id: worksiteId,
         supplier: supplier.trim(),
@@ -1464,6 +1514,15 @@ function AddSupplyForm({
   );
 }
 
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Lecture du fichier impossible"));
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.readAsDataURL(file);
+  });
+}
+
 function NewWorksiteDialog({
   open,
   onOpenChange,
@@ -1476,23 +1535,49 @@ function NewWorksiteDialog({
   const [label, setLabel] = useState("");
   const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [quote, setQuote] = useState<File | null>(null);
+  const importQuote = useServerFn(importApQuote);
   const create = useMutation({
-    mutationFn: () =>
-      createApWorksite({
+    mutationFn: async () => {
+      const id = await createApWorksite({
         client_label: label.trim(),
         scheduled_date: date || null,
         date_label: date ? null : "À vérifier",
         notes: notes.trim() || null,
-      }),
-    onSuccess: () => {
-      toast.success("Chantier ajouté");
+      });
+      if (!quote) return null;
+      try {
+        return await importQuote({
+          data: { worksiteId: id, filename: quote.name, fileBase64: await readFileAsBase64(quote) },
+        });
+      } catch (error) {
+        // Le chantier existe déjà : on signale seulement l'échec de l'import.
+        toast.error(
+          `Chantier créé, mais le devis n'a pas pu être importé : ${
+            error instanceof Error ? error.message : "erreur inconnue"
+          }`,
+        );
+        return null;
+      }
+    },
+    onSuccess: (result) => {
+      if (result) {
+        toast.success(
+          `Chantier créé — ${result.inserted} fourniture(s) importée(s)` +
+            (result.unassigned > 0 ? `, ${result.unassigned} sans fournisseur à renseigner` : ""),
+        );
+      } else {
+        toast.success("Chantier ajouté");
+      }
       setLabel("");
       setDate("");
       setNotes("");
+      setQuote(null);
       onCreated();
     },
     onError: (mutationError: Error) => toast.error(mutationError.message),
   });
+  const tooBig = !!quote && quote.size > 8 * 1024 * 1024;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1502,7 +1587,8 @@ function NewWorksiteDialog({
             <Truck className="h-4 w-4" /> Nouveau chantier
           </DialogTitle>
           <DialogDescription>
-            Client / chantier et date de réalisation. Les approvisionnements s'ajoutent ensuite.
+            Client / chantier et date de réalisation. Importez le devis pour saisir automatiquement
+            les fournitures et leurs fournisseurs.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
@@ -1518,16 +1604,108 @@ function NewWorksiteDialog({
             onChange={(event) => setNotes(event.target.value)}
             rows={3}
           />
+          <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm hover:bg-muted/40">
+            <Upload className="h-4 w-4 shrink-0 text-primary" />
+            <span className="min-w-0 flex-1 truncate">
+              {quote ? quote.name : "Importer le devis (PDF)"}
+            </span>
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              className="sr-only"
+              onChange={(event) => setQuote(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          {tooBig && (
+            <p className={cn("text-xs", ISSUE_TEXT_CLASS.blocking)}>
+              Devis trop volumineux (8 Mo maximum).
+            </p>
+          )}
           <Button
             className="w-full"
-            disabled={!label.trim() || create.isPending}
+            disabled={!label.trim() || create.isPending || tooBig}
             onClick={() => create.mutate()}
           >
-            Créer
+            {create.isPending ? (quote ? "Lecture du devis…" : "Création…") : "Créer"}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SupplyReadinessPanel({
+  worksite,
+  suppliers,
+}: {
+  worksite: ApWorksite;
+  suppliers: ApSupplier[];
+}) {
+  const blockers = worksiteBlockers(worksite.supplies, suppliers);
+  if (worksite.supplies.length === 0) return null;
+  if (blockers.length > 0) {
+    return (
+      <div
+        className={cn(
+          "flex items-start gap-2 rounded-md border border-red-300/60 bg-red-50/60 px-3 py-2 text-sm dark:bg-red-950/20",
+          ISSUE_TEXT_CLASS.blocking,
+        )}
+      >
+        <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+        <p>
+          <span className="font-medium">
+            {blockers.length} fourniture{blockers.length > 1 ? "s" : ""} bloquante
+            {blockers.length > 1 ? "s" : ""}
+          </span>{" "}
+          — {blockers.map((b) => b.supply.item || "(sans nom)").join(", ")}. Renseignez le
+          fournisseur pour pouvoir exporter les commandes.
+        </p>
+      </div>
+    );
+  }
+  if (!isReadyForExport(worksite.supplies, suppliers)) return null;
+  const orders = groupSuppliesBySupplier(
+    worksite.supplies.filter((s) => s.status === "a_faire" && isOrderable(s)),
+  );
+  return (
+    <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+      <p className="flex items-center gap-2 text-sm font-medium text-primary">
+        <FileText className="h-4 w-4" /> Tout est renseigné — exporter un PDF par fournisseur ?
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {orders.map((order) => {
+          const email = supplierByName(suppliers, order.supplier);
+          const draft = buildSupplierEmail(worksite, order, email?.email ?? null);
+          return (
+            <div key={order.supplier} className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  void exportOrderPdf(worksite, [order]).catch((error: unknown) =>
+                    toast.error(error instanceof Error ? error.message : "Export PDF impossible"),
+                  )
+                }
+              >
+                <FileText className="mr-1 h-3.5 w-3.5" />
+                {order.supplier} ({order.lines.length})
+              </Button>
+              {/* Envoi direct par e-mail : prêt côté données, volontairement désactivé. */}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                disabled={!AP_SUPPLIER_EMAIL_ENABLED || !draft.to}
+                title="Envoi direct au fournisseur — bientôt disponible"
+                aria-label={`Envoyer la commande à ${order.supplier} par e-mail (bientôt disponible)`}
+              >
+                <Mail className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -2043,6 +2221,12 @@ function SupplierCard({
             {supplier.email && <span>{supplier.email}</span>}
             {supplier.comment && <span>{supplier.comment}</span>}
           </div>
+          {supplier.catalogue && (
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Catalogue : </span>
+              {supplier.catalogue}
+            </p>
+          )}
           <SupplierSection
             title="À récupérer"
             entries={toCollect}

@@ -1,5 +1,6 @@
 // Assistant AP — logique métier restaurée avec le module.
 import { supabase } from "@/integrations/supabase/client";
+import { normKey } from "@/lib/assistant-ap-catalogue";
 
 // Ces tables AP existent côté Supabase mais ne figurent pas encore dans les types générés de main.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,6 +55,8 @@ export interface ApSupplier {
   phone: string | null;
   email: string | null;
   comment: string | null;
+  aliases?: string[] | null;
+  catalogue?: string | null;
 }
 
 export interface ApWorksite {
@@ -159,16 +162,20 @@ export async function createApWorksite(input: {
   scheduled_date: string | null;
   date_label?: string | null;
   notes?: string | null;
-}): Promise<void> {
+}): Promise<string> {
   const { data: auth } = await supabase.auth.getUser();
-  const { error } = await apFrom("ap_worksites").insert({
-    client_label: input.client_label,
-    scheduled_date: input.scheduled_date,
-    date_label: input.date_label ?? null,
-    notes: input.notes ?? null,
-    created_by: auth.user?.id ?? null,
-  });
+  const { data, error } = await apFrom("ap_worksites")
+    .insert({
+      client_label: input.client_label,
+      scheduled_date: input.scheduled_date,
+      date_label: input.date_label ?? null,
+      notes: input.notes ?? null,
+      created_by: auth.user?.id ?? null,
+    })
+    .select("id")
+    .single();
   if (error) throw error;
+  return (data as { id: string }).id;
 }
 
 export async function updateApWorksite(
@@ -227,6 +234,11 @@ export async function deleteApSupply(id: string): Promise<void> {
 // ───────────────────────── Fournisseurs ─────────────────────────
 
 export async function listApSuppliers(): Promise<ApSupplier[]> {
+  const full = await apFrom("ap_suppliers")
+    .select("id, name, phone, email, comment, aliases, catalogue")
+    .order("name");
+  if (!full.error) return (full.data ?? []) as ApSupplier[];
+  // Migration catalogue pas encore appliquée : on retombe sur les colonnes historiques.
   const { data, error } = await supabase
     .from("ap_suppliers")
     .select("id, name, phone, email, comment")
@@ -333,4 +345,36 @@ export function suppliesOfSupplier(
     }
   }
   return out;
+}
+
+// ─────────── Mémoire des associations fourniture → fournisseur ───────────
+
+/**
+ * Mémorise une association faite à la main pour que l'import de devis la reprenne.
+ * Best-effort : un échec (table absente, droits) ne doit jamais bloquer la saisie.
+ */
+export async function rememberSupplierChoice(item: string, supplierId: string): Promise<void> {
+  const key = normKey(item);
+  if (!key) return;
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const existing = await apFrom("ap_supplier_memory")
+      .select("id, hits")
+      .eq("norm_key", key)
+      .eq("supplier_id", supplierId)
+      .maybeSingle();
+    if (existing.data) {
+      await apFrom("ap_supplier_memory")
+        .update({ hits: (existing.data as { hits: number }).hits + 1 })
+        .eq("id", (existing.data as { id: string }).id);
+    } else {
+      await apFrom("ap_supplier_memory").insert({
+        norm_key: key,
+        supplier_id: supplierId,
+        created_by: auth.user?.id ?? null,
+      });
+    }
+  } catch {
+    /* mémoire facultative */
+  }
 }
