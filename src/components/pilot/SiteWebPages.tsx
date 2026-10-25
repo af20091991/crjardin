@@ -139,7 +139,8 @@ export function SiteWebPages() {
                 "totalUsers",
                 "sessions",
                 "engagementRate",
-                "averageEngagementTime",
+                "userEngagementDuration",
+                "activeUsers",
               ],
             })
           : Promise.resolve({
@@ -174,7 +175,10 @@ export function SiteWebPages() {
           users: num(values[1]?.value),
           sessions: num(values[2]?.value),
           engagementRate: num(values[3]?.value),
-          avgEngagementSeconds: num(values[4]?.value),
+          avgEngagementSeconds:
+            num(values[4]?.value) !== null && num(values[5]?.value) !== null && num(values[5]?.value)! > 0
+              ? num(values[4]?.value)! / num(values[5]?.value)!
+              : null,
           clicks: existing?.clicks ?? null,
           impressions: existing?.impressions ?? null,
           ctr: existing?.ctr ?? null,
