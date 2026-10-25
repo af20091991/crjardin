@@ -11,13 +11,13 @@ const CATEGORIES: SupplyCategory[] = [
   "autre",
 ];
 
-/** Lignes de service / main-d'œuvre : jamais des fournitures. */
+/** Filet de sécurité : lignes de pur service / main-d'œuvre (l'IA fait le gros du tri). */
 const SERVICE_RE =
-  /main[- ]d ?oeuvre|\bm\.?o\.?\b|deplacement|frais (de|d )|heures?\b|temps de (travail|pose)|forfait (pose|main|deplacement|chantier)|terrassement|evacuation|nettoyage|etude|conception|remise en etat|installation (du|de la|des)|prestation|pose (de|du|des|d )|\bpose\b$/;
+  /main[- ]d ?oeuvre|\bm\.?o\.?\b|deplacement|frais (de|d )|heures?\b|temps de travail|forfait (main|deplacement|chantier|nettoyage)|terrassement|evacuation|nettoyage|etude|conception|remise en etat/;
 
-/** Mots qui prouvent qu'une ligne « pose … » décrit quand même une fourniture. */
+/** Mots qui prouvent qu'une ligne décrit quand même une fourniture. */
 const SUPPLY_HINT_RE =
-  /fourniture et pose|fourn\.? ?(et|\+) ?pose|dallage|traverse|gravier|sable|canisse|terre|terreau|paillage|amendement|plant|arbuste|vegetal|bordure/;
+  /fourniture|dallage|traverse|gravier|sable|canisse|terre|terreau|paillage|amendement|plant|arbuste|vegetal|bordure/;
 
 export function isServiceLine(item: string): boolean {
   const t = normText(item);
@@ -73,7 +73,8 @@ export function normalizeQuoteLines(raw: unknown): QuoteLine[] {
   return out;
 }
 
-export const QUOTE_PROMPT = `Tu lis le texte d'un devis de paysagiste (aménagement de jardin). Extrais UNIQUEMENT les FOURNITURES à acheter chez un fournisseur (végétaux, terre, terreau, amendement, paillage, matériaux, fixations, canisses, irrigation…).
-EXCLUS toute ligne de main-d'œuvre, de pose, de déplacement, de terrassement, de forfait ou de service, ainsi que les totaux, remises, TVA, conditions et coordonnées.
+export const QUOTE_PROMPT = `Tu lis le texte d'un devis de paysagiste (aménagement de jardin). Extrais TOUTES les FOURNITURES à acheter chez un fournisseur : végétaux, terre, terreau, amendement, paillage, matériaux (dallage, gravier, sable, traverses, bordures…), fixations, canisses, irrigation, etc.
+IMPORTANT : dans un devis de paysagiste, une même ligne mêle souvent fourniture et main-d'œuvre (« Fourniture et plantation de 12 lavandes », « Fourniture et pose de dallage », « Mise en place de terre végétale »). Ces lignes SONT des fournitures : extrais le produit (« Lavande », « Dallage », « Terre végétale ») avec sa quantité, sans le mot « plantation » ni « pose ».
+EXCLUS seulement les lignes qui sont UNIQUEMENT du travail ou un service, sans produit : main-d'œuvre, heures, déplacement, terrassement, évacuation, nettoyage, forfait, étude, ainsi que totaux, remises, TVA, acomptes, conditions et coordonnées.
 Réponds en JSON strict : {"lines":[{"item":"nom de la fourniture sans prix","quantity":"quantité telle qu'écrite (ex. 12, 3 sacs, 25 m²) ou null","is_supply":true,"category":"vegetal|terre|amendement_paillage|materiaux|fixation|irrigation|autre","plant_type":"arbuste|grimpante|arbre|vivace|haie|autre ou null","plant_liters":volume du pot en litres (nombre) ou null}]}.
 Ne mets jamais de prix. N'invente aucune ligne. Garde les précisions utiles dans item (ex. « H2 », « 35L », « biologique », « professionnel », « composé »).`;
