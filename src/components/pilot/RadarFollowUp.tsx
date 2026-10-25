@@ -2,12 +2,8 @@ import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import {
-  listPageFollowUp,
-  syncRadarFollowUp,
-  type PageFollowUp,
-} from "@/lib/visibilite-locale-follow.functions";
-import type { Effect } from "@/lib/visibilite-locale-follow";
+import { listPageFollowUp, syncRadarFollowUp } from "@/lib/visibilite-locale-follow.functions";
+import type { Effect, PageFollowUp } from "@/lib/visibilite-locale-follow";
 import type { ScoredOpportunity } from "@/lib/visibilite-locale";
 
 const FOLLOW_KEY = ["visibilite-locale-follow"];
@@ -53,6 +49,8 @@ export function RadarFollowUp({
             impressions: o.impressions,
             clicks: o.clicks,
             position: o.position,
+            travelMinutes: o.travelMinutes,
+            travelKm: o.travelKm,
           })),
         },
       }),
