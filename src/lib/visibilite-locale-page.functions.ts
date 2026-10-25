@@ -173,7 +173,24 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
       }),
     });
     if (!res.ok) throw await wpError(res, "la création");
-    const page = (await res.json()) as { id: number; slug?: string };
+    const raw = await res.text();
+    let page: { id: number; slug?: string } | null = null;
+    try {
+      const parsed = JSON.parse(raw) as { id?: unknown; slug?: string };
+      if (typeof parsed.id === "number") page = { id: parsed.id, slug: parsed.slug };
+    } catch {
+      page = null;
+    }
+    if (!page) {
+      const snippet = raw
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 160);
+      throw new Error(
+        `WordPress n'a pas confirmé la création (réponse ${res.status}, aucun identifiant de page)${snippet ? ` : ${snippet}` : ""}`,
+      );
+    }
 
     // Rank Math : deux voies successives, la première qui aboutit l'emporte.
     const seoMeta = {
