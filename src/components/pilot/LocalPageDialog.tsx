@@ -45,15 +45,15 @@ export function LocalPageDialog({ o }: { o: ScoredOpportunity }) {
     !result.state.registryReady ||
     result.state.usedThisMonth >= result.state.limit;
 
-  const copyHtml = async () => {
-    if (!result) return;
+  const copyText = async (text: string, label: string) => {
     try {
-      await navigator.clipboard.writeText(result.draft.html);
-      toast.success("HTML copié");
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label} copié`);
     } catch {
       toast.error("Copie impossible");
     }
   };
+  const copyHtml = () => (result ? copyText(result.draft.html, "HTML") : Promise.resolve());
 
   return (
     <Dialog
@@ -91,6 +91,32 @@ export function LocalPageDialog({ o }: { o: ScoredOpportunity }) {
                 /{result.draft.slug} · {result.draft.wordCount} mots · mot-clé :{" "}
                 {result.draft.focusKeyword}
               </p>
+            </div>
+
+            <div className="space-y-1 rounded-md border p-3 text-xs">
+              <p className="font-medium">Champs Rank Math (pour une saisie à la main)</p>
+              {[
+                ["Titre SEO", result.draft.metaTitle],
+                ["Description", result.draft.metaDescription],
+                ["Mot-clé principal", result.draft.focusKeyword],
+                ["Adresse (slug)", result.draft.slug],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-start justify-between gap-2">
+                  <span className="min-w-0">
+                    <span className="text-muted-foreground">{label} : </span>
+                    {value}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 shrink-0 px-2 text-xs"
+                    onClick={() => void copyText(value, label)}
+                  >
+                    Copier
+                  </Button>
+                </div>
+              ))}
             </div>
 
             <ul className="grid gap-1 text-xs sm:grid-cols-2">
