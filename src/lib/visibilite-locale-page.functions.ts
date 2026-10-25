@@ -91,7 +91,7 @@ async function wpError(res: Response, action: string): Promise<Error> {
 }
 
 async function pageExists(slug: string): Promise<boolean> {
-  const res = await fetch(
+  const res = await wpFetch(
     `${BUSINESS.url}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}&_fields=id`,
   );
   if (!res.ok) return false;
