@@ -71,6 +71,9 @@ const userIdFromRequest = async (req: Request) => {
   if (!value?.startsWith("Bearer ")) return null;
   const token = value.slice(7).trim();
   if (!token) return null;
+  // Appel serveur à serveur (actualisation quotidienne du Radar) : clé de service + utilisateur ciblé.
+  const actAs = req.headers.get("x-act-as-user")?.trim();
+  if (actAs && SERVICE_ROLE_KEY && token === SERVICE_ROLE_KEY) return actAs;
   try {
     const { payload } = await jwtVerify(token, lovableJwks, {
       issuer: LOVABLE_AUTH_ISSUER,

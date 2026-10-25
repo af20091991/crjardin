@@ -12,6 +12,9 @@ export interface SnapshotOpportunity {
   impressions: number;
   clicks: number;
   position: number;
+  /** Trajet depuis Vendargues, conservé pour l'actualisation automatique. */
+  travelMinutes?: number | null;
+  travelKm?: number | null;
 }
 
 export interface Snapshot {
@@ -82,4 +85,14 @@ export function previousMonth(todayIso: string): string {
 
 export function topOpportunities(opps: SnapshotOpportunity[], n = 5): SnapshotOpportunity[] {
   return [...opps].sort((a, b) => b.score - a.score).slice(0, n);
+}
+
+export interface PageFollowUp {
+  slug: string;
+  prestation: string;
+  commune: string;
+  createdAt: string;
+  editUrl: string | null;
+  effect: Effect;
+  longEffect: Effect;
 }

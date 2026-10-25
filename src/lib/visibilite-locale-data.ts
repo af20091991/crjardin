@@ -18,7 +18,7 @@ import {
   type ScoredPrestation,
 } from "@/lib/visibilite-locale";
 
-interface SaleRow {
+export interface SaleRow {
   year: number;
   month: number;
   category: string | null;
@@ -66,16 +66,29 @@ export function radarPeriod(now: Date = new Date()) {
   return { startDate: isoDate(start), endDate: isoDate(end) };
 }
 
+/** Sources de données substituables : l'actualisation automatique les lit côté serveur, sans session. */
+export interface RadarSources {
+  searchConsole: (period: {
+    startDate: string;
+    endDate: string;
+  }) => ReturnType<typeof querySearchConsole>;
+  sales: () => Promise<SaleRow[]>;
+  travel: () => ReturnType<typeof loadCommuneTravel>;
+}
+
+export const SALE_COLUMNS = "year,month,category,amount_ht,hours,intervention_type";
+
 export async function loadVisibilityRadar(
   promoted: ScoredPrestation[] = DEFAULT_PROMOTED,
+  sources: Partial<RadarSources> = {},
 ): Promise<VisibilityRadar> {
   const period = radarPeriod();
   const [search, sales, travel] = await Promise.all([
-    querySearchConsole({ siteUrl: SITE_WEB_SITE_URL, ...period, dimensions: ["query"] }),
-    fetchAllCaRows<SaleRow>("year,month,category,amount_ht,hours,intervention_type", {
-      kind: "vente",
-    }),
-    loadCommuneTravel(),
+    sources.searchConsole
+      ? sources.searchConsole(period)
+      : querySearchConsole({ siteUrl: SITE_WEB_SITE_URL, ...period, dimensions: ["query"] }),
+    sources.sales ? sources.sales() : fetchAllCaRows<SaleRow>(SALE_COLUMNS, { kind: "vente" }),
+    sources.travel ? sources.travel() : loadCommuneTravel(),
   ]);
   if (search.error) {
     throw new Error(
