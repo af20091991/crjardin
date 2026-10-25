@@ -61,8 +61,37 @@ function wpCredentials(): string | null {
   return `Basic ${Buffer.from(`${user}:${pass}`).toString("base64")}`;
 }
 
+const WP_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (compatible; PilotPro/1.0; +https://crjardin.lovable.app)",
+  Accept: "application/json",
+};
+
+/** Appel WordPress avec identification et 2 nouvelles tentatives en cas de limitation (429/503). */
+async function wpFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    response = await fetch(url, {
+      ...init,
+      headers: { ...WP_HEADERS, ...(init.headers as Record<string, string> | undefined) },
+    });
+    if (response.status !== 429 && response.status !== 503) return response;
+    const wait = Math.min(Number(response.headers.get("retry-after")) || 2 * (attempt + 1), 5);
+    await new Promise((resolve) => setTimeout(resolve, wait * 1000));
+  }
+  return response as Response;
+}
+
+async function wpError(res: Response, action: string): Promise<Error> {
+  const body = (await res.text().catch(() => ""))
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 160);
+  return new Error(`WordPress a refusé ${action} (${res.status})${body ? ` : ${body}` : ""}`);
+}
+
 async function pageExists(slug: string): Promise<boolean> {
-  const res = await fetch(
+  const res = await wpFetch(
     `${BUSINESS.url}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}&_fields=id`,
   );
   if (!res.ok) return false;
@@ -130,7 +159,7 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
       throw new Error(`Limite de ${MAX_PAGES_PER_MONTH} pages par mois atteinte.`);
     }
 
-    const res = await fetch(`${BUSINESS.url}/wp-json/wp/v2/pages`, {
+    const res = await wpFetch(`${BUSINESS.url}/wp-json/wp/v2/pages`, {
       method: "POST",
       headers: { Authorization: auth, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -140,13 +169,13 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
         content: draft.html,
       }),
     });
-    if (!res.ok) throw new Error(`WordPress a refusé la création (${res.status}).`);
+    if (!res.ok) throw await wpError(res, "la création");
     const page = (await res.json()) as { id: number };
 
     // Rank Math : meta non exposées par l'API standard ; appel best-effort sur sa propre route.
     let seoApplied = false;
     try {
-      const seo = await fetch(`${BUSINESS.url}/wp-json/rankmath/v1/updateMeta`, {
+      const seo = await wpFetch(`${BUSINESS.url}/wp-json/rankmath/v1/updateMeta`, {
         method: "POST",
         headers: { Authorization: auth, "Content-Type": "application/json" },
         body: JSON.stringify({
