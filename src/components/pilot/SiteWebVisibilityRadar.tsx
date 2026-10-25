@@ -168,7 +168,8 @@ export function SiteWebVisibilityRadar() {
                       <th className="px-2 py-2 text-right font-medium">Clics</th>
                       <th className="px-2 py-2 text-right font-medium">Position</th>
                       <th className="px-2 py-2 text-right font-medium">Clics gagnables</th>
-                      <th className="px-4 py-2 text-right font-medium">Trajet</th>
+                      <th className="px-2 py-2 text-right font-medium">Trajet</th>
+                      <th className="px-4 py-2 text-right font-medium">Page</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -212,15 +213,17 @@ export function SiteWebVisibilityRadar() {
                           <td className="px-2 py-2 text-right tabular-nums">
                             {o.potentialClicks > 0 ? `+${formatCount(o.potentialClicks)}` : "—"}
                           </td>
-                          <td className="px-4 py-2 text-right tabular-nums">
+                          <td className="px-2 py-2 text-right tabular-nums">
                             {o.travelMinutes != null ? `${o.travelMinutes} min` : "—"}
+                          </td>
+                          <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                            <LocalPageDialog o={o} />
                           </td>
                         </tr>
                         {open === o.key && (
                           <tr className="border-b bg-muted/20">
-                            <td colSpan={9} className="px-4 py-3">
+                            <td colSpan={10} className="px-4 py-3">
                               <ScoreDetail o={o} />
-                              <LocalPageDialog o={o} />
                             </td>
                           </tr>
                         )}
