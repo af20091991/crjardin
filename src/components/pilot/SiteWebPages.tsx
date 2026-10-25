@@ -214,7 +214,7 @@ export function SiteWebPages() {
           position: num(String(row.position)),
         });
       }
-      setRows([...merged.values()].sort((a, b) => (b.views ?? -1) - (a.views ?? -1)));
+      setRows([...merged.values()].sort((a, b) => {\n        const priority = menuPriority(a.path) - menuPriority(b.path);\n        return priority !== 0 ? priority : (b.views ?? -1) - (a.views ?? -1);\n      }));
       const sourceErrors = [
         tasks[0].error ? `GA4 : ${tasks[0].error}` : null,
         tasks[1].error ? `Search Console : ${tasks[1].error}` : null,
@@ -327,7 +327,7 @@ export function SiteWebPages() {
             <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-3 font-medium">Page / URL</th>
+                  <th className="py-2 pr-3 font-medium">Titre de la page / URL</th>
                   <th className="px-3 py-2 text-right">{sortLabel("Vues GA4", "views")}</th>
                   <th className="px-3 py-2 text-right">{sortLabel("Utilisateurs", "users")}</th>
                   <th className="px-3 py-2 text-right">{sortLabel("Sessions", "sessions")}</th>
