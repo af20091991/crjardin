@@ -71,9 +71,16 @@ const WP_HEADERS = {
  * on suit donc les redirections à la main, en conservant méthode et corps, et sans jamais transmettre
  * les identifiants vers un autre domaine.
  */
+class RedirectLoopError extends Error {
+  constructor(chain: string[]) {
+    super(`Trop de redirections côté WordPress (${chain.join(" ; ")})`);
+  }
+}
+
 async function sendFollowingRedirects(url: string, init: RequestInit): Promise<Response> {
   let target = url;
   const origin = new URL(url).host;
+  const chain: string[] = [];
   for (let hop = 0; hop < 4; hop += 1) {
     const headers = new Headers(init.headers);
     if (new URL(target).host !== origin) headers.delete("Authorization");
@@ -81,8 +88,9 @@ async function sendFollowingRedirects(url: string, init: RequestInit): Promise<R
     const location = response.headers.get("location");
     if (response.status < 300 || response.status >= 400 || !location) return response;
     target = new URL(location, target).toString();
+    chain.push(`${response.status} → ${target}`);
   }
-  throw new Error("Trop de redirections côté WordPress.");
+  throw new RedirectLoopError(chain);
 }
 
 /** Appel WordPress avec identification, redirections maîtrisées et 2 nouvelles tentatives sur 429/503. */
@@ -100,6 +108,27 @@ async function wpFetch(url: string, init: RequestInit = {}): Promise<Response> {
   return response as Response;
 }
 
+/**
+ * Appel de l'API REST : adresse « jolie » (/wp-json/…), puis, si le site boucle sur ses redirections,
+ * adresse ?rest_route=… qui n'emprunte pas la réécriture d'URL de WordPress.
+ */
+async function wpRest(path: string, init: RequestInit = {}): Promise<Response> {
+  try {
+    return await wpFetch(`${BUSINESS.url}/wp-json${path}`, init);
+  } catch (error) {
+    if (!(error instanceof RedirectLoopError)) throw error;
+    const [route, query] = path.split("?");
+    const alt = `${BUSINESS.url}/?rest_route=${route}${query ? `&${query}` : ""}`;
+    try {
+      return await wpFetch(alt, init);
+    } catch (second) {
+      throw new Error(
+        `${error.message} ; essai alternatif : ${second instanceof Error ? second.message : "échec"}`,
+      );
+    }
+  }
+}
+
 async function wpError(res: Response, action: string): Promise<Error> {
   const body = (await res.text().catch(() => ""))
     .replace(/<[^>]+>/g, " ")
@@ -112,8 +141,8 @@ async function wpError(res: Response, action: string): Promise<Error> {
 /** Avec identifiants, la recherche couvre aussi les brouillons (status=any). */
 async function pageExists(slug: string, auth?: string | null): Promise<boolean> {
   const status = auth ? "&status=any" : "";
-  const res = await wpFetch(
-    `${BUSINESS.url}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}&_fields=id${status}`,
+  const res = await wpRest(
+    `/wp/v2/pages?slug=${encodeURIComponent(slug)}&_fields=id${status}`,
     auth ? { headers: { Authorization: auth } } : {},
   );
   if (!res.ok) return false;
@@ -181,7 +210,7 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
       throw new Error(`Limite de ${MAX_PAGES_PER_MONTH} pages par mois atteinte.`);
     }
 
-    const res = await wpFetch(`${BUSINESS.url}/wp-json/wp/v2/pages`, {
+    const res = await wpRest(`/wp/v2/pages`, {
       method: "POST",
       headers: { Authorization: auth, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -221,7 +250,7 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
     const details: string[] = [];
     let seoApplied = false;
     try {
-      const viaRankMath = await wpFetch(`${BUSINESS.url}/wp-json/rankmath/v1/updateMeta`, {
+      const viaRankMath = await wpRest(`/rankmath/v1/updateMeta`, {
         method: "POST",
         headers: jsonHeaders,
         body: JSON.stringify({ objectID: page.id, objectType: "post", meta: seoMeta }),
@@ -233,7 +262,7 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
     }
     if (!seoApplied) {
       try {
-        const viaCore = await wpFetch(`${BUSINESS.url}/wp-json/wp/v2/pages/${page.id}`, {
+        const viaCore = await wpRest(`/wp/v2/pages/${page.id}`, {
           method: "POST",
           headers: jsonHeaders,
           body: JSON.stringify({ meta: seoMeta }),
