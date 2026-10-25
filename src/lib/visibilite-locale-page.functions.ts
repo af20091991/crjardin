@@ -90,9 +90,12 @@ async function wpError(res: Response, action: string): Promise<Error> {
   return new Error(`WordPress a refusé ${action} (${res.status})${body ? ` : ${body}` : ""}`);
 }
 
-async function pageExists(slug: string): Promise<boolean> {
+/** Avec identifiants, la recherche couvre aussi les brouillons (status=any). */
+async function pageExists(slug: string, auth?: string | null): Promise<boolean> {
+  const status = auth ? "&status=any" : "";
   const res = await wpFetch(
-    `${BUSINESS.url}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}&_fields=id`,
+    `${BUSINESS.url}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}&_fields=id${status}`,
+    auth ? { headers: { Authorization: auth } } : {},
   );
   if (!res.ok) return false;
   const rows = (await res.json()) as unknown[];
@@ -113,7 +116,7 @@ export const previewLocalPage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const draft: PageDraft = buildPageDraft({ ...data, clientCount: 0 });
-    const exists = await pageExists(draft.slug).catch(() => false);
+    const exists = await pageExists(draft.slug, wpCredentials()).catch(() => false);
 
     const monthStart = new Date();
     monthStart.setUTCDate(1);
@@ -144,7 +147,7 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
       );
 
     const draft = buildPageDraft({ ...data, clientCount: 0 });
-    if (await pageExists(draft.slug))
+    if (await pageExists(draft.slug, auth))
       throw new Error("Une page existe déjà pour cette combinaison.");
 
     const monthStart = new Date();
@@ -170,7 +173,7 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
       }),
     });
     if (!res.ok) throw await wpError(res, "la création");
-    const page = (await res.json()) as { id: number };
+    const page = (await res.json()) as { id: number; slug?: string };
 
     // Rank Math : deux voies successives, la première qui aboutit l'emporte.
     const seoMeta = {
@@ -212,14 +215,16 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
     }
     const editUrl = `${BUSINESS.url}/wp-admin/post.php?post=${page.id}&action=edit`;
 
-    const { error } = await registry(context.supabase).from("local_pages").insert({
-      prestation: data.prestation,
-      commune: data.commune,
-      slug: draft.slug,
-      wp_page_id: page.id,
-      wp_edit_url: editUrl,
-      created_by: context.userId,
-    });
+    const { error } = await registry(context.supabase)
+      .from("local_pages")
+      .insert({
+        prestation: data.prestation,
+        commune: data.commune,
+        slug: page.slug || draft.slug,
+        wp_page_id: page.id,
+        wp_edit_url: editUrl,
+        created_by: context.userId,
+      });
     if (error) throw new Error("Page créée mais non enregistrée au registre.");
     return { editUrl, slug: draft.slug, seoApplied, seoDetail: details.join(" ; ") };
   });
