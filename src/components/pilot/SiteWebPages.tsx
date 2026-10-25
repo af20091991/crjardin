@@ -246,7 +246,10 @@ export function SiteWebPages() {
           position: num(String(row.position)),
         });
       }
-      setRows([...merged.values()].sort((a, b) => {\n        const priority = menuPriority(a.path) - menuPriority(b.path);\n        return priority !== 0 ? priority : (b.views ?? -1) - (a.views ?? -1);\n      }));
+      setRows([...merged.values()].sort((a, b) => {
+        const priority = menuPriority(a.path) - menuPriority(b.path);
+        return priority !== 0 ? priority : (b.views ?? -1) - (a.views ?? -1);
+      }));
       const sourceErrors = [
         tasks[0].error ? `GA4 : ${tasks[0].error}` : null,
         tasks[1].error ? `Search Console : ${tasks[1].error}` : null,
