@@ -31,7 +31,7 @@ const moduleViews = [
   { id: "local", label: "SEO local", icon: MapPin },
   { id: "competitors", label: "Concurrence & marché", icon: Users },
   { id: "technical", label: "Technique & GEO", icon: Activity },
-  { id: "radar", label: "Visibilité locale", icon: Target },
+  { id: "radar", label: "Radar", icon: Target },
 ] as const;
 
 type ModuleView = (typeof moduleViews)[number]["id"];

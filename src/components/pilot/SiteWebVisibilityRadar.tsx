@@ -86,7 +86,7 @@ export function SiteWebVisibilityRadar() {
             <Target className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="font-serif text-lg font-semibold">Radar Visibilité locale</h2>
+            <h2 className="font-serif text-lg font-semibold">Radar</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Classe chaque couple prestation × commune selon la demande Google, la marge par heure,
               la marge de progression, la proximité et la saison. Lecture seule : rien n’est publié.
