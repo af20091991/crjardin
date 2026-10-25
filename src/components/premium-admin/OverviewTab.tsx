@@ -8,6 +8,7 @@ import {
   CalendarDays,
   Eye,
   FileText,
+  LayoutDashboard,
   MessageSquare,
   Search,
   Users,
@@ -198,6 +199,12 @@ export function OverviewTab({
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/clients/$clientId" params={{ clientId: client.id }}>
                     Fiche client
+                  </Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link to="/clients/premium-dashboard/$clientId" params={{ clientId: client.id }}>
+                    <LayoutDashboard className="mr-1.5 h-3.5 w-3.5" />
+                    Dashboard
                   </Link>
                 </Button>
                 <Button size="sm" variant="outline" asChild>
