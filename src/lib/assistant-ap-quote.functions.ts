@@ -46,8 +46,11 @@ export const importApQuote = createServerFn({ method: "POST" })
         "Ce PDF ne contient pas de texte lisible (devis scanné ?). Ajoutez les fournitures à la main.",
       );
 
-    const lines = await extractQuoteLines(text);
-    if (lines.length === 0) throw new Error("Aucune fourniture détectée dans ce devis.");
+    const { lines, rawCount } = await extractQuoteLines(text);
+    if (lines.length === 0)
+      throw new Error(
+        `Aucune fourniture détectée dans ce devis (texte lu : ${text.trim().length} caractères, lignes proposées par l'IA : ${rawCount}).`,
+      );
 
     const [suppliersRes, memoryRes, historyRes, existingRes] = await Promise.all([
       db.from("ap_suppliers").select("id, name, aliases"),

@@ -33,7 +33,9 @@ export async function pdfToText(bytes: Uint8Array): Promise<string> {
   return pages.join("\n");
 }
 
-export async function extractQuoteLines(text: string): Promise<QuoteLine[]> {
+export async function extractQuoteLines(
+  text: string,
+): Promise<{ lines: QuoteLine[]; rawCount: number }> {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Configuration IA manquante");
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -57,5 +59,8 @@ export async function extractQuoteLines(text: string): Promise<QuoteLine[]> {
   } catch {
     throw new Error("Réponse IA illisible pour ce devis");
   }
-  return normalizeQuoteLines(parsed);
+  const rawCount = Array.isArray((parsed as { lines?: unknown })?.lines)
+    ? (parsed as { lines: unknown[] }).lines.length
+    : 0;
+  return { lines: normalizeQuoteLines(parsed), rawCount };
 }
