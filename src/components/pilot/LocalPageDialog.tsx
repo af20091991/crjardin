@@ -64,8 +64,8 @@ export function LocalPageDialog({ o }: { o: ScoredOpportunity }) {
       }}
     >
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="mt-3">
-          <FilePlus2 className="mr-1.5 h-4 w-4" />
+        <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
+          <FilePlus2 className="mr-1 h-3.5 w-3.5" />
           Préparer la page
         </Button>
       </DialogTrigger>
