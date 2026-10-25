@@ -6,7 +6,13 @@
 // Si rien n'est sûr, le fournisseur reste vide : la fourniture est quand même créée.
 
 export type SupplyCategory =
-  "vegetal" | "terre" | "amendement_paillage" | "materiaux" | "fixation" | "irrigation" | "autre";
+  | "vegetal"
+  | "terre"
+  | "amendement_paillage"
+  | "materiaux"
+  | "fixation"
+  | "irrigation"
+  | "autre";
 
 export interface QuoteLine {
   item: string;
