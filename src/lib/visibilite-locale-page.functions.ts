@@ -182,6 +182,124 @@ export const previewLocalPage = createServerFn({ method: "POST" })
     return { draft, exists, state };
   });
 
+interface Created {
+  id: number;
+  slug?: string;
+  seoApplied: boolean;
+  details: string[];
+}
+
+async function createViaRest(auth: string, draft: PageDraft): Promise<Created> {
+  const res = await wpRest(`/wp/v2/pages`, {
+    method: "POST",
+    headers: { Authorization: auth, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: draft.title,
+      slug: draft.slug,
+      status: "draft",
+      content: draft.html,
+    }),
+  });
+  if (!res.ok) throw await wpError(res, "la création");
+  const raw = await res.text();
+  let page: { id: number; slug?: string } | null = null;
+  try {
+    const parsed = JSON.parse(raw) as { id?: unknown; slug?: string };
+    if (typeof parsed.id === "number") page = { id: parsed.id, slug: parsed.slug };
+  } catch {
+    page = null;
+  }
+  if (!page) {
+    const snippet = raw
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160);
+    throw new Error(
+      `WordPress n'a pas confirmé la création (réponse ${res.status}, aucun identifiant de page)${snippet ? ` : ${snippet}` : ""}`,
+    );
+  }
+
+  // Rank Math : deux voies successives, la première qui aboutit l'emporte.
+  const seoMeta = {
+    rank_math_title: draft.metaTitle,
+    rank_math_description: draft.metaDescription,
+    rank_math_focus_keyword: draft.focusKeyword,
+  };
+  const jsonHeaders = { Authorization: auth, "Content-Type": "application/json" };
+  const details: string[] = [];
+  let seoApplied = false;
+  try {
+    const viaRankMath = await wpRest(`/rankmath/v1/updateMeta`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ objectID: page.id, objectType: "post", meta: seoMeta }),
+    });
+    seoApplied = viaRankMath.ok;
+    if (!viaRankMath.ok) details.push(`route Rank Math ${viaRankMath.status}`);
+  } catch {
+    details.push("route Rank Math injoignable");
+  }
+  if (!seoApplied) {
+    try {
+      const viaCore = await wpRest(`/wp/v2/pages/${page.id}`, {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({ meta: seoMeta }),
+      });
+      if (viaCore.ok) {
+        const updated = (await viaCore.json()) as { meta?: Record<string, unknown> };
+        seoApplied = updated.meta?.rank_math_title === seoMeta.rank_math_title;
+        if (!seoApplied) details.push("meta non exposées par l'API WordPress");
+      } else {
+        details.push(`API WordPress ${viaCore.status}`);
+      }
+    } catch {
+      details.push("API WordPress injoignable");
+    }
+  }
+  return { id: page.id, slug: page.slug, seoApplied, details };
+}
+
+const xmlEscape = (v: string) =>
+  v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** Secours : XML-RPC (wp.newPost), qui n'emprunte pas /wp-json/. Les champs Rank Math passent en champs personnalisés. */
+async function createViaXmlRpc(draft: PageDraft): Promise<Created> {
+  const user = process.env.WORDPRESS_APP_USER ?? "";
+  const pass = process.env.WORDPRESS_APP_PASSWORD ?? "";
+  const field = (key: string, value: string) =>
+    `<value><struct><member><name>key</name><value><string>${xmlEscape(key)}</string></value></member><member><name>value</name><value><string>${xmlEscape(value)}</string></value></member></struct></value>`;
+  const member = (name: string, value: string) =>
+    `<member><name>${name}</name><value><string>${xmlEscape(value)}</string></value></member>`;
+  const body = `<?xml version="1.0"?><methodCall><methodName>wp.newPost</methodName><params>
+<param><value><int>1</int></value></param>
+<param><value><string>${xmlEscape(user)}</string></value></param>
+<param><value><string>${xmlEscape(pass)}</string></value></param>
+<param><value><struct>${member("post_type", "page")}${member("post_status", "draft")}${member("post_title", draft.title)}${member("post_name", draft.slug)}${member("post_content", draft.html)}
+<member><name>custom_fields</name><value><array><data>${field("rank_math_title", draft.metaTitle)}${field("rank_math_description", draft.metaDescription)}${field("rank_math_focus_keyword", draft.focusKeyword)}</data></array></value></member>
+</struct></value></param></params></methodCall>`;
+  const res = await wpFetch(`${BUSINESS.url}/xmlrpc.php`, {
+    method: "POST",
+    headers: { "Content-Type": "text/xml" },
+    body,
+  });
+  const raw = await res.text();
+  const fault = raw.match(/<name>faultString<\/name>\s*<value>\s*<string>([^<]*)/);
+  if (fault) throw new Error(`XML-RPC : ${fault[1].slice(0, 160)}`);
+  const id = raw.match(/<methodResponse>[\s\S]*?<(?:string|int)>(\d+)<\/(?:string|int)>/);
+  if (!res.ok || !id) {
+    throw new Error(
+      `XML-RPC non disponible (réponse ${res.status}) : ${raw
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 120)}`,
+    );
+  }
+  return { id: Number(id[1]), slug: draft.slug, seoApplied: true, details: [] };
+}
+
 /** Crée la page en BROUILLON sur WordPress (jamais publiée). */
 export const createLocalPageDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -195,7 +313,7 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
       );
 
     const draft = buildPageDraft({ ...data, clientCount: 0 });
-    if (await pageExists(draft.slug, auth))
+    if (await pageExists(draft.slug, auth).catch(() => false))
       throw new Error("Une page existe déjà pour cette combinaison.");
 
     const monthStart = new Date();
@@ -210,74 +328,21 @@ export const createLocalPageDraft = createServerFn({ method: "POST" })
       throw new Error(`Limite de ${MAX_PAGES_PER_MONTH} pages par mois atteinte.`);
     }
 
-    const res = await wpRest(`/wp/v2/pages`, {
-      method: "POST",
-      headers: { Authorization: auth, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: draft.title,
-        slug: draft.slug,
-        status: "draft",
-        content: draft.html,
-      }),
-    });
-    if (!res.ok) throw await wpError(res, "la création");
-    const raw = await res.text();
-    let page: { id: number; slug?: string } | null = null;
+    let created: Created;
     try {
-      const parsed = JSON.parse(raw) as { id?: unknown; slug?: string };
-      if (typeof parsed.id === "number") page = { id: parsed.id, slug: parsed.slug };
-    } catch {
-      page = null;
-    }
-    if (!page) {
-      const snippet = raw
-        .replace(/<[^>]+>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 160);
-      throw new Error(
-        `WordPress n'a pas confirmé la création (réponse ${res.status}, aucun identifiant de page)${snippet ? ` : ${snippet}` : ""}`,
-      );
-    }
-
-    // Rank Math : deux voies successives, la première qui aboutit l'emporte.
-    const seoMeta = {
-      rank_math_title: draft.metaTitle,
-      rank_math_description: draft.metaDescription,
-      rank_math_focus_keyword: draft.focusKeyword,
-    };
-    const jsonHeaders = { Authorization: auth, "Content-Type": "application/json" };
-    const details: string[] = [];
-    let seoApplied = false;
-    try {
-      const viaRankMath = await wpRest(`/rankmath/v1/updateMeta`, {
-        method: "POST",
-        headers: jsonHeaders,
-        body: JSON.stringify({ objectID: page.id, objectType: "post", meta: seoMeta }),
-      });
-      seoApplied = viaRankMath.ok;
-      if (!viaRankMath.ok) details.push(`route Rank Math ${viaRankMath.status}`);
-    } catch {
-      details.push("route Rank Math injoignable");
-    }
-    if (!seoApplied) {
+      created = await createViaRest(auth, draft);
+    } catch (restError) {
       try {
-        const viaCore = await wpRest(`/wp/v2/pages/${page.id}`, {
-          method: "POST",
-          headers: jsonHeaders,
-          body: JSON.stringify({ meta: seoMeta }),
-        });
-        if (viaCore.ok) {
-          const updated = (await viaCore.json()) as { meta?: Record<string, unknown> };
-          seoApplied = updated.meta?.rank_math_title === seoMeta.rank_math_title;
-          if (!seoApplied) details.push("meta non exposées par l'API WordPress");
-        } else {
-          details.push(`API WordPress ${viaCore.status}`);
-        }
-      } catch {
-        details.push("API WordPress injoignable");
+        created = await createViaXmlRpc(draft);
+      } catch (xmlError) {
+        throw new Error(
+          `${restError instanceof Error ? restError.message : "API REST indisponible"} || Secours : ${xmlError instanceof Error ? xmlError.message : "échec"}`,
+        );
       }
     }
+    const page = { id: created.id, slug: created.slug };
+    const seoApplied = created.seoApplied;
+    const details = created.details;
     const editUrl = `${BUSINESS.url}/wp-admin/post.php?post=${page.id}&action=edit`;
 
     const { error } = await registry(context.supabase)
