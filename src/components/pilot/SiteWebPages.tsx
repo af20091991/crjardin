@@ -168,6 +168,8 @@ export function SiteWebPages() {
         const key = normalizedPath(path);
         const values = row.metricValues ?? [];
         const existing = merged.get(key);
+        const engagementDuration = num(values[4]?.value);
+        const activeUsers = num(values[5]?.value);
         merged.set(key, {
           path: key,
           url: pageUrl(path),
@@ -176,8 +178,8 @@ export function SiteWebPages() {
           sessions: num(values[2]?.value),
           engagementRate: num(values[3]?.value),
           avgEngagementSeconds:
-            num(values[4]?.value) !== null && num(values[5]?.value) !== null && num(values[5]?.value)! > 0
-              ? num(values[4]?.value)! / num(values[5]?.value)!
+            engagementDuration !== null && activeUsers !== null && activeUsers > 0
+              ? engagementDuration / activeUsers
               : null,
           clicks: existing?.clicks ?? null,
           impressions: existing?.impressions ?? null,
