@@ -79,6 +79,38 @@ function pageUrl(path: string): string {
   }
 }
 
+const MENU_PAGE_TITLES: Record<string, string> = {
+  "/": "Accueil",
+  "/creation-jardin-montpellier": "Création de jardin",
+  "/conseil-jardin-montpellier": "Conseil jardin",
+  "/entretien-jardin-montpellier": "Entretien de jardin",
+  "/a-propos": "À propos",
+  "/contact": "Contact",
+};
+
+function isRealPage(path: string): boolean {
+  const normalized = normalizedPath(path).toLocaleLowerCase("fr-FR");
+  if (normalized === "/") return true;
+  return !/(^|\/)(category|categorie|author|auteur|tag|etiquette|feed|page|attachment|search|wp-json)(\/|$)/i.test(normalized)
+    && !/\.(?:xml|rss|json|pdf|jpg|jpeg|png|webp|avif|gif|svg|css|js)$/i.test(normalized)
+    && !/\/page\/\d+$/i.test(normalized);
+}
+
+function pageTitle(path: string): string {
+  const normalized = normalizedPath(path);
+  if (MENU_PAGE_TITLES[normalized]) return MENU_PAGE_TITLES[normalized];
+  const slug = normalized.split("/").filter(Boolean).pop() ?? "Accueil";
+  return slug
+    .replace(/[-_]+/g, " ")
+    .replace(/\b(montpellier)\b/gi, "Montpellier")
+    .replace(/\b([a-zà-ÿ])/gi, (letter) => letter.toLocaleUpperCase("fr-FR"));
+}
+
+function menuPriority(path: string): number {
+  const index = Object.keys(MENU_PAGE_TITLES).indexOf(normalizedPath(path));
+  return index === -1 ? Object.keys(MENU_PAGE_TITLES).length : index;
+}
+
 export function SiteWebPages() {
   const [rows, setRows] = useState<PageMetrics[]>([]);
   const [search, setSearch] = useState("");
@@ -164,7 +196,7 @@ export function SiteWebPages() {
       const gaReport = tasks[0].data as GaReport;
       for (const row of gaReport?.rows ?? []) {
         const path = row.dimensionValues?.[0]?.value || "";
-        if (!path) continue;
+        if (!path || !isRealPage(path)) continue;
         const key = normalizedPath(path);
         const values = row.metricValues ?? [];
         const existing = merged.get(key);
@@ -190,7 +222,7 @@ export function SiteWebPages() {
       const searchRows = tasks[1].data?.rows ?? [];
       for (const row of searchRows) {
         const url = row.keys?.[0] ?? "";
-        if (!url) continue;
+        if (!url || !isRealPage(url)) continue;
         const key = normalizedPath(url);
         const existing = merged.get(key) ?? {
           path: key,
@@ -269,9 +301,9 @@ export function SiteWebPages() {
           <div className="min-w-0 flex-1">
             <h2 className="font-serif text-lg font-semibold">Analyse détaillée des pages</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Chaque URL renvoyée par GA4 ou Search Console, y compris les articles de blog, sans
-              liste éditoriale codée en dur. Les métriques GA4 décrivent l’audience ; Search Console
-              décrit la visibilité dans Google.
+              Les pages principales du menu sont prioritaires, puis les pages et articles réellement
+              présents dans GA4 ou Search Console. Les archives, catégories, auteurs et URL techniques
+              sont exclues. Les métriques GA4 décrivent l’audience ; Search Console décrit la visibilité.
             </p>
             {period && (
               <p className="mt-2 text-xs text-muted-foreground">
@@ -350,9 +382,9 @@ export function SiteWebPages() {
                         type="button"
                         onClick={() => setSelected(row)}
                         className="block max-w-full truncate text-left font-medium text-primary hover:underline"
-                        title={row.path}
+                        title={pageTitle(row.path)}
                       >
-                        {row.path}
+                        {pageTitle(row.path)}
                       </button>
                       <a
                         href={row.url}
@@ -384,8 +416,8 @@ export function SiteWebPages() {
         <Card className="p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 className="font-serif text-base font-semibold">Détail de la page</h3>
-              <p className="mt-1 break-all text-sm text-muted-foreground">{selected.url}</p>
+              <h3 className="font-serif text-base font-semibold">{pageTitle(selected.path)}</h3>
+              <a href={selected.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex break-all text-sm text-muted-foreground hover:text-foreground hover:underline">{selected.url} <ExternalLink className="ml-1 mt-0.5 h-3 w-3 shrink-0" /></a>
             </div>
             <button
               type="button"
