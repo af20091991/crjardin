@@ -1,5 +1,10 @@
 // Assistant AP — import de devis : normalisation des lignes extraites (logique pure).
-import { normText, type QuoteLine, type SupplyCategory } from "@/lib/assistant-ap-catalogue";
+import {
+  normText,
+  type QuoteLine,
+  type SupplierRef,
+  type SupplyCategory,
+} from "@/lib/assistant-ap-catalogue";
 
 const CATEGORIES: SupplyCategory[] = [
   "vegetal",
@@ -78,3 +83,113 @@ IMPORTANT : dans un devis de paysagiste, une même ligne mêle souvent fournitur
 EXCLUS seulement les lignes qui sont UNIQUEMENT du travail ou un service, sans produit : main-d'œuvre, heures, déplacement, terrassement, évacuation, nettoyage, forfait, étude, ainsi que totaux, remises, TVA, acomptes, conditions et coordonnées.
 Réponds en JSON strict : {"lines":[{"item":"nom de la fourniture sans prix","quantity":"quantité telle qu'écrite (ex. 12, 3 sacs, 25 m²) ou null","is_supply":true,"category":"vegetal|terre|amendement_paillage|materiaux|fixation|irrigation|autre","plant_type":"arbuste|grimpante|arbre|vivace|haie|autre ou null","plant_liters":volume du pot en litres (nombre) ou null}]}.
 Ne mets jamais de prix. N'invente aucune ligne. Garde les précisions utiles dans item (ex. « H2 », « 35L », « biologique », « professionnel », « composé »).`;
+
+// ───────────── Lecture directe des devis « tableau » (Référence · Désignation · Qté · PU · TVA · Montant) ─────────────
+
+const NUM = "\\d+(?:[.,]\\d+)?";
+const ROW_RE = new RegExp(
+  `^(.+?)\\s+(${NUM})\\s+(${NUM})\\s*€\\s+(${NUM})\\s+(-?\\d[\\d\\s]*[.,]\\d+)\\s*€$`,
+);
+
+function toNumber(value: string): number {
+  return Number(value.replace(/\s/g, "").replace(",", "."));
+}
+
+function formatQuantity(value: number): string {
+  return Number.isInteger(value) ? String(value) : String(value).replace(".", ",");
+}
+
+/** Retire la référence (1er mot) et un éventuel complément « (copie) » / « (c… ». */
+function stripReference(left: string): string {
+  const words = left.trim().split(/\s+/);
+  if (words.length < 2) return left.trim();
+  words.shift();
+  if (/^\(.*(\)|…)$/.test(words[0]) && words.length > 1) words.shift();
+  return words.join(" ");
+}
+
+/** Cherche un nom de fournisseur du catalogue écrit comme mot entier dans la désignation. */
+function findSupplierTag(designation: string, suppliers: SupplierRef[]): string | null {
+  for (const supplier of suppliers) {
+    for (const name of [supplier.name, ...(supplier.aliases ?? [])]) {
+      const n = name.trim();
+      if (n.length < 2 || /\s/.test(n)) continue;
+      const escaped = n.replace(/[.*+?^${}()|[\]\\&]/g, "\\$&");
+      if (new RegExp(`(^|[\\s(/-])${escaped}($|[\\s)/,.-])`, "i").test(designation)) return n;
+    }
+  }
+  return null;
+}
+
+function removeTag(designation: string, tag: string): string {
+  const escaped = tag.replace(/[.*+?^${}()|[\]\\&]/g, "\\$&");
+  return designation
+    .replace(new RegExp(`(^|[\\s(/-])${escaped}(?=$|[\\s)/,.-])`, "i"), "$1")
+    .replace(/\s{2,}/g, " ")
+    .replace(/[\s-]+$/, "")
+    .trim();
+}
+
+/**
+ * Lit directement les lignes d'un devis tabulaire (texte du PDF, une ligne par rangée).
+ * Les lignes de main-d'œuvre/services sont écartées ; les doublons sont cumulés.
+ * Renvoie [] si le texte ne ressemble pas à ce format (→ repli sur l'IA).
+ */
+export function parseTabularQuote(text: string, suppliers: SupplierRef[] = []): QuoteLine[] {
+  const rawLines = text.split("\n").map((l) => l.trim());
+  const merged = new Map<string, QuoteLine & { total: number }>();
+  let lastRef = "";
+  let lastKey: string | null = null;
+
+  for (const line of rawLines) {
+    const m = line.match(ROW_RE);
+    if (!m) {
+      // Suite de désignation sur la ligne suivante : elle reprend la référence de la rangée.
+      if (lastKey && lastRef && line.toLowerCase().startsWith(lastRef.toLowerCase() + " ")) {
+        const entry = merged.get(lastKey);
+        if (entry && !/\d+[.,]\d+\s*€/.test(line)) {
+          entry.item = `${entry.item} ${line.slice(lastRef.length).trim()}`.trim();
+        }
+      }
+      lastKey = null;
+      continue;
+    }
+    const [, left, qty] = m;
+    lastRef = left.trim().split(/\s+/)[0] ?? "";
+    let designation = stripReference(left);
+    if (!designation || isServiceLine(designation) || /^main[- ]d/i.test(designation)) {
+      lastKey = null;
+      continue;
+    }
+    const tag = findSupplierTag(designation, suppliers);
+    if (tag) designation = removeTag(designation, tag) || designation;
+    const quantity = toNumber(qty);
+    const key = `${normText(designation)}|${tag ? normText(tag) : ""}`;
+    const existing = merged.get(key);
+    if (existing) {
+      existing.total += quantity;
+      existing.quantity = formatQuantity(existing.total);
+    } else {
+      const liters = normText(designation).match(/(\d+(?:[.,]\d+)?)\s*l\b/);
+      merged.set(key, {
+        item: designation,
+        quantity: formatQuantity(quantity),
+        total: quantity,
+        category: /vivace|arbuste|arbre|grimpante|haie|godet|gazon/i.test(designation)
+          ? "vegetal"
+          : "autre",
+        plant_type: /vivace/i.test(designation)
+          ? "vivace"
+          : /arbuste/i.test(designation)
+            ? "arbuste"
+            : /arbre/i.test(designation)
+              ? "arbre"
+              : null,
+        plant_liters: liters ? toNumber(liters[1]) : null,
+        supplier_tag: tag,
+      });
+    }
+    lastKey = key;
+  }
+  return [...merged.values()].map(({ total: _total, ...line }) => line);
+}
