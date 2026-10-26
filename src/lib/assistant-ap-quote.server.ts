@@ -2,37 +2,6 @@
 import { QUOTE_PROMPT, normalizeQuoteLines } from "@/lib/assistant-ap-quote";
 import type { QuoteLine } from "@/lib/assistant-ap-catalogue";
 
-export async function pdfToText(bytes: Uint8Array): Promise<string> {
-  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const pdf = await getDocument({ data: bytes, useWorkerFetch: false }).promise;
-  const pages: string[] = [];
-  for (let n = 1; n <= pdf.numPages; n += 1) {
-    const page = await pdf.getPage(n);
-    const content = await page.getTextContent();
-    const rows = new Map<number, { x: number; str: string }[]>();
-    for (const item of content.items) {
-      if (!("str" in item) || !item.str.trim()) continue;
-      const y = Math.round(item.transform[5] / 3);
-      const row = rows.get(y) ?? [];
-      row.push({ x: item.transform[4], str: item.str });
-      rows.set(y, row);
-    }
-    const lines = [...rows.entries()]
-      .sort((a, b) => b[0] - a[0])
-      .map(([, row]) =>
-        row
-          .sort((a, b) => a.x - b.x)
-          .map((r) => r.str)
-          .join(" ")
-          .replace(/\s+/g, " ")
-          .trim(),
-      );
-    pages.push(lines.join("\n"));
-    page.cleanup();
-  }
-  return pages.join("\n");
-}
-
 export async function extractQuoteLines(
   text: string,
 ): Promise<{ lines: QuoteLine[]; rawCount: number }> {
