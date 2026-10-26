@@ -6,7 +6,7 @@ import {
   type QuoteLine,
   type SupplierRef,
 } from "../assistant-ap-catalogue";
-import { isServiceLine, normalizeQuoteLines } from "../assistant-ap-quote";
+import { isServiceLine, normalizeQuoteLines, parseTabularQuote } from "../assistant-ap-quote";
 import { supplyIssues } from "../assistant-ap-checks";
 
 const suppliers: SupplierRef[] = [
@@ -104,5 +104,34 @@ describe("éléments bloquants", () => {
   test("fournisseur du catalogue = ok, stock = ok", () => {
     expect(supplyIssues({ ...base, supplier: "Touchat" }, suppliers)).toEqual([]);
     expect(supplyIssues({ ...base, supplier: "", mode: "stock" }, suppliers)).toEqual([]);
+  });
+});
+
+describe("devis tableau (Henrri)", () => {
+  const text = [
+    "Référence Désignation Quantité PU Vente TVA Montant HT Image",
+    "Plantations massif entrée + Cèdre",
+    "AEF1,4AC Vivace 1,4L A-C AEF 3,00 8,2500 € 20,00 24,75 €",
+    "AEF1,4AC (c… Vivace 1,4L A-C AEF 1,00 8,2500 € 20,00 8,25 €",
+    "M5L Arbuste 5L 8,00 15,0000 € 20,00 120,00 €",
+    "5LAEF Arbuste 5L AEF 1,00 22,4167 € 20,00 22,42 €",
+    "MO Main d'oeuvre 1,00 58,3333 € 20,00 58,33 €",
+    "T4 Terreau biologique professionnel - T4 11,00 22,4167 € 20,00 246,58 €",
+    "AM2 Amendement organique racinaire - 2,00 37,5000 € 20,00 75,00 €",
+    "Am2 (sac 25 kg)",
+    "Sous Total 150,60 €",
+  ].join("\n");
+  const aef = { id: "a", name: "AEF", aliases: ["AEF"] };
+  const lines = parseTabularQuote(text, [aef]);
+  test("cumule, exclut la main-d'œuvre, garde le fournisseur écrit", () => {
+    expect(lines.find((l) => l.item === "Vivace 1,4L A-C")?.quantity).toBe("4");
+    expect(lines.some((l) => /main/i.test(l.item))).toBe(false);
+    expect(lines.filter((l) => l.item === "Arbuste 5L").map((l) => l.supplier_tag)).toEqual([
+      null,
+      "AEF",
+    ]);
+  });
+  test("désignation sur deux lignes", () => {
+    expect(lines.find((l) => l.item.startsWith("Amendement"))?.item).toContain("sac 25 kg");
   });
 });

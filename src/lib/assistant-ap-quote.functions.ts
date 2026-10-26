@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { parseTabularQuote } from "@/lib/assistant-ap-quote";
 import { matchSupplier, normText, normKey, type SupplierRef } from "@/lib/assistant-ap-catalogue";
 
 const Input = z.object({
@@ -46,12 +47,6 @@ export const importApQuote = createServerFn({ method: "POST" })
         "Ce PDF ne contient pas de texte lisible (devis scanné ?). Ajoutez les fournitures à la main.",
       );
 
-    const { lines, rawCount } = await extractQuoteLines(text);
-    if (lines.length === 0)
-      throw new Error(
-        `Aucune fourniture détectée dans ce devis (texte lu : ${text.trim().length} caractères, lignes proposées par l'IA : ${rawCount}).`,
-      );
-
     const [suppliersRes, memoryRes, historyRes, existingRes] = await Promise.all([
       db.from("ap_suppliers").select("id, name, aliases"),
       db.from("ap_supplier_memory").select("norm_key, supplier_id, hits"),
@@ -64,6 +59,18 @@ export const importApQuote = createServerFn({ method: "POST" })
       const fallback = await db.from("ap_suppliers").select("id, name");
       suppliers = (fallback.data ?? []) as SupplierRef[];
     }
+    // Lecture directe des devis « tableau » ; sinon repli sur l'IA.
+    let lines = parseTabularQuote(text, suppliers);
+    let rawCount = lines.length;
+    if (lines.length === 0) {
+      const extracted = await extractQuoteLines(text);
+      lines = extracted.lines;
+      rawCount = extracted.rawCount;
+    }
+    if (lines.length === 0)
+      throw new Error(
+        `Aucune fourniture détectée dans ce devis (texte lu : ${text.trim().length} caractères, lignes proposées par l'IA : ${rawCount}).`,
+      );
     const ctx = {
       suppliers,
       memory: (memoryRes.data ?? []) as { norm_key: string; supplier_id: string; hits: number }[],

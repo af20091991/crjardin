@@ -20,6 +20,8 @@ export interface QuoteLine {
   category: SupplyCategory;
   plant_type: string | null;
   plant_liters: number | null;
+  /** Fournisseur écrit dans le devis (ex. « AEF » dans la désignation) : prioritaire. */
+  supplier_tag?: string | null;
 }
 
 export interface SupplierRef {
@@ -220,6 +222,12 @@ function buildEntries(rows: { key: string; supplier_id: string; n: number }[]) {
 export function matchSupplier(line: QuoteLine, ctx: MatchContext): MatchResult {
   const byId = new Map(ctx.suppliers.map((s) => [s.id, s]));
   const tokens = itemTokens(line.item);
+
+  // 0. Fournisseur explicitement indiqué dans le devis.
+  if (line.supplier_tag) {
+    const tagged = supplierByName(ctx.suppliers, line.supplier_tag);
+    if (tagged) return { supplier: tagged, source: "catalogue", candidates: [] };
+  }
 
   // 1. Mémoire des associations manuelles.
   const memoryId = lookup(
