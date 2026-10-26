@@ -30,7 +30,16 @@ export interface SupplierRef {
   aliases?: string[] | null;
 }
 
-export type SupplierKey = "berger" | "touchat" | "aef" | "sj34" | "ruiz" | "pc" | "lrm" | "granier";
+export type SupplierKey =
+  | "berger"
+  | "touchat"
+  | "aef"
+  | "sj34"
+  | "ruiz"
+  | "pc"
+  | "lrm"
+  | "granier"
+  | "dmd";
 
 const SUPPLIER_NAMES: Record<SupplierKey, string[]> = {
   berger: ["b&f", "berger et fils", "berger"],
@@ -41,6 +50,7 @@ const SUPPLIER_NAMES: Record<SupplierKey, string[]> = {
   pc: ["pc", "pousse-clanet", "pousse clanet"],
   lrm: ["lr merlin", "leroy merlin"],
   granier: ["granier"],
+  dmd: ["dmd"],
 };
 
 const DISPLAY: Record<SupplierKey, string> = {
@@ -52,6 +62,7 @@ const DISPLAY: Record<SupplierKey, string> = {
   pc: "PC",
   lrm: "LR Merlin",
   granier: "Granier",
+  dmd: "DMD",
 };
 
 export function stripAccents(value: string): string {
@@ -164,6 +175,15 @@ export function catalogueRule(line: QuoteLine): Rule {
   if (has(/terre vegetale/) && has(/\bbio/)) return { key: "sj34" };
   if (has(/haie/) && has(/\bh\s?[123]\b/)) return { key: "sj34" };
 
+  // Tout ce qui concerne l'arrosage : DMD
+  if (
+    line.category === "irrigation" ||
+    has(
+      /goutteur|goutte a goutte|capillaire|tuyau|\bpe\b|crampon|asperseur|varijet|bouchon|arrosage|irrigation|electrovanne|programmateur|raccord|jonction|embout|vanne|filtre|reducteur|nourrice|enrouleur|collier de prise/,
+    )
+  )
+    return { key: "dmd" };
+
   // Règles générales
   if (has(/terre vegetale/)) return { key: "berger" };
   if (has(/amendement|paillage|paillis|ganivelle|terreau/)) return { key: "touchat" };
@@ -175,7 +195,7 @@ export function catalogueRule(line: QuoteLine): Rule {
     const liters = plantLiters(line, t);
     if (liters != null && liters < 3) return { key: "aef" };
     if (liters == null && /vivace/.test(t)) return { key: "aef" };
-    if (liters != null && liters < 5) return { candidates: ["aef", "sj34", "ruiz", "pc"] };
+    if (liters != null && liters <= 5) return { candidates: ["aef", "pc", "sj34"] };
     return { candidates: ["sj34", "ruiz", "pc"] };
   }
   return null;

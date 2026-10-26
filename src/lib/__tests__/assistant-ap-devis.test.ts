@@ -18,6 +18,7 @@ const suppliers: SupplierRef[] = [
   ["pc"],
   ["lr merlin"],
   ["granier"],
+  ["dmd"],
 ].map(([name], i) => ({ id: `s${i}`, name: name.toUpperCase() === name ? name : name }));
 const byName = (n: string) => suppliers.find((s) => s.name.toLowerCase() === n)!;
 
@@ -56,6 +57,21 @@ describe("catalogue fournisseurs", () => {
     const r = matchSupplier(line("Nandina C15", { category: "vegetal" }), ctx);
     expect(r.supplier).toBeNull();
     expect(r.candidates).toEqual(["sj34", "ruiz", "pc"]);
+  });
+  test("arrosage = DMD", () => {
+    expect(who("Goutteur auto-régulé")).toBe("dmd");
+    expect(who("Tuyau PE D16 25mL")).toBe("dmd");
+    expect(who("Micro-asperseur sur pique")).toBe("dmd");
+    expect(who("Crampon de sol acier D13-32")).toBe("dmd");
+    expect(who("Bouchons 4mm Grappe 10u")).toBe("dmd");
+    expect(who("Programmateur", { category: "irrigation" })).toBe("dmd");
+  });
+  test("3L à 5L : AEF, PC ou SJ34 (pas Ruiz) ; au-delà : SJ34, Ruiz, PC", () => {
+    const mid = matchSupplier(line("Arbuste 5L", { category: "vegetal", plant_liters: 5 }), ctx);
+    expect(mid.supplier).toBeNull();
+    expect(mid.candidates).toEqual(["aef", "pc", "sj34"]);
+    const big = matchSupplier(line("Arbre C30", { category: "vegetal", plant_liters: 30 }), ctx);
+    expect(big.candidates).toEqual(["sj34", "ruiz", "pc"]);
   });
   test("inconnu : reste vide", () => {
     expect(who("Objet décoratif")).toBeNull();
