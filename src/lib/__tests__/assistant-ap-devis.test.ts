@@ -73,6 +73,29 @@ describe("catalogue fournisseurs", () => {
   });
 });
 
+describe("apprentissage de l'historique", () => {
+  const h = (item: string, id: string) => ({ item, supplier_id: id });
+  test("fiches par nom (sans lien) et alias reconnus", () => {
+    const history = [{ item: "Orgasyl", supplier_id: null, supplier: "Touchat" }];
+    expect(who("Orgasyl x3", {}, { ...ctx, history })).toBe("touchat");
+  });
+  test("pratique constante de l'historique prioritaire sur le catalogue", () => {
+    const history = [
+      h("Terreau pour bacs", byName("ruiz").id),
+      h("Terreau pour bacs x2", byName("ruiz").id),
+    ];
+    expect(who("Terreau pour bacs", {}, { ...ctx, history })).toBe("ruiz");
+  });
+  test("une seule fiche ne contredit pas le catalogue", () => {
+    const history = [h("Amendement 12kg", byName("ruiz").id)];
+    expect(who("Amendement", {}, { ...ctx, history })).toBe("touchat");
+  });
+  test("tolère une faute de frappe", () => {
+    const history = [h("Biochanvre", byName("touchat").id)];
+    expect(who("Biochanvvre", {}, { ...ctx, history })).toBe("touchat");
+  });
+});
+
 describe("devis", () => {
   test("exclut main-d'œuvre et services", () => {
     expect(isServiceLine("Main d'œuvre pose")).toBe(true);

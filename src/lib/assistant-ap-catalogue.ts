@@ -181,14 +181,33 @@ export function catalogueRule(line: QuoteLine): Rule {
   return null;
 }
 
+function editDistanceAtMostOne(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i += 1;
+  if (a.length === b.length) return a.slice(i + 1) === b.slice(i + 1);
+  return a.length > b.length ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+
+/** Même mot, à une faute de frappe près pour les mots d'au moins 6 lettres. */
+function sameToken(a: string, b: string): boolean {
+  return a === b || (a.length >= 6 && b.length >= 6 && editDistanceAtMostOne(a, b));
+}
+
+interface LookupHit {
+  id: string;
+  n: number;
+  total: number;
+}
+
 function lookup(
   entries: { key: string; counts: Map<string, number> }[],
   tokens: string[],
   minShare: number,
-): string | null {
+): LookupHit | null {
   if (tokens.length === 0) return null;
   const key = [...tokens].sort().join(" ");
-  const set = new Set(tokens);
   let best: { key: string; counts: Map<string, number> } | null = null;
   for (const entry of entries) {
     if (entry.key === key) {
@@ -198,14 +217,14 @@ function lookup(
     const entryTokens = entry.key.split(" ").filter(Boolean);
     const ok =
       entryTokens.length > 0 &&
-      entryTokens.every((w) => set.has(w)) &&
+      entryTokens.every((w) => tokens.some((t) => sameToken(t, w))) &&
       (entryTokens.length >= 2 || entry.key.length >= 5);
     if (ok && (!best || entry.key.length > best.key.length)) best = entry;
   }
   if (!best) return null;
   const total = [...best.counts.values()].reduce((a, b) => a + b, 0);
   const [id, n] = [...best.counts.entries()].sort((a, b) => b[1] - a[1])[0];
-  return n / total >= minShare ? id : null;
+  return n / total >= minShare ? { id, n, total } : null;
 }
 
 function buildEntries(rows: { key: string; supplier_id: string; n: number }[]) {
@@ -230,17 +249,30 @@ export function matchSupplier(line: QuoteLine, ctx: MatchContext): MatchResult {
   }
 
   // 1. Mémoire des associations manuelles.
-  const memoryId = lookup(
+  const memoryHit = lookup(
     buildEntries(
       ctx.memory.map((m) => ({ key: m.norm_key, supplier_id: m.supplier_id, n: m.hits })),
     ),
     tokens,
     0.5,
   );
-  if (memoryId && byId.has(memoryId))
-    return { supplier: byId.get(memoryId)!, source: "memoire", candidates: [] };
+  if (memoryHit && byId.has(memoryHit.id))
+    return { supplier: byId.get(memoryHit.id)!, source: "memoire", candidates: [] };
 
-  // 2. Catalogue.
+  // Historique d'Assistant AP : fiches déjà saisies (fournisseur lié ou reconnu par son nom).
+  const historyRows: { key: string; supplier_id: string; n: number }[] = [];
+  for (const h of ctx.history) {
+    const id = h.supplier_id ?? supplierByName(ctx.suppliers, h.supplier ?? "")?.id;
+    if (id) historyRows.push({ key: normKey(h.item), supplier_id: id, n: 1 });
+  }
+  const historyHit = lookup(buildEntries(historyRows), tokens, 0.7);
+  const historySupplier = historyHit ? byId.get(historyHit.id) : undefined;
+
+  // 2. Pratique constante de l'historique (≥ 2 fiches, ≥ 80 %) : elle prime sur le catalogue.
+  if (historyHit && historySupplier && historyHit.n >= 2 && historyHit.n / historyHit.total >= 0.8)
+    return { supplier: historySupplier, source: "historique", candidates: [] };
+
+  // 3. Catalogue.
   const rule = catalogueRule(line);
   let candidates: string[] = [];
   if (rule && "key" in rule) {
@@ -250,19 +282,9 @@ export function matchSupplier(line: QuoteLine, ctx: MatchContext): MatchResult {
     candidates = rule.candidates.map((k) => findSupplier(ctx.suppliers, k)?.name ?? DISPLAY[k]);
   }
 
-  // 3. Historique d'Assistant AP (association dominante, ≥ 70 %).
-  const historyRows: { key: string; supplier_id: string; n: number }[] = [];
-  for (const h of ctx.history) {
-    const id = h.supplier_id ?? supplierByName(ctx.suppliers, h.supplier ?? "")?.id;
-    if (id) historyRows.push({ key: normKey(h.item), supplier_id: id, n: 1 });
-  }
-  const historyId = lookup(buildEntries(historyRows), tokens, 0.7);
-  if (
-    historyId &&
-    byId.has(historyId) &&
-    (candidates.length === 0 || candidates.includes(byId.get(historyId)!.name))
-  )
-    return { supplier: byId.get(historyId)!, source: "historique", candidates: [] };
+  // 4. Historique moins tranché (au moins 70 %), compatible avec les fournisseurs possibles.
+  if (historySupplier && (candidates.length === 0 || candidates.includes(historySupplier.name)))
+    return { supplier: historySupplier, source: "historique", candidates: [] };
 
   return { supplier: null, source: null, candidates };
 }

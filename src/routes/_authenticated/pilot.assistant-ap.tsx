@@ -1094,12 +1094,11 @@ function SupplyRow({
                   onBlur={(event) => {
                     const value = event.target.value;
                     if (value === supply.supplier) return;
-                    const known = suppliers.find(
-                      (item) =>
-                        item.name.trim().toLocaleLowerCase("fr-FR") ===
-                        value.trim().toLocaleLowerCase("fr-FR"),
-                    );
-                    updateSupply.mutate({ supplier: value, supplier_id: known?.id ?? null });
+                    const known = supplierByName(suppliers, value);
+                    updateSupply.mutate({
+                      supplier: known?.name ?? value,
+                      supplier_id: known?.id ?? null,
+                    });
                     // PP mémorise l'association pour les prochains devis.
                     if (known) void rememberSupplierChoice(supply.item, known.id);
                   }}
@@ -1408,15 +1407,11 @@ function AddSupplyForm({
   const [comment, setComment] = useState("");
   const create = useMutation({
     mutationFn: () => {
-      const known = suppliers.find(
-        (entry) =>
-          entry.name.trim().toLocaleLowerCase("fr-FR") ===
-          supplier.trim().toLocaleLowerCase("fr-FR"),
-      );
+      const known = supplierByName(suppliers, supplier);
       if (known) void rememberSupplierChoice(item.trim(), known.id);
       return createApSupply({
         worksite_id: worksiteId,
-        supplier: supplier.trim(),
+        supplier: known?.name ?? supplier.trim(),
         supplier_id: known?.id ?? null,
         quantity: quantity.trim() || null,
         item: item.trim(),
