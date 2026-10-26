@@ -58,7 +58,8 @@ import {
   Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { importApQuote } from "@/lib/assistant-ap-quote.functions";
+import { extractApQuoteLines } from "@/lib/assistant-ap-quote.functions";
+import { importQuoteFromFile } from "@/lib/assistant-ap-quote-import";
 import { AP_SUPPLIER_EMAIL_ENABLED, buildSupplierEmail } from "@/lib/assistant-ap-mail";
 import {
   ISSUE_TEXT_CLASS,
@@ -774,6 +775,7 @@ function WorksiteDetail({
               >
                 <FileText className="mr-1 h-4 w-4" /> Exporter
               </Button>
+              <ImportQuoteButton worksiteId={worksite.id} onDone={onChanged} />
               <Button variant="outline" size="sm" onClick={() => setAdding((value) => !value)}>
                 <Plus className="mr-1 h-4 w-4" /> Ajouter
               </Button>
@@ -1509,15 +1511,6 @@ function AddSupplyForm({
   );
 }
 
-function readFileAsBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Lecture du fichier impossible"));
-    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-    reader.readAsDataURL(file);
-  });
-}
-
 function NewWorksiteDialog({
   open,
   onOpenChange,
@@ -1531,7 +1524,7 @@ function NewWorksiteDialog({
   const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
   const [quote, setQuote] = useState<File | null>(null);
-  const importQuote = useServerFn(importApQuote);
+  const extractWithAi = useServerFn(extractApQuoteLines);
   const create = useMutation({
     mutationFn: async () => {
       const id = await createApWorksite({
@@ -1542,9 +1535,7 @@ function NewWorksiteDialog({
       });
       if (!quote) return null;
       try {
-        return await importQuote({
-          data: { worksiteId: id, filename: quote.name, fileBase64: await readFileAsBase64(quote) },
-        });
+        return await importQuoteFromFile(id, quote, (text) => extractWithAi({ data: { text } }));
       } catch (error) {
         // Le chantier existe déjà : on signale seulement l'échec de l'import.
         toast.error(
@@ -1626,6 +1617,44 @@ function NewWorksiteDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ImportQuoteButton({ worksiteId, onDone }: { worksiteId: string; onDone: () => void }) {
+  const extractWithAi = useServerFn(extractApQuoteLines);
+  const run = useMutation({
+    mutationFn: (file: File) =>
+      importQuoteFromFile(worksiteId, file, (text) => extractWithAi({ data: { text } })),
+    onSuccess: (result) => {
+      toast.success(
+        `${result.inserted} fourniture(s) importée(s)` +
+          (result.skippedExisting > 0 ? `, ${result.skippedExisting} déjà présente(s)` : "") +
+          (result.unassigned > 0 ? `, ${result.unassigned} sans fournisseur` : ""),
+      );
+      onDone();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  return (
+    <label
+      className={cn(
+        "inline-flex h-8 cursor-pointer items-center gap-1 rounded-md border bg-background px-3 text-sm hover:bg-muted/40",
+        run.isPending && "pointer-events-none opacity-60",
+      )}
+    >
+      <Upload className="h-4 w-4" />
+      {run.isPending ? "Lecture…" : "Devis"}
+      <input
+        type="file"
+        accept="application/pdf,.pdf"
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (file) run.mutate(file);
+        }}
+      />
+    </label>
   );
 }
 
