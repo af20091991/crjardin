@@ -1,6 +1,6 @@
 {
-  "latestBuild": 2,
-  "versionName": "1.1",
+  "latestBuild": 3,
+  "versionName": "2.0",
   "apkUrl": "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk",
-  "notes": "Nouvelle icône PilotPro, écran de lancement et corrections."
+  "notes": "Application 2.0 : raccourcis d'icône, verrouillage biométrique, mode hors-ligne."
 }

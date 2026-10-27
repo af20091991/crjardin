@@ -4,4 +4,12 @@
     <string name="title_activity_main">PilotPro</string>
     <string name="package_name">fr.delagraineaujardin.pp</string>
     <string name="custom_url_scheme">fr.delagraineaujardin.pp</string>
+    <string name="sc_ca">CA</string>
+    <string name="sc_ca_long">Chiffre d\'affaires</string>
+    <string name="sc_clients">Clients</string>
+    <string name="sc_clients_long">Fiches clients</string>
+    <string name="sc_sst">SST</string>
+    <string name="sc_sst_long">Calendrier SST</string>
+    <string name="sc_cr">Nouveau CR</string>
+    <string name="sc_cr_long">Nouvelle intervention</string>
 </resources>

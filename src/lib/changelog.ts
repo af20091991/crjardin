@@ -24,6 +24,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-27",
+    version: "2.4.0",
+    theme: "Général",
+    title: "Application mobile 2.0",
+    details: [
+      "Raccourcis d'icône (appui long) : Chiffre d'affaires, Clients, Calendrier SST, Nouvelle intervention.",
+      "Actions rapides en haut du menu « Plus » : nouvelle intervention, nouveau compte-rendu.",
+      "Verrouillage optionnel par empreinte, visage ou code du téléphone (Personnalisation).",
+      "Bandeau « Hors connexion », tirer vers le bas pour actualiser, retour haptique sur la barre du bas.",
+    ],
+  },
+  {
+    date: "2026-10-27",
     version: "2.3.94",
     theme: "Général",
     title: "Application mobile — invitation à mettre à jour",

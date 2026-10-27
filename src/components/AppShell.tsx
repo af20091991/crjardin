@@ -6,6 +6,7 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { NativeAppLayer } from "@/components/NativeAppLayer";
 import { MobileUpdatePrompt } from "@/components/MobileUpdatePrompt";
 import { GlobalSearch } from "@/components/pilot/GlobalSearch";
 import {
@@ -14,6 +15,7 @@ import {
   LogOut,
   Settings,
   MoreHorizontal,
+  Plus,
   FileText,
   ChevronDown,
   Database,
@@ -633,6 +635,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </div>
         )}
 
+        <NativeAppLayer />
         <MobileUpdatePrompt />
 
         <main data-shell="main" className="px-4 pb-28 pt-4 md:px-6 md:pb-10">
@@ -640,7 +643,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around gap-0.5 border-t border-border bg-card/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1.5 backdrop-blur md:hidden">
+      <nav
+        data-bottom-nav
+        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around gap-0.5 border-t border-border bg-card/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1.5 backdrop-blur md:hidden"
+      >
         {primaryItems.map((item) => (
           <Link
             key={item.to}
@@ -672,6 +678,31 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 <SheetTitle className="font-serif">Menu</SheetTitle>
               </SheetHeader>
               <div className="mt-2 space-y-4 pb-[env(safe-area-inset-bottom)]">
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+                    Actions rapides
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <SheetClose asChild>
+                      <Link
+                        to="/interventions/new"
+                        className="flex items-center gap-3 rounded-xl bg-primary p-3 text-sm font-medium text-primary-foreground"
+                      >
+                        <Plus className="h-5 w-5 shrink-0" />
+                        <span className="truncate">Nouvelle intervention</span>
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link
+                        to="/fiches/new"
+                        className="flex items-center gap-3 rounded-xl bg-primary p-3 text-sm font-medium text-primary-foreground"
+                      >
+                        <Plus className="h-5 w-5 shrink-0" />
+                        <span className="truncate">Nouveau compte-rendu</span>
+                      </Link>
+                    </SheetClose>
+                  </div>
+                </div>
                 {visibleGroups.map((group) => (
                   <div key={group.label} className="space-y-2">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
