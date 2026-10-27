@@ -7,6 +7,8 @@ on:
 jobs:
   android:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       PP_APP_URL: ${{ vars.PP_APP_URL || 'https://crjardin.lovable.app' }}
     steps:
@@ -17,12 +19,27 @@ jobs:
         with: { distribution: temurin, java-version: 21 }
       - run: npm ci && npx cap sync android
         working-directory: mobile
+      - name: Version depuis public/mobile-version.json
+        run: |
+          echo "VERSION_CODE=$(jq -r .latestBuild public/mobile-version.json)" >> $GITHUB_ENV
+          echo "VERSION_NAME=$(jq -r .versionName public/mobile-version.json)" >> $GITHUB_ENV
+      - name: Clé de signature fixe (mises à jour par-dessus l'installation)
+        run: |
+          mkdir -p ~/.android
+          cp mobile/android/pp-debug.keystore ~/.android/debug.keystore
       - run: ./gradlew assembleDebug
         working-directory: mobile/android
       - uses: actions/upload-artifact@v4
         with:
           name: pp-android-debug-apk
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Publier la release (APK téléchargeable)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk PilotPro.apk
+          gh release create "mobile-v${VERSION_CODE}" PilotPro.apk --title "PilotPro Android ${VERSION_NAME} (build ${VERSION_CODE})" --notes "Installer PilotPro.apk par-dessus l'ancienne version." --latest
   ios:
     runs-on: macos-latest
     env:

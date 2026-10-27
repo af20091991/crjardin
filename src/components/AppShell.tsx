@@ -6,6 +6,7 @@ import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { MobileUpdatePrompt } from "@/components/MobileUpdatePrompt";
 import { GlobalSearch } from "@/components/pilot/GlobalSearch";
 import {
   LayoutDashboard,
@@ -631,6 +632,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             )}
           </div>
         )}
+
+        <MobileUpdatePrompt />
 
         <main data-shell="main" className="px-4 pb-28 pt-4 md:px-6 md:pb-10">
           {children}
