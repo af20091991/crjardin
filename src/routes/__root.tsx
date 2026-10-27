@@ -122,7 +122,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
-      { name: "apple-mobile-web-app-title", content: "CR Pro" },
+      { name: "apple-mobile-web-app-title", content: "PilotPro" },
       { name: "format-detection", content: "telephone=no" },
     ],
     links: [
@@ -131,8 +131,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "manifest", href: "/manifest.webmanifest" },
+      {
+        rel: "preconnect",
+        href: "https://mgkeqwwzhcodntkakqaz.supabase.co",
+        crossOrigin: "anonymous",
+      },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+    ],
+    scripts: [
+      {
+        // Appli mobile : masque l'écran de lancement dès que la page est affichée.
+        children:
+          "(function(){function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}if(document.readyState==='complete')h();else window.addEventListener('load',h);setTimeout(h,1500);})();",
+      },
     ],
   }),
   shellComponent: RootShell,

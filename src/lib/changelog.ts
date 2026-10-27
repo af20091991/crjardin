@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-27",
+    version: "2.3.93",
+    theme: "Général",
+    title: "Application mobile — navigation et marque",
+    details: [
+      "Barre du bas : Dashboard, Chiffre d'affaires, Fiches clients, Calendrier SST ; le reste dans « Plus ».",
+      "Le sélecteur « à date / année » n'apparaît plus que sur le module Chiffre d'affaires.",
+      "Nouvelle icône et écran de lancement « De la graine au jardin — PilotPro » ; l'écran de lancement se ferme dès que la page est prête.",
+    ],
+  },
+  {
+    date: "2026-10-27",
     version: "2.3.92",
     theme: "Général",
     title: "Adaptation iPhone",
