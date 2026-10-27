@@ -1,0 +1,37 @@
+name: mobile-build
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["mobile/**"]
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    env:
+      PP_APP_URL: ${{ vars.PP_APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: mobile/package-lock.json }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci && npx cap sync android
+        working-directory: mobile
+      - run: ./gradlew assembleDebug
+        working-directory: mobile/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pp-android-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+  ios:
+    runs-on: macos-latest
+    env:
+      PP_APP_URL: ${{ vars.PP_APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: mobile/package-lock.json }
+      - run: npm ci && npx cap sync ios
+        working-directory: mobile
+      - run: xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+        working-directory: mobile/ios/App

@@ -1,0 +1,25 @@
+{
+  "name": "pp-mobile",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Coque native Android/iOS (Capacitor) de Pilot Pro — charge l'app PP publiée.",
+  "scripts": {
+    "sync": "cap sync",
+    "android": "cap sync android && cap open android",
+    "ios": "cap sync ios && cap open ios",
+    "assets": "capacitor-assets generate --iconBackgroundColor '#F9F7F2' --splashBackgroundColor '#F9F7F2'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/core": "^7.4.0",
+    "@capacitor/ios": "^7.4.0",
+    "@capacitor/splash-screen": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0",
+    "@capacitor/keyboard": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.4.0"
+  }
+}

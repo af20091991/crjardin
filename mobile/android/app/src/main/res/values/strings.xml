@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CR Pro</string>
+    <string name="title_activity_main">CR Pro</string>
+    <string name="package_name">fr.delagraineaujardin.pp</string>
+    <string name="custom_url_scheme">fr.delagraineaujardin.pp</string>
+</resources>
