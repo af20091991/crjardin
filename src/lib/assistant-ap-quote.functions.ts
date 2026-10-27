@@ -14,6 +14,14 @@ export const extractApQuoteLines = createServerFn({ method: "POST" })
     return extractQuoteLines(data.text);
   });
 
+/** Réponse IA (sérialisable) : validée et normalisée côté appelant. */
+export interface AiPlantsResponse {
+  blocks?: {
+    id: number;
+    plants?: { name: string; quantity: number | null; size_key: string | null }[];
+  }[];
+}
+
 const PlantsInput = z.object({
   blocks: z
     .array(
@@ -34,7 +42,7 @@ const PlantsInput = z.object({
 export const describeApPlants = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => PlantsInput.parse(input))
-  .handler(async ({ data }): Promise<unknown> => {
+  .handler(async ({ data }): Promise<AiPlantsResponse> => {
     const { describePlantsWithAi } = await import("@/lib/assistant-ap-quote.server");
-    return describePlantsWithAi(data.blocks);
+    return (await describePlantsWithAi(data.blocks)) as AiPlantsResponse;
   });
