@@ -23,12 +23,10 @@ function PendingPage() {
       navigate({ to: "/auth", replace: true });
       return;
     }
-    supabase
-      .rpc("is_approved", { _user_id: user.id })
-      .then(({ data }) => {
-        if (data) navigate({ to: "/", replace: true });
-        else setChecking(false);
-      });
+    supabase.rpc("is_approved", { _user_id: user.id }).then(({ data }) => {
+      if (data) navigate({ to: "/", replace: true });
+      else setChecking(false);
+    });
   }, [user, loading, navigate]);
 
   async function signOut() {
@@ -38,14 +36,14 @@ function PendingPage() {
 
   if (loading || checking) {
     return (
-      <div className="grid min-h-screen place-items-center bg-secondary/40">
+      <div className="grid min-h-dvh place-items-center bg-secondary/40">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 py-10">
+    <div className="flex min-h-dvh items-center justify-center bg-secondary/40 px-4 py-10">
       <div className="w-full max-w-md text-center">
         <div className="mb-6 flex flex-col items-center">
           <img src={logo} alt="De la graine au jardin" className="mb-2 h-24 w-24 object-contain" />

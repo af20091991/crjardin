@@ -209,6 +209,31 @@
     font-family: var(--font-sans);
   }
 
+  /* Adaptation iPhone / mobile (PWA + appli native) : aucun impact sur le bureau */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (max-width: 767px) {
+    body {
+      overscroll-behavior-y: none;
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+    /* iOS zoome sur tout champ < 16 px : on évite le zoom involontaire */
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea,
+    [role="combobox"] {
+      font-size: 16px;
+    }
+    button,
+    a,
+    [role="button"] {
+      touch-action: manipulation;
+    }
+  }
+
   h1,
   h2,
   h3,

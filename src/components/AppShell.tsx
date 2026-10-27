@@ -54,7 +54,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DirecteurIA } from "@/components/DirecteurIA";
 
 type NavItem = {
   to: string;
@@ -451,7 +450,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   }[appearance.sidebarWidth];
 
   return (
-    <div data-shell="root" className="min-h-screen bg-secondary/30">
+    <div data-shell="root" className="min-h-dvh bg-secondary/30">
       <TooltipProvider delayDuration={150}>
         <aside
           data-shell="sidebar"
@@ -593,7 +592,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         data-shell="content"
         className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : expandedContentClass}`}
       >
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2">
             <img
               src={logo}
@@ -711,7 +710,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         onNavigate={(to) => navigate({ to } as never)}
       />
       <InstallPrompt />
-      <DirecteurIA />
     </div>
   );
 }

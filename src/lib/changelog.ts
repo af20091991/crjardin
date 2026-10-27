@@ -23,6 +23,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-27",
+    version: "2.3.92",
+    theme: "Général",
+    title: "Adaptation iPhone",
+    details: [
+      "Affichage plein écran respectant l'encoche et la barre d'accueil de l'iPhone (en-tête et barre de navigation).",
+      "Plus de zoom automatique à la saisie dans les champs sur iPhone ; hauteur d'écran correcte avec la barre d'adresse Safari.",
+      "Identique pour la PWA et l'application mobile ; aucun changement sur ordinateur.",
+      "La bulle « Directeur IA » en bas à droite est retirée (web et mobile).",
+    ],
+  },
+  {
     date: "2026-10-24",
     version: "2.3.91",
     theme: "Général",
