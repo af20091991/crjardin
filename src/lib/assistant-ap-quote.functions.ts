@@ -13,3 +13,28 @@ export const extractApQuoteLines = createServerFn({ method: "POST" })
     const { extractQuoteLines } = await import("@/lib/assistant-ap-quote.server");
     return extractQuoteLines(data.text);
   });
+
+const PlantsInput = z.object({
+  blocks: z
+    .array(
+      z.object({
+        id: z.number().int(),
+        lines: z.array(z.string().max(300)).max(40),
+        sizes: z
+          .array(
+            z.object({ key: z.string().max(10), label: z.string().max(160), quantity: z.number() }),
+          )
+          .max(20),
+      }),
+    )
+    .max(80),
+});
+
+/** Noms des végétaux décrits dans les blocs du devis (IA). Échec toléré côté appelant. */
+export const describeApPlants = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => PlantsInput.parse(input))
+  .handler(async ({ data }): Promise<unknown> => {
+    const { describePlantsWithAi } = await import("@/lib/assistant-ap-quote.server");
+    return describePlantsWithAi(data.blocks);
+  });
