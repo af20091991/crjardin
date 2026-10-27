@@ -14,7 +14,7 @@ const config: CapacitorConfig = {
     cleartext: false,
     allowNavigation: ["*.supabase.co", "*.lovable.app", "accounts.google.com", "*.googleapis.com"],
   },
-  ios: { contentInset: "always", scheme: "CR Pro" },
+  ios: { contentInset: "never", scheme: "CR Pro" },
   android: { allowMixedContent: false },
   plugins: {
     SplashScreen: { launchShowDuration: 800, backgroundColor: "#F9F7F2", showSpinner: false },

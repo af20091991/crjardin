@@ -1,10 +1,5 @@
 export type ChangeTheme =
-  | "Marque"
-  | "Clients"
-  | "Compte-rendus"
-  | "PDF & Partage"
-  | "Jardinier"
-  | "Général";
+  "Marque" | "Clients" | "Compte-rendus" | "PDF & Partage" | "Jardinier" | "Général";
 export interface ChangeEntry {
   date: string; // ISO yyyy-mm-dd
   version: string;
@@ -22,6 +17,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 ];
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
+  {
+    date: "2026-10-27",
+    version: "2.3.92",
+    theme: "Général",
+    title: "Application mobile — adaptation iPhone",
+    details: [
+      "Affichage plein écran sur iPhone : l’en-tête et la barre de navigation respectent l’encoche et la barre d’accueil.",
+      "Application mobile Android et iOS identique à PP, mise à jour automatiquement à chaque publication.",
+    ],
+  },
   {
     date: "2026-10-24",
     version: "2.3.91",

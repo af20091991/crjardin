@@ -593,7 +593,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         data-shell="content"
         className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : expandedContentClass}`}
       >
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur md:hidden">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur md:hidden">
           <div className="flex min-w-0 items-center gap-2">
             <img
               src={logo}
