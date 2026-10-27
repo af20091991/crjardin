@@ -51,5 +51,16 @@
 	<string>Joindre des photos et documents aux interventions.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Calculer la distance et le temps de trajet vers les clients.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Déverrouiller PilotPro avec Face ID.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>pilotpro</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
