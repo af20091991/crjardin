@@ -1,6 +1,6 @@
 {
-  "name": "De la graine au jardin — Suivi de jardin",
-  "short_name": "Suivi de jardin",
+  "name": "PilotPro — De la graine au jardin",
+  "short_name": "PilotPro",
   "description": "Suivi d'entretien paysager et comptes-rendus clients, au rythme de la nature.",
   "start_url": "/",
   "display": "standalone",

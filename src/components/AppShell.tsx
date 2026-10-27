@@ -112,12 +112,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const { canEdit, canView, role } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { appearance, setAppearance } = useAppearance();
-  const isPilot =
-    pathname === "/pilot" ||
-    pathname.startsWith("/pilot/") ||
-    pathname === "/sst" ||
-    pathname.startsWith("/sst/");
-  const showPilotPeriod = isPilot && pathname !== "/pilot/calendrier";
+  // Sélecteur « à date / année » : réservé au module Chiffre d'affaires.
+  const showPilotPeriod = pathname === "/pilot/ca";
 
   const [collapsed, setCollapsed] = useState<boolean>(appearance.sidebarCollapsed);
 
@@ -182,7 +178,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                 short: "CA",
                 icon: Euro,
                 exact: false,
-                primary: false,
+                primary: true,
               },
             ]
           : []),
@@ -311,7 +307,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           short: "CR",
           icon: FileText,
           exact: false,
-          primary: true,
+          primary: false,
         },
         {
           to: "/pilot/assistant-ap",
@@ -336,10 +332,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         {
           to: "/pilot/calendrier",
           label: "Calendrier SST",
-          short: "Calendrier SST",
+          short: "SST",
           icon: CalendarDays,
           exact: false,
-          primary: false,
+          primary: true,
         },
       ],
     },

@@ -6,7 +6,7 @@ const url = process.env.PP_APP_URL ?? "https://crjardin.lovable.app";
 
 const config: CapacitorConfig = {
   appId: "fr.delagraineaujardin.pp",
-  appName: "CR Pro",
+  appName: "PilotPro",
   webDir: "www",
   backgroundColor: "#F9F7F2",
   server: {
@@ -14,10 +14,16 @@ const config: CapacitorConfig = {
     cleartext: false,
     allowNavigation: ["*.supabase.co", "*.lovable.app", "accounts.google.com", "*.googleapis.com"],
   },
-  ios: { contentInset: "never", scheme: "CR Pro" },
+  ios: { contentInset: "never", scheme: "PilotPro" },
   android: { allowMixedContent: false },
   plugins: {
-    SplashScreen: { launchShowDuration: 800, backgroundColor: "#F9F7F2", showSpinner: false },
+    SplashScreen: {
+      launchShowDuration: 5000,
+      launchAutoHide: true,
+      launchFadeOutDuration: 250,
+      backgroundColor: "#F9F7F2",
+      showSpinner: false,
+    },
     StatusBar: { style: "DARK", backgroundColor: "#F9F7F2", overlaysWebView: false },
     Keyboard: { resize: "body" },
   },
