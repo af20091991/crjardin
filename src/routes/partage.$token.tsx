@@ -143,7 +143,7 @@ export const Route = createFileRoute("/partage/$token")({
 // prettier-ignore
 function Centered({ title, text }: { title: string; text: string }) {
   return (
-    <div className="grid min-h-screen place-items-center bg-muted/30 p-6 text-center">
+    <div className="grid min-h-dvh place-items-center bg-muted/30 p-6 text-center">
       <div>
         <h1 className="font-serif text-2xl font-semibold">{title}</h1>
         <p className="mt-2 text-muted-foreground">{text}</p>
@@ -252,7 +252,7 @@ function SharePage() {
   }
 
   return (
-    <div className={`min-h-screen bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
+    <div className={`min-h-dvh bg-muted/30 pb-16 ${large ? "text-[1.08rem]" : ""}`}>
       <header className="border-b bg-background">
         <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-start justify-between gap-3">
@@ -457,7 +457,7 @@ function PremiumExperience({
 
   return (
     <div
-      className={`premium-carnet min-h-screen bg-background pb-20 font-sans ${large ? "text-[1.08rem]" : ""}`}
+      className={`premium-carnet min-h-dvh bg-background pb-20 font-sans ${large ? "text-[1.08rem]" : ""}`}
     >
       <header className="border-b bg-background">
         <div className="mx-auto flex min-h-20 w-full max-w-[1320px] items-center justify-between gap-5 px-5 py-3 sm:px-10 lg:px-16">

@@ -25,7 +25,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
@@ -53,7 +53,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           This page didn't load
@@ -87,7 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: `De la graine au jardin v${APP_VERSION} — Paysagiste` },
       {
         name: "description",
@@ -119,6 +119,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0ae2d8fa-5fd4-4797-ab10-a001529d7362/id-preview-66a2adc9--3545adef-a337-4e33-aef9-684d626fa27c.lovable.app-1781453660626.png",
       },
       { name: "theme-color", content: "#4F8E33" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "CR Pro" },
+      { name: "format-detection", content: "telephone=no" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

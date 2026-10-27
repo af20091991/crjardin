@@ -105,7 +105,7 @@ function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 py-10">
+    <div className="flex min-h-dvh items-center justify-center bg-secondary/40 px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <img src={logo} alt="De la graine au jardin" className="mb-3 h-28 w-28 object-contain" />
