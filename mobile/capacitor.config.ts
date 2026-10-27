@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 // URL de l'app PP publiée. Toute modification déployée sur PP est donc
 // immédiatement visible dans l'app mobile (aucune republication nécessaire).
-const url = process.env.PP_APP_URL ?? "https://REPLACE-ME.lovable.app";
+const url = process.env.PP_APP_URL ?? "https://crjardin.lovable.app";
 
 const config: CapacitorConfig = {
   appId: "fr.delagraineaujardin.pp",
