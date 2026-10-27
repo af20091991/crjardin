@@ -31,6 +31,7 @@ export const CHANGELOG: ChangeEntry[] = [
       "Affichage plein écran respectant l'encoche et la barre d'accueil de l'iPhone (en-tête et barre de navigation).",
       "Plus de zoom automatique à la saisie dans les champs sur iPhone ; hauteur d'écran correcte avec la barre d'adresse Safari.",
       "Identique pour la PWA et l'application mobile ; aucun changement sur ordinateur.",
+      "La bulle « Directeur IA » en bas à droite est retirée (web et mobile).",
     ],
   },
   {

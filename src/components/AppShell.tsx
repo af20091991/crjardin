@@ -54,7 +54,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DirecteurIA } from "@/components/DirecteurIA";
 
 type NavItem = {
   to: string;
@@ -711,7 +710,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         onNavigate={(to) => navigate({ to } as never)}
       />
       <InstallPrompt />
-      <DirecteurIA />
     </div>
   );
 }
