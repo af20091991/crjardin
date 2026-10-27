@@ -8,7 +8,14 @@ import {
   type QuoteLine,
   type SupplierRef,
 } from "@/lib/assistant-ap-catalogue";
-import { parseTabularQuote } from "@/lib/assistant-ap-quote";
+import { parseTabularQuoteDetailed } from "@/lib/assistant-ap-quote";
+import {
+  buildPlantComments,
+  heuristicPlants,
+  normalizeAiPlants,
+  plantAiPayload,
+  type NamedPlant,
+} from "@/lib/assistant-ap-plants";
 
 // Tables AP absentes des types générés.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,6 +30,11 @@ export interface ImportQuoteResult {
 }
 
 export type AiQuoteExtractor = (text: string) => Promise<{ lines: QuoteLine[]; rawCount: number }>;
+export interface AiHelpers {
+  extractLines: AiQuoteExtractor;
+  /** Noms des végétaux par bloc (réponse brute de l'IA). Optionnel, échec toléré. */
+  describePlants?: (blocks: ReturnType<typeof plantAiPayload>) => Promise<unknown>;
+}
 
 /** Texte du PDF, une ligne par rangée du tableau. */
 export async function pdfFileToText(file: File): Promise<string> {
@@ -68,7 +80,7 @@ function todayParis(): string {
 export async function importQuoteFromFile(
   worksiteId: string,
   file: File,
-  aiFallback: AiQuoteExtractor,
+  ai: AiHelpers,
 ): Promise<ImportQuoteResult> {
   let text = "";
   try {
@@ -94,10 +106,11 @@ export async function importQuoteFromFile(
   }
 
   // Lecture directe des devis « tableau » ; sinon repli sur l'IA (serveur).
-  let lines = parseTabularQuote(text, suppliers);
+  const parsed = parseTabularQuoteDetailed(text, suppliers);
+  let lines = parsed.lines;
   let rawCount = lines.length;
   if (lines.length === 0) {
-    const extracted = await aiFallback(text);
+    const extracted = await ai.extractLines(text);
     lines = extracted.lines;
     rawCount = extracted.rawCount;
   }
@@ -105,6 +118,25 @@ export async function importQuoteFromFile(
     throw new Error(
       `Aucune fourniture détectée dans ce devis (texte lu : ${text.trim().length} caractères, lignes proposées par l'IA : ${rawCount}).`,
     );
+
+  // Liste des végétaux par taille de conteneur (IA, sinon heuristique), reportée en commentaire.
+  const plantComments = new Map<string, string>();
+  if (parsed.blocks.length > 0) {
+    let named: NamedPlant[][] = parsed.blocks.map(heuristicPlants);
+    if (ai.describePlants) {
+      try {
+        const fromAi = normalizeAiPlants(
+          await ai.describePlants(plantAiPayload(parsed.blocks)),
+          parsed.blocks,
+        );
+        if (fromAi.some((plants) => plants.length > 0)) named = fromAi;
+      } catch {
+        /* repli sur l'heuristique */
+      }
+    }
+    for (const [key, comment] of buildPlantComments(parsed.blocks, named, lines))
+      plantComments.set(key, comment);
+  }
 
   const ctx = {
     suppliers,
@@ -148,7 +180,10 @@ export async function importQuoteFromFile(
       status: "a_faire",
       mode: "retrait",
       fulfillment_date: today,
-      comment: hint ? `Devis : ${hint}` : null,
+      comment:
+        [plantComments.get(line.group_key ?? ""), hint ? `Devis : ${hint}` : null]
+          .filter(Boolean)
+          .join("\n") || null,
     });
     report.push({
       item: line.item,

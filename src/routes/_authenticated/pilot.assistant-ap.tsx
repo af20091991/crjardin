@@ -58,7 +58,7 @@ import {
   Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { extractApQuoteLines } from "@/lib/assistant-ap-quote.functions";
+import { describeApPlants, extractApQuoteLines } from "@/lib/assistant-ap-quote.functions";
 import { importQuoteFromFile } from "@/lib/assistant-ap-quote-import";
 import { AP_SUPPLIER_EMAIL_ENABLED, buildSupplierEmail } from "@/lib/assistant-ap-mail";
 import {
@@ -1048,6 +1048,11 @@ function SupplyRow({
         ) : (
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         )}
+        {!open && supply.comment && (
+          <span className="col-span-full line-clamp-3 whitespace-pre-line text-xs font-normal text-muted-foreground">
+            {supply.comment}
+          </span>
+        )}
       </Button>
       {open && (
         <div className="border-t p-2">
@@ -1178,7 +1183,7 @@ function SupplyRow({
             aria-label="Commentaire"
             placeholder="Commentaire (facultatif)"
             defaultValue={supply.comment ?? ""}
-            rows={1}
+            rows={Math.min(14, Math.max(1, (supply.comment ?? "").split("\n").length))}
             className="mt-2 min-h-8 resize-y text-xs"
             disabled={updateSupply.isPending}
             onBlur={(event) => {
@@ -1525,6 +1530,7 @@ function NewWorksiteDialog({
   const [notes, setNotes] = useState("");
   const [quote, setQuote] = useState<File | null>(null);
   const extractWithAi = useServerFn(extractApQuoteLines);
+  const describeWithAi = useServerFn(describeApPlants);
   const create = useMutation({
     mutationFn: async () => {
       const id = await createApWorksite({
@@ -1535,7 +1541,10 @@ function NewWorksiteDialog({
       });
       if (!quote) return null;
       try {
-        return await importQuoteFromFile(id, quote, (text) => extractWithAi({ data: { text } }));
+        return await importQuoteFromFile(id, quote, {
+          extractLines: (text) => extractWithAi({ data: { text } }),
+          describePlants: (blocks) => describeWithAi({ data: { blocks } }),
+        });
       } catch (error) {
         // Le chantier existe déjà : on signale seulement l'échec de l'import.
         toast.error(
@@ -1622,9 +1631,13 @@ function NewWorksiteDialog({
 
 function ImportQuoteButton({ worksiteId, onDone }: { worksiteId: string; onDone: () => void }) {
   const extractWithAi = useServerFn(extractApQuoteLines);
+  const describeWithAi = useServerFn(describeApPlants);
   const run = useMutation({
     mutationFn: (file: File) =>
-      importQuoteFromFile(worksiteId, file, (text) => extractWithAi({ data: { text } })),
+      importQuoteFromFile(worksiteId, file, {
+        extractLines: (text) => extractWithAi({ data: { text } }),
+        describePlants: (blocks) => describeWithAi({ data: { blocks } }),
+      }),
     onSuccess: (result) => {
       toast.success(
         `${result.inserted} fourniture(s) importée(s)` +

@@ -22,6 +22,10 @@ export interface QuoteLine {
   plant_liters: number | null;
   /** Fournisseur écrit dans le devis (ex. « AEF » dans la désignation) : prioritaire. */
   supplier_tag?: string | null;
+  /** Clé de regroupement du devis (désignation + fournisseur écrit), pour relier les blocs. */
+  group_key?: string | null;
+  /** Commentaire à reporter sur la fiche (ex. liste des végétaux). */
+  comment?: string | null;
 }
 
 export interface SupplierRef {

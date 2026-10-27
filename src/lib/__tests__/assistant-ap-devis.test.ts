@@ -6,7 +6,18 @@ import {
   type QuoteLine,
   type SupplierRef,
 } from "../assistant-ap-catalogue";
-import { isServiceLine, normalizeQuoteLines, parseTabularQuote } from "../assistant-ap-quote";
+import {
+  isServiceLine,
+  normalizeQuoteLines,
+  parseTabularQuote,
+  parseTabularQuoteDetailed,
+} from "../assistant-ap-quote";
+import {
+  buildPlantComments,
+  heuristicPlants,
+  normalizeAiPlants,
+  plantAiPayload,
+} from "../assistant-ap-plants";
 import { supplyIssues } from "../assistant-ap-checks";
 
 const suppliers: SupplierRef[] = [
@@ -172,5 +183,76 @@ describe("devis tableau (Henrri)", () => {
   });
   test("désignation sur deux lignes", () => {
     expect(lines.find((l) => l.item.startsWith("Amendement"))?.item).toContain("sac 25 kg");
+  });
+});
+
+describe("liste des végétaux par taille de conteneur", () => {
+  const text = [
+    "Référence Désignation Quantité PU Vente TVA Montant HT Image",
+    "Massif pétanque:",
+    "3 sedums dont 1 S. spectabilis",
+    "1 agave",
+    "AEF1,4AC Vivace 1,4L A-C AEF 3,00 8,2500 € 20,00 24,75 €",
+    "AEF2L Vivace 2L AEF 2,00 9,0800 € 20,00 18,16 €",
+    "MO Main d'oeuvre 1,00 58,3333 € 20,00 58,33 €",
+    "Sous Total 150,60 €",
+    "Aménagement du massif Nord:",
+    "Yucca rostrata",
+    "A1 Arbre C30 - A1 1,00 157,5000 € 20,00 157,50 €",
+    "AEF1,4AC Vivace 1,4L A-C AEF 12,00 8,2500 € 20,00 99,00 €",
+    "Travail du sol préalable",
+    "Désherbage en profondeur",
+    "Sous Total 1 720,45 €",
+    "CLAUSE DE RÉSERVE DE PROPRIÉTÉ : blabla",
+    "total ou partiel du prix",
+    "Fait avec Henrri, logiciel de facturation agréé. Page 1 / 5",
+    "Sauge argentée",
+    "AEF1,4AC (c… Vivace 1,4L A-C AEF 1,00 8,2500 € 20,00 8,25 €",
+  ].join("\n");
+  const aef = { id: "a", name: "AEF", aliases: ["AEF"] };
+  const { lines, blocks } = parseTabularQuoteDetailed(text, [aef]);
+
+  test("blocs : description + rangées végétales, sans pied de page ni tâches", () => {
+    expect(blocks.map((b) => b.lines)).toEqual([
+      ["Massif pétanque:", "3 sedums dont 1 S. spectabilis", "1 agave"],
+      ["Aménagement du massif Nord:", "Yucca rostrata"],
+      ["Sauge argentée"],
+    ]);
+  });
+  test("repli heuristique : taille unique déduite, sinon à confirmer", () => {
+    const comments = buildPlantComments(blocks, blocks.map(heuristicPlants), lines);
+    const c14 = comments.get(lines.find((l) => l.item === "Vivace 1,4L A-C")!.group_key!)!;
+    expect(c14).toContain("Sauge argentée");
+    expect(c14).toContain("À répartir — zone « Massif pétanque »");
+    expect(c14).toContain("Sedums dont 1 S. spectabilis ×3");
+    const c30 = comments.get(lines.find((l) => l.item.startsWith("Arbre"))!.group_key!)!;
+    expect(c30).toContain("Yucca rostrata");
+  });
+  test("réponse IA : tailles réparties et regroupées", () => {
+    const payload = plantAiPayload(blocks);
+    expect(payload[0].sizes.map((s) => s.key)).toEqual(["s0", "s1"]);
+    const named = normalizeAiPlants(
+      {
+        blocks: [
+          {
+            id: 0,
+            plants: [
+              { name: "sedum", quantity: 3, size_key: "s0" },
+              { name: "agave", quantity: 1, size_key: "s1" },
+            ],
+          },
+          { id: 1, plants: [{ name: "Yucca rostrata", quantity: 1, size_key: "s0" }] },
+          { id: 2, plants: [{ name: "Sauge argentée", quantity: 1, size_key: null }] },
+        ],
+      },
+      blocks,
+    );
+    const comments = buildPlantComments(blocks, named, lines);
+    const c14 = comments.get(lines.find((l) => l.item === "Vivace 1,4L A-C")!.group_key!)!;
+    expect(c14).toContain("• Sauge argentée ×1");
+    expect(c14).toContain("• Sedum ×3");
+    expect(c14).not.toContain("À répartir");
+    const c2 = comments.get(lines.find((l) => l.item === "Vivace 2L")!.group_key!)!;
+    expect(c2).toContain("• Agave ×1");
   });
 });
