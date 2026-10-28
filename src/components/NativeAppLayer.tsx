@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Fingerprint, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import {
   biometricUnlock,
   haptic,
@@ -59,6 +60,29 @@ export function NativeAppLayer() {
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
   }, [native]);
+
+  // Premier lancement : relit les données dès que la session est prête, et au retour au premier plan
+  useEffect(() => {
+    if (!appLike) return;
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        void queryClient.invalidateQueries();
+      }
+    });
+    let hiddenSince: number | null = null;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") hiddenSince = Date.now();
+      else if (hiddenSince && Date.now() - hiddenSince > 20_000) {
+        hiddenSince = null;
+        void queryClient.invalidateQueries();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      data.subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [appLike, queryClient]);
 
   // Hors-ligne
   useEffect(() => {

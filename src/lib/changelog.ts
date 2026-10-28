@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-28",
+    version: "2.4.4",
+    theme: "Général",
+    title: "Mobile — en-tête et premier lancement",
+    details: [
+      "En-tête : la seconde mention « Pilot Pro » à droite du logo est remplacée par le nom de la rubrique.",
+      "Les données se rechargent dès que la session est prête et au retour dans l'application, sans avoir à la rouvrir.",
+    ],
+  },
+  {
+    date: "2026-10-28",
     version: "2.4.3",
     theme: "Général",
     title: "Mobile — détection de la version installée",
