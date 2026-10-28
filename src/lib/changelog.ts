@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-28",
+    version: "2.4.5",
+    theme: "Général",
+    title: "Mobile — menu unique et mise à jour",
+    details: [
+      "Barre de raccourcis du bas supprimée : tout passe par le menu en haut à gauche, qui contient aussi les actions rapides.",
+      "Invitation à mettre à jour plus fiable, même si la version installée est illisible.",
+      "Personnalisation : carte « Application mobile » avec la version installée et un bouton « Rechercher une mise à jour ».",
+    ],
+  },
+  {
+    date: "2026-10-28",
     version: "2.4.4",
     theme: "Général",
     title: "Mobile — en-tête et premier lancement",

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AppVersionCard } from "@/components/AppVersionCard";
 import { BiometricLockSetting } from "@/components/BiometricLockSetting";
 import { AppShell, NAV_GROUP_LABELS } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -167,6 +168,8 @@ function PersonnalisationPage() {
         </div>
 
         <AppearanceEssentials />
+
+        <AppVersionCard />
 
         <BiometricLockSetting />
 

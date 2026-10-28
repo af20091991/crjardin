@@ -14,7 +14,6 @@ import {
   Users,
   LogOut,
   Settings,
-  MoreHorizontal,
   Menu,
   Plus,
   FileText,
@@ -406,8 +405,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     .filter((g) => !appearance.hiddenGroups.includes(g.label))
     .filter((g) => g.items.length > 0 || g.emptyLabel);
   const navItems = visibleGroups.flatMap((g) => g.items);
-  const primaryItems = navItems.filter((i) => i.primary);
-  const moreItems = navItems.filter((i) => !i.primary);
   const groupsMenu = (
     <>
       {visibleGroups.map((group) => (
@@ -641,7 +638,34 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               <SheetHeader className="text-left">
                 <SheetTitle className="font-serif">Modules</SheetTitle>
               </SheetHeader>
-              <div className="mt-3 space-y-4 pb-[env(safe-area-inset-bottom)]">{groupsMenu}</div>
+              <div className="mt-3 space-y-4 pb-[env(safe-area-inset-bottom)]">
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+                    Actions rapides
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <SheetClose asChild>
+                      <Link
+                        to="/interventions/new"
+                        className="flex items-center gap-3 rounded-xl bg-primary p-3 text-sm font-medium text-primary-foreground"
+                      >
+                        <Plus className="h-5 w-5 shrink-0" />
+                        <span className="truncate">Nouvelle intervention</span>
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link
+                        to="/fiches/new"
+                        className="flex items-center gap-3 rounded-xl bg-primary p-3 text-sm font-medium text-primary-foreground"
+                      >
+                        <Plus className="h-5 w-5 shrink-0" />
+                        <span className="truncate">Nouveau compte-rendu</span>
+                      </Link>
+                    </SheetClose>
+                  </div>
+                </div>
+                {groupsMenu}
+              </div>
             </SheetContent>
           </Sheet>
           <div className="flex shrink-0 flex-col items-center gap-0.5">
@@ -693,77 +717,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         <NativeAppLayer />
         <MobileUpdatePrompt />
 
-        <main data-shell="main" className="px-4 pb-28 pt-4 md:px-6 md:pb-10">
+        <main data-shell="main" className="px-4 pb-6 pt-4 md:px-6 md:pb-10">
           {children}
         </main>
       </div>
-
-      <nav
-        data-bottom-nav
-        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around gap-0.5 border-t border-border bg-card/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1.5 backdrop-blur md:hidden"
-      >
-        {primaryItems.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 text-[10px] font-medium ${
-              isActive(item.to, item.exact) ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            <item.icon className="h-5 w-5 shrink-0" />
-            <span className="max-w-full truncate">{item.short}</span>
-          </Link>
-        ))}
-        {moreItems.length > 0 && (
-          <Sheet>
-            <SheetTrigger asChild>
-              <button
-                className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 text-[10px] font-medium ${
-                  moreItems.some((i) => isActive(i.to, i.exact))
-                    ? "text-primary"
-                    : "text-muted-foreground"
-                }`}
-              >
-                <MoreHorizontal className="h-5 w-5 shrink-0" />
-                <span>Plus</span>
-              </button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-2xl">
-              <SheetHeader className="text-left">
-                <SheetTitle className="font-serif">Menu</SheetTitle>
-              </SheetHeader>
-              <div className="mt-2 space-y-4 pb-[env(safe-area-inset-bottom)]">
-                <div className="space-y-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
-                    Actions rapides
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <SheetClose asChild>
-                      <Link
-                        to="/interventions/new"
-                        className="flex items-center gap-3 rounded-xl bg-primary p-3 text-sm font-medium text-primary-foreground"
-                      >
-                        <Plus className="h-5 w-5 shrink-0" />
-                        <span className="truncate">Nouvelle intervention</span>
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link
-                        to="/fiches/new"
-                        className="flex items-center gap-3 rounded-xl bg-primary p-3 text-sm font-medium text-primary-foreground"
-                      >
-                        <Plus className="h-5 w-5 shrink-0" />
-                        <span className="truncate">Nouveau compte-rendu</span>
-                      </Link>
-                    </SheetClose>
-                  </div>
-                </div>
-                {groupsMenu}
-              </div>
-            </SheetContent>
-          </Sheet>
-        )}
-      </nav>
 
       <NavCommandPalette
         items={navItems}
