@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getCapacitor, nativePlugin } from "@/lib/native-app";
 
 interface RemoteVersion {
   latestBuild: number;
@@ -8,13 +9,6 @@ interface RemoteVersion {
   apkUrl: string;
   notes?: string;
 }
-
-type CapacitorWindow = Window & {
-  Capacitor?: {
-    getPlatform?: () => string;
-    Plugins?: { App?: { getInfo?: () => Promise<{ build?: string; version?: string }> } };
-  };
-};
 
 const DISMISS_KEY = "pp-mobile-update-dismissed";
 
@@ -26,12 +20,13 @@ export function MobileUpdatePrompt() {
   const [update, setUpdate] = useState<RemoteVersion | null>(null);
 
   useEffect(() => {
-    const cap = (window as CapacitorWindow).Capacitor;
-    if (cap?.getPlatform?.() !== "android") return;
+    if (getCapacitor()?.getPlatform?.() !== "android") return;
     let cancelled = false;
     (async () => {
       try {
-        const info = await cap.Plugins?.App?.getInfo?.();
+        const info = await nativePlugin<{ getInfo?: () => Promise<{ build?: string }> }>(
+          "App",
+        )?.getInfo?.();
         const installed = Number(info?.build ?? 0);
         const res = await fetch(`/mobile-version.json?t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) return;
