@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Download, Share2, Smartphone } from "lucide-react";
+import { X, Download, Smartphone } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -51,30 +51,6 @@ export function InstallPrompt() {
     setIsVisible(false);
   };
 
-  const handleShare = async () => {
-    const shareData = {
-      title: "De la graine au jardin — Suivi de jardin",
-      text: "Découvrez l'application de suivi d'entretien paysager De la graine au jardin.",
-      url: window.location.origin,
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch {
-        // User cancelled or share failed
-      }
-    } else {
-      // Fallback: copy to clipboard
-      try {
-        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.url}`);
-        // We'll let the caller handle the toast
-      } catch {
-        // Clipboard failed
-      }
-    }
-  };
-
   if (isInstalled) return null;
 
   return (
@@ -88,7 +64,9 @@ export function InstallPrompt() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">Installer l'application</p>
-              <p className="text-xs text-muted-foreground">Ajoutez De la graine au jardin à votre écran d'accueil.</p>
+              <p className="text-xs text-muted-foreground">
+                Ajoutez De la graine au jardin à votre écran d'accueil.
+              </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <Button size="sm" className="h-8" onClick={handleInstall}>
@@ -104,18 +82,6 @@ export function InstallPrompt() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Share button — shown on all devices when not installed */}
-      {!isVisible && (
-        <button
-          onClick={handleShare}
-          className="fixed bottom-20 right-4 z-40 grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 md:bottom-6"
-          title="Partager l'application"
-          aria-label="Partager l'application"
-        >
-          <Share2 className="h-5 w-5" />
-        </button>
       )}
     </>
   );

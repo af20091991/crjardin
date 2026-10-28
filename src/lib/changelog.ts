@@ -23,6 +23,18 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-28",
+    version: "2.4.1",
+    theme: "Général",
+    title: "Mobile — menu des modules et en-tête",
+    details: [
+      "Icône menu (burger) en haut à gauche : accès à tous les modules sans passer par la recherche.",
+      "En-tête : logo avec « PilotPro » dessous, titre de la page dans l'espace libre avant la recherche.",
+      "La pastille « Partager l'application » en bas à droite est supprimée.",
+      "Tableau de bord : la date du jour n'est plus affichée dans le sous-titre.",
+    ],
+  },
+  {
     date: "2026-10-27",
     version: "2.4.0",
     theme: "Général",
