@@ -24,6 +24,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-28",
+    version: "2.4.3",
+    theme: "Général",
+    title: "Mobile — détection de la version installée",
+    details: [
+      "L'invitation à mettre à jour de l'application Android lit désormais la version installée par une voie plus fiable.",
+    ],
+  },
+  {
+    date: "2026-10-28",
     version: "2.4.2",
     theme: "Général",
     title: "Mobile — en-têtes plus compacts",

@@ -2,6 +2,7 @@
 /** Pont vers les plugins natifs de l'appli mobile (Capacitor). Tout est optionnel :
  *  sur le web ou avec une ancienne version de l'APK, les fonctions ne font rien. */
 interface CapacitorLike {
+  nativePromise?: (plugin: string, method: string, options?: unknown) => Promise<any>;
   getPlatform?: () => string;
   isNativePlatform?: () => boolean;
   Plugins?: Record<string, any>;
@@ -26,7 +27,21 @@ export function isStandalonePwa(): boolean {
 }
 
 export function nativePlugin<T = any>(name: string): T | undefined {
-  return getCapacitor()?.Plugins?.[name] as T | undefined;
+  const cap = getCapacitor();
+  const direct = cap?.Plugins?.[name];
+  if (direct) return direct as T;
+  // Page distante : le pont natif expose nativePromise même sans le JS des plugins.
+  const call = cap?.nativePromise;
+  if (!call) return undefined;
+  return new Proxy(
+    {},
+    {
+      get: (_t, method) =>
+        typeof method === "string"
+          ? (options?: unknown) => call.call(cap, name, method, options)
+          : undefined,
+    },
+  ) as T;
 }
 
 export function haptic(style: "LIGHT" | "MEDIUM" = "LIGHT") {
