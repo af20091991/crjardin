@@ -112,6 +112,11 @@ BEGIN
   WHERE m.worksite_sheet_id = NEW.entity_id
     AND s.active = true
     AND s.user_id IS DISTINCT FROM NEW.actor_id
+    AND s.user_id IS DISTINCT FROM NEW.owner_id
+    AND NOT EXISTS (
+      SELECT 1 FROM public.user_roles r
+      WHERE r.user_id = s.user_id AND r.role = 'admin'
+    )
     AND NOT EXISTS (
       SELECT 1 FROM public.notifications n
       WHERE n.user_id = s.user_id
