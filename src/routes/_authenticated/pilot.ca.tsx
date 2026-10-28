@@ -545,7 +545,7 @@ function CaPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                className="hidden h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground md:inline-flex"
                 title="Personnaliser la page"
               >
                 <Settings2 className="h-3.5 w-3.5" /> <span>Personnaliser</span>

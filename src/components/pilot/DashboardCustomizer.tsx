@@ -76,7 +76,7 @@ export function DashboardCustomizer({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="gap-2">
+        <Button type="button" variant="outline" size="sm" className="hidden gap-2 md:inline-flex">
           <LayoutGrid className="h-4 w-4" /> Personnaliser
         </Button>
       </SheetTrigger>
