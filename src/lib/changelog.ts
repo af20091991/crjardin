@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-28",
+    version: "2.4.2",
+    theme: "Général",
+    title: "Mobile — en-têtes plus compacts",
+    details: [
+      "Sur téléphone : bouton « Personnaliser » masqué dans les en-têtes (Dashboard, CA, Calendrier SST, Temps…).",
+      "Dashboard : titre et sous-titre en double retirés, le titre de la page est déjà dans la barre du haut.",
+      "Textes d'introduction secondaires masqués pour gagner de la place.",
+    ],
+  },
+  {
+    date: "2026-10-28",
     version: "2.4.1",
     theme: "Général",
     title: "Mobile — menu des modules et en-tête",

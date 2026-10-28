@@ -1742,6 +1742,7 @@ function CalendarAppearanceMenu({
         <Button
           variant="outline"
           size="icon"
+          className="hidden md:inline-flex"
           aria-label="Personnaliser le calendrier"
           title="Personnaliser le calendrier"
         >

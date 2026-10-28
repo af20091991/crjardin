@@ -305,7 +305,7 @@ function TimeValueAnalysis() {
             <Timer className="h-5 w-5 text-primary" />
             Rentabilité du temps réalisé
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="hidden text-sm text-muted-foreground md:block">
             Où investir votre temps pour maximiser la rentabilité ? Croisement du temps réellement
             réalisé et de la valeur économique générée.
           </p>
