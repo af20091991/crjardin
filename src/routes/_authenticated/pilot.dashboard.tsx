@@ -473,7 +473,7 @@ function DashboardPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {layout.page.subtitle || `Pilot Pro · ${formatDateLong(now)}`}
+            {layout.page.subtitle || "Pilot Pro"}
           </p>
           <h2 className="font-serif text-3xl font-semibold tracking-tight">
             {layout.page.title || "Dashboard"}
@@ -1569,15 +1569,6 @@ function dateRange(days: number, endOffsetDays: number) {
   const start = new Date(end);
   start.setDate(start.getDate() - (days - 1));
   return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
-}
-
-function formatDateLong(date: Date): string {
-  return date.toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 }
 
 function formatMonthName(date: Date): string {

@@ -15,6 +15,7 @@ import {
   LogOut,
   Settings,
   MoreHorizontal,
+  Menu,
   Plus,
   FileText,
   ChevronDown,
@@ -407,6 +408,32 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const navItems = visibleGroups.flatMap((g) => g.items);
   const primaryItems = navItems.filter((i) => i.primary);
   const moreItems = navItems.filter((i) => !i.primary);
+  const groupsMenu = (
+    <>
+      {visibleGroups.map((group) => (
+        <div key={group.label} className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+            {group.label}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {group.items.map((item) => (
+              <SheetClose asChild key={item.to}>
+                <Link
+                  to={item.to}
+                  className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
+                    isActive(item.to, item.exact) ? "bg-primary/10 text-primary" : "text-foreground"
+                  }`}
+                >
+                  <item.icon className="h-5 w-5 shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              </SheetClose>
+            ))}
+          </div>
+        </div>
+      ))}
+    </>
+  );
   const activeGroup = visibleGroups.find((g) =>
     g.items.some((i) => isActive(i.to, i.exact)),
   )?.label;
@@ -591,18 +618,41 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         data-shell="content"
         className={`transition-[padding] duration-200 ${collapsed ? "md:pl-16" : expandedContentClass}`}
       >
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur md:hidden">
-          <div className="flex min-w-0 items-center gap-2">
+        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/90 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur md:hidden">
+          <Sheet>
+            <SheetTrigger asChild>
+              <button
+                className="-ml-1 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground"
+                aria-label="Ouvrir le menu des modules"
+                title="Menu des modules"
+              >
+                <Menu className="h-6 w-6" />
+              </button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-[88vw] max-w-sm overflow-y-auto pt-[calc(env(safe-area-inset-top)+1.5rem)]"
+            >
+              <SheetHeader className="text-left">
+                <SheetTitle className="font-serif">Modules</SheetTitle>
+              </SheetHeader>
+              <div className="mt-3 space-y-4 pb-[env(safe-area-inset-bottom)]">{groupsMenu}</div>
+            </SheetContent>
+          </Sheet>
+          <div className="flex shrink-0 flex-col items-center gap-0.5">
             <img
               src={logo}
               alt="De la graine au jardin"
               className="h-8 w-8 shrink-0 object-contain"
             />
-            <span className="truncate font-serif text-base font-semibold text-primary">
-              {title ?? `${APP_NAME} v${APP_VERSION}`}
+            <span className="font-serif text-[10px] font-semibold leading-none text-primary">
+              PilotPro
             </span>
           </div>
-          <div className="flex items-center gap-4">
+          <span className="min-w-0 flex-1 truncate px-1 text-sm font-medium text-muted-foreground">
+            {title ?? ""}
+          </span>
+          <div className="flex shrink-0 items-center gap-3">
             <GlobalSearch collapsed />
             {showPilotPeriod && <PilotPeriodSwitcher compact />}
             {showPilotPeriod && <PilotYearSwitcher compact />}
@@ -703,30 +753,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
                     </SheetClose>
                   </div>
                 </div>
-                {visibleGroups.map((group) => (
-                  <div key={group.label} className="space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
-                      {group.label}
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {group.items.map((item) => (
-                        <SheetClose asChild key={item.to}>
-                          <Link
-                            to={item.to}
-                            className={`flex items-center gap-3 rounded-xl border border-border p-3 text-sm font-medium ${
-                              isActive(item.to, item.exact)
-                                ? "bg-primary/10 text-primary"
-                                : "text-foreground"
-                            }`}
-                          >
-                            <item.icon className="h-5 w-5 shrink-0" />
-                            <span className="truncate">{item.label}</span>
-                          </Link>
-                        </SheetClose>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                {groupsMenu}
               </div>
             </SheetContent>
           </Sheet>
