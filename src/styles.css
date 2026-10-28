@@ -232,6 +232,25 @@
     [role="button"] {
       touch-action: manipulation;
     }
+    /* Mise en page téléphone : plus de contenu à l'écran, cibles tactiles confortables */
+    [data-shell="main"] {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+    [data-shell="main"] .space-y-5 > * + * {
+      margin-top: 0.85rem;
+    }
+    [role="combobox"],
+    input:not([type="checkbox"]):not([type="radio"]) {
+      min-height: 2.5rem;
+    }
+    [role="dialog"] {
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+    /* Les grands tableaux défilent au doigt au lieu de déborder de la page */
+    [data-shell="main"] table {
+      max-width: 100%;
+    }
   }
 
   h1,

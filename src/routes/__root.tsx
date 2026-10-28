@@ -143,7 +143,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         // Appli mobile : masque l'écran de lancement dès que la page est affichée.
         children:
-          "(function(){function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}if(document.readyState==='complete')h();else window.addEventListener('load',h);setTimeout(h,1500);})();",
+          "(function(){function w(){try{if(document.documentElement.dataset.ppReady)return;if(sessionStorage.getItem('pp-boot-reload'))return;sessionStorage.setItem('pp-boot-reload','1');location.reload();}catch(e){}}setTimeout(w,9000);function h(){try{var p=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(p)p.hide();}catch(e){}}if(document.readyState==='complete')h();else window.addEventListener('load',h);setTimeout(h,1500);})();",
       },
     ],
   }),
@@ -202,6 +202,8 @@ function RootComponent() {
 
   useEffect(() => {
     registerPwa();
+    // Signale au garde-fou de démarrage que l'application s'est bien affichée.
+    document.documentElement.dataset.ppReady = "1";
   }, []);
 
   return (
@@ -215,7 +217,12 @@ function RootComponent() {
               <Outlet />
             </AccountPrefsGate>
           </PilotModeProvider>
-          <Toaster richColors position="top-center" />
+          <Toaster
+            richColors
+            position="top-center"
+            offset="calc(env(safe-area-inset-top) + 8px)"
+            mobileOffset={{ top: "calc(env(safe-area-inset-top) + 8px)", left: 12, right: 12 }}
+          />
         </AppearanceProvider>
       </AuthProvider>
     </QueryClientProvider>

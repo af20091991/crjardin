@@ -12,6 +12,7 @@ const config: CapacitorConfig = {
   server: {
     url,
     cleartext: false,
+    errorPath: "index.html",
     allowNavigation: ["*.supabase.co", "*.lovable.app", "accounts.google.com", "*.googleapis.com"],
   },
   ios: { contentInset: "never", scheme: "PilotPro" },

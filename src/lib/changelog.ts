@@ -24,6 +24,17 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-28",
+    version: "2.5.0",
+    theme: "Général",
+    title: "Mobile — démarrage fiabilisé et mise en page téléphone",
+    details: [
+      "Premier lancement : les données se chargent sans fermer/rouvrir l'application (requêtes non bloquées par un réseau mal détecté, nouvel essai automatique, rechargement si la page ne s'affiche pas).",
+      "Connexion : réessais avant de conclure à une session invalide ou à un compte en attente.",
+      "Mise en page téléphone : marges et espacements resserrés, champs plus faciles à toucher, notifications sous l'encoche.",
+    ],
+  },
+  {
+    date: "2026-10-28",
     version: "2.4.5",
     theme: "Général",
     title: "Mobile — menu unique et mise à jour",
