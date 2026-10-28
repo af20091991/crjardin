@@ -29,7 +29,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -43,6 +43,18 @@ function AuthPage() {
     e.preventDefault();
     setBusy(true);
     try {
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        // Message volontairement identique que le compte existe ou non (pas de fuite d'information).
+        toast.success(
+          "Si un compte existe pour cette adresse, un e-mail avec un lien de réinitialisation vient d'être envoyé.",
+        );
+        setMode("signin");
+        return;
+      }
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -173,21 +185,44 @@ function AuthPage() {
                   placeholder="vous@exemple.fr"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </div>
+              {mode !== "forgot" && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Mot de passe</Label>
+                    {mode === "signin" && (
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-primary hover:underline"
+                        onClick={() => setMode("forgot")}
+                      >
+                        Mot de passe oublié ?
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                  />
+                </div>
+              )}
+              {mode === "forgot" && (
+                <p className="text-xs text-muted-foreground">
+                  Saisissez votre adresse e-mail : vous recevrez un lien pour choisir un nouveau mot
+                  de passe.
+                </p>
+              )}
               <Button type="submit" className="w-full" disabled={busy}>
                 {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === "signin" ? "Se connecter" : "Créer mon compte"}
+                {mode === "signin"
+                  ? "Se connecter"
+                  : mode === "signup"
+                    ? "Créer mon compte"
+                    : "Envoyer le lien"}
               </Button>
             </form>
 

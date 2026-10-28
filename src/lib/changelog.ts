@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-28",
+    version: "2.5.1",
+    theme: "Général",
+    title: "Mot de passe oublié",
+    details: [
+      "Page de connexion : lien « Mot de passe oublié ? » qui envoie un e-mail de réinitialisation.",
+      "Nouvelle page sécurisée pour choisir un nouveau mot de passe depuis le lien reçu (8 caractères minimum).",
+    ],
+  },
+  {
+    date: "2026-10-28",
     version: "2.5.0",
     theme: "Général",
     title: "Mobile — démarrage fiabilisé et mise en page téléphone",
