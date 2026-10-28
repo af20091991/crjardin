@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-28",
+    version: "2.5.2",
+    theme: "Général",
+    title: "E-mail des sous-traitants renseigné automatiquement",
+    details: [
+      "À la création d'un compte, son adresse e-mail est enregistrée sur la fiche du sous-traitant portant le même prénom (uniquement si la correspondance est unique et l'e-mail vide).",
+      "Adresses de Chloé et Fanny ajoutées à partir de leurs comptes.",
+    ],
+  },
+  {
+    date: "2026-10-28",
     version: "2.5.1",
     theme: "Général",
     title: "Mot de passe oublié",
