@@ -438,6 +438,11 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     g.items.some((i) => isActive(i.to, i.exact)),
   )?.label;
   const activeNavItem = navItems.find((i) => isActive(i.to, i.exact));
+  // Les pages Pilot passent « Pilot Pro » comme titre : doublon avec la marque, on affiche la rubrique.
+  const headerTitle =
+    title && title.replace(/\s/g, "").toLowerCase() === "pilotpro"
+      ? (activeNavItem?.label ?? "")
+      : (title ?? "");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => navGroupState);
 
   useEffect(() => {
@@ -650,7 +655,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             </span>
           </div>
           <span className="min-w-0 flex-1 truncate px-1 text-sm font-medium text-muted-foreground">
-            {title ?? ""}
+            {headerTitle}
           </span>
           <div className="flex shrink-0 items-center gap-3">
             <GlobalSearch collapsed />
