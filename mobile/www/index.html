@@ -1,7 +1,66 @@
 <!doctype html>
-<html lang="fr"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CR Pro</title>
-<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F9F7F2;color:#2d4a1c;font-family:system-ui,sans-serif;text-align:center;padding:24px}
-button{margin-top:16px;padding:12px 24px;border:0;border-radius:12px;background:#4F8E33;color:#fff;font-size:16px}</style></head>
-<body><div><h1>CR Pro</h1><p>Connexion impossible. Vérifiez votre réseau.</p><button onclick="location.reload()">Réessayer</button></div></body></html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>PilotPro</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f9f7f2;
+        color: #2d4a1c;
+        font-family: system-ui, sans-serif;
+        text-align: center;
+        padding: 24px;
+      }
+      .s {
+        width: 36px;
+        height: 36px;
+        border: 4px solid #d9e6d0;
+        border-top-color: #4f8e33;
+        border-radius: 50%;
+        animation: r 1s linear infinite;
+        margin: 0 auto 16px;
+      }
+      @keyframes r {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      p {
+        margin: 4px 0;
+        color: #5b6b50;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="s"></div>
+      <h2 style="margin: 0 0 8px">PilotPro</h2>
+      <p id="m">Chargement…</p>
+    </div>
+    <script>
+      // Page de secours : si le serveur n'a pas répondu au démarrage, on réessaie automatiquement.
+      var URL_APP = "https://crjardin.lovable.app/",
+        n = 0;
+      function t() {
+        n++;
+        document.getElementById("m").textContent =
+          navigator.onLine === false ? "Pas de connexion — nouvel essai…" : "Connexion en cours…";
+        fetch(URL_APP + "mobile-version.json?t=" + Date.now(), { cache: "no-store" })
+          .then(function (r) {
+            if (r.ok) location.replace(URL_APP);
+            else setTimeout(t, 2500);
+          })
+          .catch(function () {
+            setTimeout(t, 2500);
+          });
+      }
+      t();
+    </script>
+  </body>
+</html>
