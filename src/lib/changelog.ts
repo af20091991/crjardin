@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-28",
+    version: "2.5.3",
+    theme: "Général",
+    title: "SST : e-mails envoyés aux deux adresses",
+    details: [
+      "Fiche méthode SST et alertes du calendrier : le message part à l'adresse du compte ET à celle de la fiche sous-traitant (sans doublon).",
+      "Fiche « HQE Paysage » créée avec son adresse.",
+    ],
+  },
+  {
+    date: "2026-10-28",
     version: "2.5.2",
     theme: "Général",
     title: "E-mail des sous-traitants renseigné automatiquement",

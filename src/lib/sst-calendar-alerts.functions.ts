@@ -93,31 +93,45 @@ export const notifySstCalendarChanges = createServerFn({ method: "POST" })
       );
       if (notifError) console.error("[sst-calendar] alerte appli non créée", notifError.message);
 
-      // E-mail.
+      // E-mail : adresse du compte + adresse de la fiche sous-traitant éventuelle.
       const { data: userData } = await supabaseAdmin.auth.admin.getUserById(recipientId);
-      const email = userData?.user?.email?.trim();
-      if (!email) {
+      const { data: profileRow } = await db
+        .from("profiles")
+        .select("display_name")
+        .eq("id", recipientId)
+        .maybeSingle();
+      const { loadSubcontractorEmails, matchSubcontractorEmail, uniqueEmails } =
+        await import("@/lib/email/subcontractor-emails.server");
+      const ficheEmail = profileRow?.display_name
+        ? matchSubcontractorEmail(await loadSubcontractorEmails(), profileRow.display_name)
+        : null;
+      const emails = uniqueEmails([userData?.user?.email, ficheEmail]);
+      if (emails.length === 0) {
         failures += 1;
         continue;
       }
-      try {
-        await sendReportEmail({
-          templateName: "sst-calendar-change",
-          recipientEmail: email,
-          templateData: {
-            calendarUrl: `${APP_ORIGIN}/pilot/calendrier`,
-            changes: mine.map((change) => ({
-              summary: change.summary,
-              whenLabel: whenLabel(change.created_at),
-              lines: change.details ?? [],
-            })),
-          },
-        });
-        sent += 1;
-      } catch (mailError) {
-        failures += 1;
-        console.error("[sst-calendar] e-mail de modification non envoyé", mailError);
+      let delivered = false;
+      for (const email of emails) {
+        try {
+          await sendReportEmail({
+            templateName: "sst-calendar-change",
+            recipientEmail: email,
+            templateData: {
+              calendarUrl: `${APP_ORIGIN}/pilot/calendrier`,
+              changes: mine.map((change) => ({
+                summary: change.summary,
+                whenLabel: whenLabel(change.created_at),
+                lines: change.details ?? [],
+              })),
+            },
+          });
+          delivered = true;
+        } catch (mailError) {
+          console.error("[sst-calendar] e-mail de modification non envoyé", mailError);
+        }
       }
+      if (delivered) sent += 1;
+      else failures += 1;
     }
 
     return { sent, changes: changes.length, failures, recipients: recipients.length };
