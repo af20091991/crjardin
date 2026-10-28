@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getCapacitor, nativePlugin } from "@/lib/native-app";
-
-interface RemoteVersion {
-  latestBuild: number;
-  versionName: string;
-  apkUrl: string;
-  notes?: string;
-}
+import { checkMobileUpdate, UPDATE_CLICKED_KEY, type RemoteVersion } from "@/lib/mobile-update";
 
 const DISMISS_KEY = "pp-mobile-update-dismissed";
+
+export function openUpdate(remote: RemoteVersion) {
+  try {
+    localStorage.setItem(UPDATE_CLICKED_KEY, String(remote.latestBuild));
+  } catch {
+    /* ignore */
+  }
+  window.open(remote.apkUrl, "_blank");
+}
 
 /**
  * Appli mobile Android uniquement : informe qu'une nouvelle version de l'APK existe.
@@ -20,28 +22,16 @@ export function MobileUpdatePrompt() {
   const [update, setUpdate] = useState<RemoteVersion | null>(null);
 
   useEffect(() => {
-    if (getCapacitor()?.getPlatform?.() !== "android") return;
     let cancelled = false;
-    (async () => {
+    void checkMobileUpdate().then((r) => {
+      if (cancelled || !r.outdated || !r.remote) return;
       try {
-        const info = await nativePlugin<{ getInfo?: () => Promise<{ build?: string }> }>(
-          "App",
-        )?.getInfo?.();
-        const installed = Number(info?.build ?? 0);
-        const res = await fetch(`/mobile-version.json?t=${Date.now()}`, { cache: "no-store" });
-        if (!res.ok) return;
-        const remote = (await res.json()) as RemoteVersion;
-        if (!installed || !(remote.latestBuild > installed)) return;
-        try {
-          if (sessionStorage.getItem(DISMISS_KEY) === String(remote.latestBuild)) return;
-        } catch {
-          /* stockage indisponible : on affiche */
-        }
-        if (!cancelled) setUpdate(remote);
+        if (sessionStorage.getItem(DISMISS_KEY) === String(r.remote.latestBuild)) return;
       } catch {
-        /* hors ligne ou plugin absent : aucune invite */
+        /* stockage indisponible : on affiche */
       }
-    })();
+      setUpdate(r.remote);
+    });
     return () => {
       cancelled = true;
     };
@@ -73,7 +63,7 @@ export function MobileUpdatePrompt() {
           vos données sont conservées.
         </p>
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => window.open(update.apkUrl, "_blank")}>
+          <Button size="sm" onClick={() => openUpdate(update)}>
             Mettre à jour
           </Button>
           <Button size="sm" variant="ghost" onClick={dismiss}>
