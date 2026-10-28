@@ -22,6 +22,11 @@ export const resolveSstRecipientEmails = createServerFn({ method: "POST" })
   .inputValidator(recipientLookupSchema)
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { loadSubcontractorEmails, matchSubcontractorEmail, uniqueEmails } =
+      await import("./subcontractor-emails.server");
+    // Adresse de la fiche sous-traitant ET adresse du compte : on écrit aux deux.
+    const ficheEmails = await loadSubcontractorEmails();
+
     const { data: roles, error: rolesError } = await supabaseAdmin
       .from("user_roles")
       .select("user_id")
@@ -30,44 +35,43 @@ export const resolveSstRecipientEmails = createServerFn({ method: "POST" })
     if (rolesError) throw rolesError;
 
     const prestataireIds = new Set((roles ?? []).map((row) => row.user_id));
-    if (!prestataireIds.size) {
-      return data.names.map((name) => ({ name, email: null as string | null }));
+    let profiles: Array<{ id: string; display_name: string | null }> = [];
+    let emailById = new Map<string, string>();
+
+    if (prestataireIds.size) {
+      const { data: profileRows, error: profilesError } = await supabaseAdmin
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", Array.from(prestataireIds));
+      if (profilesError) throw profilesError;
+      profiles = profileRows ?? [];
+
+      const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      if (usersError) throw usersError;
+
+      emailById = new Map(
+        users.users
+          .filter((user) => prestataireIds.has(user.id) && user.email)
+          .map((user) => [user.id, user.email!.trim()]),
+      );
     }
-
-    const { data: profiles, error: profilesError } = await supabaseAdmin
-      .from("profiles")
-      .select("id, display_name")
-      .in("id", Array.from(prestataireIds));
-
-    if (profilesError) throw profilesError;
-
-    const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-
-    if (usersError) throw usersError;
-
-    const emailById = new Map(
-      users.users
-        .filter((user) => prestataireIds.has(user.id) && user.email)
-        .map((user) => [user.id, user.email!.trim()]),
-    );
 
     return data.names.map((name) => {
       const normalized = normalizeName(name);
-      const exact = (profiles ?? []).find(
+      const exact = profiles.find(
         (profile) => normalizeName(profile.display_name ?? "") === normalized,
       );
-      const startsWith = (profiles ?? []).find((profile) =>
+      const startsWith = profiles.find((profile) =>
         normalizeName(profile.display_name ?? "").startsWith(normalized + " "),
       );
       const profile = exact ?? startsWith;
+      const accountEmail = profile ? (emailById.get(profile.id) ?? null) : null;
+      const emails = uniqueEmails([accountEmail, matchSubcontractorEmail(ficheEmails, name)]);
 
-      return {
-        name,
-        email: profile ? (emailById.get(profile.id) ?? null) : null,
-      };
+      return { name, email: emails[0] ?? null, emails };
     });
   });
 

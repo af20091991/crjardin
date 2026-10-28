@@ -46,15 +46,14 @@ export function SstWorksiteEmailDialog({ sheet }: { sheet: WorksiteSheet }) {
     queryFn: () => resolveRecipientEmails({ data: { names: intervenants } }),
     enabled: open && intervenants.length > 0,
   });
-  const validRecipients = recipients.filter((r): r is { name: string; email: string } =>
-    Boolean(r.email),
+  // Chaque personne reçoit la fiche sur toutes ses adresses (compte + fiche sous-traitant).
+  const validRecipients = recipients.flatMap((r) =>
+    (r.emails ?? []).map((email) => ({ name: r.name, email })),
   );
 
   async function handleSend() {
     if (!validRecipients.length) {
-      toast.error(
-        "Aucune adresse e-mail de compte prestataire valide n'est disponible pour les SST sélectionnés.",
-      );
+      toast.error("Aucune adresse e-mail valide n'est disponible pour les SST sélectionnés.");
       return;
     }
     setSending(true);
