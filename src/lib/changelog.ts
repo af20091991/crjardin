@@ -1,5 +1,10 @@
 export type ChangeTheme =
-  "Marque" | "Clients" | "Compte-rendus" | "PDF & Partage" | "Jardinier" | "Général";
+  | "Marque"
+  | "Clients"
+  | "Compte-rendus"
+  | "PDF & Partage"
+  | "Jardinier"
+  | "Général";
 export interface ChangeEntry {
   date: string; // ISO yyyy-mm-dd
   version: string;
