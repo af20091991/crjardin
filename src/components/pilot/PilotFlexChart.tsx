@@ -168,7 +168,10 @@ export function PilotFlexChart({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={dataset.id} onValueChange={setDatasetId}>
-            <SelectTrigger className="h-8 w-[230px] text-xs" aria-label="Indicateur affiché">
+            <SelectTrigger
+              className="h-8 w-full max-w-[230px] text-xs"
+              aria-label="Indicateur affiché"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -180,7 +183,10 @@ export function PilotFlexChart({
             </SelectContent>
           </Select>
           <Select value={wantedType} onValueChange={setWantedType}>
-            <SelectTrigger className="h-8 w-[190px] text-xs" aria-label="Type de graphique">
+            <SelectTrigger
+              className="h-8 w-full max-w-[190px] text-xs"
+              aria-label="Type de graphique"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="max-h-[320px]">

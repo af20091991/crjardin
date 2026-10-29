@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { LoadingState } from "@/components/pilot/LoadingState";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1370,7 +1371,7 @@ function SstPlanningByPerson({
                       </p>
                       {sheet.address ? (
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {sheet.address}
+                          <AddressLink address={sheet.address} />
                         </p>
                       ) : null}
                       <div className="mt-2 flex flex-wrap gap-1.5">

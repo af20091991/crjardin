@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { ChevronRight, Mail, MapPin, MoreHorizontal, Phone, Search, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -188,13 +189,13 @@ function MobileDirectoryRow({
             {row.phone && (
               <span className="inline-flex items-center gap-1">
                 <Phone className="h-3 w-3" />
-                {row.phone}
+                <PhoneActions phone={row.phone} />
               </span>
             )}
             {row.address && (
               <span className="inline-flex items-center gap-1 truncate">
                 <MapPin className="h-3 w-3 shrink-0" />
-                {row.address}
+                <AddressLink address={row.address} />
               </span>
             )}
           </div>

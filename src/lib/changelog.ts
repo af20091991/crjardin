@@ -24,6 +24,20 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-29",
+    version: "2.6.0",
+    theme: "Général",
+    title: "Appli mobile : push, liens d'e-mail, appel/SMS/itinéraire",
+    details: [
+      "Notifications push sur le téléphone (une fois Firebase configuré).",
+      "Les liens reçus par e-mail s'ouvrent dans l'appli Android plutôt que dans le navigateur.",
+      "Numéros et adresses cliquables : appel, SMS et itinéraire dans les applis du téléphone.",
+      "Centre de notifications regroupé par type (SST, clients, autres).",
+      "Activation de l'empreinte / du visage proposée à la première connexion.",
+      "Graphiques et sélecteurs adaptés à l'écran du téléphone.",
+    ],
+  },
+  {
+    date: "2026-10-29",
     version: "2.5.5",
     theme: "Général",
     title: "Calendrier SST : cellules plus grandes",

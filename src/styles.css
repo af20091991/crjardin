@@ -1205,3 +1205,34 @@ html[data-active-indicator="strong"] [data-shell="nav"] a[data-active="true"] {
 [data-personalization="preview"] {
   background-color: color-mix(in oklab, var(--secondary) 55%, var(--card));
 }
+
+/* Graphiques sur téléphone : textes plus petits, légendes qui passent à la ligne,
+   et défilement vertical de la page conservé au doigt sur un graphique. */
+@media (max-width: 767px) {
+  .recharts-wrapper {
+    max-width: 100%;
+    touch-action: pan-y;
+  }
+  .recharts-cartesian-axis-tick-value {
+    font-size: 10px;
+  }
+  .recharts-legend-wrapper {
+    width: 100% !important;
+    left: 0 !important;
+  }
+  .recharts-default-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px 10px;
+  }
+  .recharts-legend-item-text {
+    font-size: 11px;
+  }
+  .recharts-tooltip-wrapper {
+    max-width: calc(100vw - 1.5rem);
+  }
+  .recharts-default-tooltip {
+    font-size: 12px;
+  }
+}

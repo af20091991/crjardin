@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AddressLink } from "@/components/ContactActions";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
@@ -13,7 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { listPlanningNotes, createPlanningNote, deletePlanningNote } from "@/lib/planning-notes";
 import { useRole } from "@/hooks/use-role";
@@ -27,7 +34,10 @@ export const Route = createFileRoute("/_authenticated/planning")({
 function PlanningPage() {
   const qc = useQueryClient();
   const { isAdmin } = useRole();
-  const { data: interventions } = useQuery({ queryKey: ["interventions"], queryFn: listAllInterventions });
+  const { data: interventions } = useQuery({
+    queryKey: ["interventions"],
+    queryFn: listAllInterventions,
+  });
   const { data: clients } = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const { data: notes } = useQuery({ queryKey: ["planning-notes"], queryFn: listPlanningNotes });
   const [day, setDay] = useState<Date | undefined>(new Date());
@@ -68,7 +78,9 @@ function PlanningPage() {
       }),
     onSuccess: () => {
       toast.success("Intervention prévue ajoutée");
-      setTitle(""); setDetails(""); setOpen(false);
+      setTitle("");
+      setDetails("");
+      setOpen(false);
       qc.invalidateQueries({ queryKey: ["planning-notes"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
@@ -119,38 +131,69 @@ function PlanningPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <h3 className="font-serif text-lg font-semibold">
-                {day ? day.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : "Sélectionnez un jour"}
+                {day
+                  ? day.toLocaleDateString("fr-FR", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                    })
+                  : "Sélectionnez un jour"}
               </h3>
               <div className="flex items-center gap-2">
                 {isAdmin && day && (
                   <Dialog open={open} onOpenChange={setOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm" variant="outline"><Plus className="mr-1.5 h-4 w-4" />Prévoir</Button>
+                      <Button size="sm" variant="outline">
+                        <Plus className="mr-1.5 h-4 w-4" />
+                        Prévoir
+                      </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Intervention prévue — {day.toLocaleDateString("fr-FR")}</DialogTitle>
+                        <DialogTitle>
+                          Intervention prévue — {day.toLocaleDateString("fr-FR")}
+                        </DialogTitle>
                       </DialogHeader>
                       <div className="space-y-3">
                         <div className="space-y-1.5">
                           <Label htmlFor="pn-title">Titre</Label>
-                          <Input id="pn-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex. Taille de haie chez M. Durand" />
+                          <Input
+                            id="pn-title"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="Ex. Taille de haie chez M. Durand"
+                          />
                         </div>
                         <div className="space-y-1.5">
                           <Label htmlFor="pn-details">Détails (facultatif)</Label>
-                          <Textarea id="pn-details" value={details} onChange={(e) => setDetails(e.target.value)} rows={3} />
+                          <Textarea
+                            id="pn-details"
+                            value={details}
+                            onChange={(e) => setDetails(e.target.value)}
+                            rows={3}
+                          />
                         </div>
                       </div>
                       <DialogFooter>
-                        <DialogClose asChild><Button variant="ghost">Annuler</Button></DialogClose>
-                        <Button disabled={!title.trim() || addNote.isPending} onClick={() => addNote.mutate()}>Ajouter</Button>
+                        <DialogClose asChild>
+                          <Button variant="ghost">Annuler</Button>
+                        </DialogClose>
+                        <Button
+                          disabled={!title.trim() || addNote.isPending}
+                          onClick={() => addNote.mutate()}
+                        >
+                          Ajouter
+                        </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 )}
                 {itineraryUrl && (
                   <a href={itineraryUrl} target="_blank" rel="noopener noreferrer">
-                    <Button size="sm"><Navigation className="mr-1.5 h-4 w-4" />Tournée du jour</Button>
+                    <Button size="sm">
+                      <Navigation className="mr-1.5 h-4 w-4" />
+                      Tournée du jour
+                    </Button>
                   </a>
                 )}
               </div>
@@ -165,11 +208,19 @@ function PlanningPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{n.title}</p>
                     {n.details && <p className="text-xs text-muted-foreground">{n.details}</p>}
-                    <Badge variant="outline" className="mt-1">Prévu</Badge>
+                    <Badge variant="outline" className="mt-1">
+                      Prévu
+                    </Badge>
                   </div>
                   {isAdmin && (
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      disabled={removeNote.isPending} onClick={() => removeNote.mutate(n.id)} title="Supprimer">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      disabled={removeNote.isPending}
+                      onClick={() => removeNote.mutate(n.id)}
+                      title="Supprimer"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
@@ -187,7 +238,11 @@ function PlanningPage() {
               selected.map((iv) => {
                 const c = clientById(iv.client_id);
                 return (
-                  <Link key={iv.id} to="/interventions/$interventionId" params={{ interventionId: iv.id }}>
+                  <Link
+                    key={iv.id}
+                    to="/interventions/$interventionId"
+                    params={{ interventionId: iv.id }}
+                  >
                     <Card className="transition-colors hover:border-primary/40">
                       <CardContent className="flex items-center gap-3 py-3.5">
                         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
@@ -197,7 +252,8 @@ function PlanningPage() {
                           <p className="truncate font-medium">{c?.name ?? "Client"}</p>
                           {c?.address && (
                             <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-                              <MapPin className="h-3 w-3" />{c.address}
+                              <MapPin className="h-3 w-3" />
+                              <AddressLink address={c.address} />
                             </p>
                           )}
                         </div>

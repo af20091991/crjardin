@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
 import { ClientForm } from "@/components/ClientForm";
@@ -256,8 +257,16 @@ function ClientDetail() {
             </div>
 
             <div className="mt-5 grid gap-2 text-sm sm:grid-cols-2">
-              {client.address && <Info icon={MapPin} text={client.address} />}
-              {client.phone && <Info icon={Phone} text={client.phone} />}
+              {client.address && (
+                <Info icon={MapPin} text={client.address}>
+                  <AddressLink address={client.address} />
+                </Info>
+              )}
+              {client.phone && (
+                <Info icon={Phone} text={client.phone}>
+                  <PhoneActions phone={client.phone} />
+                </Info>
+              )}
               {clientEmails(client).map((e) => (
                 <Info key={e} icon={Mail} text={e} />
               ))}
@@ -458,11 +467,19 @@ function CalendarDaysIcon() {
   return <Calendar className="mr-1.5 h-4 w-4" />;
 }
 
-function Info({ icon: Icon, text }: { icon: typeof MapPin; text: string }) {
+function Info({
+  icon: Icon,
+  text,
+  children,
+}: {
+  icon: typeof MapPin;
+  text: string;
+  children?: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-2 text-muted-foreground">
       <Icon className="h-4 w-4 shrink-0" />
-      <span className="truncate">{text}</span>
+      <span className="truncate">{children ?? text}</span>
     </div>
   );
 }

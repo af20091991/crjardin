@@ -630,7 +630,7 @@ function TimeValueAnalysis() {
                     </Badge>
                   ))}
                 </div>
-                <ChartContainer config={{}} className="h-[340px] w-full">
+                <ChartContainer config={{}} className="h-[260px] w-full sm:h-[340px]">
                   <ScatterChart margin={{ top: 10, right: 16, bottom: 24, left: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis

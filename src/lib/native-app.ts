@@ -96,3 +96,22 @@ export async function biometricUnlock(): Promise<boolean> {
     return false;
   }
 }
+
+const BIOMETRIC_ASKED_KEY = "pp-biometric-asked";
+
+/** true si la proposition d'activer la biométrie n'a pas encore été faite sur cet appareil. */
+export function shouldOfferBiometric(): boolean {
+  try {
+    return !isBiometricEnabled() && localStorage.getItem(BIOMETRIC_ASKED_KEY) !== "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markBiometricOffered() {
+  try {
+    localStorage.setItem(BIOMETRIC_ASKED_KEY, "1");
+  } catch {
+    /* stockage indisponible */
+  }
+}
