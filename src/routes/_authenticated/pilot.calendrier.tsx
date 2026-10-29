@@ -876,7 +876,7 @@ function CalendrierSstPage() {
                             className={cn(
                               "flex min-w-0 cursor-pointer flex-col items-stretch justify-start gap-0.5 overflow-hidden border p-1 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 sm:p-1.5",
                               cornerClass(preferences.corner),
-                              view === "week" ? "min-h-56" : heightClass(preferences.density),
+                              view === "week" ? "min-h-72" : heightClass(preferences.density),
                               styleClass(preferences.style),
                               preferences.highlightWeekend && weekend && "bg-muted/50",
                               !inMonth && preferences.dimOtherMonths && "bg-muted/20 opacity-35",

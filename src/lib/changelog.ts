@@ -24,6 +24,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-29",
+    version: "2.5.5",
+    theme: "Général",
+    title: "Calendrier SST : cellules plus grandes",
+    details: [
+      "Hauteur des cellules du calendrier SST agrandie (mois et semaine) pour une meilleure lisibilité.",
+    ],
+  },
+  {
+    date: "2026-10-29",
     version: "2.5.4",
     theme: "Général",
     title: "Notifications : fenêtre agrandie et défilable",
