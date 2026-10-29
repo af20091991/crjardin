@@ -6,13 +6,18 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  biometricAvailable,
   biometricUnlock,
   haptic,
   isBiometricEnabled,
   isNativeApp,
   isStandalonePwa,
+  markBiometricOffered,
   nativePlugin,
+  setBiometricEnabled,
+  shouldOfferBiometric,
 } from "@/lib/native-app";
+import { usePushRegistration } from "@/lib/push-notifications";
 
 const RELOCK_AFTER_MS = 60_000;
 const PULL_THRESHOLD = 90;
@@ -27,6 +32,7 @@ export function NativeAppLayer() {
   const [offline, setOffline] = useState(false);
   const [locked, setLocked] = useState(false);
   const hiddenAt = useRef<number | null>(null);
+  usePushRegistration();
 
   // Raccourcis d'icône : pilotpro://open/<chemin>
   useEffect(() => {
@@ -37,6 +43,14 @@ export function NativeAppLayer() {
       if (!url) return;
       try {
         const u = new URL(url);
+        // Lien d'e-mail https://crjardin.lovable.app/... → même page dans l'appli
+        if (u.protocol === "https:" && u.hostname === "crjardin.lovable.app") {
+          const target = `${u.pathname}${u.search}${u.hash}`;
+          if (target !== "/" && /^\/[\w/_.$%~:@!&=+,;?#-]*$/.test(target)) {
+            window.location.assign(target);
+          }
+          return;
+        }
         if (u.protocol !== "pilotpro:" || u.hostname !== "open") return;
         if (/^\/[a-z0-9/_.$-]*$/i.test(u.pathname)) void navigate({ to: u.pathname as never });
       } catch {
@@ -68,6 +82,27 @@ export function NativeAppLayer() {
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         void queryClient.invalidateQueries();
       }
+      // Première connexion sur l'appli : proposer le déverrouillage par empreinte / visage
+      if (event === "SIGNED_IN" && native && shouldOfferBiometric()) {
+        void biometricAvailable().then((ok) => {
+          if (!ok) return;
+          markBiometricOffered();
+          toast("Déverrouiller PilotPro avec votre empreinte ou votre visage ?", {
+            duration: 15_000,
+            action: {
+              label: "Activer",
+              onClick: () => {
+                void biometricUnlock().then((done) => {
+                  if (done) {
+                    setBiometricEnabled(true);
+                    toast.success("Verrouillage biométrique activé");
+                  }
+                });
+              },
+            },
+          });
+        });
+      }
     });
     let hiddenSince: number | null = null;
     const onVisibility = () => {
@@ -82,7 +117,7 @@ export function NativeAppLayer() {
       data.subscription.unsubscribe();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [appLike, queryClient]);
+  }, [appLike, native, queryClient]);
 
   // Hors-ligne
   useEffect(() => {

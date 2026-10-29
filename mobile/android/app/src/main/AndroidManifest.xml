@@ -26,6 +26,14 @@
                 <data android:scheme="pilotpro" />
             </intent-filter>
 
+            <!-- Liens https de l'appli (e-mails, SMS…) : ouverts dans PilotPro plutôt que le navigateur -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="crjardin.lovable.app" />
+            </intent-filter>
+
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
 

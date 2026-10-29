@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "fr.delagraineaujardin.pp",
+      "sha256_cert_fingerprints": [
+        "66:18:FA:75:84:35:29:C2:17:F0:05:DB:87:6C:EC:2B:32:78:A3:18:54:D5:92:5C:22:74:D8:77:8C:5E:7D:E5"
+      ]
+    }
+  }
+]

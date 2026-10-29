@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -414,13 +415,13 @@ export function ClientPilotageTabs({ clientId }: { clientId: string }) {
                     {client.address && (
                       <span className="flex items-center gap-1">
                         <MapPin className="h-3.5 w-3.5" />
-                        {client.address}
+                        <AddressLink address={client.address} />
                       </span>
                     )}
                     {client.phone && (
                       <span className="flex items-center gap-1">
                         <Phone className="h-3.5 w-3.5" />
-                        {client.phone}
+                        <PhoneActions phone={client.phone} />
                       </span>
                     )}
                     {client.email && (

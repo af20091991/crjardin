@@ -1,6 +1,6 @@
 {
-  "latestBuild": 4,
-  "versionName": "2.1",
+  "latestBuild": 5,
+  "versionName": "2.2",
   "apkUrl": "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk",
-  "notes": "Démarrage fiabilisé : page de secours avec nouvel essai automatique."
+  "notes": "Notifications push, liens d'e-mail ouverts dans l'appli, appel/SMS/itinéraire, biométrie proposée à la 1re connexion."
 }

@@ -1,4 +1,5 @@
 /// <reference types="google.maps" />
+import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -499,12 +500,12 @@ function SelectedCard({
       <CardContent className="space-y-3 text-sm">
         <div className="flex items-start gap-2">
           <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-          <span>{client.address}</span>
+          <AddressLink address={client.address} />
         </div>
         {client.phone && (
           <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-muted-foreground" />
-            <a href={`tel:${client.phone}`}>{client.phone}</a>
+            <PhoneActions phone={client.phone} />
           </div>
         )}
         {client.email && (

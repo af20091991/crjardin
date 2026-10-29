@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { AddressLink, PhoneActions } from "@/components/ContactActions";
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePilotData } from "@/components/pilot/usePilotData";
@@ -197,13 +198,13 @@ function PilotClientDetail() {
                   {client.address && (
                     <span className="flex items-center gap-1">
                       <MapPin className="h-3.5 w-3.5" />
-                      {client.address}
+                      <AddressLink address={client.address} />
                     </span>
                   )}
                   {client.phone && (
                     <span className="flex items-center gap-1">
                       <Phone className="h-3.5 w-3.5" />
-                      {client.phone}
+                      <PhoneActions phone={client.phone} />
                     </span>
                   )}
                   {client.email && (
