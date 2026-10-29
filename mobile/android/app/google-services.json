@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "479189518442",
+    "project_id": "pilotpro-571ba",
+    "storage_bucket": "pilotpro-571ba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:479189518442:android:ad0b77147d8bac06d6a213",
+        "android_client_info": {
+          "package_name": "fr.delagraineaujardin.pp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmzOkEq7aoQc6aIV-m0JUn9s8R0-BwbSQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
