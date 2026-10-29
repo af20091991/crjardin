@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { Bell, MessageSquare, HelpCircle, Eye, Check, CalendarDays } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -78,7 +77,11 @@ export function NotificationBell() {
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
+      <PopoverContent
+        align="end"
+        collisionPadding={8}
+        className="w-[min(96vw,36rem)] max-w-[calc(100vw-1rem)] p-0"
+      >
         <div className="flex items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-semibold">Notifications</span>
           {unread > 0 && (
@@ -92,7 +95,7 @@ export function NotificationBell() {
             </Button>
           )}
         </div>
-        <ScrollArea className="max-h-80">
+        <div className="max-h-[min(72dvh,34rem)] overflow-y-auto overscroll-contain">
           {(notifs ?? []).length === 0 ? (
             <p className="px-3 py-8 text-center text-sm text-muted-foreground">
               Aucune notification
@@ -113,11 +116,13 @@ export function NotificationBell() {
                 >
                   <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium leading-tight">{n.title}</p>
+                    <p className="break-words text-sm font-medium leading-snug">{n.title}</p>
                     {n.body && (
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{n.body}</p>
+                      <p className="mt-1 whitespace-pre-line break-words text-sm leading-snug text-muted-foreground">
+                        {n.body}
+                      </p>
                     )}
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {new Date(n.created_at).toLocaleString("fr-FR", {
                         day: "numeric",
                         month: "short",
@@ -133,7 +138,7 @@ export function NotificationBell() {
               );
             })
           )}
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );
