@@ -122,7 +122,7 @@ export function styleClass(style: CalendarStyle): string {
 export function heightClass(density: CalendarDensity): string {
   switch (density) {
     case "compact":
-      return "min-h-28 sm:min-h-36";
+      return "min-h-20 sm:min-h-28";
     case "spacious":
       return "min-h-28 sm:min-h-36";
     default:
