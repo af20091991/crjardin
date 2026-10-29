@@ -39,6 +39,7 @@ import { Route as ApiPublicRadarQuotidienRouteImport } from './routes/api/public
 import { Route as ApiPublicEmailOpenRouteImport } from './routes/api/public/email-open'
 import { Route as ApiPublicBrevoWebhookRouteImport } from './routes/api/public/brevo-webhook'
 import { Route as ApiPublicApRemindersRouteImport } from './routes/api/public/ap-reminders'
+import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push-dispatch'
 import { Route as AuthenticatedPilotValidationRouteImport } from './routes/_authenticated/pilot.validation'
 import { Route as AuthenticatedPilotTempsRouteImport } from './routes/_authenticated/pilot.temps'
 import { Route as AuthenticatedPilotTauxRouteImport } from './routes/_authenticated/pilot.taux'
@@ -236,6 +237,11 @@ const ApiPublicBrevoWebhookRoute = ApiPublicBrevoWebhookRouteImport.update({
 const ApiPublicApRemindersRoute = ApiPublicApRemindersRouteImport.update({
   id: '/api/public/ap-reminders',
   path: '/api/public/ap-reminders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPushDispatchRoute = ApiPublicPushDispatchRouteImport.update({
+  id: '/api/public/push-dispatch',
+  path: '/api/public/push-dispatch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPilotValidationRoute =
@@ -545,6 +551,7 @@ export interface FileRoutesByFullPath {
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
+  '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
@@ -617,6 +624,7 @@ export interface FileRoutesByTo {
   '/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
+  '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
@@ -693,6 +701,7 @@ export interface FileRoutesById {
   '/_authenticated/pilot/temps': typeof AuthenticatedPilotTempsRoute
   '/_authenticated/pilot/validation': typeof AuthenticatedPilotValidationRoute
   '/api/public/ap-reminders': typeof ApiPublicApRemindersRoute
+  '/api/public/push-dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/brevo-webhook': typeof ApiPublicBrevoWebhookRoute
   '/api/public/email-open': typeof ApiPublicEmailOpenRoute
   '/api/public/pp-ca-backup': typeof ApiPublicPpCaBackupRoute
@@ -769,6 +778,7 @@ export interface FileRouteTypes {
     | '/pilot/temps'
     | '/pilot/validation'
     | '/api/public/ap-reminders'
+    | '/api/public/push-dispatch'
     | '/api/public/brevo-webhook'
     | '/api/public/email-open'
     | '/api/public/pp-ca-backup'
@@ -841,6 +851,7 @@ export interface FileRouteTypes {
     | '/pilot/temps'
     | '/pilot/validation'
     | '/api/public/ap-reminders'
+    | '/api/public/push-dispatch'
     | '/api/public/brevo-webhook'
     | '/api/public/email-open'
     | '/api/public/pp-ca-backup'
@@ -916,6 +927,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pilot/temps'
     | '/_authenticated/pilot/validation'
     | '/api/public/ap-reminders'
+    | '/api/public/push-dispatch'
     | '/api/public/brevo-webhook'
     | '/api/public/email-open'
     | '/api/public/pp-ca-backup'
@@ -943,6 +955,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   PartageTokenRoute: typeof PartageTokenRoute
   ApiPublicApRemindersRoute: typeof ApiPublicApRemindersRoute
+  ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
   ApiPublicBrevoWebhookRoute: typeof ApiPublicBrevoWebhookRoute
   ApiPublicEmailOpenRoute: typeof ApiPublicEmailOpenRoute
   ApiPublicPpCaBackupRoute: typeof ApiPublicPpCaBackupRoute
@@ -1161,6 +1174,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/ap-reminders'
       fullPath: '/api/public/ap-reminders'
       preLoaderRoute: typeof ApiPublicApRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/push-dispatch': {
+      id: '/api/public/push-dispatch'
+      path: '/api/public/push-dispatch'
+      fullPath: '/api/public/push-dispatch'
+      preLoaderRoute: typeof ApiPublicPushDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/pilot/validation': {
@@ -1630,6 +1650,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   PartageTokenRoute: PartageTokenRoute,
   ApiPublicApRemindersRoute: ApiPublicApRemindersRoute,
+  ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
   ApiPublicBrevoWebhookRoute: ApiPublicBrevoWebhookRoute,
   ApiPublicEmailOpenRoute: ApiPublicEmailOpenRoute,
   ApiPublicPpCaBackupRoute: ApiPublicPpCaBackupRoute,
