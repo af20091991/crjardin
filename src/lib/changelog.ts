@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-29",
+    version: "2.5.4",
+    theme: "Général",
+    title: "Notifications : fenêtre agrandie et défilable",
+    details: [
+      "Fenêtre des notifications plus large (presque toute la largeur sur téléphone) et plus haute.",
+      "La liste défile au doigt ou à la souris ; les textes s'affichent en entier au lieu d'être coupés.",
+    ],
+  },
+  {
     date: "2026-10-28",
     version: "2.5.3",
     theme: "Général",
