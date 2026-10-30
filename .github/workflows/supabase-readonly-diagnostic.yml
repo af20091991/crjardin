@@ -37,11 +37,17 @@ jobs:
             echo "::error::The configured project reference is not the expected Pilot Pro production project."
             exit 1
           fi
-          if [[ "${SUPABASE_DB_URL}" != *"${SUPABASE_PROJECT_REF}"* ]]; then
-            echo "::error::The database URL does not contain the expected project reference. The URL value is never printed."
-            exit 1
-          fi
-          echo "Target project reference validated."
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlsplit
+
+          ref = os.environ["SUPABASE_PROJECT_REF"]
+          parsed = urlsplit(os.environ["SUPABASE_DB_URL"])
+          expected_host = f"db.{ref}.supabase.co"
+          if parsed.scheme not in ("postgres", "postgresql") or parsed.hostname != expected_host:
+              raise SystemExit("::error::Use the direct PostgreSQL connection URI for the expected Pilot Pro project. The URI value is never printed.")
+          PY
+          echo "Target project and direct database host validated."
 
       - name: Install PostgreSQL client
         run: |
