@@ -296,3 +296,43 @@ CREATE POLICY "Assigned subcontractors read linked SST photos"
       )
     )
   );
+
+-- Les annotations/questions client restent accessibles uniquement aux comptes
+-- internes déjà autorisés ou au prestataire explicitement affecté au client.
+DROP POLICY IF EXISTS "Assigned subcontractors reply to assigned clients" ON public.client_messages;
+CREATE POLICY "Assigned subcontractors reply to assigned clients"
+  ON public.client_messages FOR INSERT TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.subcontractor_missions m
+      JOIN public.subcontractors s ON s.id = m.subcontractor_id
+      WHERE m.client_id = client_messages.client_id
+        AND s.auth_user_id = auth.uid()
+        AND s.active = true
+    )
+  );
+
+DROP POLICY IF EXISTS "Assigned subcontractors update assigned client messages" ON public.client_messages;
+CREATE POLICY "Assigned subcontractors update assigned client messages"
+  ON public.client_messages FOR UPDATE TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.subcontractor_missions m
+      JOIN public.subcontractors s ON s.id = m.subcontractor_id
+      WHERE m.client_id = client_messages.client_id
+        AND s.auth_user_id = auth.uid()
+        AND s.active = true
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.subcontractor_missions m
+      JOIN public.subcontractors s ON s.id = m.subcontractor_id
+      WHERE m.client_id = client_messages.client_id
+        AND s.auth_user_id = auth.uid()
+        AND s.active = true
+    )
+  );
