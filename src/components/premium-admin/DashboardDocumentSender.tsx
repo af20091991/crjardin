@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { uploadPremiumDocument } from "@/lib/client-premium";
+import { detectAndImportWorkCalendar } from "@/lib/premium-calendar-detect";
 import { sendPremiumDocumentNotification } from "@/lib/premium-email.functions";
 
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -32,7 +33,10 @@ export function DashboardDocumentSender({
     mutationFn: async () => {
       if (!file) throw new Error("Choisissez un fichier.");
       const docTitle = title.trim() || file.name;
-      await uploadPremiumDocument(clientId, file, docTitle.slice(0, 200));
+      const added = await uploadPremiumDocument(clientId, file, docTitle.slice(0, 200));
+      const detected = await detectAndImportWorkCalendar(clientId, file, added).catch(() => 0);
+      if (detected > 0)
+        toast.success(`Calendrier de travaux détecté : ${detected} interventions importées.`);
       return withEmail ? notify({ data: { clientId, documentTitle: docTitle } }) : null;
     },
     onSuccess: (result) => {

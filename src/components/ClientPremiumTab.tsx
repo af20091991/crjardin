@@ -36,6 +36,7 @@ import {
 } from "@/lib/client-premium";
 import { signedPhotoUrl } from "@/lib/interventions";
 import { parsePlanning } from "@/lib/file-parser";
+import { detectAndImportWorkCalendar } from "@/lib/premium-calendar-detect";
 import { planningRowsToCalendarItems } from "@/lib/premium-planning-items";
 import { getCeevPlanningUrlByClientId } from "@/lib/client-portal.functions";
 import {
@@ -610,10 +611,16 @@ function PremiumDocumentsCard({
     if (!file) return;
     setBusy(true);
     try {
-      await uploadPremiumDocument(clientId, file, title || file.name);
+      const added = await uploadPremiumDocument(clientId, file, title || file.name);
       setTitle("");
       invalidate();
       toast.success("Document ajouté");
+      const detected = await detectAndImportWorkCalendar(clientId, file, added).catch(() => 0);
+      if (detected > 0) {
+        toast.success(`Calendrier de travaux détecté : ${detected} interventions importées.`);
+        qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+        qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Échec de l'envoi");
     } finally {
