@@ -28,6 +28,7 @@ import { template as sstWorksiteSheetTemplate } from "./sst-worksite-sheet";
 import { template as premiumWelcomeTemplate } from "./premium-welcome";
 import { template as premiumReplyTemplate } from "./premium-reply";
 import { template as premiumMessageTemplate } from "./premium-message";
+import { template as premiumDocumentTemplate } from "./premium-document";
 import { template as sstCalendarChangeTemplate } from "./sst-calendar-change";
 import { template as radarMonthlyTemplate } from "./radar-monthly";
 
@@ -40,6 +41,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   "premium-welcome": premiumWelcomeTemplate,
   "premium-reply": premiumReplyTemplate,
   "premium-message": premiumMessageTemplate,
+  "premium-document": premiumDocumentTemplate,
   "sst-calendar-change": sstCalendarChangeTemplate,
   "radar-monthly": radarMonthlyTemplate,
 };

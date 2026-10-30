@@ -47,11 +47,16 @@ interface SendOptions {
   component: React.ComponentType<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   /** Ne pas renvoyer aux adresses déjà prévenues avec ce même objet. */
   skipAlreadySent: boolean;
+  /** Rubrique à ouvrir directement dans le Compte Premium (ex. « documents »). */
+  section?: string;
+  /** Données supplémentaires transmises au modèle d'e-mail. */
+  extraProps?: Record<string, unknown>;
 }
 
 /** Envoie le même e-mail Premium à toutes les adresses de la fiche client, une par une. */
 export async function sendPremiumMailToAll(options: SendOptions): Promise<PremiumMailResult[]> {
   const { supabaseAdmin, client, templateName, subject, component, skipAlreadySent } = options;
+  const { section, extraProps } = options;
   const recipients = collectClientEmails(client);
   if (recipients.length === 0)
     throw new Error("Aucune adresse e-mail n'est renseignée pour ce client.");
@@ -78,7 +83,9 @@ export async function sendPremiumMailToAll(options: SendOptions): Promise<Premiu
 
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
-  const premiumUrl = `${PREMIUM_TRACKING_ORIGIN}/partage/${client.share_token}`;
+  const premiumUrl = `${PREMIUM_TRACKING_ORIGIN}/partage/${client.share_token}${
+    section ? `?section=${encodeURIComponent(section)}` : ""
+  }`;
 
   const alreadySent = new Set<string>();
   if (skipAlreadySent) {
@@ -112,6 +119,7 @@ export async function sendPremiumMailToAll(options: SendOptions): Promise<Premiu
         civility: identity.title || undefined,
         firstName: identity.firstName || undefined,
         lastName: identity.lastName || undefined,
+        ...extraProps,
         premiumUrl,
         unsubscribeUrl: `https://api.lovable.dev/v1/email/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
       });

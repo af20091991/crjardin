@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DashboardDocumentSender } from "@/components/premium-admin/DashboardDocumentSender";
 import { DashboardComposer } from "@/components/premium-admin/DashboardComposer";
 import { AdminStat, fmtDate, fmtDateTime } from "@/components/premium-admin/shared";
 import { useIsAdmin } from "@/hooks/use-admin";
@@ -356,6 +357,10 @@ function PremiumClientDashboard() {
           </TabsContent>
 
           <TabsContent value="documents" className="mt-4">
+            <DashboardDocumentSender
+              clientId={clientId}
+              premiumKey={["premium-dashboard-premium", token]}
+            />
             {premium.documents.length === 0 ? (
               <Empty text="Aucun document partagé." />
             ) : (
