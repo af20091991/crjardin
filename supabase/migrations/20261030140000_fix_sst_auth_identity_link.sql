@@ -19,6 +19,7 @@ AS $$
 DECLARE
   v_email text;
   v_subcontractor_id uuid;
+  v_ids uuid[];
   v_count integer;
 BEGIN
   SELECT lower(btrim(u.email)) INTO v_email
@@ -29,7 +30,7 @@ BEGIN
     RETURN 0;
   END IF;
 
-  SELECT count(*), min(s.id) INTO v_count, v_subcontractor_id
+  SELECT count(*), array_agg(s.id) INTO v_count, v_ids
   FROM public.subcontractors s
   WHERE lower(btrim(s.email)) = v_email
     AND s.auth_user_id IS NULL;
@@ -37,6 +38,7 @@ BEGIN
   IF v_count <> 1 THEN
     RETURN 0;
   END IF;
+  v_subcontractor_id := v_ids[1];
 
   -- Une adresse d'authentification ne doit correspondre qu'à un seul compte.
   IF (SELECT count(*) FROM auth.users u WHERE lower(btrim(u.email)) = v_email) <> 1 THEN
@@ -84,17 +86,19 @@ SET search_path = public, auth
 AS $$
 DECLARE
   v_user_id uuid;
+  v_user_ids uuid[];
   v_count integer;
 BEGIN
   IF NEW.email IS NULL OR btrim(NEW.email) = '' OR NEW.auth_user_id IS NOT NULL THEN
     RETURN NEW;
   END IF;
 
-  SELECT count(*), min(u.id) INTO v_count, v_user_id
+  SELECT count(*), array_agg(u.id) INTO v_count, v_user_ids
   FROM auth.users u
   WHERE lower(btrim(u.email)) = lower(btrim(NEW.email));
 
   IF v_count = 1 THEN
+    v_user_id := v_user_ids[1];
     PERFORM public.pp_link_subcontractor_auth_user(v_user_id);
   END IF;
   RETURN NEW;
@@ -127,6 +131,12 @@ BEGIN
   END LOOP;
 END;
 $$;
+
+-- Rendre visible la fiche du prestataire lui-même sans exposer les autres fiches.
+DROP POLICY IF EXISTS "Assigned subcontractors read own profile" ON public.subcontractors;
+CREATE POLICY "Assigned subcontractors read own profile"
+  ON public.subcontractors FOR SELECT TO authenticated
+  USING (auth_user_id = auth.uid() AND active = true);
 
 -- Calendrier : les prestataires reliés à leur compte peuvent consulter le calendrier partagé.
 DROP POLICY IF EXISTS "Active subcontractors read SST availability" ON public.sst_availability_calendar;
