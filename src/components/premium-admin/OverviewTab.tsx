@@ -211,7 +211,7 @@ export function OverviewTab({
                   <Link
                     to="/partage/$token"
                     params={{ token: client.share_token }}
-                    search={{ intervention: undefined }}
+                    search={{ intervention: undefined, section: undefined }}
                   >
                     <Eye className="mr-1.5 h-3.5 w-3.5" />
                     Voir comme le client

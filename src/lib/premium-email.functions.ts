@@ -6,6 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { template as premiumWelcomeTemplate } from "@/lib/email-templates/premium-welcome";
 import { template as premiumReplyTemplate } from "@/lib/email-templates/premium-reply";
 import { template as premiumMessageTemplate } from "@/lib/email-templates/premium-message";
+import { template as premiumDocumentTemplate } from "@/lib/email-templates/premium-document";
 
 // prettier-ignore
 const TEMPLATE_NAME = "premium-welcome";
@@ -155,6 +156,45 @@ export const sendPremiumReplyNotification = createServerFn({ method: "POST" })
         ? premiumMessageTemplate.component
         : premiumReplyTemplate.component,
       skipAlreadySent: false,
+    });
+    return { results };
+  });
+
+// prettier-ignore
+export const sendPremiumDocumentNotification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { clientId: string; documentTitle: string }) => input)
+  .handler(async ({ context, data }) => {
+    const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleError) throw roleError;
+    assertAdmin(isAdmin);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: client, error: clientError } = await supabaseAdmin
+      .from("clients")
+      .select("id, name, civility, email, emails, share_token, contract_type, default_contact_id")
+      .eq("id", data.clientId)
+      .is("merged_into_client_id", null)
+      .single();
+    if (clientError) throw clientError;
+    const { data: premium } = await supabaseAdmin
+      .from("client_premium")
+      .select("enabled")
+      .eq("client_id", client.id)
+      .maybeSingle();
+    if (!premium?.enabled) throw new Error("Le Compte Premium n’est pas actif pour ce client.");
+    const { sendPremiumMailToAll } = await import("@/lib/premium-mailer.server");
+    const results = await sendPremiumMailToAll({
+      supabaseAdmin,
+      client,
+      templateName: "premium-document",
+      subject: "Un nouveau document pour vous — De la graine au jardin",
+      component: premiumDocumentTemplate.component,
+      skipAlreadySent: false,
+      section: "documents",
+      extraProps: { documentTitle: data.documentTitle.slice(0, 200) },
     });
     return { results };
   });

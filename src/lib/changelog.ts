@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-30",
+    version: "2.6.2",
+    theme: "Clients",
+    title: "Dashboard Premium : envoyer un document au client",
+    details: [
+      "Dépôt d'un document depuis l'onglet Documents du dashboard : il apparaît aussitôt dans l'espace du client.",
+      "Le client est prévenu par e-mail (option cochée par défaut) ; le lien ouvre directement la rubrique Documents de son Compte Premium.",
+    ],
+  },
+  {
+    date: "2026-10-30",
     version: "2.6.1",
     theme: "Clients",
     title: "Dashboard Premium : écrire au client",

@@ -112,6 +112,8 @@ export const Route = createFileRoute("/partage/$token")({
   // le périmètre reste celui du token (token → client → ses interventions).
   validateSearch: (search: Record<string, unknown>) => ({
     intervention: typeof search.intervention === "string" ? search.intervention : undefined,
+    // `?section=documents` ouvre directement une rubrique du Compte Premium (lien des e-mails).
+    section: typeof search.section === "string" ? search.section : undefined,
   }),
   loader: async ({ context, params }) => {
     const [data] = await Promise.all([
@@ -443,7 +445,12 @@ function PremiumExperience({
   toggleDark: () => void;
   toggleLarge: () => void;
 }) {
-  const [section, setSection] = useState<PremiumSection>("home");
+  const requestedSection = Route.useSearch().section;
+  const [section, setSection] = useState<PremiumSection>(
+    requestedSection === "documents" || requestedSection === "exchange"
+      ? requestedSection
+      : "home",
+  );
   const { isAdmin } = useIsAdmin();
   const pendingRecommendations = premium.recommendation_groups.reduce(
     (total, group) => total + group.items.filter((item) => !item.client_interest).length,
