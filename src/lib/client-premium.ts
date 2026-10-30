@@ -243,6 +243,7 @@ export interface PremiumWorkCalendarItem {
   details: string | null;
   position: number;
   source: "pdf" | "manuel" | "ia";
+  created_at?: string;
 }
 
 export async function listPremiumWorkCalendar(
@@ -274,10 +275,20 @@ export async function replacePremiumWorkCalendar(
   source: "pdf" | "ia" | "manuel" = "ia",
 ): Promise<void> {
   const user_id = await uid();
+  // Un nouveau calendrier remplace uniquement les années qu'il couvre (et son propre import) :
+  // le planning 2027 s'ajoute au 2026 au lieu de l'effacer.
+  const years = Array.from(
+    new Set(items.map((item) => item.year).filter((y): y is number => typeof y === "number")),
+  );
+  const scope = [
+    `document_id.eq.${documentId}`,
+    ...(years.length ? [`year.in.(${years.join(",")})`] : []),
+  ];
   const { error: deleteError } = await premiumCalendarDb
     .from("client_premium_work_calendar_items")
     .delete()
-    .eq("client_id", clientId);
+    .eq("client_id", clientId)
+    .or(scope.join(","));
   if (deleteError)
     throw new Error(`Impossible de remplacer le calendrier : ${deleteError.message}`);
 
