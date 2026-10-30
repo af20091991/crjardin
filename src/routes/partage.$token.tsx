@@ -83,6 +83,7 @@ import { PremiumInstall } from "@/components/share/PremiumInstall";
 import { PremiumPhotos } from "@/components/share/PremiumPhotos";
 import { PremiumRecommendations } from "@/components/share/PremiumRecommendations";
 import { PremiumWorkCalendar } from "@/components/share/PremiumWorkCalendar";
+import { PremiumUpcomingWorks } from "@/components/share/PremiumUpcomingWorks";
 import { useIsAdmin } from "@/hooks/use-admin";
 
 const sharedQuery = (token: string) =>
@@ -542,6 +543,12 @@ function PremiumExperience({
               title="Les interventions"
               text="Les passages et les soins apportés à votre jardin."
             />
+            <PremiumUpcomingWorks items={premium.work_calendar} />
+            {premium.work_calendar.length > 0 && interventions.length > 0 && (
+              <h3 className="mt-10 border-t pt-8 font-premium-serif text-2xl font-medium">
+                Travaux réalisés
+              </h3>
+            )}
             <ReportsTab
               interventions={interventions}
               token={token}

@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-30",
+    version: "2.6.3",
+    theme: "Clients",
+    title: "Travaux à venir dans l'espace client",
+    details: [
+      "Un PDF de calendrier de travaux ajouté dans l'espace client est détecté automatiquement et ses interventions sont importées.",
+      "L'onglet Les interventions affiche un bloc « Travaux à venir » distinct des travaux réalisés, avec le détail de ce qui sera fait et un filtre par année.",
+    ],
+  },
+  {
+    date: "2026-10-30",
     version: "2.6.2",
     theme: "Clients",
     title: "Dashboard Premium : envoyer un document au client",
