@@ -2,7 +2,7 @@ import { parsePlanning } from "@/lib/file-parser";
 import { planningRowsToCalendarItems } from "@/lib/premium-planning-items";
 import { replacePremiumWorkCalendar, type PremiumDocument } from "@/lib/client-premium";
 
-const NAME_HINT = /calendrier|planning|travaux/i;
+export const NAME_HINT = /calendrier|planning|travaux/i;
 
 export function isPdf(file: { name: string; type: string }): boolean {
   return /\.pdf$/i.test(file.name) || file.type === "application/pdf";
@@ -22,7 +22,10 @@ export async function detectAndImportWorkCalendar(
   if (!isPdf(file)) return 0;
   let rows;
   try {
-    rows = await parsePlanning(file);
+    // Année par défaut : celle citée dans le nom du fichier (ex. « Planning 2027 »).
+    const named = `${file.name} ${document.title}`.match(/20\d{2}/g);
+    const fallbackYear = named ? Number(named[named.length - 1]) : null;
+    rows = await parsePlanning(file, fallbackYear);
   } catch {
     return 0;
   }

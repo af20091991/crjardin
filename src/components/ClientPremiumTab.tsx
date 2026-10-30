@@ -158,6 +158,51 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
       });
   }, [canEdit, premium?.enabled, documents, workCalendar, clientId, importExistingPlanning]);
 
+  // Un planning ajouté depuis un autre écran (ex. dashboard) après le dernier import est
+  // détecté ici à l'ouverture de la fiche et fusionné par année avec le calendrier existant.
+  const resyncedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!canEdit || !premium?.enabled || !documents || !workCalendar || workCalendar.length === 0)
+      return;
+    if (resyncedFor.current === clientId) return;
+    const lastImport = workCalendar.reduce((max, item) => {
+      const at = item.created_at ?? "";
+      return at > max ? at : max;
+    }, "");
+    if (!lastImport) return;
+    const fresh = documents
+      .filter(
+        (doc) =>
+          doc.created_at > lastImport &&
+          doc.uploaded_by === "gardener" &&
+          /\.pdf$/i.test(doc.filename) &&
+          /calendrier|planning/i.test(`${doc.title} ${doc.filename}`),
+      )
+      .sort((a, b) => a.created_at.localeCompare(b.created_at));
+    if (fresh.length === 0) return;
+    resyncedFor.current = clientId;
+    void (async () => {
+      let total = 0;
+      for (const doc of fresh) {
+        try {
+          const response = await fetch(await signedPremiumDocumentUrl(doc.storage_path));
+          if (!response.ok) continue;
+          const file = new File([await response.blob()], doc.filename, {
+            type: "application/pdf",
+          });
+          total = await detectAndImportWorkCalendar(clientId, file, doc);
+        } catch {
+          /* document illisible : ignoré */
+        }
+      }
+      if (total > 0) {
+        toast.success("Nouveau planning détecté et ajouté au calendrier travaux.");
+        qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
+        qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
+      }
+    })();
+  }, [canEdit, premium?.enabled, documents, workCalendar, clientId, qc]);
+
   const [activationOpen, setActivationOpen] = useState(false);
   const [activationFile, setActivationFile] = useState<File | null>(null);
 

@@ -24,6 +24,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-30",
+    version: "2.6.4",
+    theme: "Clients",
+    title: "Calendrier travaux : plusieurs années et rattrapage automatique",
+    details: [
+      "Un nouveau planning s'ajoute aux années déjà importées au lieu de remplacer tout le calendrier.",
+      "Un planning ajouté ailleurs que dans la fiche (dashboard, documents) est détecté à l'ouverture de la fiche client.",
+    ],
+  },
+  {
+    date: "2026-10-30",
     version: "2.6.3",
     theme: "Clients",
     title: "Travaux à venir dans l'espace client",
