@@ -7,7 +7,12 @@ SELECT jsonb_pretty(jsonb_build_object(
   'server_version', current_setting('server_version'),
   'transaction_read_only', current_setting('transaction_read_only'),
   'migration_history_table_exists', to_regclass('supabase_migrations.schema_migrations') IS NOT NULL,
-  'tables', COALESCE((SELECT jsonb_agg(jsonb_build_object('schema', table_schema, 'name', table_name) ORDER BY table_schema, table_name) FROM information_schema.tables WHERE table_schema IN ('public','storage') AND table_type='BASE TABLE'), '[]'::jsonb),
+  'migration_versions_xml', CASE
+    WHEN to_regclass('supabase_migrations.schema_migrations') IS NOT NULL
+    THEN query_to_xml('SELECT version FROM supabase_migrations.schema_migrations ORDER BY version', false, true, '')::text
+    ELSE NULL
+  END,
+  'tables', COALESCE((SELECT jsonb_agg(jsonb_build_object('schema', table_schema, 'name', table_name) ORDER BY table_schema, table_name) FROM information_schema.tables WHERE table_schema IN ('public','storage','supabase_migrations') AND table_type='BASE TABLE'), '[]'::jsonb),
   'columns', COALESCE((SELECT jsonb_agg(jsonb_build_object('schema', table_schema, 'table', table_name, 'position', ordinal_position, 'name', column_name, 'type', data_type, 'udt', udt_name, 'nullable', is_nullable, 'default', column_default) ORDER BY table_schema, table_name, ordinal_position) FROM information_schema.columns WHERE table_schema IN ('public','storage')), '[]'::jsonb),
   'policies', COALESCE((SELECT jsonb_agg(jsonb_build_object('schema', schemaname, 'table', tablename, 'name', policyname, 'command', cmd, 'roles', roles, 'using', qual, 'with_check', with_check) ORDER BY schemaname, tablename, policyname) FROM pg_policies WHERE schemaname IN ('public','storage')), '[]'::jsonb),
   'triggers', COALESCE((SELECT jsonb_agg(jsonb_build_object('schema', n.nspname, 'table', c.relname, 'name', t.tgname, 'definition', pg_get_triggerdef(t.oid, true)) ORDER BY n.nspname, c.relname, t.tgname) FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE NOT t.tgisinternal AND n.nspname IN ('public','storage')), '[]'::jsonb),
