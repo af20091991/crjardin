@@ -24,6 +24,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-30",
+    version: "2.6.5",
+    theme: "Clients",
+    title: "Calendrier travaux : du plus proche au plus éloigné",
+    details: [
+      "Les interventions sont affichées de la plus proche à la plus éloignée : à venir d'abord, puis les passées de la plus récente à la plus ancienne.",
+    ],
+  },
+  {
+    date: "2026-10-30",
     version: "2.6.4",
     theme: "Clients",
     title: "Calendrier travaux : plusieurs années et rattrapage automatique",

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { sortByProximity } from "@/lib/upcoming-works";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -34,13 +35,7 @@ const MONTHS = [
 ];
 
 function sortItems(items: PremiumWorkCalendarItem[]) {
-  return [...items].sort(
-    (a, b) =>
-      (a.year ?? 9999) - (b.year ?? 9999) ||
-      (a.month ?? 99) - (b.month ?? 99) ||
-      a.sequence - b.sequence ||
-      a.position - b.position,
-  );
+  return sortByProximity(items);
 }
 
 export function CalendarsTab({
