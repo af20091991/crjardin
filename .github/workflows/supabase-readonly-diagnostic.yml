@@ -1,0 +1,79 @@
+name: Supabase read-only diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-readonly-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    name: Inspect production schema (read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      PGSSLMODE: require
+      PGCONNECT_TIMEOUT: "15"
+      PGOPTIONS: "-c default_transaction_read_only=on -c statement_timeout=60000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate target and connection settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${SUPABASE_PROJECT_REF}" || -z "${SUPABASE_DB_URL}" ]]; then
+            echo "::error::Configure repository variable SUPABASE_PROJECT_REF and secret SUPABASE_DB_URL."
+            exit 1
+          fi
+          if [[ "${SUPABASE_PROJECT_REF}" != "mgkeqwwzhcodntkakqaz" ]]; then
+            echo "::error::The configured project reference is not the expected Pilot Pro production project."
+            exit 1
+          fi
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlsplit
+
+          ref = os.environ["SUPABASE_PROJECT_REF"]
+          parsed = urlsplit(os.environ["SUPABASE_DB_URL"])
+          expected_host = f"db.{ref}.supabase.co"
+          if parsed.scheme not in ("postgres", "postgresql") or parsed.hostname != expected_host:
+              raise SystemExit("::error::Use the direct PostgreSQL connection URI for the expected Pilot Pro project. The URI value is never printed.")
+          PY
+          echo "Target project and direct database host validated."
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Read schema metadata only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          psql "${SUPABASE_DB_URL}" \
+            --no-psqlrc \
+            --quiet \
+            --tuples-only \
+            --no-align \
+            --set=ON_ERROR_STOP=1 \
+            --output=artifacts/supabase-sst-diagnostic.json \
+            --file=scripts/supabase-readonly-diagnostic.sql
+          echo "Read-only metadata diagnostic completed."
+
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-sst-readonly-diagnostic
+          path: artifacts/supabase-sst-diagnostic.json
+          if-no-files-found: ignore
+          retention-days: 7
