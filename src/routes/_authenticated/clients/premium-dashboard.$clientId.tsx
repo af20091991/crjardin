@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DashboardComposer } from "@/components/premium-admin/DashboardComposer";
 import { AdminStat, fmtDate, fmtDateTime } from "@/components/premium-admin/shared";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { getClient } from "@/lib/clients";
@@ -385,11 +386,11 @@ function PremiumClientDashboard() {
           </TabsContent>
 
           <TabsContent value="messages" className="mt-4 space-y-2">
-            <div className="flex justify-end">
-              <Button asChild size="sm" variant="outline">
-                <Link to="/clients/premium">Répondre depuis la messagerie</Link>
-              </Button>
-            </div>
+            <DashboardComposer
+              clientId={clientId}
+              messagesKey={["premium-dashboard-messages", token]}
+              hasClientMessages={!!lastClientMessage}
+            />
             {messages.length === 0 && <Empty text="Aucun message." />}
             {messages.map((m) => (
               <Card

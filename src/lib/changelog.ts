@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-30",
+    version: "2.6.1",
+    theme: "Clients",
+    title: "Dashboard Premium : écrire au client",
+    details: [
+      "Champ d'écriture dans l'onglet Messages du dashboard : le message apparaît sous votre nom dans la conversation du client.",
+      "Le client est prévenu par e-mail (option cochée par défaut), avec pièce jointe possible.",
+    ],
+  },
+  {
     date: "2026-10-29",
     version: "2.6.0",
     theme: "Général",
