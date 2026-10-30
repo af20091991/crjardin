@@ -40,3 +40,21 @@ export function workTasks(item: Pick<WorkItem, "details">): string[] {
     .map((task) => task.trim())
     .filter(Boolean);
 }
+
+/**
+ * Ordre d'affichage « du plus proche au plus éloigné » : d'abord les interventions du mois en
+ * cours et à venir (la plus proche en premier), puis les passées, de la plus récente à la plus ancienne.
+ */
+export function sortByProximity<T extends WorkItem>(items: T[], now = new Date()): T[] {
+  const current = now.getFullYear() * 12 + (now.getMonth() + 1);
+  const rank = (item: T) => {
+    const key = monthKey(item, now);
+    if (key == null) return { group: 1, key: 0 };
+    return key >= current ? { group: 0, key } : { group: 2, key: -key };
+  };
+  return [...items].sort((a, b) => {
+    const ra = rank(a);
+    const rb = rank(b);
+    return ra.group - rb.group || ra.key - rb.key || a.sequence - b.sequence;
+  });
+}

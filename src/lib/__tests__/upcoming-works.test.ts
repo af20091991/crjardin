@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { upcomingWorks, workTasks, workYears, type WorkItem } from "@/lib/upcoming-works";
+import {
+  sortByProximity,
+  upcomingWorks,
+  workTasks,
+  workYears,
+  type WorkItem,
+} from "@/lib/upcoming-works";
 
 const item = (id: string, year: number | null, month: number | null, seq = 1): WorkItem => ({
   id,
@@ -30,5 +36,10 @@ describe("upcoming-works", () => {
   it("découpe les tâches", () => {
     expect(workTasks(items[0])).toEqual(["Taille", "Tonte"]);
     expect(workTasks({ details: null })).toEqual([]);
+  });
+
+  it("trie du plus proche au plus éloigné", () => {
+    const sorted = sortByProximity(items, now).map((i) => i.id);
+    expect(sorted).toEqual(["b", "e", "d", "c", "f", "a"]);
   });
 });

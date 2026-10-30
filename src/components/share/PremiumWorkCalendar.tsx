@@ -1,6 +1,7 @@
 import { CalendarDays, ChevronDown } from "lucide-react";
 import type { SharedPremiumWorkCalendarItem } from "@/lib/share.functions";
 import { pickNextIntervention } from "@/lib/premium-planning-items";
+import { sortByProximity } from "@/lib/upcoming-works";
 
 function periodLabel(item: SharedPremiumWorkCalendarItem) {
   return (
@@ -50,7 +51,7 @@ export function PremiumWorkCalendar({
         <span>Intervention</span>
         <span className="sr-only">Détails</span>
       </div>
-      {items.map((item) => {
+      {sortByProximity(items).map((item) => {
         const key = itemKey(item);
         const past = key != null && key < currentKey;
         const isNext = next?.id === item.id;
