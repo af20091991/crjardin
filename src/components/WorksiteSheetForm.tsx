@@ -40,6 +40,7 @@ import {
   worksitePhotoUrl,
 } from "@/lib/worksite";
 import { parseWorksiteIntervenants, serializeWorksiteIntervenants } from "@/lib/worksite-sst";
+import { listSubcontractors } from "@/lib/subcontractors";
 import { resolveSstRecipientEmails } from "@/lib/email/sst-send.functions";
 import {
   placeAutocomplete,
@@ -158,9 +159,23 @@ export function WorksiteSheetForm({
   const [showSug, setShowSug] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [recyLoading, setRecyLoading] = useState(false);
+  // Liste vivante : tous les sous-traitants actifs enregistrés dans PP (repli sur la liste d'origine).
+  const { data: activeSsts = [] } = useQuery({
+    queryKey: ["sst-active-names"],
+    queryFn: async () =>
+      (await listSubcontractors()).filter((s) => s.active).map((s) => s.name.trim()),
+  });
+  const intervenantNames = useMemo<string[]>(
+    () =>
+      activeSsts.length > 0
+        ? Array.from(new Set(activeSsts)).sort((a, b) => a.localeCompare(b, "fr"))
+        : [...INTERVENANTS],
+    [activeSsts],
+  );
   const { data: sstDirectory = [], isLoading: sstDirectoryLoading } = useQuery({
-    queryKey: ["sst-email-directory", INTERVENANTS],
-    queryFn: () => resolveSstEmails({ data: { names: [...INTERVENANTS] } }),
+    queryKey: ["sst-email-directory", intervenantNames],
+    queryFn: () => resolveSstEmails({ data: { names: intervenantNames } }),
+    enabled: intervenantNames.length > 0,
   });
   const sugTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const set = <K extends keyof WorksiteSheetInput>(k: K, v: WorksiteSheetInput[K]) =>
@@ -291,15 +306,15 @@ export function WorksiteSheetForm({
     }
   }
   function normalizeOpeningHour(value: string): string {
-  return value
-    .replace(/[\u00A0\u2007\u202F]/g, " ")
-    .replace(/\s+/g, " ")
-    .replace(/\s*:\s*/g, " : ")
-    .replace(/\s*[–—-]\s*/g, " – ")
-    .trim();
-}
+    return value
+      .replace(/[\u00A0\u2007\u202F]/g, " ")
+      .replace(/\s+/g, " ")
+      .replace(/\s*:\s*/g, " : ")
+      .replace(/\s*[–—-]\s*/g, " – ")
+      .trim();
+  }
 
-function submit() {
+  function submit() {
     if (!form.client_name.trim()) {
       toast.error("Le nom du client est requis");
       return;
@@ -451,7 +466,7 @@ function submit() {
             <div className="space-y-1.5">
               <Label>SST / intervenant(e)s</Label>
               <div className="flex flex-wrap gap-2 pt-1">
-                {INTERVENANTS.map((n) => {
+                {intervenantNames.map((n) => {
                   const active = intervenants.includes(n);
                   const email = sstDirectory.find((entry) => entry.name === n)?.email ?? null;
                   return (
@@ -469,7 +484,11 @@ function submit() {
                         <span
                           className={`text-[10px] ${email ? "text-emerald-700" : "text-amber-700"}`}
                         >
-                          {sstDirectoryLoading ? "Vérification…" : email ? email : "e-mail manquant"}
+                          {sstDirectoryLoading
+                            ? "Vérification…"
+                            : email
+                              ? email
+                              : "e-mail manquant"}
                         </span>
                       </span>
                     </Chip>
@@ -492,9 +511,7 @@ function submit() {
                 min={1}
                 step="1"
                 value={form.required_people ?? 1}
-                onChange={(e) =>
-                  set("required_people", Math.max(1, Number(e.target.value) || 1))
-                }
+                onChange={(e) => set("required_people", Math.max(1, Number(e.target.value) || 1))}
               />
             </div>
             <div className="space-y-1.5">
@@ -519,7 +536,9 @@ function submit() {
                 value={form.planning_status ?? "draft"}
                 onValueChange={(v) => set("planning_status", v as "draft" | "validated")}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">À confirmer</SelectItem>
                   <SelectItem value="validated">Planning validé</SelectItem>
@@ -803,7 +822,8 @@ function submit() {
                     À environ {form.recycling_center.distance_km.toFixed(1)} km du chantier
                   </p>
                   <p className="text-xs tabular-nums text-muted-foreground">
-                    Coordonnées : {form.recycling_center.lat.toFixed(6)}, {form.recycling_center.lng.toFixed(6)}
+                    Coordonnées : {form.recycling_center.lat.toFixed(6)},{" "}
+                    {form.recycling_center.lng.toFixed(6)}
                   </p>
                 </div>
                 <button
