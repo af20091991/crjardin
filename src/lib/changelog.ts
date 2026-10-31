@@ -29,6 +29,12 @@ export const CHANGELOG: ChangeEntry[] = [
     title: "Connexion par empreinte activable depuis Personnalisation",
     details: [
       "Sur l'appli mobile, activez la connexion par empreinte ou le visage en saisissant une fois votre mot de passe.",
+    version: "2.6.6",
+    theme: "Général",
+    title: "Nouvel écran de démarrage",
+    details: [
+      "Logo agrandi et animation d'accueil (graine, tracé du cercle, léger mouvement) à l'ouverture de l'application.",
+      "L'application mobile affiche le même écran de démarrage (build 9).",
     ],
   },
   {
