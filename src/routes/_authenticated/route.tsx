@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { isPrestatairePathAllowed, PRESTATAIRE_HOME } from "@/lib/prestataire-access";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -27,10 +28,20 @@ async function isApprovedWithRetry(userId: string): Promise<boolean> {
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const { data, error } = await getUserWithRetry();
     if (error || !data.user) throw redirect({ to: "/auth" });
     if (!(await isApprovedWithRetry(data.user.id))) throw redirect({ to: "/pending" });
+    if (!isPrestatairePathAllowed(location.pathname)) {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id);
+      const list = (roles ?? []).map((r: { role: string }) => r.role);
+      if (list.includes("prestataire") && !list.includes("admin")) {
+        throw redirect({ to: PRESTATAIRE_HOME });
+      }
+    }
     return { user: data.user };
   },
   component: () => <Outlet />,
