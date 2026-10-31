@@ -1,6 +1,6 @@
 {
-  "latestBuild": 8,
-  "versionName": "2.5",
+  "latestBuild": 9,
+  "versionName": "2.6",
   "apkUrl": "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk",
-  "notes": "Mise à jour en un clic depuis l'application. Connexion par empreinte (ou visage) après votre première connexion. Calendrier SST : les noms des prestataires remplacent « Utilisateur PP ». Sous-traitance : onglet « Mes missions » pour les prestataires. CR Chantier accessible aux prestataires. Un e-mail est envoyé au prestataire lorsqu'une mission lui est attribuée."
+  "notes": "Nouvel écran de démarrage avec logo agrandi et animation. Mise à jour en un clic depuis l'application (build 8 requis)."
 }
