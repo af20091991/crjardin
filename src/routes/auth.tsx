@@ -8,6 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  biometricLoginEnabled,
+  canOfferBiometricLogin,
+  forgetBiometricLogin,
+  readBiometricLogin,
+  saveBiometricLogin,
+} from "@/lib/biometric-login";
 import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/auth")({
@@ -78,6 +85,11 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (!biometricLoginEnabled() && (await canOfferBiometricLogin())) {
+          if (window.confirm("Se connecter avec l'empreinte la prochaine fois ?")) {
+            await saveBiometricLogin(email.trim(), password);
+          }
+        }
         const { recordLogin } = await import("@/lib/admin");
         await recordLogin();
         navigate({ to: "/" });
@@ -94,6 +106,25 @@ function AuthPage() {
       } else {
         toast.error(msg);
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleBiometric() {
+    setBusy(true);
+    try {
+      const creds = await readBiometricLogin();
+      if (!creds) return;
+      const { error } = await supabase.auth.signInWithPassword(creds);
+      if (error) {
+        await forgetBiometricLogin();
+        toast.error("Identifiants expirés. Connectez-vous avec votre mot de passe.");
+        return;
+      }
+      const { recordLogin } = await import("@/lib/admin");
+      await recordLogin();
+      navigate({ to: "/" });
     } finally {
       setBusy(false);
     }
@@ -215,6 +246,17 @@ function AuthPage() {
                   Saisissez votre adresse e-mail : vous recevrez un lien pour choisir un nouveau mot
                   de passe.
                 </p>
+              )}
+              {mode === "signin" && biometricLoginEnabled() && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={busy}
+                  onClick={handleBiometric}
+                >
+                  Se connecter avec l'empreinte
+                </Button>
               )}
               <Button type="submit" className="w-full" disabled={busy}>
                 {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
