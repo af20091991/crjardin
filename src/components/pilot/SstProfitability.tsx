@@ -86,6 +86,8 @@ import {
   Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { sendSstMissionAssignedEmail } from "@/lib/sst-mission-email.functions";
 import { EmptyState } from "@/components/pilot/EmptyState";
 
 const pct = (n: number | null | undefined) => (n == null ? "—" : `${formatPercent(n)}`);
@@ -319,6 +321,8 @@ export function SstProfitabilityTab() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Erreur"),
   });
 
+  const sendMissionEmail = useServerFn(sendSstMissionAssignedEmail);
+
   const duplicate = useMutation({
     mutationFn: async (row: SstRow) => {
       const m = row.mission;
@@ -347,6 +351,7 @@ export function SstProfitabilityTab() {
         payment_method: m.payment_method,
         hours_saved: m.hours_saved,
       });
+      void sendMissionEmail({ data: { missionId: created.id } }).catch(() => undefined);
       await logSst({
         entity: "mission",
         entity_id: created.id,
