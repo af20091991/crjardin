@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-31",
+    version: "2.6.6",
+    theme: "Clients",
+    title: "Calendrier travaux : relecture des plannings PDF",
+    details: [
+      "Bouton « Relire les plannings PDF » : lit les tâches de chaque planning enregistré et les reporte dans le calendrier travaux, année par année.",
+      "Un planning illisible est signalé avec le nom du fichier au lieu d'échouer en silence.",
+    ],
+  },
+  {
     date: "2026-10-30",
     version: "2.6.5",
     theme: "Clients",

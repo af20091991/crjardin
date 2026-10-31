@@ -36,7 +36,10 @@ import {
 } from "@/lib/client-premium";
 import { signedPhotoUrl } from "@/lib/interventions";
 import { parsePlanning } from "@/lib/file-parser";
-import { detectAndImportWorkCalendar } from "@/lib/premium-calendar-detect";
+import {
+  detectAndImportWorkCalendar,
+  reimportPlanningDocument,
+} from "@/lib/premium-calendar-detect";
 import { planningRowsToCalendarItems } from "@/lib/premium-planning-items";
 import { getCeevPlanningUrlByClientId } from "@/lib/client-portal.functions";
 import {
@@ -195,7 +198,11 @@ export function ClientPremiumTab({ clientId, canEdit }: { clientId: string; canE
           /* document illisible : ignoré */
         }
       }
-      if (total > 0) {
+      if (total === 0) {
+        toast.warning(
+          "Un nouveau planning PDF n'a pas pu être lu automatiquement : utilisez « Relire les plannings PDF ».",
+        );
+      } else {
         toast.success("Nouveau planning détecté et ajouté au calendrier travaux.");
         qc.invalidateQueries({ queryKey: ["client-premium-work-calendar", clientId] });
         qc.invalidateQueries({ queryKey: ["client-premium", clientId] });
@@ -561,6 +568,40 @@ function PremiumWorkCalendarCard({
     }
   };
 
+  const planningDocs = documents
+    .filter(
+      (doc) =>
+        /\.pdf$/i.test(doc.filename) && /calendrier|planning/i.test(`${doc.title} ${doc.filename}`),
+    )
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+  const rereadAll = async () => {
+    setBusy(true);
+    let total = 0;
+    try {
+      for (const doc of planningDocs) {
+        try {
+          const response = await fetch(await signedPremiumDocumentUrl(doc.storage_path));
+          if (!response.ok) throw new Error("téléchargement impossible");
+          const file = new File([await response.blob()], doc.filename, { type: "application/pdf" });
+          const count = await reimportPlanningDocument(clientId, file, doc);
+          if (count === 0) toast.warning(`Aucune intervention lisible dans « ${doc.filename} ».`);
+          else {
+            total += count;
+            toast.success(`${count} interventions lues dans « ${doc.filename} ».`);
+          }
+        } catch (err) {
+          toast.error(
+            `« ${doc.filename} » : ${err instanceof Error ? err.message : "lecture impossible"}`,
+          );
+        }
+      }
+      if (total > 0) onUpdated();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Card
       className={
@@ -596,6 +637,12 @@ function PremiumWorkCalendarCard({
               interventions.
             </p>
           </div>
+        )}
+
+        {planningDocs.length > 0 && (
+          <Button type="button" variant="secondary" disabled={!canEdit || busy} onClick={rereadAll}>
+            Relire les plannings PDF ({planningDocs.length})
+          </Button>
         )}
 
         <Button

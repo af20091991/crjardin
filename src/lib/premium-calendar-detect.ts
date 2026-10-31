@@ -35,3 +35,25 @@ export async function detectAndImportWorkCalendar(
   await replacePremiumWorkCalendar(clientId, document.id, planningRowsToCalendarItems(rows), "pdf");
   return rows.length;
 }
+
+/** Année citée dans le nom du fichier (ex. « Planning 2027 »), sinon null. */
+export function yearFromName(text: string): number | null {
+  const found = text.match(/20\d{2}/g);
+  return found ? Number(found[found.length - 1]) : null;
+}
+
+/**
+ * Relecture explicite d'un planning PDF déjà enregistré dans les Documents : lit les tâches
+ * et les reporte dans le calendrier travaux (fusion par année). Retourne le nombre
+ * d'interventions lues ; 0 si le PDF ne contient aucune intervention exploitable.
+ */
+export async function reimportPlanningDocument(
+  clientId: string,
+  file: File,
+  document: Pick<PremiumDocument, "id" | "title">,
+): Promise<number> {
+  const rows = await parsePlanning(file, yearFromName(`${file.name} ${document.title}`));
+  if (rows.length === 0) return 0;
+  await replacePremiumWorkCalendar(clientId, document.id, planningRowsToCalendarItems(rows), "pdf");
+  return rows.length;
+}
