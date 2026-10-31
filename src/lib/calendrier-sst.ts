@@ -84,22 +84,22 @@ export function groupByDate(
   return map;
 }
 
+type RpcResult = { data: unknown; error: Error | null };
+const rpcMemberLabels = (args: { p_ids: string[] }) =>
+  (supabase.rpc as unknown as (fn: string, a: object) => Promise<RpcResult>)(
+    "sst_member_labels",
+    args,
+  );
+
 async function addUserLabels(rows: SstAvailabilityEntry[]): Promise<SstAvailabilityWithUser[]> {
   const ids = Array.from(new Set(rows.map((row) => row.user_id)));
   const labels = new Map<string, string>();
   if (ids.length > 0) {
-    const { data: profiles, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, display_name, company_name")
-      .in("id", ids);
-    if (profileError) throw profileError;
-    for (const profile of (profiles ?? []) as Array<{
-      id: string;
-      display_name: string | null;
-      company_name: string | null;
-    }>) {
-      const label = profile.display_name?.trim() || profile.company_name?.trim() || "";
-      if (label) labels.set(profile.id, label);
+    // Fonction dédiée : les profils bruts ne sont lisibles que par leur propriétaire.
+    const { data, error } = await rpcMemberLabels({ p_ids: ids });
+    if (error) throw error;
+    for (const row of (data ?? []) as Array<{ id: string; label: string | null }>) {
+      if (row.label?.trim()) labels.set(row.id, row.label.trim());
     }
   }
   return rows.map((row) => ({

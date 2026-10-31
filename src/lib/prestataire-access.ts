@@ -5,6 +5,7 @@
 export const PRESTATAIRE_ALLOWED_PATHS = [
   "/sst",
   "/pilot/calendrier",
+  "/interventions",
   "/settings",
   "/personnalisation",
 ] as const;
