@@ -630,7 +630,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           <Sheet>
             <SheetTrigger asChild>
               <button
-                className="-ml-1 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground"
+                className="-ml-1 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-foreground active:bg-accent/40"
                 aria-label="Ouvrir le menu des modules"
                 title="Menu des modules"
               >
@@ -639,38 +639,41 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
             </SheetTrigger>
             <SheetContent
               side="left"
-              className="w-[88vw] max-w-sm overflow-y-auto pt-[calc(env(safe-area-inset-top)+1.5rem)]"
+              className="flex h-dvh w-[88vw] max-w-sm flex-col overflow-hidden p-0 pt-[calc(env(safe-area-inset-top)+1rem)]"
             >
-              <SheetHeader className="text-left">
+              <SheetHeader className="shrink-0 px-6 text-left">
                 <SheetTitle className="font-serif">Modules</SheetTitle>
               </SheetHeader>
-              <div className="mt-3 space-y-4 pb-[env(safe-area-inset-bottom)]">
-                <div className="space-y-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
-                    Actions rapides
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <SheetClose asChild>
-                      <Link
-                        to="/interventions/new"
-                        className="flex items-center gap-3 rounded-xl bg-primary p-3 text-sm font-medium text-primary-foreground"
-                      >
-                        <Plus className="h-5 w-5 shrink-0" />
-                        <span className="truncate">Nouvelle intervention</span>
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link
-                        to="/fiches/new"
-                        className="flex items-center gap-3 rounded-xl bg-primary p-3 text-sm font-medium text-primary-foreground"
-                      >
-                        <Plus className="h-5 w-5 shrink-0" />
-                        <span className="truncate">Nouveau compte-rendu</span>
-                      </Link>
-                    </SheetClose>
+              {/* Zone défilante séparée : tous les modules restent atteignables, y compris en bas (barre de gestes). */}
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-[calc(env(safe-area-inset-bottom)+6rem)]">
+                <div className="mt-3 space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+                      Actions rapides
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <SheetClose asChild>
+                        <Link
+                          to="/interventions/new"
+                          className="flex items-center gap-3 rounded-xl bg-primary p-3 text-sm font-medium text-primary-foreground"
+                        >
+                          <Plus className="h-5 w-5 shrink-0" />
+                          <span className="truncate">Nouvelle intervention</span>
+                        </Link>
+                      </SheetClose>
+                      <SheetClose asChild>
+                        <Link
+                          to="/fiches/new"
+                          className="flex items-center gap-3 rounded-xl bg-primary p-3 text-sm font-medium text-primary-foreground"
+                        >
+                          <Plus className="h-5 w-5 shrink-0" />
+                          <span className="truncate">Nouveau compte-rendu</span>
+                        </Link>
+                      </SheetClose>
+                    </div>
                   </div>
+                  {groupsMenu}
                 </div>
-                {groupsMenu}
               </div>
             </SheetContent>
           </Sheet>

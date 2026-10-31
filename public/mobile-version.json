@@ -1,6 +1,6 @@
 {
-  "latestBuild": 7,
-  "versionName": "2.4",
+  "latestBuild": 8,
+  "versionName": "2.5",
   "apkUrl": "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk",
-  "notes": "Connexion par empreinte : après votre première connexion, vous pouvez vous connecter avec l'empreinte ou le visage. Calendrier SST : les noms des prestataires remplacent « Utilisateur PP ». Sous-traitance : nouvel onglet « Mes missions » pour les prestataires. CR Chantier accessible aux prestataires."
+  "notes": "Mise à jour en un clic depuis l'application. Connexion par empreinte (ou visage) après votre première connexion. Calendrier SST : les noms des prestataires remplacent « Utilisateur PP ». Sous-traitance : onglet « Mes missions » pour les prestataires. CR Chantier accessible aux prestataires. Un e-mail est envoyé au prestataire lorsqu'une mission lui est attribuée."
 }
