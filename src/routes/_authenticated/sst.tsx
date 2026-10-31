@@ -7,6 +7,7 @@ import { FichesIndex } from "./fiches.index";
 import { BookText, ClipboardList, LayoutDashboard } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRole } from "@/hooks/use-role";
+import { SstMyMissions } from "@/components/pilot/SstMyMissions";
 
 export const Route = createFileRoute("/_authenticated/sst")({
   head: () => ({
@@ -26,7 +27,7 @@ function SstPage() {
   const { role } = useRole();
   // Le prestataire ne voit que ses fiches : la vue financière (CA, marges, coûts) est réservée au gérant.
   const isPrestataire = role === "prestataire";
-  const [tab, setTab] = useState(isPrestataire ? "fiches" : "sous-traitance");
+  const [tab, setTab] = useState(isPrestataire ? "missions" : "sous-traitance");
 
   return (
     <AppShell title="SST">
@@ -36,6 +37,11 @@ function SstPage() {
             {!isPrestataire && (
               <TabsTrigger value="sous-traitance">
                 <LayoutDashboard className="mr-1.5 h-3.5 w-3.5" /> Sous-traitance
+              </TabsTrigger>
+            )}
+            {isPrestataire && (
+              <TabsTrigger value="missions">
+                <LayoutDashboard className="mr-1.5 h-3.5 w-3.5" /> Mes missions
               </TabsTrigger>
             )}
             <TabsTrigger value="fiches">
@@ -70,6 +76,12 @@ function SstPage() {
                 </p>
                 <SstProfitabilityTab />
               </section>
+            </TabsContent>
+          )}
+
+          {isPrestataire && (
+            <TabsContent value="missions" className="mt-5">
+              <SstMyMissions />
             </TabsContent>
           )}
 
