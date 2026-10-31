@@ -1,6 +1,6 @@
 {
-  "latestBuild": 6,
-  "versionName": "2.3",
+  "latestBuild": 7,
+  "versionName": "2.4",
   "apkUrl": "https://github.com/af20091991/crjardin/releases/latest/download/PilotPro.apk",
-  "notes": "Notifications push activées (Firebase)."
+  "notes": "Connexion par empreinte, calendrier SST avec les noms des prestataires, vue Mes missions."
 }

@@ -17,3 +17,5 @@ Coque native [Capacitor](https://capacitorjs.com) qui charge l'app PP publiée :
 
 ## Icônes / splash
 Sources dans `mobile/resources/` ; régénérer avec `npm run assets`.
+
+<!-- Build Android 7 (2.4) : connexion par empreinte. -->
