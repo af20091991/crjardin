@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { useRole } from "@/hooks/use-role";
+import { isPrestatairePathAllowed } from "@/lib/prestataire-access";
 import { NotificationBell } from "@/components/NotificationBell";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { NativeAppLayer } from "@/components/NativeAppLayer";
@@ -403,6 +404,11 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
 
   const visibleGroups = orderGroupsForRole(groups, role)
     .filter((g) => !appearance.hiddenGroups.includes(g.label))
+    .map((g) =>
+      role === "prestataire"
+        ? { ...g, items: g.items.filter((i) => isPrestatairePathAllowed(i.to)) }
+        : g,
+    )
     .filter((g) => g.items.length > 0 || g.emptyLabel);
   const navItems = visibleGroups.flatMap((g) => g.items);
   const groupsMenu = (
