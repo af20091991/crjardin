@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppVersionCard } from "@/components/AppVersionCard";
 import { BiometricLockSetting } from "@/components/BiometricLockSetting";
+import { BiometricLoginSetting } from "@/components/BiometricLoginSetting";
 import { AppShell, NAV_GROUP_LABELS } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -172,6 +173,7 @@ function PersonnalisationPage() {
         <AppVersionCard />
 
         <BiometricLockSetting />
+        <BiometricLoginSetting />
 
         <Card data-personalization="preview" className="overflow-hidden">
           <CardHeader className="border-b border-border/70 pb-4">
