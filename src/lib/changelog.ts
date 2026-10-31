@@ -24,6 +24,15 @@ export const THEME_LABELS: ChangeTheme[] = [
 export const CHANGELOG: ChangeEntry[] = [
   {
     date: "2026-10-31",
+    version: "2.6.8",
+    theme: "Clients",
+    title: "Dashboard Premium : ajout manuel de photos",
+    details: [
+      "Onglet Photos : ajoutez autant de photos que vous voulez à une intervention du client, en une seule sélection.",
+    ],
+  },
+  {
+    date: "2026-10-31",
     version: "2.6.7",
     theme: "Général",
     title: "Connexion par empreinte activable depuis Personnalisation",

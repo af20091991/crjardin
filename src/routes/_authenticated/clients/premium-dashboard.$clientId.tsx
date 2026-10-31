@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   CalendarDays,
@@ -21,6 +21,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardDocumentSender } from "@/components/premium-admin/DashboardDocumentSender";
 import { DashboardComposer } from "@/components/premium-admin/DashboardComposer";
+import { DashboardPhotoUploader } from "@/components/premium-admin/DashboardPhotoUploader";
 import { AdminStat, fmtDate, fmtDateTime } from "@/components/premium-admin/shared";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { getClient } from "@/lib/clients";
@@ -66,6 +67,7 @@ function PremiumClientDashboard() {
     enabled: isAdmin,
   });
   const token = clientQuery.data?.share_token;
+  const queryClient = useQueryClient();
   const sharedQuery = useQuery({
     queryKey: ["premium-dashboard-client", token],
     queryFn: () => getSharedClient({ data: { token: token! } }),
@@ -318,6 +320,14 @@ function PremiumClientDashboard() {
           </TabsContent>
 
           <TabsContent value="photos" className="mt-4 space-y-6">
+            <DashboardPhotoUploader
+              interventions={interventions}
+              onUploaded={() =>
+                void queryClient.invalidateQueries({
+                  queryKey: ["premium-dashboard-client", token],
+                })
+              }
+            />
             {photos.length === 0 && <Empty text="Aucune photo partagée." />}
             {interventions
               .filter((i) => i.photos.length > 0)
