@@ -149,7 +149,7 @@ function CeevListPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="w-[200px] space-y-1.5">
+          <div className="w-full space-y-1.5 sm:w-[200px]">
             <Label>Statut</Label>
             <Select value={status} onValueChange={(v) => setStatus(v as "tous" | CeevStatus)}>
               <SelectTrigger><SelectValue /></SelectTrigger>

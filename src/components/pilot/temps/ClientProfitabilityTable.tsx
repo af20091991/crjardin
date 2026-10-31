@@ -351,7 +351,7 @@ export function ClientProfitabilityTable({
                             </span>
                           )}
                         </div>
-                        <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                           <div>
                             <p className="text-xs text-muted-foreground">CA HT</p>
                             <p className="tabular-nums">{formatEuro(c.caHt)}</p>

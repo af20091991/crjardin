@@ -1,17 +1,49 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { checkMobileUpdate, UPDATE_CLICKED_KEY, type RemoteVersion } from "@/lib/mobile-update";
+import { nativePlugin } from "@/lib/native-app";
 
 const DISMISS_KEY = "pp-mobile-update-dismissed";
 
-export function openUpdate(remote: RemoteVersion) {
+type ApkUpdateNative = {
+  downloadAndInstall: (o: { url: string }) => Promise<{ needsPermission?: boolean }>;
+  openInstallSettings: () => Promise<void>;
+};
+
+/**
+ * Mise à jour en un clic : téléchargement et installation dans l'appli (module natif ApkUpdate).
+ * Ancienne version de l'APK sans ce module : ouverture du lien de téléchargement.
+ */
+export async function openUpdate(remote: RemoteVersion): Promise<void> {
   try {
     localStorage.setItem(UPDATE_CLICKED_KEY, String(remote.latestBuild));
   } catch {
     /* ignore */
   }
-  window.open(remote.apkUrl, "_blank");
+  const plugin = nativePlugin<ApkUpdateNative>("ApkUpdate");
+  if (!plugin?.downloadAndInstall) {
+    window.open(remote.apkUrl, "_blank");
+    return;
+  }
+  try {
+    const result = await plugin.downloadAndInstall({ url: remote.apkUrl });
+    if (result?.needsPermission) {
+      toast.info(
+        "Autorisez l'installation pour PilotPro, puis appuyez de nouveau sur Mettre à jour.",
+      );
+      await plugin.openInstallSettings();
+    }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    // Ancienne APK sans le module natif : on passe par le téléchargement classique.
+    if (/not implemented|not found/i.test(message)) {
+      window.open(remote.apkUrl, "_blank");
+      return;
+    }
+    toast.error(message);
+  }
 }
 
 /**

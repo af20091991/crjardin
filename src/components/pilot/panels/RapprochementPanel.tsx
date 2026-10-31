@@ -362,7 +362,7 @@ export function RapprochementPage() {
                 />
               </div>
               <Select value={yearFilter} onValueChange={setYearFilter}>
-                <SelectTrigger className="w-[130px]">
+                <SelectTrigger className="w-full sm:w-[130px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -375,7 +375,7 @@ export function RapprochementPage() {
                 </SelectContent>
               </Select>
               <Select value={confFilter} onValueChange={setConfFilter}>
-                <SelectTrigger className="w-[165px]">
+                <SelectTrigger className="w-full sm:w-[165px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

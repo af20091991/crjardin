@@ -450,7 +450,7 @@ export function ProfitabilityClientsView() {
                           onCertified={certifQ.refetch}
                         />
                       </div>
-                      <div className="mt-2 grid grid-cols-3 gap-x-2 gap-y-2 text-sm">
+                      <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-x-2 gap-y-2 text-sm">
                         <div>
                           <p className="text-xs text-muted-foreground">CA</p>
                           <p className="tabular-nums">{formatEuro(c.ca)}</p>

@@ -276,7 +276,7 @@ export function SstDashboard() {
                   <span className="font-medium">{p.key}</span>
                   <span className="text-sm text-muted-foreground">{p.missions} mission(s)</span>
                 </div>
-                <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">Coût SST</p>
                     <p>{eur(p.cost)}</p>
