@@ -25,6 +25,8 @@ import {
 } from "@/lib/subcontractors";
 import { listClients } from "@/lib/clients";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { sendSstMissionAssignedEmail } from "@/lib/sst-mission-email.functions";
 
 type Client = Awaited<ReturnType<typeof listClients>>[number];
 
@@ -44,6 +46,7 @@ const num = (value: string) => (value.trim() === "" ? null : Number(value));
 export function SstCreateMissionDialog({ open, onOpenChange, subcontractors, onCreated }: Props) {
   const [clients, setClients] = useState<Client[]>([]);
   const [saving, setSaving] = useState(false);
+  const sendMissionEmail = useServerFn(sendSstMissionAssignedEmail);
   const [form, setForm] = useState({
     subcontractor_id: "",
     client_id: "none",
@@ -116,6 +119,7 @@ export function SstCreateMissionDialog({ open, onOpenChange, subcontractors, onC
         autonomy: form.autonomy.trim() || null,
         parallel_worksite: form.parallel_worksite.trim() || null,
       });
+      void sendMissionEmail({ data: { missionId: created.id } }).catch(() => undefined);
       toast.success("Mission SST créée");
       onCreated(created);
       onOpenChange(false);
