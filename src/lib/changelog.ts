@@ -23,6 +23,16 @@ export const THEME_LABELS: ChangeTheme[] = [
 // Historique des évolutions de l'application — du plus récent au plus ancien.
 export const CHANGELOG: ChangeEntry[] = [
   {
+    date: "2026-10-31",
+    version: "2.6.6",
+    theme: "Général",
+    title: "Nouvel écran de démarrage",
+    details: [
+      "Logo agrandi et animation d'accueil (graine, tracé du cercle, léger mouvement) à l'ouverture de l'application.",
+      "L'application mobile affiche le même écran de démarrage (build 9).",
+    ],
+  },
+  {
     date: "2026-10-30",
     version: "2.6.5",
     theme: "Clients",
