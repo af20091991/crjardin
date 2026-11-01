@@ -24,6 +24,7 @@ import {
   type SharedRecommendation,
   type SharedClientData,
   type SharedPremiumData,
+  type SharedPhoto,
   premiumClientTitle,
 } from "@/lib/share.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -217,6 +218,7 @@ function SharePage() {
 
   if (!data) return null;
   const { client, interventions, recommendations } = data;
+  const freePhotos = data.free_photos ?? [];
 
   const unreadRecos = recommendations.filter((r) => !r.client_viewed_at).length;
 
@@ -242,6 +244,7 @@ function SharePage() {
       <PremiumExperience
         client={client}
         interventions={interventions}
+        freePhotos={freePhotos}
         recommendations={recommendations}
         premium={premium}
         messages={messages ?? []}
@@ -426,6 +429,7 @@ function PremiumPageIntro({
 function PremiumExperience({
   client,
   interventions,
+  freePhotos,
   recommendations,
   premium,
   messages,
@@ -437,6 +441,7 @@ function PremiumExperience({
 }: {
   client: SharedClientData["client"];
   interventions: SharedIntervention[];
+  freePhotos: SharedPhoto[];
   recommendations: SharedRecommendation[];
   premium: SharedPremiumData;
   messages: ClientMessage[];
@@ -577,6 +582,7 @@ function PremiumExperience({
             />
             <PremiumPhotos
               interventions={interventions}
+              freePhotos={freePhotos}
               coverPhotoId={premium.cover_photo_id}
               token={token}
               onCoverChanged={() => qc.invalidateQueries({ queryKey: ["shared-premium", token] })}

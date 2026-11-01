@@ -120,6 +120,7 @@ function PremiumClientDashboard() {
 
   const messages = messagesQuery.data ?? [];
   const interventions = shared.interventions;
+  const freePhotos = shared.free_photos ?? [];
   const groups = premium.recommendation_groups;
   const recos = groups.flatMap((g) => g.items);
   const interested = recos.filter((r) => r.client_interest === "interested").length;
@@ -321,6 +322,7 @@ function PremiumClientDashboard() {
 
           <TabsContent value="photos" className="mt-4 space-y-6">
             <DashboardPhotoUploader
+              clientId={clientId}
               interventions={interventions}
               onUploaded={() =>
                 void queryClient.invalidateQueries({
@@ -328,7 +330,34 @@ function PremiumClientDashboard() {
                 })
               }
             />
-            {photos.length === 0 && <Empty text="Aucune photo partagée." />}
+            {freePhotos.length > 0 && (
+              <section>
+                <p className="mb-2 text-sm font-medium">Photos libres</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+                  {freePhotos.map((p) =>
+                    p.url ? (
+                      <a
+                        key={p.id}
+                        href={p.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                      >
+                        <img
+                          src={p.url}
+                          alt={p.caption ?? ""}
+                          loading="lazy"
+                          className="aspect-square w-full rounded-lg object-cover"
+                        />
+                      </a>
+                    ) : null,
+                  )}
+                </div>
+              </section>
+            )}
+            {photos.length === 0 && freePhotos.length === 0 && (
+              <Empty text="Aucune photo partagée." />
+            )}
             {interventions
               .filter((i) => i.photos.length > 0)
               .map((iv) => (

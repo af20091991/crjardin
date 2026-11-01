@@ -1870,7 +1870,8 @@ export type Database = {
           created_at: string;
           id: string;
           include_in_report: boolean;
-          intervention_id: string;
+          client_id: string | null;
+          intervention_id: string | null;
           lat: number | null;
           lng: number | null;
           position: number;
@@ -1882,7 +1883,8 @@ export type Database = {
           created_at?: string;
           id?: string;
           include_in_report?: boolean;
-          intervention_id: string;
+          intervention_id?: string | null;
+          client_id?: string | null;
           lat?: number | null;
           lng?: number | null;
           position?: number;
@@ -1894,7 +1896,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           include_in_report?: boolean;
-          intervention_id?: string;
+          intervention_id?: string | null;
           lat?: number | null;
           lng?: number | null;
           position?: number;
@@ -1933,7 +1935,8 @@ export type Database = {
           created_at?: string;
           event_type: string;
           id?: string;
-          intervention_id: string;
+          intervention_id?: string | null;
+          client_id?: string | null;
           metadata?: Json | null;
           pdf_storage_path?: string | null;
           recipient?: string | null;
@@ -1943,7 +1946,7 @@ export type Database = {
           created_at?: string;
           event_type?: string;
           id?: string;
-          intervention_id?: string;
+          intervention_id?: string | null;
           metadata?: Json | null;
           pdf_storage_path?: string | null;
           recipient?: string | null;
@@ -1981,7 +1984,8 @@ export type Database = {
         Insert: {
           created_at?: string;
           id?: string;
-          intervention_id: string;
+          intervention_id?: string | null;
+          client_id?: string | null;
           label: string;
           note?: string | null;
           position?: number;
@@ -1992,7 +1996,7 @@ export type Database = {
         Update: {
           created_at?: string;
           id?: string;
-          intervention_id?: string;
+          intervention_id?: string | null;
           label?: string;
           note?: string | null;
           position?: number;

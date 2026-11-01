@@ -4,7 +4,11 @@ import { Check, ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ImageLightbox } from "@/components/ImageLightbox";
-import { setSharedPremiumCover, type SharedIntervention } from "@/lib/share.functions";
+import {
+  setSharedPremiumCover,
+  type SharedIntervention,
+  type SharedPhoto,
+} from "@/lib/share.functions";
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("fr-FR", {
@@ -16,11 +20,13 @@ function formatDate(value: string) {
 
 export function PremiumPhotos({
   interventions,
+  freePhotos = [],
   coverPhotoId,
   token,
   onCoverChanged,
 }: {
   interventions: SharedIntervention[];
+  freePhotos?: SharedPhoto[];
   coverPhotoId: string | null;
   token: string;
   onCoverChanged: () => void;
@@ -43,7 +49,9 @@ export function PremiumPhotos({
     .filter((group) => group.photos.length > 0)
     .sort((a, b) => b.iv.intervention_date.localeCompare(a.iv.intervention_date));
 
-  if (groups.length === 0) {
+  const visibleFree = freePhotos.filter((photo) => photo.url);
+
+  if (groups.length === 0 && visibleFree.length === 0) {
     return (
       <div className="mt-8 rounded-2xl border border-dashed bg-muted/20 p-8 text-center">
         <ImageIcon className="mx-auto size-8 text-primary/60" strokeWidth={1.4} />
@@ -57,6 +65,39 @@ export function PremiumPhotos({
 
   return (
     <div className="mt-8 space-y-12">
+      {visibleFree.length > 0 && (
+        <section>
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">
+            <h3 className="font-premium-serif text-2xl font-medium sm:text-3xl">Photos libres</h3>
+            <p className="text-sm text-muted-foreground">
+              {visibleFree.length} photo{visibleFree.length > 1 ? "s" : ""}
+            </p>
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {visibleFree.map((photo) => (
+              <figure key={photo.id} className="space-y-2">
+                <div className="overflow-hidden rounded-xl border bg-muted">
+                  <ImageLightbox
+                    src={photo.url!}
+                    alt={photo.caption ?? "Photo libre"}
+                    caption={photo.caption}
+                  >
+                    <img
+                      src={photo.url!}
+                      alt={photo.caption ?? "Photo libre"}
+                      loading="lazy"
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                  </ImageLightbox>
+                </div>
+                {photo.caption && (
+                  <figcaption className="text-xs text-muted-foreground">{photo.caption}</figcaption>
+                )}
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
       {groups.map(({ iv, photos }) => (
         <section key={iv.id}>
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">

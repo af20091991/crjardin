@@ -67,6 +67,7 @@ export interface SharedClientData {
   };
   recommendations: SharedRecommendation[];
   interventions: SharedIntervention[];
+  free_photos?: SharedPhoto[];
 }
 
 export interface SharedPremiumDocument {
@@ -441,7 +442,11 @@ export const getSharedClient = createServerFn({ method: "GET" })
     }
 
     // Sign photo URLs with the admin client (private bucket).
-    const paths = result.interventions.flatMap((iv) => iv.photos.map((p) => p.storage_path));
+    const freePhotos = result.free_photos ?? [];
+    const paths = [
+      ...result.interventions.flatMap((iv) => iv.photos.map((p) => p.storage_path)),
+      ...freePhotos.map((p) => p.storage_path),
+    ];
     if (paths.length > 0) {
       const { data: signed } = await supabaseAdmin.storage
         .from(BUCKET)
@@ -454,6 +459,9 @@ export const getSharedClient = createServerFn({ method: "GET" })
         iv.photos.forEach((p) => {
           p.url = map.get(p.storage_path) ?? null;
         });
+      });
+      freePhotos.forEach((p) => {
+        p.url = map.get(p.storage_path) ?? null;
       });
     }
 
@@ -811,7 +819,9 @@ export const setSharedPremiumCover = createServerFn({ method: "POST" })
       .select("id, intervention_id, include_in_report")
       .eq("id", data.photoId)
       .maybeSingle();
-    if (!photo || !photo.include_in_report) throw new Error("Photo introuvable");
+    if (!photo || !photo.include_in_report || !photo.intervention_id) {
+      throw new Error("Photo introuvable");
+    }
     const { data: intervention } = await supabaseAdmin
       .from("interventions")
       .select("client_id, status")
