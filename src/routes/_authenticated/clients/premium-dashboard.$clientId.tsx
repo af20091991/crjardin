@@ -20,8 +20,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardDocumentSender } from "@/components/premium-admin/DashboardDocumentSender";
 import { DashboardComposer } from "@/components/premium-admin/DashboardComposer";
 import { DashboardPhotoUploader } from "@/components/premium-admin/DashboardPhotoUploader";
-import { EditableBlock, EditableRecommendation } from "@/components/premium-admin/EditableFields";
-import { updateClientPremium } from "@/lib/client-premium";
+import {
+  EditableBlock,
+  EditableRecommendation,
+  NewRecommendationForm,
+} from "@/components/premium-admin/EditableFields";
+import { createRecommendationForPremium, updateClientPremium } from "@/lib/client-premium";
 import { AdminStat, fmtDate, fmtDateTime } from "@/components/premium-admin/shared";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { getClient } from "@/lib/clients";
@@ -288,6 +292,13 @@ function PremiumClientDashboard() {
           </TabsContent>
 
           <TabsContent value="recos" className="mt-4 space-y-6">
+            <NewRecommendationForm
+              interventions={interventions}
+              onCreate={async (input) => {
+                await createRecommendationForPremium({ clientId, ...input });
+                refreshPremium();
+              }}
+            />
             <div className="flex flex-wrap gap-2 text-sm">
               <Badge variant="secondary">{interested} intéressé(es)</Badge>
               <Badge variant="secondary">{declined} refusée(s)</Badge>

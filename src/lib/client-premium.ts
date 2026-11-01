@@ -380,3 +380,24 @@ export async function updateRecommendationContent(
     .eq("id", id);
   if (error) throw new Error(`Impossible d'enregistrer la préconisation : ${error.message}`);
 }
+
+/** Ajout d'une préconisation depuis le dashboard Premium admin, rattachée ou non à une intervention. */
+export async function createRecommendationForPremium(input: {
+  clientId: string;
+  interventionId: string | null;
+  title: string;
+  description: string | null;
+}): Promise<void> {
+  const user_id = await uid();
+  const { error } = await supabase.from("recommendations").insert({
+    user_id,
+    client_id: input.clientId,
+    intervention_id: input.interventionId,
+    title: input.title,
+    description: input.description,
+    status: "en_attente",
+    source: "manuel",
+    unit_price: 70,
+  });
+  if (error) throw new Error(`Impossible d'ajouter la préconisation : ${error.message}`);
+}

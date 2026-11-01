@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { Check, Loader2, Pencil, X } from "lucide-react";
+import { Check, Loader2, Pencil, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { SharedRecommendation } from "@/lib/share.functions";
 import { updateRecommendationContent } from "@/lib/client-premium";
@@ -189,5 +196,112 @@ export function EditableRecommendation({
       </div>
       {badge}
     </li>
+  );
+}
+
+export interface RecommendationTarget {
+  id: string;
+  title: string | null;
+  intervention_type: string | null;
+  intervention_date: string;
+}
+
+/** Formulaire d'ajout d'une préconisation, rattachée à une intervention ou hors intervention. */
+export function NewRecommendationForm({
+  interventions,
+  onCreate,
+}: {
+  interventions: RecommendationTarget[];
+  onCreate: (input: {
+    interventionId: string | null;
+    title: string;
+    description: string | null;
+  }) => Promise<void>;
+}) {
+  const NONE = "__none__";
+  const [open, setOpen] = useState(false);
+  const [target, setTarget] = useState<string>(interventions[0]?.id ?? NONE);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => {
+    setTitle("");
+    setDescription("");
+    setOpen(false);
+  };
+
+  const save = async () => {
+    if (!title.trim()) {
+      toast.error("Le titre est obligatoire.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await onCreate({
+        interventionId: target === NONE ? null : target,
+        title: title.trim(),
+        description: description.trim() || null,
+      });
+      toast.success("Préconisation ajoutée");
+      reset();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <Plus className="mr-1 h-3.5 w-3.5" />
+        Ajouter une préconisation
+      </Button>
+    );
+  }
+
+  return (
+    <Card className="space-y-3 p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Nouvelle préconisation
+      </p>
+      <Select value={target} onValueChange={setTarget} disabled={saving}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE}>Hors intervention</SelectItem>
+          {interventions.map((iv) => (
+            <SelectItem key={iv.id} value={iv.id}>
+              {iv.title ?? iv.intervention_type ?? "Intervention"} ·{" "}
+              {new Date(iv.intervention_date).toLocaleDateString("fr-FR")}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Titre de la préconisation"
+        disabled={saving}
+      />
+      <Textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        rows={3}
+        placeholder="Description (facultative)"
+        disabled={saving}
+      />
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" size="sm" disabled={saving} onClick={reset}>
+          Annuler
+        </Button>
+        <Button type="button" size="sm" disabled={saving} onClick={() => void save()}>
+          {saving && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+          Ajouter
+        </Button>
+      </div>
+    </Card>
   );
 }
