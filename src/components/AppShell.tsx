@@ -726,7 +726,10 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         <NativeAppLayer />
         <MobileUpdatePrompt />
 
-        <main data-shell="main" className="px-4 pb-6 pt-4 md:px-6 md:pb-10">
+        <main
+          data-shell="main"
+          className="px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] pt-4 md:px-6 md:pb-10"
+        >
           {children}
         </main>
       </div>
